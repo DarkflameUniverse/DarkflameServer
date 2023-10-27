@@ -84,10 +84,10 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 
-	auto* recorder = Recording::Recorder::GetRecorder(user->GetLoggedInChar());
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(user->GetLoggedInChar());
 
 	if (recorder != nullptr) {
-		recorder->AddRecord(new Recording::SpeakRecord(sMessage));
+		recorder->AddRecord(new Cinema::Recording::SpeakRecord(sMessage));
 	}
 }
 
@@ -243,10 +243,10 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 	comp->SetAngularVelocity(angVelocity);
 	comp->SetDirtyAngularVelocity(angVelocityFlag);
 
-	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 	if (recorder != nullptr) {
-		recorder->AddRecord(new Recording::MovementRecord(
+		recorder->AddRecord(new Cinema::Recording::MovementRecord(
 			position,
 			rotation,
 			velocity,

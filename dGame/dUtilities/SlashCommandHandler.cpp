@@ -88,6 +88,8 @@
 
 #include "Recorder.h"
 #include "ServerPreconditions.hpp"
+#include "Prefab.h"
+#include "Scene.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	auto commandCopy = command;
@@ -946,7 +948,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		// Construct it
 		Game::entityManager->ConstructEntity(actor);
 
-		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 		if (record) {
 			record->Act(actor);
@@ -956,13 +958,27 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "record-start" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		Recording::Recorder::StartRecording(entity->GetObjectID());
+		Cinema::Recording::Recorder::StartRecording(entity->GetObjectID());
 
-		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 		if (record) {
 			if (args.size() > 0 && args[0] == "clear") {
-				record->AddRecord(new Recording::ClearEquippedRecord());
+				record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+			}
+			else if (args.size() > 0 && args[0] == "copy") {
+				record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+
+				auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+				if (inventoryComponent) {
+					for (const auto& [k, v] : inventoryComponent->GetEquippedItems()) {
+						auto* equipmentRecord = new Cinema::Recording::EquipRecord();
+						equipmentRecord->item = v.lot;
+
+						record->AddRecord(equipmentRecord);
+					}
+				}
 			}
 		} else {
 			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
@@ -970,11 +986,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "record-stop" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		Recording::Recorder::StopRecording(entity->GetObjectID());
+		Cinema::Recording::Recorder::StopRecording(entity->GetObjectID());
 	}
 
 	if (chatCommand == "record-save" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		auto* record = Recording::Recorder::GetRecorder(entity->GetObjectID());
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 		if (record) {
 			record->SaveToFile(args[0]);
@@ -984,13 +1000,55 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "record-load" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		auto* record = Recording::Recorder::LoadFromFile(args[0]);
+		auto* record = Cinema::Recording::Recorder::LoadFromFile(args[0]);
 
 		if (record) {
-			Recording::Recorder::AddRecording(entity->GetObjectID(), record);
+			Cinema::Recording::Recorder::AddRecording(entity->GetObjectID(), record);
 		} else {
 			Game::logger->Log("SlashCommandHandler", "Failed to load recording from file: %s", args[0].c_str());
 		}
+	}
+
+	if (chatCommand == "prefab-spawn" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		const auto& prefab = Cinema::Prefab::LoadFromFile(args[0]);
+
+		float scale = 1.0f;
+
+		if (args.size() >= 2) {
+			if (!GeneralUtils::TryParse(args[1], scale)) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid scale.");
+				return;
+			}
+		}
+
+		size_t id = prefab.Instantiate(entity->GetPosition(), scale);
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Spawned prefab with ID: " + GeneralUtils::to_u16string(id));
+
+		return;
+	}
+
+	if (chatCommand == "prefab-destroy" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		size_t id;
+
+		if (!GeneralUtils::TryParse(args[0], id)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid prefab ID.");
+			return;
+		}
+
+		Cinema::Prefab::DestroyInstance(id);
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Destroyed prefab with ID: " + GeneralUtils::to_u16string(id));
+
+		return;
+	}
+
+	if (chatCommand == "scene-act" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto& scene = Cinema::Scene::LoadFromFile(args[0]);
+
+		scene.Act(entity);
+
+		return;
 	}
 
 	if ((chatCommand == "teleport" || chatCommand == "tele") && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {
@@ -2196,6 +2254,68 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
 					}
 				}
+			} else if (args[1] == "-rotate" && args.size() >= 4) {
+				const auto& rx = args[2];
+				const auto& ry = args[3];
+				const auto& rz = args[4];
+
+				float x, y, z;
+
+				if (!GeneralUtils::TryParse(rx, x) || !GeneralUtils::TryParse(ry, y) || !GeneralUtils::TryParse(rz, z)) {
+					return;
+				}
+
+				// Degrees to radia
+				x *= 0.0174533f;
+				y *= 0.0174533f;
+				z *= 0.0174533f;
+
+				const auto rotation = NiQuaternion::FromEulerAngles(NiPoint3(x, y, z));
+
+				closest->SetRotation(rotation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-translate" && args.size() >= 4) {
+				const auto& tx = args[2];
+				const auto& ty = args[3];
+				const auto& tz = args[4];
+
+				float x, y, z;
+
+				if (!GeneralUtils::TryParse(tx, x) || !GeneralUtils::TryParse(ty, y) || !GeneralUtils::TryParse(tz, z)) {
+					return;
+				}
+
+				const auto translation = NiPoint3(x, y, z);
+
+				closest->SetPosition(closest->GetPosition() + translation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-warp" && args.size() >= 4) {
+				const auto& tx = args[2];
+				const auto& ty = args[3];
+				const auto& tz = args[4];
+
+				float x, y, z;
+
+				if (!GeneralUtils::TryParse(tx, x) || !GeneralUtils::TryParse(ty, y) || !GeneralUtils::TryParse(tz, z)) {
+					return;
+				}
+
+				const auto translation = NiPoint3(x, y, z);
+
+				closest->SetPosition(translation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-fx" && args.size() >= 4) {
+				int32_t effectID = 0;
+
+				if (!GeneralUtils::TryParse(args[2], effectID)) {
+					return;
+				}
+
+				// FIXME: use fallible ASCIIToUTF16 conversion, because non-ascii isn't valid anyway
+				GameMessages::SendPlayFXEffect(closest->GetObjectID(), effectID, GeneralUtils::ASCIIToUTF16(args[3]), args[4]);
 			}
 		}
 	}

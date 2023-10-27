@@ -203,6 +203,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dInventory"
 	"dGame/dMission"
 	"dGame/dEntity"
+	"dGame/dCinema"
 	"dGame/dPropertyBehaviors"
 	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"

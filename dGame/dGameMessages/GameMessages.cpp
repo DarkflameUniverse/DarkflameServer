@@ -192,10 +192,10 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 
 	SEND_PACKET_BROADCAST;
 
-	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 	if (recorder != nullptr) {
-		recorder->AddRecord(new Recording::AnimationRecord(GeneralUtils::UTF16ToWTF8(animationName)));
+		recorder->AddRecord(new Cinema::Recording::AnimationRecord(GeneralUtils::UTF16ToWTF8(animationName)));
 	}
 }
 
@@ -5368,10 +5368,10 @@ void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) 
 
 	Game::entityManager->SerializeEntity(entity);
 
-	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 	if (recorder != nullptr) {
-		recorder->AddRecord(new Recording::EquipRecord(item->GetLot()));
+		recorder->AddRecord(new Cinema::Recording::EquipRecord(item->GetLot()));
 	}
 }
 
@@ -5394,10 +5394,10 @@ void GameMessages::HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity
 
 	Game::entityManager->SerializeEntity(entity);
 
-	auto* recorder = Recording::Recorder::GetRecorder(entity->GetObjectID());
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
 
 	if (recorder != nullptr) {
-		recorder->AddRecord(new Recording::UnequipRecord(item->GetLot()));
+		recorder->AddRecord(new Cinema::Recording::UnequipRecord(item->GetLot()));
 	}
 }
 

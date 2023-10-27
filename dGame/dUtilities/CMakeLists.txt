@@ -5,6 +5,5 @@ set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"Mail.cpp"
 	"Preconditions.cpp"
 	"SlashCommandHandler.cpp"
-	"Recorder.cpp"
 	"ServerPreconditions.cpp"
 	"VanityUtilities.cpp" PARENT_SCOPE)

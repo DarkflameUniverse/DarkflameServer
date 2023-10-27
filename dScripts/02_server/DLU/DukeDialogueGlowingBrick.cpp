@@ -22,7 +22,7 @@ void DukeDialogueGlowingBrick::OnMissionDialogueOK(Entity* self, Entity* target,
 		return;
 	}
 
-	auto* recorder = Recording::Recorder::LoadFromFile("DukeGlowing.xml");
+	auto* recorder = Cinema::Recording::Recorder::LoadFromFile("DukeGlowing.xml");
 
 	if (recorder == nullptr) {
 		return;

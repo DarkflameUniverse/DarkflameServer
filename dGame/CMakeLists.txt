@@ -56,6 +56,12 @@ foreach(file ${DGAME_DUTILITIES_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "dUtilities/${file}")
 endforeach()
 
+add_subdirectory(dCinema)
+
+foreach(file ${DGAME_DCINEMA_SOURCES})
+	set(DGAME_SOURCES ${DGAME_SOURCES} "dCinema/${file}")
+endforeach()
+
 foreach(file ${DSCRIPTS_SOURCES})
 	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
 endforeach()
