@@ -63,7 +63,7 @@ public:
 
 	void PopulateUserFriendMap(uint32_t user);
 
-	std::vector<uint32_t> GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod);
+	std::vector<uint32_t> GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod, Entity* requestor);
 	
 	PropertyData GetPropertyData(uint32_t propertyID);
 	PropertyPersonalData GetPropertyPersonalData(PropertyData& propertyData, Entity* queryingUser, bool updatePropertyDataStructure = false);

@@ -98,8 +98,8 @@ void PropertyEntranceComponent::PopulateUserFriendMap(uint32_t user) {
 	friendQuery = nullptr;
 }
 
-std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod) {
-	std::string query = "SELECT id, last_updated, reputation FROM properties WHERE zone_id = ? AND (description LIKE ? OR name LIKE ? OR name LIKE ?) AND privacy_option >= ? ";
+std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod, Entity* requestor) {
+	std::string query = "SELECT id, owner_id, last_updated, reputation FROM properties WHERE zone_id = ? AND (description LIKE ? OR name LIKE ? OR name LIKE ?) AND privacy_option >= ? ";
 
 	if (sortMethod == SORT_TYPE_RECENT) {
 		query += "ORDER BY last_updated DESC;";
@@ -123,6 +123,12 @@ std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(con
 	std::vector<uint32_t> propertyIds{};
 
 	while (propertyIdRes->next()) {
+		if (sortMethod == SORT_TYPE_FRIENDS || sortMethod == SORT_TYPE_FEATURED) {
+			if (m_UserFriendMap[(uint32_t)requestor->GetObjectID()].find(propertyIdRes->getUInt(2)) == m_UserFriendMap[(uint32_t)requestor->GetObjectID()].end()) {
+				continue;
+			}
+		}
+
 		propertyIds.push_back(propertyIdRes->getUInt(1));
 	}
 
@@ -159,9 +165,9 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	entries.push_back(playerEntry);
 
-	auto propertyIds = this->GetPropertyIDsBasedOnParams(filterText, sortMethod);
+	auto propertyIds = this->GetPropertyIDsBasedOnParams(filterText, sortMethod, entity);
 
-	std::vector<uint32_t> propertyIdsSlice(propertyIds.begin() + startIndex, propertyIds.begin() + startIndex + numResults);
+	std::vector<uint32_t> propertyIdsSlice(propertyIds.begin() + startIndex, propertyIds.begin() + std::min(startIndex + numResults, (int32_t)propertyIds.size()));
 
 	for (const auto& id : propertyIdsSlice) {
 		auto prop = this->GetPropertyData(id);
@@ -218,11 +224,11 @@ PropertyData PropertyEntranceComponent::GetPropertyData(uint32_t propertyID) {
 
 	entry.PrimaryData.OwnerID = result->getInt(2);
 	entry.PrimaryData.IsModeratorApproved = result->getBoolean(10);
-	
+
 	entry.PrimaryData.Name = std::string(result->getString(5).c_str());
 	entry.PrimaryData.Description = std::string(result->getString(6).c_str());
 	entry.PrimaryData.Reputation = result->getUInt(14);
-	
+
 	entry.MetaData.AccessType = result->getInt(9);
 	entry.MetaData.DateLastPublished = result->getInt64(11);
 	entry.MetaData.PerformanceCost = result->getFloat(16);
@@ -241,9 +247,9 @@ PropertyData PropertyEntranceComponent::GetPropertyData(uint32_t propertyID) {
 PropertyPersonalData PropertyEntranceComponent::GetPropertyPersonalData(PropertyData& propertyData, Entity* queryingUser, bool updatePropertyDataStructure) {
 	PropertyPersonalData personalData{};
 
-	personalData.IsFriend = m_UserFriendMap[(uint32_t)queryingUser].find(propertyData.PrimaryData.OwnerID) != m_UserFriendMap[(uint32_t)queryingUser].end();
+	personalData.IsFriend = m_UserFriendMap[(uint32_t)queryingUser->GetObjectID()].find(propertyData.PrimaryData.OwnerID) != m_UserFriendMap[(uint32_t)queryingUser->GetObjectID()].end();
 	if (personalData.IsFriend) {
-		personalData.IsBestFriend = m_UserFriendMap[(uint32_t)queryingUser][propertyData.PrimaryData.OwnerID];
+		personalData.IsBestFriend = m_UserFriendMap[(uint32_t)queryingUser->GetObjectID()][propertyData.PrimaryData.OwnerID];
 	}
 
 	personalData.IsModeratorApproved = propertyData.PrimaryData.IsModeratorApproved;
@@ -252,6 +258,7 @@ PropertyPersonalData PropertyEntranceComponent::GetPropertyPersonalData(Property
 		propertyData.PrimaryData.Name = "[AWAITING APPROVAL]";
 		propertyData.PrimaryData.Description = "[AWAITING APPROVAL]";
 		propertyData.PrimaryData.IsModeratorApproved = true;
+		propertyData.PersonalData.IsModeratorApproved = true;
 	}
 
 	auto* user = UserManager::Instance()->GetUser(queryingUser->GetSystemAddress());
