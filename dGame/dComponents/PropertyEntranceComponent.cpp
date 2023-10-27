@@ -6,7 +6,7 @@
 #include "Database.h"
 #include "GameMessages.h"
 #include "PropertyManagementComponent.h"
-#include "PropertySelectQueryProperty.h"
+#include "PropertyData.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "CharacterComponent.h"
 #include "UserManager.h"
@@ -14,10 +14,9 @@
 #include "Amf3.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "User.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
-	this->propertyQueries = {};
-
+PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent), m_UserRequestedCloneMap() {
 	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
 	const auto& entry = table->GetByID(componentID);
 
@@ -52,15 +51,12 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 		// Increment index once here because the first index of other player properties is 2 in the propertyQueries cache.
 		index++;
 
-		const auto& pair = propertyQueries.find(entity->GetObjectID());
+		const auto& item = m_UserRequestedCloneMap.find(entity->GetObjectID());
+		if (item == m_UserRequestedCloneMap.end()) return;
 
-		if (pair == propertyQueries.end()) return;
+		if (index >= m_UserRequestedCloneMap[entity->GetObjectID()].size()) return;
 
-		const auto& query = pair->second;
-
-		if (index >= query.size()) return;
-
-		cloneId = query[index].CloneId;
+		cloneId = m_UserRequestedCloneMap[entity->GetObjectID()][index];
 	}
 
 	auto* launcher = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
@@ -74,261 +70,214 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 	launcher->Launch(entity, launcher->GetTargetZone(), cloneId);
 }
 
-PropertySelectQueryProperty PropertyEntranceComponent::SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId, std::string ownerName, std::string propertyName, std::string propertyDescription, float reputation, bool isBFF, bool isFriend, bool isModeratorApproved, bool isAlt, bool isOwned, uint32_t privacyOption, uint32_t timeLastUpdated, float performanceCost) {
-	property.CloneId = cloneId;
-	property.OwnerName = ownerName;
-	property.Name = propertyName;
-	property.Description = propertyDescription;
-	property.Reputation = reputation;
-	property.IsBestFriend = isBFF;
-	property.IsFriend = isFriend;
-	property.IsModeratorApproved = isModeratorApproved;
-	property.IsAlt = isAlt;
-	property.IsOwned = isOwned;
-	property.AccessType = privacyOption;
-	property.DateLastPublished = timeLastUpdated;
-	property.PerformanceCost = performanceCost;
+void PropertyEntranceComponent::PopulateUserFriendMap(uint32_t user) {
+	this->m_UserFriendMap[user] = {};
 
-	return property;
-}
+	auto friendQuery = Database::CreatePreppedStmt("SELECT * FROM friends WHERE friend_id = ? OR player_id = ?;");
+	friendQuery->setUInt(1, user);
+	friendQuery->setUInt(2, user);
 
-std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery, bool wantLimits) {
-	std::string base;
-	if (customQuery == "") {
-		base = baseQueryForProperties;
-	} else {
-		base = customQuery;
-	}
-	std::string orderBy = "";
-	if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
-		std::string friendsList = " AND p.owner_id IN (";
+	auto friendRes = friendQuery->executeQuery();
 
-		auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
+	while (friendRes->next()) {
+		auto friendId = friendRes->getUInt(2);
+		auto playerId = friendRes->getUInt(1);
+		auto bestFriend = friendRes->getUInt(3) == 3;
 
-		friendsListQuery->setUInt(1, character->GetID());
-		friendsListQuery->setUInt(2, character->GetID());
-
-		auto friendsListQueryResult = friendsListQuery->executeQuery();
-
-		while (friendsListQueryResult->next()) {
-			auto playerIDToConvert = friendsListQueryResult->getInt(1);
-			friendsList = friendsList + std::to_string(playerIDToConvert) + ",";
+		if (friendId == user) {
+			this->m_UserFriendMap[user][playerId] = bestFriend;
+		} else {
+			this->m_UserFriendMap[user][friendId] = bestFriend;
 		}
-		// Replace trailing comma with the closing parenthesis.
-		if (friendsList.at(friendsList.size() - 1) == ',') friendsList.erase(friendsList.size() - 1, 1);
-		friendsList += ") ";
-
-		// If we have no friends then use a -1 for the query.
-		if (friendsList.find("()") != std::string::npos) friendsList = " AND p.owner_id IN (-1) ";
-
-		orderBy += friendsList + "ORDER BY ci.name ASC ";
-
-		delete friendsListQueryResult;
-		friendsListQueryResult = nullptr;
-
-		delete friendsListQuery;
-		friendsListQuery = nullptr;
-	} else if (sortMethod == SORT_TYPE_RECENT) {
-		orderBy = "ORDER BY p.last_updated DESC ";
-	} else if (sortMethod == SORT_TYPE_REPUTATION) {
-		orderBy = "ORDER BY p.reputation DESC, p.last_updated DESC ";
-	} else {
-		orderBy = "ORDER BY p.last_updated DESC ";
 	}
-	return base + orderBy + (wantLimits ? "LIMIT ? OFFSET ?;" : ";");
+
+	delete friendRes;
+	friendRes = nullptr;
+
+	delete friendQuery;
+	friendQuery = nullptr;
 }
 
-void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr) {
+std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod) {
+	std::string query = "SELECT id, last_updated, reputation FROM properties WHERE zone_id = ? AND (description LIKE ? OR name LIKE ? OR name LIKE ?) AND privacy_option >= ? ";
 
-	std::vector<PropertySelectQueryProperty> entries{};
-	PropertySelectQueryProperty playerEntry{};
-
-	auto character = entity->GetCharacter();
-	if (!character) return;
-
-	// Player property goes in index 1 of the vector.  This is how the client expects it.
-	auto playerPropertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE owner_id = ? AND zone_id = ?");
-
-	playerPropertyLookup->setInt(1, character->GetID());
-	playerPropertyLookup->setInt(2, this->m_MapID);
-
-	auto playerPropertyLookupResults = playerPropertyLookup->executeQuery();
-
-	// If the player has a property this query will have a single result.
-	if (playerPropertyLookupResults->next()) {
-		const auto cloneId = playerPropertyLookupResults->getUInt64(4);
-		const auto propertyName = std::string(playerPropertyLookupResults->getString(5).c_str());
-		const auto propertyDescription = std::string(playerPropertyLookupResults->getString(6).c_str());
-		const auto privacyOption = playerPropertyLookupResults->getInt(9);
-		const auto modApproved = playerPropertyLookupResults->getBoolean(10);
-		const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
-		const auto reputation = playerPropertyLookupResults->getUInt(14);
-		const auto performanceCost = (float)playerPropertyLookupResults->getDouble(16);
-
-		playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), propertyName, propertyDescription, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
+	if (sortMethod == SORT_TYPE_RECENT) {
+		query += "ORDER BY last_updated DESC;";
+	} else if (sortMethod == SORT_TYPE_REPUTATION) {
+		query += "ORDER BY reputation DESC, last_updated DESC;";
 	} else {
-		playerEntry = SetPropertyValues(playerEntry, character->GetPropertyCloneID(), character->GetName(), "", "", 0, true, true);
+		query += "ORDER BY last_updated DESC;";
 	}
-
-	delete playerPropertyLookupResults;
-	playerPropertyLookupResults = nullptr;
-
-	delete playerPropertyLookup;
-	playerPropertyLookup = nullptr;
-
-	entries.push_back(playerEntry);
-
-	const auto query = BuildQuery(entity, sortMethod, character);
 
 	auto propertyLookup = Database::CreatePreppedStmt(query);
 
-	const auto searchString = "%" + filterText + "%";
+	const auto searchString = "%" + searchText + "%";
 	propertyLookup->setUInt(1, this->m_MapID);
 	propertyLookup->setString(2, searchString.c_str());
 	propertyLookup->setString(3, searchString.c_str());
 	propertyLookup->setString(4, searchString.c_str());
 	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
-	propertyLookup->setInt(6, numResults);
-	propertyLookup->setInt(7, startIndex);
 
-	auto propertyEntry = propertyLookup->executeQuery();
+	auto propertyIdRes = propertyLookup->executeQuery();
 
-	while (propertyEntry->next()) {
-		const auto propertyId = propertyEntry->getUInt64(1);
-		const auto owner = propertyEntry->getInt(2);
-		const auto cloneId = propertyEntry->getUInt64(4);
-		const auto propertyNameFromDb = std::string(propertyEntry->getString(5).c_str());
-		const auto propertyDescriptionFromDb = std::string(propertyEntry->getString(6).c_str());
-		const auto privacyOption = propertyEntry->getInt(9);
-		const auto modApproved = propertyEntry->getBoolean(10);
-		const auto dateLastUpdated = propertyEntry->getInt(11);
-		const float reputation = propertyEntry->getInt(14);
-		const auto performanceCost = (float)propertyEntry->getDouble(16);
+	std::vector<uint32_t> propertyIds{};
 
-		PropertySelectQueryProperty entry{};
-
-		std::string ownerName = "";
-		bool isOwned = true;
-		auto nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
-
-		nameLookup->setUInt64(1, cloneId);
-
-		auto nameResult = nameLookup->executeQuery();
-
-		if (!nameResult->next()) {
-			delete nameLookup;
-			nameLookup = nullptr;
-
-			Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!", cloneId);
-
-			continue;
-		} else {
-			isOwned = cloneId == character->GetPropertyCloneID();
-			ownerName = std::string(nameResult->getString(1).c_str());
-		}
-
-		delete nameResult;
-		nameResult = nullptr;
-
-		delete nameLookup;
-		nameLookup = nullptr;
-
-		std::string propertyName = propertyNameFromDb;
-		std::string propertyDescription = propertyDescriptionFromDb;
-
-		bool isBestFriend = false;
-		bool isFriend = false;
-
-		// Convert owner char id to LWOOBJID
-		LWOOBJID ownerObjId = owner;
-		GeneralUtils::SetBit(ownerObjId, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(ownerObjId, eObjectBits::PERSISTENT);
-
-		// Query to get friend and best friend fields
-		auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
-
-		friendCheck->setUInt(1, character->GetID());
-		friendCheck->setUInt(2, ownerObjId);
-		friendCheck->setUInt(3, ownerObjId);
-		friendCheck->setUInt(4, character->GetID());
-
-		auto friendResult = friendCheck->executeQuery();
-
-		// If we got a result than the two players are friends.
-		if (friendResult->next()) {
-			isFriend = true;
-			if (friendResult->getInt(1) == 3) {
-				isBestFriend = true;
-			}
-		}
-
-		delete friendCheck;
-		friendCheck = nullptr;
-
-		delete friendResult;
-		friendResult = nullptr;
-
-		bool isModeratorApproved = propertyEntry->getBoolean(10);
-
-		if (!isModeratorApproved && entity->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR) {
-			propertyName = "[AWAITING APPROVAL]";
-			propertyDescription = "[AWAITING APPROVAL]";
-			isModeratorApproved = true;
-		}
-
-		bool isAlt = false;
-		// Query to determine whether this property is an alt character of the entity.
-		auto isAltQuery = Database::CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
-
-		isAltQuery->setInt(1, character->GetID());
-		isAltQuery->setInt(2, owner);
-
-		auto isAltQueryResults = isAltQuery->executeQuery();
-
-		if (isAltQueryResults->next()) {
-			isAlt = true;
-		}
-
-		delete isAltQueryResults;
-		isAltQueryResults = nullptr;
-
-		delete isAltQuery;
-		isAltQuery = nullptr;
-
-		entry = SetPropertyValues(entry, cloneId, ownerName, propertyName, propertyDescription, reputation, isBestFriend, isFriend, isModeratorApproved, isAlt, isOwned, privacyOption, dateLastUpdated, performanceCost);
-
-		entries.push_back(entry);
+	while (propertyIdRes->next()) {
+		propertyIds.push_back(propertyIdRes->getUInt(1));
 	}
 
-	delete propertyEntry;
-	propertyEntry = nullptr;
+	delete propertyIdRes;
+	propertyIdRes = nullptr;
 
 	delete propertyLookup;
 	propertyLookup = nullptr;
 
-	propertyQueries[entity->GetObjectID()] = entries;
+	return propertyIds;
+}
 
-	// Query here is to figure out whether or not to display the button to go to the next page or not.
-	int32_t numberOfProperties = 0;
 
-	auto buttonQuery = BuildQuery(entity, sortMethod, character, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ", false);
-	auto propertiesLeft = Database::CreatePreppedStmt(buttonQuery);
+void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool includeNullAddress, bool includeNullDescription, bool playerOwn, bool updateUi, int32_t numResults, int32_t lReputationTime, int32_t sortMethod, int32_t startIndex, std::string filterText, const SystemAddress& sysAddr) {
+	std::vector<PropertyData> entries{};
 
-	propertiesLeft->setUInt(1, this->m_MapID);
-	propertiesLeft->setString(2, searchString.c_str());
-	propertiesLeft->setString(3, searchString.c_str());
-	propertiesLeft->setString(4, searchString.c_str());
-	propertiesLeft->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? 1 : 2);
+	if (m_UserFriendMap.find((uint32_t)entity->GetObjectID()) == m_UserFriendMap.end()) {
+		this->PopulateUserFriendMap((uint32_t)entity->GetObjectID());
+	}
 
-	auto result = propertiesLeft->executeQuery();
-	result->next();
-	numberOfProperties = result->getInt(1);
+	auto character = entity->GetCharacter();
+	if (!character) return;
+
+	auto playerEntry = this->GetPropertyData(character->GetPropertyCloneID());
+	if (playerEntry.CloneID == 0) {
+		playerEntry.CloneID = character->GetPropertyCloneID();
+		playerEntry.PrimaryData.Name = character->GetName();
+
+		playerEntry.PersonalData.IsFriend = true;
+		playerEntry.PersonalData.IsBestFriend = true;
+	} else {
+		playerEntry.PersonalData = this->GetPropertyPersonalData(playerEntry, entity, true);
+	}
+
+	entries.push_back(playerEntry);
+
+	auto propertyIds = this->GetPropertyIDsBasedOnParams(filterText, sortMethod);
+
+	std::vector<uint32_t> propertyIdsSlice(propertyIds.begin() + startIndex, propertyIds.begin() + startIndex + numResults);
+
+	for (const auto& id : propertyIdsSlice) {
+		auto prop = this->GetPropertyData(id);
+		if (prop.CloneID != 0) {
+			prop.PersonalData = this->GetPropertyPersonalData(prop, entity, true);
+			entries.push_back(prop);
+		}
+	}
+
+	this->m_UserRequestedCloneMap[entity->GetObjectID()] = propertyIdsSlice;
+
+	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, propertyIds.size() - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+}
+
+
+PropertyData PropertyEntranceComponent::GetPropertyData(uint32_t propertyID) {
+	if (m_PropertyDataCache.find(propertyID) != m_PropertyDataCache.end()) {
+		return m_PropertyDataCache[propertyID];
+	}
+
+	auto propQuery = Database::CreatePreppedStmt("SELECT * FROM properties WHERE id = ?;");
+	propQuery->setUInt64(1, propertyID);
+
+	auto result = propQuery->executeQuery();
+
+	if (!result->next()) {
+		delete result;
+		result = nullptr;
+
+		delete propQuery;
+		propQuery = nullptr;
+
+		return PropertyData{};
+	}
+
+	PropertyData entry{};
+
+	entry.CloneID = result->getUInt64(4);
+
+	auto charQuery = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
+	charQuery->setUInt64(1, entry.CloneID);
+
+	auto charResult = charQuery->executeQuery();
+
+	if (charResult->next()) {
+		entry.PrimaryData.OwnerName = std::string(charResult->getString(1).c_str());
+	}
+
+	delete charResult;
+	charResult = nullptr;
+
+	delete charQuery;
+	charQuery = nullptr;
+
+	entry.PrimaryData.OwnerID = result->getInt(2);
+	entry.PrimaryData.IsModeratorApproved = result->getBoolean(10);
+	
+	entry.PrimaryData.Name = std::string(result->getString(5).c_str());
+	entry.PrimaryData.Description = std::string(result->getString(6).c_str());
+	entry.PrimaryData.Reputation = result->getUInt(14);
+	
+	entry.MetaData.AccessType = result->getInt(9);
+	entry.MetaData.DateLastPublished = result->getInt64(11);
+	entry.MetaData.PerformanceCost = result->getFloat(16);
 
 	delete result;
 	result = nullptr;
 
-	delete propertiesLeft;
-	propertiesLeft = nullptr;
+	delete propQuery;
+	propQuery = nullptr;
 
-	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, numberOfProperties - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+	this->m_PropertyDataCache[entry.CloneID] = entry;
+
+	return entry;
+}
+
+PropertyPersonalData PropertyEntranceComponent::GetPropertyPersonalData(PropertyData& propertyData, Entity* queryingUser, bool updatePropertyDataStructure) {
+	PropertyPersonalData personalData{};
+
+	personalData.IsFriend = m_UserFriendMap[(uint32_t)queryingUser].find(propertyData.PrimaryData.OwnerID) != m_UserFriendMap[(uint32_t)queryingUser].end();
+	if (personalData.IsFriend) {
+		personalData.IsBestFriend = m_UserFriendMap[(uint32_t)queryingUser][propertyData.PrimaryData.OwnerID];
+	}
+
+	personalData.IsModeratorApproved = propertyData.PrimaryData.IsModeratorApproved;
+
+	if (!personalData.IsModeratorApproved && queryingUser->GetGMLevel() >= eGameMasterLevel::LEAD_MODERATOR && updatePropertyDataStructure) {
+		propertyData.PrimaryData.Name = "[AWAITING APPROVAL]";
+		propertyData.PrimaryData.Description = "[AWAITING APPROVAL]";
+		propertyData.PrimaryData.IsModeratorApproved = true;
+	}
+
+	auto* user = UserManager::Instance()->GetUser(queryingUser->GetSystemAddress());
+
+	auto isAltQuery = Database::CreatePreppedStmt("SELECT id, prop_clone_id FROM charinfo where account_id = ?;");
+
+	isAltQuery->setInt(1, user->GetAccountID());
+
+	auto isAltQueryResults = isAltQuery->executeQuery();
+
+	bool ownerIsOurAccount = false;
+
+	while (isAltQueryResults->next()) {
+		if (queryingUser->GetCharacter()->GetPropertyCloneID() == isAltQueryResults->getInt(2)) {
+			if (isAltQueryResults->getInt(1) == propertyData.PrimaryData.OwnerID) {
+				personalData.IsOwned = true;
+			}
+
+			ownerIsOurAccount = true;
+		}
+	}
+
+	personalData.IsAlt = ownerIsOurAccount && !personalData.IsOwned;
+
+	delete isAltQueryResults;
+	isAltQueryResults = nullptr;
+
+	return personalData;
 }

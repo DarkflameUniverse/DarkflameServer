@@ -84,7 +84,7 @@
 #include "PropertyDataMessage.h"
 #include "PropertyManagementComponent.h"
 #include "PropertyVendorComponent.h"
-#include "PropertySelectQueryProperty.h"
+#include "PropertyData.h"
 #include "TradingManager.h"
 #include "ControlBehaviors.h"
 #include "AMFDeserialize.h"
@@ -3084,7 +3084,7 @@ void GameMessages::SendPropertyEntranceBegin(LWOOBJID objectId, const SystemAddr
 	SEND_PACKET;
 }
 
-void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertySelectQueryProperty>& entries, const SystemAddress& sysAddr) {
+void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertyData>& entries, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -3099,10 +3099,41 @@ void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset,
 
 	bitStream.Write<uint32_t>(entries.size());
 
-	for (auto& entry : entries) {
-		entry.Serialize(bitStream);
-	}
+	for (const auto& item : entries) {
+		bitStream.Write(item.CloneID);
 
+		const auto& owner = GeneralUtils::UTF8ToUTF16(item.PrimaryData.OwnerName);
+		bitStream.Write(uint32_t(owner.size()));
+		for (uint32_t i = 0; i < owner.size(); ++i) {
+			bitStream.Write(static_cast<uint16_t>(owner[i]));
+		}
+
+		const auto& name = GeneralUtils::UTF8ToUTF16(item.PrimaryData.Name);
+		bitStream.Write(uint32_t(name.size()));
+		for (uint32_t i = 0; i < name.size(); ++i) {
+			bitStream.Write(static_cast<uint16_t>(name[i]));
+		}
+
+		const auto& description = GeneralUtils::UTF8ToUTF16(item.PrimaryData.Description);
+		bitStream.Write(uint32_t(description.size()));
+		for (uint32_t i = 0; i < description.size(); ++i) {
+			bitStream.Write(static_cast<uint16_t>(description[i]));
+		}
+
+		bitStream.Write(item.PrimaryData.Reputation);
+
+		bitStream.Write(item.PersonalData.IsBestFriend);
+		bitStream.Write(item.PersonalData.IsFriend);
+		bitStream.Write(item.PersonalData.IsModeratorApproved);
+		bitStream.Write(item.PersonalData.IsAlt);
+		bitStream.Write(item.PersonalData.IsOwned);
+
+		bitStream.Write(item.MetaData.AccessType);
+		bitStream.Write(item.MetaData.DateLastPublished);
+		bitStream.Write(item.MetaData.PerformanceIndex);
+		bitStream.Write(item.MetaData.PerformanceCost);
+	}
+	
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
 }

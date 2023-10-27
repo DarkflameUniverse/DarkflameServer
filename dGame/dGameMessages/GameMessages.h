@@ -18,7 +18,7 @@ class Item;
 class NiQuaternion;
 class User;
 class Leaderboard;
-class PropertySelectQueryProperty;
+class PropertyData;
 class TradeItem;
 
 enum class eAnimationFlags : uint32_t;
@@ -335,7 +335,7 @@ namespace GameMessages {
 
 	void SendPropertyEntranceBegin(LWOOBJID objectId, const SystemAddress& sysAddr);
 
-	void SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertySelectQueryProperty>& entries, const SystemAddress& sysAddr);
+	void SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset, bool thereAreMore, int32_t cloneId, bool hasFeaturedProperty, bool wasFriends, const std::vector<PropertyData>& entries, const SystemAddress& sysAddr);
 
 	void SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std::u16string name, const SystemAddress& sysAddr, int param1 = 0, int param2 = 0);
 

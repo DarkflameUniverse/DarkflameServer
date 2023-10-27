@@ -8,6 +8,8 @@
 #include "GameMessages.h"
 #include "eReplicaComponentType.h"
 
+#include "PropertyData.h"
+
 /**
  * Represents the launch pad that's used to select and browse properties
  */
@@ -59,15 +61,17 @@ public:
 	 */
 	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
 
-	PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "", float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, float performanceCost = 0.0f);
+	void PopulateUserFriendMap(uint32_t user);
 
-	std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
-
+	std::vector<uint32_t> GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod);
+	
+	PropertyData GetPropertyData(uint32_t propertyID);
+	PropertyPersonalData GetPropertyPersonalData(PropertyData& propertyData, Entity* queryingUser, bool updatePropertyDataStructure = false);
 private:
-	/**
-	 * Cache of property information that was queried for property launched, indexed by property ID
-	 */
-	std::map<LWOOBJID, std::vector<PropertySelectQueryProperty>> propertyQueries;
+	std::unordered_map<LWOOBJID, std::vector<uint32_t>> m_UserRequestedCloneMap;
+	std::unordered_map<uint32_t, PropertyData> m_PropertyDataCache;
+
+	std::unordered_map<LWOOBJID, std::unordered_map<LWOOBJID, bool>> m_UserFriendMap;
 
 	/**
 	 * The custom name for this property
@@ -85,6 +89,4 @@ private:
 		SORT_TYPE_RECENT = 3,
 		SORT_TYPE_FEATURED = 5
 	};
-
-	std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
 };
