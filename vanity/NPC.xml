@@ -550,7 +550,7 @@
 		</zone>
 	</npc>
 	
-	<!--ATM in AG Picnic-->
+	<!--ATM in AG Picnic Area-->
 	<npc lot="13538">
 		<ldf>
 			<entry data="CheckPrecondition=0:168"/>
@@ -630,6 +630,18 @@
 		<zone id="1700">
 			<locations>
 				<location x="-256.293" y="1035.092" z="109.761" rw="0.00" rx="0.00" ry="1" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
+
+	<!--ATM in GF Ravine-->
+	<npc lot="13538">
+		<ldf>
+			<entry data="CheckPrecondition=0:168"/>
+		</ldf>
+		<zone id="1300">
+			<locations>
+				<location x="-199.258" y="246.874" z="-101.174" rw="-0.219711" rx="0.00" ry="0.975565" rz="0.00" />
 			</locations>
 		</zone>
 	</npc>
