@@ -394,12 +394,13 @@ void Character::SetIsNewLogin() {
 
 	auto* currentChild = flags->FirstChildElement();
 	while (currentChild) {
+		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
 			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
-		currentChild = currentChild->NextSiblingElement();
+		currentChild = nextChild;
 	}
 }
 
@@ -552,15 +553,6 @@ void Character::OnZoneLoad() {
 	// This does not apply to the GMs
 	if (maxGMLevel > eGameMasterLevel::CIVILIAN) {
 		return;
-	}
-
-	/**
-	 * Restrict old character to 1 million coins
-	 */
-	if (HasPermission(ePermissionMap::Old)) {
-		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::NONE);
-		}
 	}
 
 	auto* inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();

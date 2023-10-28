@@ -177,8 +177,9 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::SerializeEntities() {
-	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+		const LWOOBJID toSerialize = m_EntitiesToSerialize.at(i);
+		auto* entity = GetEntity(toSerialize);
 
 		if (!entity) continue;
 
@@ -193,7 +194,7 @@ void EntityManager::SerializeEntities() {
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(*entry)) {
+				if (player->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -205,11 +206,12 @@ void EntityManager::SerializeEntities() {
 }
 
 void EntityManager::KillEntities() {
-	for (auto entry = m_EntitiesToKill.begin(); entry != m_EntitiesToKill.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
+		const LWOOBJID toKill = m_EntitiesToKill.at(i);
+		auto* entity = GetEntity(toKill);
 
 		if (!entity) {
-			LOG("Attempting to kill null entity %llu", *entry);
+			LOG("Attempting to kill null entity %llu", toKill);
 			continue;
 		}
 
@@ -223,8 +225,9 @@ void EntityManager::KillEntities() {
 }
 
 void EntityManager::DeleteEntities() {
-	for (auto entry = m_EntitiesToDelete.begin(); entry != m_EntitiesToDelete.end(); entry++) {
-		auto entityToDelete = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+		const LWOOBJID toDelete = m_EntitiesToDelete.at(i);
+		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
 			// Get all this info first before we delete the player.
 			auto networkIdToErase = entityToDelete->GetNetworkId();
@@ -238,9 +241,9 @@ void EntityManager::DeleteEntities() {
 
 			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		} else {
-			LOG("Attempted to delete non-existent entity %llu", *entry);
+			LOG("Attempted to delete non-existent entity %llu", toDelete);
 		}
-		m_Entities.erase(*entry);
+		m_Entities.erase(toDelete);
 	}
 	m_EntitiesToDelete.clear();
 }

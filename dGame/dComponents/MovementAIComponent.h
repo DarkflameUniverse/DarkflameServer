@@ -57,7 +57,7 @@ struct MovementAIInfo {
  */
 class MovementAIComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 

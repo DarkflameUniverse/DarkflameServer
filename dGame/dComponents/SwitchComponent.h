@@ -16,7 +16,7 @@
  */
 class SwitchComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;

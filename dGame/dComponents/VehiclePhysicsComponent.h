@@ -28,7 +28,7 @@ struct RemoteInputInfo {
  */
 class VehiclePhysicsComponent : public PhysicsComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
 
 	VehiclePhysicsComponent(Entity* parentEntity);
 
