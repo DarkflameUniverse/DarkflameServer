@@ -528,6 +528,7 @@
 	
 	<!--Riplea in NT Sentinel War Room-->
 	<npc lot="30016">
+		<equipment>2524</equipment> <!--Equip black pants - silliness to clear their existing inventory items in NT-->
 		<ldf>
 			<entry data="miss_prereq_text=0:MISSION_PREREQ_NIMBUS"/>
 		</ldf>
