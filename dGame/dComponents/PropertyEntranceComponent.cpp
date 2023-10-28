@@ -16,7 +16,7 @@
 #include "eGameMasterLevel.h"
 #include "User.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent), m_UserRequestedCloneMap() {
+PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent), m_UserRequestedCloneMap() {
 	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
 	const auto& entry = table->GetByID(componentID);
 
