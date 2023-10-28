@@ -24,7 +24,6 @@ void SortTable(LootTableEntries& table) {
 				lootToInsert = oldItrInner;
 			}
 		}
-		Game::logger->LogDebug("CDLootTableTable", "highest rarity %i item id %i", highestLootRarity, lootToInsert->itemid);
 		std::swap(*oldItrOuter, *lootToInsert);
 	}
 }
