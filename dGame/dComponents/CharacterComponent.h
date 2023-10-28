@@ -62,7 +62,7 @@ enum StatisticID {
  */
 class CharacterComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
 	~CharacterComponent() override;

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <fstream>
 
 #pragma pack(push, 1)
 struct PackRecord {

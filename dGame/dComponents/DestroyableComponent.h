@@ -19,7 +19,7 @@ enum class eStateChangeType : uint32_t;
  */
 class DestroyableComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
@@ -416,6 +416,9 @@ public:
 	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
 	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
 
+	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
+	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
+
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
 	 */
@@ -597,6 +600,11 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	/**
+	 * Death behavior type.  If 0, the client plays a death animation as opposed to a smash animation.
+	 */
+	int32_t m_DeathBehavior;
 };
 
 #endif // DESTROYABLECOMPONENT_H

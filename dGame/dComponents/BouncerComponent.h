@@ -12,7 +12,7 @@
  */
 class BouncerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(Entity* parentEntity);
 	~BouncerComponent() override;

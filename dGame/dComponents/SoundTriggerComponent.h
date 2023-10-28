@@ -58,7 +58,7 @@ struct MixerProgram{
 
 class SoundTriggerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 	explicit SoundTriggerComponent(Entity* parent);
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void ActivateMusicCue(const std::string& name, float bordemTime = -1.0);

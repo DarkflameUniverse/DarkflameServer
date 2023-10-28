@@ -4,19 +4,19 @@
 
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount{};
 
 	if (!bitStream->Read(targetCount)) {
-		Game::logger->Log("AreaOfEffectBehavior", "Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -28,7 +28,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	}
 
 	if (targetCount > this->m_maxTargets) {
-		Game::logger->Log("AreaOfEffectBehavior", "Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
+		LOG("Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
 		return;
 	}
 
@@ -41,7 +41,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	for (auto i = 0u; i < targetCount; ++i) {
 		LWOOBJID target{};
 		if (!bitStream->Read(target)) {
-			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
+			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
 		};
 		targets.push_back(target);
 	}

@@ -8,7 +8,7 @@
 #include "SlashCommandHandler.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "Character.h"
 #include "EntityManager.h"
@@ -156,7 +156,7 @@ void GameMessages::SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, c
 
 void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority, float fScale) {
 	if (!entity) {
-		Game::logger->Log("SendPlayAnimation", "Trying to play animation, but entity var is nullptr!");
+		LOG("Trying to play animation, but entity var is nullptr!");
 		return;
 	}
 
@@ -1631,7 +1631,7 @@ void GameMessages::HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStre
 
 void GameMessages::HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity,
 	const SystemAddress& sysAddr) {
-	Game::logger->Log("AGS", "We got mail!");
+	LOG("We got mail!");
 }
 
 void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard, const SystemAddress& sysAddr) {
@@ -1688,7 +1688,7 @@ void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream* inStream,
 
 	auto* assosiate = Game::entityManager->GetEntity(objectID);
 
-	Game::logger->Log("Activity State Change", "%s [%i, %i] from %i to %i", GeneralUtils::UTF16ToWTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
+	LOG("%s [%i, %i] from %i to %i", GeneralUtils::UTF16ToWTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
 
 	std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY);
 	for (Entity* scriptEntity : scriptedActs) {
@@ -1982,7 +1982,7 @@ void GameMessages::SendDownloadPropertyData(const LWOOBJID objectId, const Prope
 
 	data.Serialize(bitStream);
 
-	Game::logger->Log("SendDownloadPropertyData", "(%llu) sending property data (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+	LOG("(%llu) sending property data (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -2053,7 +2053,7 @@ void GameMessages::SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID,
 		bitStream.Write(pair.second);
 	}
 
-	Game::logger->Log("SendGetModelsOnProperty", "Sending property models to (%llu) (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+	LOG("Sending property models to (%llu) (%d)", objectId, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -2150,7 +2150,7 @@ void GameMessages::HandleSetPropertyAccess(RakNet::BitStream* inStream, Entity* 
 	inStream->Read(renewIsDefault);
 	if (renewIsDefault != 0) inStream->Read(renew);
 
-	Game::logger->Log("GameMessages", "Set privacy option to: %i", accessType);
+	LOG("Set privacy option to: %i", accessType);
 
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
@@ -2169,7 +2169,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity,
 		if (item) {
 			inventoryComponent->MoveItemToInventory(item, eInventoryType::MODELS, 1);
 		} else {
-			Game::logger->Log("GameMessages", "item id %llu not found in MODELS_IN_BBB inventory, likely because it does not exist", objIdToAddToInventory);
+			LOG("item id %llu not found in MODELS_IN_BBB inventory, likely because it does not exist", objIdToAddToInventory);
 		}
 	}
 
@@ -2216,7 +2216,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* 
 }
 
 void GameMessages::HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	Game::logger->Log("HandleQueryPropertyData", "Entity (%i) requesting data", entity->GetLOT());
+	LOG("Entity (%i) requesting data", entity->GetLOT());
 
 	/*
 	auto entites = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROPERTY_VENDOR);
@@ -2274,7 +2274,7 @@ void GameMessages::HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entit
 
 	player->GetCharacter()->SetBuildMode(start);
 
-	Game::logger->Log("GameMessages", "Sending build mode confirm (%i): (%d) (%i) (%d) (%i) (%llu)", entity->GetLOT(), start, distanceType, modePaused, modeValue, playerId);
+	LOG("Sending build mode confirm (%i): (%d) (%i) (%d) (%i) (%llu)", entity->GetLOT(), start, distanceType, modePaused, modeValue, playerId);
 
 	SendSetBuildModeConfirmed(entity->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS, start, false, modePaused, modeValue, playerId, startPosition);
 }
@@ -2310,7 +2310,7 @@ void GameMessages::HandleStartBuildingWithItem(RakNet::BitStream* inStream, Enti
 		sourceType = 4;
 	}
 
-	Game::logger->Log("GameMessages", "Handling start building with item (%i): (%d) (%d) (%i) (%llu) (%i) (%i) (%llu) (%i) (%i)", entity->GetLOT(), firstTime, success, sourceBag, sourceId, sourceLot, sourceType, targetId, targetLot, targetType);
+	LOG("Handling start building with item (%i): (%d) (%d) (%i) (%llu) (%i) (%i) (%llu) (%i) (%i)", entity->GetLOT(), firstTime, success, sourceBag, sourceId, sourceLot, sourceType, targetId, targetLot, targetType);
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -2400,7 +2400,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 	LWOOBJID previousItemID = LWOOBJID_EMPTY;
 	inStream->Read(previousItemID);
 
-	Game::logger->Log("BBB", "Load item request for: %lld", previousItemID);
+	LOG("Load item request for: %lld", previousItemID);
 	LWOOBJID newId = previousItemID;
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (inventoryComponent) {
@@ -2417,7 +2417,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 				if (movedItem) newId = movedItem->GetId();
 			}
 		} else {
-			Game::logger->Log("GameMessages", "item id %llu not found in MODELS inventory, likely because it does not exist", previousItemID);
+			LOG("item id %llu not found in MODELS inventory, likely because it does not exist", previousItemID);
 		}
 	}
 
@@ -2555,7 +2555,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 	//int32_t size = ZCompression::Decompress(inData, lxfmlSize, outData, 327680, error);
 
 	//if (size == -1) {
-	//	Game::logger->Log("GameMessages", "Failed to decompress LXFML: (%i)", error);
+	//	LOG("Failed to decompress LXFML: (%i)", error);
 	//	return;
 	//}
 	//
@@ -3335,7 +3335,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 			return;
 		}
 
-		Game::logger->Log("GameMessages", "Trade request to (%llu)", i64Invitee);
+		LOG("Trade request to (%llu)", i64Invitee);
 
 		auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
@@ -3364,7 +3364,7 @@ void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* 
 
 	if (trade == nullptr) return;
 
-	Game::logger->Log("GameMessages", "Trade canceled from (%llu)", entity->GetObjectID());
+	LOG("Trade canceled from (%llu)", entity->GetObjectID());
 
 	TradingManager::Instance()->CancelTrade(trade->GetTradeId());
 }
@@ -3372,7 +3372,7 @@ void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* 
 void GameMessages::HandleClientTradeAccept(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool bFirst = inStream->ReadBit();
 
-	Game::logger->Log("GameMessages", "Trade accepted from (%llu) -> (%d)", entity->GetObjectID(), bFirst);
+	LOG("Trade accepted from (%llu) -> (%d)", entity->GetObjectID(), bFirst);
 
 	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
@@ -3388,7 +3388,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream* inStream, Entity* 
 	inStream->Read(currency);
 	inStream->Read(itemCount);
 
-	Game::logger->Log("GameMessages", "Trade update from (%llu) -> (%llu), (%i)", entity->GetObjectID(), currency, itemCount);
+	LOG("Trade update from (%llu) -> (%llu), (%i)", entity->GetObjectID(), currency, itemCount);
 
 	std::vector<TradeItem> items{};
 
@@ -3436,7 +3436,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream* inStream, Entity* 
 
 		items.push_back({ itemId, lot, unknown2 });
 
-		Game::logger->Log("GameMessages", "Trade item from (%llu) -> (%llu)/(%llu), (%i), (%llu), (%i), (%i)", entity->GetObjectID(), itemId, itemId2, lot, unknown1, unknown2, unknown3);
+		LOG("Trade item from (%llu) -> (%llu)/(%llu), (%i), (%llu), (%i), (%i)", entity->GetObjectID(), itemId, itemId2, lot, unknown1, unknown2, unknown3);
 	}
 
 	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
@@ -3879,7 +3879,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity*
 		userData.push_back(character);
 	}
 
-	Game::logger->Log("HandleMessageBoxResponse", "Button: %d; LOT: %u identifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(identifier).c_str(), GeneralUtils::UTF16ToWTF8(userData).c_str());
+	LOG("Button: %d; LOT: %u identifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(identifier).c_str(), GeneralUtils::UTF16ToWTF8(userData).c_str());
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -3935,7 +3935,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream* inStream, Entity* e
 		identifier.push_back(character);
 	}
 
-	Game::logger->Log("HandleChoiceBoxRespond", "Button: %d; LOT: %u buttonIdentifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(buttonIdentifier).c_str(), GeneralUtils::UTF16ToWTF8(identifier).c_str());
+	LOG("Button: %d; LOT: %u buttonIdentifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(buttonIdentifier).c_str(), GeneralUtils::UTF16ToWTF8(identifier).c_str());
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -4115,10 +4115,10 @@ void GameMessages::HandleAcknowledgePossession(RakNet::BitStream* inStream, Enti
 void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	auto* moduleAssemblyComponent = entity->GetComponent<ModuleAssemblyComponent>();
 
-	Game::logger->Log("HandleModuleAssemblyQueryData", "Got Query from %i", entity->GetLOT());
+	LOG("Got Query from %i", entity->GetLOT());
 
 	if (moduleAssemblyComponent != nullptr) {
-		Game::logger->Log("HandleModuleAssemblyQueryData", "Returning assembly %s", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
+		LOG("Returning assembly %s", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
 
 		SendModuleAssemblyDBDataForClient(entity->GetObjectID(), moduleAssemblyComponent->GetSubKey(), moduleAssemblyComponent->GetAssemblyPartsLOTs(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
@@ -4201,7 +4201,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
-	Game::logger->Log("HandleRequestDie", "Got die request: %i", entity->GetLOT());
+	LOG("Got die request: %i", entity->GetLOT());
 
 	if (racingControlComponent != nullptr) {
 		auto* possessableComponent = entity->GetComponent<PossessableComponent>();
@@ -4244,7 +4244,7 @@ void GameMessages::HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStre
 
 	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
-	Game::logger->Log("HandleRacingPlayerInfoResetFinished", "Got finished: %i", entity->GetLOT());
+	LOG("Got finished: %i", entity->GetLOT());
 
 	if (racingControlComponent != nullptr) {
 		racingControlComponent->OnRacingPlayerInfoResetFinished(player);
@@ -4751,7 +4751,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	if (!inv) return;
 
 	if (!isCommendationVendor && !vend->SellsItem(item)) {
-		Game::logger->Log("GameMessages", "User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
+		LOG("User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
 		return;
 	}
 
@@ -5005,7 +5005,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 			mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 		}
 
-		Game::logger->Log("FireEventServerSide", "Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), (int)mapId, (int)cloneId);
+		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), (int)mapId, (int)cloneId);
 
 		auto* character = player->GetCharacter();
 
@@ -5014,7 +5014,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 		}
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, mapId, cloneId, false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (character) {
 				character->SetZoneID(zoneID);
@@ -5064,7 +5064,7 @@ void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity,
 	Entity* interactedObject = Game::entityManager->GetEntity(objectID);
 
 	if (interactedObject == nullptr) {
-		Game::logger->Log("GameMessages", "Object %llu tried to interact, but doesn't exist!", objectID);
+		LOG("Object %llu tried to interact, but doesn't exist!", objectID);
 
 		return;
 	}
@@ -5103,7 +5103,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	inStream->Read(emoteID);
 	inStream->Read(targetID);
 
-	Game::logger->LogDebug("GameMessages", "Emote (%i) (%llu)", emoteID, targetID);
+	LOG_DEBUG("Emote (%i) (%llu)", emoteID, targetID);
 
 	//TODO: If targetID != 0, and we have one of the "perform emote" missions, complete them.
 
@@ -5116,14 +5116,14 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (targetID != LWOOBJID_EMPTY) {
 		auto* targetEntity = Game::entityManager->GetEntity(targetID);
 
-		Game::logger->LogDebug("GameMessages", "Emote target found (%d)", targetEntity != nullptr);
+		LOG_DEBUG("Emote target found (%d)", targetEntity != nullptr);
 
 		if (targetEntity != nullptr) {
 			targetEntity->OnEmoteReceived(emoteID, entity);
 			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
 		}
 	} else {
-		Game::logger->LogDebug("GameMessages", "Target ID is empty, using backup");
+		LOG_DEBUG("Target ID is empty, using backup");
 		const auto scriptedEntities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 
 		const auto& referencePoint = entity->GetPosition();
@@ -5199,7 +5199,7 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
 	if (!missionComponent) {
-		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle RespondToMission", playerID);
+		LOG("Unable to get mission component for entity %llu to handle RespondToMission", playerID);
 		return;
 	}
 
@@ -5207,13 +5207,13 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* e
 	if (mission) {
 		mission->SetReward(reward);
 	} else {
-		Game::logger->Log("GameMessages", "Unable to get mission %i for entity %llu to update reward in RespondToMission", missionID, playerID);
+		LOG("Unable to get mission %i for entity %llu to update reward in RespondToMission", missionID, playerID);
 	}
 
 	Entity* offerer = Game::entityManager->GetEntity(receiverID);
 
 	if (offerer == nullptr) {
-		Game::logger->Log("GameMessages", "Unable to get receiver entity %llu for RespondToMission", receiverID);
+		LOG("Unable to get receiver entity %llu for RespondToMission", receiverID);
 		return;
 	}
 
@@ -5242,7 +5242,7 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	// Get the player's mission component
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
 	if (!missionComponent) {
-		Game::logger->Log("GameMessages", "Unable to get mission component for entity %llu to handle MissionDialogueOK", player->GetObjectID());
+		LOG("Unable to get mission component for entity %llu to handle MissionDialogueOK", player->GetObjectID());
 		return;
 	}
 
@@ -5595,7 +5595,7 @@ void GameMessages::HandleBuildModeSet(RakNet::BitStream* inStream, Entity* entit
 	inStream->Read(bStart);
 	// there's more here but we don't need it (for now?)
 
-	Game::logger->Log("GameMessages", "Set build mode to (%d) for (%llu)", bStart, entity->GetObjectID());
+	LOG("Set build mode to (%d) for (%llu)", bStart, entity->GetObjectID());
 
 	if (entity->GetCharacter()) {
 		entity->GetCharacter()->SetBuildMode(bStart);
@@ -5610,7 +5610,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 	InventoryComponent* inv = static_cast<InventoryComponent*>(character->GetComponent(eReplicaComponentType::INVENTORY));
 	if (!inv) return;
 
-	Game::logger->Log("GameMessages", "Build finished");
+	LOG("Build finished");
 
 	GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
 	GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
@@ -5739,7 +5739,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 	inStream->Read(oldItemTYPE);
 
 	/*
-	Game::logger->Log("GameMessages",
+	LOG("GameMessages",
 		"\nnewSourceBAG: %d\nnewSourceID: %llu\nnewSourceLOT: %d\nnewSourceTYPE: %d\nnewTargetID: %llu\nnewTargetLOT: %d\nnewTargetTYPE: %d\nnewTargetPOS: %f, %f, %f\noldItemBAG: %d\noldItemID: %llu\noldItemLOT: %d\noldItemTYPE: %d",
 		newSourceBAG, newSourceID, newSourceLOT, newSourceTYPE, newTargetID, newTargetLOT, newTargetTYPE, newTargetPOS.x, newTargetPOS.y, newTargetPOS.z, oldItemBAG, oldItemID, oldItemLOT, oldItemTYPE
 	);
@@ -5757,14 +5757,14 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 		} else if (!entities.empty()) {
 			buildArea = entities[0];
 
-			Game::logger->Log("BuildBorderComponent", "Using PropertyPlaque");
+			LOG("Using PropertyPlaque");
 		} else {
-			Game::logger->Log("BuildBorderComponent", "No build area found");
+			LOG("No build area found");
 
 			return;
 		}
 
-		Game::logger->Log("GameMessages", "Build area found: %llu", buildArea->GetObjectID());
+		LOG("Build area found: %llu", buildArea->GetObjectID());
 
 		GameMessages::SendStartArrangingWithItem(
 			character,
@@ -5783,7 +5783,7 @@ void GameMessages::HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Enti
 		);
 	}
 
-	Game::logger->Log("GameMessages", "Done Arranging");
+	LOG("Done Arranging");
 
 	//GenericInventory* models = inv->GetGenericInventory(MODELS);
 	//GenericInventory* tempModels = inv->GetGenericInventory(TEMP_MODELS);
@@ -5807,7 +5807,7 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, E
 	Entity* character = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!character) return;
 
-	Game::logger->Log("GameMessages", "Build and move");
+	LOG("Build and move");
 
 	LOT templateID;
 
@@ -6067,7 +6067,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 		insertBug->execute();
 		delete insertBug;
 	} catch (sql::SQLException& e) {
-		Game::logger->Log("HandleReportBug", "Couldn't save bug report! (%s)", e.what());
+		LOG("Couldn't save bug report! (%s)", e.what());
 	}
 }
 
@@ -6259,7 +6259,7 @@ void GameMessages::HandleAddDonationItem(RakNet::BitStream* inStream, Entity* en
 	auto* donationVendorComponent = entity->GetComponent<DonationVendorComponent>();
 	if (!donationVendorComponent) return;
 	if (donationVendorComponent->GetActivityID() == 0) {
-		Game::logger->Log("GameMessages", "WARNING: Trying to dontate to a vendor with no activity");
+		LOG("WARNING: Trying to dontate to a vendor with no activity");
 		return;
 	}
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -6314,7 +6314,7 @@ void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, En
 	auto* donationVendorComponent = donationEntity->GetComponent<DonationVendorComponent>();
 	if (!donationVendorComponent) return;
 	if (donationVendorComponent->GetActivityID() == 0) {
-		Game::logger->Log("GameMessages", "WARNING: Trying to dontate to a vendor with no activity");
+		LOG("WARNING: Trying to dontate to a vendor with no activity");
 		return;
 	}
 	auto* inventory = inventoryComponent->GetInventory(eInventoryType::DONATION);

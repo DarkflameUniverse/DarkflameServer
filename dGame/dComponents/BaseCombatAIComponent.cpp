@@ -540,7 +540,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
+		LOG("Invalid entity for checking validity (%llu)!", target);
 
 		return false;
 	}
@@ -554,7 +554,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* referenceDestroyable = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (referenceDestroyable == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
+		LOG("Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
 
 		return false;
 	}

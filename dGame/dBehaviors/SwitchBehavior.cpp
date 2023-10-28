@@ -1,7 +1,7 @@
 #include "SwitchBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "BehaviorContext.h"
 #include "BuffComponent.h"
@@ -11,7 +11,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
 		if (!bitStream->Read(state)) {
-			Game::logger->Log("SwitchBehavior", "Unable to read state from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read state from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 	}
@@ -28,7 +28,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		return;
 	}
 
-	Game::logger->LogDebug("SwitchBehavior", "[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
+	LOG_DEBUG("[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
 	if (state) {
 		this->m_actionTrue->Handle(context, bitStream, branch);

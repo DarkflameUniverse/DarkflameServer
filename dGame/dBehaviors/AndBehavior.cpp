@@ -1,7 +1,7 @@
 #include "AndBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AndBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	for (auto* behavior : this->m_behaviors) {
