@@ -14,6 +14,8 @@ Cinema works with a few concepts:
 ## Play isolation
 When a play is performed to a player, it is always isolated from the rest of the players in the world. This is to ensure that the player can experience the play without being disturbed by others, and others can't be disturbed by the play. This is achieved by ghosting all NPCs and props in the play to all players except the one experiencing the play.
 
+<img src="media/isolation.png" width="800">
+
 ## How to create a scene
 A play is created is a couple of steps:
 1. Acts out the scene in the world as how the NPCs should reenact it.

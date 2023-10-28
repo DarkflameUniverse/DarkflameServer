@@ -29,6 +29,8 @@ void Cinema::Play::SetupCheckForAudience() {
 void Cinema::Play::CheckForAudience() {
 	auto* player = Game::entityManager->GetEntity(this->player);
 
+	LOG("Checking for audience");
+
 	if (player == nullptr) {
 		CleanUp();
 
@@ -50,6 +52,8 @@ void Cinema::Play::CheckForAudience() {
 }
 
 void Cinema::Play::CleanUp() {
+	LOG("Cleaning up play with %d entities", entities.size());
+
 	for (const auto& entity : entities) {
 		Game::entityManager->DestroyEntity(entity);
 	}
@@ -66,7 +70,7 @@ void Cinema::Play::SetupBarrier(const std::string& barrier, std::function<void()
 
 void Cinema::Play::SignalBarrier(const std::string& barrier) {
 	if (m_Barriers.find(barrier) == m_Barriers.end()) {
-		Game::logger->Log("Cinema::Play", "Barrier %s does not exist", barrier.c_str());
+		LOG("Barrier %s does not exist", barrier.c_str());
 		return;
 	}
 

@@ -28,7 +28,7 @@ void Recorder::AddRecord(Record* record)
 		return;
 	}
 
-	Game::logger->Log("Recorder", "Adding record");
+	LOG("Adding record");
 
 	const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 
@@ -41,7 +41,7 @@ void Recorder::AddRecord(Record* record)
 }
 
 void Recorder::Act(Entity* actor, Play* variables) {
-	Game::logger->Log("Recorder", "Acting %d steps", m_Records.size());
+	LOG("Acting %d steps", m_Records.size());
 
 	// Loop through all records
 	ActingDispatch(actor, 0, variables);
@@ -91,7 +91,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 				}
 			}
 
-			Game::logger->Log("Recorder", "Failed to find fork label success: %s", forkRecord->success.c_str());
+			LOG("Failed to find fork label success: %s", forkRecord->success.c_str());
 
 			return;
 		}
@@ -106,7 +106,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 				}
 			}
 
-			Game::logger->Log("Recorder", "Failed to find fork label failure: %s", forkRecord->failure.c_str());
+			LOG("Failed to find fork label failure: %s", forkRecord->failure.c_str());
 
 			return;
 		}
@@ -126,7 +126,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 			}
 		}
 
-		Game::logger->Log("Recorder", "Failed to find jump label: %s", jumpRecord->label.c_str());
+		LOG("Failed to find jump label: %s", jumpRecord->label.c_str());
 
 		return;
 	}
@@ -630,6 +630,10 @@ Recorder* Recorder::LoadFromFile(const std::string& filename) {
 
 	for (auto* element = root->FirstChildElement(); element; element = element->NextSiblingElement()) {
 		const std::string name = element->Name();
+
+		if (!element->Attribute("t")) {
+			element->SetAttribute("t", 0.0f);
+		}
 
 		if (name == "MovementRecord") {
 			MovementRecord* record = new MovementRecord();

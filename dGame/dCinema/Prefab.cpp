@@ -40,7 +40,7 @@ const Prefab& Prefab::LoadFromFile(std::string file) {
 
 	tinyxml2::XMLElement* root = doc.FirstChildElement("Prefab");
 	if (!root) {
-		Game::logger->Log("Prefab", "Failed to load prefab from file: %s", file.c_str());
+		LOG("Failed to load prefab from file: %s", file.c_str());
 
 		m_Prefabs.emplace(file, prefab);
 

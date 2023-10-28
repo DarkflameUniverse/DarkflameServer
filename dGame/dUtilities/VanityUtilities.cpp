@@ -122,13 +122,13 @@ void VanityUtilities::SpawnVanity() {
 
 		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-		Game::logger->Log("VanityUtilities", "Script: %s", npc.m_Script.c_str());
+		LOG_DEBUG("Script: %s", npc.m_Script.c_str());
 
 		if (scriptComponent && !npc.m_Script.empty()) {
 			scriptComponent->SetScript(npc.m_Script);
 			scriptComponent->SetSerialized(false);
 
-			Game::logger->Log("VanityUtilities", "Setting script to %s", npc.m_Script.c_str());
+			LOG_DEBUG("Setting script to %s", npc.m_Script.c_str());
 
 			for (const auto& npc : npc.m_Flags) {
 				npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
@@ -168,7 +168,7 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
 
 	// Debug print
-	Game::logger->Log("VanityUtilities", "Spawning NPC %s (%i) at %f, %f, %f", name.c_str(), lot, position.x, position.y, position.z);
+	LOG_DEBUG("Spawning NPC %s (%i) at %f, %f, %f", name.c_str(), lot, position.x, position.y, position.z);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
@@ -188,10 +188,10 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 
 	if (scriptComponent == nullptr)
 	{
-		entity->AddComponent(eReplicaComponentType::SCRIPT, new ScriptComponent(entity, "", false));
+		entity->AddComponent<ScriptComponent>("", false);
 	}
 
-	Game::logger->Log("VanityUtilities", "NPC has script component? %s", (entity->GetComponent<ScriptComponent>() != nullptr) ? "true" : "false");
+	LOG_DEBUG("NPC has script component? %s", (entity->GetComponent<ScriptComponent>() != nullptr) ? "true" : "false");
 
 	Game::entityManager->ConstructEntity(entity);
 

@@ -64,6 +64,8 @@ bool Cinema::Scene::IsPlayerInBounds(Entity* player) const {
 	
 	auto distance = NiPoint3::Distance(position, m_Center);
 
+	LOG("Player distance from scene: %f, with bounds %f", distance, m_Bounds);
+
 	// The player may be within 20% of the bounds
 	return distance <= (m_Bounds * 1.2f);
 }
@@ -132,7 +134,7 @@ Play* Cinema::Scene::Act(Entity* player) {
 			ServerPreconditions::AddSoloActor(entity->GetObjectID(), player->GetObjectID());
 		}
 
-		Game::logger->Log("Scene", "Spawing object %d", entity->GetObjectID());
+		LOG("Spawing object %d", entity->GetObjectID());
 	}
 
 	for (const auto& [prefab, position] : m_Prefabs) {
@@ -143,12 +145,14 @@ Play* Cinema::Scene::Act(Entity* player) {
 		if (player != nullptr) {
 			for (const auto& entity : entities) {
 				ServerPreconditions::AddSoloActor(entity, player->GetObjectID());
-
-				play->entities.emplace(entity);
 			}
 		}
+		
+		for (const auto& entity : entities) {
+			play->entities.emplace(entity);
+		}
 
-		Game::logger->Log("Scene", "Spawing prefab %d", instanceId);
+		LOG("Spawing prefab %d", instanceId);
 	}
 
 	for (const auto& [npc, meta] : m_NPCs) {
@@ -185,9 +189,9 @@ Play* Cinema::Scene::Act(Entity* player) {
 			actor->SetVar(u"npcName", name);
 		}
 
-		play->entities.emplace(entity->GetObjectID());
+		play->entities.emplace(actor->GetObjectID());
 
-		Game::logger->Log("Scene", "Spawing npc %d", entity->GetObjectID());
+		LOG("Spawing npc %d", entity->GetObjectID());
 	}
 
 	if (player != nullptr) {
@@ -209,7 +213,7 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 
 	tinyxml2::XMLElement* root = doc.FirstChildElement("Scene");
 	if (!root) {
-		Game::logger->Log("Scene", "Failed to load scene from file: %s", file.c_str());
+		LOG("Failed to load scene from file: %s", file.c_str());
 
 		m_Scenes.emplace(file, scene);
 
@@ -271,7 +275,7 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 		scene.AddNPC(npc, name, Recording::Recorder::LoadFromFile(act));
 	}
 
-	Game::logger->Log("Scene", "Loaded scene from file: %s", file.c_str());
+	LOG("Loaded scene from file: %s", file.c_str());
 
 	m_Scenes.emplace(file, scene);
 
