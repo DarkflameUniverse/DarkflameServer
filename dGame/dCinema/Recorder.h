@@ -89,7 +89,7 @@ public:
 class EquipRecord : public Record
 {
 public:
-	LOT item;
+	LOT item = LOT_NULL;
 
 	EquipRecord() = default;
 
@@ -105,7 +105,7 @@ public:
 class UnequipRecord : public Record
 {
 public:
-	LOT item;
+	LOT item = LOT_NULL;
 
 	UnequipRecord() = default;
 
@@ -204,7 +204,7 @@ class BarrierRecord : public Record
 public:
 	std::string signal;
 
-	float timeout;
+	float timeout = 0.0f;
 
 	std::string timeoutLabel;
 
@@ -250,9 +250,9 @@ public:
 class PlayerProximityRecord : public Record
 {
 public:
-	float distance;
+	float distance = 0.0f;
 	
-	float timeout;
+	float timeout = 0.0f;
 
 	std::string timeoutLabel;
 
@@ -267,6 +267,37 @@ public:
 	void Deserialize(tinyxml2::XMLElement* element) override;
 };
 
+class VisibilityRecord : public Record
+{
+public:
+	bool visible = false;
+
+	VisibilityRecord() = default;
+
+	VisibilityRecord(bool visible);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
+
+class PlayEffectRecord : public Record
+{
+public:
+	std::string effect;
+
+	PlayEffectRecord() = default;
+
+	PlayEffectRecord(const std::string& effect);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
 
 class Recorder
 {
@@ -298,6 +329,8 @@ public:
 	static void StopRecording(LWOOBJID actorID);
 
 	static Recorder* GetRecorder(LWOOBJID actorID);
+
+	static void RegisterEffectForActor(LWOOBJID actorID, const int32_t& effectId);
 
 private:
 	void ActingDispatch(Entity* actor, size_t index, Play* variables);

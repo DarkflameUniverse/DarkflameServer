@@ -36,9 +36,17 @@ void Cinema::Play::CheckForAudience() {
 
 		return;
 	}
+
+	if (scene->IsPlayerInBounds(player)) {
+		SignalBarrier("audience");
+		
+		m_PlayerHasBeenInsideBounds = true;
+	}
 	
-	if (!scene->IsPlayerInBounds(player)) {
-		Conclude();
+	if (!scene->IsPlayerInShowingDistance(player)) {
+		if (m_PlayerHasBeenInsideBounds) {
+			Conclude();
+		}
 
 		CleanUp();
 
@@ -70,7 +78,6 @@ void Cinema::Play::SetupBarrier(const std::string& barrier, std::function<void()
 
 void Cinema::Play::SignalBarrier(const std::string& barrier) {
 	if (m_Barriers.find(barrier) == m_Barriers.end()) {
-		LOG("Barrier %s does not exist", barrier.c_str());
 		return;
 	}
 

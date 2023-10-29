@@ -77,6 +77,8 @@ private:
 
 	bool m_CheckForAudience = false;
 
+	bool m_PlayerHasBeenInsideBounds = false;
+
 	std::unordered_map<std::string, std::vector<std::function<void()>>> m_Barriers;
 
 };

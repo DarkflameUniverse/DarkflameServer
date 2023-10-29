@@ -13,6 +13,8 @@ using namespace Cinema::Recording;
 
 std::unordered_map<LWOOBJID, Recorder*> m_Recorders = {};
 
+std::unordered_map<int32_t, std::string> m_EffectAnimations = {};
+
 Recorder::Recorder() {
 	this->m_StartTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 	this->m_IsRecording = false;
@@ -169,7 +171,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 			ActingDispatch(actor, index + 1, variables);
 		});
 		
-		if (barrierRecord->timeout <= 0.0f) {
+		if (barrierRecord->timeout <= 0.0001f) {
 			return;
 		}
 
@@ -208,6 +210,17 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	if (concludeRecord) {
 		if (variables != nullptr) {
 			variables->Conclude();
+		}
+	}
+
+	// Check if the record is a visibility record
+	auto* visibilityRecord = dynamic_cast<VisibilityRecord*>(record);
+
+	if (visibilityRecord) {
+		if (visibilityRecord->visible) {
+			ServerPreconditions::AddExcludeFor(actor->GetObjectID(), variables->player);
+		} else {
+			ServerPreconditions::RemoveExcludeFor(actor->GetObjectID(), variables->player);
 		}
 	}
 
@@ -357,6 +370,45 @@ Recorder* Recorder::GetRecorder(LWOOBJID actorID) {
 	}
 
 	return iter->second;
+}
+
+void Cinema::Recording::Recorder::RegisterEffectForActor(LWOOBJID actorID, const int32_t& effectId) {
+	auto iter = m_Recorders.find(actorID);
+	if (iter == m_Recorders.end()) {
+		return;
+	}
+
+	auto& recorder = iter->second;
+
+	const auto& effectIter = m_EffectAnimations.find(effectId);
+
+	if (effectIter == m_EffectAnimations.end()) {
+		auto statement = CDClientDatabase::CreatePreppedStmt("SELECT animationName FROM BehaviorEffect WHERE effectID = ? LIMIT 1;");
+
+		statement.bind(1, effectId);
+
+		auto result = statement.execQuery();
+
+		if (result.eof()) {
+			result.finalize();
+
+			m_EffectAnimations.emplace(effectId, "");
+		}
+		else {
+			const auto animationName = result.getStringField(0);
+
+			m_EffectAnimations.emplace(effectId, animationName);
+
+			result.finalize();
+
+			recorder->AddRecord(new AnimationRecord(animationName));
+		}
+	}
+	else {
+		recorder->AddRecord(new AnimationRecord(effectIter->second));
+	}
+
+	recorder->AddRecord(new PlayEffectRecord(std::to_string(effectId)));
 }
 
 MovementRecord::MovementRecord(const NiPoint3& position, const NiQuaternion& rotation, const NiPoint3& velocity, const NiPoint3& angularVelocity, bool onGround, bool dirtyVelocity, bool dirtyAngularVelocity) {
@@ -691,6 +743,14 @@ Recorder* Recorder::LoadFromFile(const std::string& filename) {
 			PlayerProximityRecord* record = new PlayerProximityRecord();
 			record->Deserialize(element);
 			recorder->m_Records.push_back(record);
+		} else if (name == "VisibilityRecord") {
+			VisibilityRecord* record = new VisibilityRecord();
+			record->Deserialize(element);
+			recorder->m_Records.push_back(record);
+		} else if (name == "PlayEffectRecord") {
+			PlayEffectRecord* record = new PlayEffectRecord();
+			record->Deserialize(element);
+			recorder->m_Records.push_back(record);
 		}
 
 		if (element->Attribute("name")) {
@@ -942,5 +1002,65 @@ void Cinema::Recording::ConcludeRecord::Serialize(tinyxml2::XMLDocument& documen
 }
 
 void Cinema::Recording::ConcludeRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::VisibilityRecord::VisibilityRecord(bool visible) {
+	this->visible = visible;
+}
+
+void Cinema::Recording::VisibilityRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::VisibilityRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("VisibilityRecord");
+
+	element->SetAttribute("visible", visible);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::VisibilityRecord::Deserialize(tinyxml2::XMLElement* element) {
+	visible = element->BoolAttribute("visible");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::PlayEffectRecord::PlayEffectRecord(const std::string& effect) {
+	this->effect = effect;
+}
+
+void Cinema::Recording::PlayEffectRecord::Act(Entity* actor) {
+	int32_t effectID = 0;
+
+	if (!GeneralUtils::TryParse(effect, effectID)) {
+		return;
+	}
+
+	GameMessages::SendPlayFXEffect(
+		actor->GetObjectID(),
+		effectID,
+		u"cast",
+		std::to_string(ObjectIDManager::GenerateRandomObjectID())
+	);
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void Cinema::Recording::PlayEffectRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("PlayEffectRecord");
+
+	element->SetAttribute("effect", effect.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::PlayEffectRecord::Deserialize(tinyxml2::XMLElement* element) {
+	effect = element->Attribute("effect");
+
 	m_Delay = element->DoubleAttribute("t");
 }

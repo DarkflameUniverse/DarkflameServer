@@ -34,7 +34,13 @@ void dConfig::ReloadConfig() {
 }
 
 const std::string& dConfig::GetValue(std::string key) {
-	return this->m_ConfigValues[key];
+	static std::string emptyString{};
+	
+	const auto& it = this->m_ConfigValues.find(key);
+
+	if (it == this->m_ConfigValues.end()) return emptyString;
+
+	return it->second;
 }
 
 void dConfig::ProcessLine(const std::string& line) {

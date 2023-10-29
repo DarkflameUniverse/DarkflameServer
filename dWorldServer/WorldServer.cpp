@@ -76,6 +76,7 @@
 #include "CheatDetection.h"
 
 #include "ServerPreconditions.hpp"
+#include "Scene.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -257,8 +258,6 @@ int main(int argc, char** argv) {
 
 	PerformanceManager::SelectProfile(zoneID);
 
-	ServerPreconditions::LoadPreconditions("vanity/preconditions.xml");
-
 	Game::entityManager = new EntityManager();
 	Game::zoneManager = new dZoneManager();
 	//Load our level:
@@ -311,6 +310,16 @@ int main(int argc, char** argv) {
 
 		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
+
+	// Load server-side preconditions if they exist
+	const auto& preconditionsPath = Game::config->GetValue("server_preconditions_path");
+
+	if (!preconditionsPath.empty()) {
+		ServerPreconditions::LoadPreconditions(preconditionsPath);
+	}
+
+	// Load scenes for the zone
+	Cinema::Scene::AutoLoadScenesForZone(zoneID);
 
 	uint32_t currentFrameDelta = highFrameDelta;
 	// These values are adjust them selves to the current framerate should it update.

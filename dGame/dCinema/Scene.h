@@ -50,7 +50,7 @@ public:
 	 * 
 	 * @param player The player to conclude the scene for (not nullptr).
 	 */
-	void Conclude(Entity* player) const;
+	void Conclude(Entity* player);
 
 	/**
 	 * @brief Checks if a given player is within the bounds of the scene.
@@ -58,6 +58,13 @@ public:
 	 * @param player The player to check.
 	 */
 	bool IsPlayerInBounds(Entity* player) const;
+
+	/**
+	 * @brief Checks if a given player is within the showing distance of the scene.
+	 * 
+	 * @param player The player to check.
+	 */
+	bool IsPlayerInShowingDistance(Entity* player) const;
 
 	/**
 	 * @brief Act the scene.
@@ -75,6 +82,13 @@ public:
 	 */
 	static Scene& LoadFromFile(std::string file);
 
+	/**
+	 * @brief Automatically loads the scenes for a given zone.
+	 * 
+	 * @param zone The zone to load the scenes for.
+	 */
+	static void AutoLoadScenesForZone(LWOMAPID zone);
+
 private:
 	void CheckForShowings();
 
@@ -86,6 +100,7 @@ private:
 
 	NiPoint3 m_Center;
 	float m_Bounds = 0.0f;
+	float m_ShowingDistance = 0.0f;
 
 	std::vector<std::pair<PreconditionExpression, bool>> m_Preconditions;
 
@@ -93,6 +108,7 @@ private:
 	int32_t m_CompleteMission = 0;
 
 	std::unordered_set<LWOOBJID> m_Audience;
+	std::unordered_set<LWOOBJID> m_HasBeenOutside;
 
 	static std::unordered_map<std::string, Scene> m_Scenes;
 };

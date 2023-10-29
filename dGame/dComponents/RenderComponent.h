@@ -147,6 +147,11 @@ private:
 	 * Cache of queries that look for the length of each effect, indexed by effect ID
 	 */
 	static std::unordered_map<int32_t, float> m_DurationCache;
+
+	/**
+	 * Cache for animation groups, indexed by the component ID
+	 */
+	static std::unordered_map<int32_t, std::vector<int32_t>> m_AnimationGroupCache;
 };
 
 #endif // RENDERCOMPONENT_H

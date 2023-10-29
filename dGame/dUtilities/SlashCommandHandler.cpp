@@ -1051,6 +1051,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	if (chatCommand == "scene-setup" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto& scene = Cinema::Scene::LoadFromFile(args[0]);
+
+		scene.Rehearse();
+
+		return;
+	}
+
 	if ((chatCommand == "teleport" || chatCommand == "tele") && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {
 		NiPoint3 pos{};
 		if (args.size() == 3) {

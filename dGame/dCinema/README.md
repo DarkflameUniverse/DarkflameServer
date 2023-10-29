@@ -22,6 +22,8 @@ A play is created is a couple of steps:
 2. Create prefabs of props in the scene.
 3. Put the NPCs and props in a scene file.
 4. Edit the performed acts to add synchronization, conditions and additional actions.
+5. Setting up the scene to be performed automatically.
+6. Hiding zone objects while performing.
 
 ### 1. Acts out the scene
 See <a href="./media/acting.mp4">media/acting.mp4</a> for an example of how to act out a scene. 
@@ -261,3 +263,90 @@ This record concludes the play.
 ```xml
 <ConcludeRecord t="0" />
 ```
+
+#### 4.15. VisiblityRecord
+This record makes the actor visible or invisible.
+```xml
+<VisiblityRecord visible="false" t="0" />
+```
+
+#### 4.16. PlayEffectRecord
+This record plays an effect.
+```xml
+<PlayEffectRecord effect="5307" t="0" />
+```
+
+### 5. Setting up the scene to be performed automatically
+Scenes can be appended with metadata to describe when they should be performed and what consequences they have. This is done by editing the scene file.
+
+#### 5.1. Scene metadata
+There attributes can be added to the `Scene` tag:
+
+| Attribute | Description |
+| --- | --- |
+| `x y z` | The center of where the following two attributes <br> are measured. |
+| `showingDistance` | The distance at which the scene will <br> be loaded for a player.<br><br> If the player exits this area the scene is unloaded. <br> If the scene has been registered as having been<br>viewed by the player, is is concluded. |
+| `performingDistance` | The scene is registred as having been <br>viewed by the player. This doesn't mean <br>it can't be viewed again.<br><br>A signal named `"audiance"` will be <br> sent when the player enters this area. <br>This can be used to trigger the main <br>part of the scene. |
+| `acceptMission` | The mission with the given id will be <br> accepted when the scene is concluded. |
+| `completeMission` | The mission with the given id will be <br> completed when the scene is concluded. |
+
+Here is an example of a scene with metadata:
+```xml
+<Scene x="-368.272" y="1161.89" z="-5.25745" performingDistance="50" showingDistance="200">
+    ...
+</Scene>
+```
+
+#### 5.2. Automatic scene setup
+In either the worldconfig.ini or sharedconfig.ini file, add the following:
+```
+# Path to where scenes are located.
+scenes_directory=vanity/scenes/
+```
+
+Now move the scene into a subdirectory of the scenes directory. The name of the subdirectory should be **the zone id** of the zone the scene is located in.
+
+For example:
+```
+build/
+├── vanity/
+│   ├── scenes/
+│   │   ├── 1900/
+│   │   │   ├── my-scene.xml
+```
+
+Now the scene will be setup automatically and loaded when the player enters the `showingDistance` of the scene.
+
+#### 5.3. Adding conditions
+Conditions can be added to the scene to make it only performable when the player fulfills specified preconditions. This is done by editing the scene file.
+
+Here is an example of a scene with conditions:
+```xml
+<Scene x="-368.272" y="1161.89" z="-5.25745" performingDistance="50" showingDistance="200">
+    <Precondition expression="42,99"/> <!-- The player must fulfill preconditions 42 and 99. -->
+    <Precondition expression="666" not="1"/> <!-- The player cannot fulfill precondition 666. -->
+    ...
+</Scene>
+```
+
+### 6. Hiding zone objects while performing
+When a scene should be performed, you might want to hide some objects in the zone. This is done by adding server preconditions. This is a seperate file.
+
+In either the worldconfig.ini or sharedconfig.ini file, add the following:
+```
+# Path to where server preconditions are located.
+server_preconditions_directory=vanity/server-preconditions.xml
+```
+
+Now create the server preconditions file in the directory specified.
+
+Here is an example of a server preconditions file:
+```xml
+<Preconditions>
+    <Entity lot="12261">
+        <Precondition not="1">1006</Precondition>
+    </Entity>
+</Preconditions>
+```
+
+This will hide the objects with lot 12261 for players who fulfill precondition 1006.

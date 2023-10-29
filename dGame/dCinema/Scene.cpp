@@ -1,11 +1,14 @@
 #include "Scene.h"
 
+#include <filesystem>
+
 #include <tinyxml2.h>
 
 #include "ServerPreconditions.hpp"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "MissionComponent.h"
+#include "dConfig.h"
 
 using namespace Cinema;
 
@@ -27,7 +30,7 @@ void Cinema::Scene::Rehearse() {
 	CheckForShowings();
 }
 
-void Cinema::Scene::Conclude(Entity* player) const {
+void Cinema::Scene::Conclude(Entity* player) {
 	if (player == nullptr) {
 		return;
 	}
@@ -49,6 +52,10 @@ void Cinema::Scene::Conclude(Entity* player) const {
 	if (m_AcceptMission != 0) {
 		missionComponent->AcceptMission(m_AcceptMission);
 	}
+
+	// Remove the player from the audience
+	m_Audience.erase(player->GetObjectID());
+	m_HasBeenOutside.erase(player->GetObjectID());
 }
 
 bool Cinema::Scene::IsPlayerInBounds(Entity* player) const {
@@ -64,20 +71,75 @@ bool Cinema::Scene::IsPlayerInBounds(Entity* player) const {
 	
 	auto distance = NiPoint3::Distance(position, m_Center);
 
-	LOG("Player distance from scene: %f, with bounds %f", distance, m_Bounds);
+	return distance <= m_Bounds;
+}
 
-	// The player may be within 20% of the bounds
-	return distance <= (m_Bounds * 1.2f);
+bool Cinema::Scene::IsPlayerInShowingDistance(Entity* player) const {
+	if (player == nullptr) {
+		return false;
+	}
+
+	if (m_ShowingDistance == 0.0f) {
+		return true;
+	}
+
+	const auto& position = player->GetPosition();
+
+	auto distance = NiPoint3::Distance(position, m_Center);
+
+	return distance <= m_ShowingDistance;
+}
+
+void Cinema::Scene::AutoLoadScenesForZone(LWOMAPID zone) {
+	const auto& scenesRoot = Game::config->GetValue("scenes_directory");
+
+	if (scenesRoot.empty()) {
+		return;
+	}
+
+	const auto path = std::filesystem::path(scenesRoot) / std::to_string(zone);
+
+	if (!std::filesystem::exists(path)) {
+		return;
+	}
+
+	// Recursively iterate through the directory
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+		if (!entry.is_regular_file()) {
+			continue;
+		}
+
+		// Check that extension is .xml
+		if (entry.path().extension() != ".xml") {
+			continue;
+		}
+
+		const auto& file = entry.path().string();
+
+		auto& scene = LoadFromFile(file);
+
+		scene.Rehearse();
+	}
 }
 
 void Cinema::Scene::CheckForShowings() {
 	auto audience = m_Audience;
+	auto hasBeenOutside = m_HasBeenOutside;
 
 	for (const auto& member : audience) {
 		if (Game::entityManager->GetEntity(member) == nullptr) {
 			m_Audience.erase(member);
 		}
 	}
+
+	for (const auto& member : hasBeenOutside) {
+		if (Game::entityManager->GetEntity(member) == nullptr) {
+			m_HasBeenOutside.erase(member);
+		}
+	}
+
+	m_Audience = audience;
+	m_HasBeenOutside = hasBeenOutside;
 
 	// I don't care
 	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [this]() {
@@ -87,9 +149,9 @@ void Cinema::Scene::CheckForShowings() {
 			}
 
 			CheckTicket(player);
-
-			
 		}
+
+		CheckForShowings();
 	});
 }
 
@@ -102,6 +164,16 @@ void Cinema::Scene::CheckTicket(Entity* player) {
 		if (expression.Check(player) == invert) {
 			return;
 		}
+	}
+
+	if (!IsPlayerInShowingDistance(player)) {
+		m_HasBeenOutside.emplace(player->GetObjectID());
+
+		return;
+	}
+
+	if (m_HasBeenOutside.find(player->GetObjectID()) == m_HasBeenOutside.end()) {
+		return;
 	}
 
 	m_Audience.emplace(player->GetObjectID());
@@ -225,8 +297,14 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 		scene.m_Center = NiPoint3(root->FloatAttribute("x"), root->FloatAttribute("y"), root->FloatAttribute("z"));
 	}
 
-	if (root->Attribute("bounds")) {
-		scene.m_Bounds = root->FloatAttribute("bounds");
+	if (root->Attribute("performingDistance")) {
+		scene.m_Bounds = root->FloatAttribute("performingDistance");
+	}
+
+	if (root->Attribute("showingDistance")) {
+		scene.m_ShowingDistance = root->FloatAttribute("showingDistance");
+	} else {
+		scene.m_ShowingDistance = scene.m_Bounds * 2.0f;
 	}
 
 	// Load accept and complete mission
