@@ -3122,7 +3122,7 @@ void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset,
 
 		bitStream.Write(item.PrimaryData.Reputation);
 
-		bitStream.Write(false);
+		bitStream.Write(item.PersonalData.IsBestFriend);
 		bitStream.Write(item.PersonalData.IsFriend);
 		bitStream.Write(item.PersonalData.IsModeratorApproved);
 		bitStream.Write(item.PersonalData.IsAlt);

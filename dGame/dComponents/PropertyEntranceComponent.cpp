@@ -48,9 +48,6 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 	} else if (index == -1 && returnToZone) {
 		cloneId = 0;
 	} else if (index >= 0) {
-		// Increment index once here because the first index of other player properties is 2 in the propertyQueries cache.
-		index++;
-
 		const auto& item = m_UserRequestedCloneMap.find(entity->GetObjectID());
 		if (item == m_UserRequestedCloneMap.end()) return;
 
@@ -101,10 +98,8 @@ void PropertyEntranceComponent::PopulateUserFriendMap(uint32_t user) {
 std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(const std::string& searchText, uint32_t sortMethod, Entity* requestor) {
 	std::string query = "SELECT id, owner_id, last_updated, reputation FROM properties WHERE zone_id = ? AND (description LIKE ? OR name LIKE ? OR name LIKE ?) AND privacy_option >= ? ";
 
-	if (sortMethod == SORT_TYPE_RECENT) {
-		query += "ORDER BY last_updated DESC;";
-	} else if (sortMethod == SORT_TYPE_REPUTATION) {
-		query += "ORDER BY reputation DESC, last_updated DESC;";
+	if (sortMethod == SORT_TYPE_REPUTATION) {
+		query += "ORDER BY reputation DESC;";
 	} else {
 		query += "ORDER BY last_updated DESC;";
 	}
@@ -169,15 +164,18 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	std::vector<uint32_t> propertyIdsSlice(propertyIds.begin() + startIndex, propertyIds.begin() + std::min(startIndex + numResults, (int32_t)propertyIds.size()));
 
+	std::vector<uint32_t> propertyCloneIdSlice{};
+
 	for (const auto& id : propertyIdsSlice) {
 		auto prop = this->GetPropertyData(id);
 		if (prop.CloneID != 0) {
 			prop.PersonalData = this->GetPropertyPersonalData(prop, entity, true);
 			entries.push_back(prop);
 		}
+		propertyCloneIdSlice.push_back(prop.CloneID);
 	}
 
-	this->m_UserRequestedCloneMap[entity->GetObjectID()] = propertyIdsSlice;
+	this->m_UserRequestedCloneMap[entity->GetObjectID()] = propertyCloneIdSlice;
 
 	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, propertyIds.size() > propertyIdsSlice.size() + startIndex, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }
@@ -258,7 +256,7 @@ PropertyPersonalData PropertyEntranceComponent::GetPropertyPersonalData(Property
 		propertyData.PrimaryData.Name = "[AWAITING APPROVAL]";
 		propertyData.PrimaryData.Description = "[AWAITING APPROVAL]";
 		propertyData.PrimaryData.IsModeratorApproved = true;
-		propertyData.PersonalData.IsModeratorApproved = true;
+		personalData.IsModeratorApproved = true;
 	}
 
 	auto* user = UserManager::Instance()->GetUser(queryingUser->GetSystemAddress());
@@ -272,7 +270,7 @@ PropertyPersonalData PropertyEntranceComponent::GetPropertyPersonalData(Property
 	bool ownerIsOurAccount = false;
 
 	while (isAltQueryResults->next()) {
-		if (queryingUser->GetCharacter()->GetPropertyCloneID() == isAltQueryResults->getInt(2)) {
+		if (propertyData.CloneID == isAltQueryResults->getInt(2)) {
 			if (isAltQueryResults->getInt(1) == propertyData.PrimaryData.OwnerID) {
 				personalData.IsOwned = true;
 			}
