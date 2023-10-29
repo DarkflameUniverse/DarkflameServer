@@ -179,7 +179,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	this->m_UserRequestedCloneMap[entity->GetObjectID()] = propertyIdsSlice;
 
-	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, propertyIds.size() - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, propertyIds.size() > propertyIdsSlice.size() + startIndex, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }
 
 
