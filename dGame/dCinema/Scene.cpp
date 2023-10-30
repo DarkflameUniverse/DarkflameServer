@@ -56,6 +56,8 @@ void Cinema::Scene::Conclude(Entity* player) {
 	// Remove the player from the audience
 	m_Audience.erase(player->GetObjectID());
 	m_HasBeenOutside.erase(player->GetObjectID());
+	
+	m_VisitedPlayers.emplace(player->GetObjectID());
 }
 
 bool Cinema::Scene::IsPlayerInBounds(Entity* player) const {
@@ -118,6 +120,14 @@ void Cinema::Scene::AutoLoadScenesForZone(LWOMAPID zone) {
 
 		auto& scene = LoadFromFile(file);
 
+		if (scene.m_ChanceToPlay != 1.0f) {
+			const auto chance = GeneralUtils::GenerateRandomNumber<float>(0.0f, 1.0f);
+
+			if (chance > scene.m_ChanceToPlay) {
+				continue;
+			}
+		}
+
 		scene.Rehearse();
 	}
 }
@@ -145,6 +155,10 @@ void Cinema::Scene::CheckForShowings() {
 	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [this]() {
 		for (auto* player : Player::GetAllPlayers()) {
 			if (m_Audience.find(player->GetObjectID()) != m_Audience.end()) {
+				continue;
+			}
+
+			if (!m_Repeatable && m_VisitedPlayers.find(player->GetObjectID()) != m_VisitedPlayers.end()) {
 				continue;
 			}
 
@@ -305,6 +319,14 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 		scene.m_ShowingDistance = root->FloatAttribute("showingDistance");
 	} else {
 		scene.m_ShowingDistance = scene.m_Bounds * 2.0f;
+	}
+
+	if (root->Attribute("chanceToPlay")) {
+		scene.m_ChanceToPlay = root->FloatAttribute("chanceToPlay");
+	}
+
+	if (root->Attribute("repeatable")) {
+		scene.m_Repeatable = root->BoolAttribute("repeatable");
 	}
 
 	// Load accept and complete mission

@@ -101,6 +101,8 @@ private:
 	NiPoint3 m_Center;
 	float m_Bounds = 0.0f;
 	float m_ShowingDistance = 0.0f;
+	float m_ChanceToPlay = 1.0f;
+	bool m_Repeatable = true;
 
 	std::vector<std::pair<PreconditionExpression, bool>> m_Preconditions;
 
@@ -109,6 +111,8 @@ private:
 
 	std::unordered_set<LWOOBJID> m_Audience;
 	std::unordered_set<LWOOBJID> m_HasBeenOutside;
+
+	std::unordered_set<LWOOBJID> m_VisitedPlayers;
 
 	static std::unordered_map<std::string, Scene> m_Scenes;
 };

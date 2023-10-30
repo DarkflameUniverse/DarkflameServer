@@ -59,6 +59,8 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	// Check if the record is a fork
 	auto* forkRecord = dynamic_cast<ForkRecord*>(record);
 
+	float delay = record->m_Delay;
+
 	if (forkRecord) {
 		if (variables == nullptr) {
 			// Skip the fork
@@ -217,7 +219,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	auto* visibilityRecord = dynamic_cast<VisibilityRecord*>(record);
 
 	if (visibilityRecord) {
-		if (visibilityRecord->visible) {
+		if (!visibilityRecord->visible) {
 			ServerPreconditions::AddExcludeFor(actor->GetObjectID(), variables->player);
 		} else {
 			ServerPreconditions::RemoveExcludeFor(actor->GetObjectID(), variables->player);
@@ -262,7 +264,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 		return;
 	}
 
-	actor->AddCallbackTimer(record->m_Delay, [this, actor, index, variables]() {
+	actor->AddCallbackTimer(delay, [this, actor, index, variables]() {
 		ActingDispatch(actor, index + 1, variables);
 	});
 

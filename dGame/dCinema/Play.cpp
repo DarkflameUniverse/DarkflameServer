@@ -29,8 +29,6 @@ void Cinema::Play::SetupCheckForAudience() {
 void Cinema::Play::CheckForAudience() {
 	auto* player = Game::entityManager->GetEntity(this->player);
 
-	LOG("Checking for audience");
-
 	if (player == nullptr) {
 		CleanUp();
 
