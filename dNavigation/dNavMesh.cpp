@@ -131,7 +131,7 @@ float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExten
 	pos[2] = location.z;
 
 	dtPolyRef nearestRef = 0;
-	float polyPickExt[3] = { 0.0f, halfExtentsHeight, 0.0f };
+	float polyPickExt[3] = { 32.0f, halfExtentsHeight, 32.0f };
 	float nearestPoint[3] = { 0.0f, 0.0f, 0.0f };
 	dtQueryFilter filter{};
 
