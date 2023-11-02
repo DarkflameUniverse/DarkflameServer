@@ -645,6 +645,18 @@
 			</locations>
 		</zone>
 	</npc>
+
+	<!--ATM in GF Race Place-->
+	<npc lot="13538">
+		<ldf>
+			<entry data="CheckPrecondition=0:168"/>
+		</ldf>
+		<zone id="1300">
+			<locations>
+				<location x="51.848" y="329.0" z="561.114" rw="-0.277656" rx="0.00" ry="0.960681" rz="0.00" />
+			</locations>
+		</zone>
+	</npc>
 	
 	<!--ATM in GF Pirate Camp-->
 	<npc lot="13538">
