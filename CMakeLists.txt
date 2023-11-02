@@ -215,6 +215,7 @@ set(INCLUDED_DIRECTORIES
 	"dZoneManager"
 	"dDatabase"
 	"dDatabase/Tables"
+	"dDatabase/Databases"
 	"dNet"
 	"dScripts"
 	"dScripts/02_server"
