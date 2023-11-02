@@ -32,7 +32,7 @@ Migration LoadMigration(std::string path) {
 }
 
 void MigrationRunner::RunMigrations() {
-	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
+	auto* stmt = Database::Get()->CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
 	stmt->execute();
 	delete stmt;
 
@@ -45,7 +45,7 @@ void MigrationRunner::RunMigrations() {
 			continue;
 		}
 
-		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		stmt = Database::Get()->CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
 		stmt->setString(1, migration.name.c_str());
 		auto* res = stmt->executeQuery();
 		bool doExit = res->next();
@@ -60,7 +60,7 @@ void MigrationRunner::RunMigrations() {
 			finalSQL.append(migration.data.c_str());
 		}
 
-		stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
+		stmt = Database::Get()->CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
 		stmt->setString(1, migration.name.c_str());
 		stmt->execute();
 		delete stmt;
@@ -73,7 +73,7 @@ void MigrationRunner::RunMigrations() {
 
 	if (!finalSQL.empty()) {
 		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
-		std::unique_ptr<sql::Statement> simpleStatement(Database::CreateStmt());
+		std::unique_ptr<sql::Statement> simpleStatement(Database::Get()->CreateStmt());
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
@@ -98,7 +98,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 	cdstmt.execQuery().finalize();
 	cdstmt.finalize();
 
-	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
+	auto* stmt = Database::Get()->CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
 	stmt->execute();
 	delete stmt;
 
@@ -118,7 +118,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		if (doExit) continue;
 
 		// Check first if there is entry in the migration history table on the main database.
-		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
+		stmt = Database::Get()->CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
 		stmt->setString(1, migration.name.c_str());
 		auto* res = stmt->executeQuery();
 		doExit = res->next();

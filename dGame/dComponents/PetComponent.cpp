@@ -1090,7 +1090,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 		approved = 2; //approved
 	}
 
-	auto deleteStmt = Database::CreatePreppedStmt("DELETE FROM pet_names WHERE id = ? LIMIT 1;");
+	auto deleteStmt = Database::Get()->CreatePreppedStmt("DELETE FROM pet_names WHERE id = ? LIMIT 1;");
 	deleteStmt->setUInt64(1, m_DatabaseId);
 
 	deleteStmt->execute();
@@ -1098,7 +1098,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	delete deleteStmt;
 
 	//Save to db:
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO `pet_names` (`id`, `pet_name`, `approved`) VALUES (?, ?, ?);");
+	auto stmt = Database::Get()->CreatePreppedStmt("INSERT INTO `pet_names` (`id`, `pet_name`, `approved`) VALUES (?, ?, ?);");
 	stmt->setUInt64(1, m_DatabaseId);
 	stmt->setString(2, petName);
 	stmt->setInt(3, approved);
@@ -1107,7 +1107,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 }
 
 void PetComponent::LoadPetNameFromModeration() {
-	auto stmt = Database::CreatePreppedStmt("SELECT pet_name, approved FROM pet_names WHERE id = ? LIMIT 1;");
+	auto stmt = Database::Get()->CreatePreppedStmt("SELECT pet_name, approved FROM pet_names WHERE id = ? LIMIT 1;");
 	stmt->setUInt64(1, m_DatabaseId);
 
 	auto res = stmt->executeQuery();

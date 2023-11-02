@@ -26,7 +26,7 @@ Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
 	m_ID = id;
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 		"SELECT name, pending_name, needs_rename, prop_clone_id, permission_map FROM charinfo WHERE id=? LIMIT 1;"
 	);
 
@@ -46,7 +46,7 @@ Character::Character(uint32_t id, User* parentUser) {
 	delete stmt;
 
 	//Load the xmlData now:
-	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
+	sql::PreparedStatement* xmlStmt = Database::Get()->CreatePreppedStmt(
 		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
 	);
 
@@ -85,7 +85,7 @@ Character::~Character() {
 }
 
 void Character::UpdateFromDatabase() {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 		"SELECT name, pending_name, needs_rename, prop_clone_id, permission_map FROM charinfo WHERE id=? LIMIT 1;"
 	);
 
@@ -105,7 +105,7 @@ void Character::UpdateFromDatabase() {
 	delete stmt;
 
 	//Load the xmlData now:
-	sql::PreparedStatement* xmlStmt = Database::CreatePreppedStmt(
+	sql::PreparedStatement* xmlStmt = Database::Get()->CreatePreppedStmt(
 		"SELECT xml_data FROM charxml WHERE id=? LIMIT 1;"
 	);
 	xmlStmt->setInt64(1, m_ID);
@@ -411,7 +411,7 @@ void Character::WriteToDatabase() {
 	m_XMLData = printer->CStr();
 
 	//Finally, save to db:
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charxml SET xml_data=? WHERE id=?");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("UPDATE charxml SET xml_data=? WHERE id=?");
 	stmt->setString(1, m_XMLData.c_str());
 	stmt->setUInt(2, m_ID);
 	stmt->execute();

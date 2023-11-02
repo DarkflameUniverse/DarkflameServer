@@ -25,11 +25,11 @@ bool CheckSd0Magic(sql::Blob* streamToCheck);
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	uint32_t modelsTruncated{};
 	auto modelsToTruncate = GetModelsFromDatabase();
-	bool previousCommitValue = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
+	bool previousCommitValue = Database::Get()->GetAutoCommit();
+	Database::Get()->SetAutoCommit(false);
 	while (modelsToTruncate->next()) {
-		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
-		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(Database::Get()->CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(Database::Get()->CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
 		std::string completeUncompressedModel{};
 		uint32_t chunkCount{};
 		uint64_t modelId = modelsToTruncate->getInt(1);
@@ -93,8 +93,8 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 		}
 	}
 
-	Database::Commit();
-	Database::SetAutoCommit(previousCommitValue);
+	Database::Get()->Commit();
+	Database::Get()->SetAutoCommit(previousCommitValue);
 	return modelsTruncated;
 }
 
@@ -107,9 +107,9 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 	uint32_t updatedModels = 0;
 	auto modelsToUpdate = GetModelsFromDatabase();
-	auto previousAutoCommitState = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
-	std::unique_ptr<sql::PreparedStatement> insertionStatement(Database::CreatePreppedStmt("UPDATE ugc SET lxfml = ? WHERE id = ?;"));
+	auto previousAutoCommitState = Database::Get()->GetAutoCommit();
+	Database::Get()->SetAutoCommit(false);
+	std::unique_ptr<sql::PreparedStatement> insertionStatement(Database::Get()->CreatePreppedStmt("UPDATE ugc SET lxfml = ? WHERE id = ?;"));
 	while (modelsToUpdate->next()) {
 		int64_t modelId = modelsToUpdate->getInt64(1);
 		std::unique_ptr<sql::Blob> oldLxfml(modelsToUpdate->getBlob(2));
@@ -146,13 +146,13 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			}
 		}
 	}
-	Database::Commit();
-	Database::SetAutoCommit(previousAutoCommitState);
+	Database::Get()->Commit();
+	Database::Get()->SetAutoCommit(previousAutoCommitState);
 	return updatedModels;
 }
 
 std::unique_ptr<sql::ResultSet> GetModelsFromDatabase() {
-	std::unique_ptr<sql::PreparedStatement> modelsRawDataQuery(Database::CreatePreppedStmt("SELECT id, lxfml FROM ugc;"));
+	std::unique_ptr<sql::PreparedStatement> modelsRawDataQuery(Database::Get()->CreatePreppedStmt("SELECT id, lxfml FROM ugc;"));
 	return std::unique_ptr<sql::ResultSet>(modelsRawDataQuery->executeQuery());
 }
 

@@ -160,7 +160,7 @@ void UserManager::DeletePendingRemovals() {
 
 bool UserManager::IsNameAvailable(const std::string& requestedName) {
 	bool toReturn = false; //To allow for a clean exit
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? OR pending_name=? LIMIT 1;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? OR pending_name=? LIMIT 1;");
 	stmt->setString(1, requestedName.c_str());
 	stmt->setString(2, requestedName.c_str());
 
@@ -201,7 +201,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 4;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 4;");
 	stmt->setUInt(1, u->GetAccountID());
 
 	sql::ResultSet* res = stmt->executeQuery();
@@ -290,7 +290,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	//Now that the name is ok, we can get an objectID from Master:
 	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
-		sql::PreparedStatement* overlapStmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE id = ?");
+		sql::PreparedStatement* overlapStmt = Database::Get()->CreatePreppedStmt("SELECT id FROM charinfo WHERE id = ?");
 		overlapStmt->setUInt(1, objectID);
 
 		auto* overlapResult = overlapStmt->executeQuery();
@@ -338,7 +338,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 				if (name != "") {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
+					sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
 					stmt->setUInt(1, objectID);
 					stmt->setUInt(2, u->GetAccountID());
 					stmt->setString(3, predefinedName.c_str());
@@ -354,7 +354,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 					stmt->execute();
 					delete stmt;
 				} else {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
+					sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
 					stmt->setUInt(1, objectID);
 					stmt->setUInt(2, u->GetAccountID());
 					stmt->setString(3, predefinedName.c_str());
@@ -367,7 +367,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				}
 
 				//Now finally insert our character xml:
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
+				sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
 				stmt->setUInt(1, objectID);
 				stmt->setString(2, xml3.str().c_str());
 				stmt->execute();
@@ -404,19 +404,19 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	} else {
 		LOG("Deleting character %i", charID);
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM command_log WHERE character_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM command_log WHERE character_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE player_id=? OR friend_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM friends WHERE player_id=? OR friend_id=?;");
 			stmt->setUInt(1, charID);
 			stmt->setUInt(2, charID);
 			stmt->execute();
@@ -427,13 +427,13 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM leaderboard WHERE character_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM leaderboard WHERE character_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 				"DELETE FROM properties_contents WHERE property_id IN (SELECT id FROM properties WHERE owner_id=?);"
 			);
 			stmt->setUInt64(1, charID);
@@ -441,31 +441,31 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM properties WHERE owner_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM properties WHERE owner_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM ugc WHERE character_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM ugc WHERE character_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM activity_log WHERE character_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM activity_log WHERE character_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE receiver_id=?;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM mail WHERE receiver_id=?;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
 		}
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charinfo WHERE id=? LIMIT 1;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM charinfo WHERE id=? LIMIT 1;");
 			stmt->setUInt64(1, charID);
 			stmt->execute();
 			delete stmt;
@@ -519,7 +519,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		if (IsNameAvailable(newName)) {
 			if (IsNamePreapproved(newName)) {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET name=?, pending_name='', needs_rename=0, last_login=? WHERE id=? LIMIT 1");
+				sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("UPDATE charinfo SET name=?, pending_name='', needs_rename=0, last_login=? WHERE id=? LIMIT 1");
 				stmt->setString(1, newName);
 				stmt->setUInt64(2, time(NULL));
 				stmt->setUInt(3, character->GetID());
@@ -530,7 +530,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
+				sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
 				stmt->setString(1, newName);
 				stmt->setUInt64(2, time(NULL));
 				stmt->setUInt(3, character->GetID());
@@ -566,7 +566,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 	}
 
 	if (hasCharacter && character) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET last_login=? WHERE id=? LIMIT 1");
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("UPDATE charinfo SET last_login=? WHERE id=? LIMIT 1");
 		stmt->setUInt64(1, time(NULL));
 		stmt->setUInt(2, playerID);
 		stmt->execute();

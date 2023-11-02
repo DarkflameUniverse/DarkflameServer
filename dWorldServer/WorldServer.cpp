@@ -180,20 +180,15 @@ int main(int argc, char** argv) {
 
 	CDClientManager::Instance();
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
 	if (!Game::config->GetValue("dump_folder").empty()) {
 		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	}
 
+	//Connect to the MySQL Database:
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		return EXIT_FAILURE;
@@ -202,7 +197,7 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
 	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 	auto res = stmt->executeQuery();
 	while (res->next()) {
 		masterIP = res->getString(1).c_str();
@@ -485,7 +480,7 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
 			auto res = stmt->executeQuery();
 			while (res->next()) {
 				masterIP = res->getString(1).c_str();
@@ -887,7 +882,7 @@ void HandlePacket(Packet* packet) {
 		// If the check is turned on, validate the client's database checksum.
 		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
 			uint32_t gmLevel = 0;
-			auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
+			auto* stmt = Database::Get()->CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
 			stmt->setString(1, username.c_str());
 
 			auto* res = stmt->executeQuery();
@@ -1105,13 +1100,13 @@ void HandlePacket(Packet* packet) {
 					}
 
 					//Check for BBB models:
-					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
+					auto stmt = Database::Get()->CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
 
 					int32_t templateId = result.getIntField(0);
 
 					result.finalize();
 
-					auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+					auto* propertyLookup = Database::Get()->CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
 					propertyLookup->setInt(1, templateId);
 					propertyLookup->setInt64(2, g_CloneID);
@@ -1131,7 +1126,7 @@ void HandlePacket(Packet* packet) {
 						LOG("Getting lxfml ugcID: %u", res->getUInt(1));
 
 						//Get lxfml:
-						auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
+						auto stmtL = Database::Get()->CreatePreppedStmt("SELECT lxfml from ugc where id=?");
 						stmtL->setUInt(1, res->getUInt(1));
 
 						auto lxres = stmtL->executeQuery();

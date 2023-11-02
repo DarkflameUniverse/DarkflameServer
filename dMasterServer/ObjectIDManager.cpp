@@ -14,14 +14,14 @@ void ObjectIDManager::Initialize(Logger* logger) {
 	this->currentPersistentID = 1;
 
 	try {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 			"SELECT last_object_id FROM object_id_tracker");
 
 		sql::ResultSet* result = stmt->executeQuery();
 		auto next = result->next();
 
 		if (!next) {
-			sql::PreparedStatement* insertStmt = Database::CreatePreppedStmt(
+			sql::PreparedStatement* insertStmt = Database::Get()->CreatePreppedStmt(
 				"INSERT INTO object_id_tracker VALUES (1)");
 
 			insertStmt->execute();
@@ -52,7 +52,7 @@ uint32_t ObjectIDManager::GeneratePersistentID(void) {
 
 	// So we peroidically save our ObjID to the database:
 	// if (toReturn % 25 == 0) { // TEMP: DISABLED FOR DEBUG / DEVELOPMENT!
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 			"UPDATE object_id_tracker SET last_object_id=?");
 		stmt->setUInt(1, toReturn);
 		stmt->execute();
@@ -63,7 +63,7 @@ uint32_t ObjectIDManager::GeneratePersistentID(void) {
 }
 
 void ObjectIDManager::SaveToDatabase() {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt(
 		"UPDATE object_id_tracker SET last_object_id=?");
 	stmt->setUInt(1, currentPersistentID);
 	stmt->execute();

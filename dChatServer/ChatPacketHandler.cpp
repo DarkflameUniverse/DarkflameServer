@@ -31,7 +31,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	if (!player) return;
 
 	//Get our friends list from the Db.  Using a derived table since the friend of a player can be in either column.
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt(
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt(
 		"SELECT fr.requested_player, best_friend, ci.name FROM "
 		"(SELECT CASE "
 		"WHEN player_id = ? THEN friend_id "
@@ -155,7 +155,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// If at this point we dont have a target, then they arent online and we cant send the request.
 	// Send the response code that corresponds to what the error is.
 	if (!requestee) {
-		std::unique_ptr<sql::PreparedStatement> nameQuery(Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;"));
+		std::unique_ptr<sql::PreparedStatement> nameQuery(Database::Get()->CreatePreppedStmt("SELECT name from charinfo where name = ?;"));
 		nameQuery->setString(1, playerName);
 		std::unique_ptr<sql::ResultSet> result(nameQuery->executeQuery());
 
@@ -167,7 +167,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	}
 
 	if (isBestFriendRequest) {
-		std::unique_ptr<sql::PreparedStatement> friendUpdate(Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
+		std::unique_ptr<sql::PreparedStatement> friendUpdate(Database::Get()->CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 		friendUpdate->setUInt(1, static_cast<uint32_t>(requestorPlayerID));
 		friendUpdate->setUInt(2, static_cast<uint32_t>(requestee->playerID));
 		friendUpdate->setUInt(3, static_cast<uint32_t>(requestee->playerID));
@@ -213,7 +213,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				}
 			} else {
 				// Then update the database with this new info.
-				std::unique_ptr<sql::PreparedStatement> updateQuery(Database::CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
+				std::unique_ptr<sql::PreparedStatement> updateQuery(Database::Get()->CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 				updateQuery->setUInt(1, bestFriendStatus);
 				updateQuery->setUInt(2, static_cast<uint32_t>(requestorPlayerID));
 				updateQuery->setUInt(3, static_cast<uint32_t>(requestee->playerID));
@@ -314,7 +314,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 		requesteeData.isOnline = true;
 		requestor->friends.push_back(requesteeData);
 
-		std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?);"));
+		std::unique_ptr<sql::PreparedStatement> statement(Database::Get()->CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?);"));
 		statement->setUInt(1, static_cast<uint32_t>(requestor->playerID));
 		statement->setUInt(2, static_cast<uint32_t>(requestee->playerID));
 		statement->setInt(3, 0);
@@ -333,7 +333,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;"));
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;"));
 	stmt->setString(1, friendName.c_str());
 
 	LWOOBJID friendID = 0;
@@ -346,7 +346,7 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	GeneralUtils::SetBit(friendID, eObjectBits::PERSISTENT);
 	GeneralUtils::SetBit(friendID, eObjectBits::CHARACTER);
 
-	std::unique_ptr<sql::PreparedStatement> deletestmt(Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
+	std::unique_ptr<sql::PreparedStatement> deletestmt(Database::Get()->CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
 	deletestmt->setUInt(1, static_cast<uint32_t>(playerID));
 	deletestmt->setUInt(2, static_cast<uint32_t>(friendID));
 	deletestmt->setUInt(3, static_cast<uint32_t>(friendID));

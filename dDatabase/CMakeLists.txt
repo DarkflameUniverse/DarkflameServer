@@ -1,7 +1,8 @@
 set(DDATABASE_SOURCES "CDClientDatabase.cpp"
 		"CDClientManager.cpp"
 		"Database.cpp"
-		"MigrationRunner.cpp")
+		"MigrationRunner.cpp"
+		"MySQLDatabase.cpp")
 
 add_subdirectory(Tables)
 

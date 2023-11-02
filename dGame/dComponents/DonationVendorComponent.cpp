@@ -22,7 +22,7 @@ DonationVendorComponent::DonationVendorComponent(Entity* parent) : VendorCompone
 		return;
 	}
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT SUM(primaryScore) as donation_total FROM leaderboard WHERE game_id = ?;"));
+	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt("SELECT SUM(primaryScore) as donation_total FROM leaderboard WHERE game_id = ?;"));
 	query->setInt(1, m_ActivityId);
 	std::unique_ptr<sql::ResultSet> donation_total(query->executeQuery());
 	if (donation_total->next()) m_TotalDonated = donation_total->getInt("donation_total");

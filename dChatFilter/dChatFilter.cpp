@@ -32,7 +32,7 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	}
 
 	//Read player names that are ok as well:
-	auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
+	auto stmt = Database::Get()->CreatePreppedStmt("select name from charinfo;");
 	auto res = stmt->executeQuery();
 	while (res->next()) {
 		std::string line = res->getString(1).c_str();

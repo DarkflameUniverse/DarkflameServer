@@ -46,7 +46,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	mPlayers.insert(std::make_pair(data->playerID, data));
 	LOG("Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
-	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
+	auto* insertLog = Database::Get()->CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, data->playerID);
 	insertLog->setInt(2, 0);
@@ -90,7 +90,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	LOG("Removed user: %llu", playerID);
 	mPlayers.erase(playerID);
 
-	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
+	auto* insertLog = Database::Get()->CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
 	insertLog->setInt(1, playerID);
 	insertLog->setInt(2, 1);

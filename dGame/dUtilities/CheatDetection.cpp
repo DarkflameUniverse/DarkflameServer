@@ -26,7 +26,7 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 	if (!user) {
 		LOG("WARNING: User is null, using defaults.");
 	}
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt(
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt(
 		"INSERT INTO player_cheat_detections (account_id, name, violation_msg, violation_system_address) VALUES (?, ?, ?, ?)")
 	);
 	stmt->setInt(1, user ? user->GetAccountID() : 0);

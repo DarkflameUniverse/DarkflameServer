@@ -2597,7 +2597,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 				result.finalize();
 
-				auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+				auto* propertyLookup = Database::Get()->CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
 				propertyLookup->setInt(1, templateId);
 				propertyLookup->setInt64(2, cloneId);
@@ -2613,7 +2613,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				delete propertyLookup;
 
 				//Insert into ugc:
-				auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
+				auto ugcs = Database::Get()->CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
 				ugcs->setUInt(1, blueprintIDSmall);
 				ugcs->setInt(2, entity->GetParentUser()->GetAccountID());
 				ugcs->setInt(3, entity->GetCharacter()->GetID());
@@ -2631,7 +2631,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 				delete ugcs;
 
 				//Insert into the db as a BBB model:
-				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+				auto* stmt = Database::Get()->CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 				stmt->setUInt64(1, newIDL);
 				stmt->setUInt64(2, propertyId);
 				stmt->setUInt(3, blueprintIDSmall);
@@ -4244,7 +4244,7 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStre
 	const auto cloneId = worldId.GetCloneID();
 	const auto zoneId = worldId.GetMapID();
 
-	auto updatePerformanceCostQuery = Database::CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
+	auto updatePerformanceCostQuery = Database::Get()->CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
 
 	updatePerformanceCostQuery->setDouble(1, performanceCost);
 	updatePerformanceCostQuery->setInt(2, cloneId);
@@ -6027,7 +6027,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	}
 
 	try {
-		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
+		sql::PreparedStatement* insertBug = Database::Get()->CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
 		insertBug->setString(1, GeneralUtils::UTF16ToWTF8(body));
 		insertBug->setString(2, clientVersion);
 		insertBug->setString(3, std::to_string(otherPlayer));

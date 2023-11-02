@@ -360,7 +360,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Log command to database
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
+	auto stmt = Database::Get()->CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
 	stmt->setInt(1, entity->GetCharacter()->GetID());
 	stmt->setString(2, GeneralUtils::UTF16ToWTF8(command).c_str());
 	stmt->execute();
@@ -817,7 +817,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= eGameMasterLevel::MODERATOR && args.size() >= 2) {
 		const auto& playerName = args[0];
 
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
 		stmt->setString(1, playerName);
 		sql::ResultSet* res = stmt->executeQuery();
 		uint32_t receiverID = 0;
@@ -843,7 +843,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		uint64_t currentTime = time(NULL);
-		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+		sql::PreparedStatement* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 		ins->setUInt(1, entity->GetObjectID());
 		ins->setString(2, "Darkflame Universe");
 		ins->setUInt(3, receiverID);
@@ -1016,7 +1016,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			LWOOBJID characterId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::CreatePreppedStmt("SELECT account_id, id FROM charinfo WHERE name=? LIMIT 1;");
+				auto* accountQuery = Database::Get()->CreatePreppedStmt("SELECT account_id, id FROM charinfo WHERE name=? LIMIT 1;");
 
 				accountQuery->setString(1, args[0]);
 
@@ -1045,7 +1045,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				characterId = player->GetCharacter()->GetID();
 			}
 
-			auto* userUpdate = Database::CreatePreppedStmt("UPDATE accounts SET mute_expire = ? WHERE id = ?;");
+			auto* userUpdate = Database::Get()->CreatePreppedStmt("UPDATE accounts SET mute_expire = ? WHERE id = ?;");
 
 			time_t expire = 1; // Default to indefinate mute
 
@@ -1128,7 +1128,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			uint32_t accountId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::CreatePreppedStmt("SELECT account_id FROM charinfo WHERE name=? LIMIT 1;");
+				auto* accountQuery = Database::Get()->CreatePreppedStmt("SELECT account_id FROM charinfo WHERE name=? LIMIT 1;");
 
 				accountQuery->setString(1, args[0]);
 
@@ -1150,7 +1150,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				accountId = player->GetParentUser()->GetAccountID();
 			}
 
-			auto* userUpdate = Database::CreatePreppedStmt("UPDATE accounts SET banned = true WHERE id = ?;");
+			auto* userUpdate = Database::Get()->CreatePreppedStmt("UPDATE accounts SET banned = true WHERE id = ?;");
 
 			userUpdate->setInt(1, accountId);
 

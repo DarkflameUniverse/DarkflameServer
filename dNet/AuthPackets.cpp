@@ -64,7 +64,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	const char* szUsername = username.c_str();
 
 	// Fetch account details
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT password, banned, locked, play_key_id, gm_level FROM accounts WHERE name=? LIMIT 1;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT password, banned, locked, play_key_id, gm_level FROM accounts WHERE name=? LIMIT 1;");
 	stmt->setString(1, szUsername);
 
 	sql::ResultSet* res = stmt->executeQuery();
@@ -108,7 +108,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		}
 
 		//Check if the play key is _valid_:
-		auto keyCheckStmt = Database::CreatePreppedStmt("SELECT active FROM `play_keys` WHERE id=?");
+		auto keyCheckStmt = Database::Get()->CreatePreppedStmt("SELECT active FROM `play_keys` WHERE id=?");
 		keyCheckStmt->setInt(1, sqlPlayKey);
 		auto keyRes = keyCheckStmt->executeQuery();
 		bool isKeyActive = false;
@@ -168,7 +168,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 			assert(bcryptState == 0);
 
-			sql::PreparedStatement* accountUpdate = Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE name = ? LIMIT 1;");
+			sql::PreparedStatement* accountUpdate = Database::Get()->CreatePreppedStmt("UPDATE accounts SET password = ? WHERE name = ? LIMIT 1;");
 
 			accountUpdate->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
 			accountUpdate->setString(2, szUsername);

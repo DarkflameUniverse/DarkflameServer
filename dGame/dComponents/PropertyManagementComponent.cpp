@@ -57,7 +57,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	result.finalize();
 
-	auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+	auto* propertyLookup = Database::Get()->CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
 	propertyLookup->setInt(1, templateId);
 	propertyLookup->setInt64(2, cloneId);
@@ -152,7 +152,7 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	}
 	privacyOption = value;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;");
+	auto* propertyUpdate = Database::Get()->CreatePreppedStmt("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;");
 
 	propertyUpdate->setInt(1, static_cast<int32_t>(value));
 	propertyUpdate->setString(2, "");
@@ -169,7 +169,7 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 
 	propertyDescription = description;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET name = ?, description = ? WHERE id = ?;");
+	auto* propertyUpdate = Database::Get()->CreatePreppedStmt("UPDATE properties SET name = ?, description = ? WHERE id = ?;");
 
 	propertyUpdate->setString(1, name.c_str());
 	propertyUpdate->setString(2, description.c_str());
@@ -217,7 +217,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
 
-	auto* insertion = Database::CreatePreppedStmt(
+	auto* insertion = Database::Get()->CreatePreppedStmt(
 		"INSERT INTO properties"
 		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
 		"VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
@@ -558,7 +558,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 void PropertyManagementComponent::UpdateApprovedStatus(const bool value) {
 	if (owner == LWOOBJID_EMPTY) return;
 
-	auto* update = Database::CreatePreppedStmt("UPDATE properties SET mod_approved = ? WHERE id = ?;");
+	auto* update = Database::Get()->CreatePreppedStmt("UPDATE properties SET mod_approved = ? WHERE id = ?;");
 
 	update->setBoolean(1, value);
 	update->setInt64(2, propertyId);
@@ -573,7 +573,7 @@ void PropertyManagementComponent::Load() {
 		return;
 	}
 
-	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+	auto* lookup = Database::Get()->CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
 
 	lookup->setUInt64(1, propertyId);
 
@@ -669,10 +669,10 @@ void PropertyManagementComponent::Save() {
 		return;
 	}
 
-	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
-	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
-	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
+	auto* insertion = Database::Get()->CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+	auto* update = Database::Get()->CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+	auto* lookup = Database::Get()->CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
+	auto* remove = Database::Get()->CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
 
 	lookup->setUInt64(1, propertyId);
 	sql::ResultSet* lookupResult = nullptr;
@@ -762,7 +762,7 @@ void PropertyManagementComponent::Save() {
 		}
 	}
 
-	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
+	auto* removeUGC = Database::Get()->CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
 
 	removeUGC->execute();
 
@@ -804,7 +804,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	if (isClaimed) {
 		const auto cloneId = worldId.GetCloneID();
 
-		auto* nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
+		auto* nameLookup = Database::Get()->CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
 		nameLookup->setUInt64(1, cloneId);
 
 		auto* nameResult = nameLookup->executeQuery();
@@ -820,7 +820,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
 		if (moderatorRequested) {
-			auto checkStatus = Database::CreatePreppedStmt("SELECT rejection_reason, mod_approved FROM properties WHERE id = ?;");
+			auto checkStatus = Database::Get()->CreatePreppedStmt("SELECT rejection_reason, mod_approved FROM properties WHERE id = ?;");
 
 			checkStatus->setInt64(1, propertyId);
 

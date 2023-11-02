@@ -352,7 +352,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
 
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
 			stmt->setString(1, receiver);
 
 			sql::ResultSet* res = stmt->executeQuery();
@@ -366,7 +366,7 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		}
 
 		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
+			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
 			stmt->setInt(1, entity->GetObjectID());
 			stmt->setInt(2, idOfReceiver);
 			stmt->setInt(3, idOfReceiver);

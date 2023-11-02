@@ -76,7 +76,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
 	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
-	auto* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+	auto* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 
 	ins->setUInt(1, sender);
 	ins->setString(2, senderName.c_str());
@@ -220,7 +220,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	}
 
 	//Get the receiver's id:
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
 	stmt->setString(1, recipient);
 	sql::ResultSet* res = stmt->executeQuery();
 	uint32_t receiverID = 0;
@@ -243,7 +243,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 		return;
 	} else {
 		uint64_t currentTime = time(NULL);
-		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+		sql::PreparedStatement* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
 		ins->setUInt(1, character->GetObjectID());
 		ins->setString(2, character->GetName());
 		ins->setUInt(3, receiverID);
@@ -279,7 +279,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 }
 
 void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM mail WHERE receiver_id=? limit 20;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT * FROM mail WHERE receiver_id=? limit 20;");
 	stmt->setUInt(1, player->GetCharacter()->GetObjectID());
 	sql::ResultSet* res = stmt->executeQuery();
 
@@ -345,7 +345,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 	packet->Read(playerID);
 
 	if (mailID > 0 && playerID == player->GetObjectID()) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;");
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;");
 		stmt->setUInt64(1, mailID);
 		sql::ResultSet* res = stmt->executeQuery();
 
@@ -364,7 +364,7 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 
 		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
 
-		sql::PreparedStatement* up = Database::CreatePreppedStmt("UPDATE mail SET attachment_lot=0 WHERE id=?;");
+		sql::PreparedStatement* up = Database::Get()->CreatePreppedStmt("UPDATE mail SET attachment_lot=0 WHERE id=?;");
 		up->setUInt64(1, mailID);
 		up->execute();
 		delete up;
@@ -395,7 +395,7 @@ void Mail::HandleMailRead(RakNet::BitStream* packet, const SystemAddress& sysAdd
 
 void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID) {
 	auto returnVal = std::async(std::launch::async, [&]() {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM mail WHERE receiver_id=? AND was_read=0");
+		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id FROM mail WHERE receiver_id=? AND was_read=0");
 		stmt->setUInt(1, objectID);
 		sql::ResultSet* res = stmt->executeQuery();
 
@@ -449,7 +449,7 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE id=? LIMIT 1;");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("DELETE FROM mail WHERE id=? LIMIT 1;");
 	stmt->setUInt64(1, mailID);
 	stmt->execute();
 	delete stmt;
@@ -463,7 +463,7 @@ void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE mail SET was_read=1 WHERE id=?");
+	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("UPDATE mail SET was_read=1 WHERE id=?");
 	stmt->setUInt64(1, mailID);
 	stmt->execute();
 	delete stmt;
