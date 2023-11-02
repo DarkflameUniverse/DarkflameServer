@@ -6,10 +6,12 @@ using namespace std;
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
-sql::Driver* Database::driver;
-sql::Connection* Database::con;
-sql::Properties Database::props;
-std::string Database::database;
+namespace {
+	sql::Driver* driver;
+	sql::Connection* con;
+	sql::Properties props;
+	std::string databaseName;
+};
 
 void Database::Connect(const string& host, const string& database, const string& username, const string& password) {
 
@@ -43,21 +45,21 @@ void Database::Connect(const string& host, const string& database, const string&
 	properties["password"] = szPassword;
 	properties["autoReconnect"] = "true";
 
-	Database::props = properties;
-	Database::database = database;
+	props = properties;
+	databaseName = database;
 
-	Database::Connect();
+	Connect();
 }
 
 void Database::Connect() {
 	// `connect(const Properties& props)` segfaults in windows debug, but
 	// `connect(const SQLString& host, const SQLString& user, const SQLString& pwd)` doesn't handle pipes/unix sockets correctly
-	if (Database::props.find("localSocket") != Database::props.end() || Database::props.find("pipe") != Database::props.end()) {
-		con = driver->connect(Database::props);
+	if (props.find("localSocket") != props.end() || props.find("pipe") != props.end()) {
+		con = driver->connect(props);
 	} else {
-		con = driver->connect(Database::props["hostName"].c_str(), Database::props["user"].c_str(), Database::props["password"].c_str());
+		con = driver->connect(props["hostName"].c_str(), props["user"].c_str(), props["password"].c_str());
 	}
-	con->setSchema(Database::database.c_str());
+	con->setSchema(databaseName.c_str());
 }
 
 void Database::Destroy(std::string source, bool log) {
@@ -102,7 +104,7 @@ sql::PreparedStatement* Database::CreatePreppedStmt(const std::string& query) {
 } //CreatePreppedStmt
 
 void Database::Commit() {
-	Database::con->commit();
+	con->commit();
 }
 
 bool Database::GetAutoCommit() {
@@ -114,5 +116,5 @@ bool Database::GetAutoCommit() {
 void Database::SetAutoCommit(bool value) {
 	// TODO This should not just access a pointer.  A future PR should update this
 	// to check for null and throw an error if the connection is not valid.
-	Database::con->setAutoCommit(value);
+	con->setAutoCommit(value);
 }
