@@ -68,15 +68,12 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1500;
-	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
 
-	delete res;
-	delete stmt;
+	auto masterInfo = Database::Get()->GetMasterInfo();
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
+	}
 
 	Game::randomEngine = std::mt19937(time(0));
 
@@ -128,15 +125,11 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
 			}
-
-			delete res;
-			delete stmt;
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;

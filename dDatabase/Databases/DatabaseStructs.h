@@ -1,0 +1,76 @@
+#ifndef __DATABASESTRUCTS__H__
+#define __DATABASESTRUCTS__H__
+
+#include <cstdint>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "dCommonVars.h"
+#include "eGameMasterLevel.h"
+#include "ePermissionMap.h"
+
+enum class eActivityType : uint32_t {
+	PlayerLoggedIn,
+	PlayerLoggedOut,
+};
+
+// Contains various structures used as return values from database queries.
+namespace DatabaseStructs {
+	struct MasterInfo {
+		std::string ip;
+		uint32_t port;
+	};
+
+	struct ApprovedNames {
+		std::vector<std::string> names;
+	};
+
+	struct FriendsList {
+		std::vector<FriendData> friends;
+	};
+
+	struct BestFriendStatus {
+		uint32_t playerAccountId;
+		uint32_t friendAccountId;
+		uint32_t bestFriendStatus;
+	};
+
+	struct UgcModel {
+		LWOOBJID id;
+		std::stringstream lxfmlData;
+	};
+
+	struct CharacterInfo {
+		std::string name;
+		std::string pendingName;
+		bool needsRename;
+		LWOCLONEID cloneId;
+		ePermissionMap permissionMap;
+	};
+
+	struct UserInfo {
+		uint32_t accountId;
+		eGameMasterLevel maxGMLevel;
+	};
+
+	struct PetNameInfo {
+		std::string petName;
+		int32_t approvalStatus;
+	};
+
+	struct PropertyInfo {
+		LWOOBJID id;
+		LWOOBJID ownerId;
+		LWOCLONEID cloneId;
+		std::string name;
+		std::string description;
+		int32_t privacyOption;
+		std::string rejectionReason;
+		uint32_t lastUpdatedTime;
+		uint32_t claimedTime;
+		uint32_t reputation;
+	};
+};
+
+#endif  //!__DATABASESTRUCTS__H__

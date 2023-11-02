@@ -32,15 +32,12 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	}
 
 	//Read player names that are ok as well:
-	auto stmt = Database::Get()->CreatePreppedStmt("select name from charinfo;");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		std::string line = res->getString(1).c_str();
-		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_ApprovedWords.push_back(CalculateHash(line));
+	auto approvedNames = Database::Get()->GetApprovedCharacterNames();
+	if (!approvedNames) return;
+	for (auto& name : approvedNames->names) {
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower); //Transform to lowercase
+		m_ApprovedWords.push_back(CalculateHash(name));
 	}
-	delete res;
-	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {
