@@ -1,7 +1,7 @@
 #include "BasicAttackBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "BehaviorContext.h"
@@ -9,7 +9,7 @@
 
 void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	if (context->unmanaged) {
-		auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+		auto* entity = Game::entityManager->GetEntity(branch.target);
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
@@ -26,10 +26,10 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 	uint16_t allocatedBits{};
 	if (!bitStream->Read(allocatedBits) || allocatedBits == 0) {
-		Game::logger->LogDebug("BasicAttackBehavior", "No allocated bits");
+		LOG_DEBUG("No allocated bits");
 		return;
 	}
-	Game::logger->LogDebug("BasicAttackBehavior", "Number of allocated bits %i", allocatedBits);
+	LOG_DEBUG("Number of allocated bits %i", allocatedBits);
 	const auto baseAddress = bitStream->GetReadOffset();
 
 	DoHandleBehavior(context, bitStream, branch);
@@ -38,15 +38,15 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 }
 
 void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
-		Game::logger->Log("BasicAttackBehavior", "Target targetEntity %llu not found.", branch.target);
+		LOG("Target targetEntity %llu not found.", branch.target);
 		return;
 	}
 
 	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent) {
-		Game::logger->Log("BasicAttackBehavior", "No destroyable found on the obj/lot %llu/%i", branch.target, targetEntity->GetLOT());
+		LOG("No destroyable found on the obj/lot %llu/%i", branch.target, targetEntity->GetLOT());
 		return;
 	}
 
@@ -55,19 +55,19 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	bool isSuccess{};
 
 	if (!bitStream->Read(isBlocked)) {
-		Game::logger->Log("BasicAttackBehavior", "Unable to read isBlocked");
+		LOG("Unable to read isBlocked");
 		return;
 	}
 
 	if (isBlocked) {
 		destroyableComponent->SetAttacksToBlock(std::min(destroyableComponent->GetAttacksToBlock() - 1, 0U));
-		EntityManager::Instance()->SerializeEntity(targetEntity);
+		Game::entityManager->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Handle(context, bitStream, branch);
 		return;
 	}
 
 	if (!bitStream->Read(isImmune)) {
-		Game::logger->Log("BasicAttackBehavior", "Unable to read isImmune");
+		LOG("Unable to read isImmune");
 		return;
 	}
 
@@ -77,20 +77,20 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	if (!bitStream->Read(isSuccess)) {
-		Game::logger->Log("BasicAttackBehavior", "failed to read success from bitstream");
+		LOG("failed to read success from bitstream");
 		return;
 	}
 
 	if (isSuccess) {
 		uint32_t armorDamageDealt{};
 		if (!bitStream->Read(armorDamageDealt)) {
-			Game::logger->Log("BasicAttackBehavior", "Unable to read armorDamageDealt");
+			LOG("Unable to read armorDamageDealt");
 			return;
 		}
 
 		uint32_t healthDamageDealt{};
 		if (!bitStream->Read(healthDamageDealt)) {
-			Game::logger->Log("BasicAttackBehavior", "Unable to read healthDamageDealt");
+			LOG("Unable to read healthDamageDealt");
 			return;
 		}
 
@@ -103,7 +103,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 
 		bool died{};
 		if (!bitStream->Read(died)) {
-			Game::logger->Log("BasicAttackBehavior", "Unable to read died");
+			LOG("Unable to read died");
 			return;
 		}
 		auto previousArmor = destroyableComponent->GetArmor();
@@ -114,7 +114,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 
 	uint8_t successState{};
 	if (!bitStream->Read(successState)) {
-		Game::logger->Log("BasicAttackBehavior", "Unable to read success state");
+		LOG("Unable to read success state");
 		return;
 	}
 
@@ -127,7 +127,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		break;
 	default:
 		if (static_cast<eBasicAttackSuccessTypes>(successState) != eBasicAttackSuccessTypes::FAILIMMUNE) {
-			Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
+			LOG("Unknown success state (%i)!", successState);
 			return;
 		}
 		this->m_OnFailImmune->Handle(context, bitStream, branch);
@@ -155,15 +155,15 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 }
 
 void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
-		Game::logger->Log("BasicAttackBehavior", "Target entity %llu is null!", branch.target);
+		LOG("Target entity %llu is null!", branch.target);
 		return;
 	}
 
 	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent || !destroyableComponent->GetParent()) {
-		Game::logger->Log("BasicAttackBehavior", "No destroyable component on %llu", branch.target);
+		LOG("No destroyable component on %llu", branch.target);
 		return;
 	}
 
@@ -173,7 +173,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	if (isBlocking) {
 		destroyableComponent->SetAttacksToBlock(destroyableComponent->GetAttacksToBlock() - 1);
-		EntityManager::Instance()->SerializeEntity(targetEntity);
+		Game::entityManager->SerializeEntity(targetEntity);
 		this->m_OnFailBlocked->Calculate(context, bitStream, branch);
 		return;
 	}
@@ -227,7 +227,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		break;
 	default:
 		if (static_cast<eBasicAttackSuccessTypes>(successState) != eBasicAttackSuccessTypes::FAILIMMUNE) {
-			Game::logger->Log("BasicAttackBehavior", "Unknown success state (%i)!", successState);
+			LOG("Unknown success state (%i)!", successState);
 			break;
 		}
 		this->m_OnFailImmune->Calculate(context, bitStream, branch);

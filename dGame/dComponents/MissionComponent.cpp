@@ -7,7 +7,7 @@
 #include <string>
 
 #include "MissionComponent.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 #include "CDMissionTasksTable.h"
 #include "InventoryComponent.h"
@@ -26,7 +26,7 @@ std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent:
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
-	m_LastUsedMissionOrderUID = dZoneManager::Instance()->GetUniqueMissionIdStartingValue();
+	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 }
 
 //! Destructor
@@ -363,7 +363,7 @@ bool MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value,
 						break;
 					}
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("MissionComponent", "Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
+					LOG("Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 

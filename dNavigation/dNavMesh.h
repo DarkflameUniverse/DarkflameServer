@@ -15,7 +15,15 @@ public:
 	dNavMesh(uint32_t zoneId);
 	~dNavMesh();
 
-	float GetHeightAtPoint(const NiPoint3& location);
+	/**
+	 * Get the height at a point
+	 * 
+	 * @param location The location to check for height at. This is the center of the search area.
+	 * @param halfExtentsHeight The half extents height of the search area. This is the distance from the center to the top and bottom of the search area.
+	 * The larger the value of halfExtentsHeight is, the larger the performance cost of the query.
+	 * @return float The height at the point. If the point is not on the navmesh, the height of the point is returned.
+	 */
+	float GetHeightAtPoint(const NiPoint3& location, const float halfExtentsHeight = 32.0f) const;
 	std::vector<NiPoint3> GetPath(const NiPoint3& startPos, const NiPoint3& endPos, float speed = 10.0f);
 
 	class dtNavMesh* GetdtNavMesh() { return m_NavMesh; }

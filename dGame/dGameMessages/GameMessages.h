@@ -36,11 +36,12 @@ enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
 enum class eRebuildState : uint32_t;
+enum class BehaviorSlot : int32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
-	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false, bool noGravTeleport = true);
+	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
 	void SendPlayAnimation(Entity* entity, const std::u16string& animationName, float fPriority = 0.0f, float fScale = 1.0f);
 	void SendPlayerReady(Entity* entity, const SystemAddress& sysAddr);
 	void SendPlayerAllowedRespawn(LWOOBJID entityID, bool doNotPromptRespawn, const SystemAddress& systemAddress);
@@ -108,6 +109,8 @@ namespace GameMessages {
 
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 
+	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
+
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
 	void SendResurrect(Entity* entity);
@@ -119,7 +122,7 @@ namespace GameMessages {
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
 
-	void SendAddSkill(Entity* entity, TSkillID skillID, int slotID);
+	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
 	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);
@@ -364,7 +367,7 @@ namespace GameMessages {
 	//Pets:
 	void SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, ePetTamingNotifyType notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr);
 
-	void SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, std::vector<Brick>& bricks, const SystemAddress& sysAddr);
+	void SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const std::vector<Brick>& bricks, const SystemAddress& sysAddr);
 
 	void SendNotifyTamingModelLoadedOnServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
@@ -649,6 +652,12 @@ namespace GameMessages {
 
 	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
+
+	// Donation vendor
+	void HandleAddDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
+	void HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

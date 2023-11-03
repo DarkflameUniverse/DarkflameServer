@@ -245,7 +245,7 @@ private:
 	/**
 	 * The database information that corresponds to this mission
 	 */
-	const CDMissions* info;
+	CDMissions info;
 
 	/**
 	 * The current state this mission is in

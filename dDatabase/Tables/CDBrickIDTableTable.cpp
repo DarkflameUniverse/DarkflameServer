@@ -1,6 +1,6 @@
 #include "CDBrickIDTableTable.h"
 
-CDBrickIDTableTable::CDBrickIDTableTable(void) {
+void CDBrickIDTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -39,7 +39,7 @@ std::vector<CDBrickIDTable> CDBrickIDTableTable::Query(std::function<bool(CDBric
 	return data;
 }
 
-std::vector<CDBrickIDTable> CDBrickIDTableTable::GetEntries(void) const {
+const std::vector<CDBrickIDTable>& CDBrickIDTableTable::GetEntries() const {
 	return this->entries;
 }
 

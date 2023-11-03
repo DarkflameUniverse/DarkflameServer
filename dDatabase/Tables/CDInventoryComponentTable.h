@@ -15,9 +15,9 @@ private:
 	std::vector<CDInventoryComponent> entries;
 
 public:
-	CDInventoryComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDInventoryComponent> Query(std::function<bool(CDInventoryComponent)> predicate);
 
-	std::vector<CDInventoryComponent> GetEntries(void) const;
+	const std::vector<CDInventoryComponent>& GetEntries() const;
 };

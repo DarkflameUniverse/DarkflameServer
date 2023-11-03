@@ -11,12 +11,12 @@
 class LUPExhibitComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
 
 	LUPExhibitComponent(Entity* parent);
 	~LUPExhibitComponent();
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * After the timer runs out, this changes the currently exhibited LOT to the next one

@@ -5,7 +5,7 @@
 
 #include "GameMessageHandler.h"
 #include "MissionComponent.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "dServer.h"
 #include "../thirdparty/raknet/Source/RakNetworkFactory.h"
 #include <future>
@@ -42,15 +42,16 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	CBITSTREAM;
 
 	// Get the entity
-	Entity* entity = EntityManager::Instance()->GetEntity(objectID);
+	Entity* entity = Game::entityManager->GetEntity(objectID);
 
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		Game::logger->Log("GameMessageHandler", "Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
-
+		LOG("Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
 		return;
 	}
+
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: %i", messageID);
 
 	switch (messageID) {
 
@@ -73,11 +74,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 	}
 
-	case eGameMessageType::EQUIP_ITEM:
+	case eGameMessageType::EQUIP_INVENTORY:
 		GameMessages::HandleEquipItem(inStream, entity);
 		break;
 
-	case eGameMessageType::UN_EQUIP_ITEM:
+	case eGameMessageType::UN_EQUIP_INVENTORY:
 		GameMessages::HandleUnequipItem(inStream, entity);
 		break;
 
@@ -122,9 +123,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		auto* destroyable = entity->GetComponent<DestroyableComponent>();
 		destroyable->SetImagination(destroyable->GetImagination());
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 
-		std::vector<Entity*> racingControllers = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
+		std::vector<Entity*> racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 		for (Entity* racingController : racingControllers) {
 			auto* racingComponent = racingController->GetComponent<RacingControlComponent>();
 			if (racingComponent != nullptr) {
@@ -132,12 +133,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			}
 		}
 
-		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
 			script->OnPlayerLoaded(zoneControl, player);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
@@ -166,11 +167,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			character->OnZoneLoad();
 		}
 
-		Game::logger->Log("GameMessageHandler", "Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
+		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 		// After we've done our thing, tell the client they're ready
 		GameMessages::SendPlayerReady(entity, sysAddr);
-		GameMessages::SendPlayerReady(dZoneManager::Instance()->GetZoneControlObject(), sysAddr);
+		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
 		break;
 	}
@@ -248,11 +249,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			dest->SetHealth(4);
 			dest->SetArmor(0);
 			dest->SetImagination(6);
-			EntityManager::Instance()->SerializeEntity(entity);
+			Game::entityManager->SerializeEntity(entity);
 		}*/
 		break;
 	}
-	case eGameMessageType::HANDLE_HOT_PROPERTY_DATA: {
+	case eGameMessageType::GET_HOT_PROPERTY_DATA: {
 		GameMessages::HandleGetHotPropertyData(inStream, entity, sysAddr);
 		break;
 	}
@@ -314,7 +315,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		if (success) {
 			//Broadcast our startSkill:
 			RakNet::BitStream bitStreamLocal;
-			PacketUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			bitStreamLocal.Write(entity->GetObjectID());
 
 			EchoStartSkill echoStartSkill;
@@ -336,7 +337,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case eGameMessageType::SYNC_SKILL: {
 		RakNet::BitStream bitStreamLocal;
-		PacketUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+		BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		bitStreamLocal.Write(entity->GetObjectID());
 		//bitStreamLocal.Write((unsigned short)eGameMessageType::ECHO_SYNC_SKILL);
 		//bitStreamLocal.Write(inStream);
@@ -547,7 +548,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleBBBSaveRequest(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::CONTROL_BEHAVIOR:
+	case eGameMessageType::CONTROL_BEHAVIORS:
 		GameMessages::HandleControlBehaviors(inStream, entity, sysAddr);
 		break;
 
@@ -560,7 +561,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 
 	case eGameMessageType::ZONE_PROPERTY_MODEL_ROTATED:
-		EntityManager::Instance()->GetZoneControlEntity()->OnZonePropertyModelRotated(usr->GetLastUsedChar()->GetEntity());
+		Game::entityManager->GetZoneControlEntity()->OnZonePropertyModelRotated(usr->GetLastUsedChar()->GetEntity());
 		break;
 
 	case eGameMessageType::UPDATE_PROPERTY_OR_MODEL_FOR_FILTER_CHECK:
@@ -596,11 +597,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleRequestDie(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_ADD_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_ADD_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerAddPassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
-	case eGameMessageType::VEHICLE_NOTIFY_SERVER_REMOVE_PASSIVE_BOOST_ACTION:
+	case eGameMessageType::NOTIFY_SERVER_VEHICLE_REMOVE_PASSIVE_BOOST_ACTION:
 		GameMessages::HandleVehicleNotifyServerRemovePassiveBoostAction(inStream, entity, sysAddr);
 		break;
 
@@ -668,7 +669,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::DISMOUNT_COMPLETE:
 		GameMessages::HandleDismountComplete(inStream, entity, sysAddr);
 		break;
-	case eGameMessageType::DEACTIVATE_BUBBLE_BUFF:
+	case eGameMessageType::DECTIVATE_BUBBLE_BUFF:
 		GameMessages::HandleDeactivateBubbleBuff(inStream, entity);
 		break;
 	case eGameMessageType::ACTIVATE_BUBBLE_BUFF:
@@ -680,8 +681,20 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::REQUEST_ACTIVITY_EXIT:
 		GameMessages::HandleRequestActivityExit(inStream, entity);
 		break;
+	case eGameMessageType::ADD_DONATION_ITEM:
+		GameMessages::HandleAddDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::REMOVE_DONATION_ITEM:
+		GameMessages::HandleRemoveDonationItem(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::CONFIRM_DONATION_ON_PLAYER:
+		GameMessages::HandleConfirmDonationOnPlayer(inStream, entity);
+		break;
+	case eGameMessageType::CANCEL_DONATION_ON_PLAYER:
+		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
+		break;
 	default:
-		// Game::logger->Log("GameMessageHandler", "Unknown game message ID: %i", messageID);
+		LOG_DEBUG("Unknown game message ID: %i", messageID);
 		break;
 	}
 }

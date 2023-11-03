@@ -18,5 +18,5 @@ void ForceVolumeServer::OnStartup(Entity* self) {
 	phantomPhysicsComponent->SetDirection({ forceX, forceY, forceZ });
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 }

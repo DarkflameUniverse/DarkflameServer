@@ -5,29 +5,29 @@
 #include "BehaviorContext.h"
 #include "CharacterComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "PossessableComponent.h"
 
 void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	GameMessages::SendVehicleAddPassiveBoostAction(branch.target, UNASSIGNED_SYSTEM_ADDRESS);
 
-	auto* entity = EntityManager::Instance()->GetEntity(context->originator);
+	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
 		return;
 	}
 
-	Game::logger->Log("Car boost", "Activating car boost!");
+	LOG("Activating car boost!");
 
 	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
-		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
 			auto* characterComponent = possessor->GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
-				Game::logger->Log("Car boost", "Tracking car boost!");
+				LOG("Tracking car boost!");
 				characterComponent->UpdatePlayerStatistic(RacingCarBoostsActivated);
 			}
 		}

@@ -12,7 +12,7 @@
 #include "BitStream.h"
 #include "Component.h"
 #include "Entity.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "eReplicaComponentType.h"
 
 struct ProjectileSyncEntry {
@@ -59,12 +59,12 @@ struct SkillExecutionResult {
  */
 class SkillComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
 	explicit SkillComponent(Entity* parent);
 	~SkillComponent() override;
 
-	static void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Computes skill updates. Invokes CalculateUpdate.

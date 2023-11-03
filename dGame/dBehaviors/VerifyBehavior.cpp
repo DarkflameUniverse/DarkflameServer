@@ -4,21 +4,21 @@
 #include "NiPoint3.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* entity = EntityManager::Instance()->GetEntity(branch.target);
+	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	auto success = true;
 
 	if (entity == nullptr) {
 		success = false;
 	} else if (this->m_rangeCheck) {
-		auto* self = EntityManager::Instance()->GetEntity(context->originator);
+		auto* self = Game::entityManager->GetEntity(context->originator);
 
 		if (self == nullptr) {
-			Game::logger->Log("VerifyBehavior", "Invalid self for (%llu)", context->originator);
+			LOG("Invalid self for (%llu)", context->originator);
 
 			return;
 		}

@@ -22,12 +22,12 @@ enum class eQuickBuildFailReason : uint32_t;
  */
 class RebuildComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
 	RebuildComponent(Entity* entity);
 	~RebuildComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**

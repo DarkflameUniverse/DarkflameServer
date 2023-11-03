@@ -28,7 +28,7 @@ void AmDarklingDragon::OnDie(Entity* self, Entity* killer) {
 
 	auto golemId = self->GetVar<LWOOBJID>(u"Golem");
 
-	auto* golem = EntityManager::Instance()->GetEntity(golemId);
+	auto* golem = Game::entityManager->GetEntity(golemId);
 
 	if (golem != nullptr) {
 		golem->Smash(self->GetObjectID());
@@ -109,9 +109,9 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 					new LDFData<LWOOBJID>(u"Dragon", self->GetObjectID())
 			};
 
-			auto* golemObject = EntityManager::Instance()->CreateEntity(info);
+			auto* golemObject = Game::entityManager->CreateEntity(info);
 
-			EntityManager::Instance()->ConstructEntity(golemObject);
+			Game::entityManager->ConstructEntity(golemObject);
 		}
 	}
 }

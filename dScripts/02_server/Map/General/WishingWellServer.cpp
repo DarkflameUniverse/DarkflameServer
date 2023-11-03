@@ -21,7 +21,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), audio);
 	}
 
-	LootGenerator::Instance().DropActivityLoot(
+	Loot::DropActivityLoot(
 		user,
 		self,
 		static_cast<uint32_t>(scriptedActivity->GetActivityID()),
@@ -33,7 +33,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 	const auto userID = user->GetObjectID();
 
 	self->AddCallbackTimer(10, [self, userID]() {
-		auto* user = EntityManager::Instance()->GetEntity(userID);
+		auto* user = Game::entityManager->GetEntity(userID);
 
 		if (user == nullptr) return;
 

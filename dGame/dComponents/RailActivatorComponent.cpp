@@ -6,7 +6,7 @@
 #include "GameMessages.h"
 #include "RebuildComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
 #include "eStateChangeType.h"
@@ -68,7 +68,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 	const auto originatorID = originator->GetObjectID();
 
 	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
-		auto* originator = EntityManager::Instance()->GetEntity(originatorID);
+		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
 			return;

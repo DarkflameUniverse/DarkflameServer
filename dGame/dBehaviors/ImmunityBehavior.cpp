@@ -4,16 +4,16 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "eStateChangeType.h"
 
 void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (!target) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 		return;
 	}
 
@@ -56,10 +56,10 @@ void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bi
 }
 
 void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, const LWOOBJID second) {
-	auto* target = EntityManager::Instance()->GetEntity(second);
+	auto* target = Game::entityManager->GetEntity(second);
 
 	if (!target) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", second);
+		LOG("Failed to find target (%llu)!", second);
 		return;
 	}
 

@@ -32,7 +32,7 @@ enum class PropertyPrivacyOption
 class PropertyManagementComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent);
 	static PropertyManagementComponent* Instance();
 

@@ -12,12 +12,12 @@
  */
 class BouncerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(Entity* parentEntity);
 	~BouncerComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	Entity* GetParentEntity() const;
 

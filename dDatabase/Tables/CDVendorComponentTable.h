@@ -16,10 +16,10 @@ private:
 	std::vector<CDVendorComponent> entries;
 
 public:
-	CDVendorComponentTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDVendorComponent> Query(std::function<bool(CDVendorComponent)> predicate);
 
-	std::vector<CDVendorComponent> GetEntries(void) const;
+	const std::vector<CDVendorComponent>& GetEntries(void) const;
 };
 

@@ -21,9 +21,9 @@ private:
 	std::vector<CDBrickIDTable> entries;
 
 public:
-	CDBrickIDTableTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDBrickIDTable> Query(std::function<bool(CDBrickIDTable)> predicate);
 
-	std::vector<CDBrickIDTable> GetEntries(void) const;
+	const std::vector<CDBrickIDTable>& GetEntries() const;
 };

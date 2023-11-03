@@ -32,7 +32,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "Relight") {
 		LightTorch(self);
 	} else if (timerName == "InteractionCooldown") {
-		Entity* player = EntityManager::Instance()->GetEntity(self->GetI64(u"userID"));
+		Entity* player = Game::entityManager->GetEntity(self->GetI64(u"userID"));
 
 		if (player != nullptr && player->GetCharacter()) {
 			GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());

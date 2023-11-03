@@ -7,7 +7,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "Diagnostics.h"
@@ -25,13 +25,14 @@
 
 #include "Game.h"
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	bool shouldShutdown = false;
+	std::mt19937 randomEngine;
 }
 
-dLogger* SetupLogger();
+Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -50,9 +51,9 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("AuthServer", "Starting Auth server...");
-	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
+	LOG("Starting Auth server...");
+	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
 	std::string mysql_host = Game::config->GetValue("mysql_host");
@@ -63,7 +64,7 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
+		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
@@ -82,6 +83,8 @@ int main(int argc, char** argv) {
 
 	delete res;
 	delete stmt;
+
+	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;
@@ -158,7 +161,7 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger() {
+Logger* SetupLogger() {
 	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
 	bool logToConsole = false;
 	bool logDebugStatements = false;
@@ -167,7 +170,7 @@ dLogger* SetupLogger() {
 	logDebugStatements = true;
 #endif
 
-	return new dLogger(logPath, logToConsole, logDebugStatements);
+	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

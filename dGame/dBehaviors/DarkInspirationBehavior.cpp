@@ -7,10 +7,10 @@
 #include "BehaviorContext.h"
 
 void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->LogDebug("DarkInspirationBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG_DEBUG("Failed to find target (%llu)!", branch.target);
 		return;
 	}
 
@@ -26,10 +26,10 @@ void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 }
 
 void DarkInspirationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->LogDebug("DarkInspirationBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG_DEBUG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

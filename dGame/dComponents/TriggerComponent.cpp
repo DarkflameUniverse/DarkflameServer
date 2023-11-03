@@ -26,7 +26,7 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 	uint32_t triggerID;
 	GeneralUtils::TryParse<uint32_t>(tokens.at(1), triggerID);
 
-	m_Trigger = dZoneManager::Instance()->GetZone()->GetTrigger(sceneID, triggerID);
+	m_Trigger = Game::zoneManager->GetZone()->GetTrigger(sceneID, triggerID);
 
 	if (!m_Trigger) m_Trigger = new LUTriggers::Trigger();
 }
@@ -155,7 +155,7 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
 			// DEPRECATED BLOCK END
 			default:
-				Game::logger->LogDebug("TriggerComponent", "Event %i was not handled!", command->id);
+				LOG_DEBUG("Event %i was not handled!", command->id);
 				break;
 		}
 	}
@@ -170,10 +170,10 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 	else if (command->target == "targetTeam" && optionalTarget) {
 		auto* team = TeamManager::Instance()->GetTeam(optionalTarget->GetObjectID());
 		for (const auto memberId : team->members) {
-			auto* member = EntityManager::Instance()->GetEntity(memberId);
+			auto* member = Game::entityManager->GetEntity(memberId);
 			if (member) entities.push_back(member);
 		}
-	} else if (command->target == "objGroup") entities = EntityManager::Instance()->GetEntitiesInGroup(command->targetName);
+	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
 	else if (command->target == "allPlayers") {
 		for (auto* player : Player::GetAllPlayers()) {
 			entities.push_back(player);
@@ -198,7 +198,7 @@ void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string arg
 void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
 	auto* triggerComponent = targetEntity->GetComponent<TriggerComponent>();
 	if (!triggerComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleToggleTrigger", "Trigger component not found!");
+		LOG_DEBUG("Trigger component not found!");
 		return;
 	}
 	triggerComponent->SetTriggerEnabled(args == "1");
@@ -207,7 +207,7 @@ void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string arg
 void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
 	auto* rebuildComponent = targetEntity->GetComponent<RebuildComponent>();
 	if (!rebuildComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleResetRebuild", "Rebuild component not found!");
+		LOG_DEBUG("Rebuild component not found!");
 		return;
 	}
 	rebuildComponent->ResetRebuild(args == "1");
@@ -239,7 +239,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandlePushObject", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
@@ -249,14 +249,14 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), direction);
 	phantomPhysicsComponent->SetDirection(direction);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 
 void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args){
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleRepelObject", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	float forceMultiplier;
@@ -274,12 +274,12 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 	NiPoint3 direction = delta / length;
 	phantomPhysicsComponent->SetDirection(direction);
 
-	EntityManager::Instance()->SerializeEntity(m_Parent);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() != 2) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetTimer", "Not ehought variables!");
+		LOG_DEBUG("Not ehought variables!");
 		return;
 	}
 	float time = 0.0;
@@ -320,7 +320,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 void TriggerComponent::HandleToggleBBB(Entity* targetEntity, std::string args) {
 	auto* character = targetEntity->GetCharacter();
 	if (!character) {
-		Game::logger->LogDebug("TriggerComponent::HandleToggleBBB", "Character was not found!");
+		LOG_DEBUG("Character was not found!");
 		return;
 	}
 	bool buildMode = !(character->GetBuildMode());
@@ -336,7 +336,7 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	if (argArray.at(0) != "exploretask") return;
 	MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
 	if (!missionComponent){
-		Game::logger->LogDebug("TriggerComponent::HandleUpdateMission", "Mission component not found!");
+		LOG_DEBUG("Mission component not found!");
 		return;
 	}
 	missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, argArray.at(4));
@@ -355,7 +355,7 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 	auto* skillComponent = targetEntity->GetComponent<SkillComponent>();
 	if (!skillComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleCastSkill", "Skill component not found!");
+		LOG_DEBUG("Skill component not found!");
 		return;
 	}
 	uint32_t skillId;
@@ -366,7 +366,7 @@ void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
@@ -395,39 +395,39 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 		phantomPhysicsComponent->SetMax(max);
 	}
 
-	EntityManager::Instance()->SerializeEntity(targetEntity);
+	Game::entityManager->SerializeEntity(targetEntity);
 }
 
 void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(args == "On");
-	EntityManager::Instance()->SerializeEntity(targetEntity);
+	Game::entityManager->SerializeEntity(targetEntity);
 }
 
 void TriggerComponent::HandleActivateSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Activate();
 	}
 }
 
 void TriggerComponent::HandleDeactivateSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Deactivate();
 	}
 }
 
 void TriggerComponent::HandleResetSpawnerNetwork(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Reset();
 	}
 }
 
 void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args){
-	for (auto* spawner : dZoneManager::Instance()->GetSpawnersByName(args)) {
+	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->DestroyAllEntities();
 	}
 }
@@ -438,6 +438,6 @@ void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string a
 	} else if (args == "false"){
 		// TODO remove Phsyics entity if there is one
 	} else {
-		Game::logger->LogDebug("TriggerComponent", "Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
+		LOG_DEBUG("Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
 	}
 }

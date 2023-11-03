@@ -4,7 +4,7 @@
 #include "GeneralUtils.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // C++
 #include <string_view>
@@ -48,7 +48,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	try {
 		type = static_cast<eLDFType>(strtol(ldfTypeAndValue.first.data(), &storage, 10));
 	} catch (std::exception) {
-		Game::logger->Log("LDFFormat", "Attempted to process invalid ldf type (%s) from string (%s)", ldfTypeAndValue.first.data(), format.data());
+		LOG("Attempted to process invalid ldf type (%s) from string (%s)", ldfTypeAndValue.first.data(), format.data());
 		return nullptr;
 	}
 
@@ -61,35 +61,33 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	}
 
 	case LDF_TYPE_S32: {
-		try {
-			int32_t data = static_cast<int32_t>(strtoul(ldfTypeAndValue.second.data(), &storage, 10));
-			returnValue = new LDFData<int32_t>(key, data);
-		} catch (std::exception) {
-			Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid int32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		int32_t data;
+		if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+			LOG("Warning: Attempted to process invalid int32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 			return nullptr;
 		}
+		returnValue = new LDFData<int32_t>(key, data);
+
 		break;
 	}
 
 	case LDF_TYPE_FLOAT: {
-		try {
-			float data = strtof(ldfTypeAndValue.second.data(), &storage);
-			returnValue = new LDFData<float>(key, data);
-		} catch (std::exception) {
-			Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid float value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		float data;
+		if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+			LOG("Warning: Attempted to process invalid float value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 			return nullptr;
 		}
+		returnValue = new LDFData<float>(key, data);
 		break;
 	}
 
 	case LDF_TYPE_DOUBLE: {
-		try {
-			double data = strtod(ldfTypeAndValue.second.data(), &storage);
-			returnValue = new LDFData<double>(key, data);
-		} catch (std::exception) {
-			Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid double value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		double data;
+		if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+			LOG("Warning: Attempted to process invalid double value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 			return nullptr;
 		}
+		returnValue = new LDFData<double>(key, data);
 		break;
 	}
 
@@ -102,10 +100,8 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 		} else if (ldfTypeAndValue.second == "false") {
 			data = 0;
 		} else {
-			try {
-				data = static_cast<uint32_t>(strtoul(ldfTypeAndValue.second.data(), &storage, 10));
-			} catch (std::exception) {
-				Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid uint32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+				LOG("Warning: Attempted to process invalid uint32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 				return nullptr;
 			}
 		}
@@ -122,10 +118,8 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 		} else if (ldfTypeAndValue.second == "false") {
 			data = false;
 		} else {
-			try {
-				data = static_cast<bool>(strtol(ldfTypeAndValue.second.data(), &storage, 10));
-			} catch (std::exception) {
-				Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid bool value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+				LOG("Warning: Attempted to process invalid bool value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 				return nullptr;
 			}
 		}
@@ -135,24 +129,22 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	}
 
 	case LDF_TYPE_U64: {
-		try {
-			uint64_t data = static_cast<uint64_t>(strtoull(ldfTypeAndValue.second.data(), &storage, 10));
-			returnValue = new LDFData<uint64_t>(key, data);
-		} catch (std::exception) {
-			Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid uint64 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		uint64_t data;
+		if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+			LOG("Warning: Attempted to process invalid uint64 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 			return nullptr;
 		}
+		returnValue = new LDFData<uint64_t>(key, data);
 		break;
 	}
 
 	case LDF_TYPE_OBJID: {
-		try {
-			LWOOBJID data = static_cast<LWOOBJID>(strtoll(ldfTypeAndValue.second.data(), &storage, 10));
-			returnValue = new LDFData<LWOOBJID>(key, data);
-		} catch (std::exception) {
-			Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid LWOOBJID value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		LWOOBJID data;
+		if (!GeneralUtils::TryParse(ldfTypeAndValue.second.data(), data)) {
+			LOG("Warning: Attempted to process invalid LWOOBJID value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 			return nullptr;
 		}
+		returnValue = new LDFData<LWOOBJID>(key, data);
 		break;
 	}
 
@@ -163,12 +155,12 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	}
 
 	case LDF_TYPE_UNKNOWN: {
-		Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid unknown value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		LOG("Warning: Attempted to process invalid unknown value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
 		break;
 	}
 
 	default: {
-		Game::logger->Log("LDFFormat", "Warning: Attempted to process invalid LDF type (%d) from string (%s)", type, format.data());
+		LOG("Warning: Attempted to process invalid LDF type (%d) from string (%s)", type, format.data());
 		break;
 	}
 	}

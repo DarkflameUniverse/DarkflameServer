@@ -4,16 +4,16 @@
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 
 void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	const auto target = context->originator;
 
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -40,10 +40,10 @@ void BlockBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 void BlockBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
 	const auto target = context->originator;
 
-	auto* entity = EntityManager::Instance()->GetEntity(target);
+	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("DamageAbsorptionBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

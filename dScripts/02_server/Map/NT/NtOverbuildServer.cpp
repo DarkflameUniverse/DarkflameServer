@@ -21,7 +21,7 @@ void NtOverbuildServer::SetVariables(Entity* self) {
 
 	// Find the second object Dr. Overbuild interacts with
 	LWOOBJID otherConvoObjectID = LWOOBJID_EMPTY;
-	for (auto* otherConvoObject : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(m_OtherEntitiesGroupVariable)))) {
+	for (auto* otherConvoObject : Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(m_OtherEntitiesGroupVariable)))) {
 		otherConvoObjectID = otherConvoObject->GetObjectID();
 		break;
 	}

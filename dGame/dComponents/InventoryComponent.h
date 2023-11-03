@@ -38,14 +38,13 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadXml(tinyxml2::XMLDocument* document);
 	void UpdateXml(tinyxml2::XMLDocument* document) override;
-	void ResetFlags();
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -367,6 +366,11 @@ public:
 	 * @param unequippedItem The item script to lookup and call unequip on
 	 */
 	void UnequipScripts(Item* unequippedItem);
+
+	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+
+	bool SetSkill(int slot, uint32_t skillId);
+	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
 	~InventoryComponent() override;
 

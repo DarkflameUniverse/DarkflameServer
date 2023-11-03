@@ -15,7 +15,7 @@
 #include "dServer.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
@@ -55,7 +55,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!", skillUid, syncId);
+		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
@@ -80,7 +80,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	}
 
 	if (index == -1) {
-		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!", projectileId);
+		LOG("Failed to find projectile id (%llu)!", projectileId);
 
 		return;
 	}
@@ -94,7 +94,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", sync_entry.lot);
+		LOG("Failed to find skill id for (%i)!", sync_entry.lot);
 
 		return;
 	}
@@ -243,7 +243,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 	// check to see if we got back a valid behavior
 	if (behaviorId == -1) {
-		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		LOG_DEBUG("Tried to cast skill %i but found no behavior", skillId);
 		return false;
 	}
 
@@ -292,7 +292,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		start.optionalOriginatorID = context->originator;
 		start.optionalTargetID = target;
 
-		auto* originator = EntityManager::Instance()->GetEntity(context->originator);
+		auto* originator = Game::entityManager->GetEntity(context->originator);
 
 		if (originator != nullptr) {
 			start.originatorRot = originator->GetRotation();
@@ -304,7 +304,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		// Write message
 		RakNet::BitStream message;
 
-		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
@@ -338,7 +338,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 		entry.time += deltaTime;
 
-		auto* origin = EntityManager::Instance()->GetEntity(entry.context->originator);
+		auto* origin = Game::entityManager->GetEntity(entry.context->originator);
 
 		if (origin == nullptr) {
 			continue;
@@ -349,7 +349,7 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 		const auto position = entry.startPosition + (entry.velocity * entry.time);
 
 		for (const auto& targetId : targets) {
-			auto* target = EntityManager::Instance()->GetEntity(targetId);
+			auto* target = Game::entityManager->GetEntity(targetId);
 
 			const auto targetPosition = target->GetPosition();
 
@@ -397,11 +397,11 @@ void SkillComponent::CalculateUpdate(const float deltaTime) {
 
 
 void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry) const {
-	auto* other = EntityManager::Instance()->GetEntity(entry.branchContext.target);
+	auto* other = Game::entityManager->GetEntity(entry.branchContext.target);
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {
-			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!", entry.branchContext.target);
+			LOG("Invalid projectile target (%llu)!", entry.branchContext.target);
 		}
 
 		return;
@@ -413,7 +413,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", entry.lot);
+		LOG("Failed to find skill id for (%i)!", entry.lot);
 
 		return;
 	}
@@ -437,7 +437,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream message;
 
-	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 
@@ -485,7 +485,7 @@ SkillComponent::~SkillComponent() {
 	Reset();
 }
 
-void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) outBitStream->Write0();
 }
 

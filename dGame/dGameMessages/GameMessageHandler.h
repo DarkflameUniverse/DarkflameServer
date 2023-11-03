@@ -16,7 +16,7 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "../dDatabase/CDClientDatabase.h"
 
