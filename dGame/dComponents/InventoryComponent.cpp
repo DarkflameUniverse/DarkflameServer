@@ -300,38 +300,26 @@ void InventoryComponent::AddItem(
 	}
 }
 
-void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
+bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
 	if (count == 0) {
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
-
-		return;
+		return false;
 	}
-
-	if (inventoryType == INVALID) {
-		inventoryType = Inventory::FindInventoryTypeForLot(lot);
-	}
-
+	if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	auto* inventory = GetInventory(inventoryType);
-
-	if (inventory == nullptr) {
-		return;
-	}
+	if (!inventory) return false;
 
 	auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
+	if (left != count) return false;
 
 	while (left > 0) {
 		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
-
-		if (item == nullptr) {
-			break;
-		}
-
+		if (!item) break;
 		const auto delta = std::min<uint32_t>(left, item->GetCount());
-
 		item->SetCount(item->GetCount() - delta);
-
 		left -= delta;
 	}
+	return true;
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {

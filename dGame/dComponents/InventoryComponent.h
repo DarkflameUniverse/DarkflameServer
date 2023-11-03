@@ -119,7 +119,7 @@ public:
 	 * @param inventoryType optional inventory type to remove the item from
 	 * @param ignoreBound ignores bound items
 	 */
-	void RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false);
+	bool RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false);
 
 	/**
 	 * Moves an existing item to an inventory of the entity
