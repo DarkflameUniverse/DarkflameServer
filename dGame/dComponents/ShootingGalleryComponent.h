@@ -73,11 +73,11 @@ struct StaticShootingGalleryParams {
  */
 class ShootingGalleryComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
 	explicit ShootingGalleryComponent(Entity* parent);
 	~ShootingGalleryComponent();
-	void Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const;
+	void Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate) override;
 
 	/**
 	 * Returns the static params for the shooting gallery

@@ -1,7 +1,7 @@
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
 #include "RakNetworkFactory.h"
@@ -11,6 +11,7 @@
 #include "eMasterMessageType.h"
 
 #include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
 
@@ -38,7 +39,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, dLogger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, Logger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -59,15 +60,15 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mIsOkay = Startup();
 
 	//Forcibly log to both the console and our file what ip, port and possibly zoneID / instanceID we're running on:
-	bool prevLogSetting = mLogger->GetIsLoggingToConsole();
+	bool prevLogSetting = mLogger->GetLogToConsole();
 	mLogger->SetLogToConsole(true);
 
 	if (mIsOkay) {
 		if (zoneID == 0)
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
+			LOG("Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
 		else
-			mLogger->Log("dServer", "Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	} else { mLogger->Log("dServer", "FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
+			LOG("Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
+	} else { LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
@@ -107,13 +108,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			mLogger->Log("dServer", "Lost our connection to master, shutting DOWN!");
+			LOG("Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
 
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			mLogger->Log("dServer", "Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
+			LOG("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -123,7 +124,7 @@ Packet* dServer::ReceiveFromMaster() {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 				switch (static_cast<eMasterMessageType>(packet->data[3])) {
 				case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
-					uint64_t requestID = PacketUtils::ReadPacketU64(8, packet);
+					uint64_t requestID = PacketUtils::ReadU64(8, packet);
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
 					break;
 				}
@@ -168,7 +169,7 @@ void dServer::SendToMaster(RakNet::BitStream* bitStream) {
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::DISCONNECT_NOTIFY);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::DISCONNECT_NOTIFY);
 	bitStream.Write(disconNotifyID);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 

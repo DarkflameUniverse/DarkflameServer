@@ -54,7 +54,7 @@ private:
 	std::map<unsigned int, CDItemComponent> entries;
 
 public:
-	CDItemComponentTable();
+	void LoadValuesFromDatabase();
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
 	// Gets an entry by ID

@@ -25,7 +25,7 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 	phantomPhysicsComponent->SetDirection(forward);
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 
 	self->SetProximityRadius(3, "speedboost");
 }

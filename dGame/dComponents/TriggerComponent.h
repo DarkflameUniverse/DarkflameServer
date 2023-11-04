@@ -7,7 +7,7 @@
 
 class TriggerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 

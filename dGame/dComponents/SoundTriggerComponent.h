@@ -5,55 +5,72 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
-/**
- * Music that should be played by the client
- */
 struct MusicCue {
 	std::string name;
 	uint32_t result;
 	float boredomTime;
+
+	MusicCue(std::string name, float boredomTime = -1.0, uint32_t result = 1){
+		this->name = name;
+		this->result = result;
+		this->boredomTime = boredomTime;
+	};
+
+	void Serialize(RakNet::BitStream* outBitStream);
 };
 
-/**
- * Handles specific music triggers like the instruments in Red Block
- * Credits to https://github.com/SimonNitzsche/OpCrux-Server/blob/master/src/Entity/Components/SoundTriggerComponent.hpp
- */
+struct MusicParameter {
+	std::string name;
+	float value;
+
+	MusicParameter(std::string name, float value = 0.0){
+		this->name = name;
+		this->value = value;
+	}
+
+	void Serialize(RakNet::BitStream* outBitStream);
+};
+
+struct GUIDResults{
+	GUID guid;
+	uint32_t result;
+
+	GUIDResults(std::string guidString, uint32_t result = 1){
+		this->guid = GUID(guidString);
+		this->result = result;
+	}
+
+	void Serialize(RakNet::BitStream* outBitStream);
+};
+
+struct MixerProgram{
+	std::string name;
+	uint32_t result;
+
+	MixerProgram(std::string name, uint32_t result = 0){
+		this->name = name;
+		this->result = result;
+	}
+
+	void Serialize(RakNet::BitStream* outBitStream);
+};
+
+
 class SoundTriggerComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
-
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 	explicit SoundTriggerComponent(Entity* parent);
-	~SoundTriggerComponent() override;
-
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
-	/**
-	 * Activates a music cue, making it played by any client in range
-	 * @param name the name of the music to play
-	 */
-	void ActivateMusicCue(const std::string& name);
-
-	/**
-	 * Deactivates a music cue (if active)
-	 * @param name name of the music to deactivate
-	 */
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void ActivateMusicCue(const std::string& name, float bordemTime = -1.0);
 	void DeactivateMusicCue(const std::string& name);
 
 private:
 
-	/**
-	 * Currently active cues
-	 */
-	std::vector<MusicCue> musicCues = {};
+	std::vector<MusicCue> m_MusicCues = {};
+	std::vector<MusicParameter> m_MusicParameters = {};
+	std::vector<GUIDResults> m_2DAmbientSounds = {};
+	std::vector<GUIDResults> m_3DAmbientSounds = {};
+	std::vector<MixerProgram> m_MixerPrograms = {};
 
-	/**
-	 * Currently active mixer programs
-	 */
-	std::vector<std::string> mixerPrograms = {};
-
-	/**
-	 * GUID found in the LDF
-	 */
-	std::vector<GUID> guids = {};
-	bool dirty = false;
+	bool m_Dirty = false;
 };

@@ -66,7 +66,7 @@ public:
 
 	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
-	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	uint8_t GetCollectibleID() const;
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
@@ -85,6 +85,7 @@ public:
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
+	void SetIsGhostingCandidate(bool value) { m_IsGhostingCandidate = value; };
 
 	int8_t GetObservers() const;
 
@@ -173,7 +174,6 @@ public:
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-	void ResetFlags();
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 
@@ -273,6 +273,9 @@ public:
 	 */
 	template<typename T>
 	T GetVarAs(const std::u16string& name) const;
+
+	template<typename ComponentType, typename... VaArgs>
+	ComponentType* AddComponent(VaArgs... args);
 
 	/**
 	 * Get the LDF data.
@@ -500,4 +503,37 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
+}
+
+/**
+ * @brief Adds a component of type ComponentType to this entity and forwards the arguments to the constructor.
+ *
+ * @tparam ComponentType The component class type to add. Must derive from Component.
+ * @tparam VaArgs The argument types to forward to the constructor.
+ * @param args The arguments to forward to the constructor. The first argument passed to the ComponentType constructor will be this entity.
+ * @return ComponentType* The added component. Will never return null.
+ */
+template<typename ComponentType, typename... VaArgs>
+inline ComponentType* Entity::AddComponent(VaArgs... args) {
+	static_assert(std::is_base_of_v<Component, ComponentType>, "ComponentType must be a Component");
+
+	// Get the component if it already exists, or default construct a nullptr
+	auto*& componentToReturn = m_Components[ComponentType::ComponentType];
+
+	// If it doesn't exist, create it and forward the arguments to the constructor
+	if (!componentToReturn) {
+		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+	} else {
+		// In this case the block is already allocated and ready for use
+		// so we use a placement new to construct the component again as was requested by the caller.
+		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
+		// This is useful for when we want to create a new object in the same memory location as an old one.
+		componentToReturn->~Component();
+		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
+	}
+
+	// Finally return the created or already existing component.
+	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function
+	// To allow a static cast here instead of a dynamic one.
+	return dynamic_cast<ComponentType*>(componentToReturn);
 }

@@ -15,12 +15,12 @@ private:
 	std::vector<CDObjectSkills> entries;
 
 public:
-	CDObjectSkillsTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDObjectSkills> Query(std::function<bool(CDObjectSkills)> predicate);
 
 	// Gets all the entries in the table
-	std::vector<CDObjectSkills> GetEntries(void) const;
+	const std::vector<CDObjectSkills>& GetEntries() const;
 
 };
 

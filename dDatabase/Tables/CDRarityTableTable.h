@@ -4,37 +4,20 @@
 #include "CDTable.h"
 
 struct CDRarityTable {
-	unsigned int id;
 	float randmax;
 	unsigned int rarity;
-	unsigned int RarityTableIndex;
-
-	friend bool operator> (const CDRarityTable& c1, const CDRarityTable& c2) {
-		return c1.rarity > c2.rarity;
-	}
-
-	friend bool operator>= (const CDRarityTable& c1, const CDRarityTable& c2) {
-		return c1.rarity >= c2.rarity;
-	}
-
-	friend bool operator< (const CDRarityTable& c1, const CDRarityTable& c2) {
-		return c1.rarity < c2.rarity;
-	}
-
-	friend bool operator<= (const CDRarityTable& c1, const CDRarityTable& c2) {
-		return c1.rarity <= c2.rarity;
-	}
 };
+
+typedef std::vector<CDRarityTable> RarityTable;
 
 class CDRarityTableTable : public CDTable<CDRarityTableTable> {
 private:
-	std::vector<CDRarityTable> entries;
+	typedef uint32_t RarityTableIndex;
+	std::unordered_map<RarityTableIndex, std::vector<CDRarityTable>> entries;
 
 public:
-	CDRarityTableTable();
-	// Queries the table with a custom "where" clause
-	std::vector<CDRarityTable> Query(std::function<bool(CDRarityTable)> predicate);
+	void LoadValuesFromDatabase();
 
-	const std::vector<CDRarityTable>& GetEntries() const;
+	const std::vector<CDRarityTable>& GetRarityTable(uint32_t predicate);
 };
 

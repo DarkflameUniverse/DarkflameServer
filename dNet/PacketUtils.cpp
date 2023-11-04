@@ -1,10 +1,10 @@
 #include "PacketUtils.h"
 #include <vector>
 #include <fstream>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
-uint16_t PacketUtils::ReadPacketU16(uint32_t startLoc, Packet* packet) {
+uint16_t PacketUtils::ReadU16(uint32_t startLoc, Packet* packet) {
 	if (startLoc + 2 > packet->length) return 0;
 
 	std::vector<unsigned char> t;
@@ -12,7 +12,7 @@ uint16_t PacketUtils::ReadPacketU16(uint32_t startLoc, Packet* packet) {
 	return *(uint16_t*)t.data();
 }
 
-uint32_t PacketUtils::ReadPacketU32(uint32_t startLoc, Packet* packet) {
+uint32_t PacketUtils::ReadU32(uint32_t startLoc, Packet* packet) {
 	if (startLoc + 4 > packet->length) return 0;
 
 	std::vector<unsigned char> t;
@@ -22,7 +22,7 @@ uint32_t PacketUtils::ReadPacketU32(uint32_t startLoc, Packet* packet) {
 	return *(uint32_t*)t.data();
 }
 
-uint64_t PacketUtils::ReadPacketU64(uint32_t startLoc, Packet* packet) {
+uint64_t PacketUtils::ReadU64(uint32_t startLoc, Packet* packet) {
 	if (startLoc + 8 > packet->length) return 0;
 
 	std::vector<unsigned char> t;
@@ -30,7 +30,7 @@ uint64_t PacketUtils::ReadPacketU64(uint32_t startLoc, Packet* packet) {
 	return *(uint64_t*)t.data();
 }
 
-int64_t PacketUtils::ReadPacketS64(uint32_t startLoc, Packet* packet) {
+int64_t PacketUtils::ReadS64(uint32_t startLoc, Packet* packet) {
 	if (startLoc + 8 > packet->length) return 0;
 
 	std::vector<unsigned char> t;
@@ -59,85 +59,10 @@ std::string PacketUtils::ReadString(uint32_t startLoc, Packet* packet, bool wide
 	return readString;
 }
 
-void PacketUtils::WritePacketString(const std::string& string, uint32_t maxSize, RakNet::BitStream* bitStream) {
-	uint32_t size = static_cast<uint32_t>(string.size());
-	uint32_t remSize = static_cast<uint32_t>(maxSize - size);
-
-	if (size > maxSize) size = maxSize;
-
-	for (uint32_t i = 0; i < size; ++i) {
-		bitStream->Write(static_cast<char>(string[i]));
-	}
-
-	for (uint32_t j = 0; j < remSize; ++j) {
-		bitStream->Write(static_cast<char>(0));
-	}
-}
-
-void PacketUtils::WriteString(RakNet::BitStream& bitStream, const std::string& s, uint32_t maxSize) {
-	uint32_t size = s.size();
-	uint32_t emptySize = maxSize - size;
-
-	if (size > maxSize) size = maxSize;
-
-	for (uint32_t i = 0; i < size; i++) {
-		bitStream.Write((char)s[i]);
-	}
-
-	for (uint32_t i = 0; i < emptySize; i++) {
-		bitStream.Write((char)0);
-	}
-}
-
-void PacketUtils::WriteWString(RakNet::BitStream& bitStream, const std::string& string, uint32_t maxSize) {
-	uint32_t size = static_cast<uint32_t>(string.length());
-	uint32_t remSize = static_cast<uint32_t>(maxSize - size);
-
-	if (size > maxSize) size = maxSize;
-
-	for (uint32_t i = 0; i < size; ++i) {
-		bitStream.Write(static_cast<uint16_t>(string[i]));
-	}
-
-	for (uint32_t j = 0; j < remSize; ++j) {
-		bitStream.Write(static_cast<uint16_t>(0));
-	}
-}
-
-void PacketUtils::WriteWString(RakNet::BitStream& bitStream, const std::u16string& string, uint32_t maxSize) {
-	uint32_t size = static_cast<uint32_t>(string.length());
-	uint32_t remSize = static_cast<uint32_t>(maxSize - size);
-
-	if (size > maxSize) size = maxSize;
-
-	for (uint32_t i = 0; i < size; ++i) {
-		bitStream.Write(static_cast<uint16_t>(string[i]));
-	}
-
-	for (uint32_t j = 0; j < remSize; ++j) {
-		bitStream.Write(static_cast<uint16_t>(0));
-	}
-}
-
-void PacketUtils::WritePacketWString(const std::string& string, uint32_t maxSize, RakNet::BitStream* bitStream) {
-	uint32_t size = static_cast<uint32_t>(string.length());
-	uint32_t remSize = static_cast<uint32_t>(maxSize - size);
-
-	if (size > maxSize) size = maxSize;
-
-	for (uint32_t i = 0; i < size; ++i) {
-		bitStream->Write(static_cast<uint16_t>(string[i]));
-	}
-
-	for (uint32_t j = 0; j < remSize; ++j) {
-		bitStream->Write(static_cast<uint16_t>(0));
-	}
-}
-
 //! Saves a packet to the filesystem
 void PacketUtils::SavePacket(const std::string& filename, const char* data, size_t length) {
 	//If we don't log to the console, don't save the bin files either. This takes up a lot of time.
-	if (!Game::logger->GetIsLoggingToConsole()) return;
+	if (!Game::logger->GetLogToConsole()) return;
 
 	std::string path = "packets/" + filename;
 

@@ -10,12 +10,12 @@
 #include "RocketLaunchpadControlComponent.h"
 #include "CharacterComponent.h"
 #include "UserManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Amf3.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(uint32_t componentID, Entity* parent) : Component(parent) {
+PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent) {
 	this->propertyQueries = {};
 
 	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
@@ -219,7 +219,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 			delete nameLookup;
 			nameLookup = nullptr;
 
-			Game::logger->Log("PropertyEntranceComponent", "Failed to find property owner name for %llu!", cloneId);
+			LOG("Failed to find property owner name for %llu!", cloneId);
 
 			continue;
 		} else {

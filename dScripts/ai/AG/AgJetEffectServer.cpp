@@ -3,6 +3,7 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	if (inUse || self->GetLOT() != 6859) return;
@@ -11,7 +12,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	);
 	inUse = true;
 
-	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
+	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
 	GameMessages::SendPlayFXEffect(entities.at(0), 641, u"create", "radarDish", LWOOBJID_EMPTY, 1, 1, true);
 	self->AddTimer("radarDish", 2.0f);
@@ -21,9 +22,9 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 
 void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
 	if (self->GetLOT() != 6209) return;
-	auto entities = EntityManager::Instance()->GetEntitiesInGroup("Jet_FX");
+	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;
-	GameMessages::SendPlayAnimation(entities.at(0), u"jetFX");
+	RenderComponent::PlayAnimation(entities.at(0), u"jetFX");
 
 	// So we can give kill credit to person who build this
 	builder = target->GetObjectID();
@@ -39,7 +40,7 @@ void AgJetEffectServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "radarDish") {
 		GameMessages::SendStopFXEffect(self, true, "radarDish");
 	} else if (timerName == "PlayEffect") {
-		auto entities = EntityManager::Instance()->GetEntitiesInGroup("mortarMain");
+		auto entities = Game::entityManager->GetEntitiesInGroup("mortarMain");
 		if (entities.empty()) return;
 
 		const auto selected = GeneralUtils::GenerateRandomNumber<int>(0, entities.size() - 1);

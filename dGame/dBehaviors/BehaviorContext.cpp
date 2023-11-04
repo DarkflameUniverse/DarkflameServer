@@ -4,9 +4,9 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 
 #include <sstream>
 
@@ -28,10 +28,10 @@ BehaviorEndEntry::BehaviorEndEntry() {
 }
 
 uint32_t BehaviorContext::GetUniqueSkillId() const {
-	auto* entity = EntityManager::Instance()->GetEntity(this->originator);
+	auto* entity = Game::entityManager->GetEntity(this->originator);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
+		LOG("Invalid entity for (%llu)!", this->originator);
 
 		return 0;
 	}
@@ -39,7 +39,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 	auto* component = entity->GetComponent<SkillComponent>();
 
 	if (component == nullptr) {
-		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!", this->originator);;
+		LOG("No skill component attached to (%llu)!", this->originator);;
 
 		return 0;
 	}
@@ -95,11 +95,11 @@ void BehaviorContext::ScheduleUpdate(const LWOOBJID id) {
 
 void BehaviorContext::ExecuteUpdates() {
 	for (const auto& id : this->scheduledUpdates) {
-		auto* entity = EntityManager::Instance()->GetEntity(id);
+		auto* entity = Game::entityManager->GetEntity(id);
 
 		if (entity == nullptr) continue;
 
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 	}
 
 	this->scheduledUpdates.clear();
@@ -126,7 +126,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	}
 
 	if (!found) {
-		Game::logger->Log("BehaviorContext", "Failed to find behavior sync entry with sync id (%i)!", syncId);
+		LOG("Failed to find behavior sync entry with sync id (%i)!", syncId);
 
 		return;
 	}
@@ -135,7 +135,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	const auto branch = entry.branchContext;
 
 	if (behavior == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid behavior for sync id (%i)!", syncId);
+		LOG("Invalid behavior for sync id (%i)!", syncId);
 
 		return;
 	}
@@ -254,7 +254,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
@@ -317,16 +317,9 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 	}
 
 	// if the caster is not there, return empty targets list
-	auto* caster = EntityManager::Instance()->GetEntity(this->caster);
+	auto* caster = Game::entityManager->GetEntity(this->caster);
 	if (!caster) {
-		Game::logger->LogDebug("BehaviorContext", "Invalid caster for (%llu)!", this->originator);
-		targets.clear();
-		return;
-	}
-
-	// if the caster doesn't have a destroyable component, return an empty targets list
-	auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
-	if (!casterDestroyableComponent) {
+		LOG_DEBUG("Invalid caster for (%llu)!", this->originator);
 		targets.clear();
 		return;
 	}
@@ -342,7 +335,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		}
 
 		// handle targeting the caster
-		if ((candidate == caster)){
+		if (candidate == caster){
 			// if we aren't targeting self, erase, otherise increment and continue
 			if (!targetSelf) index = targets.erase(index);
 			else index++;
@@ -364,14 +357,14 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 			continue;
 		}
 
-		// if they have no factions, then earse and continue
-		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
-		if (candidateFactions.empty() || candidateDestroyableComponent->GetIsDead()){
+		// if they are dead, then earse and continue
+		if (candidateDestroyableComponent->GetIsDead()){
 			index = targets.erase(index);
 			continue;
 		}
 
 		// if their faction is explicitly included, increment and continue
+		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
 		if (CheckFactionList(includeFactionList, candidateFactions)){
 			index++;
 			continue;
@@ -387,6 +380,13 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 					continue;
 				}
 			}
+		}
+
+		// if the caster doesn't have a destroyable component, return an empty targets list
+		auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+		if (!casterDestroyableComponent) {
+			targets.clear();
+			return;
 		}
 
 		// if we arent targeting a friend, and they are a friend OR
@@ -410,10 +410,6 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	// if the target is a nullptr, then it's not valid
 	if (!target) return false;
-
-	// ignore entities that don't have destroyable components
-	auto* targetDestroyableComponent = target->GetComponent<DestroyableComponent>();
-	if (!targetDestroyableComponent) return false;
 
 	// ignore quickbuilds that aren't completed
 	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();

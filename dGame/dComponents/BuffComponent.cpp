@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
@@ -20,7 +20,7 @@ BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 BuffComponent::~BuffComponent() {
 }
 
-void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 	if (m_Buffs.empty()) {
 		outBitStream->Write0();
@@ -334,7 +334,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 
 					param.values.push_back(value);
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+					LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 		}

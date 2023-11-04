@@ -5,14 +5,14 @@
 #include "Entity.h"
 
 void PropertyBankInteract::OnStartup(Entity* self) {
-	auto* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControl = Game::entityManager->GetZoneControlEntity();
 	if (zoneControl != nullptr) {
 		zoneControl->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
 }
 
 void PropertyBankInteract::OnPlayerLoaded(Entity* self, Entity* player) {
-	auto* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControl = Game::entityManager->GetZoneControlEntity();
 	if (zoneControl != nullptr) {
 		zoneControl->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}

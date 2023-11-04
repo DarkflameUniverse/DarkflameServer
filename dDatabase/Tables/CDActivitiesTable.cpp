@@ -1,7 +1,6 @@
 #include "CDActivitiesTable.h"
 
-CDActivitiesTable::CDActivitiesTable(void) {
-
+void CDActivitiesTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	unsigned int size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Activities");
@@ -55,8 +54,3 @@ std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActiviti
 
 	return data;
 }
-
-std::vector<CDActivities> CDActivitiesTable::GetEntries(void) const {
-	return this->entries;
-}
-

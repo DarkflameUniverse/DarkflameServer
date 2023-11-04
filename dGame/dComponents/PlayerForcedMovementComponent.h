@@ -10,7 +10,7 @@
  */
 class PlayerForcedMovementComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
 
 	/**
 	 * Constructor for this component
@@ -19,7 +19,7 @@ public:
 	PlayerForcedMovementComponent(Entity* parent);
 	~PlayerForcedMovementComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief Set the Player On Rail object

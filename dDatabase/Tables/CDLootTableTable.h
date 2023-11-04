@@ -6,20 +6,21 @@
 struct CDLootTable {
 	unsigned int itemid;                 //!< The LOT of the item
 	unsigned int LootTableIndex;         //!< The Loot Table Index
-	unsigned int id;                     //!< The ID
 	bool MissionDrop;               //!< Whether or not this loot table is a mission drop
 	unsigned int sortPriority;           //!< The sorting priority
 };
 
+typedef uint32_t LootTableIndex;
+typedef std::vector<CDLootTable> LootTableEntries;
+
 class CDLootTableTable : public CDTable<CDLootTableTable> {
 private:
-	std::vector<CDLootTable> entries;
+	CDLootTable ReadRow(CppSQLite3Query& tableData) const;
+	std::unordered_map<LootTableIndex, LootTableEntries> entries;
 
 public:
-	CDLootTableTable();
+	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
-	std::vector<CDLootTable> Query(std::function<bool(CDLootTable)> predicate);
-
-	const std::vector<CDLootTable>& GetEntries(void) const;
+	const LootTableEntries& GetTable(uint32_t tableId);
 };
 

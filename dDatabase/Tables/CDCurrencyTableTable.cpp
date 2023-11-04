@@ -1,7 +1,7 @@
 #include "CDCurrencyTableTable.h"
 
 //! Constructor
-CDCurrencyTableTable::CDCurrencyTableTable(void) {
+void CDCurrencyTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -43,7 +43,7 @@ std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCu
 	return data;
 }
 
-std::vector<CDCurrencyTable> CDCurrencyTableTable::GetEntries(void) const {
+const std::vector<CDCurrencyTable>& CDCurrencyTableTable::GetEntries() const {
 	return this->entries;
 }
 

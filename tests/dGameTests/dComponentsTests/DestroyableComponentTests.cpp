@@ -16,8 +16,7 @@ protected:
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = new Entity(15, GameDependenciesTest::info);
-		destroyableComponent = new DestroyableComponent(baseEntity);
-		baseEntity->AddComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent);
+		destroyableComponent = baseEntity->AddComponent<DestroyableComponent>();
 		// Initialize some values to be not default
 		destroyableComponent->SetMaxHealth(12345.0f);
 		destroyableComponent->SetHealth(23);
@@ -37,11 +36,19 @@ protected:
 	}
 };
 
+TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
+	ASSERT_NE(destroyableComponent, nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 7);
+	baseEntity->AddComponent<DestroyableComponent>();
+	ASSERT_NE(baseEntity->GetComponent<DestroyableComponent>(), nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 0);
+}
+
 /**
  * Test Construction of a DestroyableComponent
  */
 TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
-	destroyableComponent->Serialize(&bitStream, true, flags);
+	destroyableComponent->Serialize(&bitStream, true);
 	// Assert that the full number of bits are present
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 748);
 	{
@@ -171,7 +178,7 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 	destroyableComponent->SetMaxHealth(1233.0f);
 
 	// Now we test a serialization for correctness.
-	destroyableComponent->Serialize(&bitStream, false, flags);
+	destroyableComponent->Serialize(&bitStream, false);
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 422);
 	{
 		// Now read in the full serialized BitStream
@@ -318,9 +325,7 @@ TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
 
 TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 	auto* enemyEntity = new Entity(19, info);
-	auto* enemyDestroyableComponent = new DestroyableComponent(enemyEntity);
-	enemyEntity->AddComponent(eReplicaComponentType::DESTROYABLE, enemyDestroyableComponent);
-	enemyDestroyableComponent->AddFactionNoLookup(16);
+	enemyEntity->AddComponent<DestroyableComponent>()->AddFactionNoLookup(16);
 	destroyableComponent->AddEnemyFaction(16);
 	EXPECT_TRUE(destroyableComponent->IsEnemy(enemyEntity));
 	EXPECT_FALSE(destroyableComponent->IsFriend(enemyEntity));

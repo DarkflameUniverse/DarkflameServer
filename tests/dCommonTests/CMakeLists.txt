@@ -5,6 +5,8 @@ set(DCOMMONTEST_SOURCES
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"
 	"TestEncoding.cpp"
+	"TestLUString.cpp"
+	"TestLUWString.cpp"
 	"dCommonDependencies.cpp"
 )
 

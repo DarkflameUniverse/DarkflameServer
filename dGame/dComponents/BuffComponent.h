@@ -42,7 +42,7 @@ struct Buff
  */
 class BuffComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
 	explicit BuffComponent(Entity* parent);
 
@@ -54,7 +54,7 @@ public:
 
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
 

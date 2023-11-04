@@ -7,14 +7,14 @@
 #include "Loot.h"
 
 void BootyDigServer::OnStartup(Entity* self) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
 }
 
 void BootyDigServer::OnPlayerLoaded(Entity* self, Entity* player) {
-	auto* zoneControlObject = EntityManager::Instance()->GetZoneControlEntity();
+	auto* zoneControlObject = Game::entityManager->GetZoneControlEntity();
 	if (zoneControlObject != nullptr) {
 		zoneControlObject->OnFireEventServerSide(self, "CheckForPropertyOwner");
 	}
@@ -45,7 +45,7 @@ BootyDigServer::OnFireEventServerSide(Entity* self, Entity* sender, std::string 
 				if (renderComponent != nullptr)
 					renderComponent->PlayEffect(7730, u"cast", "bootyshine");
 
-				LootGenerator::Instance().DropLoot(player, self, 231, 75, 75);
+				Loot::DropLoot(player, self, 231, 75, 75);
 			}
 		}
 	} else if (args == "ChestDead") {

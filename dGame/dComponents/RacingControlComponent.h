@@ -105,13 +105,13 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.

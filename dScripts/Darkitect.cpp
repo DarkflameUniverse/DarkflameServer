@@ -12,7 +12,7 @@ void Darkitect::Reveal(Entity* self, Entity* player) {
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"reveal", 0, 0, playerID, "", player->GetSystemAddress());
 
 	self->AddCallbackTimer(20, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (!player) return;
 
@@ -29,7 +29,7 @@ void Darkitect::Reveal(Entity* self, Entity* player) {
 				character->SetPlayerFlag(1911, true);
 			}
 
-			EntityManager::Instance()->SerializeEntity(player);
+			Game::entityManager->SerializeEntity(player);
 		}
 		});
 }

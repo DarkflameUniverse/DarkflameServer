@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include "BinaryIO.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
 #include "GeneralUtils.h"
@@ -21,7 +21,7 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	auto buffer = Game::assetManager->GetFileAsBuffer(filepath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
+		LOG("Failed to load %s", filepath.c_str());
 		return;
 	}
 
@@ -179,8 +179,8 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
-			dZoneManager::Instance()->GetZone()->SetSpawnPos(obj.position);
-			dZoneManager::Instance()->GetZone()->SetSpawnRot(obj.rotation);
+			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
 		}
 
 		std::u16string ldfString = u"";
@@ -297,7 +297,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 				}
 			}
 			Spawner* spawner = new Spawner(spawnInfo);
-			dZoneManager::Instance()->AddSpawner(obj.id, spawner);
+			Game::zoneManager->AddSpawner(obj.id, spawner);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -328,11 +328,11 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			if (!clientOnly) {
 
 				// We should never have more than 1 zone control object
-				const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+				const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-				EntityManager::Instance()->CreateEntity(info, nullptr);
+				Game::entityManager->CreateEntity(info, nullptr);
 			} else {
 			deleteSettings:
 

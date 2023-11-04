@@ -4,19 +4,19 @@
 
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount{};
 
 	if (!bitStream->Read(targetCount)) {
-		Game::logger->Log("AreaOfEffectBehavior", "Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -28,7 +28,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	}
 
 	if (targetCount > this->m_maxTargets) {
-		Game::logger->Log("AreaOfEffectBehavior", "Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
+		LOG("Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
 		return;
 	}
 
@@ -41,7 +41,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	for (auto i = 0u; i < targetCount; ++i) {
 		LWOOBJID target{};
 		if (!bitStream->Read(target)) {
-			Game::logger->Log("AreaOfEffectBehavior", "failed to read in target %i from bitStream, aborting target Handle!", i);
+			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
 		};
 		targets.push_back(target);
 	}
@@ -55,21 +55,21 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 }
 
 void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
+	auto* caster = Game::entityManager->GetEntity(context->caster);
 	if (!caster) return;
 
 	// determine the position we are casting the AOE from
 	auto reference = branch.isProjectile ? branch.referencePosition : caster->GetPosition();
 	if (this->m_useTargetPosition) {
 		if (branch.target == LWOOBJID_EMPTY) return;
-		auto branchTarget = EntityManager::Instance()->GetEntity(branch.target);
+		auto branchTarget = Game::entityManager->GetEntity(branch.target);
 		if (branchTarget) reference = branchTarget->GetPosition();
 	}
 
 	reference += this->m_offset;
 
 	std::vector<Entity*> targets {};
-	targets = EntityManager::Instance()->GetEntitiesByProximity(reference, this->m_radius);
+	targets = Game::entityManager->GetEntitiesByProximity(reference, this->m_radius);
 	context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	// sort by distance

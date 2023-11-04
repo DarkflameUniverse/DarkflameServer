@@ -28,11 +28,10 @@ struct CDEmoteTable {
 
 class CDEmoteTableTable : public CDTable<CDEmoteTableTable> {
 private:
-	std::map<int, CDEmoteTable*> entries;
+	std::map<int, CDEmoteTable> entries;
 
 public:
-	CDEmoteTableTable();
-	~CDEmoteTableTable();
+	void LoadValuesFromDatabase();
 	// Returns an emote by ID
 	CDEmoteTable* GetEmote(int id);
 };

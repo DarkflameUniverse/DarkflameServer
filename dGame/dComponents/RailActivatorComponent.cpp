@@ -6,7 +6,9 @@
 #include "GameMessages.h"
 #include "RebuildComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
+#include "RenderComponent.h"
+#include "EntityManager.h"
 #include "eStateChangeType.h"
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
@@ -57,29 +59,16 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 		GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_StartEffect.first, m_StartEffect.second,
 			std::to_string(m_StartEffect.first));
 	}
-
+	
+	float animationLength = 0.5f;
 	if (!m_StartAnimation.empty()) {
-		GameMessages::SendPlayAnimation(originator, m_StartAnimation);
-	}
-
-	float animationLength;
-
-	if (m_StartAnimation == u"whirlwind-rail-up-earth") {
-		animationLength = 1.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-lightning") {
-		animationLength = 0.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-ice") {
-		animationLength = 0.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-fire") {
-		animationLength = 0.5f;
-	} else {
-		animationLength = 0.5f;
+		animationLength = RenderComponent::PlayAnimation(originator, m_StartAnimation);
 	}
 
 	const auto originatorID = originator->GetObjectID();
 
 	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
-		auto* originator = EntityManager::Instance()->GetEntity(originatorID);
+		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
 			return;
@@ -112,7 +101,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 		}
 
 		if (!m_LoopAnimation.empty()) {
-			GameMessages::SendPlayAnimation(originator, m_LoopAnimation);
+			RenderComponent::PlayAnimation(originator, m_LoopAnimation);
 		}
 
 		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
@@ -147,7 +136,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		}
 
 		if (!m_StopAnimation.empty()) {
-			GameMessages::SendPlayAnimation(originator, m_StopAnimation);
+			RenderComponent::PlayAnimation(originator, m_StopAnimation);
 		}
 
 		// Remove the player after they've signalled they're done railing

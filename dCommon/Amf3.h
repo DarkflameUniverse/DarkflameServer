@@ -2,7 +2,7 @@
 #define __AMF3__H__
 
 #include "dCommonVars.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
 #include <unordered_map>
@@ -342,7 +342,6 @@ public:
 	 */
 	template <typename AmfType>
 	AMFValue<AmfType>* Get(uint32_t index) const {
-		std::cout << (index < this->dense.size()) << std::endl;
 		return index < this->dense.size() ?
 			dynamic_cast<AMFValue<AmfType>*>(this->dense.at(index)) :
 			nullptr;

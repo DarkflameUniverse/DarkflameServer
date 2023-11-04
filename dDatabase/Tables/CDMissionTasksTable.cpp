@@ -1,7 +1,6 @@
 #include "CDMissionTasksTable.h"
 
-//! Constructor
-CDMissionTasksTable::CDMissionTasksTable(void) {
+void CDMissionTasksTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -56,16 +55,14 @@ std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(uint32_t missio
 
 	for (auto& entry : this->entries) {
 		if (entry.id == missionID) {
-			CDMissionTasks* task = const_cast<CDMissionTasks*>(&entry);
-
-			tasks.push_back(task);
+			tasks.push_back(&entry);
 		}
 	}
 
 	return tasks;
 }
 
-const std::vector<CDMissionTasks>& CDMissionTasksTable::GetEntries(void) const {
+const std::vector<CDMissionTasks>& CDMissionTasksTable::GetEntries() const {
 	return this->entries;
 }
 

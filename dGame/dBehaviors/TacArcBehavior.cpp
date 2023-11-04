@@ -1,7 +1,7 @@
 #include "TacArcBehavior.h"
 #include "BehaviorBranchContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
@@ -14,23 +14,24 @@
 #include <vector>
 
 void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
-	if (!caster) return;
-
 	std::vector<Entity*> targets = {};
-	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
-		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		targets.push_back(target);
-		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(!targets.empty()) {
-			this->m_action->Handle(context, bitStream, branch);
-			return;
+
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
+		auto target = Game::entityManager->GetEntity(branch.target);
+		if (!target) LOG("target %llu is null", branch.target);
+		else {
+			targets.push_back(target);
+			context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+			if (!targets.empty()) {
+				this->m_action->Handle(context, bitStream, branch);
+				return;
+			}
 		}
 	}
 
 	bool hasTargets = false;
 	if (!bitStream->Read(hasTargets)) {
-		Game::logger->Log("TacArcBehavior", "Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -38,25 +39,21 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		bool blocked = false;
 
 		if (!bitStream->Read(blocked)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
-		};
-
-		if (blocked) {
 			this->m_blockedAction->Handle(context, bitStream, branch);
-			return;
 		}
 	}
 
 	if (hasTargets) {
 		uint32_t count = 0;
 		if (!bitStream->Read(count)) {
-			Game::logger->Log("TacArcBehavior", "Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 
 		if (count > m_maxTargets) {
-			Game::logger->Log("TacArcBehavior", "TacArcBehavior Bitstream too many targets Max:%i Recv:%i", this->m_maxTargets, count);
+			LOG("Bitstream has too many targets Max:%i Recv:%i", this->m_maxTargets, count);
 			return;
 		}
 
@@ -64,15 +61,15 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 			LWOOBJID id{};
 
 			if (!bitStream->Read(id)) {
-				Game::logger->Log("TacArcBehavior", "Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+				LOG("Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 				return;
 			};
 
 			if (id != LWOOBJID_EMPTY) {
-				auto* canidate = EntityManager::Instance()->GetEntity(id);
-				targets.push_back(canidate);
+				auto* canidate = Game::entityManager->GetEntity(id);
+				if (canidate) targets.push_back(canidate);
 			} else {
-				Game::logger->Log("TacArcBehavior", "Bitstream has LWOOBJID_EMPTY as a target!");
+				LOG("Bitstream has LWOOBJID_EMPTY as a target!");
 			}
 		}
 
@@ -84,22 +81,24 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 }
 
 void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* caster = EntityManager::Instance()->GetEntity(context->caster);
-	if (!caster) return;
+	auto* self = Game::entityManager->GetEntity(context->originator);
+	if (self == nullptr) {
+		LOG("Invalid self for (%llu)!", context->originator);
+		return;
+	}
 
-	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY){
-		std::vector<Entity*> targets = {};
-		auto target = EntityManager::Instance()->GetEntity(branch.target);
-		if (target) targets.push_back(target);
-		context->FilterTargets(targets,this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
-		if(!targets.empty()) {
-			this->m_action->Calculate(context, bitStream, branch);
+	std::vector<Entity*> targets = {};
+	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
+		auto target = Game::entityManager->GetEntity(branch.target);
+		targets.push_back(target);
+		context->FilterTargets(targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
+		if (!targets.empty()) {
+			this->m_action->Handle(context, bitStream, branch);
 			return;
 		}
 	}
 
-	if (this->m_useTargetPostion) return;
-	branch.target = LWOOBJID_EMPTY;
+	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
 
 	auto reference = caster->GetPosition();
 	reference += this->m_offset;
@@ -123,7 +122,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	tacArcInfo->method = this->m_method;
 	tacArcInfo->targets = {};
 
-	EntityManager::Instance()->GetEntitiesInsideTacArc(*tacArcInfo);
+	Game::entityManager->GetEntitiesInsideTacArc(*tacArcInfo);
 	context->FilterTargets(tacArcInfo->targets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	if (tacArcInfo->targets.size() == 0) {
@@ -233,7 +232,7 @@ void TacArcBehavior::Load() {
 	this->m_blockedAction = GetAction("blocked action");
 
 	this->m_maxTargets = GetInt("max targets", 100);
-	if (this->m_maxTargets == 0) this->m_maxTargets == 100;
+	if (this->m_maxTargets == 0) this->m_maxTargets = 100;
 
 	this->m_farHeight = GetFloat("far_height", 5.0f);
 	this->m_farWidth = GetFloat("far_width", 5.0f);

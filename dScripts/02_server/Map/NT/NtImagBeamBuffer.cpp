@@ -40,7 +40,7 @@ void NtImagBeamBuffer::OnTimerDone(Entity* self, std::string timerName) {
 	}
 
 	for (const auto entityID : m_EntitiesInProximity) {
-		auto* entity = EntityManager::Instance()->GetEntity(entityID);
+		auto* entity = Game::entityManager->GetEntity(entityID);
 
 		if (entity == nullptr) {
 			continue;

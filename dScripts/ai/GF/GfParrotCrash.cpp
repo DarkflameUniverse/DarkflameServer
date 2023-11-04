@@ -1,7 +1,7 @@
 #include "GfParrotCrash.h"
 #include "SkillComponent.h"
 #include "Entity.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void GfParrotCrash::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
 	auto* skillComponent = self->GetComponent<SkillComponent>();

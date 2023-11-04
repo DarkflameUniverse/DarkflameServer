@@ -19,12 +19,12 @@ enum class eStateChangeType : uint32_t;
  */
 class DestroyableComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, uint32_t& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
@@ -239,7 +239,7 @@ public:
 	 * Returns whether or not this entity has bricks flying out when smashed
 	 * @return whether or not this entity has bricks flying out when smashed
 	 */
-	bool GetHasBricks() const { return m_HasBricks; }
+	bool GetHasBricks() const { return m_IsModuleAssembly; }
 
 	/**
 	 * Sets the multiplier for the explosion that's visible when the bricks fly out when this entity is smashed
@@ -416,6 +416,9 @@ public:
 	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
 	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
 
+	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
+	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
+
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
 	 */
@@ -543,7 +546,7 @@ private:
 	/**
 	 * Whether this entity has bricks flying out when smashed (causes the client to look up the files)
 	 */
-	bool m_HasBricks;
+	bool m_IsModuleAssembly;
 
 	/**
 	 * The rate at which bricks fly out when smashed
@@ -607,6 +610,10 @@ private:
 	 * The priority to attack this entity
 	 */
 	uint32_t m_atttackPriotiry;
+	/**
+	 * Death behavior type.  If 0, the client plays a death animation as opposed to a smash animation.
+	 */
+	int32_t m_DeathBehavior;
 };
 
 #endif // DESTROYABLECOMPONENT_H

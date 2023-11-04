@@ -8,7 +8,7 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 }
 
-void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	// ItemComponent Serialization.  Pets do not get this serialization.
 	if (!m_Parent->HasComponent(eReplicaComponentType::PET)) {
 		outBitStream->Write1();

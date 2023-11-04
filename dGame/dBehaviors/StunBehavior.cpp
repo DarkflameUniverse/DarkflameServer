@@ -5,7 +5,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
 
@@ -17,14 +17,14 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 	bool blocked{};
 	if (!bitStream->Read(blocked)) {
-		Game::logger->Log("StunBehavior", "Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}
@@ -44,10 +44,10 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 
 void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	if (this->m_stunCaster || branch.target == context->originator) {
-		auto* self = EntityManager::Instance()->GetEntity(context->originator);
+		auto* self = Game::entityManager->GetEntity(context->originator);
 
 		if (self == nullptr) {
-			Game::logger->Log("StunBehavior", "Invalid self entity (%llu)!", context->originator);
+			LOG("Invalid self entity (%llu)!", context->originator);
 
 			return;
 		}
@@ -69,7 +69,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 
 	bool blocked = false;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target != nullptr) {
 		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
@@ -82,7 +82,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 	bitStream->Write(blocked);
 
 	if (target == nullptr) {
-		Game::logger->Log("StunBehavior", "Failed to find target (%llu)!", branch.target);
+		LOG("Failed to find target (%llu)!", branch.target);
 
 		return;
 	}

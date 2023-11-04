@@ -1,7 +1,6 @@
 #include "CDInventoryComponentTable.h"
 
-//! Constructor
-CDInventoryComponentTable::CDInventoryComponentTable(void) {
+void CDInventoryComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -42,7 +41,7 @@ std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function
 	return data;
 }
 
-std::vector<CDInventoryComponent> CDInventoryComponentTable::GetEntries(void) const {
+const std::vector<CDInventoryComponent>& CDInventoryComponentTable::GetEntries() const {
 	return this->entries;
 }
 

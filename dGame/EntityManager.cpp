@@ -16,7 +16,7 @@
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"
@@ -26,8 +26,6 @@
 #include "TacArcInfo.h"
 #include "eTacArcMethod.h"
 #include "eReplicaPacketType.h"
-
-EntityManager* EntityManager::m_Address = nullptr;
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -64,7 +62,7 @@ void EntityManager::Initialize() {
 	m_GhostingEnabled = std::find(
 		m_GhostingExcludedZones.begin(),
 		m_GhostingExcludedZones.end(),
-		dZoneManager::Instance()->GetZoneID().GetMapID()
+		Game::zoneManager->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
 
 	// grab hardcore mode settings and load them with sane defaults
@@ -79,10 +77,7 @@ void EntityManager::Initialize() {
 
 	// If cloneID is not zero, then hardcore mode is disabled
 	// aka minigames and props
-	if (dZoneManager::Instance()->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
-}
-
-EntityManager::~EntityManager() {
+	if (Game::zoneManager->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
 }
 
 Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentEntity, const bool controller, const LWOOBJID explicitId) {
@@ -183,8 +178,9 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::SerializeEntities() {
-	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+		const LWOOBJID toSerialize = m_EntitiesToSerialize.at(i);
+		auto* entity = GetEntity(toSerialize);
 
 		if (!entity) continue;
 
@@ -199,7 +195,7 @@ void EntityManager::SerializeEntities() {
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(*entry)) {
+				if (player->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -211,11 +207,12 @@ void EntityManager::SerializeEntities() {
 }
 
 void EntityManager::KillEntities() {
-	for (auto entry = m_EntitiesToKill.begin(); entry != m_EntitiesToKill.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
+		const LWOOBJID toKill = m_EntitiesToKill.at(i);
+		auto* entity = GetEntity(toKill);
 
 		if (!entity) {
-			Game::logger->Log("EntityManager", "Attempting to kill null entity %llu", *entry);
+			LOG("Attempting to kill null entity %llu", toKill);
 			continue;
 		}
 
@@ -229,8 +226,9 @@ void EntityManager::KillEntities() {
 }
 
 void EntityManager::DeleteEntities() {
-	for (auto entry = m_EntitiesToDelete.begin(); entry != m_EntitiesToDelete.end(); entry++) {
-		auto entityToDelete = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+		const LWOOBJID toDelete = m_EntitiesToDelete.at(i);
+		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
 			// Get all this info first before we delete the player.
 			auto networkIdToErase = entityToDelete->GetNetworkId();
@@ -244,9 +242,9 @@ void EntityManager::DeleteEntities() {
 
 			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		} else {
-			Game::logger->Log("EntityManager", "Attempted to delete non-existent entity %llu", *entry);
+			LOG("Attempted to delete non-existent entity %llu", toDelete);
 		}
-		m_Entities.erase(*entry);
+		m_Entities.erase(toDelete);
 	}
 	m_EntitiesToDelete.clear();
 }
@@ -360,7 +358,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 
 void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
 	if (!entity) {
-		Game::logger->Log("EntityManager", "Attempted to construct null entity");
+		LOG("Attempted to construct null entity");
 		return;
 	}
 
@@ -621,12 +619,6 @@ Entity* EntityManager::GetGhostCandidate(int32_t id) {
 
 bool EntityManager::GetGhostingEnabled() const {
 	return m_GhostingEnabled;
-}
-
-void EntityManager::ResetFlags() {
-	for (const auto& e : m_Entities) {
-		e.second->ResetFlags();
-	}
 }
 
 void EntityManager::ScheduleForKill(Entity* entity) {

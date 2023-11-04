@@ -4,7 +4,7 @@
 #include "Behavior.h"
 #include "CDActivitiesTable.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BehaviorTemplates.h"
 #include "BehaviorBranchContext.h"
 #include <unordered_map>
@@ -278,12 +278,12 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_MOUNT: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_SET: break;
 	default:
-		//Game::logger->Log("Behavior", "Failed to load behavior with invalid template id (%i)!", templateId);
+		//LOG("Failed to load behavior with invalid template id (%i)!", templateId);
 		break;
 	}
 
 	if (behavior == nullptr) {
-		//Game::logger->Log("Behavior", "Failed to load unimplemented template id (%i)!", templateId);
+		//LOG("Failed to load unimplemented template id (%i)!", templateId);
 
 		behavior = new EmptyBehavior(behaviorId);
 	}
@@ -306,7 +306,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 	}
 
 	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
-		Game::logger->Log("Behavior", "Failed to load behavior template with id (%i)!", behaviorId);
+		LOG("Failed to load behavior template with id (%i)!", behaviorId);
 	}
 
 	return templateID;
@@ -314,7 +314,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 
 // For use with enemies, to display the correct damage animations on the players
 void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID secondary) {
-	auto* targetEntity = EntityManager::Instance()->GetEntity(target);
+	auto* targetEntity = Game::entityManager->GetEntity(target);
 
 	if (targetEntity == nullptr) {
 		return;
@@ -426,7 +426,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (templateInDatabase.behaviorID == 0) {
-		Game::logger->Log("Behavior", "Failed to load behavior with id (%i)!", behaviorId);
+		LOG("Failed to load behavior with id (%i)!", behaviorId);
 
 		this->m_effectId = 0;
 		this->m_effectHandle = nullptr;

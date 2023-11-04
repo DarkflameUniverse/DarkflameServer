@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "RenderComponent.h"
 #include "eTerminateType.h"
 #include "eStateChangeType.h"
 
@@ -29,7 +30,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 
 	GameMessages::SendTeleport(user->GetObjectID(), position, rotation, user->GetSystemAddress());
 
-	GameMessages::SendPlayAnimation(user, u"cannon-strike-no-equip");
+	RenderComponent::PlayAnimation(user, u"cannon-strike-no-equip");
 
 	GameMessages::SendPlayFXEffect(user->GetObjectID(), 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
@@ -39,7 +40,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 	const auto playerId = self->GetVar<LWOOBJID>(u"userID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
+	auto* player = Game::entityManager->GetEntity(playerId);
 
 	if (player == nullptr) {
 		self->SetVar<bool>(u"bIsInUse", false);
@@ -55,12 +56,12 @@ void GfCaptainsCannon::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("cinematicTimer", cinematicTime);
 
-		const auto sharkObjects = EntityManager::Instance()->GetEntitiesInGroup("SharkCannon");
+		const auto sharkObjects = Game::entityManager->GetEntitiesInGroup("SharkCannon");
 
 		for (auto* shark : sharkObjects) {
 			if (shark->GetLOT() != m_SharkItemID) continue;
 
-			GameMessages::SendPlayAnimation(shark, u"cannon");
+			RenderComponent::PlayAnimation(shark, u"cannon");
 		}
 
 		GameMessages::SendPlay2DAmbientSound(player, "{7457d85c-4537-4317-ac9d-2f549219ea87}");

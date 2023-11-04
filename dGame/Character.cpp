@@ -2,7 +2,7 @@
 #include "User.h"
 #include "Database.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BitStream.h"
 #include "Game.h"
 #include <chrono>
@@ -145,16 +145,16 @@ void Character::DoQuickXMLDataParse() {
 	if (!m_Doc) return;
 
 	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		Game::logger->Log("Character", "Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
+		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		Game::logger->Log("Character", "Failed to load xmlData!");
+		LOG("Failed to load xmlData!");
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
 
 	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
-		Game::logger->Log("Character", "Failed to find mf tag!");
+		LOG("Failed to find mf tag!");
 		return;
 	}
 
@@ -173,14 +173,14 @@ void Character::DoQuickXMLDataParse() {
 
 	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
-		Game::logger->Log("Character", "Char has no inv!");
+		LOG("Char has no inv!");
 		return;
 	}
 
 	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
 
 	if (!bag) {
-		Game::logger->Log("Character", "Couldn't find bag0!");
+		LOG("Couldn't find bag0!");
 		return;
 	}
 
@@ -241,7 +241,7 @@ void Character::DoQuickXMLDataParse() {
 		//To try and fix the AG landing into:
 		if (m_ZoneID == 1000 && Game::server->GetZoneID() == 1100) {
 			//sneakily insert our position:
-			auto pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+			auto pos = Game::zoneManager->GetZone()->GetSpawnPos();
 			character->SetAttribute("lzx", pos.x);
 			character->SetAttribute("lzy", pos.y);
 			character->SetAttribute("lzz", pos.z);
@@ -290,13 +290,13 @@ void Character::DoQuickXMLDataParse() {
 
 void Character::UnlockEmote(int emoteID) {
 	m_UnlockedEmotes.push_back(emoteID);
-	GameMessages::SendSetEmoteLockState(EntityManager::Instance()->GetEntity(m_ObjectID), false, emoteID);
+	GameMessages::SendSetEmoteLockState(Game::entityManager->GetEntity(m_ObjectID), false, emoteID);
 }
 
 void Character::SetBuildMode(bool buildMode) {
 	m_BuildMode = buildMode;
 
-	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+	auto* controller = Game::zoneManager->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_OurEntity, buildMode ? "OnBuildModeEnter" : "OnBuildModeLeave");
 }
@@ -312,7 +312,7 @@ void Character::SaveXMLToDatabase() {
 		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
 
-		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
 		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
@@ -373,7 +373,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -384,7 +384,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
+	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -394,12 +394,13 @@ void Character::SetIsNewLogin() {
 
 	auto* currentChild = flags->FirstChildElement();
 	while (currentChild) {
+		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
+			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
-		currentChild = currentChild->NextSiblingElement();
+		currentChild = nextChild;
 	}
 }
 
@@ -418,13 +419,13 @@ void Character::WriteToDatabase() {
 	delete printer;
 }
 
-void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
+void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 	// If the flag is already set, we don't have to recalculate it
 	if (GetPlayerFlag(flagId) == value) return;
 
 	if (value) {
 		// Update the mission component:
-		auto* player = EntityManager::Instance()->GetEntity(m_ObjectID);
+		auto* player = Game::entityManager->GetEntity(m_ObjectID);
 
 		if (player != nullptr) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -465,7 +466,7 @@ void Character::SetPlayerFlag(const int32_t flagId, const bool value) {
 	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
 }
 
-bool Character::GetPlayerFlag(const int32_t flagId) const {
+bool Character::GetPlayerFlag(const uint32_t flagId) const {
 	// Calculate the index first
 	const auto flagIndex = uint32_t(std::floor(flagId / 64));
 
@@ -554,15 +555,6 @@ void Character::OnZoneLoad() {
 		return;
 	}
 
-	/**
-	 * Restrict old character to 1 million coins
-	 */
-	if (HasPermission(ePermissionMap::Old)) {
-		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::NONE);
-		}
-	}
-
 	auto* inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
@@ -602,7 +594,7 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 
 	m_Coins = newCoins;
 
-	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
+	GameMessages::SendSetCurrency(Game::entityManager->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const {

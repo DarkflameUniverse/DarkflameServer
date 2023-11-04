@@ -3,7 +3,7 @@
 #include "GeneralUtils.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 
 #include "CDPropertyTemplateTable.h"

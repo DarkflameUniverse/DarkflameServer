@@ -13,7 +13,8 @@
 #include "Entity.h"
 #include "Character.h"
 #include "PacketUtils.h"
-#include "dLogger.h"
+#include "BitStreamUtils.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
@@ -152,7 +153,7 @@ void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAd
 			Mail::HandleSendMail(packet, sysAddr, entity);
 			break;
 		default:
-			Game::logger->Log("Mail", "Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
+			LOG("Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
 		}
 		});
 }
@@ -195,7 +196,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	uint32_t itemID = static_cast<uint32_t>(attachmentID);
 	LOT itemLOT = 0;
 	//Inventory::InventoryType itemType;
-	int mailCost = dZoneManager::Instance()->GetWorldConfig()->mailBaseFee;
+	int mailCost = Game::zoneManager->GetWorldConfig()->mailBaseFee;
 	int stackSize = 0;
 	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
 	Item* item = nullptr;
@@ -203,7 +204,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	if (itemID > 0 && attachmentCount > 0 && inv) {
 		item = inv->FindItemById(attachmentID);
 		if (item) {
-			mailCost += (item->GetInfo().baseValue * dZoneManager::Instance()->GetWorldConfig()->mailPercentAttachmentFee);
+			mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig()->mailPercentAttachmentFee);
 			stackSize = item->GetCount();
 			itemLOT = item->GetLot();
 		} else {
@@ -261,10 +262,10 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
 	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
 
-	Game::logger->Log("Mail", "Seeing if we need to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
+	LOG("Seeing if we need to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
 
 	if (inv && itemLOT != 0 && attachmentCount > 0 && item) {
-		Game::logger->Log("Mail", "Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
+		LOG("Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
 		inv->RemoveItem(itemLOT, attachmentCount, INVALID, true);
 
 		auto* missionCompoent = entity->GetComponent<MissionComponent>();
@@ -283,7 +284,7 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	sql::ResultSet* res = stmt->executeQuery();
 
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailData));
 	bitStream.Write(int(0));
 
@@ -406,7 +407,7 @@ void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t obje
 
 void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::SendResponse));
 	bitStream.Write(int(response));
 	Game::server->Send(&bitStream, sysAddr, false);
@@ -414,7 +415,7 @@ void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse respo
 
 void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	uint64_t messageType = 2;
 	uint64_t s1 = 0;
 	uint64_t s2 = 0;
@@ -433,7 +434,7 @@ void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 
 void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::AttachmentCollectConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
@@ -442,7 +443,7 @@ void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t ma
 
 void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailDeleteConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
@@ -456,7 +457,7 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 
 void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailReadConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);

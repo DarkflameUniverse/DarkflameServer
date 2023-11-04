@@ -8,7 +8,7 @@
 #include "dCommonVars.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 enum class BehaviorState : uint32_t;
 

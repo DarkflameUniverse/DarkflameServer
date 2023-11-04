@@ -48,8 +48,8 @@ void PetDigServer::OnStartup(Entity* self) {
 	// Reset any bouncers that might've been created by the previous dig
 	if (digInfo.bouncer) {
 		auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-		auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-		auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+		auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+		auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 		for (auto* bouncerSpawner : bouncerSpawners) {
 			for (auto* bouncer : bouncerSpawner->m_Info.nodes)
@@ -95,7 +95,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	// TODO: Reset other pets
 
 	// Handles smashing leftovers (edge case for the AG X)
-	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
 		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
@@ -106,7 +106,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 	if (playerID == LWOOBJID_EMPTY || playerID != owner->GetObjectID())
 		return;
 
-	auto* playerEntity = EntityManager::Instance()->GetEntity(playerID);
+	auto* playerEntity = Game::entityManager->GetEntity(playerID);
 	if (!playerEntity || !playerEntity->GetParentUser() || !playerEntity->GetParentUser()->GetLastUsedChar())
 		return;
 
@@ -134,7 +134,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 		player->SetPlayerFlag(playerFlag, true);
 	}
 
-	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
 		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
@@ -142,8 +142,8 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 void PetDigServer::HandleBouncerDig(const Entity* self, const Entity* owner) {
 	auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-	auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-	auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+	auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+	auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 	for (auto* bouncerSpawner : bouncerSpawners) {
 		bouncerSpawner->Activate();
@@ -211,8 +211,8 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 			new LDFData<float>(u"spawnTimer", 1.0)
 	};
 
-	auto* spawnedPet = EntityManager::Instance()->CreateEntity(info);
-	EntityManager::Instance()->ConstructEntity(spawnedPet);
+	auto* spawnedPet = Game::entityManager->CreateEntity(info);
+	Game::entityManager->ConstructEntity(spawnedPet);
 }
 
 Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
@@ -220,7 +220,7 @@ Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
 	Entity* closest = nullptr;
 
 	for (const auto tresureId : treasures) {
-		auto* tresure = EntityManager::Instance()->GetEntity(tresureId);
+		auto* tresure = Game::entityManager->GetEntity(tresureId);
 
 		if (tresure == nullptr) continue;
 

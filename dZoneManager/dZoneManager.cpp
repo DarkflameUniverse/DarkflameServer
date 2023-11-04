@@ -2,7 +2,7 @@
 #include "dCommonVars.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "InventoryComponent.h"
 #include "DestroyableComponent.h"
@@ -17,10 +17,8 @@
 
 #include "../dWorldServer/ObjectIDManager.h"
 
-dZoneManager* dZoneManager::m_Address = nullptr;
-
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
-	Game::logger->Log("dZoneManager", "Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
+	LOG("Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
 	int64_t startTime = 0;
 	int64_t endTime = 0;
@@ -39,19 +37,24 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			zoneControlTemplate = zone->zoneControlTemplate != -1 ? zone->zoneControlTemplate : 2365;
 			const auto min = zone->ghostdistance_min != -1.0f ? zone->ghostdistance_min : 100;
 			const auto max = zone->ghostdistance != -1.0f ? zone->ghostdistance : 100;
-			EntityManager::Instance()->SetGhostDistanceMax(max + min);
-			EntityManager::Instance()->SetGhostDistanceMin(max);
+			Game::entityManager->SetGhostDistanceMax(max + min);
+			Game::entityManager->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
 		}
 	}
 
-	Game::logger->Log("dZoneManager", "Creating zone control object %i", zoneControlTemplate);
+	LOG("Creating zone control object %i", zoneControlTemplate);
 
 	// Create ZoneControl object
+	if (!Game::entityManager) {
+		LOG("ERROR: No entity manager loaded. Cannot proceed.");
+		throw std::invalid_argument("No entity manager loaded. Cannot proceed.");
+	}
+	Game::entityManager->Initialize();
 	EntityInfo info;
 	info.lot = zoneControlTemplate;
 	info.id = 70368744177662;
-	Entity* zoneControl = EntityManager::Instance()->CreateEntity(info, nullptr, nullptr, true);
+	Entity* zoneControl = Game::entityManager->CreateEntity(info, nullptr, nullptr, true);
 	m_ZoneControlObject = zoneControl;
 
 	m_pZone->Initalize();
@@ -60,7 +63,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LoadWorldConfig();
 
-	Game::logger->Log("dZoneManager", "Zone prepared in: %llu ms", (endTime - startTime));
+	LOG("Zone prepared in: %llu ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 }
@@ -97,7 +100,7 @@ void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& obj
 	case dZoneNotifier::SpawnedChildObjectDestroyed:
 		break;
 	case dZoneNotifier::ReloadZone:
-		Game::logger->Log("dZoneManager", "Forcing reload of zone %i", m_ZoneID.GetMapID());
+		LOG("Forcing reload of zone %i", m_ZoneID.GetMapID());
 		LoadZone(m_ZoneID);
 
 		m_pZone->Initalize();
@@ -110,10 +113,10 @@ void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& obj
 		m_pZone->PrintAllGameObjects();
 		break;
 	case dZoneNotifier::InvalidNotifier:
-		Game::logger->Log("dZoneManager", "Got an invalid zone notifier.");
+		LOG("Got an invalid zone notifier.");
 		break;
 	default:
-		Game::logger->Log("dZoneManager", "Unknown zone notifier: %i", int(notifier));
+		LOG("Unknown zone notifier: %i", int(notifier));
 	}
 }
 
@@ -148,9 +151,9 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	entityInfo.id = objectId;
 	entityInfo.lot = 176;
 
-	auto* entity = EntityManager::Instance()->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
+	auto* entity = Game::entityManager->CreateEntity(entityInfo, nullptr, nullptr, false, objectId);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	AddSpawner(objectId, spawner);
 
@@ -171,24 +174,24 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
-		Game::logger->Log("dZoneManager", "Failed to find spawner (%llu)", id);
+		LOG("Failed to find spawner (%llu)", id);
 		return;
 	}
 
-	auto* entity = EntityManager::Instance()->GetEntity(id);
+	auto* entity = Game::entityManager->GetEntity(id);
 
 	if (entity != nullptr) {
 		entity->Kill();
 	} else {
 
-		Game::logger->Log("dZoneManager", "Failed to find spawner entity (%llu)", id);
+		LOG("Failed to find spawner entity (%llu)", id);
 	}
 
 	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 
-	Game::logger->Log("dZoneManager", "Destroying spawner (%llu)", id);
+	LOG("Destroying spawner (%llu)", id);
 
 	m_Spawners.erase(id);
 
@@ -241,14 +244,14 @@ bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
 }
 
 void dZoneManager::LoadWorldConfig() {
-	Game::logger->Log("dZoneManager", "Loading WorldConfig into memory");
+	LOG("Loading WorldConfig into memory");
 
 	auto worldConfig = CDClientDatabase::ExecuteQuery("SELECT * FROM WorldConfig;");
 
 	if (!m_WorldConfig) m_WorldConfig = new WorldConfig();
 
 	if (worldConfig.eof()) {
-		Game::logger->Log("dZoneManager", "WorldConfig table is empty.  Is this intended?");
+		LOG("WorldConfig table is empty.  Is this intended?");
 		return;
 	}
 
@@ -274,7 +277,7 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterMaxSlope = worldConfig.getFloatField("character_max_slope");
 	m_WorldConfig->defaultRespawnTime = worldConfig.getFloatField("defaultrespawntime");
 	m_WorldConfig->missionTooltipTimeout = worldConfig.getFloatField("mission_tooltip_timeout");
-	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier");
+	m_WorldConfig->vendorBuyMultiplier = worldConfig.getFloatField("vendor_buy_multiplier", 0.1);
 	m_WorldConfig->petFollowRadius = worldConfig.getFloatField("pet_follow_radius");
 	m_WorldConfig->characterEyeHeight = worldConfig.getFloatField("character_eye_height");
 	m_WorldConfig->flightVerticalVelocity = worldConfig.getFloatField("flight_vertical_velocity");
@@ -311,5 +314,5 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterVersion = worldConfig.getIntField("CharacterVersion");
 	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
 	worldConfig.finalize();
-	Game::logger->Log("dZoneManager", "Loaded WorldConfig into memory");
+	LOG("Loaded WorldConfig into memory");
 }

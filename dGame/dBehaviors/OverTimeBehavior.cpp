@@ -2,7 +2,7 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
@@ -14,13 +14,13 @@
 void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	const auto originator = context->originator;
 
-	auto* entity = EntityManager::Instance()->GetEntity(originator);
+	auto* entity = Game::entityManager->GetEntity(originator);
 
 	if (entity == nullptr) return;
 
 	for (size_t i = 0; i < m_NumIntervals; i++) {
 		entity->AddCallbackTimer((i + 1) * m_Delay, [originator, branch, this]() {
-			auto* entity = EntityManager::Instance()->GetEntity(originator);
+			auto* entity = Game::entityManager->GetEntity(originator);
 
 			if (entity == nullptr) return;
 

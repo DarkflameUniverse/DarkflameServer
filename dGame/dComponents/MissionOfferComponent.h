@@ -61,7 +61,7 @@ private:
  */
 class MissionOfferComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
 	MissionOfferComponent(Entity* parent, LOT parentLot);
 	~MissionOfferComponent() override;

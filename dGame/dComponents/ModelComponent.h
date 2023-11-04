@@ -13,11 +13,11 @@ class Entity;
  */
 class ModelComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
 	ModelComponent(Entity* parent);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the original position of the model
