@@ -313,7 +313,7 @@ std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, f
 }
 
 void EntityManager::GetEntitiesInsideTacArc(TacArcInfo& tacArcInfo){
-	if (tacArcInfo.method == eTacArcMethod::CONE_AND_PIE_SLICE || tacArcInfo.method == eTacArcMethod::INVALID) {
+	if (tacArcInfo.method == eTacArcMethod::CONE || tacArcInfo.method == eTacArcMethod::PIE_SLICE) {
 		GetEntitiesInsideConeAndPieSliceTacArc(tacArcInfo);
 	} else if (tacArcInfo.method == eTacArcMethod::FRUSTUM) {
 		GetEntitiesInsideFrustumTacArc(tacArcInfo);

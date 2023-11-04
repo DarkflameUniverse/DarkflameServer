@@ -101,9 +101,9 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		}
 	}
 
-	auto reference = caster->GetPosition();
+	auto reference = self->GetPosition();
 	reference += this->m_offset;
-	auto forward = caster->GetRotation().GetForwardVector();
+	auto forward = self->GetRotation().GetForwardVector();
 
 	auto tacArcInfo = new TacArcInfo();
 	tacArcInfo->position = reference;
@@ -116,8 +116,8 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	tacArcInfo->farHeight = this->m_farHeight;
 	tacArcInfo->nearWidth = this->m_nearWidth;
 	tacArcInfo->nearHeight = this->m_nearHeight;
-	tacArcInfo->addRadiusToPosition = this->m_method == eTacArcMethod::CONE_AND_PIE_SLICE;
-	tacArcInfo->bGetHeight = this->m_method == eTacArcMethod::CONE_AND_PIE_SLICE;
+	tacArcInfo->addRadiusToPosition = this->m_method == eTacArcMethod::CONE;
+	tacArcInfo->bGetHeight = this->m_method == eTacArcMethod::CONE;
 	tacArcInfo->heightLowerBound = reference.y + this->m_lowerBound;
 	tacArcInfo->heightUpperBound = reference.y + this->m_upperBound;
 	tacArcInfo->method = this->m_method;

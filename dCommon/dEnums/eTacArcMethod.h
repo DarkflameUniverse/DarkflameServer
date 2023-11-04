@@ -6,8 +6,8 @@
 #include <cstdint>
 
 enum class eTacArcMethod : uint32_t {
-	INVALID = 0,
-	CONE_AND_PIE_SLICE,
+	PIE_SLICE = 0,
+	CONE,
 	FRUSTUM
 };
 
