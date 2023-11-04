@@ -4,7 +4,6 @@
 #include "Logger.h"
 #include "Entity.h"
 #include "BehaviorContext.h"
-#include "BaseCombatAIComponent.h"
 #include "EntityManager.h"
 #include "RebuildComponent.h"
 #include "DestroyableComponent.h"
@@ -41,7 +40,11 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		if (!bitStream->Read(blocked)) {
 			LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
+		}
+
+		if (blocked) {
 			this->m_blockedAction->Handle(context, bitStream, branch);
+			return;
 		}
 	}
 
@@ -97,8 +100,6 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			return;
 		}
 	}
-
-	auto* combatAi = self->GetComponent<BaseCombatAIComponent>();
 
 	auto reference = caster->GetPosition();
 	reference += this->m_offset;
