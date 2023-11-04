@@ -224,6 +224,24 @@ sudo setcap 'cap_net_bind_service=+ep' AuthServer
 ```
 and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
+To run the server non-interactively, a systemctl service can be created:
+`/etc/systemd/system/darkflame.service`
+```
+[Unit]
+Description=Darkflame LEGO Universe Server
+After=network.target
+
+[Service]
+Type=simple
+# the specific user that our service will run as
+User=root
+Group=root
+ExecStart=/PATH/TO/build/MasterServer
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ### First admin user
 Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
