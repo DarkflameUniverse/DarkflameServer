@@ -261,7 +261,7 @@ void MySQLDatabase::UpdateActivityLog(const uint32_t accountId, const eActivityT
 	auto activityUpdate = CreatePreppedStmtUnique("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 	activityUpdate->setUInt(1, accountId);
 	activityUpdate->setUInt(2, static_cast<uint32_t>(activityType));
-	activityUpdate->setUInt(3, static_cast<uint32_t>(time(NULL)));
+	activityUpdate->setUInt(3, static_cast<uint32_t>(time(NULL))); // UNIX_TIMESTAMP()
 	activityUpdate->setUInt(4, mapId);
 	activityUpdate->execute();
 }
@@ -402,7 +402,7 @@ void MySQLDatabase::InsertNewCharacter(const uint32_t accountId, const uint32_t 
 	stmt->setString(3, name.data());
 	stmt->setString(4, pendingName.data());
 	stmt->setBoolean(5, false);
-	stmt->setUInt64(6, time(NULL));
+	stmt->setUInt64(6, time(NULL)); // UNIX_TIMESTAMP()
 	stmt->execute();
 }
 
@@ -491,7 +491,7 @@ void MySQLDatabase::DeleteCharacter(const uint32_t characterId) {
 void MySQLDatabase::SetCharacterName(const uint32_t characterId, const std::string_view name) {
 	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ? LIMIT 1;");
 	stmt->setString(1, name.data());
-	stmt->setUInt64(2, time(NULL));
+	stmt->setUInt64(2, time(NULL)); // UNIX_TIMESTAMP()
 	stmt->setUInt(3, characterId);
 	stmt->executeUpdate();
 }
@@ -500,7 +500,7 @@ void MySQLDatabase::SetPendingCharacterName(const uint32_t characterId, const st
 	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET pending_name = ?, needs_rename = 0, last_login = ? WHERE id = ? LIMIT 1");
 
 	stmt->setString(1, name.data());
-	stmt->setUInt64(2, time(NULL));
+	stmt->setUInt64(2, time(NULL)); // UNIX_TIMESTAMP()
 	stmt->setUInt(3, characterId);
 
 	stmt->executeUpdate();
@@ -508,7 +508,7 @@ void MySQLDatabase::SetPendingCharacterName(const uint32_t characterId, const st
 
 void MySQLDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
 	auto stmt = CreatePreppedStmtUnique("UPDATE charinfo SET last_login = ? WHERE id = ? LIMIT 1");
-	stmt->setUInt64(1, time(NULL));
+	stmt->setUInt64(1, time(NULL)); // UNIX_TIMESTAMP()
 	stmt->setUInt(2, characterId);
 	stmt->executeUpdate();
 }
@@ -540,7 +540,8 @@ std::optional<PetNameInfo> MySQLDatabase::GetPetNameInfo(const LWOOBJID& petId) 
 }
 
 std::optional<PropertyInfo> MySQLDatabase::GetPropertyInfo(const uint32_t templateId, const uint32_t cloneId) {
-	auto propertyLookup = CreatePreppedStmtUnique("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+	auto propertyLookup = CreatePreppedStmtUnique(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved FROM properties WHERE template_id = ? AND clone_id = ?;");
 
 	propertyLookup->setUInt(1, templateId);
 	propertyLookup->setUInt(2, cloneId);
@@ -562,6 +563,164 @@ std::optional<PropertyInfo> MySQLDatabase::GetPropertyInfo(const uint32_t templa
 	toReturn.lastUpdatedTime = propertyEntry->getUInt("last_updated");
 	toReturn.claimedTime = propertyEntry->getUInt("time_claimed");
 	toReturn.reputation = propertyEntry->getUInt("reputation");
-	
+	toReturn.modApproved = propertyEntry->getUInt("mod_approved");
+
+	return toReturn;
+}
+
+void MySQLDatabase::UpdatePropertyModerationInfo(const LWOOBJID& id, const uint32_t privacyOption, const std::string_view rejectionReason, const uint32_t modApproved) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ? LIMIT 1;");
+	stmt->setUInt(1, privacyOption);
+	stmt->setString(2, rejectionReason.data());
+	stmt->setUInt(3, modApproved);
+	stmt->setUInt64(4, id);
+	stmt->executeUpdate();
+}
+
+void MySQLDatabase::UpdatePropertyDetails(const LWOOBJID& id, const std::string_view name, const std::string_view description) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE properties SET name = ?, description = ? WHERE id = ? LIMIT 1;");
+	stmt->setString(1, name.data());
+	stmt->setString(2, description.data());
+	stmt->setUInt64(3, id);
+	stmt->executeUpdate();
+}
+void MySQLDatabase::InsertNewProperty(
+	const LWOOBJID& propertyId,
+	const uint32_t characterId,
+	const uint32_t templateId,
+	const uint32_t cloneId,
+	const std::string_view name,
+	const std::string_view description,
+	const uint32_t zoneId) {
+	auto insertion = CreatePreppedStmtUnique(
+		"INSERT INTO properties"
+		"(id, owner_id, template_id, clone_id, name, description, zone_id, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, performance_cost)"
+		"VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, 0.0)"
+	);
+
+	insertion->setUInt64(1, propertyId);
+	insertion->setUInt(2, characterId);
+	insertion->setUInt(3, templateId);
+	insertion->setUInt(4, cloneId);
+	insertion->setString(5, name.data());
+	insertion->setString(6, description.data());
+	insertion->setUInt(7, zoneId);
+	insertion->execute();
+}
+
+std::vector<DatabaseModel> MySQLDatabase::GetPropertyModels(const LWOOBJID& propertyId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+	stmt->setUInt64(1, propertyId);
+	auto result = ExecuteQueryUnique(stmt);
+
+	std::vector<DatabaseModel> toReturn;
+	toReturn.reserve(result->rowsCount());
+	while (result->next()) {
+		DatabaseModel model;
+		model.id = result->getUInt64("id");
+		model.lot = static_cast<LOT>(result->getUInt("lot"));
+		model.position.x = result->getInt("x");
+		model.position.y = result->getInt("y");
+		model.position.z = result->getInt("z");
+		model.rotation.w = result->getInt("rw");
+		model.rotation.x = result->getInt("rx");
+		model.rotation.y = result->getInt("ry");
+		model.rotation.z = result->getInt("rz");
+		model.ugcId = result->getUInt64("ugc_id");
+		toReturn.push_back(std::move(model));
+	}
+	return toReturn; // RVO; allow compiler to elide the return.
+}
+
+void MySQLDatabase::RemoveUnreferencedUgcModels() {
+	auto stmt = CreatePreppedStmtUnique("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);")->execute();
+}
+
+void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const DatabaseStructs::DatabaseModel& model, const std::string_view name) {
+	auto stmt = CreatePreppedStmtUnique(
+		"INSERT INTO properties_contents"
+			   "(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, name, description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
+		"VALUES (?,  ?,           ?,      ?,   ?, ?, ?, ?,  ?,  ?,  ?,  ?,    ?,           ?,          ?,          ?,          ?,          ?)"
+		//       1,  2,           3,      4,   5, 6, 7, 8,  9,  10, 11, 12,   13,          14,         15,         16,         17          18
+	);
+
+	stmt->setUInt64(1, model.id);
+	stmt->setUInt64(2, propertyId);
+	stmt->setNull(3, sql::DataType::BIGINT);
+	stmt->setUInt(4, static_cast<uint32_t>(model.lot));
+	stmt->setFloat(5, model.position.x);
+	stmt->setFloat(6, model.position.y);
+	stmt->setFloat(7, model.position.z);
+	stmt->setFloat(8, model.rotation.x);
+	stmt->setFloat(9, model.rotation.y);
+	stmt->setFloat(10, model.rotation.z);
+	stmt->setFloat(11, model.rotation.w);
+	stmt->setString(12, name.data());
+	stmt->setString(13, ""); // Model description.  TODO implement this.
+	stmt->setInt(14, 0); // behavior 1.  TODO implement this.
+	stmt->setInt(15, 0); // behavior 2.  TODO implement this.
+	stmt->setInt(16, 0); // behavior 3.  TODO implement this.
+	stmt->setInt(17, 0); // behavior 4.  TODO implement this.
+	stmt->setInt(18, 0); // behavior 5.  TODO implement this.
+	stmt->execute();
+}
+
+void MySQLDatabase::UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
+	stmt->setFloat(1, position.x);
+	stmt->setFloat(2, position.y);
+	stmt->setFloat(3, position.z);
+	stmt->setFloat(4, rotation.x);
+	stmt->setFloat(5, rotation.y);
+	stmt->setFloat(6, rotation.z);
+	stmt->setFloat(7, rotation.w);
+	stmt->setUInt64(8, propertyId);
+	stmt->executeUpdate();
+}
+
+void MySQLDatabase::RemoveModel(const LWOOBJID& modelId) {
+	auto stmt = CreatePreppedStmtUnique("DELETE FROM properties_contents WHERE id = ?;");
+	stmt->setUInt(1, modelId);
+	stmt->execute();
+}
+
+std::vector<LWOOBJID> MySQLDatabase::GetPropertyModelIds(const LWOOBJID& propertyId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT id FROM properties_contents WHERE property_id = ?;");
+	stmt->setUInt64(1, propertyId);
+	auto result = ExecuteQueryUnique(stmt);
+
+	std::vector<LWOOBJID> toReturn;
+	toReturn.reserve(result->rowsCount());
+	while (result->next()) {
+		toReturn.push_back(result->getUInt64("id"));
+	}
+	return toReturn; // RVO; allow compiler to elide the return.
+}
+
+std::string MySQLDatabase::GetCharacterNameForCloneId(const uint32_t cloneId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT name FROM charinfo WHERE prop_clone_id = ? LIMIT 1;");
+	stmt->setUInt(1, cloneId);
+	auto result = ExecuteQueryUnique(stmt);
+
+	if (!result->next()) {
+		return "";
+	}
+
+	return result->getString("name").c_str();
+}
+
+std::optional<PropertyModerationInfo> MySQLDatabase::GetPropertyModerationInfo(const LWOOBJID& propertyId) {
+	auto stmt = CreatePreppedStmtUnique("SELECT rejection_reason, mod_approved FROM properties WHERE id = ? LIMIT 1;");
+	stmt->setUInt64(1, propertyId);
+	auto result = ExecuteQueryUnique(stmt);
+
+	if (!result->next()) {
+		return std::nullopt;
+	}
+
+	PropertyModerationInfo toReturn;
+	toReturn.rejectionReason = result->getString("rejection_reason").c_str();
+	toReturn.modApproved = result->getUInt("mod_approved");
+
 	return toReturn;
 }

@@ -55,6 +55,24 @@ public:
 	void SetPetNameModerationStatus(const LWOOBJID& petId, const std::string_view name, const int32_t approvalStatus) override;
 	std::optional<DatabaseStructs::PetNameInfo> GetPetNameInfo(const LWOOBJID& petId) override;
 	std::optional<DatabaseStructs::PropertyInfo> GetPropertyInfo(const uint32_t templateId, const uint32_t cloneId) override;
+	void UpdatePropertyModerationInfo(const LWOOBJID& id, const uint32_t privacyOption, const std::string_view rejectionReason, const uint32_t modApproved) override;
+	void UpdatePropertyDetails(const LWOOBJID& id, const std::string_view name, const std::string_view description) override;
+	void InsertNewProperty(
+		const LWOOBJID& propertyId,
+		const uint32_t characterId,
+		const uint32_t templateId,
+		const uint32_t cloneId,
+		const std::string_view name,
+		const std::string_view description,
+		const uint32_t zoneId) override;
+	std::vector<DatabaseStructs::DatabaseModel> GetPropertyModels(const LWOOBJID& propertyId) override;
+	void RemoveUnreferencedUgcModels() override;
+	void InsertNewPropertyModel(const LWOOBJID& propertyId, const DatabaseStructs::DatabaseModel& model, const std::string_view name) override;
+	void UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) override;
+	void RemoveModel(const LWOOBJID& modelId) override;
+	std::vector<LWOOBJID> GetPropertyModelIds(const LWOOBJID& propertyId) override;
+	std::string GetCharacterNameForCloneId(const uint32_t cloneId) override;
+	std::optional<DatabaseStructs::PropertyModerationInfo> GetPropertyModerationInfo(const LWOOBJID& propertyId) override;
 private:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 

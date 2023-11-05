@@ -9,6 +9,7 @@
 #include "dCommonVars.h"
 #include "eGameMasterLevel.h"
 #include "ePermissionMap.h"
+#include "NiQuaternion.h"
 
 enum class eActivityType : uint32_t {
 	PlayerLoggedIn,
@@ -67,9 +68,23 @@ namespace DatabaseStructs {
 		std::string description;
 		int32_t privacyOption;
 		std::string rejectionReason;
+		uint32_t modApproved;
 		uint32_t lastUpdatedTime;
 		uint32_t claimedTime;
 		uint32_t reputation;
+	};
+
+	struct DatabaseModel {
+		LWOOBJID id;
+		LOT lot;
+		NiPoint3 position;
+		NiQuaternion rotation;
+		LWOOBJID ugcId;
+	};
+
+	struct PropertyModerationInfo {
+		std::string rejectionReason;
+		uint32_t modApproved;
 	};
 };
 

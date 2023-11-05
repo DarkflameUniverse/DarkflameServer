@@ -52,6 +52,25 @@ public:
 	virtual void SetPetNameModerationStatus(const LWOOBJID& petId, const std::string_view name, const int32_t approvalStatus) = 0;
 	virtual std::optional<DatabaseStructs::PetNameInfo> GetPetNameInfo(const LWOOBJID& petId) = 0;
 	virtual std::optional<DatabaseStructs::PropertyInfo> GetPropertyInfo(const uint32_t templateId, const uint32_t cloneId) = 0;
+	virtual void UpdatePropertyModerationInfo(const LWOOBJID& id, const uint32_t privacyOption, const std::string_view rejectionReason, const uint32_t modApproved) = 0;
+	virtual void UpdatePropertyDetails(const LWOOBJID& id, const std::string_view name, const std::string_view description) = 0;
+	virtual void InsertNewProperty(
+		const LWOOBJID& propertyId,
+		const uint32_t characterId,
+		const uint32_t templateId,
+		const uint32_t cloneId,
+		const std::string_view name,
+		const std::string_view description,
+		const uint32_t zoneId) = 0;
+
+	virtual std::vector<DatabaseStructs::DatabaseModel> GetPropertyModels(const LWOOBJID& propertyId) = 0;
+	virtual void RemoveUnreferencedUgcModels() = 0;
+	virtual void InsertNewPropertyModel(const LWOOBJID& propertyId, const DatabaseStructs::DatabaseModel& model, const std::string_view name) = 0;
+	virtual void UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) = 0;
+	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
+	virtual std::vector<LWOOBJID> GetPropertyModelIds(const LWOOBJID& propertyId) = 0;
+	virtual std::string GetCharacterNameForCloneId(const uint32_t cloneId) = 0;
+	virtual std::optional<DatabaseStructs::PropertyModerationInfo> GetPropertyModerationInfo(const LWOOBJID& propertyId) = 0;
 };
 
 #endif  //!__GAMEDATABASE__H__
