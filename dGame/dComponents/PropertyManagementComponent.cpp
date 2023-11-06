@@ -596,6 +596,7 @@ void PropertyManagementComponent::Save() {
 	if (propertyId == LWOOBJID_EMPTY) {
 		return;
 	}
+
 	std::vector<LWOOBJID> present = Database::Get()->GetPropertyModelIds(propertyId);
 
 	std::vector<LWOOBJID> modelIds;
@@ -635,8 +636,6 @@ void PropertyManagementComponent::Save() {
 
 		Database::Get()->RemoveModel(id);
 	}
-
-	Database::Get()->RemoveUnreferencedUgcModels();
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {

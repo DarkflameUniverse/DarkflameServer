@@ -619,13 +619,13 @@ std::vector<DatabaseModel> MySQLDatabase::GetPropertyModels(const LWOOBJID& prop
 		DatabaseModel model;
 		model.id = result->getUInt64("id");
 		model.lot = static_cast<LOT>(result->getUInt("lot"));
-		model.position.x = result->getInt("x");
-		model.position.y = result->getInt("y");
-		model.position.z = result->getInt("z");
-		model.rotation.w = result->getInt("rw");
-		model.rotation.x = result->getInt("rx");
-		model.rotation.y = result->getInt("ry");
-		model.rotation.z = result->getInt("rz");
+		model.position.x = result->getFloat("x");
+		model.position.y = result->getFloat("y");
+		model.position.z = result->getFloat("z");
+		model.rotation.w = result->getFloat("rw");
+		model.rotation.x = result->getFloat("rx");
+		model.rotation.y = result->getFloat("ry");
+		model.rotation.z = result->getFloat("rz");
 		model.ugcId = result->getUInt64("ugc_id");
 		toReturn.push_back(std::move(model));
 	}
@@ -633,13 +633,13 @@ std::vector<DatabaseModel> MySQLDatabase::GetPropertyModels(const LWOOBJID& prop
 }
 
 void MySQLDatabase::RemoveUnreferencedUgcModels() {
-	auto stmt = CreatePreppedStmtUnique("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);")->execute();
+	auto stmt = ExecuteQueryUnique("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents WHERE ugc_id IS NOT NULL);");
 }
 
 void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const DatabaseStructs::DatabaseModel& model, const std::string_view name) {
 	auto stmt = CreatePreppedStmtUnique(
 		"INSERT INTO properties_contents"
-			   "(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, name, description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
+			   "(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, model_name, model_description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
 		"VALUES (?,  ?,           ?,      ?,   ?, ?, ?, ?,  ?,  ?,  ?,  ?,    ?,           ?,          ?,          ?,          ?,          ?)"
 		//       1,  2,           3,      4,   5, 6, 7, 8,  9,  10, 11, 12,   13,          14,         15,         16,         17          18
 	);
@@ -662,7 +662,11 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const Dat
 	stmt->setInt(16, 0); // behavior 3.  TODO implement this.
 	stmt->setInt(17, 0); // behavior 4.  TODO implement this.
 	stmt->setInt(18, 0); // behavior 5.  TODO implement this.
-	stmt->execute();
+	try {
+		stmt->execute();
+	} catch (sql::SQLException& e) {
+		LOG("Error inserting new property model: %s", e.what());
+	}
 }
 
 void MySQLDatabase::UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) {

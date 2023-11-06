@@ -1312,6 +1312,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 	if (PropertyManagementComponent::Instance() != nullptr) {
 		LOG("Saving ALL property data for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 		PropertyManagementComponent::Instance()->Save();
+		Database::Get()->RemoveUnreferencedUgcModels();
 		LOG("ALL property data saved for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 	}
 
