@@ -71,6 +71,7 @@ public:
 	virtual std::vector<LWOOBJID> GetPropertyModelIds(const LWOOBJID& propertyId) = 0;
 	virtual std::string GetCharacterNameForCloneId(const uint32_t cloneId) = 0;
 	virtual std::optional<DatabaseStructs::PropertyModerationInfo> GetPropertyModerationInfo(const LWOOBJID& propertyId) = 0;
+	virtual void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) = 0;
 };
 
 #endif  //!__GAMEDATABASE__H__

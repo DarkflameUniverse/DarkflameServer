@@ -73,6 +73,7 @@ public:
 	std::vector<LWOOBJID> GetPropertyModelIds(const LWOOBJID& propertyId) override;
 	std::string GetCharacterNameForCloneId(const uint32_t cloneId) override;
 	std::optional<DatabaseStructs::PropertyModerationInfo> GetPropertyModerationInfo(const LWOOBJID& propertyId) override;
+	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 private:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 

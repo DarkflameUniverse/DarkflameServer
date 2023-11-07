@@ -728,3 +728,11 @@ std::optional<PropertyModerationInfo> MySQLDatabase::GetPropertyModerationInfo(c
 
 	return toReturn;
 }
+
+void MySQLDatabase::UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) {
+	auto stmt = CreatePreppedStmtUnique("UPDATE properties SET performance_cost = ? WHERE zone_id = ? AND clone_id = ? LIMIT 1;");
+	stmt->setFloat(1, performanceCost);
+	stmt->setUInt(2, zoneId.GetMapID());
+	stmt->setUInt(3, zoneId.GetCloneID());
+	stmt->executeUpdate();
+}
