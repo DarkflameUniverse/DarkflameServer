@@ -192,11 +192,14 @@ std::optional<FriendsList> MySQLDatabase::GetFriendsList(const uint32_t charId) 
 	return toReturn;
 }
 
-bool MySQLDatabase::DoesCharacterExist(const std::string& name) {
-	auto nameQuery(CreatePreppedStmtUnique("SELECT name FROM charinfo WHERE name = ? LIMIT 1;"));
+std::optional<uint32_t> MySQLDatabase::DoesCharacterExist(const std::string& name) {
+	auto nameQuery(CreatePreppedStmtUnique("SELECT id FROM charinfo WHERE name = ? LIMIT 1;"));
 	nameQuery->setString(1, name);
 	auto result(nameQuery->executeQuery());
-	return result->next();
+	if (!result->next()) {
+		return std::nullopt;
+	}
+	return result->getUInt("id");
 }
 
 std::optional<BestFriendStatus> MySQLDatabase::GetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId) {
@@ -762,5 +765,22 @@ void MySQLDatabase::InsertCheatDetection(
 	stmt->setString(2, username.data());
 	stmt->setString(3, extraMessage.data());
 	stmt->setString(4, systemAddress.data());
+	stmt->execute();
+}
+
+void MySQLDatabase::InsertNewMail(const DatabaseStructs::MailInsert& mail) {
+	auto stmt = CreatePreppedStmtUnique(
+		"INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+	stmt->setUInt(1, mail.senderId);
+	stmt->setString(2, mail.senderUsername.c_str());
+	stmt->setUInt(3, mail.receiverId);
+	stmt->setString(4, mail.recipient.c_str());
+	stmt->setUInt64(5, time(NULL));
+	stmt->setString(6, mail.subject);
+	stmt->setString(7, mail.body);
+	stmt->setUInt(8, mail.itemID);
+	stmt->setInt(9, mail.itemLOT);
+	stmt->setInt(10, 0);
+	stmt->setInt(11, mail.attachmentCount);
 	stmt->execute();
 }

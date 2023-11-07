@@ -23,9 +23,10 @@ public:
 	std::optional<DatabaseStructs::ApprovedNames> GetApprovedCharacterNames() override;
 
 	std::optional<DatabaseStructs::FriendsList> GetFriendsList(uint32_t charID) override;
+
 	// No optional needed here, since if we did that, we'd return a bool of a bool in essenece.
 	// Just return true if and only if the character name exists.
-	bool DoesCharacterExist(const std::string& name) override;
+	std::optional<uint32_t> DoesCharacterExist(const std::string& name) override;
 	std::optional<DatabaseStructs::BestFriendStatus> GetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
 	void SetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId, const uint32_t bestFriendStatus) override;
 	void AddFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
@@ -85,6 +86,7 @@ public:
 		const std::string_view username,
 		const std::string_view systemAddress,
 		const std::string_view extraMessage) override;
+	void InsertNewMail(const DatabaseStructs::MailInsert& mail) override;
 private:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 

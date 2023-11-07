@@ -86,6 +86,19 @@ namespace DatabaseStructs {
 		std::string rejectionReason;
 		uint32_t modApproved;
 	};
+
+	struct MailInsert {
+		std::string senderUsername;
+		std::string recipient;
+		std::string subject;
+		std::string body;
+		uint32_t senderId{};
+		uint32_t receiverId{};
+		int32_t attachmentCount{};
+		uint32_t itemID{};
+		LOT itemLOT{};
+		LWOOBJID subkey{};
+	};
 };
 
 #endif  //!__DATABASESTRUCTS__H__

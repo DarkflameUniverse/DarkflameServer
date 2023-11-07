@@ -22,7 +22,7 @@ public:
 	virtual std::optional<DatabaseStructs::MasterInfo> GetMasterInfo() = 0;
 	virtual std::optional<DatabaseStructs::ApprovedNames> GetApprovedCharacterNames() = 0;
 	virtual std::optional<DatabaseStructs::FriendsList> GetFriendsList(const uint32_t charID) = 0;
-	virtual bool DoesCharacterExist(const std::string& name) = 0;
+	virtual std::optional<uint32_t> DoesCharacterExist(const std::string& name) = 0;
 	virtual std::optional<DatabaseStructs::BestFriendStatus> GetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId) = 0;
 	virtual void SetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId, const uint32_t bestFriendStatus) = 0;
 	virtual void AddFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) = 0;
@@ -83,6 +83,7 @@ public:
 		const std::string_view username,
 		const std::string_view systemAddress,
 		const std::string_view extraMessage) = 0;
+	virtual void InsertNewMail(const DatabaseStructs::MailInsert& mail) = 0;
 };
 
 #endif  //!__GAMEDATABASE__H__

@@ -220,43 +220,30 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	}
 
 	//Get the receiver's id:
-	sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
-	stmt->setString(1, recipient);
-	sql::ResultSet* res = stmt->executeQuery();
-	uint32_t receiverID = 0;
+	auto receiverID = Database::Get()->DoesCharacterExist(recipient);
 
-	if (res->rowsCount() > 0) {
-		while (res->next()) receiverID = res->getUInt(1);
-	} else {
+	if (!receiverID) {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::RecipientNotFound);
-		delete stmt;
-		delete res;
 		return;
 	}
-
-	delete stmt;
-	delete res;
 
 	//Check if we have a valid receiver:
 	if (GeneralUtils::CaseInsensitiveStringCompare(recipient, character->GetName()) || receiverID == character->GetObjectID()) {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::CannotMailSelf);
 		return;
 	} else {
-		uint64_t currentTime = time(NULL);
-		sql::PreparedStatement* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
-		ins->setUInt(1, character->GetObjectID());
-		ins->setString(2, character->GetName());
-		ins->setUInt(3, receiverID);
-		ins->setString(4, recipient);
-		ins->setUInt64(5, currentTime);
-		ins->setString(6, subject);
-		ins->setString(7, body);
-		ins->setUInt(8, itemID);
-		ins->setInt(9, itemLOT);
-		ins->setInt(10, 0);
-		ins->setInt(11, attachmentCount);
-		ins->execute();
-		delete ins;
+		DatabaseStructs::MailInsert mailInsert;
+		mailInsert.senderUsername = character->GetName();
+		mailInsert.recipient = recipient;
+		mailInsert.subject = subject;
+		mailInsert.body = body;
+		mailInsert.senderId = character->GetID();
+		mailInsert.receiverId = receiverID.value();
+		mailInsert.attachmentCount = attachmentCount;
+		mailInsert.itemID = itemID;
+		mailInsert.itemLOT = itemLOT;
+		mailInsert.subkey = LWOOBJID_EMPTY;
+		Database::Get()->InsertNewMail(mailInsert);
 	}
 
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
