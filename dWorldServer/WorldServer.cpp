@@ -913,7 +913,7 @@ void HandlePacket(Packet* packet) {
 		//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
 		if (Game::server->GetZoneID() != 0) {
 			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
-			if (!user) return;
+			if (!user || !user->GetLastUsedChar()) return;
 			Game::entityManager->DestroyEntity(user->GetLastUsedChar()->GetEntity());
 		}
 
