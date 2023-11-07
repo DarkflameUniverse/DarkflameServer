@@ -145,7 +145,8 @@ void CatchUnhandled(int sig) {
 		std::string functionName = strings[i];
 		std::string::size_type start = functionName.find('(');
 		std::string::size_type end = functionName.find('+');
-		if (start != std::string::npos && end != std::string::npos) {
+		// strengthened check
+		if (start != std::string::npos && start + 1 < functionName.size() && end != std::string::npos && start < end) {
 			std::string demangled = functionName.substr(start + 1, end - start - 1);
 
 			demangled = Demangler::Demangle(demangled.c_str());
