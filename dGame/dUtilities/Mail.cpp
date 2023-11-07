@@ -76,22 +76,19 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
 	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
-	auto* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+	DatabaseStructs::MailInsert mailInsert;
+	mailInsert.senderUsername = senderName;
+	mailInsert.recipient = recipientName;
+	mailInsert.subject = subject;
+	mailInsert.body = body;
+	mailInsert.senderId = sender;
+	mailInsert.receiverId = recipient;
+	mailInsert.attachmentCount = attachmentCount;
+	mailInsert.itemID = 0;
+	mailInsert.itemLOT = attachment;
+	mailInsert.subkey = LWOOBJID_EMPTY;
 
-	ins->setUInt(1, sender);
-	ins->setString(2, senderName.c_str());
-	ins->setUInt(3, recipient);
-	ins->setString(4, recipientName.c_str());
-	ins->setUInt64(5, time(nullptr));
-	ins->setString(6, subject.c_str());
-	ins->setString(7, body.c_str());
-	ins->setUInt(8, 0);
-	ins->setInt(9, attachment);
-	ins->setInt(10, 0);
-	ins->setInt(11, attachmentCount);
-	ins->execute();
-
-	delete ins;
+	Database::Get()->InsertNewMail(mailInsert);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
 
@@ -320,7 +317,7 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	}
 
 	Game::server->Send(&bitStream, sysAddr, false);
-	PacketUtils::SavePacket("Max_Mail_Data.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("Max_Mail_Data.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {

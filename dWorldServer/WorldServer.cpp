@@ -1099,19 +1099,14 @@ void HandlePacket(Packet* packet) {
 
 					result.finalize();
 
-					auto* propertyLookup = Database::Get()->CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+					LWOOBJID propertyId = LWOOBJID_EMPTY;
+					auto propertyInfo = Database::Get()->GetPropertyInfo(templateId, cloneId);
 
-					propertyLookup->setInt(1, templateId);
-					propertyLookup->setInt64(2, g_CloneID);
-
-					auto* propertyEntry = propertyLookup->executeQuery();
-					uint64_t propertyId = 0;
-
-					if (propertyEntry->next()) {
-						propertyId = propertyEntry->getUInt64(1);
+					if (propertyInfo) propertyId = propertyInfo->id;
+					else {
+						LOG("Couldn't find property ID for template %i, clone %i", templateId, cloneId);
+						goto noBBB;
 					}
-
-					delete propertyLookup;
 
 					stmt->setUInt64(1, propertyId);
 					auto res = stmt->executeQuery();

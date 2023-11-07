@@ -352,17 +352,11 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
 
 		{
-			sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
-			stmt->setString(1, receiver);
+			auto characterIdFetch = Database::Get()->DoesCharacterExist(receiver);
 
-			sql::ResultSet* res = stmt->executeQuery();
-
-			if (res->next()) {
-				idOfReceiver = res->getInt("id");
+			if (characterIdFetch) {
+				idOfReceiver = characterIdFetch.value();
 			}
-
-			delete stmt;
-			delete res;
 		}
 
 		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {

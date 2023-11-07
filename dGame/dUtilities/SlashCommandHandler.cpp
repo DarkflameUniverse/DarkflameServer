@@ -843,20 +843,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		uint64_t currentTime = time(NULL);
-		sql::PreparedStatement* ins = Database::Get()->CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
-		ins->setUInt(1, entity->GetObjectID());
-		ins->setString(2, "Darkflame Universe");
-		ins->setUInt(3, receiverID);
-		ins->setString(4, playerName);
-		ins->setUInt64(5, currentTime);
-		ins->setString(6, "Lost item");
-		ins->setString(7, "This is a replacement item for one you lost.");
-		ins->setUInt(8, 0);
-		ins->setInt(9, lot);
-		ins->setInt(10, 0);
-		ins->setInt(11, 1);
-		ins->execute();
-		delete ins;
+		DatabaseStructs::MailInsert mailInsert;
+		mailInsert.senderId = entity->GetObjectID();
+		mailInsert.senderUsername = "Darkflame Universe";
+		mailInsert.receiverId = receiverID;
+		mailInsert.recipient = playerName;
+		mailInsert.subject = "Lost item";
+		mailInsert.body = "This is a replacement item for one you lost.";
+		mailInsert.itemID = LWOOBJID_EMPTY;
+		mailInsert.itemLOT = lot;
+		mailInsert.subkey = LWOOBJID_EMPTY;
+		mailInsert.attachmentCount = 1;
+		Database::Get()->InsertNewMail(mailInsert);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Mail sent");
 
