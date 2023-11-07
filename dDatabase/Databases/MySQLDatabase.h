@@ -74,6 +74,12 @@ public:
 	std::string GetCharacterNameForCloneId(const uint32_t cloneId) override;
 	std::optional<DatabaseStructs::PropertyModerationInfo> GetPropertyModerationInfo(const LWOOBJID& propertyId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
+	void InsertNewBugReport(
+		const std::string_view body,
+		const std::string_view clientVersion,
+		const std::string_view otherPlayer,
+		const std::string_view selection,
+		const uint32_t characterId) override;
 private:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 

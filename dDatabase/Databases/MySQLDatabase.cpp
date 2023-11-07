@@ -639,7 +639,7 @@ void MySQLDatabase::RemoveUnreferencedUgcModels() {
 void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const DatabaseStructs::DatabaseModel& model, const std::string_view name) {
 	auto stmt = CreatePreppedStmtUnique(
 		"INSERT INTO properties_contents"
-			   "(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, model_name, model_description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
+		"(id, property_id, ugc_id, lot, x, y, z, rx, ry, rz, rw, model_name, model_description, behavior_1, behavior_2, behavior_3, behavior_4, behavior_5)"
 		"VALUES (?,  ?,           ?,      ?,   ?, ?, ?, ?,  ?,  ?,  ?,  ?,    ?,           ?,          ?,          ?,          ?,          ?)"
 		//       1,  2,           3,      4,   5, 6, 7, 8,  9,  10, 11, 12,   13,          14,         15,         16,         17          18
 	);
@@ -735,4 +735,19 @@ void MySQLDatabase::UpdatePerformanceCost(const LWOZONEID& zoneId, const float p
 	stmt->setUInt(2, zoneId.GetMapID());
 	stmt->setUInt(3, zoneId.GetCloneID());
 	stmt->executeUpdate();
+}
+
+void MySQLDatabase::InsertNewBugReport(
+	const std::string_view body,
+	const std::string_view clientVersion,
+	const std::string_view otherPlayer,
+	const std::string_view selection,
+	const uint32_t characterId) {
+	auto insertBug = CreatePreppedStmtUnique("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
+	insertBug->setString(1, body.data());
+	insertBug->setString(2, clientVersion.data());
+	insertBug->setString(3, otherPlayer.data());
+	insertBug->setString(4, selection.data());
+	insertBug->setInt(5, characterId);
+	insertBug->execute();
 }
