@@ -80,6 +80,11 @@ public:
 		const std::string_view otherPlayer,
 		const std::string_view selection,
 		const uint32_t characterId) override;
+	void InsertCheatDetection(
+		std::optional<uint32_t> userId,
+		const std::string_view username,
+		const std::string_view systemAddress,
+		const std::string_view extraMessage) override;
 private:
 	std::unique_ptr<sql::PreparedStatement> CreatePreppedStmtUnique(const std::string& query);
 

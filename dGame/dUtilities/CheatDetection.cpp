@@ -9,6 +9,7 @@
 #include "User.h"
 #include "UserManager.h"
 #include "dConfig.h"
+#include <optional>
 
 Entity* GetPossessedEntity(const LWOOBJID& objId) {
 	auto* entity = Game::entityManager->GetEntity(objId);
@@ -26,20 +27,21 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 	if (!user) {
 		LOG("WARNING: User is null, using defaults.");
 	}
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt(
-		"INSERT INTO player_cheat_detections (account_id, name, violation_msg, violation_system_address) VALUES (?, ?, ?, ?)")
-	);
-	user ? stmt->setInt(1, user->GetAccountID()) : stmt->setNull(1, sql::DataType::INTEGER);
-	stmt->setString(2, user ? user->GetUsername().c_str() : "User is null.");
+
+	std::optional<uint32_t> userId = std::nullopt;
+	if (user) userId = user->GetAccountID();
+	const std::string_view username = user ? user->GetUsername().c_str() : "User is null.";
+
+	// user string here because ToString is static and may change.
+	const std::string systemAddress = sysAddr.ToString();
 
 	constexpr int32_t bufSize = 4096;
-	char buffer[bufSize];
-	vsnprintf(buffer, bufSize, messageIfNotSender, args);
+	char extraMsg[bufSize];
+	vsnprintf(extraMsg, bufSize, messageIfNotSender, args);
 
-	stmt->setString(3, buffer);
-	stmt->setString(4, Game::config->GetValue("log_ip_addresses_for_anti_cheat") == "1" ? sysAddr.ToString() : "IP logging disabled.");
-	stmt->execute();
-	LOG("Anti-cheat message: %s", buffer);
+	Database::Get()->InsertCheatDetection(userId, username, systemAddress, extraMsg);
+
+	LOG("Anti-cheat message: %s", extraMsg);
 }
 
 void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sysAddr, const CheckType checkType, const char* messageIfNotSender, va_list args) {

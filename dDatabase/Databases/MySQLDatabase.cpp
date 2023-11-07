@@ -751,3 +751,16 @@ void MySQLDatabase::InsertNewBugReport(
 	insertBug->setInt(5, characterId);
 	insertBug->execute();
 }
+
+void MySQLDatabase::InsertCheatDetection(
+	std::optional<uint32_t> userId,
+	const std::string_view username,
+	const std::string_view systemAddress,
+	const std::string_view extraMessage) {
+	auto stmt = CreatePreppedStmtUnique("INSERT INTO player_cheat_detections (account_id, name, violation_msg, violation_system_address) VALUES (?, ?, ?, ?)");
+	userId ? stmt->setInt(1, userId.value()) : stmt->setNull(1, sql::DataType::INTEGER);
+	stmt->setString(2, username.data());
+	stmt->setString(3, extraMessage.data());
+	stmt->setString(4, systemAddress.data());
+	stmt->execute();
+}

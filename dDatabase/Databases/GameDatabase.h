@@ -78,6 +78,11 @@ public:
 		const std::string_view otherPlayer,
 		const std::string_view selection,
 		const uint32_t characterId) = 0;
+	virtual void InsertCheatDetection(
+		std::optional<uint32_t> userId,
+		const std::string_view username,
+		const std::string_view systemAddress,
+		const std::string_view extraMessage) = 0;
 };
 
 #endif  //!__GAMEDATABASE__H__
