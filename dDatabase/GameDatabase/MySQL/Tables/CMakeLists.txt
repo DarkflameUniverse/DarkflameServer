@@ -1,0 +1,22 @@
+set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
+	"Accounts.cpp"
+	"ActivityLog.cpp"
+	"BugReports.cpp"
+	"CharInfo.cpp"
+	"CharXml.cpp"
+	"CommandLog.cpp"
+	"Friends.cpp"
+	"Leaderboard.cpp"
+	"Mail.cpp"
+	"MigrationHistory.cpp"
+	"ObjectIdTracker.cpp"
+	"PetNames.cpp"
+	"PlayerCheatDetections.cpp"
+	"PlayKeys.cpp"
+	"Property.cpp"
+	"PropertyContents.cpp"
+	"Servers.cpp"
+	"Ugc.cpp"
+	PARENT_SCOPE
+)
+

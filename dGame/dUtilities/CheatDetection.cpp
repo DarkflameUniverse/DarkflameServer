@@ -28,18 +28,19 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 		LOG("WARNING: User is null, using defaults.");
 	}
 
-	std::optional<uint32_t> userId = std::nullopt;
-	if (user) userId = user->GetAccountID();
-	const std::string_view username = user ? user->GetUsername().c_str() : "User is null.";
+	IPlayerCheatDetections::Info info;
+	if (user) info.userId = user->GetAccountID();
+	info.username = user ? user->GetUsername().c_str() : "User is null.";
 
 	// user string here because ToString is static and may change.
-	const std::string systemAddress = sysAddr.ToString();
+	info.systemAddress = sysAddr.ToString();
 
 	constexpr int32_t bufSize = 4096;
 	char extraMsg[bufSize];
 	vsnprintf(extraMsg, bufSize, messageIfNotSender, args);
+	info.extraMessage = extraMsg;
 
-	Database::Get()->InsertCheatDetection(userId, username, systemAddress, extraMsg);
+	Database::Get()->InsertCheatDetection(info);
 
 	LOG("Anti-cheat message: %s", extraMsg);
 }

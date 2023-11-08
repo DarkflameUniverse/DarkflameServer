@@ -213,7 +213,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 
 	chars.clear();
 
-	for (const auto& characterId : Database::Get()->GetCharacterIds(u->GetAccountID())) {
+	for (const auto& characterId : Database::Get()->GetAccountCharacterIds(u->GetAccountID())) {
 		Character* character = new Character(characterId, u);
 		character->UpdateFromDatabase();
 		character->SetIsNewLogin();
@@ -248,13 +248,13 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
-	if (!name.empty() && !Database::Get()->IsUsernameAvailable(name)) {
+	if (!name.empty() && Database::Get()->GetCharacterInfo(name)) {
 		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
-	if (!Database::Get()->IsUsernameAvailable(predefinedName)) {
+	if (Database::Get()->GetCharacterInfo(predefinedName)) {
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
@@ -268,8 +268,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	//Now that the name is ok, we can get an objectID from Master:
 	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
-		if (Database::Get()->IsCharacterIdInUse(objectID)) {
-			LOG("Character object id unavailable, check objectidtracker!");
+		if (Database::Get()->GetCharacterInfo(objectID)) {
+			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
@@ -311,9 +311,15 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 				std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
-				std::string_view pendingName = !name.empty() && !nameOk ? name : "";
+				std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-				Database::Get()->InsertNewCharacter(u->GetAccountID(), objectID, nameToAssign, pendingName);
+				ICharInfo::Info info;
+				info.name = nameToAssign;
+				info.pendingName = pendingName;
+				info.id = objectID;
+				info.accountId = u->GetAccountID();
+
+				Database::Get()->InsertNewCharacter(info);
 
 				//Now finally insert our character xml:
 				Database::Get()->InsertCharacterXml(objectID, xml3.str());
@@ -401,7 +407,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			return;
 		}
 
-		if (Database::Get()->IsUsernameAvailable(newName)) {
+		if (Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(charID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());

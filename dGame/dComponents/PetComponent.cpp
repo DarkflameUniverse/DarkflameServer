@@ -1091,7 +1091,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	}
 
 	//Save to db:
-	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, petName, approved);
+	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{petName, approved});
 }
 
 void PetComponent::LoadPetNameFromModeration() {

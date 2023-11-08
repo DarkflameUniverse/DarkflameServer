@@ -39,13 +39,12 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	instance = this;
 
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
-
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-	query.bind(1, (int)zoneId);
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+
+	query.bind(1, static_cast<int32_t>(zoneId));
 
 	auto result = query.execQuery();
 
@@ -55,9 +54,7 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	templateId = result.getIntField(0);
 
-	result.finalize();
-
-	auto propertyInfo = Database::Get()->GetPropertyInfo(templateId, cloneId);
+	auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 
 	if (propertyInfo) {
 		this->propertyId = propertyInfo->id;
@@ -145,7 +142,13 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	}
 	privacyOption = value;
 
-	Database::Get()->UpdatePropertyModerationInfo(propertyId, static_cast<uint32_t>(privacyOption), "", 0);
+	IProperty::Info info;
+	info.id = propertyId;
+	info.privacyOption = static_cast<uint32_t>(privacyOption);
+	info.rejectionReason = rejectionReason;
+	info.modApproved = 0;
+
+	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
 void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::string description) {
@@ -155,7 +158,12 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 
 	propertyDescription = description;
 
-	Database::Get()->UpdatePropertyDetails(propertyId, propertyName, propertyDescription);
+	IProperty::Info info;
+	info.id = propertyId;
+	info.name = propertyName;
+	info.description = propertyDescription;
+
+	Database::Get()->UpdatePropertyDetails(info);
 
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }
@@ -197,7 +205,14 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
 
-	Database::Get()->InsertNewProperty(propertyId, playerId, templateId, playerCloneId, name, description, propertyZoneId);
+	IProperty::Info info;
+	info.id = propertyId;
+	info.ownerId = playerId;
+	info.cloneId = playerCloneId;
+	info.name = name;
+	info.description = description;
+
+	Database::Get()->InsertNewProperty(info, templateId, worldId);
 
 	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
@@ -517,7 +532,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 void PropertyManagementComponent::UpdateApprovedStatus(const bool value) {
 	if (owner == LWOOBJID_EMPTY) return;
 
-	Database::Get()->UpdatePropertyModerationInfo(propertyId, static_cast<uint32_t>(privacyOption), "", value);
+	IProperty::Info info;
+	info.id = propertyId;
+	info.modApproved = value;
+	info.privacyOption = static_cast<uint32_t>(privacyOption);
+	info.rejectionReason = "";
+
+	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
 void PropertyManagementComponent::Load() {
@@ -597,7 +618,7 @@ void PropertyManagementComponent::Save() {
 		return;
 	}
 
-	std::vector<LWOOBJID> present = Database::Get()->GetPropertyModelIds(propertyId);
+	auto present = Database::Get()->GetPropertyModels(propertyId);
 
 	std::vector<LWOOBJID> modelIds;
 
@@ -616,7 +637,7 @@ void PropertyManagementComponent::Save() {
 		const auto rotation = entity->GetRotation();
 
 		if (std::find(present.begin(), present.end(), id) == present.end()) {
-			DatabaseStructs::DatabaseModel model;
+			IPropertyContents::Model model;
 			model.id = id;
 			model.lot = entity->GetLOT();
 			model.position = position;
@@ -629,12 +650,12 @@ void PropertyManagementComponent::Save() {
 		}
 	}
 
-	for (auto id : present) {
-		if (std::find(modelIds.begin(), modelIds.end(), id) != modelIds.end()) {
+	for (auto model : present) {
+		if (std::find(modelIds.begin(), modelIds.end(), model.id) != modelIds.end()) {
 			continue;
 		}
 
-		Database::Get()->RemoveModel(id);
+		Database::Get()->RemoveModel(model.id);
 	}
 }
 
@@ -653,6 +674,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 	const auto zoneId = worldId.GetMapID();
+	const auto cloneId = worldId.GetCloneID();
 
 	LOG("Getting property info for %d", zoneId);
 	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
@@ -660,23 +682,21 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;
 
 	LWOOBJID ownerId = GetOwnerId();
-	std::string ownerName = "";
+	std::string ownerName;
+	auto charInfo = Database::Get()->GetCharacterInfo(ownerId);
+	if (charInfo) ownerName = charInfo->name;
 	std::string name = "";
 	std::string description = "";
 	uint64_t claimed = 0;
 	char privacy = 0;
 
 	if (isClaimed) {
-		const auto cloneId = worldId.GetCloneID();
-
-		ownerName = Database::Get()->GetCharacterNameForCloneId(cloneId);
-
 		name = propertyName;
 		description = propertyDescription;
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
 		if (moderatorRequested) {
-			auto moderationInfo = Database::Get()->GetPropertyModerationInfo(propertyId);
+			auto moderationInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 			if (moderationInfo->rejectionReason != "") {
 				moderatorRequested = false;
 				rejectionReason = moderationInfo->rejectionReason;

@@ -62,11 +62,10 @@ void MigrationRunner::RunMigrations() {
 
 	if (!finalSQL.empty()) {
 		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
-		std::unique_ptr<sql::Statement> simpleStatement(Database::Get()->CreateStmt());
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
-				simpleStatement->execute(query.c_str());
+				Database::Get()->ExecuteCustomQuery(query.c_str());
 			} catch (sql::SQLException& e) {
 				LOG("Encountered error running migration: %s", e.what());
 			}

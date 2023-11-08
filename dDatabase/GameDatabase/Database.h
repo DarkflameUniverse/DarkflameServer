@@ -8,5 +8,5 @@
 namespace Database {
 	void Connect();
 	GameDatabase* Get();
-	void Destroy(std::string source = "", bool log = true);
+	void Destroy(std::string source = "");
 };

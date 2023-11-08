@@ -31,34 +31,32 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	if (!player) return;
 
 	auto friendsList = Database::Get()->GetFriendsList(playerID);
-	if (friendsList) {
-		for (const auto& friendData : friendsList->friends) {
-			FriendData fd;
-			fd.isFTP = false; // not a thing in DLU
-			fd.friendID = friendData.friendID;
-			GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
-			GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
+	for (const auto& friendData : friendsList) {
+		FriendData fd;
+		fd.isFTP = false; // not a thing in DLU
+		fd.friendID = friendData.friendID;
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
 
-			fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
-			if (fd.isBestFriend) player->countOfBestFriends += 1;
-			fd.friendName = friendData.friendName;
+		fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
+		if (fd.isBestFriend) player->countOfBestFriends += 1;
+		fd.friendName = friendData.friendName;
 
-			//Now check if they're online:
-			auto fr = playerContainer.GetPlayerData(fd.friendID);
+		//Now check if they're online:
+		auto fr = playerContainer.GetPlayerData(fd.friendID);
 
-			if (fr) {
-				fd.isOnline = true;
-				fd.zoneID = fr->zoneID;
+		if (fr) {
+			fd.isOnline = true;
+			fd.zoneID = fr->zoneID;
 
-				//Since this friend is online, we need to update them on the fact that we've just logged in:
-				SendFriendUpdate(fr, player, 1, fd.isBestFriend);
-			} else {
-				fd.isOnline = false;
-				fd.zoneID = LWOZONEID();
-			}
-
-			player->friends.push_back(fd);
+			//Since this friend is online, we need to update them on the fact that we've just logged in:
+			SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+		} else {
+			fd.isOnline = false;
+			fd.zoneID = LWOZONEID();
 		}
+
+		player->friends.push_back(fd);
 	}
 
 	//Now, we need to send the friendlist to the server they came from:
@@ -142,7 +140,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	if (!requestee) {
 		requestee.reset(new PlayerData());
 		requestee->playerName = playerName;
-		auto responseType = Database::Get()->DoesCharacterExist(playerName)
+		auto responseType = Database::Get()->GetCharacterInfo(playerName)
 			? eAddFriendResponseType::NOTONLINE
 			: eAddFriendResponseType::INVALIDCHARACTER;
 
@@ -300,9 +298,9 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
 	LWOOBJID friendID = 0;
-	auto friendIdResult = Database::Get()->GetAccountIdFromCharacterName(friendName);
+	auto friendIdResult = Database::Get()->GetCharacterInfo(friendName);
 	if (friendIdResult) {
-		friendID = friendIdResult.value();
+		friendID = friendIdResult->id;
 	}
 
 	// Convert friendID to LWOOBJID

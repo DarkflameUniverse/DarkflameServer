@@ -23,7 +23,7 @@ bool CheckSd0Magic(std::istream& streamToCheck);
  */
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	uint32_t modelsTruncated{};
-	auto modelsToTruncate = Database::Get()->GetUgcModels();
+	auto modelsToTruncate = Database::Get()->GetAllUgcModels();
 	bool previousCommitValue = Database::Get()->GetAutoCommit();
 	Database::Get()->SetAutoCommit(false);
 	for (auto& model : modelsToTruncate) {
@@ -95,7 +95,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
  */
 uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 	uint32_t updatedModels = 0;
-	auto modelsToUpdate = Database::Get()->GetUgcModels();
+	auto modelsToUpdate = Database::Get()->GetAllUgcModels();
 	auto previousAutoCommitState = Database::Get()->GetAutoCommit();
 	Database::Get()->SetAutoCommit(false);
 	for (auto& model : modelsToUpdate) {

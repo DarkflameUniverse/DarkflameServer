@@ -29,9 +29,9 @@ GameDatabase* Database::Get() {
 	return database;
 }
 
-void Database::Destroy(std::string source, bool log) {
+void Database::Destroy(std::string source) {
 	if (database) {
-		database->Destroy(source, log);
+		database->Destroy(source);
 		delete database;
 		database = nullptr;
 	} else {

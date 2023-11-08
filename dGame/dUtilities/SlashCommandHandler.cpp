@@ -360,11 +360,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Log command to database
-	auto stmt = Database::Get()->CreatePreppedStmt("INSERT INTO command_log (character_id, command) VALUES (?, ?);");
-	stmt->setInt(1, entity->GetCharacter()->GetID());
-	stmt->setString(2, GeneralUtils::UTF16ToWTF8(command).c_str());
-	stmt->execute();
-	delete stmt;
+	Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), chatCommand);
 
 	if (chatCommand == "setminifig" && args.size() == 2 && entity->GetGMLevel() >= eGameMasterLevel::FORUM_MODERATOR) { // could break characters so only allow if GM > 0
 		int32_t minifigItemId;
@@ -817,33 +813,25 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "mailitem" && entity->GetGMLevel() >= eGameMasterLevel::MODERATOR && args.size() >= 2) {
 		const auto& playerName = args[0];
 
-		sql::PreparedStatement* stmt = Database::Get()->CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
-		stmt->setString(1, playerName);
-		sql::ResultSet* res = stmt->executeQuery();
+		auto playerInfo = Database::Get()->GetCharacterInfo(playerName);
+
 		uint32_t receiverID = 0;
-
-		if (res->rowsCount() > 0) {
-			while (res->next()) receiverID = res->getUInt(1);
-		}
-
-		delete stmt;
-		delete res;
-
-		if (receiverID == 0) {
+		if (!playerInfo) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Failed to find that player");
 
 			return;
 		}
 
-		uint32_t lot;
+		receiverID = playerInfo->id;
+
+		LOT lot;
 
 		if (!GeneralUtils::TryParse(args[1], lot)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid item lot.");
 			return;
 		}
 
-		uint64_t currentTime = time(NULL);
-		DatabaseStructs::MailInsert mailInsert;
+		IMail::MailInfo mailInsert;
 		mailInsert.senderId = entity->GetObjectID();
 		mailInsert.senderUsername = "Darkflame Universe";
 		mailInsert.receiverId = receiverID;
@@ -852,8 +840,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		mailInsert.body = "This is a replacement item for one you lost.";
 		mailInsert.itemID = LWOOBJID_EMPTY;
 		mailInsert.itemLOT = lot;
-		mailInsert.subkey = LWOOBJID_EMPTY;
-		mailInsert.attachmentCount = 1;
+		mailInsert.itemSubkey = LWOOBJID_EMPTY;
+		mailInsert.itemCount = 1;
 		Database::Get()->InsertNewMail(mailInsert);
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Mail sent");
@@ -1014,24 +1002,15 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			LWOOBJID characterId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::Get()->CreatePreppedStmt("SELECT account_id, id FROM charinfo WHERE name=? LIMIT 1;");
+				auto characterInfo = Database::Get()->GetCharacterInfo(args[0]);
 
-				accountQuery->setString(1, args[0]);
+				if (characterInfo) {
+					accountId = characterInfo->accountId;
+					characterId = characterInfo->id;
 
-				auto result = accountQuery->executeQuery();
-
-				if (result->rowsCount() > 0) {
-					while (result->next()) {
-						accountId = result->getUInt(1);
-						characterId = result->getUInt64(2);
-
-						GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
-						GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
-					}
+					GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
+					GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
 				}
-
-				delete accountQuery;
-				delete result;
 
 				if (accountId == 0) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(args[0]));
@@ -1042,8 +1021,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				accountId = player->GetParentUser()->GetAccountID();
 				characterId = player->GetCharacter()->GetID();
 			}
-
-			auto* userUpdate = Database::Get()->CreatePreppedStmt("UPDATE accounts SET mute_expire = ? WHERE id = ?;");
 
 			time_t expire = 1; // Default to indefinate mute
 
@@ -1069,12 +1046,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				expire += 60 * 60 * hours;
 			}
 
-			userUpdate->setUInt64(1, expire);
-			userUpdate->setInt(2, accountId);
-
-			userUpdate->executeUpdate();
-
-			delete userUpdate;
+			Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
 
 			char buffer[32] = "brought up for review.\0";
 
@@ -1126,18 +1098,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			uint32_t accountId = 0;
 
 			if (player == nullptr) {
-				auto* accountQuery = Database::Get()->CreatePreppedStmt("SELECT account_id FROM charinfo WHERE name=? LIMIT 1;");
+				auto characterInfo = Database::Get()->GetCharacterInfo(args[0]);
 
-				accountQuery->setString(1, args[0]);
-
-				auto result = accountQuery->executeQuery();
-
-				if (result->rowsCount() > 0) {
-					while (result->next()) accountId = result->getUInt(1);
+				if (characterInfo) {
+					accountId = characterInfo->accountId;
 				}
-
-				delete accountQuery;
-				delete result;
 
 				if (accountId == 0) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + GeneralUtils::UTF8ToUTF16(args[0]));
@@ -1148,13 +1113,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				accountId = player->GetParentUser()->GetAccountID();
 			}
 
-			auto* userUpdate = Database::Get()->CreatePreppedStmt("UPDATE accounts SET banned = true WHERE id = ?;");
-
-			userUpdate->setInt(1, accountId);
-
-			userUpdate->executeUpdate();
-
-			delete userUpdate;
+			Database::Get()->UpdateAccountBan(accountId, true);
 
 			if (player != nullptr) {
 				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);

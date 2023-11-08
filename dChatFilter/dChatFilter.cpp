@@ -33,8 +33,7 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 
 	//Read player names that are ok as well:
 	auto approvedNames = Database::Get()->GetApprovedCharacterNames();
-	if (!approvedNames) return;
-	for (auto& name : approvedNames->names) {
+	for (auto& name : approvedNames) {
 		std::transform(name.begin(), name.end(), name.begin(), ::tolower); //Transform to lowercase
 		m_ApprovedWords.push_back(CalculateHash(name));
 	}

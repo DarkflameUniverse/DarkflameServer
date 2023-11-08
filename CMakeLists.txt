@@ -214,8 +214,12 @@ set(INCLUDED_DIRECTORIES
 	"dNavigation/dTerrain"
 	"dZoneManager"
 	"dDatabase"
-	"dDatabase/Tables"
-	"dDatabase/Databases"
+	"dDatabase/CDClientDatabase"
+	"dDatabase/CDClientDatabase/CDClientTables"
+	"dDatabase/GameDatabase"
+	"dDatabase/GameDatabase/ITables"
+	"dDatabase/GameDatabase/MySQL"
+	"dDatabase/GameDatabase/MySQL/Tables"
 	"dNet"
 	"dScripts"
 	"dScripts/02_server"
@@ -330,8 +334,9 @@ add_subdirectory(thirdparty)
 file(
 	GLOB HEADERS_DDATABASE
 	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dDatabase/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables/*.h
 	${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
 )
 
