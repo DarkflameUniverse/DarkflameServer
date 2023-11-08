@@ -227,49 +227,35 @@ and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 ### Linux Service
 If you are running this on a linux based system, it will use your terminal to run the program interactively, preventing you using it for other tasks and requiring it to be open to run the server.  
 _Note: You could use screen or tmux instead for virtual terminals_  
-To run the server non-interactively, we can use a systemctl service by creating the following file:  
-`/etc/systemd/system/darkflame.service`  
-with the contents of:
-```ini
-[Unit]
-# Description of the service.
-Description=Darkflame LEGO Universe Server
-# Wait for network to start first before starting this service.
-After=network.target
+To run the server non-interactively, we can use a systemctl service by copying the following file:  
+```shell
+cp ./systemd.example /etc/systemd/system/darkflame.service
+```  
 
-[Service]
-Type=simple
-# Services should have their own, dedicated, user account.
-# The specific user that our service will run as, you can find your current user by issuing `id -un`
-User=darkflame
-# The specific group that our service will run as, you can find your current primary group by issuing `id -gn`
-Group=darkflame
-# Full Path to the darkflame server process
-ExecStart=/PATH/TO/DarkflameServer/build/MasterServer
+Make sure to edit the file in `/etc/systemd/system/darkflame.service` and change the:  
+- `User` and `Group` to the user that runs the darkflame server.  
+- `ExecPath` to the full file path of the server executable.  
 
-[Install]
-# Define the behavior if the service is enabled or disabled to automatically started at boot.
-WantedBy=multi-user.target
-```
-To register, enable and start the service use the following commands
+To register, enable and start the service use the following commands:
 
-Reload the systemd manager configuration to make it aware of the new service file:
+- Reload the systemd manager configuration to make it aware of the new service file:
 ```shell
 systemctl daemon-reload
 ```
-Enable the service to start on boot:
-```shell
-systemctl enable darkflame.service
-```
-Start the service:
+- Start the service:
 ```shell
 systemctl start darkflame.service
 ```
-Verify that the service is running without errors:
+- Enable OR disable the service to start on boot using:
+```shell
+systemctl enable darkflame.service
+systemctl disable darkflame.service
+```
+- Verify that the service is running without errors:
 ```shell
 systemctl status darkflame.service
 ```
-You can also restart, stop, or check the logs of the service using journalctl
+- You can also restart, stop, or check the logs of the service using journalctl
 ```shell
 systemctl restart darkflame.service
 systemctl stop darkflame.service
