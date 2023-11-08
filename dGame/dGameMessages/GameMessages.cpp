@@ -5610,10 +5610,18 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		std::vector<LDFBaseData*> config;
 		config.push_back(moduleAssembly);
 
+		LWOOBJID newIdBig;
+		// Make sure a subkey isnt already in use.  Persistent Ids do not make sense here since this only needs to be unique for
+		// this character. Because of that, we just generate a random id and check for a collision.
+		do {
+			newIdBig = ObjectIDManager::Instance()->GenerateRandomObjectID();
+			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
+		} while (inv->FindItemBySubKey(newIdBig));
+
 		if (count == 3) {
-			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 		} else if (count == 7) {
-			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();
