@@ -224,6 +224,44 @@ sudo setcap 'cap_net_bind_service=+ep' AuthServer
 ```
 and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
+### Linux Service
+If you are running this on a linux based system, it will use your terminal to run the program interactively, preventing you using it for other tasks and requiring it to be open to run the server.  
+_Note: You could use screen or tmux instead for virtual terminals_  
+To run the server non-interactively, we can use a systemctl service by copying the following file:  
+```shell
+cp ./systemd.example /etc/systemd/system/darkflame.service
+```  
+
+Make sure to edit the file in `/etc/systemd/system/darkflame.service` and change the:  
+- `User` and `Group` to the user that runs the darkflame server.  
+- `ExecPath` to the full file path of the server executable.  
+
+To register, enable and start the service use the following commands:
+
+- Reload the systemd manager configuration to make it aware of the new service file:
+```shell
+systemctl daemon-reload
+```
+- Start the service:
+```shell
+systemctl start darkflame.service
+```
+- Enable OR disable the service to start on boot using:
+```shell
+systemctl enable darkflame.service
+systemctl disable darkflame.service
+```
+- Verify that the service is running without errors:
+```shell
+systemctl status darkflame.service
+```
+- You can also restart, stop, or check the logs of the service using journalctl
+```shell
+systemctl restart darkflame.service
+systemctl stop darkflame.service
+journalctl -xeu darkflame.service
+```
+
 ### First admin user
 Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
