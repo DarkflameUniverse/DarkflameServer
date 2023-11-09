@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
-
+		LOG("Is the provided client_location in Windows Onedrive? If so, remove it from Onedrive.");
 		return EXIT_FAILURE;
 	}
 
