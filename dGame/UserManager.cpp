@@ -125,7 +125,7 @@ User* UserManager::GetUser(const SystemAddress& sysAddr) {
 User* UserManager::GetUser(const std::string& username) {
 	for (auto p : m_Users) {
 		if (p.second) {
-			if (p.second->GetUsername() == username) return p.second;
+			if (GeneralUtils::CaseInsensitiveStringCompare(p.second->GetUsername(), username)) return p.second;
 		}
 	}
 
