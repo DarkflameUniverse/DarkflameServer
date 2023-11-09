@@ -285,6 +285,7 @@ Below are known good SHA256 checksums of the client:
 * `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
 
 If the returned hash matches one of the lines above then you can continue with setting up the server. If you are using a fully downloaded and complete client from live, then it will work, but the hash above may not match. Otherwise you must obtain a full install of LEGO® Universe 1.10.64.
+You must also make absolutely sure your LEGO Universe client is not in a Windows OneDrive. DLU is not and will not support a client being stored in a OneDrive, so ensure you have moved the client outside of that location.
 
 ### Darkflame Universe Client
 Darkflame Universe clients identify themselves using a higher version number than the regular live clients out there.
