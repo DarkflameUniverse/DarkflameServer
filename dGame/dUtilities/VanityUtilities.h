@@ -45,7 +45,7 @@ public:
 		const std::vector<LDFBaseData*>& ldf
 	);
 
-	static Spawner* SpawnSpawner(
+	static LWOOBJID SpawnSpawner(
 		LOT lot,
 		const NiPoint3& position,
 		const NiQuaternion& rotation,
