@@ -36,7 +36,6 @@ void VanityUtilities::SpawnVanity() {
 		for (auto& npc : m_NPCs) {
 			if (npc.m_ID == LWOOBJID_EMPTY) continue;
 			if (npc.m_LOT == 176){
-				LOG("Removing spawner %llu", npc.m_ID);
 				Game::zoneManager->RemoveSpawner(npc.m_ID);
 			} else{
 				auto* entity = Game::entityManager->GetEntity(npc.m_ID);
@@ -194,7 +193,6 @@ LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const 
 	obj.rotation = rotation;
 	obj.settings = ldf;
 	Level::MakeSpawner(obj);
-	LOG("created spawner %llu", obj.id);
 	return obj.id;
 }
 
