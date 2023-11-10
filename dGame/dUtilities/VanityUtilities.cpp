@@ -35,9 +35,8 @@ void VanityUtilities::SpawnVanity() {
 		for (auto& npc : m_NPCs) {
 			if (npc.m_ID == LWOOBJID_EMPTY) continue;
 			if (npc.m_LOT == 176){
-				auto* spawner = Game::zoneManager->GetSpawner(npc.m_ID);
-				if (!spawner) continue;
-				Game::zoneManager->RemoveSpawner(spawner->m_Info.spawnerID);
+				LOG("Removing spawner %llu", npc.m_ID);
+				Game::zoneManager->RemoveSpawner(npc.m_ID);
 			} 
 			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
 			if (!entity) continue;
