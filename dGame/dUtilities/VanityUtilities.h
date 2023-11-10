@@ -42,8 +42,7 @@ public:
 		const NiPoint3& position,
 		const NiQuaternion& rotation,
 		const std::vector<LOT>& inventory,
-		const std::vector<LDFBaseData*>& ldf,
-		const LWOOBJID ID = LWOOBJID_EMPTY
+		const std::vector<LDFBaseData*>& ldf
 	);
 
 	static Spawner* SpawnSpawner(

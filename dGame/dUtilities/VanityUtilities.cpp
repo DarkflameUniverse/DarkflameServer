@@ -37,10 +37,11 @@ void VanityUtilities::SpawnVanity() {
 			if (npc.m_LOT == 176){
 				LOG("Removing spawner %llu", npc.m_ID);
 				Game::zoneManager->RemoveSpawner(npc.m_ID);
-			} 
-			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
-			if (!entity) continue;
-			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
+			} else{
+				auto* entity = Game::entityManager->GetEntity(npc.m_ID);
+				if (!entity) continue;
+				entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
+			}
 		}
 		m_NPCs.clear();
 	}
@@ -139,25 +140,26 @@ void VanityUtilities::SpawnVanity() {
 			auto* spawner = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
 			if (!spawner) continue;
 			npc.m_ID = spawner->m_Info.spawnerID;
-		}
-		// Spawn the NPC
-		auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf, npc.m_ID);
-		if (!npcEntity) continue;
-		npc.m_ID = npcEntity->GetObjectID();
-		if (!npc.m_Phrases.empty()){
-			npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
+		} else {
+			// Spawn the NPC
+			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+			if (!npcEntity) continue;
+			npc.m_ID = npcEntity->GetObjectID();
+			if (!npc.m_Phrases.empty()){
+				npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-			auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
+				auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-			if (scriptComponent && !npc.m_Script.empty()) {
-				scriptComponent->SetScript(npc.m_Script);
-				scriptComponent->SetSerialized(false);
+				if (scriptComponent && !npc.m_Script.empty()) {
+					scriptComponent->SetScript(npc.m_Script);
+					scriptComponent->SetSerialized(false);
 
-				for (const auto& npc : npc.m_Flags) {
-					npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					for (const auto& npc : npc.m_Flags) {
+						npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					}
 				}
+				SetupNPCTalk(npcEntity);
 			}
-			SetupNPCTalk(npcEntity);
 		}
 	}
 
@@ -251,13 +253,12 @@ Spawner* VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const 
 	return spawner;
 }
 
-Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf, const LWOOBJID ID) {
+Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
 	EntityInfo info;
 	info.lot = lot;
 	info.pos = position;
 	info.rot = rotation;
-	if (ID == LWOOBJID_EMPTY) info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
-	else info.spawnerID = ID;
+	info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 	info.settings = ldf;
 
 	auto* entity = Game::entityManager->CreateEntity(info);
