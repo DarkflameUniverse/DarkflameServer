@@ -41,6 +41,9 @@ public:
 	void Update(float deltaTime);
 	Entity* GetZoneControlObject() { return m_ZoneControlObject; }
 	bool GetPlayerLoseCoinOnDeath() { return m_PlayerLoseCoinsOnDeath; }
+	bool GetDisableSaveLocation() { return m_DisableSaveLocation; }
+	bool GetMountsAllowed() { return m_MountsAllowed; }
+	bool GetPetsAllowed() { return m_PetsAllowed; }
 	uint32_t GetUniqueMissionIdStartingValue();
 	bool CheckIfAccessibleZone(LWOMAPID zoneID);
 
@@ -58,7 +61,10 @@ private:
 
 	Zone* m_pZone = nullptr;
 	LWOZONEID m_ZoneID;
-	bool m_PlayerLoseCoinsOnDeath; //Do players drop coins in this zone when smashed
+	bool m_PlayerLoseCoinsOnDeath;
+	bool m_DisableSaveLocation;
+	bool m_MountsAllowed;
+	bool m_PetsAllowed;
 	std::map<LWOOBJID, Spawner*> m_Spawners;
 	WorldConfig* m_WorldConfig = nullptr;
 
