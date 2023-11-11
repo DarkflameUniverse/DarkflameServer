@@ -1490,6 +1490,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	//TESTING IMMUNITY
+	if (chatCommand == "immune" && args.size() >= 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		int32_t state = false;
+
+		if (!GeneralUtils::TryParse(args[0], state)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid state.");
+			return;
+		}
+
+		if (destroyableComponent != nullptr) {
+			destroyableComponent->SetIsImmune(state);
+		}
+
+		return;
+	}
+	
 	if (chatCommand == "buff" && args.size() >= 2 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		auto* buffComponent = entity->GetComponent<BuffComponent>();
 

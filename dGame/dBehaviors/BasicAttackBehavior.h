@@ -48,6 +48,8 @@ public:
 	 */
 	void Load() override;
 private:
+	bool m_DontApplyImmune; //Added boolean for this flag
+
 	uint32_t m_MinDamage;
 
 	uint32_t m_MaxDamage;

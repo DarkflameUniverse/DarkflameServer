@@ -24,6 +24,7 @@ public:
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
 
+	void Update(float deltaTime) override; //Add update function to DestroyableComponent
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
@@ -416,6 +417,9 @@ public:
 	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
 	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
 
+	void SetDamageCooldownTimer(float value) { m_DamageCooldownTimer = value; }
+	float GetDamageCooldownTimer() { return m_DamageCooldownTimer; } //Add getter for the cooldown timer
+
 	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
 	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
 
@@ -605,6 +609,11 @@ private:
 	 * Death behavior type.  If 0, the client plays a death animation as opposed to a smash animation.
 	 */
 	int32_t m_DeathBehavior;
+
+	/**
+	 * Damage immunity cooldown timer. Set to a value that then counts down to create a damage cooldown for players
+	 */
+	 float 	m_DamageCooldownTimer;
 };
 
 #endif // DESTROYABLECOMPONENT_H

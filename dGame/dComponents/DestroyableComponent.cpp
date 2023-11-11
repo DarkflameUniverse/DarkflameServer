@@ -73,6 +73,8 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
 	m_DeathBehavior = -1;
+
+	m_DamageCooldownTimer = 0.0f; //Added damage cooldown timer
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -177,6 +179,10 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		outBitStream->Write(m_HasThreats);
 		m_DirtyThreatList = false;
 	}
+}
+
+void DestroyableComponent::Update(float deltaTime) {
+	m_DamageCooldownTimer -= deltaTime; //Decrement the damage cooldown timer
 }
 
 void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -546,7 +552,8 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	if (IsImmune()) {
+	if (IsImmune() || m_DamageCooldownTimer > 0.0f) { 
+		LOG("Target targetEntity %llu is immune!",m_Parent->GetObjectID()); //Immune is succesfully proc'd
 		return;
 	}
 
