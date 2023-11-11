@@ -470,6 +470,10 @@ bool DestroyableComponent::IsImmune() const {
 	return m_IsGMImmune || m_ImmuneToBasicAttackCount > 0;
 }
 
+bool DestroyableComponent::IsCooldownImmune() const {
+	return m_DamageCooldownTimer > 0.0f;
+}
+
 bool DestroyableComponent::IsKnockbackImmune() const {
 	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
 	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
@@ -552,7 +556,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	if (IsImmune() || m_DamageCooldownTimer > 0.0f) {
+	if (IsImmune() || IsCooldownImmune()) {
 		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID()); //Immune is succesfully proc'd
 		return;
 	}

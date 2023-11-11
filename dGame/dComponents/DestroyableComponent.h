@@ -168,6 +168,12 @@ public:
 	bool IsImmune() const;
 
 	/**
+	 * Returns whether this entity is currently immune to attacks due to a damage cooldown period
+	 * @return wheterh this entity is currently immune to attacks due to a damage cooldown period
+	*/
+	bool IsCooldownImmune() const;
+
+	/**
 	 * Sets if this entity has GM immunity, making it not killable
 	 * @param value the GM immunity of this entity
 	 */
@@ -407,15 +413,15 @@ public:
 	);
 
 	// Getters for status immunities
-	const bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
-	const bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
-	const bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
-	const bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
-	const bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
-	const bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
-	const bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
-	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
-	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
+	const bool GetImmuneToBasicAttack() { return m_ImmuneToBasicAttackCount > 0; };
+	const bool GetImmuneToDamageOverTime() { return m_ImmuneToDamageOverTimeCount > 0; };
+	const bool GetImmuneToKnockback() { return m_ImmuneToKnockbackCount > 0; };
+	const bool GetImmuneToInterrupt() { return m_ImmuneToInterruptCount > 0; };
+	const bool GetImmuneToSpeed() { return m_ImmuneToSpeedCount > 0; };
+	const bool GetImmuneToImaginationGain() { return m_ImmuneToImaginationGainCount > 0; };
+	const bool GetImmuneToImaginationLoss() { return m_ImmuneToImaginationLossCount > 0; };
+	const bool GetImmuneToQuickbuildInterrupt() { return m_ImmuneToQuickbuildInterruptCount > 0; };
+	const bool GetImmuneToPullToPoint() { return m_ImmuneToPullToPointCount > 0; };
 
 	void SetDamageCooldownTimer(float value) { m_DamageCooldownTimer = value; }
 	float GetDamageCooldownTimer() { return m_DamageCooldownTimer; } //Add getter for the cooldown timer
@@ -613,7 +619,7 @@ private:
 	/**
 	 * Damage immunity cooldown timer. Set to a value that then counts down to create a damage cooldown for players
 	 */
-	 float 	m_DamageCooldownTimer;
+	float 	m_DamageCooldownTimer;
 };
 
 #endif // DESTROYABLECOMPONENT_H
