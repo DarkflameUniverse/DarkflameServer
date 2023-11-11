@@ -32,26 +32,21 @@ void VanityUtilities::SpawnVanity() {
 	}
 
 	const uint32_t zoneID = Game::server->GetZoneID();
-	if (!m_NPCs.empty()){
-		for (auto& npc : m_NPCs) {
-			if (npc.m_ID == LWOOBJID_EMPTY) continue;
-			if (npc.m_LOT == 176){
-				Game::zoneManager->RemoveSpawner(npc.m_ID);
-			} else{
-				auto* entity = Game::entityManager->GetEntity(npc.m_ID);
-				if (!entity) continue;
-				entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
-			}
+
+	for (const auto& npc : m_NPCs) {
+		if (npc.m_ID == LWOOBJID_EMPTY) continue;
+		if (npc.m_LOT == 176){
+			Game::zoneManager->RemoveSpawner(npc.m_ID);
+		} else{
+			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
+			if (!entity) continue;
+			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
 		}
-		m_NPCs.clear();
 	}
-	
-	if (!m_Parties.empty()){
-		m_Parties.clear();
-	}
-	if (!m_PartyPhrases.empty()){
-		m_PartyPhrases.clear();
-	}
+
+	m_NPCs.clear();
+	m_Parties.clear();
+	m_PartyPhrases.clear();
 
 	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/NPC.xml").string());
 
