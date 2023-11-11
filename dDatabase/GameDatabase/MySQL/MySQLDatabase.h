@@ -113,28 +113,28 @@ private:
 	inline std::unique_ptr<sql::ResultSet> ExecuteSelect(const std::string& query, Args&&... args) {
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		return std::unique_ptr<sql::ResultSet>(preppedStmt->executeQuery());
+		DLU_SQL_TRY_CATCH_RETHROW(return std::unique_ptr<sql::ResultSet>(preppedStmt->executeQuery()));
 	}
 
 	template<typename... Args>
 	inline void ExecuteDelete(const std::string& query, Args&&... args) {
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		preppedStmt->execute();
+		DLU_SQL_TRY_CATCH_RETHROW(preppedStmt->execute());
 	}
 
 	template<typename... Args>
 	inline int32_t ExecuteUpdate(const std::string& query, Args&&... args) {
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		return preppedStmt->executeUpdate();
+		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->executeUpdate());
 	}
 
 	template<typename... Args>
 	inline bool ExecuteInsert(const std::string& query, Args&&... args) {
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		return preppedStmt->execute();
+		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->execute());
 	}
 };
 

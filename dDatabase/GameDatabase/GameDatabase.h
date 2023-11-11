@@ -27,6 +27,12 @@ namespace sql {
 	class PreparedStatement;
 };
 
+#ifdef _DEBUG
+#  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (sql::SQLException& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
+#else
+#  define DLU_SQL_TRY_CATCH_RETHROW(x) x
+#endif // _DEBUG
+
 class GameDatabase :
 	public IPlayKeys, public ILeaderboard, public IObjectIdTracker, public IServers,
 	public IMail, public ICommandLog, public IPlayerCheatDetections, public IBugReports,
