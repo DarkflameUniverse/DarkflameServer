@@ -540,13 +540,13 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
  * Test the Damage cooldown timer of DestroyableComponent
  */
 TEST_F(DestroyableTest, DestroyableComponentDamageCooldownTest) {
-	// Test the non-damage immune timer state (anything below 0.0f)
-	destroyableComponent->SetDamageCooldownTimer(-1.0f);
-	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), -1.0f);
-	ASSERT_FALSE(destroyableComponent->IsCooldownImmune());
-
-	// Test the damage immune timer state (any positive value represents cooldown immunity)
+	// Test the damage immune timer state (anything above 0.0f)
 	destroyableComponent->SetDamageCooldownTimer(1.0f);
 	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 1.0f);
 	ASSERT_TRUE(destroyableComponent->IsCooldownImmune());
+
+	// Test the non damage immune timer state (anything below or equal to 0.0f)
+	destroyableComponent->SetDamageCooldownTimer(0.0f);
+	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.0f);
+	ASSERT_FALSE(destroyableComponent->IsCooldownImmune());
 }
