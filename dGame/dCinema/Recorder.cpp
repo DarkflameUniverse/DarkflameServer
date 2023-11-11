@@ -46,15 +46,15 @@ void Recorder::Act(Entity* actor, Play* variables) {
 	LOG("Acting %d steps", m_Records.size());
 
 	// Loop through all records
-	ActingDispatch(actor, 0, variables);
+	ActingDispatch(actor, m_Records, 0, variables);
 }
 
-void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
-	if (index >= m_Records.size()) {
+void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables) {
+	if (index >= records.size()) {
 		return;
 	}
 
-	auto* record = m_Records[index];
+	auto* record = records[index];
 
 	// Check if the record is a fork
 	auto* forkRecord = dynamic_cast<ForkRecord*>(record);
@@ -64,7 +64,7 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	if (forkRecord) {
 		if (variables == nullptr) {
 			// Skip the fork
-			ActingDispatch(actor, index + 1, variables);
+			ActingDispatch(actor, records, index + 1, variables);
 			return;
 		}
 
@@ -86,11 +86,11 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 
 		if (success) {
 			// Find the success record
-			for (auto i = 0; i < m_Records.size(); ++i) {
-				auto* record = m_Records[i];
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
 
 				if (record->m_Name == forkRecord->success) {
-					ActingDispatch(actor, i, variables);
+					ActingDispatch(actor, records, i, variables);
 					return;
 				}
 			}
@@ -101,11 +101,11 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 		}
 		else {
 			// Find the failure record
-			for (auto i = 0; i < m_Records.size(); ++i) {
-				auto* record = m_Records[i];
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
 
 				if (record->m_Name == forkRecord->failure) {
-					ActingDispatch(actor, i, variables);
+					ActingDispatch(actor, records, i, variables);
 					return;
 				}
 			}
@@ -121,11 +121,11 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 
 	if (jumpRecord) {
 		// Find the jump record
-		for (auto i = 0; i < m_Records.size(); ++i) {
-			auto* record = m_Records[i];
+		for (auto i = 0; i < records.size(); ++i) {
+			auto* record = records[i];
 
 			if (record->m_Name == jumpRecord->label) {
-				ActingDispatch(actor, i, variables);
+				ActingDispatch(actor, records, i, variables);
 				return;
 			}
 		}
@@ -141,13 +141,13 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	if (setVariableRecord) {
 		if (variables == nullptr) {
 			// Skip the set variable
-			ActingDispatch(actor, index + 1, variables);
+			ActingDispatch(actor, records, index + 1, variables);
 			return;
 		}
 
 		variables->variables[setVariableRecord->variable] = setVariableRecord->value;
 
-		ActingDispatch(actor, index + 1, variables);
+		ActingDispatch(actor, records,index + 1, variables);
 		return;
 	}
 
@@ -157,38 +157,38 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	if (barrierRecord) {
 		if (variables == nullptr) {
 			// Skip the barrier
-			ActingDispatch(actor, index + 1, variables);
+			ActingDispatch(actor, records, index + 1, variables);
 			return;
 		}
 
 		auto actionTaken = std::make_shared<bool>(false);
 
-		variables->SetupBarrier(barrierRecord->signal, [this, actor, index, variables, actionTaken]() {
+		variables->SetupBarrier(barrierRecord->signal, [actor, records, index, variables, actionTaken]() {
 			if (*actionTaken) {
 				return;
 			}
 
 			*actionTaken = true;
 
-			ActingDispatch(actor, index + 1, variables);
+			ActingDispatch(actor, records, index + 1, variables);
 		});
 		
 		if (barrierRecord->timeout <= 0.0001f) {
 			return;
 		}
 
-		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(barrierRecord->timeout, [this, barrierRecord, actor, index, variables, actionTaken]() {
+		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(barrierRecord->timeout, [barrierRecord, records, actor, index, variables, actionTaken]() {
 			if (*actionTaken) {
 				return;
 			}
 
 			*actionTaken = true;
 
-			for (auto i = 0; i < m_Records.size(); ++i) {
-				auto* record = m_Records[i];
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
 
 				if (record->m_Name == barrierRecord->timeoutLabel) {
-					ActingDispatch(actor, i, variables);
+					ActingDispatch(actor, records, i, variables);
 					return;
 				}
 			}
@@ -232,30 +232,30 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 	if (playerProximityRecord) {
 		if (variables == nullptr) {
 			// Skip the player proximity record
-			ActingDispatch(actor, index + 1, variables);
+			ActingDispatch(actor, records, index + 1, variables);
 			return;
 		}
 
 		auto actionTaken = std::make_shared<bool>(false);
 
-		PlayerProximityDispatch(actor, index, variables, actionTaken);
+		PlayerProximityDispatch(actor, records, index, variables, actionTaken);
 
 		if (playerProximityRecord->timeout <= 0.0f) {
 			return;
 		}
 
-		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(playerProximityRecord->timeout, [this, playerProximityRecord, actor, index, variables, actionTaken]() {
+		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(playerProximityRecord->timeout, [playerProximityRecord, actor, records, index, variables, actionTaken]() {
 			if (*actionTaken) {
 				return;
 			}
 
 			*actionTaken = true;
 
-			for (auto i = 0; i < m_Records.size(); ++i) {
-				auto* record = m_Records[i];
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
 
 				if (record->m_Name == playerProximityRecord->timeoutLabel) {
-					ActingDispatch(actor, i, variables);
+					ActingDispatch(actor, records, i, variables);
 					return;
 				}
 			}
@@ -264,15 +264,24 @@ void Recorder::ActingDispatch(Entity* actor, size_t index, Play* variables) {
 		return;
 	}
 
-	actor->AddCallbackTimer(delay, [this, actor, index, variables]() {
-		ActingDispatch(actor, index + 1, variables);
+	// Check if the record is a coroutine record
+	auto* coroutineRecord = dynamic_cast<CoroutineRecord*>(record);
+
+	if (coroutineRecord) {
+		actor->AddCallbackTimer(delay, [actor, coroutineRecord, index, variables]() {
+			ActingDispatch(actor, coroutineRecord->records, 0, variables);
+		});
+	}
+
+	actor->AddCallbackTimer(delay, [actor, records, index, variables]() {
+		ActingDispatch(actor, records, index + 1, variables);
 	});
 
 	record->Act(actor);
 }
 
-void Cinema::Recording::Recorder::PlayerProximityDispatch(Entity* actor, size_t index, Play* variables, std::shared_ptr<bool> actionTaken) {
-	auto* record = dynamic_cast<PlayerProximityRecord*>(m_Records[index]);
+void Cinema::Recording::Recorder::PlayerProximityDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables, std::shared_ptr<bool> actionTaken) {
+	auto* record = dynamic_cast<PlayerProximityRecord*>(records[index]);
 	auto* player = Game::entityManager->GetEntity(variables->player);
 
 	if (player == nullptr || record == nullptr) {
@@ -291,14 +300,76 @@ void Cinema::Recording::Recorder::PlayerProximityDispatch(Entity* actor, size_t 
 
 		*actionTaken = true;
 
-		ActingDispatch(actor, index + 1, variables);
+		ActingDispatch(actor, records, index + 1, variables);
 
 		return;
 	}
 	
-	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [this, actor, index, variables, actionTaken]() {
-		PlayerProximityDispatch(actor, index, variables, actionTaken);
+	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [actor, records, index, variables, actionTaken]() {
+		PlayerProximityDispatch(actor, records, index, variables, actionTaken);
 	});
+}
+
+void Cinema::Recording::Recorder::LoadRecords(tinyxml2::XMLElement* root, std::vector<Record*>& records) {
+
+	for (auto* element = root->FirstChildElement(); element; element = element->NextSiblingElement()) {
+		std::string name = element->Name();
+
+		if (!element->Attribute("t")) {
+			element->SetAttribute("t", 0.0f);
+		}
+
+		// If the name does not end with Record, add it
+		if (name.find("Record") == std::string::npos) {
+			name += "Record";
+		}
+
+		Record* record = nullptr;
+
+		if (name == "MovementRecord") {
+			record = new MovementRecord();
+		} else if (name == "SpeakRecord") {
+			record = new SpeakRecord();
+		} else if (name == "AnimationRecord") {
+			record = new AnimationRecord();
+		} else if (name == "EquipRecord") {
+			record = new EquipRecord();
+		} else if (name == "UnequipRecord") {
+			record = new UnequipRecord();
+		} else if (name == "ClearEquippedRecord") {
+			record = new ClearEquippedRecord();
+		} else if (name == "ForkRecord") {
+			record = new ForkRecord();
+		} else if (name == "WaitRecord") {
+			record = new WaitRecord();
+		} else if (name == "JumpRecord") {
+			record = new JumpRecord();
+		} else if (name == "SetVariableRecord") {
+			record = new SetVariableRecord();
+		} else if (name == "BarrierRecord") {
+			record = new BarrierRecord();
+		} else if (name == "SignalRecord") {
+			record = new SignalRecord();
+		} else if (name == "ConcludeRecord") {
+			record = new ConcludeRecord();
+		} else if (name == "PlayerProximityRecord") {
+			record = new PlayerProximityRecord();
+		} else if (name == "VisibilityRecord") {
+			record = new VisibilityRecord();
+		} else if (name == "PlayEffectRecord") {
+			record = new PlayEffectRecord();
+		} else if (name == "CoroutineRecord") {
+			record = new CoroutineRecord();
+		}
+
+		record->Deserialize(element);
+		records.push_back(record);
+
+		if (element->Attribute("name")) {
+			records.back()->m_Name = element->Attribute("name");
+		}
+	}
+
 }
 
 Entity* Recorder::ActFor(Entity* actorTemplate, Entity* player, Play* variables) {
@@ -682,83 +753,7 @@ Recorder* Recorder::LoadFromFile(const std::string& filename) {
 
 	Recorder* recorder = new Recorder();
 
-	for (auto* element = root->FirstChildElement(); element; element = element->NextSiblingElement()) {
-		const std::string name = element->Name();
-
-		if (!element->Attribute("t")) {
-			element->SetAttribute("t", 0.0f);
-		}
-
-		if (name == "MovementRecord") {
-			MovementRecord* record = new MovementRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "SpeakRecord") {
-			SpeakRecord* record = new SpeakRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "AnimationRecord") {
-			AnimationRecord* record = new AnimationRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "EquipRecord") {
-			EquipRecord* record = new EquipRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "UnequipRecord") {
-			UnequipRecord* record = new UnequipRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "ClearEquippedRecord") {
-			ClearEquippedRecord* record = new ClearEquippedRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "ForkRecord") {
-			ForkRecord* record = new ForkRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "WaitRecord") {
-			WaitRecord* record = new WaitRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "JumpRecord") {
-			JumpRecord* record = new JumpRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "SetVariableRecord") {
-			SetVariableRecord* record = new SetVariableRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "BarrierRecord") {
-			BarrierRecord* record = new BarrierRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "SignalRecord") {
-			SignalRecord* record = new SignalRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "ConcludeRecord") {
-			ConcludeRecord* record = new ConcludeRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "PlayerProximityRecord") {
-			PlayerProximityRecord* record = new PlayerProximityRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "VisibilityRecord") {
-			VisibilityRecord* record = new VisibilityRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		} else if (name == "PlayEffectRecord") {
-			PlayEffectRecord* record = new PlayEffectRecord();
-			record->Deserialize(element);
-			recorder->m_Records.push_back(record);
-		}
-
-		if (element->Attribute("name")) {
-			recorder->m_Records.back()->m_Name = element->Attribute("name");
-		}
-	}
+	LoadRecords(root, recorder->m_Records);
 
 	return recorder;
 }
@@ -1065,4 +1060,15 @@ void Cinema::Recording::PlayEffectRecord::Deserialize(tinyxml2::XMLElement* elem
 	effect = element->Attribute("effect");
 
 	m_Delay = element->DoubleAttribute("t");
+}
+
+void Cinema::Recording::CoroutineRecord::Act(Entity* actor) {
+	
+}
+
+void Cinema::Recording::CoroutineRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+}
+
+void Cinema::Recording::CoroutineRecord::Deserialize(tinyxml2::XMLElement* element) {
+	Recorder::LoadRecords(element, records);
 }

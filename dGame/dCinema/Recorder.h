@@ -25,6 +25,54 @@ public:
 	std::string m_Name;
 };
 
+class Recorder
+{
+public:
+	Recorder();
+
+	~Recorder();
+
+	void AddRecord(Record* record);
+
+	void Act(Entity* actor, Play* variables = nullptr);
+
+	Entity* ActFor(Entity* actorTemplate, Entity* player, Play* variables = nullptr);
+
+	void StopActingFor(Entity* actor, Entity* actorTemplate, LWOOBJID playerID);
+
+	bool IsRecording() const;
+
+	void SaveToFile(const std::string& filename);
+
+	float GetDuration() const;
+	
+	static Recorder* LoadFromFile(const std::string& filename);
+
+	static void AddRecording(LWOOBJID actorID, Recorder* recorder);
+
+	static void StartRecording(LWOOBJID actorID);
+
+	static void StopRecording(LWOOBJID actorID);
+
+	static Recorder* GetRecorder(LWOOBJID actorID);
+
+	static void RegisterEffectForActor(LWOOBJID actorID, const int32_t& effectId);
+
+	static void LoadRecords(tinyxml2::XMLElement* root, std::vector<Record*>& records);
+
+	static void ActingDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables);
+
+	static void PlayerProximityDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables, std::shared_ptr<bool> actionTaken);
+
+private:
+	std::vector<Record*> m_Records;
+
+	bool m_IsRecording;
+
+	std::chrono::milliseconds m_StartTime;
+
+	std::chrono::milliseconds m_LastRecordTime;
+};
 
 class MovementRecord : public Record
 {
@@ -299,51 +347,19 @@ public:
 	void Deserialize(tinyxml2::XMLElement* element) override;
 };
 
-class Recorder
+class CoroutineRecord : public Record
 {
 public:
-	Recorder();
+	std::vector<Record*> records;
 
-	~Recorder();
+	CoroutineRecord() = default;
 
-	void AddRecord(Record* record);
+	void Act(Entity* actor) override;
 
-	void Act(Entity* actor, Play* variables = nullptr);
-
-	Entity* ActFor(Entity* actorTemplate, Entity* player, Play* variables = nullptr);
-
-	void StopActingFor(Entity* actor, Entity* actorTemplate, LWOOBJID playerID);
-
-	bool IsRecording() const;
-
-	void SaveToFile(const std::string& filename);
-
-	float GetDuration() const;
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
 	
-	static Recorder* LoadFromFile(const std::string& filename);
-
-	static void AddRecording(LWOOBJID actorID, Recorder* recorder);
-
-	static void StartRecording(LWOOBJID actorID);
-
-	static void StopRecording(LWOOBJID actorID);
-
-	static Recorder* GetRecorder(LWOOBJID actorID);
-
-	static void RegisterEffectForActor(LWOOBJID actorID, const int32_t& effectId);
-
-private:
-	void ActingDispatch(Entity* actor, size_t index, Play* variables);
-
-	void PlayerProximityDispatch(Entity* actor, size_t index, Play* variables, std::shared_ptr<bool> actionTaken);
-
-	std::vector<Record*> m_Records;
-
-	bool m_IsRecording;
-
-	std::chrono::milliseconds m_StartTime;
-
-	std::chrono::milliseconds m_LastRecordTime;
+	void Deserialize(tinyxml2::XMLElement* element) override;
 };
+
 
 }
