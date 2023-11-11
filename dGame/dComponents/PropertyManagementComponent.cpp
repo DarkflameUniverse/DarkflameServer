@@ -431,12 +431,11 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	if (model->GetLOT() == 14) {
+	LOG("delete reason %i", deleteReason);
+	if (model->GetLOT() == 14 && deleteReason == 0) {
 		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
 
-		if (deleteReason == 0 || deleteReason == 2) {
-			GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
-		}
+		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
 
 		// Need this to pop the user out of their current state
 		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent->GetObjectID(), 14, entity->GetRotation());
