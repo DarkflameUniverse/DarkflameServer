@@ -169,7 +169,7 @@ public:
 
 	/**
 	 * Returns whether this entity is currently immune to attacks due to a damage cooldown period
-	 * @return wheterh this entity is currently immune to attacks due to a damage cooldown period
+	 * @return whether this entity is currently immune to attacks due to a damage cooldown period
 	*/
 	bool IsCooldownImmune() const;
 
