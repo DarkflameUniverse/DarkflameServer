@@ -168,7 +168,6 @@ public:
 	bool IsImmune() const;
 
 	/**
-	 * Returns whether this entity is currently immune to attacks due to a damage cooldown period
 	 * @return whether this entity is currently immune to attacks due to a damage cooldown period
 	*/
 	bool IsCooldownImmune() const;
@@ -423,11 +422,13 @@ public:
 	const bool GetImmuneToQuickbuildInterrupt() { return m_ImmuneToQuickbuildInterruptCount > 0; };
 	const bool GetImmuneToPullToPoint() { return m_ImmuneToPullToPointCount > 0; };
 
+	// Damage cooldown setters/getters
 	void SetDamageCooldownTimer(float value) { m_DamageCooldownTimer = value; }
-	float GetDamageCooldownTimer() { return m_DamageCooldownTimer; } //Add getter for the cooldown timer
+	float GetDamageCooldownTimer() { return m_DamageCooldownTimer; }
 
-	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
+	// Death behavior setters/getters
 	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
+	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
