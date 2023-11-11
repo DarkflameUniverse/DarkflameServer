@@ -2523,15 +2523,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 	inStream->Read(sd0Size);
 	std::shared_ptr<char[]> sd0Data(new char[sd0Size]);
 
-	if (sd0Data == nullptr) {
-		return;
-	}
+	if (sd0Data == nullptr) return;
 
-	for (uint32_t i = 0; i < sd0Size; ++i) {
-		uint8_t c;
-		inStream->Read(c);
-		sd0Data[i] = c;
-	}
+	inStream->ReadAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
 
 	uint32_t timeTaken;
 	inStream->Read(timeTaken);
@@ -2565,165 +2559,156 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.
 	//But we don't want the server to go unresponsive, because then the client would disconnect.
-	auto returnVal = std::async(std::launch::async, [&]() {
 
-		//We need to get a new ID for our model first:
-		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {
-			LWOOBJID newIDL = newID;
-			GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
+	//We need to get a new ID for our model first:
+	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {
+		LWOOBJID newIDL = newID;
+		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
 
-			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t blueprintIDSmall) {
-				blueprintIDSmall = ObjectIDManager::Instance()->GenerateRandomObjectID();
-				LWOOBJID blueprintID = blueprintIDSmall;
-				GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-				GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
+		uint32_t blueprintIDSmall = ObjectIDManager::Instance()->GenerateRandomObjectID();
+		LWOOBJID blueprintID = blueprintIDSmall;
+		GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
-				//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
-				const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
+		//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
+		const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
-				const auto zoneId = worldId.GetMapID();
-				const auto cloneId = worldId.GetCloneID();
+		const auto zoneId = worldId.GetMapID();
+		const auto cloneId = worldId.GetCloneID();
 
-				auto query = CDClientDatabase::CreatePreppedStmt(
-					"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-				query.bind(1, (int)zoneId);
+		auto query = CDClientDatabase::CreatePreppedStmt(
+			"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+		query.bind(1, (int)zoneId);
 
-				auto result = query.execQuery();
+		auto result = query.execQuery();
 
-				if (result.eof() || result.fieldIsNull(0)) return;
+		if (result.eof() || result.fieldIsNull(0)) return;
 
-				int templateId = result.getIntField(0);
+		int templateId = result.getIntField(0);
 
-				result.finalize();
+		auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
 
-				auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+		propertyLookup->setInt(1, templateId);
+		propertyLookup->setInt64(2, cloneId);
 
-				propertyLookup->setInt(1, templateId);
-				propertyLookup->setInt64(2, cloneId);
+		auto* propertyEntry = propertyLookup->executeQuery();
+		uint64_t propertyId = 0;
 
-				auto* propertyEntry = propertyLookup->executeQuery();
-				uint64_t propertyId = 0;
+		if (propertyEntry->next()) {
+			propertyId = propertyEntry->getUInt64(1);
+		}
 
-				if (propertyEntry->next()) {
-					propertyId = propertyEntry->getUInt64(1);
-				}
+		delete propertyEntry;
+		delete propertyLookup;
 
-				delete propertyEntry;
-				delete propertyLookup;
+		//Insert into ugc:
+		auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
+		ugcs->setUInt(1, blueprintIDSmall);
+		ugcs->setInt(2, entity->GetParentUser()->GetAccountID());
+		ugcs->setInt(3, entity->GetCharacter()->GetID());
+		ugcs->setInt(4, 0);
 
-				//Insert into ugc:
-				auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
-				ugcs->setUInt(1, blueprintIDSmall);
-				ugcs->setInt(2, entity->GetParentUser()->GetAccountID());
-				ugcs->setInt(3, entity->GetCharacter()->GetID());
-				ugcs->setInt(4, 0);
+		//whacky stream biz
+		std::string s(sd0Data.get(), sd0Size);
+		std::istringstream iss(s);
 
-				//whacky stream biz
-				std::string s(sd0Data.get(), sd0Size);
-				std::istringstream iss(s);
-				std::istream& stream = iss;
+		ugcs->setBlob(5, &iss);
+		ugcs->setBoolean(6, false);
+		ugcs->setString(7, "weedeater.lxfml");
+		ugcs->execute();
+		delete ugcs;
 
-				ugcs->setBlob(5, &iss);
-				ugcs->setBoolean(6, false);
-				ugcs->setString(7, "weedeater.lxfml");
-				ugcs->execute();
-				delete ugcs;
+		//Insert into the db as a BBB model:
+		auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		stmt->setUInt64(1, newIDL);
+		stmt->setUInt64(2, propertyId);
+		stmt->setUInt(3, blueprintIDSmall);
+		stmt->setUInt(4, 14); // 14 is the lot the BBB models use
+		stmt->setDouble(5, 0.0f); // x
+		stmt->setDouble(6, 0.0f); // y
+		stmt->setDouble(7, 0.0f); // z
+		stmt->setDouble(8, 0.0f); // rx
+		stmt->setDouble(9, 0.0f); // ry
+		stmt->setDouble(10, 0.0f); // rz
+		stmt->setDouble(11, 0.0f); // rw
+		stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
+		stmt->setString(13, ""); // Model description.  TODO implement this.
+		stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
+		stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
+		stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
+		stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
+		stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
+		stmt->execute();
+		delete stmt;
 
-				//Insert into the db as a BBB model:
-				auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-				stmt->setUInt64(1, newIDL);
-				stmt->setUInt64(2, propertyId);
-				stmt->setUInt(3, blueprintIDSmall);
-				stmt->setUInt(4, 14); // 14 is the lot the BBB models use
-				stmt->setDouble(5, 0.0f); // x
-				stmt->setDouble(6, 0.0f); // y
-				stmt->setDouble(7, 0.0f); // z
-				stmt->setDouble(8, 0.0f); // rx
-				stmt->setDouble(9, 0.0f); // ry
-				stmt->setDouble(10, 0.0f); // rz
-				stmt->setDouble(11, 0.0f); // rw
-				stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
-				stmt->setString(13, ""); // Model description.  TODO implement this.
-				stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
-				stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
-				stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
-				stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
-				stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
-				stmt->execute();
-				delete stmt;
+		/*
+			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
+			(or you uncomment the lxfml decomp stuff above)
+		*/
 
-				/*
-					Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
-					(or you uncomment the lxfml decomp stuff above)
-				*/
+		////Send off to UGC for processing, if enabled:
+		//if (Game::config->GetValue("ugc_remote") == "1") {
+		//	std::string ugcIP = Game::config->GetValue("ugc_ip");
+		//	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
 
-				////Send off to UGC for processing, if enabled:
-				//if (Game::config->GetValue("ugc_remote") == "1") {
-				//	std::string ugcIP = Game::config->GetValue("ugc_ip");
-				//	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
+		//	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
 
-				//	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
+		//	//Send out a request:
+		//	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
+		//	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
 
-				//	//Send out a request:
-				//	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
-				//	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
+		//	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
+		//	//the nif, hkx and checksum files are ready to be downloaded from cache.
+		//}
 
-				//	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
-				//	//the nif, hkx and checksum files are ready to be downloaded from cache.
-				//}
+		//Tell the client their model is saved: (this causes us to actually pop out of our current state):
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+		bitStream.Write(localId);
+		bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+		bitStream.Write<uint32_t>(1);
+		bitStream.Write(blueprintID);
 
-				//Tell the client their model is saved: (this causes us to actually pop out of our current state):
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
-				bitStream.Write(localId);
-				bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
-				bitStream.Write<uint32_t>(1);
-				bitStream.Write(blueprintID);
+		bitStream.Write<uint32_t>(sd0Size);
 
-				bitStream.Write<uint32_t>(sd0Size);
+		bitStream.WriteAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
 
-				for (size_t i = 0; i < sd0Size; ++i) {
-					bitStream.Write(sd0Data[i]);
-				}
+		SEND_PACKET;
 
-				SEND_PACKET;
+		//Now we have to construct this object:
 
-				//Now we have to construct this object:
+		EntityInfo info;
+		info.lot = 14;
+		info.pos = {};
+		info.rot = {};
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
 
-				EntityInfo info;
-				info.lot = 14;
-				info.pos = {};
-				info.rot = {};
-				info.spawner = nullptr;
-				info.spawnerID = entity->GetObjectID();
-				info.spawnerNodeID = 0;
+		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
+		LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
+		LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
+		LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
+		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", newIDL);
 
-				LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
-				LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-				LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
-				LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-				LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", newIDL);
+		info.settings.push_back(ldfBlueprintID);
+		info.settings.push_back(componentWhitelist);
+		info.settings.push_back(modelType);
+		info.settings.push_back(propertyObjectID);
+		info.settings.push_back(userModelID);
 
-				info.settings.push_back(ldfBlueprintID);
-				info.settings.push_back(componentWhitelist);
-				info.settings.push_back(modelType);
-				info.settings.push_back(propertyObjectID);
-				info.settings.push_back(userModelID);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		if (newEntity) {
+			Game::entityManager->ConstructEntity(newEntity);
 
-				Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-				if (newEntity) {
-					Game::entityManager->ConstructEntity(newEntity);
+			//Make sure the propMgmt doesn't delete our model after the server dies
+			//Trying to do this after the entity is constructed. Shouldn't really change anything but
+			//there was an issue with builds not appearing since it was placed above ConstructEntity.
+			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
+		}
 
-					//Make sure the propMgmt doesn't delete our model after the server dies
-					//Trying to do this after the entity is constructed. Shouldn't really change anything but
-					//there was an issue with builds not appearing since it was placed above ConstructEntity.
-					PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
-				}
-
-				});
-			});
-		});
+	});
 }
 
 void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5625,10 +5610,18 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		std::vector<LDFBaseData*> config;
 		config.push_back(moduleAssembly);
 
+		LWOOBJID newIdBig;
+		// Make sure a subkey isnt already in use.  Persistent Ids do not make sense here since this only needs to be unique for
+		// this character. Because of that, we just generate a random id and check for a collision.
+		do {
+			newIdBig = ObjectIDManager::Instance()->GenerateRandomObjectID();
+			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
+		} while (inv->FindItemBySubKey(newIdBig));
+
 		if (count == 3) {
-			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 		} else if (count == 7) {
-			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config);
+			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 		}
 
 		auto* missionComponent = character->GetComponent<MissionComponent>();
