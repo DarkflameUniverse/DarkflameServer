@@ -20,9 +20,9 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 			//Handle player damage cooldown
 			if (entity->IsPlayer() && !this->m_DontApplyImmune) {
-				const float ImmunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime; //DETERMINE THE DAMAGE COOLDOWN TIME
-				destroyableComponent->SetDamageCooldownTimer(ImmunityTime); //set the cooldowntimer
-				LOG_DEBUG("TOOK BUFF DAMAGE: SETTING DAMAGE COOLDOWN TIMER TO %f s",ImmunityTime);
+				const float immunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime; //Determine the damage cooldown time
+				destroyableComponent->SetDamageCooldownTimer(immunityTime); //set the cooldowntimer
+				LOG_DEBUG("Target targetEntity %llu took damage, setting damage cooldown timer to %f s", branch.target, immunityTime);
 			}
 		}
 
@@ -81,8 +81,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	if (isImmune) {
-		LOG("Target targetEntity %llu is immune! (Is this method even used?)",branch.target); //Immune is succesfully proc'd
-		//Seriously, is this ever used? I never see it in the console.
+		LOG_DEBUG("Target targetEntity %llu is immune!", branch.target); //Immune is succesfully proc'd
 		this->m_OnFailImmune->Handle(context, bitStream, branch);
 		return;
 	}
@@ -165,7 +164,7 @@ void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 	bitStream->SetWriteOffset(startAddress + allocate);
 }
 
-void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {	
+void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
 		LOG("Target entity %llu is null!", branch.target);
@@ -189,15 +188,15 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		return;
 	}
 
-	const float ImmunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime; //DETERMINE THE DAMAGE COOLDOWN TIME
-	LOG_DEBUG("Damage cooldown time is  %f s",destroyableComponent->GetDamageCooldownTimer()); //ALSO PRINT CURRENT TIMER VALUE
+	const float immunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime; //DETERMINE THE DAMAGE COOLDOWN TIME
+	LOG_DEBUG("Damage cooldown time is %f s", destroyableComponent->GetDamageCooldownTimer()); //Print current damage cooldown time value
 
 	const bool isImmune = (destroyableComponent->IsImmune()) || (destroyableComponent->GetDamageCooldownTimer() > 0.0f);
 
 	bitStream->Write(isImmune);
 
 	if (isImmune) {
-		LOG_DEBUG("Target targetEntity %llu is immune!",branch.target); //Immune is succesfully proc'd
+		LOG_DEBUG("Target targetEntity %llu is immune!", branch.target); //Immune is succesfully proc'd
 		this->m_OnFailImmune->Calculate(context, bitStream, branch);
 		return;
 	}
@@ -220,8 +219,8 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	//Handle player damage cooldown
 	if (isSuccess && targetEntity->IsPlayer() && !this->m_DontApplyImmune) {
-		destroyableComponent->SetDamageCooldownTimer(ImmunityTime); //set the cooldowntimer
-		LOG_DEBUG("TOOK DAMAGE: SETTING DAMAGE COOLDOWN TIMER TO %f s",ImmunityTime);
+		destroyableComponent->SetDamageCooldownTimer(immunityTime); //set the cooldowntimer
+		LOG_DEBUG("Target targetEntity %llu took damage, setting damage cooldown timer to %f s", branch.target, immunityTime);
 	}
 
 	eBasicAttackSuccessTypes successState = eBasicAttackSuccessTypes::FAILIMMUNE;
