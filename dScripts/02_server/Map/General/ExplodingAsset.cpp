@@ -4,6 +4,8 @@
 #include "MissionComponent.h"
 #include "SkillComponent.h"
 #include "eMissionTaskType.h"
+#include "CDClientManager.h"
+#include "CDObjectSkillsTable.h"
 #include "RenderComponent.h"
 
 //TODO: this has to be updated so that you only get killed if you're in a certain radius.
@@ -39,9 +41,11 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	self->SetOwnerOverride(attacker->GetObjectID());
 
 	GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake", self->GetObjectID(), 16);
+	self->Smash(attacker->GetObjectID());
 
 	auto* skillComponent = self->GetComponent<SkillComponent>();
 	if (skillComponent != nullptr) {
+		// Technically supposed to get first skill in the skill component but only 1 object in the live game used this.
 		skillComponent->CalculateBehavior(147, 4721, LWOOBJID_EMPTY, true);
 	}
 
@@ -65,8 +69,6 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 			}
 		}
 	}
-
-	self->ScheduleKillAfterUpdate();
 }
 
 void ExplodingAsset::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {

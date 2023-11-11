@@ -29,7 +29,7 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt(
 		"INSERT INTO player_cheat_detections (account_id, name, violation_msg, violation_system_address) VALUES (?, ?, ?, ?)")
 	);
-	stmt->setInt(1, user ? user->GetAccountID() : 0);
+	user ? stmt->setInt(1, user->GetAccountID()) : stmt->setNull(1, sql::DataType::INTEGER);
 	stmt->setString(2, user ? user->GetUsername().c_str() : "User is null.");
 
 	constexpr int32_t bufSize = 4096;

@@ -224,6 +224,44 @@ sudo setcap 'cap_net_bind_service=+ep' AuthServer
 ```
 and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
+### Linux Service
+If you are running this on a linux based system, it will use your terminal to run the program interactively, preventing you using it for other tasks and requiring it to be open to run the server.  
+_Note: You could use screen or tmux instead for virtual terminals_  
+To run the server non-interactively, we can use a systemctl service by copying the following file:  
+```shell
+cp ./systemd.example /etc/systemd/system/darkflame.service
+```  
+
+Make sure to edit the file in `/etc/systemd/system/darkflame.service` and change the:  
+- `User` and `Group` to the user that runs the darkflame server.  
+- `ExecPath` to the full file path of the server executable.  
+
+To register, enable and start the service use the following commands:
+
+- Reload the systemd manager configuration to make it aware of the new service file:
+```shell
+systemctl daemon-reload
+```
+- Start the service:
+```shell
+systemctl start darkflame.service
+```
+- Enable OR disable the service to start on boot using:
+```shell
+systemctl enable darkflame.service
+systemctl disable darkflame.service
+```
+- Verify that the service is running without errors:
+```shell
+systemctl status darkflame.service
+```
+- You can also restart, stop, or check the logs of the service using journalctl
+```shell
+systemctl restart darkflame.service
+systemctl stop darkflame.service
+journalctl -xeu darkflame.service
+```
+
 ### First admin user
 Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
@@ -285,6 +323,7 @@ Below are known good SHA256 checksums of the client:
 * `0d862f71eedcadc4494c4358261669721b40b2131101cbd6ef476c5a6ec6775b` (unpacked client, includes extra locales, rar compressed)
 
 If the returned hash matches one of the lines above then you can continue with setting up the server. If you are using a fully downloaded and complete client from live, then it will work, but the hash above may not match. Otherwise you must obtain a full install of LEGO® Universe 1.10.64.
+You must also make absolutely sure your LEGO Universe client is not in a Windows OneDrive. DLU is not and will not support a client being stored in a OneDrive, so ensure you have moved the client outside of that location.
 
 ### Darkflame Universe Client
 Darkflame Universe clients identify themselves using a higher version number than the regular live clients out there.
