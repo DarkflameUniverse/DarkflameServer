@@ -61,10 +61,10 @@ private:
 
 	Zone* m_pZone = nullptr;
 	LWOZONEID m_ZoneID;
-	bool m_PlayerLoseCoinsOnDeath;
-	bool m_DisableSaveLocation;
-	bool m_MountsAllowed;
-	bool m_PetsAllowed;
+	bool m_PlayerLoseCoinsOnDeath = false;
+	bool m_DisableSaveLocation = false;
+	bool m_MountsAllowed = true;
+	bool m_PetsAllowed = true;
 	std::map<LWOOBJID, Spawner*> m_Spawners;
 	WorldConfig* m_WorldConfig = nullptr;
 
