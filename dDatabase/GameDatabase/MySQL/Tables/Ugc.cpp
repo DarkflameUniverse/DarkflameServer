@@ -17,7 +17,7 @@ std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId)
 		toReturn.push_back(std::move(model));
 	}
 
-	return toReturn; // move elision
+	return toReturn;
 }
 
 std::vector<IUgc::Model> MySQLDatabase::GetAllUgcModels() {

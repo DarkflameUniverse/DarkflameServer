@@ -273,37 +273,35 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	bitStream.Write<uint16_t>(playerMail.size());
 	bitStream.Write<uint16_t>(0);
 
-	if (!playerMail.empty()) {
-		for (const auto& mail : playerMail) {
-			bitStream.Write(mail.id); //MailID
+	for (const auto& mail : playerMail) {
+		bitStream.Write(mail.id); //MailID
 
-			WriteStringAsWString(&bitStream, mail.subject.c_str(), 50); //subject
-			WriteStringAsWString(&bitStream, mail.body.c_str(), 400); //body
-			WriteStringAsWString(&bitStream, mail.senderUsername.c_str(), 32); //sender
+		WriteStringAsWString(&bitStream, mail.subject.c_str(), 50); //subject
+		WriteStringAsWString(&bitStream, mail.body.c_str(), 400); //body
+		WriteStringAsWString(&bitStream, mail.senderUsername.c_str(), 32); //sender
 
-			bitStream.Write(uint32_t(0));
-			bitStream.Write(uint64_t(0));
+		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint64_t(0));
 
-			bitStream.Write(mail.itemID); //Attachment ID
-			LOT lot = mail.itemLOT;
-			if (lot <= 0) bitStream.Write(LOT(-1));
-			else bitStream.Write(lot);
-			bitStream.Write(uint32_t(0));
+		bitStream.Write(mail.itemID); //Attachment ID
+		LOT lot = mail.itemLOT;
+		if (lot <= 0) bitStream.Write(LOT(-1));
+		else bitStream.Write(lot);
+		bitStream.Write(uint32_t(0));
 
-			bitStream.Write(mail.itemSubkey); //Attachment subKey
-			bitStream.Write<uint16_t>(mail.itemCount); //Attachment count
+		bitStream.Write(mail.itemSubkey); //Attachment subKey
+		bitStream.Write<uint16_t>(mail.itemCount); //Attachment count
 
-			bitStream.Write(uint32_t(0));
-			bitStream.Write(uint16_t(0));
+		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint16_t(0));
 
-			bitStream.Write<uint64_t>(mail.timeSent); //time sent (twice?)
-			bitStream.Write<uint64_t>(mail.timeSent);
-			bitStream.Write<uint8_t>(mail.wasRead); //was read
+		bitStream.Write<uint64_t>(mail.timeSent); //time sent (twice?)
+		bitStream.Write<uint64_t>(mail.timeSent);
+		bitStream.Write<uint8_t>(mail.wasRead); //was read
 
-			bitStream.Write(uint8_t(0));
-			bitStream.Write(uint16_t(0));
-			bitStream.Write(uint32_t(0));
-		}
+		bitStream.Write(uint8_t(0));
+		bitStream.Write(uint16_t(0));
+		bitStream.Write(uint32_t(0));
 	}
 
 	Game::server->Send(&bitStream, sysAddr, false);
@@ -421,5 +419,5 @@ void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	Database::Get()->MarkMailRead(static_cast<uint32_t>(mailID));
+	Database::Get()->MarkMailRead(mailID);
 }

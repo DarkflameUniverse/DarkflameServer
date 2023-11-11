@@ -61,7 +61,7 @@ std::optional<IMail::MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
 }
 
 uint32_t MySQLDatabase::GetUnreadMailCount(const uint32_t characterId) {
-	auto res = ExecuteSelect("SELECT COUNT(*) as number_unread FROM mail WHERE receiver_id=? AND was_read=0;", characterId);
+	auto res = ExecuteSelect("SELECT COUNT(*) AS number_unread FROM mail WHERE receiver_id=? AND was_read=0;", characterId);
 
 	if (!res->next()) {
 		return 0;
@@ -79,6 +79,5 @@ void MySQLDatabase::ClaimMailItem(const uint64_t mailId) {
 }
 
 void MySQLDatabase::DeleteMail(const uint64_t mailId) {
-	LOG("Deleting mail with id %llu", mailId);
 	ExecuteDelete("DELETE FROM mail WHERE id=? LIMIT 1;", mailId);
 }

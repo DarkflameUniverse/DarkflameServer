@@ -19,7 +19,7 @@ std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWO
 		model.ugcId = result->getUInt64("ugc_id");
 		toReturn.push_back(std::move(model));
 	}
-	return toReturn; // RVO; allow compiler to elide the return.
+	return toReturn;
 }
 
 void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) {

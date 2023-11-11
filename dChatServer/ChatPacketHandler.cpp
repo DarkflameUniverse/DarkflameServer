@@ -155,8 +155,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		auto bestFriendInfo = Database::Get()->GetBestFriendStatus(requestorPlayerID, requestee->playerID);
 		if (bestFriendInfo) {
 			// Get the IDs
-			LWOOBJID queryPlayerID = bestFriendInfo->playerAccountId;
-			LWOOBJID queryFriendID = bestFriendInfo->friendAccountId;
+			LWOOBJID queryPlayerID = bestFriendInfo->playerCharacterId;
+			LWOOBJID queryFriendID = bestFriendInfo->friendCharacterId;
 			oldBestFriendStatus = bestFriendInfo->bestFriendStatus;
 			bestFriendStatus = oldBestFriendStatus;
 

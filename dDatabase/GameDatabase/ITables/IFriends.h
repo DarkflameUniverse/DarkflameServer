@@ -8,8 +8,8 @@
 class IFriends {
 public:
 	struct BestFriendStatus {
-		uint32_t playerAccountId{};
-		uint32_t friendAccountId{};
+		uint32_t playerCharacterId{};
+		uint32_t friendCharacterId{};
 		uint32_t bestFriendStatus{};
 	};
 

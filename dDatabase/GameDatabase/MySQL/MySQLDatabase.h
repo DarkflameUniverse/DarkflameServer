@@ -46,7 +46,7 @@ public:
 	void SetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId, const uint32_t bestFriendStatus) override;
 	void AddFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
 	void RemoveFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
-	void UpdateActivityLog(const uint32_t accountId, const eActivityType activityType, const LWOMAPID mapId) override;
+	void UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) override;
 	void DeleteUgcModelData(const LWOOBJID& modelId) override;
 	void UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) override;
 	std::vector<IUgc::Model> GetAllUgcModels() override;
@@ -56,7 +56,7 @@ public:
 	std::optional<ICharInfo::Info> GetCharacterInfo(const uint32_t charId) override;
 	std::optional<ICharInfo::Info> GetCharacterInfo(const std::string_view charId) override;
 	std::string GetCharacterXml(const uint32_t accountId) override;
-	void UpdateCharacterXml(const uint32_t accountId, const std::string_view lxfml) override;
+	void UpdateCharacterXml(const uint32_t characterId, const std::string_view lxfml) override;
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
 	void InsertCharacterXml(const uint32_t accountId, const std::string_view lxfml) override;

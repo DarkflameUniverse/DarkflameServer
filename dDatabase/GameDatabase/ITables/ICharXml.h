@@ -14,7 +14,7 @@ public:
 	virtual void UpdateCharacterXml(const uint32_t charId, const std::string_view lxfml) = 0;
 
 	// Insert the character xml for the given character id.
-	virtual void InsertCharacterXml(const uint32_t accountId, const std::string_view lxfml) = 0;
+	virtual void InsertCharacterXml(const uint32_t characterId, const std::string_view lxfml) = 0;
 };
 
 #endif  //!__ICHARXML__H__

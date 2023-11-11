@@ -42,8 +42,8 @@ std::optional<IFriends::BestFriendStatus> MySQLDatabase::GetBestFriendStatus(con
 	}
 
 	IFriends::BestFriendStatus toReturn;
-	toReturn.playerAccountId = result->getUInt("player_id");
-	toReturn.friendAccountId = result->getUInt("friend_id");
+	toReturn.playerCharacterId = result->getUInt("player_id");
+	toReturn.friendCharacterId = result->getUInt("friend_id");
 	toReturn.bestFriendStatus = result->getUInt("best_friend");
 
 	return toReturn;

@@ -14,6 +14,6 @@ void MySQLDatabase::UpdateCharacterXml(const uint32_t charId, const std::string_
 	ExecuteUpdate("UPDATE charxml SET xml_data = ? WHERE id = ?;", lxfml, charId);
 }
 
-void MySQLDatabase::InsertCharacterXml(const uint32_t accountId, const std::string_view lxfml) {
-	ExecuteInsert("INSERT INTO `charxml` (`id`, `xml_data`) VALUES (?,?)", accountId, lxfml);
+void MySQLDatabase::InsertCharacterXml(const uint32_t characterId, const std::string_view lxfml) {
+	ExecuteInsert("INSERT INTO `charxml` (`id`, `xml_data`) VALUES (?,?)", characterId, lxfml);
 }
