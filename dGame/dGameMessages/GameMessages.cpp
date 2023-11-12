@@ -5634,7 +5634,12 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 		}
 	}
 
-	ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
+			auto stmt = Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, rocket_ldf) VALUES (?,?)");
+			stmt->setUInt64(1, newIdBig);
+			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
+			stmt->execute();
+
+			auto* missionComponent = character->GetComponent<MissionComponent>();
 
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
 		script->OnModularBuildExit(entity, character, count >= 3, modList);

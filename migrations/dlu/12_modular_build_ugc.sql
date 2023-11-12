@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS ugc_modular_build (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	ugc_id BIGINT NOT NULL,
+    rocket_ldf VARCHAR(60) NOT NULL
+);
