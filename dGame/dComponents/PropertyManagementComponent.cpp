@@ -431,7 +431,6 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	LOG("delete reason %i", deleteReason);
 	if (model->GetLOT() == 14 && deleteReason == 0) {
 		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
 
