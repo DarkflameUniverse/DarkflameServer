@@ -5612,8 +5612,6 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			config.push_back(moduleAssembly);
 
 			LWOOBJID newIdBig = newId;
-			// Make sure a subkey isnt already in use.  Persistent Ids do not make sense here since this only needs to be unique for
-			// this character. Because of that, we just generate a random id and check for a collision.
 			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
 
 			if (count == 3) {
