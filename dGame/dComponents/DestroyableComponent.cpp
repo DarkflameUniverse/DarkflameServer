@@ -73,6 +73,8 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_ImmuneToQuickbuildInterruptCount = 0;
 	m_ImmuneToPullToPointCount = 0;
 	m_DeathBehavior = -1;
+
+	m_DamageCooldownTimer = 0.0f;
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -177,6 +179,10 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		outBitStream->Write(m_HasThreats);
 		m_DirtyThreatList = false;
 	}
+}
+
+void DestroyableComponent::Update(float deltaTime) {
+	m_DamageCooldownTimer -= deltaTime;
 }
 
 void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
@@ -409,7 +415,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
-	if (m_Parent->IsPlayer() && other->IsPlayer()){
+	if (m_Parent->IsPlayer() && other->IsPlayer()) {
 		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (!thisCharacterComponent) return false;
 		auto* otherCharacterComponent = other->GetComponent<CharacterComponent>();
@@ -462,6 +468,10 @@ void DestroyableComponent::SetAttacksToBlock(const uint32_t value) {
 
 bool DestroyableComponent::IsImmune() const {
 	return m_IsGMImmune || m_ImmuneToBasicAttackCount > 0;
+}
+
+bool DestroyableComponent::IsCooldownImmune() const {
+	return m_DamageCooldownTimer > 0.0f;
 }
 
 bool DestroyableComponent::IsKnockbackImmune() const {
@@ -546,7 +556,8 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	if (IsImmune()) {
+	if (IsImmune() || IsCooldownImmune()) {
+		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID()); //Immune is succesfully proc'd
 		return;
 	}
 
@@ -634,9 +645,9 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	//check if hardcore mode is enabled
-    if (Game::entityManager->GetHardcoreMode()) {
+	if (Game::entityManager->GetHardcoreMode()) {
 		DoHardcoreModeDrops(source);
-    }
+	}
 
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
@@ -796,16 +807,16 @@ void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 }
 
 void DestroyableComponent::SetStatusImmunity(
-		const eStateChangeType state,
-		const bool bImmuneToBasicAttack,
-		const bool bImmuneToDamageOverTime,
-		const bool bImmuneToKnockback,
-		const bool bImmuneToInterrupt,
-		const bool bImmuneToSpeed,
-		const bool bImmuneToImaginationGain,
-		const bool bImmuneToImaginationLoss,
-		const bool bImmuneToQuickbuildInterrupt,
-		const bool bImmuneToPullToPoint) {
+	const eStateChangeType state,
+	const bool bImmuneToBasicAttack,
+	const bool bImmuneToDamageOverTime,
+	const bool bImmuneToKnockback,
+	const bool bImmuneToInterrupt,
+	const bool bImmuneToSpeed,
+	const bool bImmuneToImaginationGain,
+	const bool bImmuneToImaginationLoss,
+	const bool bImmuneToQuickbuildInterrupt,
+	const bool bImmuneToPullToPoint) {
 
 	if (state == eStateChangeType::POP) {
 		if (bImmuneToBasicAttack && m_ImmuneToBasicAttackCount > 0) 				m_ImmuneToBasicAttackCount -= 1;
@@ -818,7 +829,7 @@ void DestroyableComponent::SetStatusImmunity(
 		if (bImmuneToQuickbuildInterrupt && m_ImmuneToQuickbuildInterruptCount > 0) m_ImmuneToQuickbuildInterruptCount -= 1;
 		if (bImmuneToPullToPoint && m_ImmuneToPullToPointCount > 0) 				m_ImmuneToPullToPointCount -= 1;
 
-	} else if (state == eStateChangeType::PUSH){
+	} else if (state == eStateChangeType::PUSH) {
 		if (bImmuneToBasicAttack) 			m_ImmuneToBasicAttackCount += 1;
 		if (bImmuneToDamageOverTime) 		m_ImmuneToDamageOverTimeCount += 1;
 		if (bImmuneToKnockback) 			m_ImmuneToKnockbackCount += 1;
@@ -945,7 +956,7 @@ void DestroyableComponent::AddOnHitCallback(const std::function<void(Entity*)>& 
 	m_OnHitCallbacks.push_back(callback);
 }
 
-void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
+void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	//check if this is a player:
 	if (m_Parent->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
@@ -963,9 +974,9 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source){
 			if (inventory) {
 				//get the items inventory:
 				auto items = inventory->GetInventory(eInventoryType::ITEMS);
-				if (items){
+				if (items) {
 					auto itemMap = items->GetItems();
-					if (!itemMap.empty()){
+					if (!itemMap.empty()) {
 						for (const auto& item : itemMap) {
 							//drop the item:
 							if (!item.second) continue;
