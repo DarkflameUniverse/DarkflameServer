@@ -545,6 +545,11 @@ TEST_F(DestroyableTest, DestroyableComponentDamageCooldownTest) {
 	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 1.0f);
 	ASSERT_TRUE(destroyableComponent->IsCooldownImmune());
 
+	// Test that the Update() function correctly decrements the damage cooldown timer
+	destroyableComponent->Update(0.5f);
+	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.5f);
+	ASSERT_TRUE(destroyableComponent->IsCooldownImmune());
+
 	// Test the non damage immune timer state (anything below or equal to 0.0f)
 	destroyableComponent->SetDamageCooldownTimer(0.0f);
 	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.0f);

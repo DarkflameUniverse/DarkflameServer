@@ -24,7 +24,7 @@ public:
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
 
-	void Update(float deltaTime) override; //Add update function to DestroyableComponent
+	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;

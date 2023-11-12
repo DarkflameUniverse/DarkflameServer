@@ -189,7 +189,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	}
 
 	const float immunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime;
-	LOG_DEBUG("Damage cooldown timer value is currently %f s", destroyableComponent->GetDamageCooldownTimer());
+	LOG_DEBUG("Damage cooldown timer currently %f s", destroyableComponent->GetDamageCooldownTimer());
 
 	const bool isImmune = (destroyableComponent->IsImmune()) || (destroyableComponent->IsCooldownImmune());
 
