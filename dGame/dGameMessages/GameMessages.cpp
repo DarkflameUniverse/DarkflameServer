@@ -5620,7 +5620,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			auto stmt = Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, rocket_ldf) VALUES (?,?)");
+			auto stmt = Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config) VALUES (?,?)");
 			stmt->setUInt64(1, newIdBig);
 			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
 			stmt->execute();
