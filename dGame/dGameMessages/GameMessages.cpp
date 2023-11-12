@@ -5119,6 +5119,10 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
+	stmt->setUInt64(1, item->GetSubKey());
+	stmt->execute();
+
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
 
@@ -5620,9 +5624,11 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			auto stmt = Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config) VALUES (?,?)");
+			std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
 			stmt->setUInt64(1, newIdBig);
 			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
+			auto* pCharacter = character->GetCharacter();
+			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
 			stmt->execute();
 
 			auto* missionComponent = character->GetComponent<MissionComponent>();
