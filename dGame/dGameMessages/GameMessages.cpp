@@ -5564,13 +5564,6 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 	InventoryComponent* inv = static_cast<InventoryComponent*>(character->GetComponent(eReplicaComponentType::INVENTORY));
 	if (!inv) return;
 
-	LOG("Build finished");
-
-	GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
-	GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
-
-	//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
-	//Game::entityManager->SerializeEntity(entity);
 
 	uint8_t count; // 3 for rockets, 7 for cars
 
@@ -5605,34 +5598,27 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			}
 		}
 
-		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
+		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newId) {
+			LOG("Build finished");
+			GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
+			GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
 
-		std::vector<LDFBaseData*> config;
-		config.push_back(moduleAssembly);
+			//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
+			//Game::entityManager->SerializeEntity(entity);
 
-		LWOOBJID newIdBig;
-		// Make sure a subkey isnt already in use.  Persistent Ids do not make sense here since this only needs to be unique for
-		// this character. Because of that, we just generate a random id and check for a collision.
-		do {
-			newIdBig = ObjectIDManager::Instance()->GenerateRandomObjectID();
+			const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
+
+			std::vector<LDFBaseData*> config;
+			config.push_back(moduleAssembly);
+
+			LWOOBJID newIdBig = newId;
 			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
-		} while (inv->FindItemBySubKey(newIdBig));
 
-		if (count == 3) {
-			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
-		} else if (count == 7) {
-			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
-		}
-
-		auto* missionComponent = character->GetComponent<MissionComponent>();
-
-		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
-			if (missionComponent != nullptr) {
-				missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
-				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, (LWOOBJID)eRacingTaskParam::MODULAR_BUILDING);
+			if (count == 3) {
+				inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
+			} else if (count == 7) {
+				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
-		}
-	}
 
 			auto stmt = Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, rocket_ldf) VALUES (?,?)");
 			stmt->setUInt64(1, newIdBig);
@@ -5641,19 +5627,30 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 			auto* missionComponent = character->GetComponent<MissionComponent>();
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnModularBuildExit(entity, character, count >= 3, modList);
-	}
+			if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
+				if (missionComponent != nullptr) {
+					missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
+					if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, (LWOOBJID)eRacingTaskParam::MODULAR_BUILDING);
+				}
+			}
 
-	// Move remaining temp models back to models
-	std::vector<Item*> items;
+			ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
 
-	for (const auto& pair : temp->GetItems()) {
-		items.push_back(pair.second);
-	}
+			for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
+				script->OnModularBuildExit(entity, character, count >= 3, modList);
+			}
 
-	for (auto* item : items) {
-		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
+			// Move remaining temp models back to models
+			std::vector<Item*> items;
+
+			for (const auto& pair : temp->GetItems()) {
+				items.push_back(pair.second);
+			}
+
+			for (auto* item : items) {
+				inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
+			}
+			});
 	}
 }
 
