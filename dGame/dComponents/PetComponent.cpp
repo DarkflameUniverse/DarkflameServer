@@ -29,7 +29,6 @@
 #include "RenderComponent.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
-#include "MissionComponent.h"
 #include "eMissionState.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
@@ -442,10 +441,10 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto* missionComponent = owner->GetComponent<MissionComponent>();
-	if (missionComponent == nullptr) return;
+	if (!missionComponent) return;
 
-	// Determine if "Lost Tags" has been completed and digging has been unlocked
-	const bool digUnlocked = (missionComponent->GetMissionState(842) == eMissionState::COMPLETE);
+	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
+	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
 	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
 
