@@ -442,9 +442,7 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto* missionComponent = owner->GetComponent<MissionComponent>();
-	if (missionComponent == nullptr) {
-		return;
-	}
+	if (missionComponent == nullptr) return;
 
 	// Determine if "Lost Tags" has been completed and digging has been unlocked
 	const bool digUnlocked = (missionComponent->GetMissionState(842) == eMissionState::COMPLETE);
