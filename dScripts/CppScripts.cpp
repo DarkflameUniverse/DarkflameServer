@@ -212,7 +212,6 @@
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
-#include "DukeDialogueGlowingBrick.h"
 
 // AM Scripts
 #include "AmConsoleTeleportServer.h"
@@ -820,8 +819,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	//DLU:
 	else if (scriptName == "scripts\\02_server\\DLU\\DLUVanityNPC.lua")
 		script = new DLUVanityNPC();
-	else if (scriptName == "scripts\\02_server\\DLU\\DukeGlowing.lua")
-		script = new DukeDialogueGlowingBrick();
 
 	// Survival minigame
 	else if (scriptName == "scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_STROMBIE.lua")
