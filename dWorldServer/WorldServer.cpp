@@ -1299,7 +1299,7 @@ void HandlePacket(Packet* packet) {
 
 
 	case eWorldMessageType::UI_HELP_TOP_5: {
-		ClientPackets::SendTop5HelpIssues(packet->systemAddress, packet);
+		ClientPackets::SendTop5HelpIssues(packet);
 		break;
 	}
 
