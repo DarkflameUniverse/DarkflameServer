@@ -38,8 +38,9 @@ const std::string& dConfig::GetValue(std::string key) {
 }
 
 void dConfig::ProcessLine(const std::string& line) {
-	auto key = line.substr(0, line.find('='));
-	auto value = line.substr(line.find('=') + 1);
+	auto splitLoc = line.find('=');
+	auto key = line.substr(0, splitLoc);
+	auto value = line.substr(splitLoc + 1);
 
 	//Make sure that on Linux, we remove special characters:
 	if (!value.empty() && value.at(value.size() - 1) == '\r') value.erase(value.size() - 1);

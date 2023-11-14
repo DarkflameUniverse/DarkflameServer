@@ -404,7 +404,14 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, segments);
 }
 
-void ClientPackets::SendTop5HelpIssues(const SystemAddress& sysAddr, Packet* packet) {
+void ClientPackets::SendTop5HelpIssues(Packet* packet) {
+	auto* user = UserManager::Instance()->GetUser(packet->systemAddress);
+	if (!user) return;
+	auto* character = user->GetLastUsedChar();
+	if (!character) return;
+	auto * entity = character->GetEntity();
+	if (!entity) return;
+
 	CINSTREAM_SKIP_HEADER;
 	int32_t language = 0;
 	inStream.Read(language);
@@ -430,6 +437,6 @@ void ClientPackets::SendTop5HelpIssues(const SystemAddress& sysAddr, Packet* pac
 	data.Insert("Description3", Game::config->GetValue("help_3_description"));
 	data.Insert("Description4", Game::config->GetValue("help_4_description"));
 	
-	GameMessages::SendUIMessageServerToSingleClient(UserManager::Instance()->GetUser(sysAddr)->GetLastUsedChar()->GetEntity(), sysAddr, "UIHelpTop5", data);
+	GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "UIHelpTop5", data);
 	
 }
