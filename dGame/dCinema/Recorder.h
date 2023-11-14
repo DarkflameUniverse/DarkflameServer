@@ -62,9 +62,11 @@ public:
 
 	static void ActingDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables);
 
+private:
 	static void PlayerProximityDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables, std::shared_ptr<bool> actionTaken);
 
-private:
+	static void PathFindDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables);
+
 	std::vector<Record*> m_Records;
 
 	bool m_IsRecording;
@@ -353,6 +355,40 @@ public:
 	std::vector<Record*> records;
 
 	CoroutineRecord() = default;
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
+
+class PathFindRecord : public Record
+{
+public:
+	NiPoint3 position;
+
+	float speed = 1.0f;
+
+	PathFindRecord() = default;
+
+	PathFindRecord(const NiPoint3& position, float speed);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
+
+class CombatAIRecord : public Record
+{
+public:
+	bool enabled = false;
+
+	CombatAIRecord() = default;
+
+	CombatAIRecord(bool enabled);
 
 	void Act(Entity* actor) override;
 

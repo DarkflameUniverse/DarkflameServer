@@ -8,6 +8,8 @@
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "ServerPreconditions.hpp"
+#include "MovementAIComponent.h"
+#include "BaseCombatAIComponent.h"
 
 using namespace Cinema::Recording;
 
@@ -273,6 +275,24 @@ void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records
 		});
 	}
 
+	// Check if the record is a path find record
+	auto* pathFindRecord = dynamic_cast<PathFindRecord*>(record);
+
+	if (pathFindRecord) {
+		auto* movementAiComponent = actor->GetComponent<MovementAIComponent>();
+
+		if (movementAiComponent == nullptr) {
+			movementAiComponent = actor->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		}
+		
+		movementAiComponent->SetDestination(pathFindRecord->position);
+		movementAiComponent->SetMaxSpeed(pathFindRecord->speed);
+		
+		PathFindDispatch(actor, records, index, variables);
+
+		return;
+	}
+
 	actor->AddCallbackTimer(delay, [actor, records, index, variables]() {
 		ActingDispatch(actor, records, index + 1, variables);
 	});
@@ -307,6 +327,29 @@ void Cinema::Recording::Recorder::PlayerProximityDispatch(Entity* actor, const s
 	
 	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [actor, records, index, variables, actionTaken]() {
 		PlayerProximityDispatch(actor, records, index, variables, actionTaken);
+	});
+}
+
+void Cinema::Recording::Recorder::PathFindDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables) {
+	auto* record = dynamic_cast<PathFindRecord*>(records[index]);
+
+	if (record == nullptr) {
+		return;
+	}
+
+	auto* movementAiComponent = actor->GetComponent<MovementAIComponent>();
+
+	if (movementAiComponent == nullptr) {
+		return;
+	}
+
+	if (movementAiComponent->AtFinalWaypoint()) {
+		ActingDispatch(actor, records, index + 1, variables);
+		return;
+	}
+
+	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [actor, records, index, variables]() {
+		PathFindDispatch(actor, records, index, variables);
 	});
 }
 
@@ -360,6 +403,13 @@ void Cinema::Recording::Recorder::LoadRecords(tinyxml2::XMLElement* root, std::v
 			record = new PlayEffectRecord();
 		} else if (name == "CoroutineRecord") {
 			record = new CoroutineRecord();
+		} else if (name == "PathFindRecord") {
+			record = new PathFindRecord();
+		} else if (name == "CombatAIRecord") {
+			record = new CombatAIRecord();
+		} else {
+			LOG("Unknown record type: %s", name.c_str());
+			continue;
 		}
 
 		record->Deserialize(element);
@@ -1067,8 +1117,79 @@ void Cinema::Recording::CoroutineRecord::Act(Entity* actor) {
 }
 
 void Cinema::Recording::CoroutineRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CoroutineRecord");
+
+	for (auto* record : records) {
+		record->Serialize(document, element);
+	}
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
 }
 
 void Cinema::Recording::CoroutineRecord::Deserialize(tinyxml2::XMLElement* element) {
 	Recorder::LoadRecords(element, records);
+}
+
+Cinema::Recording::PathFindRecord::PathFindRecord(const NiPoint3& position, float speed) {
+	this->position = position;
+	this->speed = speed;
+}
+
+void Cinema::Recording::PathFindRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::PathFindRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("PathFindRecord");
+
+	element->SetAttribute("x", position.x);
+	element->SetAttribute("y", position.y);
+	element->SetAttribute("z", position.z);
+
+	element->SetAttribute("speed", speed);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::PathFindRecord::Deserialize(tinyxml2::XMLElement* element) {
+	position.x = element->FloatAttribute("x");
+	position.y = element->FloatAttribute("y");
+	position.z = element->FloatAttribute("z");
+	
+	speed = element->FloatAttribute("speed");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::CombatAIRecord::CombatAIRecord(bool enabled) {
+	this->enabled = enabled;
+}
+
+void Cinema::Recording::CombatAIRecord::Act(Entity* actor) {
+	auto* baseCombatAIComponent = actor->GetComponent<BaseCombatAIComponent>();
+
+	if (baseCombatAIComponent == nullptr) {
+		return;
+	}
+
+	baseCombatAIComponent->SetDisabled(!enabled);
+}
+
+void Cinema::Recording::CombatAIRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CombatAIRecord");
+
+	element->SetAttribute("enabled", enabled);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::CombatAIRecord::Deserialize(tinyxml2::XMLElement* element) {
+	enabled = element->BoolAttribute("enabled");
+
+	m_Delay = element->DoubleAttribute("t");
 }
