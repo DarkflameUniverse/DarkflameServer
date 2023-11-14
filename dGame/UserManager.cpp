@@ -226,7 +226,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars[i]->SaveXMLToDatabase();
 
 		chars[i]->GetEntity()->SetCharacter(nullptr);
-		
+
 		delete chars[i];
 	}
 
@@ -302,81 +302,79 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		}
 
 		std::stringstream xml;
-		xml << "<obj v=\"1\"><mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
+		xml << "<obj v=\"1\">";
+
+		xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
 		xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
 		xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
-
+		
 		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
 		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
 		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
+
 		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
+
 		xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
-		std::string xmlSave1 = xml.str();
 
-		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforshirt) {
-			std::stringstream xml2;
+		LWOOBJID lwoidforshirt = ObjectIDManager::GenerateRandomObjectID();
+		LWOOBJID lwoidforpants;
 
-			LWOOBJID lwoidforshirt = idforshirt;
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
-			xml2 << xmlSave1 << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		do {
+			lwoidforpants = ObjectIDManager::GenerateRandomObjectID();
+		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
 
-			std::string xmlSave2 = xml2.str();
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
-			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforpants) {
-				LWOOBJID lwoidforpants = idforpants;
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
+		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
-				std::stringstream xml3;
-				xml3 << xmlSave2 << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
 
-				xml3 << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
+		//Check to see if our name was pre-approved:
+		bool nameOk = IsNamePreapproved(name);
+		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-				//Check to see if our name was pre-approved:
-				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+		if (name != "") {
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
+			stmt->setUInt(1, objectID);
+			stmt->setUInt(2, u->GetAccountID());
+			stmt->setString(3, predefinedName.c_str());
+			stmt->setString(4, name.c_str());
+			stmt->setBoolean(5, false);
+			stmt->setUInt64(6, time(NULL));
 
-				if (name != "") {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, name.c_str());
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
+			if (nameOk) {
+				stmt->setString(3, name.c_str());
+				stmt->setString(4, "");
+			}
 
-					if (nameOk) {
-						stmt->setString(3, name.c_str());
-						stmt->setString(4, "");
-					}
+			stmt->execute();
+			delete stmt;
+		} else {
+			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
+			stmt->setUInt(1, objectID);
+			stmt->setUInt(2, u->GetAccountID());
+			stmt->setString(3, predefinedName.c_str());
+			stmt->setString(4, "");
+			stmt->setBoolean(5, false);
+			stmt->setUInt64(6, time(NULL));
 
-					stmt->execute();
-					delete stmt;
-				} else {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, "");
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
+			stmt->execute();
+			delete stmt;
+		}
 
-					stmt->execute();
-					delete stmt;
-				}
+		//Now finally insert our character xml:
+		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
+		stmt->setUInt(1, objectID);
+		stmt->setString(2, xml.str().c_str());
+		stmt->execute();
+		delete stmt;
 
-				//Now finally insert our character xml:
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
-				stmt->setUInt(1, objectID);
-				stmt->setString(2, xml3.str().c_str());
-				stmt->execute();
-				delete stmt;
-
-				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-				UserManager::RequestCharacterList(sysAddr);
-				});
-			});
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+		UserManager::RequestCharacterList(sysAddr);
 		});
 }
 
