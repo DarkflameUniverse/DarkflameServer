@@ -620,3 +620,7 @@ bool MissionComponent::HasCollectible(int32_t collectibleID) {
 bool MissionComponent::HasMission(uint32_t missionId) {
 	return GetMission(missionId) != nullptr;
 }
+
+void FixExplorerMissions() {
+	
+}

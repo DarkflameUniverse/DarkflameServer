@@ -74,6 +74,7 @@
 #include "ZCompression.h"
 #include "EntityManager.h"
 #include "CheatDetection.h"
+#include "MissionComponent.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -1057,6 +1058,9 @@ void HandlePacket(Packet* packet) {
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				if (!levelComponent) return;
 
+				auto* missionComponent = player->GetComponent<MissionComponent>();
+				if (!missionComponent) return;
+
 				auto version = levelComponent->GetCharacterVersion();
 				switch(version) {
 					case eCharacterVersion::RELEASE:
@@ -1070,9 +1074,14 @@ void HandlePacket(Packet* packet) {
 						player->RetroactiveVaultSize();
 						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
 					case eCharacterVersion::VAULT_SIZE:
-						LOG("Updaing Speedbase");
+						LOG("Updating Speedbase");
 						levelComponent->SetRetroactiveBaseSpeed();
-						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+						levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+					case eCharacterVersion::SPEED_BASE:
+						LOG("Fixing Explorer missions");
+						missionComponent->FixExplorerMissions();
+						// Commented out so it runs every time for testing
+						// levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 					case eCharacterVersion::UP_TO_DATE:
 						break;
 				}

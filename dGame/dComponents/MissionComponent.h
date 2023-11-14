@@ -170,6 +170,9 @@ public:
 	 */
 	bool HasMission(uint32_t missionId);
 
+	
+	void FixExplorerMissions();
+
 private:
 	/**
 	 * All the missions owned by this entity, mapped by mission ID
