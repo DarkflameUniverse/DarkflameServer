@@ -34,6 +34,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "CheatDetection.h"
+#include "Amf3.h"
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
@@ -401,4 +402,34 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 
 	user->SetLastChatMessageApproved(bAllClean);
 	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, segments);
+}
+
+void ClientPackets::SendTop5HelpIssues(const SystemAddress& sysAddr, Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	int32_t language = 0;
+	inStream.Read(language);
+
+	// TODO: Handle different languages in a nice way
+	// 0: en_US
+	// 1: pl_US
+	// 2: de_DE
+	// 3: en_GB
+
+	AMFArrayValue data;
+	// Summaries
+	data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
+	data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
+	data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
+	data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
+	data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
+
+	// Descriptions
+	data.Insert("Description0", Game::config->GetValue("help_0_description"));
+	data.Insert("Description1", Game::config->GetValue("help_1_description"));
+	data.Insert("Description2", Game::config->GetValue("help_2_description"));
+	data.Insert("Description3", Game::config->GetValue("help_3_description"));
+	data.Insert("Description4", Game::config->GetValue("help_4_description"));
+	
+	GameMessages::SendUIMessageServerToSingleClient(UserManager::Instance()->GetUser(sysAddr)->GetLastUsedChar()->GetEntity(), sysAddr, "UIHelpTop5", data);
+	
 }
