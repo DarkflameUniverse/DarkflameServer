@@ -433,7 +433,7 @@ void Item::DisassembleModel() {
 		return;
 	}
 
-	auto* doc = new tinyxml2::XMLDocument();
+	std::unique_ptr<tinyxml2::XMLDocument> doc(new tinyxml2::XMLDocument());
 
 	if (!doc) {
 		return;
