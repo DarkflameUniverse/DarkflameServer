@@ -590,16 +590,18 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	try {
-		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
-		shirtQuery += std::to_string(shirtColor);
-		shirtQuery += " AND icc.decal == ";
-		shirtQuery = shirtQuery + std::to_string(shirtStyle);
-		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
-		auto shirtLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ? AND icc.decal == ?"
+		);
+		stmt.bind(1, "character create shirt");
+		stmt.bind(2, static_cast<int>(shirtColor));
+		stmt.bind(3, static_cast<int>(shirtStyle));
+		auto tableData = stmt.execQuery();
+		auto shirtLOT = tableData.getIntField(0, 4069);
 		tableData.finalize();
 		return shirtLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up shirt %i %i: %s", shirtColor, shirtStyle, ex.what());
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -607,14 +609,17 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
 	try {
-		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
-		pantsQuery += std::to_string(pantsColor);
-		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
-		auto pantsLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ?"
+		);
+		stmt.bind(1, "cc pants");
+		stmt.bind(2, static_cast<int>(pantsColor));
+		auto tableData = stmt.execQuery();
+		auto pantsLOT = tableData.getIntField(0, 2508);
 		tableData.finalize();
 		return pantsLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up pants %i: %s", pantsColor, ex.what());
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}
