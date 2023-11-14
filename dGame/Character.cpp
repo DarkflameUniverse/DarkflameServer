@@ -251,7 +251,7 @@ void Character::SaveXMLToDatabase() {
 
 		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
