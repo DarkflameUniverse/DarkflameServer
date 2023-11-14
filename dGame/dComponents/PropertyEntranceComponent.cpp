@@ -113,9 +113,9 @@ std::vector<uint32_t> PropertyEntranceComponent::GetPropertyIDsBasedOnParams(con
 	propertyLookup->setString(4, searchString.c_str());
 	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
 
-	auto propertyIdRes = propertyLookup->executeQuery();
+	auto* propertyIdRes = propertyLookup->executeQuery();
 
-	std::vector<uint32_t> propertyIds{};
+	std::vector<uint32_t> propertyIds;
 
 	while (propertyIdRes->next()) {
 		if (sortMethod == SORT_TYPE_FRIENDS || sortMethod == SORT_TYPE_FEATURED) {
@@ -164,7 +164,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	std::vector<uint32_t> propertyIdsSlice(propertyIds.begin() + startIndex, propertyIds.begin() + std::min(startIndex + numResults, (int32_t)propertyIds.size()));
 
-	std::vector<uint32_t> propertyCloneIdSlice{};
+	std::vector<uint32_t> propertyCloneIdSlice;
 
 	for (const auto& id : propertyIdsSlice) {
 		auto prop = this->GetPropertyData(id);

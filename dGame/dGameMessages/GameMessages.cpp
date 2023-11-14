@@ -3105,19 +3105,19 @@ void GameMessages::SendPropertySelectQuery(LWOOBJID objectId, int32_t navOffset,
 		const auto& owner = GeneralUtils::UTF8ToUTF16(item.PrimaryData.OwnerName);
 		bitStream.Write(uint32_t(owner.size()));
 		for (uint32_t i = 0; i < owner.size(); ++i) {
-			bitStream.Write(static_cast<uint16_t>(owner[i]));
+			bitStream.Write(owner[i]);
 		}
 
 		const auto& name = GeneralUtils::UTF8ToUTF16(item.PrimaryData.Name);
 		bitStream.Write(uint32_t(name.size()));
 		for (uint32_t i = 0; i < name.size(); ++i) {
-			bitStream.Write(static_cast<uint16_t>(name[i]));
+			bitStream.Write(name[i]);
 		}
 
 		const auto& description = GeneralUtils::UTF8ToUTF16(item.PrimaryData.Description);
 		bitStream.Write(uint32_t(description.size()));
 		for (uint32_t i = 0; i < description.size(); ++i) {
-			bitStream.Write(static_cast<uint16_t>(description[i]));
+			bitStream.Write(description[i]);
 		}
 
 		bitStream.Write(item.PrimaryData.Reputation);

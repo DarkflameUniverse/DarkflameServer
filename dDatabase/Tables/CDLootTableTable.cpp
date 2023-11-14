@@ -24,7 +24,6 @@ void SortTable(LootTableEntries& table) {
 				lootToInsert = oldItrInner;
 			}
 		}
-
 		std::swap(*oldItrOuter, *lootToInsert);
 	}
 }
