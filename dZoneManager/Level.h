@@ -53,6 +53,8 @@ public:
 public:
 	Level(Zone* parentZone, const std::string& filepath);
 	~Level();
+	
+	static void MakeSpawner(SceneObject obj);
 
 	const void PrintAllObjects();
 

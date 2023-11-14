@@ -15,6 +15,10 @@
 #include "Logger.h"
 #include "BinaryPathFinder.h"
 #include "EntityInfo.h"
+#include "Spawner.h"
+#include "dZoneManager.h"
+#include "../dWorldServer/ObjectIDManager.h"
+#include "Level.h"
 
 #include <fstream>
 
@@ -28,6 +32,21 @@ void VanityUtilities::SpawnVanity() {
 	}
 
 	const uint32_t zoneID = Game::server->GetZoneID();
+
+	for (const auto& npc : m_NPCs) {
+		if (npc.m_ID == LWOOBJID_EMPTY) continue;
+		if (npc.m_LOT == 176){
+			Game::zoneManager->RemoveSpawner(npc.m_ID);
+		} else{
+			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
+			if (!entity) continue;
+			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
+		}
+	}
+
+	m_NPCs.clear();
+	m_Parties.clear();
+	m_PartyPhrases.clear();
 
 	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/NPC.xml").string());
 
@@ -53,7 +72,7 @@ void VanityUtilities::SpawnVanity() {
 
 		// Loop through all locations
 		for (const auto& location : party.m_Locations) {
-			rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+		rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 			if (0.75f < rate) {
 				continue;
 			}
@@ -66,10 +85,11 @@ void VanityUtilities::SpawnVanity() {
 			}
 
 			auto& npc = npcList[npcIndex];
-
+			// Skip spawners
+			if (npc.m_LOT == 176) continue;
+			
 			taken.push_back(npcIndex);
 
-			// Spawn the NPC
 			LOG("ldf size is %i", npc.ldf.size());
 			if (npc.ldf.empty()) {
 				npc.ldf = {
@@ -79,13 +99,16 @@ void VanityUtilities::SpawnVanity() {
 			}
 
 			// Spawn the NPC
-			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-			if (!npc.m_Phrases.empty()) {
-				npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
-				SetupNPCTalk(npcEntity);
+			if (npc.m_LOT == 176){
+				npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
+			} else {
+				auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+				if (!npc.m_Phrases.empty()) {
+					npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
+					SetupNPCTalk(npcEntity);
+				}
 			}
 		}
-
 		return;
 	}
 
@@ -111,27 +134,27 @@ void VanityUtilities::SpawnVanity() {
 				new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
 			};
 		}
+		if (npc.m_LOT == 176){
+			npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
+		} else {
+			// Spawn the NPC
+			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+			if (!npcEntity) continue;
+			npc.m_ID = npcEntity->GetObjectID();
+			if (!npc.m_Phrases.empty()){
+				npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-		// Spawn the NPC
-		auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-		if (!npc.m_Phrases.empty()){
-			npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
+				auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-			SetupNPCTalk(npcEntity);
-		}
+				if (scriptComponent && !npc.m_Script.empty()) {
+					scriptComponent->SetScript(npc.m_Script);
+					scriptComponent->SetSerialized(false);
 
-		auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
-
-		LOG_DEBUG("Script: %s", npc.m_Script.c_str());
-
-		if (scriptComponent && !npc.m_Script.empty()) {
-			scriptComponent->SetScript(npc.m_Script);
-			scriptComponent->SetSerialized(false);
-
-			LOG_DEBUG("Setting script to %s", npc.m_Script.c_str());
-
-			for (const auto& npc : npc.m_Flags) {
-				npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					for (const auto& npc : npc.m_Flags) {
+						npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					}
+				}
+				SetupNPCTalk(npcEntity);
 			}
 		}
 	}
@@ -154,8 +177,21 @@ void VanityUtilities::SpawnVanity() {
 	}
 }
 
-Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position,
-	const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
+LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LDFBaseData*>& ldf){
+	SceneObject obj;
+	obj.lot = lot;
+	// guratantee we have no collisions
+	do {
+		obj.id = ObjectIDManager::Instance()->GenerateObjectID();
+	} while(Game::zoneManager->GetSpawner(obj.id));
+	obj.position = position;
+	obj.rotation = rotation;
+	obj.settings = ldf;
+	Level::MakeSpawner(obj);
+	return obj.id;
+}
+
+Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
 	EntityInfo info;
 	info.lot = lot;
 	info.pos = position;
@@ -166,9 +202,6 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 	auto* entity = Game::entityManager->CreateEntity(info);
 	entity->SetVar(u"npcName", name);
 	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
-
-	// Debug print
-	LOG_DEBUG("Spawning NPC %s (%i) at %f, %f, %f", name.c_str(), lot, position.x, position.y, position.z);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
@@ -183,15 +216,6 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 		destroyableComponent->SetMaxHealth(0);
 		destroyableComponent->SetHealth(0);
 	}
-
-	auto* scriptComponent = entity->GetComponent<ScriptComponent>();
-
-	if (scriptComponent == nullptr)
-	{
-		entity->AddComponent<ScriptComponent>("", false);
-	}
-
-	LOG_DEBUG("NPC has script component? %s", (entity->GetComponent<ScriptComponent>() != nullptr) ? "true" : "false");
 
 	Game::entityManager->ConstructEntity(entity);
 

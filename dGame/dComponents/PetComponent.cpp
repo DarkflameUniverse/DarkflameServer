@@ -29,6 +29,7 @@
 #include "RenderComponent.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "eMissionState.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -439,9 +440,15 @@ void PetComponent::Update(float deltaTime) {
 		}
 	}
 
+	auto* missionComponent = owner->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
+
+	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
+	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
+
 	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
 
-	if (closestTresure != nullptr) {
+	if (closestTresure != nullptr && digUnlocked) {
 		// Skeleton Dragon Pat special case for bone digging
 		if (closestTresure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
 			goto skipTresure;
