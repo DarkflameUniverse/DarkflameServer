@@ -300,7 +300,7 @@ void InventoryComponent::AddItem(
 	}
 }
 
-bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
+bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
 	if (count == 0) {
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
 		return false;
@@ -316,7 +316,7 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
 		if (!item) break;
 		const auto delta = std::min<uint32_t>(left, item->GetCount());
-		item->SetCount(item->GetCount() - delta);
+		item->SetCount(item->GetCount() - delta, silent);
 		left -= delta;
 	}
 	return true;
