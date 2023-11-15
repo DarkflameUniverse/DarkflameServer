@@ -4533,7 +4533,7 @@ void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const System
 
 void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 	bool addImmunity, bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout,
-	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone,
+	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool addedByTeammate, bool applyOnTeammates,
 	const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -4541,27 +4541,29 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::ADD_BUFF);
 
-	bitStream.Write(false); // Added by teammate
-	bitStream.Write(false); // Apply on teammates
-	bitStream.Write(false); // Cancel on damage absorb ran out
+	bitStream.Write(addedByTeammate); // Added by teammate
+	bitStream.Write(applyOnTeammates); // Apply on teammates
 	bitStream.Write(cancelOnDamaged);
 	bitStream.Write(cancelOnDeath);
 	bitStream.Write(cancelOnLogout);
+
 	bitStream.Write(false); // Cancel on move
 	bitStream.Write(cancelOnRemoveBuff);
-
 	bitStream.Write(cancelOnUi);
 	bitStream.Write(cancelOnUnequip);
 	bitStream.Write(cancelOnZone);
+
 	bitStream.Write(false); // Ignore immunities
 	bitStream.Write(addImmunity);
 	bitStream.Write(false); // Use ref count
 
-	bitStream.Write(buffID);
-	bitStream.Write(msDuration);
+	bitStream.Write(casterID != LWOOBJID_EMPTY);
+	if (casterID != LWOOBJID_EMPTY) bitStream.Write(casterID);
 
-	bitStream.Write(casterID);
-	bitStream.Write(casterID);
+	bitStream.Write(buffID);
+
+	bitStream.Write(msDuration != 0);
+	if (msDuration != 0) bitStream.Write(msDuration);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
