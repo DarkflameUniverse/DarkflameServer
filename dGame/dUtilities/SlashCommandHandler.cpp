@@ -276,7 +276,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "credits" || chatCommand == "info") {
-		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/CREDITS.md").string()) : VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() /  "vanity/INFO.md").string());
+		const auto& customText = chatCommand == "credits" ? VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/CREDITS.md").string()) : VanityUtilities::ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/INFO.md").string());
 
 		{
 			AMFArrayValue args;
@@ -1603,6 +1603,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	//Testing basic attack immunity
+	if (chatCommand == "attackimmune" && args.size() >= 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		int32_t state = false;
+
+		if (!GeneralUtils::TryParse(args[0], state)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid state.");
+			return;
+		}
+
+		if (destroyableComponent != nullptr) {
+			destroyableComponent->SetIsImmune(state);
+		}
+
+		return;
+	}
+
 	if (chatCommand == "buff" && args.size() >= 2 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		auto* buffComponent = entity->GetComponent<BuffComponent>();
 
@@ -1953,7 +1971,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "castskill" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
-		if (skillComponent){
+		if (skillComponent) {
 			uint32_t skillId;
 
 			if (!GeneralUtils::TryParse(args[0], skillId)) {
@@ -1970,7 +1988,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		uint32_t skillId;
 		int slot;
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-		if (inventoryComponent){
+		if (inventoryComponent) {
 			if (!GeneralUtils::TryParse(args[0], slot)) {
 				ChatPackets::SendSystemMessage(sysAddr, u"Error getting slot.");
 				return;
@@ -1979,7 +1997,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill.");
 					return;
 				} else {
-					if(inventoryComponent->SetSkill(slot, skillId)) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
+					if (inventoryComponent->SetSkill(slot, skillId)) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
 					else ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot failed");
 				}
 			}
@@ -1988,7 +2006,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "setfaction" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-		if (destroyableComponent){
+		if (destroyableComponent) {
 			int32_t faction;
 
 			if (!GeneralUtils::TryParse(args[0], faction)) {
@@ -2003,7 +2021,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "addfaction" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-		if (destroyableComponent){
+		if (destroyableComponent) {
 			int32_t faction;
 
 			if (!GeneralUtils::TryParse(args[0], faction)) {
@@ -2018,7 +2036,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "getfactions" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-		if (destroyableComponent){
+		if (destroyableComponent) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Friendly factions:");
 			for (const auto entry : destroyableComponent->GetFactionIDs()) {
 				ChatPackets::SendSystemMessage(sysAddr, (GeneralUtils::to_u16string(entry)));

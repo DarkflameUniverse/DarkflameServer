@@ -150,7 +150,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 			listOfBadSegments.emplace_back(position, originalSegment.length());
 		}
 
-		position += segment.length() + 1;
+		position += originalSegment.length() + 1;
 	}
 
 	return listOfBadSegments;

@@ -15,6 +15,10 @@
 #include "Logger.h"
 #include "BinaryPathFinder.h"
 #include "EntityInfo.h"
+#include "Spawner.h"
+#include "dZoneManager.h"
+#include "../dWorldServer/ObjectIDManager.h"
+#include "Level.h"
 
 #include <fstream>
 
@@ -28,6 +32,21 @@ void VanityUtilities::SpawnVanity() {
 	}
 
 	const uint32_t zoneID = Game::server->GetZoneID();
+
+	for (const auto& npc : m_NPCs) {
+		if (npc.m_ID == LWOOBJID_EMPTY) continue;
+		if (npc.m_LOT == 176){
+			Game::zoneManager->RemoveSpawner(npc.m_ID);
+		} else{
+			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
+			if (!entity) continue;
+			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
+		}
+	}
+
+	m_NPCs.clear();
+	m_Parties.clear();
+	m_PartyPhrases.clear();
 
 	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/NPC.xml").string());
 
@@ -53,7 +72,7 @@ void VanityUtilities::SpawnVanity() {
 
 		// Loop through all locations
 		for (const auto& location : party.m_Locations) {
-			rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+		rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 			if (0.75f < rate) {
 				continue;
 			}
@@ -66,10 +85,11 @@ void VanityUtilities::SpawnVanity() {
 			}
 
 			auto& npc = npcList[npcIndex];
-
+			// Skip spawners
+			if (npc.m_LOT == 176) continue;
+			
 			taken.push_back(npcIndex);
 
-			// Spawn the NPC
 			LOG("ldf size is %i", npc.ldf.size());
 			if (npc.ldf.empty()) {
 				npc.ldf = {
@@ -79,13 +99,16 @@ void VanityUtilities::SpawnVanity() {
 			}
 
 			// Spawn the NPC
-			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-			if (!npc.m_Phrases.empty()) {
-				npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
-				SetupNPCTalk(npcEntity);
+			if (npc.m_LOT == 176){
+				npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
+			} else {
+				auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+				if (!npc.m_Phrases.empty()) {
+					npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
+					SetupNPCTalk(npcEntity);
+				}
 			}
 		}
-
 		return;
 	}
 
@@ -111,23 +134,28 @@ void VanityUtilities::SpawnVanity() {
 				new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
 			};
 		}
+		if (npc.m_LOT == 176){
+			npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
+		} else {
+			// Spawn the NPC
+			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
+			if (!npcEntity) continue;
+			npc.m_ID = npcEntity->GetObjectID();
+			if (!npc.m_Phrases.empty()){
+				npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
 
-		// Spawn the NPC
-		auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-		if (!npc.m_Phrases.empty()){
-			npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
+				auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
 
-			auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
+				if (scriptComponent && !npc.m_Script.empty()) {
+					scriptComponent->SetScript(npc.m_Script);
+					scriptComponent->SetSerialized(false);
 
-			if (scriptComponent && !npc.m_Script.empty()) {
-				scriptComponent->SetScript(npc.m_Script);
-				scriptComponent->SetSerialized(false);
-
-				for (const auto& npc : npc.m_Flags) {
-					npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					for (const auto& npc : npc.m_Flags) {
+						npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
+					}
 				}
+				SetupNPCTalk(npcEntity);
 			}
-			SetupNPCTalk(npcEntity);
 		}
 	}
 
@@ -149,81 +177,21 @@ void VanityUtilities::SpawnVanity() {
 	}
 }
 
-#include "Spawner.h"
-#include "../dWorldServer/ObjectIDManager.h"
-#include "dZoneManager.h"
+LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LDFBaseData*>& ldf){
+	SceneObject obj;
+	obj.lot = lot;
+	// guratantee we have no collisions
+	do {
+		obj.id = ObjectIDManager::Instance()->GenerateObjectID();
+	} while(Game::zoneManager->GetSpawner(obj.id));
+	obj.position = position;
+	obj.rotation = rotation;
+	obj.settings = ldf;
+	Level::MakeSpawner(obj);
+	return obj.id;
+}
 
-Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position,
-	const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
-	if (lot == 176) { //Spawner
-		SpawnerInfo spawnInfo = SpawnerInfo();
-		SpawnerNode* node = new SpawnerNode();
-		spawnInfo.templateID = lot;
-		spawnInfo.spawnerID = ObjectIDManager::Instance()->GenerateObjectID();
-		spawnInfo.templateScale = 1.0;
-		node->position = position;
-		node->rotation = rotation;
-		node->config = ldf;
-		spawnInfo.nodes.push_back(node);
-		for (LDFBaseData* data : node->config) {
-			if (data) {
-				if (data->GetKey() == u"spawntemplate") {
-					spawnInfo.templateID = std::stoi(data->GetValueAsString());
-				}
-
-				if (data->GetKey() == u"spawner_node_id") {
-					node->nodeID = std::stoi(data->GetValueAsString());
-				}
-
-				if (data->GetKey() == u"spawner_name") {
-					spawnInfo.name = data->GetValueAsString();
-				}
-
-				if (data->GetKey() == u"max_to_spawn") {
-					spawnInfo.maxToSpawn = std::stoi(data->GetValueAsString());
-				}
-
-				if (data->GetKey() == u"spawner_active_on_load") {
-					spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
-				}
-
-				if (data->GetKey() == u"active_on_load") {
-					spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
-				}
-
-				if (data->GetKey() == u"respawn") {
-					if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
-					{
-						spawnInfo.respawnTime = std::stof(data->GetValueAsString());
-					} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
-					{
-						spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
-					}
-				}
-				if (data->GetKey() == u"spawnsGroupOnSmash") {
-					spawnInfo.spawnsOnSmash = std::stoi(data->GetValueAsString());
-				}
-				if (data->GetKey() == u"spawnNetNameForSpawnGroupOnSmash") {
-					spawnInfo.spawnOnSmashGroupName = data->GetValueAsString();
-				}
-				if (data->GetKey() == u"groupID") { // Load object groups
-					std::string groupStr = data->GetValueAsString();
-					spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
-					spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
-				}
-				if (data->GetKey() == u"no_auto_spawn") {
-					spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
-				}
-				if (data->GetKey() == u"no_timed_spawn") {
-					spawnInfo.noTimedSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
-				}
-				if (data->GetKey() == u"spawnActivator") {
-					spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
-				}
-			}
-		}
-		Game::zoneManager->AddSpawner(spawnInfo.spawnerID, new Spawner(spawnInfo));
-	}
+Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
 	EntityInfo info;
 	info.lot = lot;
 	info.pos = position;

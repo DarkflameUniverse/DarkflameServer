@@ -25,6 +25,7 @@
 |ban|`/ban <username>`|Bans a user from the server.|4|
 |approveproperty|`/approveproperty`|Approves the property the player is currently visiting.|5|
 |mute|`/mute <username> (days) (hours)`|Mute player for the given amount of time. If no time is given, the mute is indefinite.|6|
+|attackimmune|`/attackimmune <value>`|Sets the character's immunity to basic attacks state, where value can be one of "1", to make yourself immune to basic attack damage, or "0" to undo.|8|
 |gmimmune|`/gmimmunve <value>`|Sets the character's GMImmune state, where value can be one of "1", to make yourself immune to damage, or "0" to undo.|8|
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|

@@ -19,6 +19,8 @@
 #include "eObjectBits.h"
 #include "eReplicaComponentType.h"
 #include "eUseItemResponse.h"
+#include "dZoneManager.h"
+#include "ChatPackets.h"
 
 #include "CDBrickIDTableTable.h"
 #include "CDObjectSkillsTable.h"
@@ -292,12 +294,19 @@ void Item::UseNonEquip(Item* item) {
 
 	const auto type = static_cast<eItemType>(info->itemType);
 	if (type == eItemType::MOUNT) {
-		playerInventoryComponent->HandlePossession(this);
-		// TODO Check if mounts are allowed to be spawned
-	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
-		const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
-		if (databasePet.lot != LOT_NULL) {
-			playerInventoryComponent->SpawnPet(this);
+		if (Game::zoneManager->GetMountsAllowed()){
+			playerInventoryComponent->HandlePossession(this);
+		} else {
+			ChatPackets::SendSystemMessage(playerEntity->GetSystemAddress(), u"Mounts are not allowed in this zone");
+		}
+	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY ) {
+		if (Game::zoneManager->GetPetsAllowed()){
+			const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
+			if (databasePet.lot != LOT_NULL) {
+				playerInventoryComponent->SpawnPet(this);
+			}
+		} else {
+			ChatPackets::SendSystemMessage(playerEntity->GetSystemAddress(), u"Pets are not allowed in this zone");
 		}
 		// This precondition response is taken care of in SpawnPet().
 	} else {
@@ -433,7 +442,7 @@ void Item::DisassembleModel() {
 		return;
 	}
 
-	auto* doc = new tinyxml2::XMLDocument();
+	std::unique_ptr<tinyxml2::XMLDocument> doc(new tinyxml2::XMLDocument());
 
 	if (!doc) {
 		return;
