@@ -15,6 +15,17 @@
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
+namespace {
+	std::map<std::string, std::string> BuffFx = {
+		{ "overtime", "OTB_" },
+		{ "max_health", "HEALTH_" },
+		{ "max_imagination", "IMAGINATION_" },
+		{ "max_armor", "ARMOR_" },
+		{ "speed", "SPEED_" },
+		{ "loot", "LOOT_" }
+	};
+}
+
 BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 }
 
@@ -90,51 +101,33 @@ void BuffComponent::Update(float deltaTime) {
 	}
 }
 
+const std::string& GetFxName(const std::string& buffname) {
+	const auto& toReturn = BuffFx[buffname];
+	if (toReturn.empty()) {
+		LOG_DEBUG("No fx name for %s", buffname.c_str());
+	}
+	return toReturn;
+}
+
 void BuffComponent::ApplyBuffFx(uint32_t buffId, const BuffParameter& buff) {
 	std::string fxToPlay;
-	const auto& buffName = buff.name;
-	if (buffName == "overtime") {
-		fxToPlay = "OTB_";
-	} else if (buffName == "max_health") {
-		fxToPlay = "HEALTH_";
-	} else if (buffName == "max_imagination") {
-		fxToPlay = "IMAGINATION_";
-	} else if (buffName == "max_armor") {
-		fxToPlay = "ARMOR_";
-	} else if (buffName == "speed") {
-		fxToPlay = "SPEED_";
-	} else if (buffName == "loot") {
-		fxToPlay = "LOOT_";
-	} else {
-		LOG("%s is not a supported fx", buffName.c_str());
-	}
+	const auto& buffName = GetFxName(buff.name);
+
+	if (buffName.empty()) return;
 
 	fxToPlay += std::to_string(buffId);
-	LOG("Playing %s %i", fxToPlay.c_str(), buff.effectId);
+	LOG_DEBUG("Playing %s %i", fxToPlay.c_str(), buff.effectId);
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), buff.effectId, u"cast", fxToPlay, LWOOBJID_EMPTY, 1.07f, 1.0f, false);
 }
 
 void BuffComponent::RemoveBuffFx(uint32_t buffId, const BuffParameter& buff) {
 	std::string fxToPlay;
-	const auto& buffName = buff.name;
-	if (buffName == "overtime") {
-		fxToPlay = "OTB_";
-	} else if (buffName == "max_health") {
-		fxToPlay = "HEALTH_";
-	} else if (buffName == "max_imagination") {
-		fxToPlay = "IMAGINATION_";
-	} else if (buffName == "max_armor") {
-		fxToPlay = "ARMOR_";
-	} else if (buffName == "speed") {
-		fxToPlay = "SPEED_";
-	} else if (buffName == "loot") {
-		fxToPlay = "LOOT_";
-	} else {
-		LOG("%s is not a supported fx", buffName.c_str());
-	}
+	const auto& buffName = GetFxName(buff.name);
+
+	if (buffName.empty()) return;
 
 	fxToPlay += std::to_string(buffId);
-	LOG("Stopping %s", fxToPlay.c_str());
+	LOG_DEBUG("Stopping %s", fxToPlay.c_str());
 	GameMessages::SendStopFXEffect(m_Parent, false, fxToPlay);
 }
 
