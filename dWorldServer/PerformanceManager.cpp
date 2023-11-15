@@ -1,5 +1,6 @@
 #include "PerformanceManager.h"
-
+#include "CDZoneTableTable.h"
+#include "CDClientManager.h"
 #include "UserManager.h"
 
 #define SOCIAL { lowFrameDelta }
@@ -68,11 +69,30 @@ std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 };
 
 void PerformanceManager::SelectProfile(LWOMAPID mapID) {
-	const auto pair = m_Profiles.find(mapID);
+	// Try to get it from zoneTable
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	if (zoneTable) {
+		const CDZoneTable* zone = zoneTable->Query(mapID);
+		if (zone) {
+			if (zone->serverPhysicsFramerate == "high"){
+				m_CurrentProfile = { highFrameDelta };
+				return;
+			}
+			if (zone->serverPhysicsFramerate == "medium"){
+				m_CurrentProfile = { mediumFrameDelta };
+				return;
+			}
+			if (zone->serverPhysicsFramerate == "low"){
+				m_CurrentProfile = { lowFrameDelta };
+				return;
+			}
+		}
+	}
 
+	// Fall back to hardcoded list and defaults
+	const auto pair = m_Profiles.find(mapID);
 	if (pair == m_Profiles.end()) {
 		m_CurrentProfile = m_DefaultProfile;
-
 		return;
 	}
 

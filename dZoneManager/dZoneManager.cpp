@@ -41,6 +41,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 			Game::entityManager->SetGhostDistanceMax(max + min);
 			Game::entityManager->SetGhostDistanceMin(max);
 			m_PlayerLoseCoinsOnDeath = zone->PlayerLoseCoinsOnDeath;
+			m_DisableSaveLocation = zone->disableSaveLoc;
+			m_MountsAllowed = zone->mountsAllowed;
+			m_PetsAllowed = zone->petsAllowed;
 		}
 	}
 

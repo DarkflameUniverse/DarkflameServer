@@ -31,7 +31,7 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 		entry.smashableMaxDistance = tableData.getFloatField("smashableMaxDistance", -1.0f);
 		UNUSED(entry.mixerProgram = tableData.getStringField("mixerProgram", ""));
 		UNUSED(entry.clientPhysicsFramerate = tableData.getStringField("clientPhysicsFramerate", ""));
-		UNUSED(entry.serverPhysicsFramerate = tableData.getStringField("serverPhysicsFramerate", ""));
+		entry.serverPhysicsFramerate = tableData.getStringField("serverPhysicsFramerate", "");
 		entry.zoneControlTemplate = tableData.getIntField("zoneControlTemplate", -1);
 		entry.widthInChunks = tableData.getIntField("widthInChunks", -1);
 		entry.heightInChunks = tableData.getIntField("heightInChunks", -1);
@@ -40,10 +40,10 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 		entry.fZoneWeight = tableData.getFloatField("fZoneWeight", -1.0f);
 		UNUSED(entry.thumbnail = tableData.getStringField("thumbnail", ""));
 		entry.PlayerLoseCoinsOnDeath = tableData.getIntField("PlayerLoseCoinsOnDeath", -1) == 1 ? true : false;
-		UNUSED(entry.disableSaveLoc = tableData.getIntField("disableSaveLoc", -1) == 1 ? true : false);
+		entry.disableSaveLoc = tableData.getIntField("disableSaveLoc", -1) == 1 ? true : false;
 		entry.teamRadius = tableData.getFloatField("teamRadius", -1.0f);
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
-		UNUSED(entry.mountsAllowed = tableData.getIntField("mountsAllowed", -1) == 1 ? true : false);
+		entry.mountsAllowed = tableData.getIntField("mountsAllowed", -1) == 1 ? true : false;
 
 		this->m_Entries.insert(std::make_pair(entry.zoneID, entry));
 		tableData.nextRow();
