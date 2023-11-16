@@ -67,6 +67,8 @@ public:
 	std::u16string GetName(LWOOBJID playerID);
 	LWOOBJID GetId(const std::u16string& playerName);
 	bool GetIsMuted(PlayerData* data);
+	uint32_t GetMaxNumberOfBestFriends() { return mMaxNumberOfBestFriends; }
+	uint32_t GetMaxNumberOfFriends() { return mMaxNumberOfFriends; }
 
 	std::map<LWOOBJID, PlayerData*>& GetAllPlayerData() { return mPlayers; }
 
@@ -75,5 +77,7 @@ private:
 	std::map<LWOOBJID, PlayerData*> mPlayers;
 	std::vector<TeamData*> mTeams;
 	std::unordered_map<LWOOBJID, std::u16string> mNames;
+	uint32_t mMaxNumberOfBestFriends = 5;
+	uint32_t mMaxNumberOfFriends = 50;
 };
 
