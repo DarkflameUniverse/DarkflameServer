@@ -14,12 +14,12 @@
 #include "dConfig.h"
 
 PlayerContainer::PlayerContainer() {
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), mMaxNumberOfBestFriends);
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), mMaxNumberOfFriends);
+	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), m_MaxNumberOfBestFriends);
+	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), m_MaxNumberOfFriends);
 }
 
 PlayerContainer::~PlayerContainer() {
-	mPlayers.clear();
+	m_Players.clear();
 }
 
 TeamData::TeamData() {
@@ -43,9 +43,9 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	inStream.Read(data->muteExpire);
 	data->sysAddr = packet->systemAddress;
 
-	mNames[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
+	m_Names[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
 
-	mPlayers.insert(std::make_pair(data->playerID, data));
+	m_Players.insert(std::make_pair(data->playerID, data));
 	LOG("Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
@@ -90,7 +90,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	}
 
 	LOG("Removed user: %llu", playerID);
-	mPlayers.erase(playerID);
+	m_Players.erase(playerID);
 
 	auto* insertLog = Database::CreatePreppedStmt("INSERT INTO activity_log (character_id, activity, time, map_id) VALUES (?, ?, ?, ?);");
 
@@ -193,7 +193,7 @@ TeamData* PlayerContainer::CreateLocalTeam(std::vector<LWOOBJID> members) {
 TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 	auto* team = new TeamData();
 
-	team->teamID = ++mTeamIDCounter;
+	team->teamID = ++m_TeamIDCounter;
 	team->leaderID = leader;
 	team->local = local;
 
@@ -378,15 +378,15 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {
-	const auto& pair = mNames.find(playerID);
+	const auto& pair = m_Names.find(playerID);
 
-	if (pair == mNames.end()) return u"";
+	if (pair == m_Names.end()) return u"";
 
 	return pair->second;
 }
 
 LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
-	for (const auto& pair : mNames) {
+	for (const auto& pair : m_Names) {
 		if (pair.second == playerName) {
 			return pair.first;
 		}

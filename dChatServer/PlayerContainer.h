@@ -39,13 +39,13 @@ public:
 	void BroadcastMuteUpdate(LWOOBJID player, time_t time);
 
 	PlayerData* GetPlayerData(const LWOOBJID& playerID) {
-		auto it = mPlayers.find(playerID);
-		if (it != mPlayers.end()) return it->second;
+		auto it = m_Players.find(playerID);
+		if (it != m_Players.end()) return it->second;
 		return nullptr;
 	}
 
 	PlayerData* GetPlayerData(const std::string& playerName) {
-		for (auto player : mPlayers) {
+		for (auto player : m_Players) {
 			if (player.second) {
 				std::string pn = player.second->playerName.c_str();
 				if (pn == playerName) return player.second;
@@ -67,17 +67,17 @@ public:
 	std::u16string GetName(LWOOBJID playerID);
 	LWOOBJID GetId(const std::u16string& playerName);
 	bool GetIsMuted(PlayerData* data);
-	uint32_t GetMaxNumberOfBestFriends() { return mMaxNumberOfBestFriends; }
-	uint32_t GetMaxNumberOfFriends() { return mMaxNumberOfFriends; }
+	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
+	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
 
-	std::map<LWOOBJID, PlayerData*>& GetAllPlayerData() { return mPlayers; }
+	std::map<LWOOBJID, PlayerData*>& GetAllPlayerData() { return m_Players; }
 
 private:
-	LWOOBJID mTeamIDCounter = 0;
-	std::map<LWOOBJID, PlayerData*> mPlayers;
+	LWOOBJID m_TeamIDCounter = 0;
+	std::map<LWOOBJID, PlayerData*> m_Players;
 	std::vector<TeamData*> mTeams;
-	std::unordered_map<LWOOBJID, std::u16string> mNames;
-	uint32_t mMaxNumberOfBestFriends = 5;
-	uint32_t mMaxNumberOfFriends = 50;
+	std::unordered_map<LWOOBJID, std::u16string> m_Names;
+	uint32_t m_MaxNumberOfBestFriends = 5;
+	uint32_t m_MaxNumberOfFriends = 50;
 };
 
