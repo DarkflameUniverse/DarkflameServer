@@ -228,9 +228,9 @@ Player* Player::GetPlayer(const std::string& name) {
 
 	for (auto* character : characters) {
 		if (!character->IsPlayer()) continue;
-
-		if (character->GetCharacter()->GetName() == name) {
-			return static_cast<Player*>(character);
+		
+		if (GeneralUtils::CaseInsensitiveStringCompare(name, character->GetCharacter()->GetName())) {
+			return dynamic_cast<Player*>(character);
 		}
 	}
 

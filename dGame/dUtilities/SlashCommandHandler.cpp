@@ -478,9 +478,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "kill" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Brutally murdering that player, if online on this server.");
 
-		auto* user = UserManager::Instance()->GetUser(args[0]);
-		if (user) {
-			auto* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
+		auto* player = Player::GetPlayer(args[0]);
+		if (player) {
 			player->Smash(entity->GetObjectID());
 			ChatPackets::SendSystemMessage(sysAddr, u"It has been done, do you feel good about yourself now?");
 			return;
@@ -1096,7 +1095,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 			} else {
 				accountId = player->GetParentUser()->GetAccountID();
-				characterId = player->GetCharacter()->GetID();
+				characterId = player->GetObjectID();
 			}
 
 			auto* userUpdate = Database::CreatePreppedStmt("UPDATE accounts SET mute_expire = ? WHERE id = ?;");

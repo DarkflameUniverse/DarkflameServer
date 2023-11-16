@@ -12,6 +12,7 @@ namespace ClientPackets {
 	void HandleChatMessage(const SystemAddress& sysAddr, Packet* packet);
 	void HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet);
 	void HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet);
+	void SendTop5HelpIssues(Packet* packet);
 };
 
 #endif // CLIENTPACKETS_H

@@ -207,7 +207,7 @@ public:
 	/**
 	 * Disassembles this item into bricks
 	 */
-	void DisassembleModel();
+	void DisassembleModel(uint32_t numToDismantle);
 
 	/**
 	 * Removes the item from the linked inventory
