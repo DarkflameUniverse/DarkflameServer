@@ -1237,6 +1237,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
+
+	case eWorldMessageType::UI_HELP_TOP_5: {
+		ClientPackets::SendTop5HelpIssues(packet);
+		break;
+	}
+
 	default:
 		LOG("Unknown world packet received: %i", int(packet->data[3]));
 	}
