@@ -1,5 +1,4 @@
 #include "CDFeatureGatingTable.h"
-#include "dConfig.h"
 
 void CDFeatureGatingTable::LoadValuesFromDatabase() {
 
