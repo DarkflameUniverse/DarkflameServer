@@ -721,6 +721,10 @@ void ChatPacketHandler::HandleGuildLeave(Packet* packet){
 	Game::logger->Log("ChatPacketHandler", "HandleGuildLeave %llu", playerID);
 }
 
+void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
+	
+}
+
 void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);

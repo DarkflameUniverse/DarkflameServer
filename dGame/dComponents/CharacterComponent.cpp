@@ -41,6 +41,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 
+	
 	m_GuildID = 0;
 	m_GuildName = u"";
 }
@@ -753,3 +754,5 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	arrayToSend.Insert(ventureVisionType, showFaction);
 	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }
+
+

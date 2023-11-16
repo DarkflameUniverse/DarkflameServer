@@ -304,11 +304,11 @@ void HandlePacket(Packet* packet) {
 
 		// Guild messages
 		case eChatMessageType::GUILD_CREATE:
-			Game::logger->Log("ChatServer", "GUILD_CREATE");
+			LOG("GUILD_CREATE");
 			break;
 
 		case eChatMessageType::GUILD_INVITE_RESPONSE:
-			Game::logger->Log("ChatServer", "GUILD_INVITE_RESPONSE");
+			LOG("GUILD_INVITE_RESPONSE");
 			break;
 
 		case eChatMessageType::GUILD_LEAVE:
@@ -316,15 +316,15 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GUILD_KICK:
-			Game::logger->Log("ChatServer", "GUILD_KICK");
+			LOG("GUILD_KICK");
 			break;
 
 		case eChatMessageType::GUILD_GET_STATUS:
-			Game::logger->Log("ChatServer", "GUILD_GET_STATUS");
+			LOG("GUILD_GET_STATUS");
 			break;
 
 		case eChatMessageType::GUILD_GET_ALL:
-			Game::logger->Log("ChatServer", "GUILD_GET_ALL");
+			LOG("GUILD_GET_ALL");
 			break;
 
 		default:

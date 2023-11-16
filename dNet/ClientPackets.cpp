@@ -432,12 +432,12 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	delete res;
 	delete stmt;
 
-	// if (!Game::chatFilter->IsSentenceOkay(guildName, 1).empty()) {
-	// 	Game::logger->Log("ClientPackets", "But they used bad words!");
-	// 	auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
-	// 	SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_BAD_NAME, LWOOBJID_EMPTY, usedName);
-	// 	return;
-	// }
+	if (!Game::chatFilter->IsSentenceOkay(guildName, character->GetGMLevel()).empty()) {
+		Game::logger->Log("ClientPackets", "But they used bad words!");
+		auto usedName = GeneralUtils::UTF8ToUTF16(guildName);
+		SendGuildCreateResponse(sysAddr, eGuildCreationResponse::REJECTED_BAD_NAME, LWOOBJID_EMPTY, usedName);
+		return;
+	}
 
 	auto entity = character->GetEntity();
 	if (!entity) return;
@@ -452,9 +452,9 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 	}
 
 	auto creation = (uint32_t)time(nullptr);
-
+	LOG("Creating Guild");
 	// If not, insert our newly created guild:
-	auto insertGuild = Database::CreatePreppedStmt("INSERT INTO `guilds`(`name`, `owner_id`, `uscore`, `created`) VALUES (?,?,?,?)");
+	auto insertGuild = Database::CreatePreppedStmt("INSERT INTO `guilds`(`name`, `owner_id`, `reputation`, `created`) VALUES (?,?,?,?)");
 	insertGuild->setString(1, guildName.c_str());
 	insertGuild->setUInt(2, character->GetID());
 	insertGuild->setUInt(3, characterComp->GetUScore());

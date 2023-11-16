@@ -204,7 +204,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 
 	// Event Gating
 	packet.Write(LUString("Talk_Like_A_Pirate"));
-	packet.Write(LUString(""));
+	packet.Write(LUString("guilds"));
 	packet.Write(LUString(""));
 	packet.Write(LUString(""));
 	packet.Write(LUString(""));

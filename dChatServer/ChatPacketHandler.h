@@ -24,6 +24,8 @@ namespace ChatPacketHandler {
 	void HandleTeamStatusRequest(Packet* packet);
 
 	void HandleGuildLeave(Packet* packet);
+	void HandleGuildGetAll(Packet* packet);
+
 
 	void SendTeamInvite(PlayerData* receiver, PlayerData* sender);
 	void SendTeamInviteConfirm(PlayerData* receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName);
