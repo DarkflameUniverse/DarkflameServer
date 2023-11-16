@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <map>
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -41,7 +42,7 @@ struct Buff
  */
 class BuffComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_BUFF;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
 	explicit BuffComponent(Entity* parent);
 
@@ -53,7 +54,7 @@ public:
 
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
 

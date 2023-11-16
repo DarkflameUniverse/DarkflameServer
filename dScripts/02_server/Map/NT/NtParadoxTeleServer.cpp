@@ -2,6 +2,9 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
+#include "RenderComponent.h"
+#include "eStateChangeType.h"
 
 void NtParadoxTeleServer::OnStartup(Entity* self) {
 	self->SetProximityRadius(5, "teleport");
@@ -22,16 +25,15 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 	const auto bPlayerBeingTeleported = m_TeleportingPlayerTable[playerID];
 
 	if (player->IsPlayer() && !bPlayerBeingTeleported) {
-		GameMessages::SendSetStunned(playerID, PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
+		GameMessages::SendSetStunned(playerID, eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
 			true, true, true, true, true, true, true
 		);
 
-		GameMessages::SendPlayAnimation(player, u"teledeath", 4.0f);
-
-		const auto animTime = 2;
+		auto animTime = RenderComponent::PlayAnimation(player, u"teledeath", 4.0f);
+		if (animTime == 0.0f) animTime = 2.0f;
 
 		self->AddCallbackTimer(animTime, [this, self, playerID]() {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				return;
@@ -44,7 +46,7 @@ void NtParadoxTeleServer::OnProximityUpdate(Entity* self, Entity* entering, std:
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 }
 
@@ -53,7 +55,7 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 	auto* destination = self;
 
 	if (!destinationGroup.empty()) {
-		const auto& groupObjs = EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
+		const auto& groupObjs = Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(destinationGroup));
 
 		if (!groupObjs.empty()) {
 			destination = groupObjs[0];
@@ -72,14 +74,14 @@ void NtParadoxTeleServer::TeleportPlayer(Entity* self, Entity* player) {
 
 	GameMessages::SendTeleport(player->GetObjectID(), destPosition, destRotation, player->GetSystemAddress(), true);
 
-	GameMessages::SendPlayAnimation(player, u"paradox-teleport-in", 4.0f);
+	RenderComponent::PlayAnimation(player, u"paradox-teleport-in", 4.0f);
 
 	const auto animTime = 2;
 
 	const auto playerID = player->GetObjectID();
 
 	self->AddCallbackTimer(animTime, [this, self, playerID]() {
-		auto* player = EntityManager::Instance()->GetEntity(playerID);
+		auto* player = Game::entityManager->GetEntity(playerID);
 
 		if (player == nullptr) {
 			return;
@@ -100,7 +102,7 @@ void NtParadoxTeleServer::UnlockPlayer(Entity* self, Entity* player) {
 
 	m_TeleportingPlayerTable[playerID] = false;
 
-	GameMessages::SendSetStunned(playerID, POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(playerID, eStateChangeType::POP, player->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 

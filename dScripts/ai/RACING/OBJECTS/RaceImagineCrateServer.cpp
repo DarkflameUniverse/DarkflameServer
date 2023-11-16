@@ -3,9 +3,10 @@
 #include "EntityManager.h"
 #include "PossessableComponent.h"
 #include "RaceImagineCrateServer.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "MissionComponent.h"
 #include "SkillComponent.h"
+#include "eMissionTaskType.h"
 
 void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 	if (self->GetVar<bool>(u"bIsDead")) {
@@ -29,14 +30,14 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 	if (destroyableComponent != nullptr) {
 		destroyableComponent->SetImagination(60);
 
-		EntityManager::Instance()->SerializeEntity(killer);
+		Game::entityManager->SerializeEntity(killer);
 	}
 
 	// Find possessor of race car to progress missions and update stats.
 	auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
-		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
 			auto* missionComponent = possessor->GetComponent<MissionComponent>();
@@ -49,7 +50,7 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 
 			// Progress racing smashable missions
 			if (missionComponent == nullptr) return;
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
+			missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::SMASHABLES);
 		}
 	}
 }

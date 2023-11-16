@@ -5,18 +5,19 @@
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 #include "Item.h"
+#include "eMissionState.h"
 
-void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* character = target->GetCharacter();
 	auto* missionComponent = target->GetComponent<MissionComponent>();
 	auto* inventoryComponent = target->GetComponent<InventoryComponent>();
 
 	const auto state = missionComponent->GetMissionState(320);
-	if (missionID == 768 && missionState == MissionState::MISSION_STATE_AVAILABLE) {
+	if (missionID == 768 && missionState == eMissionState::AVAILABLE) {
 		if (!character->GetPlayerFlag(71)) {
 			// TODO: Cinematic "MissionCam"
 		}
-	} else if (missionID == 768 && missionState >= MissionState::MISSION_STATE_READY_TO_COMPLETE) {
+	} else if (missionID == 768 && missionState >= eMissionState::READY_TO_COMPLETE) {
 		//remove the inventory items
 		for (int item : gearSets) {
 			auto* id = inventoryComponent->FindItemByLot(item);
@@ -27,13 +28,13 @@ void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionI
 			}
 		}
 	} else if (
-		(missionID == 320 && state == MissionState::MISSION_STATE_AVAILABLE) /*||
-		(state == MissionState::MISSION_STATE_COMPLETE && missionID == 891 && missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE)*/
+		(missionID == 320 && state == eMissionState::AVAILABLE) /*||
+		(state == eMissionState::COMPLETE && missionID == 891 && missionState == eMissionState::READY_TO_COMPLETE)*/
 		) {
-		//GameMessages::SendNotifyClientObject(EntityManager::Instance()->GetZoneControlEntity()->GetObjectID(), u"GuardChat", target->GetObjectID(), 0, target->GetObjectID(), "", target->GetSystemAddress());
+		//GameMessages::SendNotifyClientObject(Game::entityManager->GetZoneControlEntity()->GetObjectID(), u"GuardChat", target->GetObjectID(), 0, target->GetObjectID(), "", target->GetSystemAddress());
 
 		target->GetCharacter()->SetPlayerFlag(113, true);
 
-		EntityManager::Instance()->GetZoneControlEntity()->AddTimer("GuardFlyAway", 1.0f);
+		Game::entityManager->GetZoneControlEntity()->AddTimer("GuardFlyAway", 1.0f);
 	}
 }

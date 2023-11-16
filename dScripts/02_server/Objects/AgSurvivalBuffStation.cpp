@@ -53,7 +53,7 @@ void AgSurvivalBuffStation::OnTimerDone(Entity* self, std::string timerName) {
 	}
 	auto team = self->GetVar<std::vector<LWOOBJID>>(u"BuilderTeam");
 	for (auto memberID : team) {
-		auto member = EntityManager::Instance()->GetEntity(memberID);
+		auto member = Game::entityManager->GetEntity(memberID);
 		if (member != nullptr && !member->GetIsDead()) {
 			GameMessages::SendDropClientLoot(member, self->GetObjectID(), powerupToDrop, 0, self->GetPosition());
 		} else {

@@ -2,17 +2,18 @@
 #include <string>
 #include "Game.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
-#include "dMessageIdentifiers.h"
 #include "MasterPackets.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "BinaryPathFinder.h"
+#include "eConnectionType.h"
+#include "eMasterMessageType.h"
 
-InstanceManager::InstanceManager(dLogger* logger, const std::string& externalIP) {
+InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
 	m_LastPort = std::atoi(Game::config->GetValue("world_port_start").c_str());
@@ -27,10 +28,18 @@ InstanceManager::~InstanceManager() {
 }
 
 Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
-	mLogger->Log("InstanceManager", "Searching for an instance for mapID %i/%i", mapID, cloneID);
+	LOG("Searching for an instance for mapID %i/%i", mapID, cloneID);
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
+	// If we are shutting down, return a nullptr so a new instance is not created.
+	if (m_IsShuttingDown) {
+		LOG("Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
+	}
 	//TODO: Update this so that the IP is read from a configuration file instead
 
 	int softCap = 8;
@@ -79,9 +88,9 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	m_Instances.push_back(instance);
 
 	if (instance) {
-		mLogger->Log("InstanceManager", "Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
+		LOG("Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
 		return instance;
-	} else mLogger->Log("InstanceManager", "Failed to create a new instance!");
+	} else LOG("Failed to create a new instance!");
 
 	return nullptr;
 }
@@ -169,7 +178,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 	for (const auto& request : pending) {
 		const auto& zoneId = instance->GetZoneID();
 
-		Game::logger->Log("InstanceManager", "Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
+		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,
@@ -192,13 +201,13 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	CBITSTREAM;
 
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_AFFIRM_TRANSFER_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
 
 	Game::server->Send(&bitStream, instance->GetSysAddr(), false);
 
-	Game::logger->Log("MasterServer", "Sent affirmation request %llu to %i/%i", request.id,
+	LOG("Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
 		static_cast<int>(instance->GetZoneID().GetCloneID())
 	);
@@ -238,7 +247,7 @@ void InstanceManager::RedirectPendingRequests(Instance* instance) {
 	for (const auto& request : instance->GetPendingAffirmations()) {
 		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
 
-		if (!in->GetIsReady()) // Instance not ready, make a pending request
+		if (in && !in->GetIsReady()) // Instance not ready, make a pending request
 		{
 			in->GetPendingRequests().push_back(request);
 
@@ -295,6 +304,14 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 		return instance;
 	}
 
+	if (m_IsShuttingDown) {
+		LOG("Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		mapID,
+		m_LastInstanceID + 1,
+		cloneID);
+		return nullptr;
+	}
+
 	int maxPlayers = 999;
 
 	uint32_t port = GetFreePort();
@@ -327,7 +344,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	m_Instances.push_back(instance);
 
 	if (instance) return instance;
-	else mLogger->Log("InstanceManager", "Failed to create a new instance!");
+	else LOG("Failed to create a new instance!");
 
 	return instance;
 }
@@ -340,7 +357,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 			continue;
 		}
 
-		mLogger->Log("InstanceManager", "Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
+		LOG("Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
 
 		if (instance->GetPassword() == password) {
 			return instance;
@@ -351,7 +368,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -364,7 +381,7 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -387,9 +404,9 @@ bool Instance::GetShutdownComplete() const {
 void Instance::Shutdown() {
 	CBITSTREAM;
 
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_SHUTDOWN);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 
 	Game::server->Send(&bitStream, this->m_SysAddr, false);
 
-	Game::logger->Log("Instance", "Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
+	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }

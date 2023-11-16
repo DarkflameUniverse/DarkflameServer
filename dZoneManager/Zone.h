@@ -1,40 +1,28 @@
 #pragma once
+
 #include "dZMCommon.h"
 #include "LDFFormat.h"
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 #include <string>
 #include <vector>
 #include <map>
 
-class Level;
-
-class LUTriggers {
-public:
-
-	struct Command {
-		std::string id;
-		std::string target;
-		std::string targetName;
-		std::string args;
-	};
-
-	struct Event {
-		std::string eventID;
-		std::vector<Command*> commands;
-	};
-
-	struct Trigger {
-		uint32_t id;
-		bool enabled;
-		std::vector<Event*> events;
-	};
+namespace LUTriggers {
+	struct Trigger;
 };
+
+class Level;
 
 struct SceneRef {
 	std::string filename;
 	uint32_t id;
 	uint32_t sceneType; //0 = general, 1 = audio?
 	std::string name;
+	NiPoint3 unknown1;
+	float unknown2;
+	uint8_t color_r;
+	uint8_t color_g;
+	uint8_t color_b;
 	Level* level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
@@ -47,6 +35,7 @@ struct SceneTransitionInfo {
 struct SceneTransition {
 	std::string name;
 	std::vector<SceneTransitionInfo> points;
+	float width;
 };
 
 struct MovingPlatformPathWaypoint {
@@ -110,14 +99,14 @@ enum class PropertyPathType : int32_t {
 	GenetatedRectangle = 2
 };
 
-enum class PropertyType : int32_t{
+enum class PropertyType : int32_t {
 	Premiere = 0,
-    Prize = 1,
-    LUP = 2,
-    Headspace = 3
+	Prize = 1,
+	LUP = 2,
+	Headspace = 3
 };
 
-enum class PropertyRentalTimeUnit : int32_t {
+enum class PropertyRentalPeriod : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -128,7 +117,7 @@ enum class PropertyRentalTimeUnit : int32_t {
 	Years = 7
 };
 
-enum class PropertyAchievmentRequired : int32_t {
+enum class PropertyAchievmentRequired : uint32_t {
 	None = 0,
 	Builder = 1,
 	Craftsman = 2,
@@ -150,13 +139,14 @@ struct MovingPlatformPath {
 struct PropertyPath {
 	PropertyPathType pathType;
 	int32_t price;
-	PropertyRentalTimeUnit rentalTimeUnit;
+	uint32_t rentalTime;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
-	int32_t cloneLimit;
+	uint32_t cloneLimit;
 	float repMultiplier;
+	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
@@ -193,15 +183,17 @@ struct Path {
 
 class Zone {
 public:
-	enum class ZoneFileFormatVersion : uint32_t { //Times are guessed.
-		PreAlpha = 0x20,
-		EarlyAlpha = 0x23,
-		Alpha = 0x24,
-		LateAlpha = 0x25,
-		Beta = 0x26,
-		Launch = 0x27,
-		Auramar = 0x28,
-		Latest = 0x29
+	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		PrePreAlpha = 30,
+		PreAlpha = 32,
+		LatePreAlpha = 33,
+		EarlyAlpha = 35,
+		Alpha = 36,
+		LateAlpha = 37,
+		Beta = 38,
+		Launch = 39,
+		Auramar = 40,
+		Latest = 41
 	};
 
 public:
@@ -222,7 +214,7 @@ public:
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
-	std::string GetZoneRawPath() const { return m_ZoneRawPath;}
+	std::string GetZoneRawPath() const { return m_ZoneRawPath; }
 	std::string GetZonePath() const { return m_ZonePath; }
 
 	const NiPoint3& GetSpawnPos() const { return m_Spawnpoint; }
@@ -237,7 +229,7 @@ private:
 	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
-	ZoneFileFormatVersion m_ZoneFileFormatVersion;
+	FileFormatVersion m_FileFormatVersion;
 	uint32_t m_CheckSum;
 	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;
@@ -254,7 +246,7 @@ private:
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;
- 	std::vector<Path> m_Paths;
+	std::vector<Path> m_Paths;
 
 	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
 

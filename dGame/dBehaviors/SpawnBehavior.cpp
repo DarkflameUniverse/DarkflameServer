@@ -4,21 +4,24 @@
 #include "BehaviorBranchContext.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "DestroyableComponent.h"
 #include "RebuildComponent.h"
+#include "Entity.h"
+#include "EntityInfo.h"
+#include "eReplicaComponentType.h"
 
 void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* origin = EntityManager::Instance()->GetEntity(context->originator);
+	auto* origin = Game::entityManager->GetEntity(context->originator);
 
 	if (origin == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to find self entity (%llu)!", context->originator);
+		LOG("Failed to find self entity (%llu)!", context->originator);
 
 		return;
 	}
 
 	if (branch.isProjectile) {
-		auto* target = EntityManager::Instance()->GetEntity(branch.target);
+		auto* target = Game::entityManager->GetEntity(branch.target);
 
 		if (target != nullptr) {
 			origin = target;
@@ -35,14 +38,14 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	info.spawnerNodeID = 0;
 	info.pos = info.pos + (info.rot.GetForwardVector() * m_Distance);
 
-	auto* entity = EntityManager::Instance()->CreateEntity(
+	auto* entity = Game::entityManager->CreateEntity(
 		info,
 		nullptr,
-		EntityManager::Instance()->GetEntity(context->originator)
+		Game::entityManager->GetEntity(context->originator)
 	);
 
 	if (entity == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to spawn entity (%i)!", this->m_lot);
+		LOG("Failed to spawn entity (%i)!", this->m_lot);
 
 		return;
 	}
@@ -56,7 +59,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 		rebuildComponent->SetRepositionPlayer(false);
 	}
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	if (branch.duration > 0) {
 		context->RegisterTimerBehavior(this, branch, entity->GetObjectID());
@@ -76,15 +79,15 @@ void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitSt
 }
 
 void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext branch, const LWOOBJID second) {
-	auto* entity = EntityManager::Instance()->GetEntity(second);
+	auto* entity = Game::entityManager->GetEntity(second);
 
 	if (entity == nullptr) {
-		Game::logger->Log("SpawnBehavior", "Failed to find spawned entity (%llu)!", second);
+		LOG("Failed to find spawned entity (%llu)!", second);
 
 		return;
 	}
 
-	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 
 	if (destroyable == nullptr) {
 		entity->Smash(context->originator);

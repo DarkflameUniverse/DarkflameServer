@@ -4,7 +4,7 @@
 #include <ctime>
 
 #include "CDClientManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
@@ -105,9 +105,7 @@ bool PrerequisiteExpression::Execute(const std::unordered_map<uint32_t, Mission*
 
 			if (this->sub != 0) {
 				// Special case for one Wisp Lee repeatable mission.
-				a = mission->GetClientInfo().id == 1883 ?
-					mission->GetMissionState() == static_cast<MissionState>(this->sub) :
-					mission->GetMissionState() >= static_cast<MissionState>(this->sub);
+				a = mission->GetMissionState() == static_cast<eMissionState>(this->sub);
 			} else if (mission->IsComplete()) {
 				a = true;
 			}
@@ -163,7 +161,7 @@ bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::uno
 		return index->second->Execute(missions);
 	}
 
-	auto* missionsTable = CDClientManager::Instance()->GetTable<CDMissionsTable>("Missions");
+	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
 	const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
 		});

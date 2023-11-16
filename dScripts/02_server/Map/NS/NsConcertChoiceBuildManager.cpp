@@ -1,4 +1,5 @@
 #include "NsConcertChoiceBuildManager.h"
+#include "EntityInfo.h"
 #include "EntityManager.h"
 
 const std::vector<Crate> NsConcertChoiceBuildManager::crates{
@@ -39,8 +40,8 @@ void NsConcertChoiceBuildManager::SpawnCrate(Entity* self) {
 		new LDFData<float>(u"crateTime", crate.time),
 	};
 
-	auto* spawnedCrate = EntityManager::Instance()->CreateEntity(info);
-	EntityManager::Instance()->ConstructEntity(spawnedCrate);
+	auto* spawnedCrate = Game::entityManager->CreateEntity(info);
+	Game::entityManager->ConstructEntity(spawnedCrate);
 
 	spawnedCrate->AddDieCallback([self]() {
 		self->CancelAllTimers(); // Don't switch if the crate was smashed
@@ -55,7 +56,7 @@ void NsConcertChoiceBuildManager::SpawnCrate(Entity* self) {
 	self->AddCallbackTimer(crate.time, [self]() {
 		auto crateID = self->GetVar<LWOOBJID>(u"currentCrate");
 		if (crateID != LWOOBJID_EMPTY) {
-			EntityManager::Instance()->DestroyEntity(crateID);
+			Game::entityManager->DestroyEntity(crateID);
 			self->SetVar<LWOOBJID>(u"currentCrate", LWOOBJID_EMPTY);
 		}
 

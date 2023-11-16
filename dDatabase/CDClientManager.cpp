@@ -1,46 +1,90 @@
 #include "CDClientManager.h"
+#include "CDActivityRewardsTable.h"
+#include "CDAnimationsTable.h"
+#include "CDBehaviorParameterTable.h"
+#include "CDBehaviorTemplateTable.h"
+#include "CDComponentsRegistryTable.h"
+#include "CDCurrencyTableTable.h"
+#include "CDDestructibleComponentTable.h"
+#include "CDEmoteTable.h"
+#include "CDInventoryComponentTable.h"
+#include "CDItemComponentTable.h"
+#include "CDItemSetsTable.h"
+#include "CDItemSetSkillsTable.h"
+#include "CDLevelProgressionLookupTable.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
+#include "CDMissionNPCComponentTable.h"
+#include "CDMissionTasksTable.h"
+#include "CDMissionsTable.h"
+#include "CDObjectSkillsTable.h"
+#include "CDObjectsTable.h"
+#include "CDPhysicsComponentTable.h"
+#include "CDRebuildComponentTable.h"
+#include "CDScriptComponentTable.h"
+#include "CDSkillBehaviorTable.h"
+#include "CDZoneTableTable.h"
+#include "CDVendorComponentTable.h"
+#include "CDActivitiesTable.h"
+#include "CDPackageComponentTable.h"
+#include "CDProximityMonitorComponentTable.h"
+#include "CDMovementAIComponentTable.h"
+#include "CDBrickIDTableTable.h"
+#include "CDRarityTableTable.h"
+#include "CDMissionEmailTable.h"
+#include "CDRewardsTable.h"
+#include "CDPropertyEntranceComponentTable.h"
+#include "CDPropertyTemplateTable.h"
+#include "CDFeatureGatingTable.h"
+#include "CDRailActivatorComponent.h"
 
-// Static Variables
-CDClientManager* CDClientManager::m_Address = nullptr;
+// Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
+// A vanilla CDClient takes about 46MB of memory + the regular world data.
+// #define CDCLIENT_CACHE_ALL
 
-//! Initializes the manager
-void CDClientManager::Initialize(void) {
-	tables.insert(std::make_pair("ActivityRewards", new CDActivityRewardsTable()));
-	UNUSED(tables.insert(std::make_pair("Animations", new CDAnimationsTable())));
-	tables.insert(std::make_pair("BehaviorParameter", new CDBehaviorParameterTable()));
-	tables.insert(std::make_pair("BehaviorTemplate", new CDBehaviorTemplateTable()));
-	tables.insert(std::make_pair("ComponentsRegistry", new CDComponentsRegistryTable()));
-	tables.insert(std::make_pair("CurrencyTable", new CDCurrencyTableTable()));
-	tables.insert(std::make_pair("DestructibleComponent", new CDDestructibleComponentTable()));
-	tables.insert(std::make_pair("EmoteTable", new CDEmoteTableTable()));
-	tables.insert(std::make_pair("InventoryComponent", new CDInventoryComponentTable()));
-	tables.insert(std::make_pair("ItemComponent", new CDItemComponentTable()));
-	tables.insert(std::make_pair("ItemSets", new CDItemSetsTable()));
-	tables.insert(std::make_pair("ItemSetSkills", new CDItemSetSkillsTable()));
-	tables.insert(std::make_pair("LevelProgressionLookup", new CDLevelProgressionLookupTable()));
-	tables.insert(std::make_pair("LootMatrix", new CDLootMatrixTable()));
-	tables.insert(std::make_pair("LootTable", new CDLootTableTable()));
-	tables.insert(std::make_pair("MissionNPCComponent", new CDMissionNPCComponentTable()));
-	tables.insert(std::make_pair("MissionTasks", new CDMissionTasksTable()));
-	tables.insert(std::make_pair("Missions", new CDMissionsTable()));
-	tables.insert(std::make_pair("ObjectSkills", new CDObjectSkillsTable()));
-	tables.insert(std::make_pair("Objects", new CDObjectsTable()));
-	tables.insert(std::make_pair("PhysicsComponent", new CDPhysicsComponentTable()));
-	tables.insert(std::make_pair("RebuildComponent", new CDRebuildComponentTable()));
-	tables.insert(std::make_pair("ScriptComponent", new CDScriptComponentTable()));
-	tables.insert(std::make_pair("SkillBehavior", new CDSkillBehaviorTable()));
-	tables.insert(std::make_pair("ZoneTable", new CDZoneTableTable()));
-	tables.insert(std::make_pair("VendorComponent", new CDVendorComponentTable()));
-	tables.insert(std::make_pair("Activities", new CDActivitiesTable()));
-	tables.insert(std::make_pair("PackageComponent", new CDPackageComponentTable()));
-	tables.insert(std::make_pair("ProximityMonitorComponent", new CDProximityMonitorComponentTable()));
-	tables.insert(std::make_pair("MovementAIComponent", new CDMovementAIComponentTable()));
-	tables.insert(std::make_pair("BrickIDTable", new CDBrickIDTableTable()));
-	tables.insert(std::make_pair("RarityTable", new CDRarityTableTable()));
-	tables.insert(std::make_pair("MissionEmail", new CDMissionEmailTable()));
-	tables.insert(std::make_pair("Rewards", new CDRewardsTable()));
-	tables.insert(std::make_pair("PropertyEntranceComponent", new CDPropertyEntranceComponentTable()));
-	tables.insert(std::make_pair("PropertyTemplate", new CDPropertyTemplateTable()));
-	tables.insert(std::make_pair("FeatureGating", new CDFeatureGatingTable()));
-	tables.insert(std::make_pair("RailActivatorComponent", new CDRailActivatorComponentTable()));
+#ifdef CDCLIENT_CACHE_ALL
+	#define CDCLIENT_DONT_CACHE_TABLE(x) x
+#else
+	#define CDCLIENT_DONT_CACHE_TABLE(x)
+#endif
+
+CDClientManager::CDClientManager() {
+	CDActivityRewardsTable::Instance().LoadValuesFromDatabase();
+	CDActivitiesTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDAnimationsTable::Instance().LoadValuesFromDatabase());
+	CDBehaviorParameterTable::Instance().LoadValuesFromDatabase();
+	CDBehaviorTemplateTable::Instance().LoadValuesFromDatabase();
+	CDBrickIDTableTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDComponentsRegistryTable::Instance().LoadValuesFromDatabase());
+	CDCurrencyTableTable::Instance().LoadValuesFromDatabase();
+	CDDestructibleComponentTable::Instance().LoadValuesFromDatabase();
+	CDEmoteTableTable::Instance().LoadValuesFromDatabase();
+	CDFeatureGatingTable::Instance().LoadValuesFromDatabase();
+	CDInventoryComponentTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDItemComponentTable::Instance().LoadValuesFromDatabase());
+	CDItemSetSkillsTable::Instance().LoadValuesFromDatabase();
+	CDItemSetsTable::Instance().LoadValuesFromDatabase();
+	CDLevelProgressionLookupTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDLootMatrixTable::Instance().LoadValuesFromDatabase());
+	CDCLIENT_DONT_CACHE_TABLE(CDLootTableTable::Instance().LoadValuesFromDatabase());
+	CDMissionEmailTable::Instance().LoadValuesFromDatabase();
+	CDMissionNPCComponentTable::Instance().LoadValuesFromDatabase();
+	CDMissionTasksTable::Instance().LoadValuesFromDatabase();
+	CDMissionsTable::Instance().LoadValuesFromDatabase();
+	CDMovementAIComponentTable::Instance().LoadValuesFromDatabase();
+	CDObjectSkillsTable::Instance().LoadValuesFromDatabase();
+	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
+	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
+	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
+	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
+	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
+	CDPropertyTemplateTable::Instance().LoadValuesFromDatabase();
+	CDRailActivatorComponentTable::Instance().LoadValuesFromDatabase();
+	CDRarityTableTable::Instance().LoadValuesFromDatabase();
+	CDRebuildComponentTable::Instance().LoadValuesFromDatabase();
+	CDRewardsTable::Instance().LoadValuesFromDatabase();
+	CDScriptComponentTable::Instance().LoadValuesFromDatabase();
+	CDSkillBehaviorTable::Instance().LoadValuesFromDatabase();
+	CDVendorComponentTable::Instance().LoadValuesFromDatabase();
+	CDZoneTableTable::Instance().LoadValuesFromDatabase();
 }

@@ -5,7 +5,7 @@
 #include "BehaviorBranchContext.h"
 #include "CDActivitiesTable.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 
 
@@ -13,7 +13,7 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 	float value{};
 
 	if (!bitStream->Read(value)) {
-		Game::logger->Log("SwitchMultipleBehavior", "Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -22,13 +22,9 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 	for (unsigned int i = 0; i < this->m_behaviors.size(); i++) {
 
 		const double data = this->m_behaviors.at(i).first;
+		trigger = i;
 
-		if (value <= data) {
-
-			trigger = i;
-
-			break;
-		}
+		if (value <= data) break;
 	}
 
 	auto* behavior = this->m_behaviors.at(trigger).second;

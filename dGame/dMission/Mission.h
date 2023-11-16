@@ -10,9 +10,12 @@
 #include "MissionTask.h"
 #include "dCommonVars.h"
 #include "Entity.h"
-#include "MissionState.h"
-#include "MissionLockState.h"
 
+namespace tinyxml2 {
+	class XMLElement;
+};
+enum class eMissionState : int;
+enum class eMissionLockState : int;
 class MissionComponent;
 
 /**
@@ -49,7 +52,7 @@ public:
 	 * Returns the current state of this mission
 	 * @return the current state of this mission
 	 */
-	MissionState GetMissionState() const;
+	eMissionState GetMissionState() const;
 
 	/**
 	 * Returns the database information that represents to this mission.
@@ -98,12 +101,12 @@ public:
 	 * @param state the mission state to set
 	 * @param sendingRewards a flag indicating to the client that rewards wil lfollow
 	 */
-	void SetMissionState(MissionState state, bool sendingRewards = false);
+	void SetMissionState(eMissionState state, bool sendingRewards = false);
 
 	/**
 	 * Currently unimplemented
 	 */
-	void SetMissionTypeState(MissionLockState state, const std::string& type, const std::string& subType);
+	void SetMissionTypeState(eMissionLockState state, const std::string& type, const std::string& subType);
 
 	/**
 	 * Returns whether this mission is an achievement
@@ -204,7 +207,7 @@ public:
 	 * @param targets optional multiple targets that need to be met for progression
 	 * @param count optional count to progress with
 	 */
-	void Progress(MissionTaskType type, int32_t value, LWOOBJID associate = 0, const std::string& targets = "", int32_t count = 1);
+	void Progress(eMissionTaskType type, int32_t value, LWOOBJID associate = 0, const std::string& targets = "", int32_t count = 1);
 
 	/**
 	 * Returns if the mission ID that's given belongs to an existing mission
@@ -223,7 +226,7 @@ public:
 
 	/**
 	 * @brief Returns the unique mission order ID
-	 * 
+	 *
 	 * @return The unique order ID
 	 */
 	uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };
@@ -242,12 +245,12 @@ private:
 	/**
 	 * The database information that corresponds to this mission
 	 */
-	const CDMissions* info;
+	CDMissions info;
 
 	/**
 	 * The current state this mission is in
 	 */
-	MissionState m_State;
+	eMissionState m_State;
 
 	/**
 	 * The number of times the entity has completed this mission

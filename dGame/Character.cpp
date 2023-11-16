@@ -2,7 +2,7 @@
 #include "User.h"
 #include "Database.h"
 #include "GeneralUtils.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "BitStream.h"
 #include "Game.h"
 #include <chrono>
@@ -16,6 +16,11 @@
 #include "ChatPackets.h"
 #include "Inventory.h"
 #include "InventoryComponent.h"
+#include "eMissionTaskType.h"
+#include "eMissionState.h"
+#include "eObjectBits.h"
+#include "eGameMasterLevel.h"
+#include "ePlayerFlag.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -34,7 +39,7 @@ Character::Character(uint32_t id, User* parentUser) {
 		m_UnapprovedName = res->getString(2).c_str();
 		m_NameRejected = res->getBoolean(3);
 		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
+		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
 	}
 
 	delete res;
@@ -66,8 +71,8 @@ Character::Character(uint32_t id, User* parentUser) {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
@@ -93,7 +98,7 @@ void Character::UpdateFromDatabase() {
 		m_UnapprovedName = res->getString(2).c_str();
 		m_NameRejected = res->getBoolean(3);
 		m_PropertyCloneID = res->getUInt(4);
-		m_PermissionMap = static_cast<PermissionMap>(res->getUInt64(5));
+		m_PermissionMap = static_cast<ePermissionMap>(res->getUInt64(5));
 	}
 
 	delete res;
@@ -125,8 +130,8 @@ void Character::UpdateFromDatabase() {
 
 	//Set our objectID:
 	m_ObjectID = m_ID;
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_CHARACTER);
-	m_ObjectID = GeneralUtils::SetBit(m_ObjectID, OBJECT_BIT_PERSISTENT);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
+	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
@@ -140,16 +145,16 @@ void Character::DoQuickXMLDataParse() {
 	if (!m_Doc) return;
 
 	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		Game::logger->Log("Character", "Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
+		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		Game::logger->Log("Character", "Failed to load xmlData!");
+		LOG("Failed to load xmlData!");
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
 
 	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
-		Game::logger->Log("Character", "Failed to find mf tag!");
+		LOG("Failed to find mf tag!");
 		return;
 	}
 
@@ -168,14 +173,14 @@ void Character::DoQuickXMLDataParse() {
 
 	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
-		Game::logger->Log("Character", "Char has no inv!");
+		LOG("Char has no inv!");
 		return;
 	}
 
 	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
 
 	if (!bag) {
-		Game::logger->Log("Character", "Couldn't find bag0!");
+		LOG("Couldn't find bag0!");
 		return;
 	}
 
@@ -202,7 +207,9 @@ void Character::DoQuickXMLDataParse() {
 	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
 		character->QueryAttribute("cc", &m_Coins);
-		character->QueryAttribute("gm", &m_GMLevel);
+		int32_t gm_level = 0;
+		character->QueryAttribute("gm", &gm_level);
+		m_GMLevel = static_cast<eGameMasterLevel>(gm_level);
 
 		uint64_t lzidConcat = 0;
 		if (character->FindAttribute("lzid")) {
@@ -234,7 +241,7 @@ void Character::DoQuickXMLDataParse() {
 		//To try and fix the AG landing into:
 		if (m_ZoneID == 1000 && Game::server->GetZoneID() == 1100) {
 			//sneakily insert our position:
-			auto pos = dZoneManager::Instance()->GetZone()->GetSpawnPos();
+			auto pos = Game::zoneManager->GetZone()->GetSpawnPos();
 			character->SetAttribute("lzx", pos.x);
 			character->SetAttribute("lzy", pos.y);
 			character->SetAttribute("lzz", pos.z);
@@ -283,13 +290,13 @@ void Character::DoQuickXMLDataParse() {
 
 void Character::UnlockEmote(int emoteID) {
 	m_UnlockedEmotes.push_back(emoteID);
-	GameMessages::SendSetEmoteLockState(EntityManager::Instance()->GetEntity(m_ObjectID), false, emoteID);
+	GameMessages::SendSetEmoteLockState(Game::entityManager->GetEntity(m_ObjectID), false, emoteID);
 }
 
 void Character::SetBuildMode(bool buildMode) {
 	m_BuildMode = buildMode;
 
-	auto* controller = dZoneManager::Instance()->GetZoneControlObject();
+	auto* controller = Game::zoneManager->GetZoneControlObject();
 
 	controller->OnFireEventServerSide(m_OurEntity, buildMode ? "OnBuildModeEnter" : "OnBuildModeLeave");
 }
@@ -302,12 +309,12 @@ void Character::SaveXMLToDatabase() {
 
 	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
-		character->SetAttribute("gm", m_GMLevel);
+		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
 
-		auto zoneInfo = dZoneManager::Instance()->GetZone()->GetZoneID();
+		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
@@ -356,9 +363,9 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	// Prevents the news feed from showing up on world transfers
-	if (GetPlayerFlag(ePlayerFlags::IS_NEWS_SCREEN_VISIBLE)) {
+	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
 		auto* s = m_Doc->NewElement("s");
-		s->SetAttribute("si", ePlayerFlags::IS_NEWS_SCREEN_VISIBLE);
+		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
 		flags->LinkEndChild(s);
 	}
 
@@ -366,7 +373,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		Game::logger->Log("Character", "We didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!");
+		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -377,7 +384,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	Game::logger->Log("Character", "Saved character to Database in: %fs", elapsed.count());
+	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -387,12 +394,13 @@ void Character::SetIsNewLogin() {
 
 	auto* currentChild = flags->FirstChildElement();
 	while (currentChild) {
+		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			Game::logger->Log("Character", "Removed isLoggedIn flag from character %i, saving character to database", GetID());
+			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
-		currentChild = currentChild->NextSiblingElement();
+		currentChild = nextChild;
 	}
 }
 
@@ -417,13 +425,13 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 
 	if (value) {
 		// Update the mission component:
-		auto* player = EntityManager::Instance()->GetEntity(m_ObjectID);
+		auto* player = Game::entityManager->GetEntity(m_ObjectID);
 
 		if (player != nullptr) {
 			auto* missionComponent = player->GetComponent<MissionComponent>();
 
 			if (missionComponent != nullptr) {
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_PLAYER_FLAG, flagId);
+				missionComponent->Progress(eMissionTaskType::PLAYER_FLAG, flagId);
 			}
 		}
 	}
@@ -475,8 +483,8 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 
 void Character::SetRetroactiveFlags() {
 	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
-	if (GetPlayerFlag(ePlayerFlags::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlags::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlags::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlags::SENTINEL_FACTION)) {
-		SetPlayerFlag(ePlayerFlags::JOINED_A_FACTION, true);
+	if (GetPlayerFlag(ePlayerFlag::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlag::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) {
+		SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
 	}
 }
 
@@ -535,25 +543,16 @@ void Character::OnZoneLoad() {
 
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
-		if (missionComponent->GetMissionState(319) >= MissionState::MISSION_STATE_READY_TO_COMPLETE) {
-			SetPlayerFlag(33, true);
+		if (missionComponent->GetMissionState(319) >= eMissionState::READY_TO_COMPLETE) {
+			SetPlayerFlag(ePlayerFlag::AG_FINISH_LINE_BUILT, true);
 		}
 	}
 
 	const auto maxGMLevel = m_ParentUser->GetMaxGMLevel();
 
 	// This does not apply to the GMs
-	if (maxGMLevel > GAME_MASTER_LEVEL_CIVILIAN) {
+	if (maxGMLevel > eGameMasterLevel::CIVILIAN) {
 		return;
-	}
-
-	/**
-	 * Restrict old character to 1 million coins
-	 */
-	if (HasPermission(PermissionMap::Old)) {
-		if (GetCoins() > 1000000) {
-			SetCoins(1000000, eLootSourceType::LOOT_SOURCE_NONE);
-		}
 	}
 
 	auto* inventoryComponent = m_OurEntity->GetComponent<InventoryComponent>();
@@ -568,11 +567,11 @@ void Character::OnZoneLoad() {
 	}
 }
 
-PermissionMap Character::GetPermissionMap() const {
+ePermissionMap Character::GetPermissionMap() const {
 	return m_PermissionMap;
 }
 
-bool Character::HasPermission(PermissionMap permission) const {
+bool Character::HasPermission(ePermissionMap permission) const {
 	return (static_cast<uint64_t>(m_PermissionMap) & static_cast<uint64_t>(permission)) != 0;
 }
 
@@ -595,7 +594,7 @@ void Character::SetCoins(int64_t newCoins, eLootSourceType lootSource) {
 
 	m_Coins = newCoins;
 
-	GameMessages::SendSetCurrency(EntityManager::Instance()->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
+	GameMessages::SendSetCurrency(Game::entityManager->GetEntity(m_ObjectID), m_Coins, 0, 0, 0, 0, true, lootSource);
 }
 
 bool Character::HasBeenToWorld(LWOMAPID mapID) const {
@@ -618,4 +617,22 @@ void Character::SendMuteNotice() const {
 	const auto timeStr = GeneralUtils::ASCIIToUTF16(std::string(buffer));
 
 	ChatPackets::SendSystemMessage(GetEntity()->GetSystemAddress(), u"You are muted until " + timeStr);
+}
+
+void Character::SetBillboardVisible(bool visible) {
+	if (m_BillboardVisible == visible) return;
+	m_BillboardVisible = visible;
+
+	GameMessages::SendSetNamebillboardState(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+
+	if (!visible) return;
+
+	// The GameMessage we send for turning the nameplate off just deletes the BillboardSubcomponent from the parent component.
+	// Because that same message does not allow for custom parameters, we need to create the BillboardSubcomponent a different way
+	// This workaround involves sending an unrelated GameMessage that does not apply to player entites,
+	// but forces the client to create the necessary SubComponent that controls the billboard.
+	GameMessages::SendShowBillboardInteractIcon(UNASSIGNED_SYSTEM_ADDRESS, m_OurEntity->GetObjectID());
+
+	// Now turn off the billboard for the owner.
+	GameMessages::SendSetNamebillboardState(m_OurEntity->GetSystemAddress(), m_OurEntity->GetObjectID());
 }

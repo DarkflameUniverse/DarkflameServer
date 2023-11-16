@@ -4,6 +4,7 @@
 #include "MovementAIComponent.h"
 #include "Component.h"
 #include "Preconditions.h"
+#include "eReplicaComponentType.h"
 
 enum class PetAbilityType
 {
@@ -20,12 +21,12 @@ enum class PetAbilityType
 class PetComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PET;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -262,7 +263,7 @@ private:
 	/**
 	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
 	 */
-	static std::map<LOT, uint32_t> petFlags;
+	static std::map<LOT, int32_t> petFlags;
 
 	/**
 	 * The ID of the component in the pet component table

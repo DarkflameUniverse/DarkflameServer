@@ -11,6 +11,7 @@
 #include "dpWorld.h"
 #include "dpEntity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Utility component for detecting how close entities are to named proximities for this entity. Allows you to store
@@ -18,7 +19,7 @@
   */
 class ProximityMonitorComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PROXIMITY_MONITOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
 
 	ProximityMonitorComponent(Entity* parentEntity, int smallRadius = -1, int largeRadius = -1);
 	~ProximityMonitorComponent() override;

@@ -5,12 +5,6 @@
 #include <map>
 #include <cstdint>
 
-/*!
- \file CDMissionsTable.hpp
- \brief Contains data for the Missions table
- */
-
- //! Missions Struct
 struct CDMissions {
 	int id;                        //!< The Mission ID
 	std::string defined_type;          //!< The type of mission
@@ -66,36 +60,17 @@ struct CDMissions {
 	int reward_bankinventory;      //!< The amount of bank space this mission rewards
 };
 
-//! Missions table
-class CDMissionsTable : public CDTable {
+class CDMissionsTable : public CDTable<CDMissionsTable> {
 private:
 	std::vector<CDMissions> entries;
 
 public:
-
-	//! Constructor
-	CDMissionsTable(void);
-
-	//! Destructor
-	~CDMissionsTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	void LoadValuesFromDatabase();
+	// Queries the table with a custom "where" clause
 	std::vector<CDMissions> Query(std::function<bool(CDMissions)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	const std::vector<CDMissions>& GetEntries(void) const;
+	// Gets all the entries in the table
+	const std::vector<CDMissions>& GetEntries() const;
 
 	const CDMissions* GetPtrByMissionID(uint32_t missionID) const;
 

@@ -1,68 +1,54 @@
 #include "CDBehaviorParameterTable.h"
 #include "GeneralUtils.h"
 
-//! Constructor
-CDBehaviorParameterTable::CDBehaviorParameterTable(void) {
+uint64_t GetKey(const uint32_t behaviorID, const uint32_t parameterID) {
+	uint64_t key = behaviorID;
+	key <<= 31U;
+	key |= parameterID;
+
+	return key;
+}
+
+void CDBehaviorParameterTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM BehaviorParameter");
-	size_t hash = 0;
 	while (!tableData.eof()) {
-		hash = 0;
-		CDBehaviorParameter entry;
-		entry.behaviorID = tableData.getIntField(0, -1);
-		auto candidateStringToAdd = std::string(tableData.getStringField(1, ""));
+		uint32_t behaviorID = tableData.getIntField("behaviorID", -1);
+		auto candidateStringToAdd = std::string(tableData.getStringField("parameterID", ""));
 		auto parameter = m_ParametersList.find(candidateStringToAdd);
+		uint32_t parameterId;
 		if (parameter != m_ParametersList.end()) {
-			entry.parameterID = parameter;
+			parameterId = parameter->second;
 		} else {
-			entry.parameterID = m_ParametersList.insert(candidateStringToAdd).first;
+			parameterId = m_ParametersList.insert(std::make_pair(candidateStringToAdd, m_ParametersList.size())).first->second;
 		}
-		entry.value = tableData.getFloatField(2, -1.0f);
+		uint64_t hash = GetKey(behaviorID, parameterId);
+		float value = tableData.getFloatField("value", -1.0f);
 
-		GeneralUtils::hash_combine(hash, entry.behaviorID);
-		GeneralUtils::hash_combine(hash, *entry.parameterID);
-
-		auto it = m_Entries.find(entry.behaviorID);
-		m_ParametersList.insert(*entry.parameterID);
-		m_Entries.insert(std::make_pair(hash, entry));
+		m_Entries.insert(std::make_pair(hash, value));
 
 		tableData.nextRow();
 	}
 	tableData.finalize();
 }
 
-//! Destructor
-CDBehaviorParameterTable::~CDBehaviorParameterTable(void) {}
-
-//! Returns the table's name
-std::string CDBehaviorParameterTable::GetName(void) const {
-	return "BehaviorParameter";
-}
-
-CDBehaviorParameter CDBehaviorParameterTable::GetEntry(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
-	CDBehaviorParameter returnValue;
-	returnValue.behaviorID = 0;
-	returnValue.parameterID = m_ParametersList.end();
-	returnValue.value = defaultValue;
-
-	size_t hash = 0;
-	GeneralUtils::hash_combine(hash, behaviorID);
-	GeneralUtils::hash_combine(hash, name);
+float CDBehaviorParameterTable::GetValue(const uint32_t behaviorID, const std::string& name, const float defaultValue) {
+	auto parameterID = this->m_ParametersList.find(name);
+	if (parameterID == this->m_ParametersList.end()) return defaultValue;
+	auto hash = GetKey(behaviorID, parameterID->second);
 
 	// Search for specific parameter
-	const auto& it = m_Entries.find(hash);
-	return it != m_Entries.end() ? it->second : returnValue;
+	auto it = m_Entries.find(hash);
+	return it != m_Entries.end() ? it->second : defaultValue;
 }
 
 std::map<std::string, float> CDBehaviorParameterTable::GetParametersByBehaviorID(uint32_t behaviorID) {
-	size_t hash;
+	uint64_t hashBase = behaviorID;
 	std::map<std::string, float> returnInfo;
-	for (auto parameterCandidate : m_ParametersList) {
-		hash = 0;
-		GeneralUtils::hash_combine(hash, behaviorID);
-		GeneralUtils::hash_combine(hash, parameterCandidate);
+	for (auto& [parameterString, parameterId] : m_ParametersList) {
+		uint64_t hash = GetKey(hashBase, parameterId);
 		auto infoCandidate = m_Entries.find(hash);
 		if (infoCandidate != m_Entries.end()) {
-			returnInfo.insert(std::make_pair(*(infoCandidate->second.parameterID), infoCandidate->second.value));
+			returnInfo.insert(std::make_pair(parameterString, infoCandidate->second));
 		}
 	}
 	return returnInfo;

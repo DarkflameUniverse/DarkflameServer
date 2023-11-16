@@ -4,6 +4,9 @@
 #include "GameMessages.h"
 #include "PhantomPhysicsComponent.h"
 #include "RenderComponent.h"
+#include "eReplicaComponentType.h"
+#include "RenderComponent.h"
+#include "Entity.h"
 
 void AgFans::OnStartup(Entity* self) {
 	self->SetVar<bool>(u"alive", true);
@@ -11,7 +14,7 @@ void AgFans::OnStartup(Entity* self) {
 
 	ToggleFX(self, false);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
 	if (renderComponent == nullptr) {
 		return;
@@ -22,9 +25,9 @@ void AgFans::OnStartup(Entity* self) {
 
 void AgFans::ToggleFX(Entity* self, bool hit) {
 	std::string fanGroup = self->GetGroups()[0];
-	std::vector<Entity*> fanVolumes = EntityManager::Instance()->GetEntitiesInGroup(fanGroup);
+	std::vector<Entity*> fanVolumes = Game::entityManager->GetEntitiesInGroup(fanGroup);
 
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
 	if (renderComponent == nullptr) {
 		return;
@@ -33,35 +36,35 @@ void AgFans::ToggleFX(Entity* self, bool hit) {
 	if (fanVolumes.size() == 0 || !self->GetVar<bool>(u"alive")) return;
 
 	if (self->GetVar<bool>(u"on")) {
-		GameMessages::SendPlayAnimation(self, u"fan-off");
+		RenderComponent::PlayAnimation(self, u"fan-off");
 
 		renderComponent->StopEffect("fanOn");
 		self->SetVar<bool>(u"on", false);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(false);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = EntityManager::Instance()->GetEntitiesInGroup(fanGroup + "fx")[0];
-				GameMessages::SendPlayAnimation(fxObj, u"trigger");
+				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
+				RenderComponent::PlayAnimation(fxObj, u"trigger");
 			}
 		}
 	} else if (!self->GetVar<bool>(u"on") && self->GetVar<bool>(u"alive")) {
-		GameMessages::SendPlayAnimation(self, u"fan-on");
+		RenderComponent::PlayAnimation(self, u"fan-on");
 
 		renderComponent->PlayEffect(495, u"fanOn", "fanOn");
 		self->SetVar<bool>(u"on", true);
 
 		for (Entity* volume : fanVolumes) {
-			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(COMPONENT_TYPE_PHANTOM_PHYSICS));
+			PhantomPhysicsComponent* volumePhys = static_cast<PhantomPhysicsComponent*>(volume->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
 			if (!volumePhys) continue;
 			volumePhys->SetPhysicsEffectActive(true);
-			EntityManager::Instance()->SerializeEntity(volume);
+			Game::entityManager->SerializeEntity(volume);
 			if (!hit) {
-				Entity* fxObj = EntityManager::Instance()->GetEntitiesInGroup(fanGroup + "fx")[0];
-				GameMessages::SendPlayAnimation(fxObj, u"idle");
+				Entity* fxObj = Game::entityManager->GetEntitiesInGroup(fanGroup + "fx")[0];
+				RenderComponent::PlayAnimation(fxObj, u"idle");
 			}
 		}
 	}

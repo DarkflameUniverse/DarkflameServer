@@ -3,22 +3,23 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "PossessableComponent.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 
 void FvRaceSmashEggImagineServer::OnDie(Entity* self, Entity* killer) {
 	if (killer != nullptr) {
 		auto* destroyableComponent = killer->GetComponent<DestroyableComponent>();
 		if (destroyableComponent != nullptr) {
 			destroyableComponent->SetImagination(destroyableComponent->GetImagination() + 10);
-			EntityManager::Instance()->SerializeEntity(killer);
+			Game::entityManager->SerializeEntity(killer);
 		}
 
 		// get possessor to progress statistics and tasks.
 		auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 		if (possessableComponent != nullptr) {
 
-			auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+			auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 			if (possessor != nullptr) {
 
 				auto* missionComponent = possessor->GetComponent<MissionComponent>();
@@ -29,8 +30,8 @@ void FvRaceSmashEggImagineServer::OnDie(Entity* self, Entity* killer) {
 				}
 				if (missionComponent == nullptr) return;
 				// Dragon eggs have their own smash server so we handle mission progression for them here.
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
-				missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASH_SPECIFIC_SMASHABLE);
+				missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::SMASHABLES);
+				missionComponent->Progress(eMissionTaskType::RACING, self->GetLOT(), (LWOOBJID)eRacingTaskParam::SMASH_SPECIFIC_SMASHABLE);
 			}
 		}
 

@@ -13,6 +13,7 @@ struct VanityNPCLocation
 
 struct VanityNPC
 {
+	LWOOBJID m_ID = LWOOBJID_EMPTY;
 	std::string m_Name;
 	LOT m_LOT;
 	std::vector<LOT> m_Equipment;
@@ -20,6 +21,7 @@ struct VanityNPC
 	std::string m_Script;
 	std::map<std::string, bool> m_Flags;
 	std::map<uint32_t, std::vector<VanityNPCLocation>> m_Locations;
+	std::vector<LDFBaseData*> ldf;
 };
 
 struct VanityParty
@@ -40,6 +42,13 @@ public:
 		const NiPoint3& position,
 		const NiQuaternion& rotation,
 		const std::vector<LOT>& inventory,
+		const std::vector<LDFBaseData*>& ldf
+	);
+
+	static LWOOBJID SpawnSpawner(
+		LOT lot,
+		const NiPoint3& position,
+		const NiQuaternion& rotation,
 		const std::vector<LDFBaseData*>& ldf
 	);
 

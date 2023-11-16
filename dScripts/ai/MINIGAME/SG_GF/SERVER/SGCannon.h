@@ -63,12 +63,17 @@ public:
 	void OnStartup(Entity* self) override;
 	void OnPlayerLoaded(Entity* self, Entity* player) override;
 	void OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) override;
-	void OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int32_t value1,
-		int32_t value2, const std::u16string& stringValue) override;
-	void OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier,
-		const std::u16string& userData) override;
+	void OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int32_t value1, int32_t value2, const std::u16string& stringValue) override;
+	void OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) override;
 	void OnActivityTimerDone(Entity* self, const std::string& name) override;
 	void OnActivityTimerUpdate(Entity* self, const std::string& name, float_t timeRemaining, float_t elapsedTime) override;
+	void OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) override;
+	void SuperChargeTimerFunc(Entity* self);
+	void SpawnWaveTimerFunc(Entity* self);
+	void EndWaveTimerFunc(Entity* self);
+	void GameOverTimerFunc(Entity* self);
+	void DoSpawnTimerFunc(Entity* self, const std::string& name);
+	void EndGameBufferTimerFunc(Entity* self);
 private:
 	static std::vector<std::vector<SGEnemy>> GetWaves();
 	static SGConstants GetConstants();

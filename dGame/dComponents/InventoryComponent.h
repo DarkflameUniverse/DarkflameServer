@@ -17,9 +17,11 @@
 #include "DatabasePet.h"
 #include "Component.h"
 #include "ItemSetPassiveAbility.h"
-#include "ItemSetPassiveAbilityID.h"
+#include "eItemSetPassiveAbilityID.h"
 #include "PossessorComponent.h"
 #include "eInventoryType.h"
+#include "eReplicaComponentType.h"
+#include "eLootSourceType.h"
 
 class Entity;
 class ItemSet;
@@ -36,14 +38,13 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_INVENTORY;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadXml(tinyxml2::XMLDocument* document);
 	void UpdateXml(tinyxml2::XMLDocument* document) override;
-	void ResetFlags();
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -98,7 +99,7 @@ public:
 	void AddItem(
 		LOT lot,
 		uint32_t count,
-		eLootSourceType lootSourceType = eLootSourceType::LOOT_SOURCE_NONE,
+		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
 		const std::vector<LDFBaseData*>& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
@@ -117,8 +118,9 @@ public:
 	 * @param count the number of items to remove
 	 * @param inventoryType optional inventory type to remove the item from
 	 * @param ignoreBound ignores bound items
+	 * @param silent silently remove the item
 	 */
-	void RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false);
+	bool RemoveItem(LOT lot, uint32_t count, eInventoryType inventoryType = INVALID, bool ignoreBound = false, bool silent = false);
 
 	/**
 	 * Moves an existing item to an inventory of the entity
@@ -283,7 +285,7 @@ public:
 	 * Triggers one of the passive abilities from the equipped item set
 	 * @param trigger the trigger to fire
 	 */
-	void TriggerPassiveAbility(PassiveAbilityTrigger trigger);
+	void TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target = nullptr);
 
 	/**
 	 * Returns if the entity has any of the passed passive abilities equipped
@@ -291,7 +293,7 @@ public:
 	 * @param equipmentRequirement the number of equipment required to be allowed to have the ability
 	 * @return if the entity has any of the passed passive abilities equipped
 	 */
-	bool HasAnyPassive(const std::vector<ItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
+	bool HasAnyPassive(const std::vector<eItemSetPassiveAbilityID>& passiveIDs, int32_t equipmentRequirement) const;
 
 	/**
 	 * Despawns the currently active pet, if any
@@ -351,6 +353,25 @@ public:
 	 * @return the skill related to the passed LOT
 	 */
 	static uint32_t FindSkill(LOT lot);
+
+	/**
+	 * Call this when you equip an item.  This calls OnFactionTriggerItemEquipped for any scripts found on the items.
+	 *
+	 * @param equippedItem The item script to lookup and call equip on
+	 */
+	void EquipScripts(Item* equippedItem);
+
+	/**
+	 * Call this when you unequip an item.  This calls OnFactionTriggerItemUnequipped for any scripts found on the items.
+	 *
+	 * @param unequippedItem The item script to lookup and call unequip on
+	 */
+	void UnequipScripts(Item* unequippedItem);
+
+	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+
+	bool SetSkill(int slot, uint32_t skillId);
+	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
 	~InventoryComponent() override;
 

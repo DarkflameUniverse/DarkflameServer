@@ -9,6 +9,7 @@
 #include "CppScripts.h"
 #include "Component.h"
 #include <string>
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -18,12 +19,12 @@ class Entity;
  */
 class ScriptComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SCRIPT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
 	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
 	~ScriptComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the script that's attached to this entity

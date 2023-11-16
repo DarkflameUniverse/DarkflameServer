@@ -6,14 +6,15 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Represents the launch pad that's used to select and browse properties
  */
 class PropertyEntranceComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PROPERTY_ENTRANCE;
-	explicit PropertyEntranceComponent(uint32_t componentID, Entity* parent);
+	explicit PropertyEntranceComponent(Entity* parent, uint32_t componentID);
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 
 	/**
 	 * Handles an OnUse request for some other entity, rendering the property browse menu

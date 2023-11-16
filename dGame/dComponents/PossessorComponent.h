@@ -3,6 +3,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 // possession types
 enum class ePossessionType : uint8_t {
@@ -17,12 +18,12 @@ enum class ePossessionType : uint8_t {
  */
 class PossessorComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_POSSESSOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
 
 	PossessorComponent(Entity* parent);
 	~PossessorComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief Mounts the entity

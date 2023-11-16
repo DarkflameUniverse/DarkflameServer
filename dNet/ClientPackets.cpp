@@ -11,7 +11,7 @@
 #include "Entity.h"
 #include "ControllablePhysicsComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "WorldPackets.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -33,12 +33,15 @@
 #include "Database.h"
 #include "PacketUtils.h"
 #include "eGuildRank.h"
-
+#include "eGameMasterLevel.h"
+#include "eReplicaComponentType.h"
+#include "CheatDetection.h"
+#include "Amf3.h"
 
 void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat message");
+		LOG("Unable to get user to parse chat message");
 		return;
 	}
 
@@ -47,9 +50,7 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 		return;
 	}
 
-	CINSTREAM;
-	uint64_t header;
-	inStream.Read(header);
+	CINSTREAM_SKIP_HEADER;
 
 	char chatChannel;
 	uint16_t unknown;
@@ -67,30 +68,38 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	}
 
 	std::string playerName = user->GetLastUsedChar()->GetName();
-	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > 0;
-
-	if (!user->GetLastChatMessageApproved() && !isMythran) return;
+	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+	bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
+	LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+	if (!isOk) {
+		// Add a limit to the string converted by general utils because it is a user received string and may be a bad actor.
+		CheatDetection::ReportCheat(
+			user,
+			sysAddr,
+			"Player %s attempted to bypass chat filter with message: %s",
+			playerName.c_str(),
+			GeneralUtils::UTF16ToWTF8(message, 512).c_str());
+	}
+	if (!isOk && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	Game::logger->Log("Chat", "%s: %s", playerName.c_str(), sMessage.c_str());
+	LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 }
 
 void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse position update");
+		LOG("Unable to get user to parse position update");
 		return;
 	}
 
-	CINSTREAM;
-	uint64_t header;
-	inStream.Read(header);
+	CINSTREAM_SKIP_HEADER;
 
-	Entity* entity = EntityManager::Instance()->GetEntity(user->GetLastUsedChar()->GetObjectID());
+	Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
 	if (!entity) return;
 
-	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
+	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (!comp) return;
 
 	/*
@@ -100,7 +109,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		comp->SetVelocity(zeroVel);
 		comp->SetAngularVelocity(zeroVel);
 		comp->SetIsOnGround(true); //probably8
-		EntityManager::Instance()->SerializeEntity(entity);
+		Game::entityManager->SerializeEntity(entity);
 		return;
 	}
 	*/
@@ -141,10 +150,37 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		inStream.Read(angVelocity.z);
 	}
 
+	// TODO figure out how to use these. Ignoring for now, but reading in if they exist.
+	bool hasLocalSpaceInfo{};
+	LWOOBJID objectId{};
+	NiPoint3 localSpacePosition{};
+	bool hasLinearVelocity{};
+	NiPoint3 linearVelocity{};
+	if (inStream.Read(hasLocalSpaceInfo) && hasLocalSpaceInfo) {
+		inStream.Read(objectId);
+		inStream.Read(localSpacePosition.x);
+		inStream.Read(localSpacePosition.y);
+		inStream.Read(localSpacePosition.z);
+		if (inStream.Read(hasLinearVelocity) && hasLinearVelocity) {
+			inStream.Read(linearVelocity.x);
+			inStream.Read(linearVelocity.y);
+			inStream.Read(linearVelocity.z);
+		}
+	}
+	bool hasRemoteInputInfo{};
+	RemoteInputInfo remoteInput{};
+
+	if (inStream.Read(hasRemoteInputInfo) && hasRemoteInputInfo) {
+		inStream.Read(remoteInput.m_RemoteInputX);
+		inStream.Read(remoteInput.m_RemoteInputY);
+		inStream.Read(remoteInput.m_IsPowersliding);
+		inStream.Read(remoteInput.m_IsModified);
+	}
+
 	bool updateChar = true;
 
 	if (possessorComponent != nullptr) {
-		auto* possassableEntity = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (possassableEntity != nullptr) {
 			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
@@ -155,9 +191,6 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
 			if (vehiclePhysicsComponent != nullptr) {
-				// This is flipped for whatever reason
-				rotation = NiQuaternion(rotation.z, rotation.y, rotation.x, rotation.w);
-
 				vehiclePhysicsComponent->SetPosition(position);
 				vehiclePhysicsComponent->SetRotation(rotation);
 				vehiclePhysicsComponent->SetIsOnGround(onGround);
@@ -166,6 +199,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
 				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
 				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
 				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
@@ -179,7 +213,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
 				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
 			}
-			EntityManager::Instance()->SerializeEntity(possassableEntity);
+			Game::entityManager->SerializeEntity(possassableEntity);
 		}
 	}
 
@@ -207,9 +241,9 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 
 	auto* player = static_cast<Player*>(entity);
 	player->SetGhostReferencePoint(position);
-	EntityManager::Instance()->QueueGhostUpdate(player->GetObjectID());
+	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
 
-	if (updateChar) EntityManager::Instance()->SerializeEntity(entity);
+	if (updateChar) Game::entityManager->SerializeEntity(entity);
 
 	//TODO: add moving platform stuffs
 	/*bool movingPlatformFlag;
@@ -247,7 +281,7 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 			continue;
 		}
 
-		EntityManager::Instance()->SerializeEntity(entity, player);
+		Game::entityManager->SerializeEntity(entity, player);
 	}
 	*/
 }
@@ -255,21 +289,21 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
 	User* user = UserManager::Instance()->GetUser(sysAddr);
 	if (!user) {
-		Game::logger->Log("ClientPackets", "Unable to get user to parse chat moderation request");
+		LOG("Unable to get user to parse chat moderation request");
 		return;
 	}
 
 	auto* entity = Player::GetPlayer(sysAddr);
 
 	if (entity == nullptr) {
-		Game::logger->Log("ClientPackets", "Unable to get player to parse chat moderation request");
+		LOG("Unable to get player to parse chat moderation request");
 		return;
 	}
 
 	// Check if the player has restricted chat access
 	auto* character = entity->GetCharacter();
 
-	if (character->HasPermission(PermissionMap::RestrictedChatAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
@@ -470,4 +504,41 @@ void ClientPackets::SendGuildCreateResponse(const SystemAddress& sysAddr, eGuild
 	bitStream.Write(guildID);
 	PacketUtils::WriteWString(bitStream, guildName, 33);
 	SEND_PACKET;
+}
+
+void ClientPackets::SendTop5HelpIssues(Packet* packet) {
+	auto* user = UserManager::Instance()->GetUser(packet->systemAddress);
+	if (!user) return;
+	auto* character = user->GetLastUsedChar();
+	if (!character) return;
+	auto * entity = character->GetEntity();
+	if (!entity) return;
+
+	CINSTREAM_SKIP_HEADER;
+	int32_t language = 0;
+	inStream.Read(language);
+
+	// TODO: Handle different languages in a nice way
+	// 0: en_US
+	// 1: pl_US
+	// 2: de_DE
+	// 3: en_GB
+
+	AMFArrayValue data;
+	// Summaries
+	data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
+	data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
+	data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
+	data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
+	data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
+
+	// Descriptions
+	data.Insert("Description0", Game::config->GetValue("help_0_description"));
+	data.Insert("Description1", Game::config->GetValue("help_1_description"));
+	data.Insert("Description2", Game::config->GetValue("help_2_description"));
+	data.Insert("Description3", Game::config->GetValue("help_3_description"));
+	data.Insert("Description4", Game::config->GetValue("help_4_description"));
+	
+	GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "UIHelpTop5", data);
+	
 }

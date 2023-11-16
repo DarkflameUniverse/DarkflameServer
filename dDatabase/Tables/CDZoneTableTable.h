@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDZoneTableTable.hpp
- \brief Contains data for the ZoneTable table
- */
-
- //! ZoneTable Struct
 struct CDZoneTable {
 	unsigned int zoneID;                        //!< The Zone ID of the object
 	unsigned int locStatus;                     //!< The Locale Status(?)
@@ -24,7 +18,7 @@ struct CDZoneTable {
 	float smashableMaxDistance;         //!< The maximum smashable distance?
 	UNUSED(std::string mixerProgram);              //!< ???
 	UNUSED(std::string clientPhysicsFramerate);    //!< The client physics framerate
-	UNUSED(std::string serverPhysicsFramerate);    //!< The server physics framerate
+	std::string serverPhysicsFramerate;    //!< The server physics framerate
 	unsigned int zoneControlTemplate;           //!< The Zone Control template
 	unsigned int widthInChunks;                 //!< The width of the world in chunks
 	unsigned int heightInChunks;                //!< The height of the world in chunks
@@ -33,34 +27,19 @@ struct CDZoneTable {
 	float fZoneWeight;                  //!< ???
 	UNUSED(std::string thumbnail);                 //!< The thumbnail of the world
 	bool PlayerLoseCoinsOnDeath;        //!< Whether or not the user loses coins on death
-	UNUSED(bool disableSaveLoc);                //!< Disables the saving location?
+	bool disableSaveLoc;                //!< Disables the saving location?
 	float teamRadius;                   //!< ???
 	UNUSED(std::string gate_version);              //!< The gate version
-	UNUSED(bool mountsAllowed);                 //!< Whether or not mounts are allowed
+	bool mountsAllowed;                 //!< Whether or not mounts are allowed
 };
 
-//! ZoneTable table
-class CDZoneTableTable : public CDTable {
+class CDZoneTableTable : public CDTable<CDZoneTableTable> {
 private:
 	std::map<unsigned int, CDZoneTable> m_Entries;
 
 public:
+	void LoadValuesFromDatabase();
 
-	//! Constructor
-	CDZoneTableTable(void);
-
-	//! Destructor
-	~CDZoneTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a zoneID to find.
-	/*!
-	 \param id The zoneID
-	 */
+	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(unsigned int zoneID);
 };

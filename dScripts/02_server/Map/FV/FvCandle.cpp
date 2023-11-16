@@ -1,11 +1,12 @@
 #include "FvCandle.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
+#include "eReplicaComponentType.h"
 
 std::vector<int32_t> FvCandle::m_Missions = { 850, 1431, 1529, 1566, 1603 };
 
 void FvCandle::OnStartup(Entity* self) {
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (render == nullptr)
 		return;
 
@@ -22,7 +23,7 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 	if (self->GetBoolean(u"AmHit"))
 		return;
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (render == nullptr)
 		return;
 
@@ -46,7 +47,7 @@ void FvCandle::BlowOutCandle(Entity* self, Entity* blower) {
 void FvCandle::OnTimerDone(Entity* self, std::string timerName) {
 	self->SetBoolean(u"AmHit", false);
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (render == nullptr)
 		return;
 

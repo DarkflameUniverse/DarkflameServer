@@ -4,29 +4,42 @@
 #include <functional>
 #include <typeinfo>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
-#include "../thirdparty/raknet/Source/Replica.h"
-#include "../thirdparty/raknet/Source/ReplicaManager.h"
-
-#include "dCommonVars.h"
-#include "User.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
-#include "Loot.h"
-#include "Zone.h"
+#include "eKillType.h"
 
-#include "EntityTimer.h"
-#include "EntityCallbackTimer.h"
-#include "EntityInfo.h"
+namespace Loot {
+	class Info;
+};
+
+namespace tinyxml2 {
+	class XMLDocument;
+};
 
 class Player;
+class EntityInfo;
+class User;
 class Spawner;
 class ScriptComponent;
 class dpEntity;
+class EntityTimer;
 class Component;
+class Item;
 class Character;
+class EntityCallbackTimer;
+enum class eTriggerEventType;
+enum class eGameMasterLevel : uint8_t;
+enum class eReplicaComponentType : uint32_t;
+enum class eReplicaPacketType : uint8_t;
+enum class eCinematicEvent : uint32_t;
+
+namespace CppScripts {
+	class Script;
+};
 
 /**
  * An entity in the world. Has multiple components.
@@ -51,13 +64,11 @@ public:
 
 	Character* GetCharacter() const { return m_Character; }
 
-	uint8_t GetGMLevel() const { return m_GMLevel; }
+	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
-	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	uint8_t GetCollectibleID() const;
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
-
-	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }
 
 	std::vector<std::string>& GetGroups() { return m_Groups; };
 
@@ -74,6 +85,7 @@ public:
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;
+	void SetIsGhostingCandidate(bool value) { m_IsGhostingCandidate = value; };
 
 	int8_t GetObservers() const;
 
@@ -101,7 +113,7 @@ public:
 
 	void SetCharacter(Character* value) { m_Character = value; }
 
-	void SetGMLevel(uint8_t value);
+	void SetGMLevel(eGameMasterLevel value);
 
 	void SetOwnerOverride(LWOOBJID value);
 
@@ -125,19 +137,22 @@ public:
 	 * Component management
 	 */
 
-	Component* GetComponent(int32_t componentID) const;
+	Component* GetComponent(eReplicaComponentType componentID) const;
 
 	template<typename T>
 	T* GetComponent() const;
 
 	template<typename T>
-	bool TryGetComponent(int32_t componentId, T*& component) const;
+	bool TryGetComponent(eReplicaComponentType componentId, T*& component) const;
 
-	bool HasComponent(int32_t componentId) const;
+	bool HasComponent(eReplicaComponentType componentId) const;
 
-	void AddComponent(int32_t componentId, Component* component);
+	void AddComponent(eReplicaComponentType componentId, Component* component);
 
 	std::vector<ScriptComponent*> GetScriptComponents();
+
+	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
+	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
 
 	void SetProximityRadius(float proxRadius, std::string name);
 	void SetProximityRadius(dpEntity* entity, std::string name);
@@ -155,11 +170,10 @@ public:
 	void AddToGroup(const std::string& group);
 	bool IsPlayer() const;
 
-	std::unordered_map<int32_t, Component*>& GetComponents() { return m_Components; } // TODO: Remove
+	std::unordered_map<eReplicaComponentType, Component*>& GetComponents() { return m_Components; } // TODO: Remove
 
 	void WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType);
-	void ResetFlags();
 	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
 	void Update(float deltaTime);
 
@@ -193,6 +207,7 @@ public:
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
+	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
 	void Kill(Entity* murderer = nullptr);
@@ -208,9 +223,8 @@ public:
 	void RegisterCoinDrop(uint64_t count);
 
 	void ScheduleKillAfterUpdate(Entity* murderer = nullptr);
-	void TriggerEvent(std::string eveneventtID, Entity* optionalTarget = nullptr);
+	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
-	void HandleTriggerCommand(std::string id, std::string target, std::string targetName, std::string args, Entity* optionalTarget);
 
 	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
 	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
@@ -260,6 +274,9 @@ public:
 	template<typename T>
 	T GetVarAs(const std::u16string& name) const;
 
+	template<typename ComponentType, typename... VaArgs>
+	ComponentType* AddComponent(VaArgs... args);
+
 	/**
 	 * Get the LDF data.
 	 */
@@ -295,20 +312,18 @@ protected:
 	bool m_HasSpawnerNodeID;
 	uint32_t m_SpawnerNodeID;
 
-	LUTriggers::Trigger* m_Trigger;
-
 	Character* m_Character;
 
 	Entity* m_ParentEntity; //For spawners and the like
 	std::vector<Entity*> m_ChildEntities;
-	uint8_t m_GMLevel;
+	eGameMasterLevel m_GMLevel;
 	uint16_t m_CollectibleID;
 	std::vector<std::string> m_Groups;
 	uint16_t m_NetworkID;
 	std::vector<std::function<void()>> m_DieCallbacks;
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
-	std::unordered_map<int32_t, Component*> m_Components; //The int is the ID of the component
+	std::unordered_map<eReplicaComponentType, Component*> m_Components;
 	std::vector<EntityTimer*> m_Timers;
 	std::vector<EntityTimer*> m_PendingTimers;
 	std::vector<EntityCallbackTimer*> m_CallbackTimers;
@@ -338,7 +353,7 @@ protected:
  */
 
 template<typename T>
-bool Entity::TryGetComponent(const int32_t componentId, T*& component) const {
+bool Entity::TryGetComponent(const eReplicaComponentType componentId, T*& component) const {
 	const auto& index = m_Components.find(componentId);
 
 	if (index == m_Components.end()) {
@@ -488,4 +503,37 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
+}
+
+/**
+ * @brief Adds a component of type ComponentType to this entity and forwards the arguments to the constructor.
+ *
+ * @tparam ComponentType The component class type to add. Must derive from Component.
+ * @tparam VaArgs The argument types to forward to the constructor.
+ * @param args The arguments to forward to the constructor. The first argument passed to the ComponentType constructor will be this entity.
+ * @return ComponentType* The added component. Will never return null.
+ */
+template<typename ComponentType, typename... VaArgs>
+inline ComponentType* Entity::AddComponent(VaArgs... args) {
+	static_assert(std::is_base_of_v<Component, ComponentType>, "ComponentType must be a Component");
+
+	// Get the component if it already exists, or default construct a nullptr
+	auto*& componentToReturn = m_Components[ComponentType::ComponentType];
+
+	// If it doesn't exist, create it and forward the arguments to the constructor
+	if (!componentToReturn) {
+		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+	} else {
+		// In this case the block is already allocated and ready for use
+		// so we use a placement new to construct the component again as was requested by the caller.
+		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
+		// This is useful for when we want to create a new object in the same memory location as an old one.
+		componentToReturn->~Component();
+		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
+	}
+
+	// Finally return the created or already existing component.
+	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function
+	// To allow a static cast here instead of a dynamic one.
+	return dynamic_cast<ComponentType*>(componentToReturn);
 }

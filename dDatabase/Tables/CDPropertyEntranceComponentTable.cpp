@@ -1,7 +1,6 @@
-
 #include "CDPropertyEntranceComponentTable.h"
 
-CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
+void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	size_t size = 0;
@@ -18,11 +17,11 @@ CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PropertyEntranceComponent;");
 	while (!tableData.eof()) {
 		auto entry = CDPropertyEntranceComponent{
-			static_cast<uint32_t>(tableData.getIntField(0, -1)),
-			static_cast<uint32_t>(tableData.getIntField(1, -1)),
-			tableData.getStringField(2, ""),
-			static_cast<bool>(tableData.getIntField(3, false)),
-			tableData.getStringField(4, "")
+			static_cast<uint32_t>(tableData.getIntField("id", -1)),
+			static_cast<uint32_t>(tableData.getIntField("mapID", -1)),
+			tableData.getStringField("propertyName", ""),
+			static_cast<bool>(tableData.getIntField("isOnProperty", false)),
+			tableData.getStringField("groupType", "")
 		};
 
 		this->entries.push_back(entry);
@@ -30,12 +29,6 @@ CDPropertyEntranceComponentTable::CDPropertyEntranceComponentTable() {
 	}
 
 	tableData.finalize();
-}
-
-CDPropertyEntranceComponentTable::~CDPropertyEntranceComponentTable(void) = default;
-
-std::string CDPropertyEntranceComponentTable::GetName() const {
-	return "PropertyEntranceComponent";
 }
 
 CDPropertyEntranceComponent CDPropertyEntranceComponentTable::GetByID(uint32_t id) {
@@ -46,3 +39,4 @@ CDPropertyEntranceComponent CDPropertyEntranceComponentTable::GetByID(uint32_t i
 
 	return defaultEntry;
 }
+

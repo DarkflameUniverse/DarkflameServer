@@ -3,6 +3,10 @@
 #include "EntityManager.h"
 #include "MissionComponent.h"
 #include "RenderComponent.h"
+#include "eMissionTaskType.h"
+#include "eReplicaComponentType.h"
+#include "RenderComponent.h"
+#include "eTerminateType.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -14,7 +18,7 @@ void GfTikiTorch::OnUse(Entity* self, Entity* killer) {
 		return;
 	}
 
-	GameMessages::SendPlayAnimation(self, u"interact");
+	RenderComponent::PlayAnimation(self, u"interact");
 	self->SetI64(u"userID", killer->GetObjectID());
 
 	for (int i = 0; i < m_numspawn; i++) {
@@ -28,10 +32,10 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "Relight") {
 		LightTorch(self);
 	} else if (timerName == "InteractionCooldown") {
-		Entity* player = EntityManager::Instance()->GetEntity(self->GetI64(u"userID"));
+		Entity* player = Game::entityManager->GetEntity(self->GetI64(u"userID"));
 
 		if (player != nullptr && player->GetCharacter()) {
-			GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+			GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 		}
 
 		self->SetBoolean(u"isInUse", false);
@@ -41,7 +45,7 @@ void GfTikiTorch::OnTimerDone(Entity* self, std::string timerName) {
 }
 
 void GfTikiTorch::LightTorch(Entity* self) {
-	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* renderComponent = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (renderComponent == nullptr)
 		return;
 
@@ -53,7 +57,7 @@ void GfTikiTorch::LightTorch(Entity* self) {
 
 void GfTikiTorch::OnSkillEventFired(Entity* self, Entity* caster, const std::string& message) {
 	if (self->GetBoolean(u"isBurning") && message == "waterspray") {
-		GameMessages::SendPlayAnimation(self, u"water");
+		RenderComponent::PlayAnimation(self, u"water");
 
 		auto* renderComponent = self->GetComponent<RenderComponent>();
 		if (renderComponent != nullptr) {
@@ -65,7 +69,7 @@ void GfTikiTorch::OnSkillEventFired(Entity* self, Entity* caster, const std::str
 		auto* casterMissionComponent = caster->GetComponent<MissionComponent>();
 		if (casterMissionComponent != nullptr) {
 			for (const auto missionID : m_missions) {
-				casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(MissionTaskType::MISSION_TASK_TYPE_SCRIPT), 1);
+				casterMissionComponent->ForceProgressTaskType(missionID, static_cast<uint32_t>(eMissionTaskType::SCRIPT), 1);
 			}
 		}
 

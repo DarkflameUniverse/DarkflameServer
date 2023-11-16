@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDMissionTasksTable.hpp
- \brief Contains data for the MissionTasks table
- */
-
- //! ObjectSkills Struct
 struct CDMissionTasks {
 	unsigned int id;                //!< The Mission ID that the task belongs to
 	UNUSED(unsigned int locStatus);         //!< ???
@@ -25,37 +19,17 @@ struct CDMissionTasks {
 	UNUSED(std::string gate_version);  //!< ???
 };
 
-//! ObjectSkills table
-class CDMissionTasksTable : public CDTable {
+class CDMissionTasksTable : public CDTable<CDMissionTasksTable> {
 private:
 	std::vector<CDMissionTasks> entries;
 
 public:
-
-	//! Constructor
-	CDMissionTasksTable(void);
-
-	//! Destructor
-	~CDMissionTasksTable(void);
-
-	//! Returns the table's name
-	/*!
-	 \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	 \param predicate The predicate
-	 */
+	void LoadValuesFromDatabase();
+	// Queries the table with a custom "where" clause
 	std::vector<CDMissionTasks> Query(std::function<bool(CDMissionTasks)> predicate);
 
 	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	const std::vector<CDMissionTasks>& GetEntries(void) const;
+	const std::vector<CDMissionTasks>& GetEntries() const;
 };
 

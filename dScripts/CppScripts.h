@@ -1,12 +1,15 @@
 #pragma once
-#include "dCommonVars.h"
-#include "MissionState.h"
+
+#include <cstdint>
 #include <string>
 #include <vector>
 
 class User;
 class Entity;
 class NiPoint3;
+enum class eMissionState : int32_t;
+enum class ePetTamingNotifyType : uint32_t;
+enum class eRebuildState : uint32_t;
 
 namespace CppScripts {
 	/**
@@ -26,9 +29,6 @@ namespace CppScripts {
 	 */
 	class Script {
 	public:
-		Script();
-		~Script();
-
 		/**
 		 * Invoked one frame after the script is loaded.
 		 *
@@ -44,11 +44,18 @@ namespace CppScripts {
 		virtual void OnCollisionPhantom(Entity* self, Entity* target) {};
 
 		/**
+		 * Invoked upon an entity leaving the phantom collider on self.
+		 *
+		 * Equivalent to 'function onOffCollisionPhantom(self, msg)'
+		 */
+		virtual void OnOffCollisionPhantom(Entity* self, Entity* target) {};
+
+		/**
 		 * Invoked when a player accepted a mission.
 		 *
 		 * Equivalent to 'function onMissionDialogueOK(self, msg)'
 		 */
-		virtual void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {};
+		virtual void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {};
 
 		/**
 		 * Invoked when the client or the server invoked an event server-side.
@@ -173,6 +180,13 @@ namespace CppScripts {
 		virtual void OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
 
 		/**
+		 * Invoked when self has received either a hit or heal.  Only used for scripts subscribed to an entity.
+		 *
+		 * Equivalent to 'function notifyHitOrHealResult(self, msg)'
+		 */
+		virtual void NotifyHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
+
+		/**
 		 * Invoked when a player has responsed to a mission.
 		 *
 		 * Equivalent to 'function onRespondToMission(self, msg)'
@@ -254,7 +268,7 @@ namespace CppScripts {
 		 *
 		 * Equivalent to 'function onNotifyPetTamingMinigame(self, msg)'
 		 */
-		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {};
+		virtual void OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {};
 
 		/**
 		 * Invoked when a player responded to a message box.
@@ -316,6 +330,31 @@ namespace CppScripts {
 		virtual void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
 			float_t pathTime, float_t totalTime, int32_t waypoint) {
 		};
+
+		/**
+		 * Used by items to tell their owner that they were equipped.
+		 *
+		 * @param itemOwner The owner of the item
+		 * @param itemObjId The items Object ID
+		 */
+		virtual void OnFactionTriggerItemEquipped(Entity* itemOwner, LWOOBJID itemObjId) {};
+
+		/**
+		 * Used by items to tell their owner that they were unequipped.
+		 *
+		 * @param itemOwner The owner of the item
+		 * @param itemObjId The items Object ID
+		 */
+		virtual void OnFactionTriggerItemUnequipped(Entity* itemOwner, LWOOBJID itemObjId) {};
+
+		/**
+		 * Handles exiting a scripted activity
+		 *
+		 * @param sender
+		 * @param player the player to remove
+		 * @param canceled if it was done via the cancel button
+		 */
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
 	};
 
 	Script* GetScript(Entity* parent, const std::string& scriptName);

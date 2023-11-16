@@ -6,12 +6,14 @@
 #include "GameMessages.h"
 #include "RebuildComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
+#include "RenderComponent.h"
+#include "EntityManager.h"
+#include "eStateChangeType.h"
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
 	m_ComponentID = componentID;
-	const auto tableData = CDClientManager::Instance()
-		->GetTable<CDRailActivatorComponentTable>("RailActivatorComponent")->GetEntryByID(componentID);
+	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
 	m_Path = parent->GetVar<std::u16string>(u"rail_path");
 	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
@@ -42,7 +44,7 @@ RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
 	auto* rebuildComponent = m_Parent->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() != REBUILD_COMPLETED)
+	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
 		return;
 
 	if (rebuildComponent != nullptr) {
@@ -57,29 +59,16 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 		GameMessages::SendPlayFXEffect(originator->GetObjectID(), m_StartEffect.first, m_StartEffect.second,
 			std::to_string(m_StartEffect.first));
 	}
-
+	
+	float animationLength = 0.5f;
 	if (!m_StartAnimation.empty()) {
-		GameMessages::SendPlayAnimation(originator, m_StartAnimation);
-	}
-
-	float animationLength;
-
-	if (m_StartAnimation == u"whirlwind-rail-up-earth") {
-		animationLength = 1.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-lightning") {
-		animationLength = 0.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-ice") {
-		animationLength = 0.5f;
-	} else if (m_StartAnimation == u"whirlwind-rail-up-fire") {
-		animationLength = 0.5f;
-	} else {
-		animationLength = 0.5f;
+		animationLength = RenderComponent::PlayAnimation(originator, m_StartAnimation);
 	}
 
 	const auto originatorID = originator->GetObjectID();
 
 	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
-		auto* originator = EntityManager::Instance()->GetEntity(originatorID);
+		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
 			return;
@@ -95,7 +84,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 	// Stun the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::PUSH, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -112,7 +101,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 		}
 
 		if (!m_LoopAnimation.empty()) {
-			GameMessages::SendPlayAnimation(originator, m_LoopAnimation);
+			RenderComponent::PlayAnimation(originator, m_LoopAnimation);
 		}
 
 		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
@@ -123,7 +112,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 	// Remove the stun from the originator
-	GameMessages::SendSetStunned(originator->GetObjectID(), POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
+	GameMessages::SendSetStunned(originator->GetObjectID(), eStateChangeType::POP, originator->GetSystemAddress(), LWOOBJID_EMPTY,
 		true, true, true, true, true, true, true
 	);
 
@@ -147,7 +136,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		}
 
 		if (!m_StopAnimation.empty()) {
-			GameMessages::SendPlayAnimation(originator, m_StopAnimation);
+			RenderComponent::PlayAnimation(originator, m_StopAnimation);
 		}
 
 		// Remove the player after they've signalled they're done railing

@@ -6,6 +6,7 @@
 #include "Item.h"
 #include "PossessorComponent.h"
 #include "eAninmationFlags.h"
+#include "eReplicaComponentType.h"
 
 /**
  * Represents an entity that can be controlled by some other entity, generally used by cars to indicate that some
@@ -13,11 +14,11 @@
  */
 class PossessableComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_POSSESSABLE;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSABLE;
 
 	PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief mounts the Entity

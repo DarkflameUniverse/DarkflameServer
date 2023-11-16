@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 class RawChunk;
 struct RawMesh;
@@ -23,5 +24,5 @@ private:
 	uint32_t m_Height;
 
 	std::vector<RawChunk*> m_Chunks;
-	RawMesh* m_FinalMesh;
+	RawMesh* m_FinalMesh = nullptr;
 };

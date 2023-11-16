@@ -2,13 +2,14 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 #include "ScriptedActivityComponent.h"
 
 void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 	auto* character = target->GetCharacter();
 	if (character != nullptr && character->GetPlayerFlag(81)) {
 
-		auto raceObjects = EntityManager::Instance()->GetEntitiesInGroup("PandaRaceObject");
+		auto raceObjects = Game::entityManager->GetEntitiesInGroup("PandaRaceObject");
 		if (raceObjects.empty())
 			return;
 
@@ -18,7 +19,7 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 			return;
 
 		// If the player already spawned a panda
-		auto playerPandas = EntityManager::Instance()->GetEntitiesInGroup("panda" + std::to_string(target->GetObjectID()));
+		auto playerPandas = Game::entityManager->GetEntitiesInGroup("panda" + std::to_string(target->GetObjectID()));
 		if (!playerPandas.empty()) {
 			GameMessages::SendFireEventClientSide(self->GetObjectID(), target->GetSystemAddress(), u"playerPanda",
 				target->GetObjectID(), 0, 0, target->GetObjectID());
@@ -26,7 +27,7 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 		}
 
 		// If there's already too many spawned pandas
-		auto pandas = EntityManager::Instance()->GetEntitiesInGroup("pandas");
+		auto pandas = Game::entityManager->GetEntitiesInGroup("pandas");
 		if (pandas.size() > 4) {
 			GameMessages::SendFireEventClientSide(self->GetObjectID(), target->GetSystemAddress(), u"tooManyPandas",
 				target->GetObjectID(), 0, 0, target->GetObjectID());
@@ -42,7 +43,7 @@ void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
 			new LDFData<std::u16string>(u"groupID", u"panda" + (GeneralUtils::to_u16string(target->GetObjectID())) + u";pandas")
 		};
 
-		auto* panda = EntityManager::Instance()->CreateEntity(info);
-		EntityManager::Instance()->ConstructEntity(panda);
+		auto* panda = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(panda);
 	}
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include "CppScripts.h"
 
-class BasePropertyServer : public CppScripts::Script {
+class BasePropertyServer : virtual public CppScripts::Script {
 public:
 
 	virtual void SetGameVariables(Entity* self);

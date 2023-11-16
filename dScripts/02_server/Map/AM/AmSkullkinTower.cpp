@@ -2,8 +2,10 @@
 #include "EntityManager.h"
 #include "DestroyableComponent.h"
 #include "MovingPlatformComponent.h"
+#include "EntityInfo.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "RenderComponent.h"
 
 void AmSkullkinTower::OnStartup(Entity* self) {
 	self->SetProximityRadius(20, "Tower");
@@ -62,9 +64,9 @@ void AmSkullkinTower::SpawnLegs(Entity* self, const std::string& loc) {
 
 	info.rot = NiQuaternion::LookAt(info.pos, self->GetPosition());
 
-	auto* entity = EntityManager::Instance()->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(entity);
+	Game::entityManager->ConstructEntity(entity);
 
 	OnChildLoaded(self, entity);
 }
@@ -79,7 +81,7 @@ void AmSkullkinTower::OnChildLoaded(Entity* self, Entity* child) {
 	const auto selfID = self->GetObjectID();
 
 	child->AddDieCallback([this, selfID, child]() {
-		auto* self = EntityManager::Instance()->GetEntity(selfID);
+		auto* self = Game::entityManager->GetEntity(selfID);
 		auto* destroyableComponent = child->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent == nullptr || self == nullptr) {
@@ -116,13 +118,13 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 	self->SetVar(u"legTable", legTable);
 
 	if (legTable.size() == 2) {
-		GameMessages::SendPlayAnimation(self, u"wobble-1");
+		RenderComponent::PlayAnimation(self, u"wobble-1");
 	} else if (legTable.size() == 1) {
-		GameMessages::SendPlayAnimation(self, u"wobble-2");
+		RenderComponent::PlayAnimation(self, u"wobble-2");
 	} else if (legTable.empty()) {
 		const auto animTime = 2.5f;
 
-		GameMessages::SendPlayAnimation(self, u"fall");
+		RenderComponent::PlayAnimation(self, u"fall");
 
 		self->AddTimer("spawnGuys", animTime - 0.2f);
 
@@ -155,7 +157,7 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 		const auto& players = self->GetVar<std::vector<LWOOBJID>>(u"Players");
 
 		for (const auto& playerID : players) {
-			auto* player = EntityManager::Instance()->GetEntity(playerID);
+			auto* player = Game::entityManager->GetEntity(playerID);
 
 			if (player == nullptr) {
 				continue;
@@ -231,9 +233,9 @@ void AmSkullkinTower::OnTimerDone(Entity* self, std::string timerName) {
 		for (size_t i = 0; i < 2; i++) {
 			info.pos.x += i * 2; // Just to set the apart a bit
 
-			auto* entity = EntityManager::Instance()->CreateEntity(info);
+			auto* entity = Game::entityManager->CreateEntity(info);
 
-			EntityManager::Instance()->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity);
 		}
 
 		self->AddTimer("killTower", 0.7f);

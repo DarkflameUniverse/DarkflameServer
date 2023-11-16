@@ -13,6 +13,8 @@
 
 #include "GameMessages.h"
 #include "SkillComponent.h"
+#include "eReplicaComponentType.h"
+#include "RenderComponent.h"
 
 #include <vector>
 
@@ -27,9 +29,9 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	//self:SetStatusImmunity{ StateChangeType = "PUSH", bImmuneToPullToPoint = true, bImmuneToKnockback = true, bImmuneToInterrupt = true }
 
 	//Get our components:
-	destroyable = static_cast<DestroyableComponent*>(self->GetComponent(COMPONENT_TYPE_DESTROYABLE));
-	controllable = static_cast<ControllablePhysicsComponent*>(self->GetComponent(COMPONENT_TYPE_CONTROLLABLE_PHYSICS));
-	combat = static_cast<BaseCombatAIComponent*>(self->GetComponent(COMPONENT_TYPE_BASE_COMBAT_AI));
+	destroyable = static_cast<DestroyableComponent*>(self->GetComponent(eReplicaComponentType::DESTROYABLE));
+	controllable = static_cast<ControllablePhysicsComponent*>(self->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+	combat = static_cast<BaseCombatAIComponent*>(self->GetComponent(eReplicaComponentType::BASE_COMBAT_AI));
 
 	if (!destroyable || !controllable) return;
 
@@ -47,12 +49,10 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	m_CurrentBossStage = 1;
 
 	// Obtain faction and collision group to save for subsequent resets
-	//self : SetVar("SBFactionList", self:GetFaction().factionList)
-	//self : SetVar("SBCollisionGroup", self:GetCollisionGroup().colGroup)
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (dZoneManager::Instance()->GetZoneID().GetMapID() == instanceZoneID) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
@@ -60,16 +60,14 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 		missionComponent->CompleteMission(instanceMissionID);
 	}
 
-	Game::logger->Log("BossSpiderQueenEnemyServer", "Starting timer...");
-
 	// There is suppose to be a 0.1 second delay here but that may be admitted?
-	auto* controller = EntityManager::Instance()->GetZoneControlEntity();
+	auto* controller = Game::entityManager->GetZoneControlEntity();
 
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
 
 	self->SetPosition({ 10000, 0, 10000 });
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 
 	controller->OnFireEventServerSide(self, "ClearProperty");
 }
@@ -99,7 +97,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 
 		rot = controllable->GetRotation();
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 		auto* baseCombatAi = self->GetComponent<BaseCombatAIComponent>();
 
@@ -115,7 +113,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		//TODO: Set faction to -1 and set immunity
 		destroyable->SetFaction(-1);
 		destroyable->SetIsImmune(true);
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 		self->AddTimer("WithdrawComplete", withdrawTime + 1.0f);
 		waitForIdle = true;
@@ -148,7 +146,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		//Reset the current wave death counter
 		m_DeathCounter = 0;
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 		// Prepare a timer for post leap attack
 		self->AddTimer("AdvanceAttack", attackPause);
@@ -164,9 +162,6 @@ void BossSpiderQueenEnemyServer::SpawnSpiderWave(Entity* self, int spiderCount) 
 	// The Spider Queen Boss is withdrawing and requesting the spawn
 	// of a hatchling wave
 
-	/*auto SpiderEggNetworkID = self->GetI64(u"SpiderEggNetworkID");
-	if (SpiderEggNetworkID == 0) return;*/
-
 	// Clamp invalid Spiderling number requests to the maximum amount of eggs available
 	if ((spiderCount > maxSpiderEggCnt) || (spiderCount < 0))
 		spiderCount = maxSpiderEggCnt;
@@ -175,91 +170,59 @@ void BossSpiderQueenEnemyServer::SpawnSpiderWave(Entity* self, int spiderCount) 
 	hatchCounter = spiderCount;
 	hatchList = {};
 
-	Game::logger->Log("SpiderQueen", "Trying to spawn %i spiders", hatchCounter);
-
-
 	// Run the wave manager
 	SpiderWaveManager(self);
-
 }
 
 void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 	auto SpiderEggNetworkID = self->GetI64(u"SpiderEggNetworkID");
 
-	// Reset the spider egg spawner network to ensure a maximum number of eggs
-	//SpiderEggNetworkID:SpawnerReset()
-
-	// Obtain a list of all the eggs on the egg spawner network
-
-	//auto spiderEggList = SpiderEggNetworkID:SpawnerGetAllObjectIDsSpawned().objects;
-
-	//if (table.maxn(spiderEggList) <= 0) {
-	//	self->AddTimer("PollSpiderWaveManager", 1.0f);
-	//	return;
-	//}
-	//
-	//// A check for (wave mangement across multiple spawn iterations
-	//if(hatchCounter < spiderWaveCnt) {
-	//	// We have already prepped some objects for (hatching,
-	//	// remove them from our list for (random egg pulls
-	//	for (i, sVal in ipairs(spiderEggList) {
-	//		if(hatchList[sVal:GetID()]) {
-	//			// We have found a prepped egg, remove it from the spiderEggList
-	//			spiderEggList[i] = nil
-	//		}
-	//	}
-
-	//}
-
-
-
 	std::vector<LWOOBJID> spiderEggs{};
 
-	auto spooders = EntityManager::Instance()->GetEntitiesInGroup("EGG");
+	auto spooders = Game::entityManager->GetEntitiesInGroup("EGG");
 	for (auto spodder : spooders) {
 		spiderEggs.push_back(spodder->GetObjectID());
 	}
 
 	// Select a number of random spider eggs from the list equal to the
 	// current number needed to complete the current wave
-	for (int i = 0; i < hatchCounter; i++) {
-		// Select a random spider egg
-		auto randomEggLoc = GeneralUtils::GenerateRandomNumber<int>(0, spiderEggs.size() - 1);
-		auto randomEgg = spiderEggs[randomEggLoc];
+	if (!spiderEggs.empty()) {
+		for (int i = 0; i < hatchCounter; i++) {
+			// Select a random spider egg
+			auto randomEggLoc = GeneralUtils::GenerateRandomNumber<int>(0, spiderEggs.size() - 1);
+			auto randomEgg = spiderEggs[randomEggLoc];
 
-		//Just a quick check to try and prevent dupes:
-		for (auto en : hatchList) {
-			if (en == randomEgg) {
-				randomEggLoc++;
-				randomEgg = spiderEggs[randomEggLoc];
-			}
-		}
-
-		if (randomEgg) {
-			auto* eggEntity = EntityManager::Instance()->GetEntity(randomEgg);
-
-			if (eggEntity == nullptr) {
-				continue;
+			//Just a quick check to try and prevent dupes:
+			for (auto en : hatchList) {
+				if (en == randomEgg) {
+					randomEggLoc++;
+					randomEgg = spiderEggs.at(randomEggLoc % spiderEggs.size());
+				}
 			}
 
-			// Prep the selected spider egg
-			//randomEgg:FireEvent{s}erID=self, args="prepEgg"}
-			eggEntity->OnFireEventServerSide(self, "prepEgg");
-			Game::logger->Log("SpiderQueen", "Prepping egg %llu", eggEntity->GetObjectID());
+			if (randomEgg) {
+				auto* eggEntity = Game::entityManager->GetEntity(randomEgg);
 
-			// Add the prepped egg to our hatchList
-			hatchList.push_back(eggEntity->GetObjectID());
+				if (eggEntity == nullptr) {
+					continue;
+				}
 
-			// Decrement the hatchCounter
-			hatchCounter = hatchCounter - 1;
-		}
+				// Prep the selected spider egg
+				eggEntity->OnFireEventServerSide(self, "prepEgg");
 
-		// Remove it from our spider egg list
-		//table.remove(spiderEggList, randomEggLoc);
-		spiderEggs[randomEggLoc] = LWOOBJID_EMPTY;
+				// Add the prepped egg to our hatchList
+				hatchList.push_back(eggEntity->GetObjectID());
 
-		if (spiderEggs.size() <= 0 || (hatchCounter <= 0)) {
-			break;
+				// Decrement the hatchCounter
+				hatchCounter = hatchCounter - 1;
+			}
+
+			// Remove it from our spider egg list
+			spiderEggs[randomEggLoc] = LWOOBJID_EMPTY;
+
+			if (spiderEggs.size() <= 0 || (hatchCounter <= 0)) {
+				break;
+			}
 		}
 	}
 
@@ -271,21 +234,19 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 		// We have successfully readied a full wave
 		// initiate hatching!
 		for (auto egg : hatchList) {
-			auto* eggEntity = EntityManager::Instance()->GetEntity(egg);
+			auto* eggEntity = Game::entityManager->GetEntity(egg);
 
 			if (eggEntity == nullptr) {
 				continue;
 			}
 
 			eggEntity->OnFireEventServerSide(self, "hatchEgg");
-			Game::logger->Log("SpiderQueen", "hatching egg %llu", eggEntity->GetObjectID());
 
 			auto time = PlayAnimAndReturnTime(self, spiderWithdrawIdle);
 			combat->SetStunImmune(false);
 			combat->Stun(time += 6.0f);
 			combat->SetStunImmune(true);
 
-			//self->AddTimer("disableWaitForIdle", defaultAnimPause);
 			self->AddTimer("checkForSpiders", 6.0f);
 
 		}
@@ -315,7 +276,7 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 	auto index = 0u;
 	for (const auto& rofGroup : ROFTargetGroupIDTable) {
-		const auto spawners = dZoneManager::Instance()->GetSpawnersInGroup(rofGroup);
+		const auto spawners = Game::zoneManager->GetSpawnersInGroup(rofGroup);
 
 		std::vector<LWOOBJID> spawned;
 
@@ -327,7 +288,7 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 		if (index == 0) {
 			impactList.insert(impactList.end(), spawned.begin(), spawned.end());
-		} else {
+		} else if (!spawned.empty()) {
 			const auto randomIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, spawned.size() - 1);
 
 			impactList.push_back(spawned[randomIndex]);
@@ -343,12 +304,12 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 	if (!impactList.empty()) {
-		auto* entity = EntityManager::Instance()->GetEntity(impactList[0]);
+		auto* entity = Game::entityManager->GetEntity(impactList[0]);
 
 		impactList.erase(impactList.begin());
 
 		if (entity == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact!");
+			LOG("Failed to find impact!");
 
 			return;
 		}
@@ -356,7 +317,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact skill component!");
+			LOG("Failed to find impact skill component!");
 
 			return;
 		}
@@ -396,10 +357,6 @@ void BossSpiderQueenEnemyServer::RapidFireShooterManager(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
-	/*
-	const auto targets = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
-	*/
-
 	const auto targets = self->GetTargetsInPhantom();
 
 	if (self->GetBoolean(u"stoppedFlag")) {
@@ -409,7 +366,7 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	}
 
 	if (targets.empty()) {
-		Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find RFS targets");
+		LOG("Failed to find RFS targets");
 
 		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
 
@@ -432,8 +389,6 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 
 	PlayAnimAndReturnTime(self, spiderSingleShot);
 
-	Game::logger->Log("BossSpiderQueenEnemyServer", "Ran RFS");
-
 	self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(10, 15));
 }
 
@@ -453,7 +408,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		controllable->SetStatic(false);
 		controllable->SetRotation(rot);
 		controllable->SetStatic(true);
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 		//Play the Spider Boss' mountain idle anim
 		auto time = PlayAnimAndReturnTime(self, spiderWithdrawIdle);
@@ -464,7 +419,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		rot = controllable->GetRotation();
 
 		//If there are still baby spiders, don't do anyhting either
-		const auto spiders = EntityManager::Instance()->GetEntitiesInGroup("BabySpider");
+		const auto spiders = Game::entityManager->GetEntitiesInGroup("BabySpider");
 		if (spiders.size() > 0)
 			self->AddTimer("checkForSpiders", time);
 		else
@@ -536,7 +491,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		}*/
 
 		auto landingTarget = self->GetI64(u"LandingTarget");
-		auto landingEntity = EntityManager::Instance()->GetEntity(landingTarget);
+		auto landingEntity = Game::entityManager->GetEntity(landingTarget);
 
 		auto* skillComponent = self->GetComponent<SkillComponent>();
 
@@ -555,26 +510,6 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake-bridge", self->GetObjectID(), 100.0f);
 
 	} else if (timerName == "AdvanceComplete") {
-		//Reset faction and collision
-		/*local SBFactionList = self:GetVar("SBFactionList")
-		local SBCollisionGroup = self:GetVar("SBCollisionGroup")
-
-		for i, fVal in ipairs(SBFactionList) {
-			if(i == 1) {
-				//Our first faction - flush and add
-				self:SetFaction{faction = fVal}
-			else
-				//Add
-				self:ModifyFaction{factionID = fVal, bAddFaction = true}
-			}
-		}*/
-
-		/*
-		auto SBCollisionGroup = self->GetI32(u"SBCollisionGroup");
-
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", SBCollisionGroup, 0, LWOOBJID_EMPTY, "", UNASSIGNED_SYSTEM_ADDRESS);
-		*/
-
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 11, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
 
 		//Wind up, telegraphing next round
@@ -612,10 +547,10 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		destroyable->SetIsImmune(false);
 		destroyable->SetFaction(4);
 
-		EntityManager::Instance()->SerializeEntity(self);
+		Game::entityManager->SerializeEntity(self);
 
 	} else if (timerName == "Clear") {
-		EntityManager::Instance()->FireEventServerSide(self, "ClearProperty");
+		Game::entityManager->FireEventServerSide(self, "ClearProperty");
 		self->CancelAllTimers();
 	} else if (timerName == "UnlockSpecials") {
 		//We no longer need to lock specials
@@ -624,7 +559,6 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		//Did we queue a spcial attack?
 		if (self->GetBoolean(u"bSpecialQueued")) {
 			self->SetBoolean(u"bSpecialQueued", false);
-			//SpiderSkillManager(self, true);
 		}
 	}
 }
@@ -671,18 +605,7 @@ void BossSpiderQueenEnemyServer::OnUpdate(Entity* self) {
 	controllable->SetRotation(NiQuaternion::IDENTITY);
 	controllable->SetStatic(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
-
-	//if (waitForIdle) return;
-
-	////Play the Spider Boss' mountain idle anim
-	//PlayAnimAndReturnTime(self, spiderWithdrawIdle);
-
-	////If there are still baby spiders, don't do anyhting either
-	//auto spooders = EntityManager::Instance()->GetEntitiesInGroup("BabySpider");
-	//if (spooders.size() > 0) return;
-	//else
-	//	WithdrawSpider(self, false);
+	Game::entityManager->SerializeEntity(self);
 }
 
 //----------------------------------------------
@@ -694,11 +617,11 @@ float BossSpiderQueenEnemyServer::PlayAnimAndReturnTime(Entity* self, const std:
 	//TODO: Get the actual animation time
 
 	// Get the anim time
-	float animTimer = defaultAnimPause; //self:GetAnimationTime{animationID = animID}.time
+	float animTimer = RenderComponent::GetAnimationTime(self, animID);
 
 	// If we have an animation play it
 	if (animTimer > 0) {
-		GameMessages::SendPlayAnimation(self, animID);
+		animTimer = RenderComponent::PlayAnimation(self, animID);
 	}
 
 	// If the anim time is less than the the default time use default

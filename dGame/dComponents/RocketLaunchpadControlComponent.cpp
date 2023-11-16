@@ -8,15 +8,17 @@
 #include "EntityManager.h"
 #include "Item.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientDatabase.h"
 #include "ChatPackets.h"
 #include "MissionComponent.h"
 #include "PropertyEntranceComponent.h"
-#include "RocketLaunchLupComponent.h"
+#include "MultiZoneEntranceComponent.h"
 #include "dServer.h"
-#include "dMessageIdentifiers.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
+#include "eObjectWorldState.h"
+#include "eConnectionType.h"
+#include "eMasterMessageType.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
@@ -55,7 +57,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	auto* rocket = characterComponent->GetRocket(originator);
 	if (!rocket) {
-		Game::logger->Log("RocketLaunchpadControlComponent", "Unable to find rocket!");
+		LOG("Unable to find rocket!");
 		return;
 	}
 
@@ -77,9 +79,9 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
-	GameMessages::SendChangeObjectWorldState(rocket->GetId(), WORLDSTATE_ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
-	EntityManager::Instance()->SerializeEntity(originator);
+	Game::entityManager->SerializeEntity(originator);
 }
 
 void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
@@ -92,7 +94,7 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<RocketLaunchLupComponent>();
+	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
 	if (rocketLaunchLUP) {
 		return;
 	}
@@ -135,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	PacketUtils::WriteHeader(bitStream, MASTER, MSG_MASTER_PREP_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(&bitStream);
 }

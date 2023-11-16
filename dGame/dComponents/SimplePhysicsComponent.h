@@ -10,7 +10,8 @@
 #include "RakNetTypes.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "Component.h"
+#include "PhysicsComponent.h"
+#include "eReplicaComponentType.h"
 
 class Entity;
 
@@ -25,38 +26,14 @@ enum class eClimbableType : int32_t {
 /**
  * Component that serializes locations of entities to the client
  */
-class SimplePhysicsComponent : public Component {
+class SimplePhysicsComponent : public PhysicsComponent {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_SIMPLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
-	SimplePhysicsComponent(uint32_t componentID, Entity* parent);
+	SimplePhysicsComponent(Entity* parent, uint32_t componentID);
 	~SimplePhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-
-	/**
-	 * Returns the position of this entity
-	 * @return the position of this entity
-	 */
-	NiPoint3& GetPosition() { return m_Position; }
-
-	/**
-	 * Sets the position of this entity
-	 * @param pos the position to set
-	 */
-	void SetPosition(const NiPoint3& pos) { m_Position = pos; m_IsDirty = true; }
-
-	/**
-	 * Returns the rotation of this entity
-	 * @return the rotation of this entity
-	 */
-	NiQuaternion& GetRotation() { return m_Rotation; }
-
-	/**
-	 * Sets the rotation of this entity
-	 * @param rot
-	 */
-	void SetRotation(const NiQuaternion& rot) { m_Rotation = rot; m_IsDirty = true; }
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the velocity of this entity
@@ -107,17 +84,6 @@ public:
 	void SetClimbableType(const eClimbableType& value) { m_ClimbableType = value; }
 
 private:
-
-	/**
-	 * The current position of the entity
-	 */
-	NiPoint3 m_Position = NiPoint3::ZERO;
-
-	/**
-	 * The current rotation of the entity
-	 */
-	NiQuaternion m_Rotation = NiQuaternion::IDENTITY;
-
 	/**
 	 * The current velocity of the entity
 	 */
@@ -132,11 +98,6 @@ private:
 	 * Whether or not the velocity has changed
 	 */
 	bool m_DirtyVelocity = true;
-
-	/**
-	 * Whether or not the position has changed
-	 */
-	bool m_IsDirty = true;
 
 	/**
 	 * The current physics motion state

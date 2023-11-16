@@ -16,34 +16,14 @@ struct CDBrickIDTable {
 
 
 //! BrickIDTable table
-class CDBrickIDTableTable : public CDTable {
+class CDBrickIDTableTable : public CDTable<CDBrickIDTableTable> {
 private:
 	std::vector<CDBrickIDTable> entries;
 
 public:
-
-	//! Constructor
-	CDBrickIDTableTable(void);
-
-	//! Destructor
-	~CDBrickIDTableTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	void LoadValuesFromDatabase();
+	// Queries the table with a custom "where" clause
 	std::vector<CDBrickIDTable> Query(std::function<bool(CDBrickIDTable)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	   \return The entries
-	 */
-	std::vector<CDBrickIDTable> GetEntries(void) const;
-
+	const std::vector<CDBrickIDTable>& GetEntries() const;
 };

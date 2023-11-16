@@ -3,12 +3,6 @@
 // Custom Classes
 #include "CDTable.h"
 
-/*!
- \file CDActivityRewardsTable.hpp
- \brief Contains data for the ActivityRewards table
- */
-
- //! ActivityRewards Entry Struct
 struct CDActivityRewards {
 	unsigned int objectTemplate;        //!< The object template (?)
 	unsigned int ActivityRewardIndex;   //!< The activity reward index
@@ -19,36 +13,15 @@ struct CDActivityRewards {
 	std::string description;            //!< The description
 };
 
-
-//! ActivityRewards table
-class CDActivityRewardsTable : public CDTable {
+class CDActivityRewardsTable : public CDTable<CDActivityRewardsTable> {
 private:
 	std::vector<CDActivityRewards> entries;
 
 public:
-
-	//! Constructor
-	CDActivityRewardsTable(void);
-
-	//! Destructor
-	~CDActivityRewardsTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	void LoadValuesFromDatabase();
+	// Queries the table with a custom "where" clause
 	std::vector<CDActivityRewards> Query(std::function<bool(CDActivityRewards)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	  \return The entries
-	 */
-	std::vector<CDActivityRewards> GetEntries(void) const;
+	std::vector<CDActivityRewards> GetEntries() const;
 
 };

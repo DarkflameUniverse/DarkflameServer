@@ -6,6 +6,7 @@
 #include "GameMessages.h"
 
 #include <vector>
+#include <forward_list>
 
 class Behavior;
 
@@ -80,7 +81,9 @@ struct BehaviorContext
 
 	uint32_t GetUniqueSkillId() const;
 
-	void RegisterSyncBehavior(uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, bool ignoreInterrupts = false);
+	void UpdatePlayerSyncs(float deltaTime);
+
+	void RegisterSyncBehavior(uint32_t syncId, Behavior* behavior, const BehaviorBranchContext& branchContext, const float duration, bool ignoreInterrupts = false);
 
 	void RegisterTimerBehavior(Behavior* behavior, const BehaviorBranchContext& branchContext, LWOOBJID second = LWOOBJID_EMPTY);
 
@@ -104,7 +107,11 @@ struct BehaviorContext
 
 	void Reset();
 
-	std::vector<LWOOBJID> GetValidTargets(int32_t ignoreFaction = 0, int32_t includeFaction = 0, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false) const;
+	void FilterTargets(std::vector<Entity*>& targetsReference, std::forward_list<int32_t>& ignoreFaction, std::forward_list<int32_t>& includeFaction, const bool targetSelf = false, const bool targetEnemy = true, const bool targetFriend = false, const bool targetTeam = false) const;
+
+	bool CheckTargetingRequirements(const Entity* target) const;
+
+	bool CheckFactionList(std::forward_list<int32_t>& factionList, std::vector<int32_t>& objectsFactions) const;
 
 	explicit BehaviorContext(LWOOBJID originator, bool calculation = false);
 

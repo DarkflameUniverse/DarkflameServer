@@ -2,13 +2,15 @@
 #include "EntityManager.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "EntityInfo.h"
 #include "DestroyableComponent.h"
+#include "eReplicaComponentType.h"
 
 void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 	bool maxImagGreaterThanZero = false;
 
 	if (killer) {
-		DestroyableComponent* dest = static_cast<DestroyableComponent*>(killer->GetComponent(COMPONENT_TYPE_DESTROYABLE));
+		DestroyableComponent* dest = static_cast<DestroyableComponent*>(killer->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
 			maxImagGreaterThanZero = dest->GetMaxImagination() > 0;
 		}
@@ -34,9 +36,9 @@ void AgImagSmashable::CrateAnimal(Entity* self) {
 		info.spawnerID = self->GetSpawnerID();
 		info.spawnerNodeID = 0;
 
-		Entity* newEntity = EntityManager::Instance()->CreateEntity(info, nullptr);
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
-			EntityManager::Instance()->ConstructEntity(newEntity);
+			Game::entityManager->ConstructEntity(newEntity);
 		}
 	}
 }

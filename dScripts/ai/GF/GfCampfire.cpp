@@ -4,13 +4,14 @@
 #include "MissionComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
+#include "eReplicaComponentType.h"
 
 void GfCampfire::OnStartup(Entity* self) {
 	self->SetI32(u"counter", static_cast<int32_t>(0));
 	self->SetProximityRadius(2.0f, "placeholder");
 	self->SetBoolean(u"isBurning", true);
 
-	auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+	auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 	if (render == nullptr)
 		return;
 
@@ -20,7 +21,7 @@ void GfCampfire::OnStartup(Entity* self) {
 void GfCampfire::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
 	int32_t param3) {
 	if (args == "physicsReady") {
-		auto* render = static_cast<RenderComponent*>(self->GetComponent(COMPONENT_TYPE_RENDER));
+		auto* render = static_cast<RenderComponent*>(self->GetComponent(eReplicaComponentType::RENDER));
 
 		render->PlayEffect(295, u"running", "Burn");
 	}
@@ -82,7 +83,7 @@ void GfCampfire::OnTimerDone(Entity* self, std::string timerName) {
 
 		const auto targetId = self->GetVar<LWOOBJID>("target");
 
-		auto* entering = EntityManager::Instance()->GetEntity(targetId);
+		auto* entering = Game::entityManager->GetEntity(targetId);
 
 		if (entering == nullptr)
 		{

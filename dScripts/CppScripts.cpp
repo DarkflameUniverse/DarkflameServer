@@ -7,7 +7,7 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InvalidScript.h"
 
 //VE / AG scripts:
@@ -161,7 +161,6 @@
 #include "AgSalutingNpcs.h"
 #include "BossSpiderQueenEnemyServer.h"
 #include "RockHydrantSmashable.h"
-#include "SpecialImaginePowerupSpawner.h"
 
 // Misc Scripts
 #include "ExplodingAsset.h"
@@ -279,6 +278,10 @@
 #include "ImaginationBackpackHealServer.h"
 #include "LegoDieRoll.h"
 #include "BuccaneerValiantShip.h"
+#include "GemPack.h"
+#include "ShardArmor.h"
+#include "TeslaPack.h"
+#include "StunImmunity.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -292,22 +295,35 @@
 // WBL scripts
 #include "WblGenericZone.h"
 
-//Big bad global bc this is a namespace and not a class:
-InvalidScript* invalidToReturn = new InvalidScript();
-std::map<std::string, CppScripts::Script*> m_Scripts;
+// Alpha Scripts
+#include "TriggerGas.h"
+#include "ActNinjaSensei.h"
 
-// yeah sorry darwin ill fix the global later
+// pickups
+#include "SpecialCoinSpawner.h"
+#include "SpecialPowerupSpawner.h"
+#include "SpecialSpeedBuffSpawner.h"
+
+// Wild Scripts
+#include "WildAndScared.h"
+#include "WildGfGlowbug.h"
+#include "WildAmbientCrab.h"
+#include "WildPants.h"
+#include "WildNinjaStudent.h"
+#include "WildNinjaSensei.h"
+#include "WildNinjaBricks.h"
+
+namespace {
+	InvalidScript* invalidToReturn = new InvalidScript();
+	std::map<std::string, CppScripts::Script*> m_Scripts;
+};
 
 CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-	Script* script;
-
 	if (m_Scripts.find(scriptName) != m_Scripts.end()) {
-		script = m_Scripts[scriptName];
-
-		return script;
+		return m_Scripts[scriptName];
 	}
 
-	script = invalidToReturn;
+	Script* script = invalidToReturn;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -368,8 +384,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new RemoveRentalGear();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_NJ_ASSISTANT_SERVER.lua")
 		script = new NpcNjAssistantServer();
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
-		script = new SpecialImaginePowerupSpawner();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_SALUTING_NPCS.lua")
 		script = new AgSalutingNpcs();
 	else if (scriptName == "scripts\\ai\\AG\\L_AG_JET_EFFECT_SERVER.lua")
@@ -393,7 +407,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_CANCEL.lua")
 		script = new AgMonumentRaceCancel();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_ZONE_AG_SPIDER_QUEEN.lua")
-		script = (ZoneAgProperty*)new ZoneAgSpiderQueen();
+		script = new ZoneAgSpiderQueen();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_SPIDER_BOSS_TREASURE_CHEST_SERVER.lua")
 		script = new SpiderBossTreasureChestServer();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_COWBOY_SERVER.lua")
@@ -457,7 +471,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HAMMERLING_ENEMY_SERVER.lua")
 		script = new WaveBossHammerling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_APE_ENEMY_SERVER.lua")
-		script = (BaseEnemyApe*) new WaveBossApe();
+		script = new WaveBossApe();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_DARK_SPIDERLING_ENEMY_SERVER.lua")
 		script = new WaveBossSpiderling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HORESEMEN_ENEMY_SERVER.lua")
@@ -620,7 +634,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_PROP_PLATFORM.lua")
 		script = new PropertyPlatform();
 	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
-		return new VeBricksampleServer();
+		script = new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
@@ -755,7 +769,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_COLE_NPC.lua")
 		script = new NjColeNPC();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_JAY_MISSION_ITEMS.lua")
-		script = (NjNPCMissionSpinjitzuServer*) new NjJayMissionItems();
+		script = new NjJayMissionItems();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_NPC_MISSION_SPINJITZU_SERVER.lua")
 		script = new NjNPCMissionSpinjitzuServer();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_ENEMY_SKELETON_SPAWNER.lua")
@@ -840,6 +854,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new BuccaneerValiantShip();
 	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
 		script = new FireFirstSkillonStartup();
+	else if (scriptName == "scripts\\equipmenttriggers\\gempack.lua")
+		script = new GemPack();
+	else if (scriptName == "scripts\\equipmenttriggers\\shardarmor.lua")
+		script = new ShardArmor();
+	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
+		script = new TeslaPack();
+	else if (scriptName == "scripts\\EquipmentScripts\\stunImmunity.lua")
+		script = new StunImmunity();
 
 	// FB
 	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
@@ -851,13 +873,67 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
 
+	// Alpha
+	if (scriptName == "scripts\\ai\\FV\\L_TRIGGER_GAS.lua")
+		script = new TriggerGas();
+	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua")
+		script = new ActNinjaSensei();
+
+	// pickups
+	if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(1);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(10000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(100);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(10);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(100000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(1000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_BRONZE-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(25);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_GOLD-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(250000);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_SILVER-COIN-SPAWNER.lua")
+		script = new SpecialCoinSpawner(2500);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(13);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER-2PT.lua")
+		script = new SpecialPowerupSpawner(129);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(5);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua")
+		script = new SpecialPowerupSpawner(747);
+	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
+		script = new SpecialSpeedBuffSpawner();
+
+	// Wild
+	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
+		script = new WildAndScared();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_GLOWBUG.lua")
+		script = new WildGfGlowbug();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENT_CRAB.lua")
+		script = new WildAmbientCrab();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_PANTS.lua")
+		script = new WildPants();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_BRICKS.lua")
+		script = new WildNinjaBricks();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua")
+		script = new WildNinjaStudent();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
+		script = new WildNinjaSensei();
+
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
 	else if (script == invalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
+			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
+			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
-			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;
@@ -873,12 +949,4 @@ std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
 		}
 	}
 	return scripts;
-}
-
-CppScripts::Script::Script() {
-
-}
-
-CppScripts::Script::~Script() {
-
 }

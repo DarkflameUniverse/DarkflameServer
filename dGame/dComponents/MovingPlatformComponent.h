@@ -13,6 +13,10 @@
 #include "dCommonVars.h"
 #include "EntityManager.h"
 #include "Component.h"
+#include "eMovementPlatformState.h"
+#include "eReplicaComponentType.h"
+
+class Path;
 
  /**
   * Different types of available platforms
@@ -27,16 +31,6 @@ enum class eMoverSubComponentType : uint32_t {
 };
 
 /**
- * The different types of platform movement state, supposedly a bitmap
- */
-enum class MovementPlatformState : uint32_t
-{
-	Moving = 0b00010,
-	Stationary = 0b11001,
-	Stopped = 0b01100
-};
-
-/**
  * Sub component for moving platforms that determine the actual current movement state
  */
 class MoverSubComponent {
@@ -44,12 +38,12 @@ public:
 	MoverSubComponent(const NiPoint3& startPos);
 	~MoverSubComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) const;
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
 
 	/**
 	 * The state the platform is currently in
 	 */
-	MovementPlatformState mState = MovementPlatformState::Stationary;
+	eMovementPlatformState mState = eMovementPlatformState::Stationary;
 
 	/**
 	 * The waypoint this platform currently wants to traverse to
@@ -112,12 +106,12 @@ public:
  */
 class MovingPlatformComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_MOVING_PLATFORM;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 	~MovingPlatformComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Stops all pathing, called when an entity starts a quick build associated with this platform
@@ -133,7 +127,7 @@ public:
 	 * Updates the movement state for the moving platform
 	 * @param value the movement state to set
 	 */
-	void SetMovementState(MovementPlatformState value);
+	void SetMovementState(eMovementPlatformState value);
 
 	/**
 	 * Instructs the moving platform to go to some waypoint

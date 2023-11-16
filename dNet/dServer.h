@@ -4,8 +4,9 @@
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
 
-class dLogger;
+class Logger;
 class dConfig;
+enum class eServerDisconnectIdentifiers : uint32_t;
 
 enum class ServerType : uint32_t {
 	Master,
@@ -25,7 +26,7 @@ public:
 		int maxConnections,
 		bool isInternal,
 		bool useEncryption,
-		dLogger* logger,
+		Logger* logger,
 		const std::string masterIP,
 		int masterPort,
 		ServerType serverType,
@@ -41,7 +42,7 @@ public:
 	virtual void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
 	void SendToMaster(RakNet::BitStream* bitStream);
 
-	void Disconnect(const SystemAddress& sysAddr, uint32_t disconNotifyID);
+	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }
@@ -50,13 +51,14 @@ public:
 	const bool GetIsEncrypted() const { return mUseEncryption; }
 	const bool GetIsInternal() const { return mIsInternal; }
 	const bool GetIsOkay() const { return mIsOkay; }
-	dLogger* GetLogger() const { return mLogger; }
+	Logger* GetLogger() const { return mLogger; }
 	const bool GetIsConnectedToMaster() const { return mMasterConnectionActive; }
 	const unsigned int GetZoneID() const { return mZoneID; }
 	const int GetInstanceID() const { return mInstanceID; }
 	ReplicaManager* GetReplicaManager() { return mReplicaManager; }
 	void UpdateReplica();
 	void UpdateBandwidthLimit();
+	void UpdateMaximumMtuSize();
 
 	int GetPing(const SystemAddress& sysAddr) const;
 	int GetLatestPing(const SystemAddress& sysAddr) const;
@@ -72,7 +74,7 @@ private:
 	bool ConnectToMaster();
 
 private:
-	dLogger* mLogger = nullptr;
+	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
 	ReplicaManager* mReplicaManager = nullptr;

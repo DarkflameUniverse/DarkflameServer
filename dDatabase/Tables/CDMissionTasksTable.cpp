@@ -1,7 +1,6 @@
 #include "CDMissionTasksTable.h"
 
-//! Constructor
-CDMissionTasksTable::CDMissionTasksTable(void) {
+void CDMissionTasksTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -21,19 +20,19 @@ CDMissionTasksTable::CDMissionTasksTable(void) {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MissionTasks");
 	while (!tableData.eof()) {
 		CDMissionTasks entry;
-		entry.id = tableData.getIntField(0, -1);
-		UNUSED(entry.locStatus = tableData.getIntField(1, -1));
-		entry.taskType = tableData.getIntField(2, -1);
-		entry.target = tableData.getIntField(3, -1);
-		entry.targetGroup = tableData.getStringField(4, "");
-		entry.targetValue = tableData.getIntField(5, -1);
-		entry.taskParam1 = tableData.getStringField(6, "");
-		UNUSED(entry.largeTaskIcon = tableData.getStringField(7, ""));
-		UNUSED(entry.IconID = tableData.getIntField(8, -1));
-		entry.uid = tableData.getIntField(9, -1);
-		UNUSED(entry.largeTaskIconID = tableData.getIntField(10, -1));
-		UNUSED(entry.localize = tableData.getIntField(11, -1) == 1 ? true : false);
-		UNUSED(entry.gate_version = tableData.getStringField(12, ""));
+		entry.id = tableData.getIntField("id", -1);
+		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
+		entry.taskType = tableData.getIntField("taskType", -1);
+		entry.target = tableData.getIntField("target", -1);
+		entry.targetGroup = tableData.getStringField("targetGroup", "");
+		entry.targetValue = tableData.getIntField("targetValue", -1);
+		entry.taskParam1 = tableData.getStringField("taskParam1", "");
+		UNUSED(entry.largeTaskIcon = tableData.getStringField("largeTaskIcon", ""));
+		UNUSED(entry.IconID = tableData.getIntField("IconID", -1));
+		entry.uid = tableData.getIntField("uid", -1);
+		UNUSED(entry.largeTaskIconID = tableData.getIntField("largeTaskIconID", -1));
+		UNUSED(entry.localize = tableData.getIntField("localize", -1) == 1 ? true : false);
+		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 
 		this->entries.push_back(entry);
 		tableData.nextRow();
@@ -42,15 +41,6 @@ CDMissionTasksTable::CDMissionTasksTable(void) {
 	tableData.finalize();
 }
 
-//! Destructor
-CDMissionTasksTable::~CDMissionTasksTable(void) {}
-
-//! Returns the table's name
-std::string CDMissionTasksTable::GetName(void) const {
-	return "MissionTasks";
-}
-
-//! Queries the table with a custom "where" clause
 std::vector<CDMissionTasks> CDMissionTasksTable::Query(std::function<bool(CDMissionTasks)> predicate) {
 
 	std::vector<CDMissionTasks> data = cpplinq::from(this->entries)
@@ -65,16 +55,14 @@ std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(uint32_t missio
 
 	for (auto& entry : this->entries) {
 		if (entry.id == missionID) {
-			CDMissionTasks* task = const_cast<CDMissionTasks*>(&entry);
-
-			tasks.push_back(task);
+			tasks.push_back(&entry);
 		}
 	}
 
 	return tasks;
 }
 
-//! Gets all the entries in the table
-const std::vector<CDMissionTasks>& CDMissionTasksTable::GetEntries(void) const {
+const std::vector<CDMissionTasks>& CDMissionTasksTable::GetEntries() const {
 	return this->entries;
 }
+

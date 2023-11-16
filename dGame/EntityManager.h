@@ -1,31 +1,24 @@
 #ifndef ENTITYMANAGER_H
 #define ENTITYMANAGER_H
 
-#include "dCommonVars.h"
-#include "../thirdparty/raknet/Source/Replica.h"
 #include <map>
 #include <stack>
-
-#include "Entity.h"
 #include <vector>
+#include <unordered_map>
+
+#include "dCommonVars.h"
+
+class Entity;
+class EntityInfo;
+class Player;
+class User;
+enum class eReplicaComponentType : uint32_t;
 
 struct SystemAddress;
-class User;
 
 class EntityManager {
 public:
-	static EntityManager* Instance() {
-		if (!m_Address) {
-			m_Address = new EntityManager();
-			m_Address->Initialize();
-		}
-
-		return m_Address;
-	}
-
 	void Initialize();
-
-	~EntityManager();
 
 	void UpdateEntities(float deltaTime);
 	Entity* CreateEntity(EntityInfo info, User* user = nullptr, Entity* parentEntity = nullptr, bool controller = false, LWOOBJID explicitId = LWOOBJID_EMPTY);
@@ -33,8 +26,9 @@ public:
 	void DestroyEntity(Entity* entity);
 	Entity* GetEntity(const LWOOBJID& objectId) const;
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
-	std::vector<Entity*> GetEntitiesByComponent(int componentType) const;
+	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
+	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;
 	Entity* GetZoneControlEntity() const;
 
 	// Get spawn point entity by spawn name
@@ -66,8 +60,6 @@ public:
 	Entity* GetGhostCandidate(int32_t id);
 	bool GetGhostingEnabled() const;
 
-	void ResetFlags();
-
 	void ScheduleForKill(Entity* entity);
 
 	void ScheduleForDeletion(LWOOBJID entity);
@@ -76,8 +68,16 @@ public:
 
 	static bool IsExcludedFromGhosting(LOT lot);
 
+	const bool GetHardcoreMode() { return m_HardcoreMode; };
+	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
+	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
+	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+
 private:
-	static EntityManager* m_Address; //For singleton method
+	void SerializeEntities();
+	void KillEntities();
+	void DeleteEntities();
+
 	static std::vector<LWOMAPID> m_GhostingExcludedZones;
 	static std::vector<LOT> m_GhostingExcludedLOTs;
 
@@ -100,6 +100,12 @@ private:
 
 	// Map of spawnname to entity object ID
 	std::unordered_map<std::string, LWOOBJID> m_SpawnPoints;
+
+	// hardcore mode vars
+	bool m_HardcoreMode;
+	uint32_t m_HardcoreLoseUscoreOnDeathPercent;
+	bool m_HardcoreDropinventoryOnDeath;
+	uint32_t m_HardcoreUscoreEnemiesMultiplier;
 };
 
 #endif // ENTITYMANAGER_H

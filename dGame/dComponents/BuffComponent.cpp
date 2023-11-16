@@ -4,12 +4,13 @@
 #include <stdexcept>
 #include "DestroyableComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "CDClientManager.h"
+#include "CDSkillBehaviorTable.h"
 
 std::unordered_map<int32_t, std::vector<BuffParameter>> BuffComponent::m_Cache{};
 
@@ -19,7 +20,7 @@ BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 BuffComponent::~BuffComponent() {
 }
 
-void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 	if (m_Buffs.empty()) {
 		outBitStream->Write0();
@@ -101,7 +102,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	const auto& parameters = GetBuffParameters(id);
 	for (const auto& parameter : parameters) {
 		if (parameter.name == "overtime") {
-			auto* behaviorTemplateTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+			auto* behaviorTemplateTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 			behaviorID = behaviorTemplateTable->GetSkillByID(parameter.values[0]).behaviorID;
 			stacks = static_cast<int32_t>(parameter.values[1]);
@@ -170,17 +171,10 @@ void BuffComponent::ApplyBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() + maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current + ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->AddSpeedboost(speed);
 		}
 	}
 }
@@ -213,17 +207,10 @@ void BuffComponent::RemoveBuffEffect(int32_t id) {
 
 			destroyable->SetMaxImagination(destroyable->GetMaxImagination() - maxImagination);
 		} else if (parameter.name == "speed") {
-			const auto speed = parameter.value;
-
 			auto* controllablePhysicsComponent = this->GetParent()->GetComponent<ControllablePhysicsComponent>();
-
-			if (controllablePhysicsComponent == nullptr) return;
-
-			const auto current = controllablePhysicsComponent->GetSpeedMultiplier();
-
-			controllablePhysicsComponent->SetSpeedMultiplier(current - ((speed - 500.0f) / 500.0f));
-
-			EntityManager::Instance()->SerializeEntity(this->GetParent());
+			if (!controllablePhysicsComponent) return;
+			const auto speed = parameter.value;
+			controllablePhysicsComponent->RemoveSpeedboost(speed);
 		}
 	}
 }
@@ -347,7 +334,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 
 					param.values.push_back(value);
 				} catch (std::invalid_argument& exception) {
-					Game::logger->Log("BuffComponent", "Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+					LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
 				}
 			}
 		}

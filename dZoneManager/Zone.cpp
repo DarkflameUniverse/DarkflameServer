@@ -3,15 +3,20 @@
 #include <fstream>
 #include <sstream>
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
+#include "LUTriggers.h"
 
 #include "AssetManager.h"
 #include "CDClientManager.h"
 #include "CDZoneTableTable.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
+#include "dpWorld.h"
+
+#include "eTriggerCommandType.h"
+#include "eTriggerEventType.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
@@ -24,7 +29,7 @@ Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLON
 }
 
 Zone::~Zone() {
-	Game::logger->Log("Zone", "Destroying zone %i", m_ZoneID.GetMapID());
+	LOG("Destroying zone %i", m_ZoneID.GetMapID());
 	for (std::map<LWOSCENEID, SceneRef>::iterator it = m_Scenes.begin(); it != m_Scenes.end(); ++it) {
 		if (it->second.level != nullptr) delete it->second.level;
 	}
@@ -44,28 +49,28 @@ void Zone::LoadZoneIntoMemory() {
 	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Zone", "Failed to load %s", m_ZoneFilePath.c_str());
+		LOG("Failed to load %s", m_ZoneFilePath.c_str());
 		throw std::runtime_error("Aborting Zone loading due to no Zone File.");
 	}
 
 	std::istream file(&buffer);
 	if (file) {
-		BinaryIO::BinaryRead(file, m_ZoneFileFormatVersion);
+		BinaryIO::BinaryRead(file, m_FileFormatVersion);
 
 		uint32_t mapRevision = 0;
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
 		BinaryIO::BinaryRead(file, m_WorldID);
-		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) Game::logger->Log("Zone", "WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
+		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Beta) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::Beta) {
 			BinaryIO::BinaryRead(file, m_Spawnpoint);
 			BinaryIO::BinaryRead(file, m_SpawnpointRotation);
 		}
 
-		if (m_ZoneFileFormatVersion <= Zone::ZoneFileFormatVersion::LateAlpha) {
+		if (m_FileFormatVersion <= Zone::FileFormatVersion::LateAlpha) {
 			uint8_t sceneCount;
 			BinaryIO::BinaryRead(file, sceneCount);
 			m_SceneCount = sceneCount;
@@ -89,14 +94,14 @@ void Zone::LoadZoneIntoMemory() {
 		BinaryIO::BinaryRead(file, stringLength);
 		m_ZoneDesc = BinaryIO::ReadString(file, stringLength);
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::PreAlpha) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
 			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);
 			for (uint32_t i = 0; i < m_NumberOfSceneTransitionsLoaded; ++i) {
 				LoadSceneTransition(file);
 			}
 		}
 
-		if (m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::EarlyAlpha) {
+		if (m_FileFormatVersion >= Zone::FileFormatVersion::EarlyAlpha) {
 			BinaryIO::BinaryRead(file, m_PathDataLength);
 			BinaryIO::BinaryRead(file, m_PathChunkVersion); // always should be 1
 
@@ -145,13 +150,13 @@ void Zone::LoadZoneIntoMemory() {
 					info.activeOnLoad = path.spawner.spawnerNetActive;
 					info.isNetwork = true;
 					Spawner* spawner = new Spawner(info);
-					dZoneManager::Instance()->AddSpawner(info.spawnerID, spawner);
+					Game::zoneManager->AddSpawner(info.spawnerID, spawner);
 				}
 
 			}
 		}
 	} else {
-		Game::logger->Log("Zone", "Failed to open: %s", m_ZoneFilePath.c_str());
+		LOG("Failed to open: %s", m_ZoneFilePath.c_str());
 	}
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 
@@ -160,7 +165,7 @@ void Zone::LoadZoneIntoMemory() {
 
 std::string Zone::GetFilePathForZoneID() {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance()->GetTable<CDZoneTableTable>("ZoneTable");
+	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
 		std::string toReturn = "maps/" + zone->zoneName;
@@ -218,7 +223,7 @@ void Zone::AddRevision(LWOSCENEID sceneID, uint32_t revision) {
 
 const void Zone::PrintAllGameObjects() {
 	for (std::pair<LWOSCENEID, SceneRef> scene : m_Scenes) {
-		Game::logger->Log("Zone", "In sceneID: %i", scene.first.GetSceneID());
+		LOG("In sceneID: %i", scene.first.GetSceneID());
 		scene.second.level->PrintAllObjects();
 	}
 }
@@ -240,16 +245,29 @@ void Zone::LoadScene(std::istream& file) {
 		scene.triggers.insert({ trigger->id, trigger });
 	}
 
-	BinaryIO::BinaryRead(file, scene.id);
-	BinaryIO::BinaryRead(file, scene.sceneType);
-	lwoSceneID.SetSceneID(scene.id);
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.id);
+		lwoSceneID.SetSceneID(scene.id);
+	}
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.sceneType);
+		lwoSceneID.SetLayerID(scene.sceneType);
 
-	uint8_t sceneNameLength;
-	BinaryIO::BinaryRead(file, sceneNameLength);
-	scene.name = BinaryIO::ReadString(file, sceneNameLength);
-	file.ignore(3);
+		uint8_t sceneNameLength;
+		BinaryIO::BinaryRead(file, sceneNameLength);
+		scene.name = BinaryIO::ReadString(file, sceneNameLength);
+	}
 
-	lwoSceneID.SetLayerID(scene.sceneType);
+	if (m_FileFormatVersion == Zone::FileFormatVersion::LatePreAlpha){
+		BinaryIO::BinaryRead(file, scene.unknown1);
+		BinaryIO::BinaryRead(file, scene.unknown2);
+	}
+
+	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
+		BinaryIO::BinaryRead(file, scene.color_r);
+		BinaryIO::BinaryRead(file, scene.color_b);
+		BinaryIO::BinaryRead(file, scene.color_g);
+	}
 
 	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
 	m_NumberOfScenesLoaded++;
@@ -261,7 +279,7 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Zone", "Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
+		LOG("Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
 		return lvlTriggers;
 	}
 
@@ -277,9 +295,9 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 	if (!doc) return lvlTriggers;
 
 	if (doc->Parse(data.str().c_str(), data.str().size()) == 0) {
-		//Game::logger->Log("Zone", "Loaded LUTriggers from file %s!", triggerFile.c_str());
+		//LOG("Loaded LUTriggers from file %s!", triggerFile.c_str());
 	} else {
-		Game::logger->Log("Zone", "Failed to load LUTriggers from file %s", triggerFile.c_str());
+		LOG("Failed to load LUTriggers from file %s", triggerFile.c_str());
 		return lvlTriggers;
 	}
 
@@ -295,11 +313,11 @@ std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, 
 		auto currentEvent = currentTrigger->FirstChildElement("event");
 		while (currentEvent) {
 			LUTriggers::Event* newEvent = new LUTriggers::Event();
-			newEvent->eventID = currentEvent->Attribute("id");
+			newEvent->id = TriggerEventType::StringToTriggerEventType(currentEvent->Attribute("id"));
 			auto currentCommand = currentEvent->FirstChildElement("command");
 			while (currentCommand) {
 				LUTriggers::Command* newCommand = new LUTriggers::Command();
-				newCommand->id = currentCommand->Attribute("id");
+				newCommand->id = TriggerCommandType::StringToTriggerCommandType(currentCommand->Attribute("id"));
 				newCommand->target = currentCommand->Attribute("target");
 				if (currentCommand->Attribute("targetName") != NULL) {
 					newCommand->targetName = currentCommand->Attribute("targetName");
@@ -341,15 +359,15 @@ const Path* Zone::GetPath(std::string name) const {
 
 void Zone::LoadSceneTransition(std::istream& file) {
 	SceneTransition sceneTrans;
-	if (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::Auramar) {
+	if (m_FileFormatVersion < Zone::FileFormatVersion::Auramar) {
 		uint8_t length;
 		BinaryIO::BinaryRead(file, length);
 		sceneTrans.name = BinaryIO::ReadString(file, length);
-		file.ignore(4);
+		BinaryIO::BinaryRead(file, sceneTrans.width);
 	}
 
 	//BR�THER MAY I HAVE SOME L��PS?
-	uint8_t loops = (m_ZoneFileFormatVersion < Zone::ZoneFileFormatVersion::EarlyAlpha || m_ZoneFileFormatVersion >= Zone::ZoneFileFormatVersion::Launch) ? 2 : 5;
+	uint8_t loops = (m_FileFormatVersion <= Zone::FileFormatVersion::LatePreAlpha || m_FileFormatVersion >= Zone::FileFormatVersion::Launch) ? 2 : 5;
 
 	for (uint8_t i = 0; i < loops; ++i) {
 		sceneTrans.points.push_back(LoadSceneTransitionInfo(file));
@@ -397,7 +415,7 @@ void Zone::LoadPath(std::istream& file) {
 	} else if (path.pathType == PathType::Property) {
 		BinaryIO::BinaryRead(file, path.property.pathType);
 		BinaryIO::BinaryRead(file, path.property.price);
-		BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
+		BinaryIO::BinaryRead(file, path.property.rentalTime);
 		BinaryIO::BinaryRead(file, path.property.associatedZone);
 
 		if (path.pathVersion >= 5) {
@@ -422,14 +440,12 @@ void Zone::LoadPath(std::istream& file) {
 		if (path.pathVersion >= 7) {
 			BinaryIO::BinaryRead(file, path.property.cloneLimit);
 			BinaryIO::BinaryRead(file, path.property.repMultiplier);
-			BinaryIO::BinaryRead(file, path.property.rentalTimeUnit);
+			BinaryIO::BinaryRead(file, path.property.rentalPeriod);
 		}
 
 		if (path.pathVersion >= 8) {
 			BinaryIO::BinaryRead(file, path.property.achievementRequired);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.x);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.y);
-			BinaryIO::BinaryRead(file, path.property.playerZoneCoords.z);
+			BinaryIO::BinaryRead(file, path.property.playerZoneCoords);
 			BinaryIO::BinaryRead(file, path.property.maxBuildHeight);
 		}
 	} else if (path.pathType == PathType::Camera) {
@@ -539,11 +555,15 @@ void Zone::LoadPath(std::istream& file) {
 				if (ldfConfig) waypoint.config.push_back(ldfConfig);
 			}
 		}
-
+		// We verify the waypoint heights against the navmesh because in many movement paths,
+		// the waypoint is located near 0 height, 
+		if (path.pathType == PathType::Movement) {
+			if (dpWorld::Instance().IsLoaded()) {
+				// 2000 should be large enough for every world.
+				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
+			}
+		}
 		path.pathWaypoints.push_back(waypoint);
 	}
-
-
-
 	m_Paths.push_back(path);
 }

@@ -4,7 +4,7 @@
 #include "GameMessages.h"
 #include "Entity.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "PropertyManagementComponent.h"
@@ -17,14 +17,14 @@ BuildBorderComponent::~BuildBorderComponent() {
 
 void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {
-		const auto& entities = EntityManager::Instance()->GetEntitiesInGroup("PropertyPlaque");
+		const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");
 
 		auto buildArea = m_Parent->GetObjectID();
 
 		if (!entities.empty()) {
 			buildArea = entities[0]->GetObjectID();
 
-			Game::logger->Log("BuildBorderComponent", "Using PropertyPlaque");
+			LOG("Using PropertyPlaque");
 		}
 
 		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
@@ -41,7 +41,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 
 		inventoryComponent->PushEquippedItems();
 
-		Game::logger->Log("BuildBorderComponent", "Starting with %llu", buildArea);
+		LOG("Starting with %llu", buildArea);
 
 		if (PropertyManagementComponent::Instance() != nullptr) {
 			GameMessages::SendStartArrangingWithItem(

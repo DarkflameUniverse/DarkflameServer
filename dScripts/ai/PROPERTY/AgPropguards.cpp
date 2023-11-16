@@ -3,8 +3,9 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
+#include "eMissionState.h"
 
-void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	auto* character = target->GetCharacter();
 	if (character == nullptr)
 		return;
@@ -13,13 +14,13 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 	if (flag == 0)
 		return;
 
-	if ((missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_ACTIVE)
+	if ((missionState == eMissionState::AVAILABLE || missionState == eMissionState::ACTIVE)
 		&& !character->GetPlayerFlag(flag)) {
 		// If the player just started the mission, play a cinematic highlighting the target
 		GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
-	} else if (missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+	} else if (missionState == eMissionState::READY_TO_COMPLETE) {
 		// Makes the guard disappear once the mission has been completed
-		const auto zoneControlID = EntityManager::Instance()->GetZoneControlEntity()->GetObjectID();
+		const auto zoneControlID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 		GameMessages::SendNotifyClientObject(zoneControlID, u"GuardChat", 0, 0, self->GetObjectID(),
 			"", UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -28,7 +29,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 			if (spawnerName.empty())
 				spawnerName = "Guard";
 
-			auto spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+			auto spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 			for (auto* spawner : spawners) {
 				spawner->Deactivate();
 			}
@@ -38,7 +39,7 @@ void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 	}
 }
 
-uint32_t AgPropguards::GetFlagForMission(uint32_t missionID) {
+int32_t AgPropguards::GetFlagForMission(uint32_t missionID) {
 	switch (missionID) {
 	case 872:
 		return 97;

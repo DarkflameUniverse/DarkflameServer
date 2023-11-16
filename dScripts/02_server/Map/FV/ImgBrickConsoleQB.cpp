@@ -4,7 +4,9 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
+#include "eMissionState.h"
 #include "InventoryComponent.h"
+#include "eTerminateType.h"
 
 int32_t ImgBrickConsoleQB::ResetBricks = 30;
 int32_t ImgBrickConsoleQB::ResetConsole = 60;
@@ -19,16 +21,16 @@ void ImgBrickConsoleQB::OnStartup(Entity* self) {
 void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		if (!self->GetNetworkVar<bool>(u"used")) {
-			const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+			const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 			auto bothBuilt = false;
 
 			for (auto* console : consoles) {
 				auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
-				if (consoleRebuildComponent->GetState() != REBUILD_COMPLETED) {
+				if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 					continue;
 				}
 
@@ -57,7 +59,7 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 				onFX = 2779;
 			}
 
-			const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+			const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 			if (!facility.empty()) {
 				GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
@@ -71,13 +73,13 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 		auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
 		if (missionComponent != nullptr && inventoryComponent != nullptr) {
-			if (missionComponent->GetMissionState(1302) == MissionState::MISSION_STATE_ACTIVE) {
+			if (missionComponent->GetMissionState(1302) == eMissionState::ACTIVE) {
 				inventoryComponent->RemoveItem(13074, 1);
 
 				missionComponent->ForceProgressTaskType(1302, 1, 1);
 			}
 
-			if (missionComponent->GetMissionState(1926) == MissionState::MISSION_STATE_ACTIVE) {
+			if (missionComponent->GetMissionState(1926) == eMissionState::ACTIVE) {
 				inventoryComponent->RemoveItem(14472, 1);
 
 				missionComponent->ForceProgressTaskType(1926, 1, 1);
@@ -86,36 +88,36 @@ void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
 
 		self->SetNetworkVar(u"used", true);
 
-		GameMessages::SendTerminateInteraction(player->GetObjectID(), FROM_INTERACTION, self->GetObjectID());
+		GameMessages::SendTerminateInteraction(player->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 	}
 }
 
 void ImgBrickConsoleQB::SpawnBrick(Entity* self) {
-	const auto netDevil = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug");
+	const auto netDevil = Game::zoneManager->GetSpawnersByName("MaelstromBug");
 	if (!netDevil.empty()) {
 		netDevil[0]->Reset();
 		netDevil[0]->Deactivate();
 	}
 
-	const auto brick = dZoneManager::Instance()->GetSpawnersByName("Imagination");
+	const auto brick = Game::zoneManager->GetSpawnersByName("Imagination");
 	if (!brick.empty()) {
 		brick[0]->Activate();
 	}
 }
 
 void ImgBrickConsoleQB::SmashCanister(Entity* self) {
-	const auto brick = EntityManager::Instance()->GetEntitiesInGroup("Imagination");
+	const auto brick = Game::entityManager->GetEntitiesInGroup("Imagination");
 	if (!brick.empty()) {
 		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 122, u"create", "bluebrick");
 		GameMessages::SendPlayFXEffect(brick[0]->GetObjectID(), 1034, u"cast", "imaginationexplosion");
 	}
 
-	const auto canisters = EntityManager::Instance()->GetEntitiesInGroup("Canister");
+	const auto canisters = Game::entityManager->GetEntitiesInGroup("Canister");
 	for (auto* canister : canisters) {
-		canister->Smash(canister->GetObjectID(), VIOLENT);
+		canister->Smash(canister->GetObjectID(), eKillType::VIOLENT);
 	}
 
-	const auto canister = dZoneManager::Instance()->GetSpawnersByName("BrickCanister");
+	const auto canister = Game::zoneManager->GetSpawnersByName("BrickCanister");
 	if (!canister.empty()) {
 		canister[0]->Reset();
 		canister[0]->Deactivate();
@@ -133,19 +135,19 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
 		energyFX = 2778;
 	}
 
-	const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+	const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 	if (!facility.empty()) {
 		GameMessages::SendStopFXEffect(facility[0], true, location + "PipeOff");
 		GameMessages::SendPlayFXEffect(facility[0]->GetObjectID(), energyFX, u"create", location + "PipeEnergy");
 	}
 
-	const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+	const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 	for (auto* console : consoles) {
 		auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
 
-		if (consoleRebuildComponent->GetState() != REBUILD_COMPLETED) {
+		if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
 			continue;
 		}
 
@@ -166,7 +168,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-	if (rebuildComponent->GetState() == REBUILD_COMPLETED) {
+	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
 		auto offFX = 0;
 
 		const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
@@ -177,7 +179,7 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 			offFX = 2777;
 		}
 
-		const auto& facility = EntityManager::Instance()->GetEntitiesInGroup("FacilityPipes");
+		const auto& facility = Game::entityManager->GetEntitiesInGroup("FacilityPipes");
 
 		if (!facility.empty()) {
 			GameMessages::SendStopFXEffect(facility[0], true, location + "PipeEnergy");
@@ -193,29 +195,29 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	const auto firstPipe = pipeGroup + "1";
 
-	const auto samePipeSpawner = dZoneManager::Instance()->GetSpawnersByName(myGroup);
+	const auto samePipeSpawner = Game::zoneManager->GetSpawnersByName(myGroup);
 	if (!samePipeSpawner.empty()) {
 		samePipeSpawner[0]->Reset();
 		samePipeSpawner[0]->Deactivate();
 	}
 
-	const auto firstPipeSpawner = dZoneManager::Instance()->GetSpawnersByName(firstPipe);
+	const auto firstPipeSpawner = Game::zoneManager->GetSpawnersByName(firstPipe);
 	if (!firstPipeSpawner.empty()) {
 		firstPipeSpawner[0]->Activate();
 	}
 
-	const auto netdevil = dZoneManager::Instance()->GetSpawnersByName("Imagination");
+	const auto netdevil = Game::zoneManager->GetSpawnersByName("Imagination");
 	if (!netdevil.empty()) {
 		netdevil[0]->Reset();
 		netdevil[0]->Deactivate();
 	}
 
-	const auto brick = dZoneManager::Instance()->GetSpawnersByName("MaelstromBug");
+	const auto brick = Game::zoneManager->GetSpawnersByName("MaelstromBug");
 	if (!brick.empty()) {
 		brick[0]->Activate();
 	}
 
-	const auto canister = dZoneManager::Instance()->GetSpawnersByName("BrickCanister");
+	const auto canister = Game::zoneManager->GetSpawnersByName("BrickCanister");
 	if (!canister.empty()) {
 		canister[0]->Activate();
 	}
@@ -227,14 +229,14 @@ void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
 		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent->GetState() == REBUILD_OPEN) {
-			self->Smash(self->GetObjectID(), SILENT);
+		if (rebuildComponent->GetState() == eRebuildState::OPEN) {
+			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	} else if (timerName == "Die") {
-		const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console");
+		const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 		for (auto* console : consoles) {
-			console->Smash(console->GetObjectID(), VIOLENT);
+			console->Smash(console->GetObjectID(), eKillType::VIOLENT);
 		}
 	}
 }

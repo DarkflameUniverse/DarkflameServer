@@ -2,11 +2,15 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "Preconditions.h"
+#include "eEndBehavior.h"
+#include "DestroyableComponent.h"
+#include "eStateChangeType.h"
 
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
 #include <math.h>
 #endif
+#include "RenderComponent.h"
 
 void MastTeleport::OnStartup(Entity* self) {
 	self->SetNetworkVar<std::string>(u"hookPreconditions", "154;44", UNASSIGNED_SYSTEM_ADDRESS);
@@ -16,9 +20,11 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 	if (Preconditions::Check(target, 154) && Preconditions::Check(target, 44)) {
 		self->SetVar<LWOOBJID>(u"userID", target->GetObjectID());
 
-		GameMessages::SendSetStunned(target->GetObjectID(), PUSH, target->GetSystemAddress(),
+		GameMessages::SendSetStunned(target->GetObjectID(), eStateChangeType::PUSH, target->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = target->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::PUSH, true, true, true, true, true, false, false, true, true);
 
 		self->AddTimer("Start", 3);
 	}
@@ -27,7 +33,7 @@ void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
 void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 	const auto playerId = self->GetVar<LWOOBJID>(u"userID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerId);
+	auto* player = Game::entityManager->GetEntity(playerId);
 
 	if (player == nullptr) return;
 
@@ -37,29 +43,25 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
 
-		// Hacky fix for odd rotations
-		if (self->GetVar<std::u16string>(u"MastName") != u"Jail") {
-			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 140.0f, player->GetSystemAddress());
-		} else {
-			GameMessages::SendOrientToAngle(playerId, true, (M_PI / 180) * 100.0f, player->GetSystemAddress());
-		}
+		GameMessages::SendTeleport(playerId, position, rotation, player->GetSystemAddress(), true);
 
 		const auto cinematic = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"Cinematic"));
 		const auto leanIn = self->GetVar<float>(u"LeanIn");
 
 		if (!cinematic.empty()) {
 			GameMessages::SendPlayCinematic(playerId, GeneralUtils::ASCIIToUTF16(cinematic), player->GetSystemAddress(),
-				true, true, false, false, 0, false, leanIn
+				true, true, false, false, eEndBehavior::RETURN, false, leanIn
 			);
 		}
 
 		GameMessages::SendPlayFXEffect(playerId, 6039, u"hook", "hook", LWOOBJID_EMPTY, 1, 1, true);
 
-		GameMessages::SendPlayAnimation(player, u"crow-swing-no-equip");
+		float animationTime = 6.25f;
+		animationTime = RenderComponent::PlayAnimation(player, "crow-swing-no-equip", 4.0f);
 
-		GameMessages::SendPlayAnimation(self, u"swing");
+		RenderComponent::PlayAnimation(self, u"swing");
 
-		self->AddTimer("PlayerAnimDone", 6.25f);
+		self->AddTimer("PlayerAnimDone", animationTime);
 	} else if (timerName == "PlayerAnimDone") {
 		GameMessages::SendStopFXEffect(player, true, "hook");
 
@@ -81,8 +83,11 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendTeleport(playerId, position, NiQuaternion::IDENTITY, player->GetSystemAddress());
 
-		GameMessages::SendSetStunned(playerId, POP, player->GetSystemAddress(),
+		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true
 		);
+		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+		if (destroyableComponent) destroyableComponent->SetStatusImmunity(eStateChangeType::POP, true, true, true, true, true, false, false, true, true);
+		Game::entityManager->SerializeEntity(player);
 	}
 }

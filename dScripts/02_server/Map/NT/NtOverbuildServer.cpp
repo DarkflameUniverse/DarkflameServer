@@ -1,11 +1,12 @@
 #include "NtOverbuildServer.h"
 #include "EntityManager.h"
+#include "ePlayerFlag.h"
 
 void NtOverbuildServer::SetVariables(Entity* self) {
 	self->SetVar<float_t>(m_SpyProximityVariable, 30.0f);
 
 	self->SetVar<SpyData>(m_SpyDataVariable, {
-			NT_FACTION_SPY_OVERBUILD, 13891, 1320
+			ePlayerFlag::NT_FACTION_SPY_OVERBUILD, 13891, 1320
 		});
 
 	self->SetVar<std::vector<SpyDialogue>>(m_SpyDialogueTableVariable, {
@@ -20,7 +21,7 @@ void NtOverbuildServer::SetVariables(Entity* self) {
 
 	// Find the second object Dr. Overbuild interacts with
 	LWOOBJID otherConvoObjectID = LWOOBJID_EMPTY;
-	for (auto* otherConvoObject : EntityManager::Instance()->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(m_OtherEntitiesGroupVariable)))) {
+	for (auto* otherConvoObject : Game::entityManager->GetEntitiesInGroup(GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(m_OtherEntitiesGroupVariable)))) {
 		otherConvoObjectID = otherConvoObject->GetObjectID();
 		break;
 	}

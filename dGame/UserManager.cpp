@@ -6,14 +6,14 @@
 
 #include "Database.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "User.h"
 #include <WorldPackets.h>
 #include "Character.h"
 #include <BitStream.h>
 #include "PacketUtils.h"
 #include "../dWorldServer/ObjectIDManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GeneralUtils.h"
 #include "ZoneInstanceManager.h"
 #include "dServer.h"
@@ -22,6 +22,14 @@
 #include "SkillComponent.h"
 #include "AssetManager.h"
 #include "CDClientDatabase.h"
+#include "eObjectBits.h"
+#include "eGameMasterLevel.h"
+#include "eCharacterCreationResponse.h"
+#include "eRenameResponse.h"
+#include "eConnectionType.h"
+#include "eChatInternalMessageType.h"
+#include "BitStreamUtils.h"
+#include "CheatDetection.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -38,7 +46,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer fnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_first.txt");
 	if (!fnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
+		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream fnStream = std::istream(&fnBuff);
@@ -51,7 +59,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer mnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_middle.txt");
 	if (!mnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
+		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream mnStream = std::istream(&mnBuff);
@@ -64,7 +72,7 @@ void UserManager::Initialize() {
 
 	AssetMemoryBuffer lnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_last.txt");
 	if (!lnBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
+		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 	std::istream lnStream = std::istream(&lnBuff);
@@ -78,7 +86,7 @@ void UserManager::Initialize() {
 	//Load our pre-approved names:
 	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
 	if (!chatListBuff.m_Success) {
-		Game::logger->Log("UserManager", "Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
+		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
 	}
 	std::istream chatListStream = std::istream(&chatListBuff);
@@ -117,7 +125,7 @@ User* UserManager::GetUser(const SystemAddress& sysAddr) {
 User* UserManager::GetUser(const std::string& username) {
 	for (auto p : m_Users) {
 		if (p.second) {
-			if (p.second->GetUsername() == username) return p.second;
+			if (GeneralUtils::CaseInsensitiveStringCompare(p.second->GetUsername(), username)) return p.second;
 		}
 	}
 
@@ -142,7 +150,7 @@ bool UserManager::DeleteUser(const SystemAddress& sysAddr) {
 
 void UserManager::DeletePendingRemovals() {
 	for (auto* user : m_UsersToDelete) {
-		Game::logger->Log("UserManager", "Deleted user %i", user->GetAccountID());
+		LOG("Deleted user %i", user->GetAccountID());
 
 		delete user;
 	}
@@ -197,40 +205,38 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	stmt->setUInt(1, u->GetAccountID());
 
 	sql::ResultSet* res = stmt->executeQuery();
-	if (res->rowsCount() > 0) {
-		std::vector<Character*>& chars = u->GetCharacters();
+	std::vector<Character*>& chars = u->GetCharacters();
 
-		for (size_t i = 0; i < chars.size(); ++i) {
-			if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
-			{
-				delete chars[i];
-
-				continue;
-			}
-
-			auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
-
-			if (skillComponent != nullptr) {
-				skillComponent->Reset();
-			}
-
-			EntityManager::Instance()->DestroyEntity(chars[i]->GetEntity());
-
-			chars[i]->SaveXMLToDatabase();
-
-			chars[i]->GetEntity()->SetCharacter(nullptr);
-
+	for (size_t i = 0; i < chars.size(); ++i) {
+		if (chars[i]->GetEntity() == nullptr) // We don't have entity data to save
+		{
 			delete chars[i];
+
+			continue;
 		}
 
-		chars.clear();
+		auto* skillComponent = chars[i]->GetEntity()->GetComponent<SkillComponent>();
 
-		while (res->next()) {
-			LWOOBJID objID = res->getUInt64(1);
-			Character* character = new Character(uint32_t(objID), u);
-			character->SetIsNewLogin();
-			chars.push_back(character);
+		if (skillComponent != nullptr) {
+			skillComponent->Reset();
 		}
+
+		Game::entityManager->DestroyEntity(chars[i]->GetEntity());
+
+		chars[i]->SaveXMLToDatabase();
+
+		chars[i]->GetEntity()->SetCharacter(nullptr);
+		
+		delete chars[i];
+	}
+
+	chars.clear();
+
+	while (res->next()) {
+		LWOOBJID objID = res->getUInt64(1);
+		Character* character = new Character(uint32_t(objID), u);
+		character->SetIsNewLogin();
+		chars.push_back(character);
 	}
 
 	delete res;
@@ -245,41 +251,41 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	std::string name = PacketUtils::ReadString(8, packet, true);
 
-	uint32_t firstNameIndex = PacketUtils::ReadPacketU32(74, packet);
-	uint32_t middleNameIndex = PacketUtils::ReadPacketU32(78, packet);
-	uint32_t lastNameIndex = PacketUtils::ReadPacketU32(82, packet);
+	uint32_t firstNameIndex = PacketUtils::ReadU32(74, packet);
+	uint32_t middleNameIndex = PacketUtils::ReadU32(78, packet);
+	uint32_t lastNameIndex = PacketUtils::ReadU32(82, packet);
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
-	uint32_t shirtColor = PacketUtils::ReadPacketU32(95, packet);
-	uint32_t shirtStyle = PacketUtils::ReadPacketU32(99, packet);
-	uint32_t pantsColor = PacketUtils::ReadPacketU32(103, packet);
-	uint32_t hairStyle = PacketUtils::ReadPacketU32(107, packet);
-	uint32_t hairColor = PacketUtils::ReadPacketU32(111, packet);
-	uint32_t lh = PacketUtils::ReadPacketU32(115, packet);
-	uint32_t rh = PacketUtils::ReadPacketU32(119, packet);
-	uint32_t eyebrows = PacketUtils::ReadPacketU32(123, packet);
-	uint32_t eyes = PacketUtils::ReadPacketU32(127, packet);
-	uint32_t mouth = PacketUtils::ReadPacketU32(131, packet);
+	uint32_t shirtColor = PacketUtils::ReadU32(95, packet);
+	uint32_t shirtStyle = PacketUtils::ReadU32(99, packet);
+	uint32_t pantsColor = PacketUtils::ReadU32(103, packet);
+	uint32_t hairStyle = PacketUtils::ReadU32(107, packet);
+	uint32_t hairColor = PacketUtils::ReadU32(111, packet);
+	uint32_t lh = PacketUtils::ReadU32(115, packet);
+	uint32_t rh = PacketUtils::ReadU32(119, packet);
+	uint32_t eyebrows = PacketUtils::ReadU32(123, packet);
+	uint32_t eyes = PacketUtils::ReadU32(127, packet);
+	uint32_t mouth = PacketUtils::ReadU32(131, packet);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
 	if (name != "" && !UserManager::IsNameAvailable(name)) {
-		Game::logger->Log("UserManager", "AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_CUSTOM_NAME_IN_USE);
+		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
 	if (!IsNameAvailable(predefinedName)) {
-		Game::logger->Log("UserManager", "AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_PREDEFINED_NAME_IN_USE);
+		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
 	}
 
 	if (name == "") {
-		Game::logger->Log("UserManager", "AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		LOG("AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 	} else {
-		Game::logger->Log("UserManager", "AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
+		LOG("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
@@ -290,8 +296,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		auto* overlapResult = overlapStmt->executeQuery();
 
 		if (overlapResult->next()) {
-			Game::logger->Log("UserManager", "Character object id unavailable, check objectidtracker!");
-			WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_OBJECT_ID_UNAVAILABLE);
+			LOG("Character object id unavailable, check objectidtracker!");
+			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
 
@@ -311,16 +317,16 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			std::stringstream xml2;
 
 			LWOOBJID lwoidforshirt = idforshirt;
-			lwoidforshirt = GeneralUtils::SetBit(lwoidforshirt, OBJECT_BIT_CHARACTER);
-			lwoidforshirt = GeneralUtils::SetBit(lwoidforshirt, OBJECT_BIT_PERSISTENT);
+			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
 			xml2 << xmlSave1 << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
 			std::string xmlSave2 = xml2.str();
 
 			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforpants) {
 				LWOOBJID lwoidforpants = idforpants;
-				lwoidforpants = GeneralUtils::SetBit(lwoidforpants, OBJECT_BIT_CHARACTER);
-				lwoidforpants = GeneralUtils::SetBit(lwoidforpants, OBJECT_BIT_PERSISTENT);
+				GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+				GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
 				std::stringstream xml3;
 				xml3 << xmlSave2 << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
@@ -329,7 +335,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 				//Check to see if our name was pre-approved:
 				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > 1) nameOk = true;
+				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 				if (name != "") {
 					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
@@ -367,7 +373,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				WorldPackets::SendCharacterCreationResponse(sysAddr, CREATION_RESPONSE_SUCCESS);
+				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 				});
 			});
@@ -377,27 +383,26 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to delete character");
+		LOG("Couldn't get user to delete character");
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
+	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
-	Game::logger->Log("UserManager", "Received char delete req for ID: %llu (%u)", objectID, charID);
+	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
 
-	//Check if this user has this character:
-	bool hasCharacter = false;
-	std::vector<Character*>& characters = u->GetCharacters();
-	for (size_t i = 0; i < characters.size(); ++i) {
-		if (characters[i]->GetID() == charID) { hasCharacter = true; }
-	}
+	bool hasCharacter = CheatDetection::VerifyLwoobjidIsSender(
+		objectID,
+		sysAddr,
+		CheckType::User,
+		"User %i tried to delete a character that it does not own!",
+		u->GetAccountID());
 
 	if (!hasCharacter) {
-		Game::logger->Log("UserManager", "User %i tried to delete a character that it does not own!", u->GetAccountID());
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
-		Game::logger->Log("UserManager", "Deleting character %i", charID);
+		LOG("Deleting character %i", charID);
 		{
 			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
 			stmt->setUInt64(1, charID);
@@ -417,7 +422,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			stmt->execute();
 			delete stmt;
 			CBITSTREAM;
-			PacketUtils::WriteHeader(bitStream, CHAT_INTERNAL, MSG_CHAT_INTERNAL_PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(objectID);
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -487,34 +492,42 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to delete character");
+		LOG("Couldn't get user to delete character");
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadPacketS64(8, packet);
-	objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_CHARACTER);
-	objectID = GeneralUtils::ClearBit(objectID, OBJECT_BIT_PERSISTENT);
+	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
+	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
+	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
-	Game::logger->Log("UserManager", "Received char rename request for ID: %llu (%u)", objectID, charID);
+	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
 
 	std::string newName = PacketUtils::ReadString(16, packet, true);
 
 	Character* character = nullptr;
 
 	//Check if this user has this character:
-	bool hasCharacter = false;
-	std::vector<Character*>& characters = u->GetCharacters();
-	for (size_t i = 0; i < characters.size(); ++i) {
-		if (characters[i]->GetID() == charID) { hasCharacter = true; character = characters[i]; }
-	}
+	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(
+		objectID,
+		sysAddr,
+		CheckType::User,
+		"User %i tried to rename a character that it does not own!",
+		u->GetAccountID());
 
-	if (!hasCharacter || !character) {
-		Game::logger->Log("UserManager", "User %i tried to rename a character that it does not own!", u->GetAccountID());
-		WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_UNKNOWN_ERROR);
-	} else if (hasCharacter && character) {
+	std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
+		if (c->GetID() == charID) {
+			character = c;
+			return true;
+		}
+		return false;
+		});
+
+	if (!ownsCharacter || !character) {
+		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
+	} else if (ownsCharacter && character) {
 		if (newName == character->GetName()) {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_NAME_UNAVAILABLE);
+			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
 		}
 
@@ -527,8 +540,8 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s now known as %s", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_SUCCESS);
+				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
@@ -538,23 +551,23 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 				stmt->execute();
 				delete stmt;
 
-				Game::logger->Log("UserManager", "Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_SUCCESS);
+				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			}
 		} else {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_NAME_IN_USE);
+			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
 		}
 	} else {
-		Game::logger->Log("UserManager", "Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
-		WorldPackets::SendCharacterRenameResponse(sysAddr, RENAME_RESPONSE_UNKNOWN_ERROR);
+		LOG("Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
+		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	}
 }
 
 void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		Game::logger->Log("UserManager", "Couldn't get user to log in character");
+		LOG("Couldn't get user to log in character");
 		return;
 	}
 
@@ -577,7 +590,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			Game::logger->Log("UserManager", "Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
@@ -587,7 +600,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 			return;
 			});
 	} else {
-		Game::logger->Log("UserManager", "Unknown error occurred when logging in a character, either hasCharacter or character variable != true.");
+		LOG("Unknown error occurred when logging in a character, either hasCharacter or character variable != true.");
 	}
 }
 
@@ -602,7 +615,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 		tableData.finalize();
 		return shirtLOT;
 	} catch (const std::exception&) {
-		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		LOG("Failed to execute query! Using backup...");
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -617,7 +630,7 @@ uint32_t FindCharPantsID(uint32_t pantsColor) {
 		tableData.finalize();
 		return pantsLOT;
 	} catch (const std::exception&) {
-		Game::logger->Log("Character Create", "Failed to execute query! Using backup...");
+		LOG("Failed to execute query! Using backup...");
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}

@@ -30,12 +30,6 @@ public:
 	struct SceneObjectDataChunk {
 		std::map<LWOOBJID, SceneObject> objects;
 
-		SceneObject& GetObject(LWOOBJID id) {
-			for (std::map<LWOOBJID, SceneObject>::iterator it = objects.begin(); it != objects.end(); ++it) {
-				if (it->first == id) return it->second;
-			}
-		}
-
 		const void PrintAllObjects() {
 			for (std::map<LWOOBJID, SceneObject>::iterator it = objects.begin(); it != objects.end(); ++it) {
 				std::cout << "\t ID: " << it->first << " LOT: " << it->second.lot << std::endl;
@@ -59,6 +53,8 @@ public:
 public:
 	Level(Zone* parentZone, const std::string& filepath);
 	~Level();
+	
+	static void MakeSpawner(SceneObject obj);
 
 	const void PrintAllObjects();
 

@@ -3,8 +3,9 @@
 #include "EntityManager.h"
 #include "Entity.h"
 #include "GameMessages.h"
+#include "eMissionState.h"
 
-void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID != 1849 && missionID != 1883)
 		return;
 
@@ -16,16 +17,16 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	auto* maelstromVacuum = inventory->FindItemByLot(maelstromVacuumLot);
 
 	// For the daily we add the maelstrom vacuum if the player doesn't have it yet
-	if (missionID == 1883 && (missionState == MissionState::MISSION_STATE_AVAILABLE || missionState == MissionState::MISSION_STATE_COMPLETE_AVAILABLE)
+	if (missionID == 1883 && (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)
 		&& maelstromVacuum == nullptr) {
-		inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::LOOT_SOURCE_NONE);
-	} else if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+		inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::NONE);
+	} else if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		inventory->RemoveItem(maelstromVacuumLot, 1);
 	}
 
 	// Next up hide or show the samples based on the mission state
 	auto visible = 1;
-	if (missionState == MissionState::MISSION_STATE_READY_TO_COMPLETE || missionState == MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE) {
+	if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		visible = 0;
 	}
 
@@ -34,7 +35,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	: std::vector<std::string>{ "MaelstromSamples", "MaelstromSamples2ndary1", "MaelstromSamples2ndary2" };
 
 	for (const auto& group : groups) {
-		auto samples = EntityManager::Instance()->GetEntitiesInGroup(group);
+		auto samples = Game::entityManager->GetEntitiesInGroup(group);
 		for (auto* sample : samples) {
 			GameMessages::SendNotifyClientObject(sample->GetObjectID(), u"SetVisibility", visible, 0,
 				target->GetObjectID(), "", target->GetSystemAddress());

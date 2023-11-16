@@ -6,7 +6,10 @@
 #include "CDClientDatabase.h"
 #include "Game.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 #include <algorithm>
+
+#include "CDSkillBehaviorTable.h"
 
 ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	this->m_ID = id;
@@ -126,11 +129,11 @@ void ItemSet::OnEquip(const LOT lot) {
 	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SKILL, skill);
+		missionComponent->Progress(eMissionTaskType::USE_SKILL, skill);
 
 		skillComponent->HandleUnmanaged(behaviorId, m_InventoryComponent->GetParent()->GetObjectID());
 	}
@@ -158,7 +161,7 @@ void ItemSet::OnUnEquip(const LOT lot) {
 	const auto& skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance()->GetTable<CDSkillBehaviorTable>("SkillBehavior");
+		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
@@ -180,9 +183,9 @@ void ItemSet::Update(float deltaTime) {
 	}
 }
 
-void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger) {
+void ItemSet::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
 	for (auto& passiveAbility : m_PassiveAbilities) {
-		passiveAbility.Trigger(trigger);
+		passiveAbility.Trigger(trigger, target);
 	}
 }
 

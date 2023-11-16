@@ -2,8 +2,9 @@
 #include "EntityManager.h"
 #include "PossessorComponent.h"
 #include "RaceImaginePowerup.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 
 void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1,
 	int32_t param2, int32_t param3) {
@@ -14,7 +15,7 @@ void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std
 			return;
 		}
 
-		auto* vehicle = EntityManager::Instance()->GetEntity(possessorComponent->GetPossessable());
+		auto* vehicle = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
 
 		if (vehicle == nullptr) {
 			return;
@@ -31,6 +32,6 @@ void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) return;
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_COLLECT_IMAGINATION);
+		missionComponent->Progress(eMissionTaskType::RACING, self->GetLOT(), (LWOOBJID)eRacingTaskParam::COLLECT_IMAGINATION);
 	}
 }

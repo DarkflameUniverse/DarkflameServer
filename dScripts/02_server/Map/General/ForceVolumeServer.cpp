@@ -1,6 +1,7 @@
 #include "ForceVolumeServer.h"
 #include "PhantomPhysicsComponent.h"
 #include "EntityManager.h"
+#include "ePhysicsEffectType.h"
 
 void ForceVolumeServer::OnStartup(Entity* self) {
 	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
@@ -12,10 +13,10 @@ void ForceVolumeServer::OnStartup(Entity* self) {
 	const auto forceY = self->GetVar<float>(u"ForceY");
 	const auto forceZ = self->GetVar<float>(u"ForceZ");
 
-	phantomPhysicsComponent->SetEffectType(0); // PUSH
+	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(forceAmount);
 	phantomPhysicsComponent->SetDirection({ forceX, forceY, forceZ });
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 }

@@ -1,12 +1,13 @@
 #pragma once
 #include "CppScripts.h"
 #include <map>
+#include "ePlayerFlag.h"
 
-static std::map<std::u16string, uint32_t> ElementFlags = {
-	{u"earth", ePlayerFlags::NJ_EARTH_SPINJITZU},
-	{u"lightning", ePlayerFlags::NJ_LIGHTNING_SPINJITZU},
-	{u"ice", ePlayerFlags::NJ_ICE_SPINJITZU},
-	{u"fire", ePlayerFlags::NJ_FIRE_SPINJITZU}
+static std::map<std::u16string, ePlayerFlag> ElementFlags = {
+	{u"earth", ePlayerFlag::NJ_EARTH_SPINJITZU},
+	{u"lightning", ePlayerFlag::NJ_LIGHTNING_SPINJITZU},
+	{u"ice", ePlayerFlag::NJ_ICE_SPINJITZU},
+	{u"fire", ePlayerFlag::NJ_FIRE_SPINJITZU}
 };
 
 static std::map<std::u16string, uint32_t> ElementMissions = {
@@ -16,9 +17,9 @@ static std::map<std::u16string, uint32_t> ElementMissions = {
 	{u"fire", 1962},
 };
 
-class NjNPCMissionSpinjitzuServer : public CppScripts::Script {
+class NjNPCMissionSpinjitzuServer : virtual public CppScripts::Script {
 public:
-	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) override;
+	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override;
 private:
 	const std::u16string ElementVariable = u"element";
 };

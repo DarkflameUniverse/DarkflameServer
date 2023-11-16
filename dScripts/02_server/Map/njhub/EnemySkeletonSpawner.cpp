@@ -2,6 +2,7 @@
 #include "SkillComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 
 void EnemySkeletonSpawner::OnStartup(Entity* self) {
 	self->SetProximityRadius(15, "ronin");
@@ -27,13 +28,13 @@ void EnemySkeletonSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		info.rot = self->GetRotation();
 		info.spawnerID = self->GetObjectID();
 
-		auto* spawnedEntity = EntityManager::Instance()->CreateEntity(info);
+		auto* spawnedEntity = Game::entityManager->CreateEntity(info);
 
 		if (spawnedEntity == nullptr) {
 			return;
 		}
 
-		EntityManager::Instance()->ConstructEntity(spawnedEntity);
+		Game::entityManager->ConstructEntity(spawnedEntity);
 
 		spawnedEntity->AddCallbackTimer(60, [spawnedEntity]() {
 			spawnedEntity->Smash(spawnedEntity->GetObjectID());

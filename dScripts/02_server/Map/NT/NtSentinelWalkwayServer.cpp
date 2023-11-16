@@ -2,6 +2,8 @@
 #include "PhantomPhysicsComponent.h"
 #include "EntityManager.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
+#include "ePhysicsEffectType.h"
 
 void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 	auto* phantomPhysicsComponent = self->GetComponent<PhantomPhysicsComponent>();
@@ -18,12 +20,12 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 
 	const auto forward = self->GetRotation().GetRightVector() * -1;
 
-	phantomPhysicsComponent->SetEffectType(0); // PUSH
+	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(force);
 	phantomPhysicsComponent->SetDirection(forward);
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 
-	EntityManager::Instance()->SerializeEntity(self);
+	Game::entityManager->SerializeEntity(self);
 
 	self->SetProximityRadius(3, "speedboost");
 }
@@ -38,6 +40,6 @@ void NtSentinelWalkwayServer::OnProximityUpdate(Entity* self, Entity* entering, 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
-		missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_SCRIPT, self->GetLOT());
+		missionComponent->Progress(eMissionTaskType::SCRIPT, self->GetLOT());
 	}
 }

@@ -1,6 +1,7 @@
 #include "NtCombatChallengeServer.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
 
@@ -18,7 +19,7 @@ void NtCombatChallengeServer::OnDie(Entity* self, Entity* killer) {
 void NtCombatChallengeServer::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {
 	const auto playerID = self->GetVar<LWOOBJID>(u"playerID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 
 	if (player == nullptr) {
 		return;
@@ -42,7 +43,7 @@ void NtCombatChallengeServer::OnFireEventServerSide(Entity* self, Entity* sender
 
 
 void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	if (identifier == u"PlayButton" && button == 1) {
+	if (identifier == u"PlayButton" && button == 1 && !self->GetNetworkVar<bool>(u"bInUse")) {
 		self->SetNetworkVar(u"bInUse", true);
 
 		self->SetVar(u"playerID", sender->GetObjectID());
@@ -68,7 +69,7 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 void NtCombatChallengeServer::SpawnTargetDummy(Entity* self) {
 	const auto playerID = self->GetVar<LWOOBJID>(u"playerID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 
 	if (player == nullptr) {
 		return;
@@ -90,11 +91,11 @@ void NtCombatChallengeServer::SpawnTargetDummy(Entity* self) {
 	info.rot = self->GetRotation();
 	info.settings = { new LDFData<std::string>(u"custom_script_server", "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua") };
 
-	auto* dummy = EntityManager::Instance()->CreateEntity(info);
+	auto* dummy = Game::entityManager->CreateEntity(info);
 
 	dummy->SetVar(u"challengeObjectID", self->GetObjectID());
 
-	EntityManager::Instance()->ConstructEntity(dummy);
+	Game::entityManager->ConstructEntity(dummy);
 
 	self->SetVar(u"currentDummy", dummy->GetObjectID());
 }
@@ -110,7 +111,7 @@ void NtCombatChallengeServer::OnChildLoaded(Entity* self, Entity* child) {
 
 	const auto playerID = self->GetVar<LWOOBJID>(u"playerID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 
 	if (player == nullptr) {
 		return;
@@ -120,7 +121,7 @@ void NtCombatChallengeServer::OnChildLoaded(Entity* self, Entity* child) {
 
 	self->SetVar(u"currentTargetID", child->GetObjectID());
 
-	EntityManager::Instance()->SerializeEntity(child);
+	Game::entityManager->SerializeEntity(child);
 
 	child->GetGroups().push_back("targets_" + std::to_string(self->GetObjectID()));
 }
@@ -129,7 +130,7 @@ void NtCombatChallengeServer::ResetGame(Entity* self) {
 	const auto totalDmg = self->GetVar<int32_t>(u"totalDmg");
 	const auto playerID = self->GetVar<LWOOBJID>(u"playerID");
 
-	auto* player = EntityManager::Instance()->GetEntity(playerID);
+	auto* player = Game::entityManager->GetEntity(playerID);
 
 	if (player != nullptr) {
 		auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -149,7 +150,7 @@ void NtCombatChallengeServer::ResetGame(Entity* self) {
 	self->SetNetworkVar(u"totalDmg", false);
 	self->SetNetworkVar(u"update_time", 0);
 
-	const auto& targetObjs = EntityManager::Instance()->GetEntitiesInGroup("targets_" + std::to_string(self->GetObjectID()));
+	const auto& targetObjs = Game::entityManager->GetEntitiesInGroup("targets_" + std::to_string(self->GetObjectID()));
 
 	for (auto* target : targetObjs) {
 		target->Smash(self->GetObjectID());
@@ -157,7 +158,7 @@ void NtCombatChallengeServer::ResetGame(Entity* self) {
 
 	const auto currentID = self->GetVar<LWOOBJID>(u"currentDummy");
 
-	auto* current = EntityManager::Instance()->GetEntity(currentID);
+	auto* current = Game::entityManager->GetEntity(currentID);
 
 	if (current != nullptr) {
 		current->Smash(self->GetObjectID());

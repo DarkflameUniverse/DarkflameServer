@@ -3,8 +3,10 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "eMissionState.h"
+#include "ePlayerFlag.h"
 
-void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, MissionState missionState) {
+void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 
 	// The Dragon statue daily mission
 	if (missionID == m_MainDragonMissionID) {
@@ -14,8 +16,8 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, M
 			return;
 
 		switch (missionState) {
-		case MissionState::MISSION_STATE_AVAILABLE:
-		case MissionState::MISSION_STATE_COMPLETE_AVAILABLE:
+		case eMissionState::AVAILABLE:
+		case eMissionState::COMPLETE_AVAILABLE:
 		{
 			// Reset the sub missions
 			for (const auto& subMissionID : m_SubDragonMissionIDs) {
@@ -23,35 +25,35 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, M
 				missionComponent->AcceptMission(subMissionID);
 			}
 
-			character->SetPlayerFlag(ePlayerFlags::NJ_WU_SHOW_DAILY_CHEST, false);
+			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, false);
 
 			// Hide the chest
-			for (auto* chest : EntityManager::Instance()->GetEntitiesInGroup(m_DragonChestGroup)) {
+			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {
 				GameMessages::SendNotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 0, -1,
 					target->GetObjectID(), "", target->GetSystemAddress());
 			}
 
 			return;
 		}
-		case MissionState::MISSION_STATE_READY_TO_COMPLETE:
-		case MissionState::MISSION_STATE_COMPLETE_READY_TO_COMPLETE:
+		case eMissionState::READY_TO_COMPLETE:
+		case eMissionState::COMPLETE_READY_TO_COMPLETE:
 		{
-			character->SetPlayerFlag(NJ_WU_SHOW_DAILY_CHEST, true);
+			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, true);
 
 			// Show the chest
-			for (auto* chest : EntityManager::Instance()->GetEntitiesInGroup(m_DragonChestGroup)) {
+			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {
 				GameMessages::SendNotifyClientObject(chest->GetObjectID(), m_ShowChestNotification, 1, -1,
 					target->GetObjectID(), "", target->GetSystemAddress());
 			}
 
 			auto playerID = target->GetObjectID();
 			self->AddCallbackTimer(5.0f, [this, playerID]() {
-				auto* player = EntityManager::Instance()->GetEntity(playerID);
+				auto* player = Game::entityManager->GetEntity(playerID);
 				if (player == nullptr)
 					return;
 
 				// Stop the dragon effects
-				for (auto* dragon : EntityManager::Instance()->GetEntitiesInGroup(m_DragonStatueGroup)) {
+				for (auto* dragon : Game::entityManager->GetEntitiesInGroup(m_DragonStatueGroup)) {
 					GameMessages::SendStopFXEffect(dragon, true, "on");
 				}
 				});

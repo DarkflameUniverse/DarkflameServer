@@ -2,7 +2,7 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 
@@ -12,7 +12,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 		bool unknown = false;
 
 		if (!bitStream->Read(unknown)) {
-			Game::logger->Log("InterruptBehavior", "Unable to read unknown1 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read unknown1 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -23,7 +23,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 		bool unknown = false;
 
 		if (!bitStream->Read(unknown)) {
-			Game::logger->Log("InterruptBehavior", "Unable to read unknown2 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read unknown2 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -35,14 +35,14 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 		bool unknown = false;
 
 		if (!bitStream->Read(unknown)) {
-			Game::logger->Log("InterruptBehavior", "Unable to read unknown3 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			LOG("Unable to read unknown3 from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;
 		};
 	}
 
 	if (branch.target == context->originator) return;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) return;
 
@@ -67,7 +67,7 @@ void InterruptBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* b
 
 	if (branch.target == context->originator) return;
 
-	auto* target = EntityManager::Instance()->GetEntity(branch.target);
+	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) return;
 

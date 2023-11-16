@@ -2,15 +2,16 @@
 #include "EntityManager.h"
 #include "PossessableComponent.h"
 #include "RaceSmashServer.h"
-#include "RacingTaskParam.h"
+#include "eRacingTaskParam.h"
 #include "MissionComponent.h"
+#include "eMissionTaskType.h"
 
 void RaceSmashServer::OnDie(Entity* self, Entity* killer) {
 	// Crate is smashed by the car
 	auto* possessableComponent = killer->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
 
-		auto* possessor = EntityManager::Instance()->GetEntity(possessableComponent->GetPossessor());
+		auto* possessor = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
 		if (possessor != nullptr) {
 
 			auto* missionComponent = possessor->GetComponent<MissionComponent>();
@@ -22,9 +23,9 @@ void RaceSmashServer::OnDie(Entity* self, Entity* killer) {
 
 			// Progress racing smashable missions
 			if (missionComponent == nullptr) return;
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, 0, (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASHABLES);
+			missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::SMASHABLES);
 			// Progress missions that ask us to smash a specific smashable.
-			missionComponent->Progress(MissionTaskType::MISSION_TASK_TYPE_RACING, self->GetLOT(), (LWOOBJID)RacingTaskParam::RACING_TASK_PARAM_SMASH_SPECIFIC_SMASHABLE);
+			missionComponent->Progress(eMissionTaskType::RACING, self->GetLOT(), (LWOOBJID)eRacingTaskParam::SMASH_SPECIFIC_SMASHABLE);
 		}
 	}
 }

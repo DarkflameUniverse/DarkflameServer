@@ -4,7 +4,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	if (this->m_hitAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitEnemyAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitFactionAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
@@ -13,22 +13,22 @@ void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* 
 
 	uint32_t handle{};
 	if (!bitStream->Read(handle)) {
-		Game::logger->Log("ForceMovementBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
-	context->RegisterSyncBehavior(handle, this, branch);
+	context->RegisterSyncBehavior(handle, this, branch, this->m_Duration);
 }
 
 void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
 	uint32_t next{};
 	if (!bitStream->Read(next)) {
-		Game::logger->Log("ForceMovementBehavior", "Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
 	LWOOBJID target{};
 	if (!bitStream->Read(target)) {
-		Game::logger->Log("ForceMovementBehavior", "Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -42,7 +42,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 		return;
 	}
 
-	auto* casterEntity = EntityManager::Instance()->GetEntity(context->caster);
+	auto* casterEntity = Game::entityManager->GetEntity(context->caster);
 	if (casterEntity != nullptr) {
 		auto* controllablePhysicsComponent = casterEntity->GetComponent<ControllablePhysicsComponent>();
 		if (controllablePhysicsComponent != nullptr) {
@@ -51,7 +51,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 				controllablePhysicsComponent->SetVelocity(controllablePhysicsComponent->GetRotation().GetForwardVector() * 25);
 			}
 
-			EntityManager::Instance()->SerializeEntity(casterEntity);
+			Game::entityManager->SerializeEntity(casterEntity);
 		}
 	}
 
@@ -72,7 +72,7 @@ void ForceMovementBehavior::Load() {
 }
 
 void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	auto* casterEntity = EntityManager::Instance()->GetEntity(context->caster);
+	auto* casterEntity = Game::entityManager->GetEntity(context->caster);
 	if (casterEntity != nullptr) {
 		auto* controllablePhysicsComponent = casterEntity->GetComponent<ControllablePhysicsComponent>();
 		if (controllablePhysicsComponent != nullptr) {
@@ -80,7 +80,7 @@ void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::Bi
 			controllablePhysicsComponent->SetPosition(controllablePhysicsComponent->GetPosition() + controllablePhysicsComponent->GetVelocity() * m_Duration);
 			controllablePhysicsComponent->SetVelocity({});
 
-			EntityManager::Instance()->SerializeEntity(casterEntity);
+			Game::entityManager->SerializeEntity(casterEntity);
 		}
 	}
 

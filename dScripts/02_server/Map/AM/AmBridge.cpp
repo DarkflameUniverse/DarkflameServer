@@ -6,7 +6,7 @@ void AmBridge::OnStartup(Entity* self) {
 }
 
 void AmBridge::OnRebuildComplete(Entity* self, Entity* target) {
-	const auto consoles = EntityManager::Instance()->GetEntitiesInGroup("Console" + GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"bridge")));
+	const auto consoles = Game::entityManager->GetEntitiesInGroup("Console" + GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"bridge")));
 
 	if (consoles.empty()) {
 		return;
@@ -24,5 +24,5 @@ void AmBridge::OnTimerDone(Entity* self, std::string timerName) {
 		return;
 	}
 
-	self->Smash(self->GetObjectID(), VIOLENT);
+	self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 }

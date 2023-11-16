@@ -1,6 +1,5 @@
 # In-game commands
-
-Here is a summary of the commands available in-game. All commands are prefixed by `/` and typed in the in-game chat window. Some commands requires admin privileges. Operands within `<>` are required, operands within `()` are not. For the full list of in-game commands, please checkout [the source file](../dGame/dUtilities/SlashCommandHandler.cpp).
+* All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
 ## General Commands
 
@@ -26,6 +25,7 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |ban|`/ban <username>`|Bans a user from the server.|4|
 |approveproperty|`/approveproperty`|Approves the property the player is currently visiting.|5|
 |mute|`/mute <username> (days) (hours)`|Mute player for the given amount of time. If no time is given, the mute is indefinite.|6|
+|attackimmune|`/attackimmune <value>`|Sets the character's immunity to basic attacks state, where value can be one of "1", to make yourself immune to basic attack damage, or "0" to undo.|8|
 |gmimmune|`/gmimmunve <value>`|Sets the character's GMImmune state, where value can be one of "1", to make yourself immune to damage, or "0" to undo.|8|
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
@@ -37,8 +37,6 @@ Here is a summary of the commands available in-game. All commands are prefixed b
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
 |announce|`/announce`|Sends a announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
-|config-set|`/config-set <key> <value>`|Set configuration item.|8|
-|config-get|`/config-get <key>`|Get current value of a configuration item.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing.|8|
 |metrics|`/metrics`|Prints some information about the server's performance.|8|
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
@@ -51,6 +49,7 @@ These commands are primarily for development and testing. The usage of many of t
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
+|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 or if `allow_nameplate_off` is set to exactly `1` in the settings|
 |fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.||
 |join|`/join <password>`|Joins a private zone with given password.||
 |leave-zone|`/leave-zone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.||
@@ -71,6 +70,7 @@ These commands are primarily for development and testing. The usage of many of t
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
 |dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
+|reloadconfig|`/reloadconfig`|Reloads the server with the new config values.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
 |freecam|`/freecam`|Toggles freecam mode.|8|
 |freemoney|`/freemoney <coins>`|Gives coins.|8|
@@ -80,7 +80,7 @@ These commands are primarily for development and testing. The usage of many of t
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
-|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.|8|
+|lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Plays animation with given ID. Alias: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect.|8|
 |playlvlfx|`/playlvlfx`|Plays the level up animation on your character.|8|
@@ -94,7 +94,7 @@ These commands are primarily for development and testing. The usage of many of t
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag (value) <flag id>`|Sets the given inventory or health flag to the given value, where value can be one of "on" or "off". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`).|8|
-|setinventorysize|`/setinventorysize <size>`|Sets your inventory size to the given size. Alias: `/setinvsize`|8|
+|setinventorysize|`/setinventorysize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
 |spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
 |speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.|8|
@@ -106,8 +106,12 @@ These commands are primarily for development and testing. The usage of many of t
 |unlock-emote|`/unlock-emote <emote id>`|Unlocks for your character the emote of the given id.|8|
 |Set Level|`/setlevel <requested_level> (username)`|Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of.|8|
 |crash|`/crash`|Crashes the server.|9|
-|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Rolls loot matrix.|9|
-
+|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
+|castskill|`/castskill <skill id>`|Casts the skill as the player|9|
+|setskillslot|`/setskillslot <slot> <skill id>`||8|
+|setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|8|
+|addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
+|getfactions|`/getfactions`|Shows the player's factions|8|
 ## Detailed `/inspect` Usage
 
 `/inspect <component> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`
@@ -121,6 +125,7 @@ Finds the closest entity with the given component or LDF variable (ignoring play
 * `-s`: Prints the entity's settings and spawner ID.
 * `-p`: Prints the entity's position
 * `-f`: If the entity has a destroyable component, prints whether the entity is smashable and its friendly and enemy faction IDs; if `faction` is specified, adds that faction to the entity.
+* `-cf`: check if the entity is enemy or friend
 * `-t`: If the entity has a phantom physics component, prints the effect type, direction, directional multiplier, and whether the effect is active; in any case, if the entity has a trigger, prints the trigger ID.
 
 ## Game Master Levels
@@ -129,13 +134,13 @@ There are 9 Game master levels
 
 |Level|Variable Name|Description|
 |--- |--- |--- |
-|0|GAME_MASTER_LEVEL_CIVILIAN|Normal player|
-|1|GAME_MASTER_LEVEL_FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
-|2|GAME_MASTER_LEVEL_JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
-|3|GAME_MASTER_LEVEL_MODERATOR|Can return lost items|
-|4|GAME_MASTER_LEVEL_SENIOR_MODERATOR|Can ban|
-|5|GAME_MASTER_LEVEL_LEAD_MODERATOR|Can approve properties|
-|6|GAME_MASTER_LEVEL_JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
-|7|GAME_MASTER_LEVEL_INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
-|8|GAME_MASTER_LEVEL_DEVELOPER|Active developer, full permissions on live.|
-|9|GAME_MASTER_LEVEL_OPERATOR|Can shutdown server for restarts & updates.|
+|0|CIVILIAN|Normal player|
+|1|FORUM_MODERATOR|Forum moderator. No permissions on live servers.|
+|2|JUNIOR_MODERATOR|Can kick/mute and pull chat logs|
+|3|MODERATOR|Can return lost items|
+|4|SENIOR_MODERATOR|Can ban|
+|5|LEAD_MODERATOR|Can approve properties|
+|6|JUNIOR_DEVELOPER|Junior developer & future content team. Civilan on live.|
+|7|INACTIVE_DEVELOPER|Inactive developer, limited permissions.|
+|8|DEVELOPER|Active developer, full permissions on live.|
+|9|OPERATOR|Can shutdown server for restarts & updates.|

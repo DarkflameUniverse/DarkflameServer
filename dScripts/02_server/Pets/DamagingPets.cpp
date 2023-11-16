@@ -3,6 +3,7 @@
 #include "DestroyableComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "RenderComponent.h"
+#include "ePetTamingNotifyType.h"
 
 void DamagingPets::OnStartup(Entity* self) {
 
@@ -33,15 +34,15 @@ void DamagingPets::OnPlayerLoaded(Entity* self, Entity* player) {
 		});
 }
 
-void DamagingPets::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, eNotifyType type) {
+void DamagingPets::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetTamingNotifyType type) {
 	switch (type) {
-	case NOTIFY_TYPE_SUCCESS:
-	case NOTIFY_TYPE_BEGIN:
+	case ePetTamingNotifyType::SUCCESS:
+	case ePetTamingNotifyType::BEGIN:
 		self->CancelAllTimers();
 		ClearEffects(self);
 		break;
-	case NOTIFY_TYPE_FAILED:
-	case NOTIFY_TYPE_QUIT:
+	case ePetTamingNotifyType::FAILED:
+	case ePetTamingNotifyType::QUIT:
 	{
 		self->SetNetworkVar<bool>(u"bIAmTamable", false);
 		self->AddTimer("GoEvil", 1.0f);

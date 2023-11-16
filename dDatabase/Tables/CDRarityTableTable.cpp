@@ -1,7 +1,6 @@
 #include "CDRarityTableTable.h"
 
-//! Constructor
-CDRarityTableTable::CDRarityTableTable(void) {
+void CDRarityTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
 	unsigned int size = 0;
@@ -18,40 +17,18 @@ CDRarityTableTable::CDRarityTableTable(void) {
 	this->entries.reserve(size);
 
 	// Now get the data
-	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RarityTable");
+	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RarityTable order by randmax desc;");
 	while (!tableData.eof()) {
-		CDRarityTable entry;
-		entry.id = tableData.getIntField(0, -1);
-		entry.randmax = tableData.getFloatField(1, -1);
-		entry.rarity = tableData.getIntField(2, -1);
-		entry.RarityTableIndex = tableData.getIntField(3, -1);
+		uint32_t rarityTableIndex = tableData.getIntField("RarityTableIndex", -1);
 
-		this->entries.push_back(entry);
+		CDRarityTable entry;
+		entry.randmax = tableData.getFloatField("randmax", -1);
+		entry.rarity = tableData.getIntField("rarity", -1);
+		entries[rarityTableIndex].push_back(entry);
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
-//! Destructor
-CDRarityTableTable::~CDRarityTableTable(void) {}
-
-//! Returns the table's name
-std::string CDRarityTableTable::GetName(void) const {
-	return "RarityTable";
-}
-
-//! Queries the table with a custom "where" clause
-std::vector<CDRarityTable> CDRarityTableTable::Query(std::function<bool(CDRarityTable)> predicate) {
-
-	std::vector<CDRarityTable> data = cpplinq::from(this->entries)
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
-}
-
-//! Gets all the entries in the table
-const std::vector<CDRarityTable>& CDRarityTableTable::GetEntries(void) const {
-	return this->entries;
+const std::vector<CDRarityTable>& CDRarityTableTable::GetRarityTable(uint32_t id) {
+	return entries[id];
 }

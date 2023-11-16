@@ -8,6 +8,7 @@
 #include "dpWorld.h"
 #include "dpEntity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 #include <vector>
 #include <map>
@@ -46,13 +47,13 @@ struct AiSkillEntry
  */
 class BaseCombatAIComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_BASE_COMBAT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
 	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Get the current behavioral state of the enemy
@@ -244,6 +245,12 @@ private:
 	std::vector<LWOOBJID> GetTargetWithinAggroRange() const;
 
 	/**
+	 * @brief Sets the AiState and prepares the entity for serialization next frame.
+	 *
+	 */
+	void SetAiState(AiState newState);
+
+	/**
 	 * The current state of the AI
 	 */
 	AiState m_State;
@@ -335,11 +342,6 @@ private:
 	bool m_StunImmune = false;
 
 	/**
-	 * Time taken between actions
-	 */
-	float m_Downtime = 0;
-
-	/**
 	 * How long this entity needs to execute its skill
 	 */
 	float m_SkillTime = 0;
@@ -373,6 +375,12 @@ private:
 	 * If the threat list should be updated
 	 */
 	bool m_DirtyThreat = false;
+
+	/**
+	 * Whether or not the Component has dirty information and should update next frame
+	 *
+	 */
+	bool m_DirtyStateOrTarget = false;
 
 	/**
 	 * Whether the current entity is a mech enemy, needed as mechs tether radius works differently

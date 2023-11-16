@@ -1,22 +1,22 @@
 PROJECT_VERSION_MAJOR=1
-PROJECT_VERSION_MINOR=0
-PROJECT_VERSION_PATCH=4
+PROJECT_VERSION_MINOR=1
+PROJECT_VERSION_PATCH=1
 # LICENSE
 LICENSE=AGPL-3.0
-# The network version.
-# 171023 - Darkflame Universe client
-# 171022 - Unmodded client
-NET_VERSION=171022
 # Debugging
-__dynamic=1
 # Set __dynamic to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
-# __ggdb=1
+__dynamic=1
 # Set __ggdb to 1 to enable the -ggdb flag for the linker, including more debug info.
-# __include_backtrace__=1
+# __ggdb=1
 # Set __include_backtrace__ to 1 to includes the backtrace library for better crashlogs.
-# __compile_backtrace__=1
+# __include_backtrace__=1
 # Set __compile_backtrace__ to 1 to compile the backtrace library instead of using system libraries.
-__maria_db_connector_compile_jobs__=1
+# __compile_backtrace__=1
 # Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.
-__enable_testing__=1
+__maria_db_connector_compile_jobs__=1
 # When set to 1 and uncommented, compiling and linking testing folders and libraries will be done.
+__enable_testing__=1
+# The path to OpenSSL.  Change this if your OpenSSL install path is different than the default.
+OPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/
+# Uncomment the below line to cache the entire CDClient into memory
+# CDCLIENT_CACHE_ALL=1

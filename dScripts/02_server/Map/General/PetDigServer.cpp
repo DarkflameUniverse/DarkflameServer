@@ -4,6 +4,8 @@
 #include "EntityManager.h"
 #include "Character.h"
 #include "PetComponent.h"
+#include "User.h"
+#include "eMissionState.h"
 
 std::vector<LWOOBJID> PetDigServer::treasures{};
 
@@ -46,8 +48,8 @@ void PetDigServer::OnStartup(Entity* self) {
 	// Reset any bouncers that might've been created by the previous dig
 	if (digInfo.bouncer) {
 		auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-		auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-		auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+		auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+		auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 		for (auto* bouncerSpawner : bouncerSpawners) {
 			for (auto* bouncer : bouncerSpawner->m_Info.nodes)
@@ -93,9 +95,9 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	// TODO: Reset other pets
 
 	// Handles smashing leftovers (edge case for the AG X)
-	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
@@ -104,13 +106,13 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 	if (playerID == LWOOBJID_EMPTY || playerID != owner->GetObjectID())
 		return;
 
-	auto* playerEntity = EntityManager::Instance()->GetEntity(playerID);
+	auto* playerEntity = Game::entityManager->GetEntity(playerID);
 	if (!playerEntity || !playerEntity->GetParentUser() || !playerEntity->GetParentUser()->GetLastUsedChar())
 		return;
 
 	auto* player = playerEntity->GetCharacter();
 	const auto groupID = self->GetVar<std::u16string>(u"groupID");
-	auto playerFlag = 0;
+	int32_t playerFlag = 0;
 
 	// The flag that the player dug up
 	if (groupID == u"Flag1") {
@@ -132,16 +134,16 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 		player->SetPlayerFlag(playerFlag, true);
 	}
 
-	auto* xObject = EntityManager::Instance()->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
-		xObject->Smash(xObject->GetObjectID(), VIOLENT);
+		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
 void PetDigServer::HandleBouncerDig(const Entity* self, const Entity* owner) {
 	auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-	auto bouncerSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncer" + bounceNumber);
-	auto switchSpawners = dZoneManager::Instance()->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+	auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+	auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
 	for (auto* bouncerSpawner : bouncerSpawners) {
 		bouncerSpawner->Activate();
@@ -162,13 +164,13 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* che
 	if (missionComponent != nullptr) {
 		// Can You Dig It progress
 		const auto digMissionState = missionComponent->GetMissionState(843);
-		if (digMissionState == MissionState::MISSION_STATE_ACTIVE) {
+		if (digMissionState == eMissionState::ACTIVE) {
 			missionComponent->ForceProgress(843, 1216, 1);
 		}
 
 		// Pet Excavator progress
 		const auto excavatorMissionState = missionComponent->GetMissionState(505);
-		if (excavatorMissionState == MissionState::MISSION_STATE_ACTIVE) {
+		if (excavatorMissionState == eMissionState::ACTIVE) {
 			if (chest->HasVar(u"PetDig")) {
 				int32_t playerFlag = 1260 + chest->GetVarAs<int32_t>(u"PetDig");
 				Character* player = owner->GetCharacter();
@@ -192,7 +194,7 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 	// Some treasures require a mission to be active
 	if (digInfo.requiredMission >= 0) {
 		auto* missionComponent = owner->GetComponent<MissionComponent>();
-		if (missionComponent != nullptr && missionComponent->GetMissionState(digInfo.requiredMission) < MissionState::MISSION_STATE_ACTIVE) {
+		if (missionComponent != nullptr && missionComponent->GetMissionState(digInfo.requiredMission) < eMissionState::ACTIVE) {
 			return;
 		}
 	}
@@ -209,8 +211,8 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 			new LDFData<float>(u"spawnTimer", 1.0)
 	};
 
-	auto* spawnedPet = EntityManager::Instance()->CreateEntity(info);
-	EntityManager::Instance()->ConstructEntity(spawnedPet);
+	auto* spawnedPet = Game::entityManager->CreateEntity(info);
+	Game::entityManager->ConstructEntity(spawnedPet);
 }
 
 Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
@@ -218,7 +220,7 @@ Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
 	Entity* closest = nullptr;
 
 	for (const auto tresureId : treasures) {
-		auto* tresure = EntityManager::Instance()->GetEntity(tresureId);
+		auto* tresure = Game::entityManager->GetEntity(tresureId);
 
 		if (tresure == nullptr) continue;
 

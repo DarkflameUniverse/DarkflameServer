@@ -7,13 +7,16 @@
 #include "MissionComponent.h"
 #include "UserManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "ZoneInstanceManager.h"
 #include "WorldPackets.h"
 #include "dZoneManager.h"
 #include "CharacterComponent.h"
 #include "Mail.h"
+#include "User.h"
 #include "CppScripts.h"
+#include "Loot.h"
+#include "eReplicaComponentType.h"
 
 std::vector<Player*> Player::m_Players = {};
 
@@ -59,7 +62,7 @@ void Player::SetSystemAddress(const SystemAddress& value) {
 void Player::SetRespawnPos(const NiPoint3 position) {
 	m_respawnPos = position;
 
-	m_Character->SetRespawnPoint(dZoneManager::Instance()->GetZone()->GetWorldID(), position);
+	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
 }
 
 void Player::SetRespawnRot(const NiQuaternion rotation) {
@@ -82,7 +85,7 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) {
 	const auto objid = GetObjectID();
 
 	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-		auto* entity = EntityManager::Instance()->GetEntity(objid);
+		auto* entity = Game::entityManager->GetEntity(objid);
 
 		if (entity == nullptr) {
 			return;
@@ -105,7 +108,7 @@ void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) {
 
 		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
 
-		EntityManager::Instance()->DestructEntity(entity);
+		Game::entityManager->DestructEntity(entity);
 		return;
 		});
 }
@@ -132,13 +135,13 @@ void Player::RemoveLimboConstruction(LWOOBJID objectId) {
 
 void Player::ConstructLimboEntities() {
 	for (const auto objectId : m_LimboConstructions) {
-		auto* entity = EntityManager::Instance()->GetEntity(objectId);
+		auto* entity = Game::entityManager->GetEntity(objectId);
 
 		if (entity == nullptr) {
 			continue;
 		}
 
-		EntityManager::Instance()->ConstructEntity(entity, m_SystemAddress);
+		Game::entityManager->ConstructEntity(entity, m_SystemAddress);
 	}
 
 	m_LimboConstructions.clear();
@@ -221,13 +224,13 @@ Player* Player::GetPlayer(const SystemAddress& sysAddr) {
 }
 
 Player* Player::GetPlayer(const std::string& name) {
-	const auto characters = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_CHARACTER);
+	const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
 	for (auto* character : characters) {
 		if (!character->IsPlayer()) continue;
-
-		if (character->GetCharacter()->GetName() == name) {
-			return static_cast<Player*>(character);
+		
+		if (GeneralUtils::CaseInsensitiveStringCompare(name, character->GetCharacter()->GetName())) {
+			return dynamic_cast<Player*>(character);
 		}
 	}
 
@@ -257,7 +260,7 @@ void Player::SetDroppedCoins(uint64_t value) {
 }
 
 Player::~Player() {
-	Game::logger->Log("Player", "Deleted player");
+	LOG("Deleted player");
 
 	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
 		const auto id = m_ObservedEntities[i];
@@ -266,7 +269,7 @@ Player::~Player() {
 			continue;
 		}
 
-		auto* entity = EntityManager::Instance()->GetGhostCandidate(id);
+		auto* entity = Game::entityManager->GetGhostCandidate(id);
 
 		if (entity != nullptr) {
 			entity->SetObservers(entity->GetObservers() - 1);
@@ -282,12 +285,12 @@ Player::~Player() {
 	}
 
 	if (IsPlayer()) {
-		Entity* zoneControl = EntityManager::Instance()->GetZoneControlEntity();
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
 			script->OnPlayerExit(zoneControl, this);
 		}
 
-		std::vector<Entity*> scriptedActs = EntityManager::Instance()->GetEntitiesByComponent(COMPONENT_TYPE_SCRIPTED_ACTIVITY);
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {

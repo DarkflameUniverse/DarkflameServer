@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 /**
  * The property guard that stands on a property before it's claimed, allows entities to attempt claiming this property.
@@ -9,7 +10,7 @@
 class PropertyVendorComponent : public Component
 {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_PROPERTY_VENDOR;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_VENDOR;
 	explicit PropertyVendorComponent(Entity* parent);
 
 	/**

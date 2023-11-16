@@ -4,6 +4,9 @@
 #include "Item.h"
 #include "InventoryComponent.h"
 #include "eItemType.h"
+#include "eReplicaComponentType.h"
+
+#include "CDComponentsRegistryTable.h"
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -191,7 +194,7 @@ void Inventory::AddManagedItem(Item* item) {
 	const auto id = item->GetId();
 
 	if (items.find(id) != items.end()) {
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present id (%llu)!", id);
+		LOG("Attempting to add an item with an already present id (%llu)!", id);
 
 		return;
 	}
@@ -201,7 +204,7 @@ void Inventory::AddManagedItem(Item* item) {
 	const auto slot = item->GetSlot();
 
 	if (slots.find(slot) != slots.end()) {
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present slot (%i)!", slot);
+		LOG("Attempting to add an item with an already present slot (%i)!", slot);
 
 		return;
 	}
@@ -215,7 +218,7 @@ void Inventory::RemoveManagedItem(Item* item) {
 	const auto id = item->GetId();
 
 	if (items.find(id) == items.end()) {
-		Game::logger->Log("Inventory", "Attempting to remove an item with an invalid id (%llu), lot (%i)!", id, item->GetLot());
+		LOG("Attempting to remove an item with an invalid id (%llu), lot (%i)!", id, item->GetLot());
 
 		return;
 	}
@@ -231,55 +234,55 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 	const auto itemType = static_cast<eItemType>(itemComponent.itemType);
 
 	switch (itemType) {
-	case eItemType::ITEM_TYPE_BRICK:
+	case eItemType::BRICK:
 		return BRICKS;
 
-	case eItemType::ITEM_TYPE_BEHAVIOR:
+	case eItemType::BEHAVIOR:
 		return BEHAVIORS;
 
-	case eItemType::ITEM_TYPE_PROPERTY:
+	case eItemType::PROPERTY:
 		return PROPERTY_DEEDS;
 
-	case eItemType::ITEM_TYPE_MODEL:
-	case eItemType::ITEM_TYPE_VEHICLE:
-	case eItemType::ITEM_TYPE_LOOT_MODEL:
-	case eItemType::ITEM_TYPE_MOUNT:
+	case eItemType::MODEL:
+	case eItemType::PET_INVENTORY_ITEM:
+	case eItemType::LOOT_MODEL:
+	case eItemType::VEHICLE:
+	case eItemType::MOUNT:
 		return MODELS;
 
-	case eItemType::ITEM_TYPE_HAT:
-	case eItemType::ITEM_TYPE_HAIR:
-	case eItemType::ITEM_TYPE_NECK:
-	case eItemType::ITEM_TYPE_LEFT_HAND:
-	case eItemType::ITEM_TYPE_RIGHT_HAND:
-	case eItemType::ITEM_TYPE_LEGS:
-	case eItemType::ITEM_TYPE_LEFT_TRINKET:
-	case eItemType::ITEM_TYPE_RIGHT_TRINKET:
-	case eItemType::ITEM_TYPE_COLLECTIBLE:
-	case eItemType::ITEM_TYPE_CONSUMABLE:
-	case eItemType::ITEM_TYPE_CHEST:
-	case eItemType::ITEM_TYPE_EGG:
-	case eItemType::ITEM_TYPE_PET_FOOD:
-	case eItemType::ITEM_TYPE_PET_INVENTORY_ITEM:
-	case eItemType::ITEM_TYPE_PACKAGE:
-	case eItemType::ITEM_TYPE_CURRENCY:
+	case eItemType::HAT:
+	case eItemType::HAIR:
+	case eItemType::NECK:
+	case eItemType::LEFT_HAND:
+	case eItemType::RIGHT_HAND:
+	case eItemType::LEGS:
+	case eItemType::LEFT_TRINKET:
+	case eItemType::RIGHT_TRINKET:
+	case eItemType::COLLECTIBLE:
+	case eItemType::CONSUMABLE:
+	case eItemType::CHEST:
+	case eItemType::EGG:
+	case eItemType::PET_FOOD:
+	case eItemType::PACKAGE:
+	case eItemType::LUP_MODEL:
 		return ITEMS;
 
-	case eItemType::ITEM_TYPE_QUEST_OBJECT:
-	case eItemType::ITEM_TYPE_UNKNOWN:
+	case eItemType::QUEST_OBJECT:
+	case eItemType::UNKNOWN:
 	default:
 		return QUEST;
 	}
 }
 
 const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	auto* itemComponents = CDClientManager::Instance()->GetTable<CDItemComponentTable>("ItemComponent");
+	auto* itemComponents = CDClientManager::Instance().GetTable<CDItemComponentTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	if (componentId == 0) {
-		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
+		LOG("Failed to find item component for (%i)!", lot);
 
 		return CDItemComponentTable::Default;
 	}
@@ -290,9 +293,9 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 }
 
 bool Inventory::IsValidItem(const LOT lot) {
-	auto* registry = CDClientManager::Instance()->GetTable<CDComponentsRegistryTable>("ComponentsRegistry");
+	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
-	const auto componentId = registry->GetByIDAndType(lot, COMPONENT_TYPE_ITEM);
+	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	return componentId != 0;
 }

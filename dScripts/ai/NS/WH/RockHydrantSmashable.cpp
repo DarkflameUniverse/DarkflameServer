@@ -1,5 +1,6 @@
 #include "RockHydrantSmashable.h"
 #include "EntityManager.h"
+#include "EntityInfo.h"
 #include "GeneralUtils.h"
 
 void RockHydrantSmashable::OnDie(Entity* self, Entity* killer) {
@@ -14,7 +15,7 @@ void RockHydrantSmashable::OnDie(Entity* self, Entity* killer) {
 	info.settings = { data };
 	info.spawnerID = self->GetSpawnerID();
 
-	auto* hydrant = EntityManager::Instance()->CreateEntity(info);
+	auto* hydrant = Game::entityManager->CreateEntity(info);
 
-	EntityManager::Instance()->ConstructEntity(hydrant);
+	Game::entityManager->ConstructEntity(hydrant);
 }

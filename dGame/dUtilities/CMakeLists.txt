@@ -1,5 +1,5 @@
 set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
-	"GameConfig.cpp"
+	"CheatDetection.cpp"
 	"GUID.cpp"
 	"Loot.cpp"
 	"Mail.cpp"

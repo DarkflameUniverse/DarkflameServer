@@ -7,6 +7,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
  /**
   * Information for each player in the race
@@ -104,13 +105,13 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_RACING_CONTROL;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.
@@ -123,7 +124,7 @@ public:
 	 * @param player The player who's vehicle to initialize.
 	 * @param initialLoad Is this the first time the player is loading in this race?
 	 */
-	void LoadPlayerVehicle(Entity* player, bool initialLoad = false);
+	void LoadPlayerVehicle(Entity* player, uint32_t positionNumber, bool initialLoad = false);
 
 	/**
 	 * Invoked when the client says it has loaded in.
@@ -143,7 +144,7 @@ public:
 	/**
 	 * Invoked when the player responds to the GUI.
 	 */
-	void HandleMessageBoxResponse(Entity* player, const std::string& id);
+	void HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id);
 
 	/**
 	 * Get the racing data from a player's LWOOBJID.
@@ -245,4 +246,9 @@ private:
 	float m_EmptyTimer;
 
 	bool m_SoloRacing;
+
+	/**
+	 * Value for message box response to know if we are exiting the race via the activity dialogue
+	 */
+	const int32_t m_ActivityExitConfirm = 1;
 };

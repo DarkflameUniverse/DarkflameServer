@@ -4,7 +4,7 @@
 
 - [Docker](https://docs.docker.com/get-docker/) (Docker Desktop or on Linux normal Docker)
 - [Docker Compose](https://docs.docker.com/compose/install/) (Included in Docker Desktop)
-- LEGO® Universe packed Client. Check the main [README](./README.md) for details on this.
+- LEGO® Universe Client. Check the main [README](./README.md) for details on this.
 
 ## Run server inside Docker
 

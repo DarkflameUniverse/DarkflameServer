@@ -2,9 +2,11 @@
 #define __GAMEDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
+#include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dConfig.h"
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -27,20 +29,23 @@ protected:
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;
-		Game::logger = new dLogger("./testing.log", true, true);
+		Game::logger = new Logger("./testing.log", true, true);
 		Game::server = new dServerMock();
+		Game::config = new dConfig("worldconfig.ini");
+		Game::entityManager = new EntityManager();
 	}
 
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
-		delete EntityManager::Instance();
+		if (Game::entityManager) delete Game::entityManager;
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;
 		}
+		if (Game::config) delete Game::config;
 	}
 
-	EntityInfo info;
+	EntityInfo info{};
 };
 
 #endif //!__GAMEDEPENDENCIES__H__

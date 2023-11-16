@@ -16,9 +16,14 @@
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"
-#include "dLogger.h"
-
-EntityManager* EntityManager::m_Address = nullptr;
+#include "Logger.h"
+#include "MessageIdentifiers.h"
+#include "dConfig.h"
+#include "eTriggerEventType.h"
+#include "eObjectBits.h"
+#include "eGameMasterLevel.h"
+#include "eReplicaComponentType.h"
+#include "eReplicaPacketType.h"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -55,11 +60,22 @@ void EntityManager::Initialize() {
 	m_GhostingEnabled = std::find(
 		m_GhostingExcludedZones.begin(),
 		m_GhostingExcludedZones.end(),
-		dZoneManager::Instance()->GetZoneID().GetMapID()
+		Game::zoneManager->GetZoneID().GetMapID()
 	) == m_GhostingExcludedZones.end();
-}
 
-EntityManager::~EntityManager() {
+	// grab hardcore mode settings and load them with sane defaults
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
+
+	// If cloneID is not zero, then hardcore mode is disabled
+	// aka minigames and props
+	if (Game::zoneManager->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;
 }
 
 Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentEntity, const bool controller, const LWOOBJID explicitId) {
@@ -89,11 +105,11 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 		if (!controller && info.lot != 14) {
 
 			// The client flags means the client should render the entity
-			id = GeneralUtils::SetBit(id, OBJECT_BIT_CLIENT);
+			GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 
 			// Spawned entities require the spawned flag to render
 			if (info.spawnerID != 0) {
-				id = GeneralUtils::SetBit(id, OBJECT_BIT_SPAWNED);
+				GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 			}
 		}
 	}
@@ -140,9 +156,9 @@ void EntityManager::DestroyEntity(const LWOOBJID& objectID) {
 }
 
 void EntityManager::DestroyEntity(Entity* entity) {
-	if (entity == nullptr) {
-		return;
-	}
+	if (!entity) return;
+
+	entity->TriggerEvent(eTriggerEventType::DESTROY, entity);
 
 	const auto id = entity->GetObjectID();
 
@@ -159,15 +175,12 @@ void EntityManager::DestroyEntity(Entity* entity) {
 	ScheduleForDeletion(id);
 }
 
-void EntityManager::UpdateEntities(const float deltaTime) {
-	for (const auto& e : m_Entities) {
-		e.second->Update(deltaTime);
-	}
+void EntityManager::SerializeEntities() {
+	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+		const LWOOBJID toSerialize = m_EntitiesToSerialize.at(i);
+		auto* entity = GetEntity(toSerialize);
 
-	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
-		auto* entity = GetEntity(*entry);
-
-		if (entity == nullptr) continue;
+		if (!entity) continue;
 
 		m_SerializationCounter++;
 
@@ -175,12 +188,12 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		stream.Write(static_cast<char>(ID_REPLICA_MANAGER_SERIALIZE));
 		stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
 
-		entity->WriteBaseReplicaData(&stream, PACKET_TYPE_SERIALIZATION);
-		entity->WriteComponents(&stream, PACKET_TYPE_SERIALIZATION);
+		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(*entry)) {
+				if (player->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -189,43 +202,59 @@ void EntityManager::UpdateEntities(const float deltaTime) {
 		}
 	}
 	m_EntitiesToSerialize.clear();
+}
 
-	for (auto entry = m_EntitiesToKill.begin(); entry != m_EntitiesToKill.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+void EntityManager::KillEntities() {
+	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
+		const LWOOBJID toKill = m_EntitiesToKill.at(i);
+		auto* entity = GetEntity(toKill);
 
-		if (!entity) continue;
+		if (!entity) {
+			LOG("Attempting to kill null entity %llu", toKill);
+			continue;
+		}
 
 		if (entity->GetScheduledKiller()) {
-			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), SILENT);
+			entity->Smash(entity->GetScheduledKiller()->GetObjectID(), eKillType::SILENT);
 		} else {
-			entity->Smash(LWOOBJID_EMPTY, SILENT);
+			entity->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		}
 	}
 	m_EntitiesToKill.clear();
+}
 
-	for (auto entry = m_EntitiesToDelete.begin(); entry != m_EntitiesToDelete.end(); entry++) {
-
-		// Get all this info first before we delete the player.
-		auto entityToDelete = GetEntity(*entry);
-		auto networkIdToErase = entityToDelete->GetNetworkId();
-		const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
-
+void EntityManager::DeleteEntities() {
+	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+		const LWOOBJID toDelete = m_EntitiesToDelete.at(i);
+		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
-			// If we are a player run through the player destructor.
-			if (entityToDelete->IsPlayer()) {
-				delete dynamic_cast<Player*>(entityToDelete);
-			} else {
-				delete entityToDelete;
-			}
+			// Get all this info first before we delete the player.
+			auto networkIdToErase = entityToDelete->GetNetworkId();
+			const auto& ghostingToDelete = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entityToDelete);
+
+			delete entityToDelete;
+
 			entityToDelete = nullptr;
+
 			if (networkIdToErase != 0) m_LostNetworkIds.push(networkIdToErase);
+
+			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
+		} else {
+			LOG("Attempted to delete non-existent entity %llu", toDelete);
 		}
-
-		if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
-
-		m_Entities.erase(*entry);
+		m_Entities.erase(toDelete);
 	}
 	m_EntitiesToDelete.clear();
+}
+
+void EntityManager::UpdateEntities(const float deltaTime) {
+	for (const auto& e : m_Entities) {
+		e.second->Update(deltaTime);
+	}
+
+	SerializeEntities();
+	KillEntities();
+	DeleteEntities();
 }
 
 Entity* EntityManager::GetEntity(const LWOOBJID& objectId) const {
@@ -251,10 +280,10 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 	return entitiesInGroup;
 }
 
-std::vector<Entity*> EntityManager::GetEntitiesByComponent(const int componentType) const {
+std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
 	for (const auto& entity : m_Entities) {
-		if (componentType != -1 && !entity.second->HasComponent(componentType)) continue;
+		if (componentType != eReplicaComponentType::INVALID && !entity.second->HasComponent(componentType)) continue;
 
 		withComp.push_back(entity.second);
 	}
@@ -271,6 +300,16 @@ std::vector<Entity*> EntityManager::GetEntitiesByLOT(const LOT& lot) const {
 
 	return entities;
 }
+
+std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, float radius) const{
+	std::vector<Entity*> entities = {};
+	if (radius > 1000.0f) return entities;
+	for (const auto& entity : m_Entities) {
+		if (NiPoint3::Distance(reference, entity.second->GetPosition()) <= radius) entities.push_back(entity.second);
+	}
+	return entities;
+}
+
 
 Entity* EntityManager::GetZoneControlEntity() const {
 	return m_ZoneControlEntity;
@@ -293,6 +332,11 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 }
 
 void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
+	if (!entity) {
+		LOG("Attempted to construct null entity");
+		return;
+	}
+
 	if (entity->GetNetworkId() == 0) {
 		uint16_t networkId;
 
@@ -330,8 +374,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	stream.Write(true);
 	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
 
-	entity->WriteBaseReplicaData(&stream, PACKET_TYPE_CONSTRUCTION);
-	entity->WriteComponents(&stream, PACKET_TYPE_CONSTRUCTION);
+	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		if (skipChecks) {
@@ -352,7 +396,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 
 	if (entity->IsPlayer()) {
-		if (entity->GetGMLevel() > GAME_MASTER_LEVEL_CIVILIAN) {
+		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 			GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, sysAddr);
 		}
 	}
@@ -372,9 +416,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
-	if (entity->GetNetworkId() == 0) {
-		return;
-	}
+	if (!entity || entity->GetNetworkId() == 0) return;
 
 	RakNet::BitStream stream;
 
@@ -391,9 +433,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 }
 
 void EntityManager::SerializeEntity(Entity* entity) {
-	if (entity->GetNetworkId() == 0) {
-		return;
-	}
+	if (!entity || entity->GetNetworkId() == 0) return;
 
 	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
 		m_EntitiesToSerialize.push_back(entity->GetObjectID());
@@ -556,12 +596,6 @@ bool EntityManager::GetGhostingEnabled() const {
 	return m_GhostingEnabled;
 }
 
-void EntityManager::ResetFlags() {
-	for (const auto& e : m_Entities) {
-		e.second->ResetFlags();
-	}
-}
-
 void EntityManager::ScheduleForKill(Entity* entity) {
 	// Deactivate switches if they die
 	if (!entity)
@@ -569,7 +603,7 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	SwitchComponent* switchComp = entity->GetComponent<SwitchComponent>();
 	if (switchComp) {
-		entity->TriggerEvent("OnDectivated");
+		entity->TriggerEvent(eTriggerEventType::DEACTIVATED, entity);
 	}
 
 	const auto objectId = entity->GetObjectID();

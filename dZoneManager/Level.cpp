@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include "BinaryIO.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
 #include "GeneralUtils.h"
@@ -21,7 +21,7 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	auto buffer = Game::assetManager->GetFileAsBuffer(filepath.c_str());
 
 	if (!buffer.m_Success) {
-		Game::logger->Log("Level", "Failed to load %s", filepath.c_str());
+		LOG("Failed to load %s", filepath.c_str());
 		return;
 	}
 
@@ -36,6 +36,76 @@ Level::~Level() {
 		if (it->second.id == Level::ChunkTypeID::FileInfo) delete it->second.fileInfo;
 		if (it->second.id == Level::ChunkTypeID::SceneObjectData) delete it->second.sceneObjects;
 	}
+}
+
+void Level::MakeSpawner(SceneObject obj){
+	SpawnerInfo spawnInfo = SpawnerInfo();
+	SpawnerNode* node = new SpawnerNode();
+	spawnInfo.templateID = obj.lot;
+	spawnInfo.spawnerID = obj.id;
+	spawnInfo.templateScale = obj.scale;
+	node->position = obj.position;
+	node->rotation = obj.rotation;
+	node->config = obj.settings;
+	spawnInfo.nodes.push_back(node);
+	for (LDFBaseData* data : obj.settings) {
+	if (data) {
+		if (data->GetKey() == u"spawntemplate") {
+			spawnInfo.templateID = std::stoi(data->GetValueAsString());
+		}
+
+		if (data->GetKey() == u"spawner_node_id") {
+			node->nodeID = std::stoi(data->GetValueAsString());
+		}
+
+		if (data->GetKey() == u"spawner_name") {
+			spawnInfo.name = data->GetValueAsString();
+		}
+
+		if (data->GetKey() == u"max_to_spawn") {
+			spawnInfo.maxToSpawn = std::stoi(data->GetValueAsString());
+		}
+
+		if (data->GetKey() == u"spawner_active_on_load") {
+			spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+		}
+
+		if (data->GetKey() == u"active_on_load") {
+			spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+		}
+
+		if (data->GetKey() == u"respawn") {
+			if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
+			{
+				spawnInfo.respawnTime = std::stof(data->GetValueAsString());
+			} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
+			{
+				spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
+			}
+		}
+		if (data->GetKey() == u"spawnsGroupOnSmash") {
+			spawnInfo.spawnsOnSmash = std::stoi(data->GetValueAsString());
+		}
+		if (data->GetKey() == u"spawnNetNameForSpawnGroupOnSmash") {
+			spawnInfo.spawnOnSmashGroupName = data->GetValueAsString();
+		}
+		if (data->GetKey() == u"groupID") { // Load object groups
+			std::string groupStr = data->GetValueAsString();
+			spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
+			spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
+		}
+		if (data->GetKey() == u"no_auto_spawn") {
+			spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+		}
+		if (data->GetKey() == u"no_timed_spawn") {
+			spawnInfo.noTimedSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+		}
+		if (data->GetKey() == u"spawnActivator") {
+			spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
+		}
+	}
+	}
+	Game::zoneManager->MakeSpawner(spawnInfo);
 }
 
 const void Level::PrintAllObjects() {
@@ -162,7 +232,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
 
-	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance()->GetTable<CDFeatureGatingTable>("FeatureGating");
+	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
 
 	for (uint32_t i = 0; i < objectsCount; ++i) {
 		SceneObject obj;
@@ -179,8 +249,8 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
-			dZoneManager::Instance()->GetZone()->SetSpawnPos(obj.position);
-			dZoneManager::Instance()->GetZone()->SetSpawnRot(obj.rotation);
+			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
 		}
 
 		std::u16string ldfString = u"";
@@ -230,74 +300,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		}
 
 		if (obj.lot == 176) { //Spawner
-			SpawnerInfo spawnInfo = SpawnerInfo();
-			SpawnerNode* node = new SpawnerNode();
-			spawnInfo.templateID = obj.lot;
-			spawnInfo.spawnerID = obj.id;
-			spawnInfo.templateScale = obj.scale;
-			node->position = obj.position;
-			node->rotation = obj.rotation;
-			node->config = obj.settings;
-			spawnInfo.nodes.push_back(node);
-			for (LDFBaseData* data : obj.settings) {
-				if (data) {
-					if (data->GetKey() == u"spawntemplate") {
-						spawnInfo.templateID = std::stoi(data->GetValueAsString());
-					}
-
-					if (data->GetKey() == u"spawner_node_id") {
-						node->nodeID = std::stoi(data->GetValueAsString());
-					}
-
-					if (data->GetKey() == u"spawner_name") {
-						spawnInfo.name = data->GetValueAsString();
-					}
-
-					if (data->GetKey() == u"max_to_spawn") {
-						spawnInfo.maxToSpawn = std::stoi(data->GetValueAsString());
-					}
-
-					if (data->GetKey() == u"spawner_active_on_load") {
-						spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
-					}
-
-					if (data->GetKey() == u"active_on_load") {
-						spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
-					}
-
-					if (data->GetKey() == u"respawn") {
-						if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
-						{
-							spawnInfo.respawnTime = std::stof(data->GetValueAsString());
-						} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
-						{
-							spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
-						}
-					}
-					if (data->GetKey() == u"spawnsGroupOnSmash") {
-						spawnInfo.spawnsOnSmash = std::stoi(data->GetValueAsString());
-					}
-					if (data->GetKey() == u"spawnNetNameForSpawnGroupOnSmash") {
-						spawnInfo.spawnOnSmashGroupName = data->GetValueAsString();
-					}
-					if (data->GetKey() == u"groupID") { // Load object groups
-						std::string groupStr = data->GetValueAsString();
-						spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
-						spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
-					}
-					if (data->GetKey() == u"no_auto_spawn") {
-						spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
-					}
-					if (data->GetKey() == u"no_timed_spawn") {
-						spawnInfo.noTimedSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
-					}
-					if (data->GetKey() == u"spawnActivator") {
-						spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
-					}
-				}
-			}
-			Spawner* spawner = new Spawner(spawnInfo);
-			dZoneManager::Instance()->AddSpawner(obj.id, spawner);
+			MakeSpawner(obj);
 		} else { //Regular object
 			EntityInfo info;
 			info.spawnerID = 0;
@@ -328,11 +331,11 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			if (!clientOnly) {
 
 				// We should never have more than 1 zone control object
-				const auto zoneControlObject = dZoneManager::Instance()->GetZoneControlObject();
+				const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
 					goto deleteSettings;
 
-				EntityManager::Instance()->CreateEntity(info, nullptr);
+				Game::entityManager->CreateEntity(info, nullptr);
 			} else {
 			deleteSettings:
 

@@ -5,12 +5,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-/*!
- \file CDBehaviorTemplateTable.hpp
- \brief Contains data for the BehaviorTemplate table
- */
-
- //! BehaviorTemplate Entry Struct
 struct CDBehaviorTemplate {
 	unsigned int behaviorID;                                         //!< The Behavior ID
 	unsigned int templateID;                                         //!< The Template ID (LOT)
@@ -19,37 +13,18 @@ struct CDBehaviorTemplate {
 };
 
 
-//! BehaviorTemplate table
-class CDBehaviorTemplateTable : public CDTable {
+class CDBehaviorTemplateTable : public CDTable<CDBehaviorTemplateTable> {
 private:
 	std::vector<CDBehaviorTemplate> entries;
 	std::unordered_map<uint32_t, CDBehaviorTemplate> entriesMappedByBehaviorID;
 	std::unordered_set<std::string> m_EffectHandles;
 public:
+	void LoadValuesFromDatabase();
 
-	//! Constructor
-	CDBehaviorTemplateTable(void);
-
-	//! Destructor
-	~CDBehaviorTemplateTable(void);
-
-	//! Returns the table's name
-	/*!
-	  \return The table name
-	 */
-	std::string GetName(void) const override;
-
-	//! Queries the table with a custom "where" clause
-	/*!
-	  \param predicate The predicate
-	 */
+	// Queries the table with a custom "where" clause
 	std::vector<CDBehaviorTemplate> Query(std::function<bool(CDBehaviorTemplate)> predicate);
 
-	//! Gets all the entries in the table
-	/*!
-	   \return The entries
-	 */
-	std::vector<CDBehaviorTemplate> GetEntries(void) const;
+	const std::vector<CDBehaviorTemplate>& GetEntries(void) const;
 
 	const CDBehaviorTemplate GetByBehaviorID(uint32_t behaviorID);
 };

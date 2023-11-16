@@ -89,34 +89,78 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Create a /res directory
-make_directory(${CMAKE_BINARY_DIR}/res)
+# Create a /resServer directory
+make_directory(${CMAKE_BINARY_DIR}/resServer)
 
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
 set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
-foreach(resource_file ${RESOURCE_FILES})
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
+message(STATUS "Checking resource file integrity")
+foreach (resource_file ${RESOURCE_FILES})
+	set(file_size 0)
+	if (EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
+		file(SIZE ${PROJECT_BINARY_DIR}/${resource_file} file_size)
+	endif()
+	if (${file_size} EQUAL 0)
 		configure_file(
 			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
 			COPYONLY
 		)
-		message("Moved ${resource_file} to project binary directory")
+		message(STATUS "Moved " ${resource_file} " to project binary directory")
+	elseif (resource_file MATCHES ".ini")
+		message(STATUS "Checking " ${resource_file} " for missing config options")
+		file(READ ${PROJECT_BINARY_DIR}/${resource_file} current_file_contents)
+		string(REPLACE "\\\n" "" current_file_contents ${current_file_contents})
+		string(REPLACE "\n" ";" current_file_contents ${current_file_contents})
+		set(parsed_current_file_contents "")
+		# Remove comment lines so they do not interfere with the variable parsing
+		foreach (line ${current_file_contents})
+			string(FIND ${line} "#" is_comment)
+			if (NOT ${is_comment} EQUAL 0)
+				string(APPEND parsed_current_file_contents ${line})
+			endif()
+		endforeach()
+		file(READ ${CMAKE_SOURCE_DIR}/resources/${resource_file} depot_file_contents)
+		string(REPLACE "\\\n" "" depot_file_contents ${depot_file_contents})
+		string(REPLACE "\n" ";" depot_file_contents ${depot_file_contents})
+		set(line_to_add "")
+		foreach (line ${depot_file_contents})
+			string(FIND ${line} "#" is_comment)
+			if (NOT ${is_comment} EQUAL 0)
+				string(REPLACE "=" ";" line_split ${line})
+				list(GET line_split 0 variable_name)
+				if (NOT ${parsed_current_file_contents} MATCHES ${variable_name})
+					message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
+					set(line_to_add ${line_to_add} ${line})
+					foreach (line_to_append ${line_to_add})
+						file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n" ${line_to_append})
+					endforeach()
+					file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n")
+				endif()
+				set(line_to_add "")
+			else()
+				set(line_to_add ${line_to_add} ${line})
+			endif()
+		endforeach()
 	endif()
 endforeach()
+message(STATUS "Resource file integrity check complete")
+
+# if navmeshes directory does not exist, create it
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/navmeshes)
+endif()
 
 # Copy navmesh data on first build and extract it
-if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes/)
-	configure_file(
-		${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
-		COPYONLY
-	)
+configure_file(
+	${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
+	COPYONLY
+)
 
-	file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
-	file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
-endif()
+file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
+file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
@@ -163,6 +207,7 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dMission"
 	"dGame/dEntity"
 	"dGame/dPropertyBehaviors"
+	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
 	"dPhysics"
 	"dNavigation"
@@ -176,6 +221,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai"
 	"dScripts/client"
 	"dScripts/EquipmentScripts"
+	"dScripts/EquipmentTriggers"
 	"dScripts/zone"
 	"dScripts/02_server/DLU"
 	"dScripts/02_server/Enemy"

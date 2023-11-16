@@ -9,6 +9,7 @@
 #include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
+#include "eReplicaComponentType.h"
 
 class PreconditionExpression;
 
@@ -17,7 +18,7 @@ class PreconditionExpression;
  */
 class RocketLaunchpadControlComponent : public Component {
 public:
-	static const uint32_t ComponentType = COMPONENT_TYPE_ROCKET_LAUNCH;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH;
 
 	RocketLaunchpadControlComponent(Entity* parent, int rocketId);
 	~RocketLaunchpadControlComponent() override;

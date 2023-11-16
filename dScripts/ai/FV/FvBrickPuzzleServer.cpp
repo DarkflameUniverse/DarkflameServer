@@ -29,7 +29,7 @@ void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 
 	const auto nextPipeNum = pipeNum + 1;
 
-	const auto samePipeSpawners = dZoneManager::Instance()->GetSpawnersByName(myGroup);
+	const auto samePipeSpawners = Game::zoneManager->GetSpawnersByName(myGroup);
 
 	if (!samePipeSpawners.empty()) {
 		samePipeSpawners[0]->SoftReset();
@@ -40,7 +40,7 @@ void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 	if (killer != nullptr && killer->IsPlayer()) {
 		const auto nextPipe = pipeGroup + std::to_string(nextPipeNum);
 
-		const auto nextPipeSpawners = dZoneManager::Instance()->GetSpawnersByName(nextPipe);
+		const auto nextPipeSpawners = Game::zoneManager->GetSpawnersByName(nextPipe);
 
 		if (!nextPipeSpawners.empty()) {
 			nextPipeSpawners[0]->Activate();
@@ -48,7 +48,7 @@ void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 	} else {
 		const auto nextPipe = pipeGroup + "1";
 
-		const auto firstPipeSpawners = dZoneManager::Instance()->GetSpawnersByName(nextPipe);
+		const auto firstPipeSpawners = Game::zoneManager->GetSpawnersByName(nextPipe);
 
 		if (!firstPipeSpawners.empty()) {
 			firstPipeSpawners[0]->Activate();
@@ -61,8 +61,8 @@ void FvBrickPuzzleServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
 		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
 
-		if (rebuildComponent != nullptr && rebuildComponent->GetState() == REBUILD_OPEN) {
-			self->Smash(self->GetObjectID(), SILENT);
+		if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::OPEN) {
+			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	}
 }

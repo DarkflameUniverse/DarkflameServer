@@ -2,18 +2,18 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t handle{};
 
 	if (!bitStream->Read(handle)) {
-		Game::logger->Log("AttackDelayBehavior", "Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
 	for (auto i = 0u; i < this->m_numIntervals; ++i) {
-		context->RegisterSyncBehavior(handle, this, branch, m_ignoreInterrupts);
+		context->RegisterSyncBehavior(handle, this, branch, this->m_delay * i, m_ignoreInterrupts);
 	}
 }
 

@@ -1,7 +1,7 @@
 #include "BaseRandomServer.h"
 #include "dZoneManager.h"
 #include "Spawner.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Entity.h"
 
 void BaseRandomServer::BaseStartup(Entity* self) {
@@ -34,7 +34,7 @@ void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName
 	Zone* spawnLoad = GetRandomLoad(self, sectionName);
 
 	if (spawnLoad == nullptr) {
-		Game::logger->Log("BaseRandomServer", "Failed to find section: %s", sectionName.c_str());
+		LOG("Failed to find section: %s", sectionName.c_str());
 
 		return;
 	}
@@ -52,14 +52,14 @@ void BaseRandomServer::SpawnSection(Entity* self, const std::string& sectionName
 }
 
 void BaseRandomServer::SetSpawnerNetwork(Entity* self, const std::string& spawnerName, int32_t spawnNum, LOT spawnLOT) {
-	const auto& spawners = dZoneManager::Instance()->GetSpawnersByName(spawnerName);
+	const auto& spawners = Game::zoneManager->GetSpawnersByName(spawnerName);
 
 	if (spawnLOT == 11217 && spawnNum > 1) {
 		spawnNum = 1;
 	}
 
 	if (spawners.empty()) {
-		Game::logger->Log("BaseRandomServer", "Failed to find spawner: %s", spawnerName.c_str());
+		LOG("Failed to find spawner: %s", spawnerName.c_str());
 
 		return;
 	}

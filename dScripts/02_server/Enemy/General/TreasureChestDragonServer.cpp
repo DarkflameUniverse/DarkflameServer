@@ -2,6 +2,7 @@
 #include "ScriptedActivityComponent.h"
 #include "TeamManager.h"
 #include "EntityManager.h"
+#include "Loot.h"
 
 void TreasureChestDragonServer::OnStartup(Entity* self) {
 
@@ -28,14 +29,14 @@ void TreasureChestDragonServer::OnUse(Entity* self, Entity* user) {
 		rating = team->members.size();
 
 		for (const auto member : team->members) {
-			auto* memberObject = EntityManager::Instance()->GetEntity(member);
+			auto* memberObject = Game::entityManager->GetEntity(member);
 
 			if (memberObject == nullptr) continue;
 
-			LootGenerator::Instance().DropActivityLoot(memberObject, self, scriptedActivityComponent->GetActivityID(), rating);
+			Loot::DropActivityLoot(memberObject, self, scriptedActivityComponent->GetActivityID(), rating);
 		}
 	} else {
-		LootGenerator::Instance().DropActivityLoot(user, self, scriptedActivityComponent->GetActivityID(), rating);
+		Loot::DropActivityLoot(user, self, scriptedActivityComponent->GetActivityID(), rating);
 	}
 
 	self->Smash(self->GetObjectID());

@@ -43,8 +43,8 @@ void dpGrid::Add(dpEntity* entity) {
 
 	if (cellX < 0) cellX = 0;
 	if (cellZ < 0) cellZ = 0;
-	if (cellX > NUM_CELLS) cellX = NUM_CELLS;
-	if (cellZ > NUM_CELLS) cellZ = NUM_CELLS;
+	if (cellX >= NUM_CELLS) cellX = NUM_CELLS - 1;
+	if (cellZ >= NUM_CELLS) cellZ = NUM_CELLS - 1;
 
 	//Add to cell:
 	m_Cells[cellX][cellZ].push_front(entity);
@@ -63,13 +63,13 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 
 	if (cellX < 0) cellX = 0;
 	if (cellZ < 0) cellZ = 0;
-	if (cellX > NUM_CELLS) cellX = NUM_CELLS;
-	if (cellZ > NUM_CELLS) cellZ = NUM_CELLS;
+	if (cellX >= NUM_CELLS) cellX = NUM_CELLS - 1;
+	if (cellZ >= NUM_CELLS) cellZ = NUM_CELLS - 1;
 
 	if (oldCellX < 0) oldCellX = 0;
 	if (oldCellZ < 0) oldCellZ = 0;
-	if (oldCellX > NUM_CELLS) oldCellX = NUM_CELLS;
-	if (oldCellZ > NUM_CELLS) oldCellZ = NUM_CELLS;
+	if (oldCellX >= NUM_CELLS) oldCellX = NUM_CELLS - 1;
+	if (oldCellZ >= NUM_CELLS) oldCellZ = NUM_CELLS - 1;
 
 	if (oldCellX == cellX && oldCellZ == cellZ) return;
 
@@ -87,8 +87,8 @@ void dpGrid::Delete(dpEntity* entity) {
 
 	if (oldCellX < 0) oldCellX = 0;
 	if (oldCellZ < 0) oldCellZ = 0;
-	if (oldCellX > NUM_CELLS) oldCellX = NUM_CELLS;
-	if (oldCellZ > NUM_CELLS) oldCellZ = NUM_CELLS;
+	if (oldCellX >= NUM_CELLS) oldCellX = NUM_CELLS - 1;
+	if (oldCellZ >= NUM_CELLS) oldCellZ = NUM_CELLS - 1;
 
 	m_Cells[oldCellX][oldCellZ].remove(entity);
 
