@@ -14,8 +14,8 @@
 #include "dConfig.h"
 
 PlayerContainer::PlayerContainer() {
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), maxNumberOfBestFriends);
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), maxNumberOfFriends);
+	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), mMaxNumberOfBestFriends);
+	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), mMaxNumberOfFriends);
 }
 
 PlayerContainer::~PlayerContainer() {
