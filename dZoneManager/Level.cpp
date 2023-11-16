@@ -14,6 +14,7 @@
 #include "CDFeatureGatingTable.h"
 #include "CDClientManager.h"
 #include "AssetManager.h"
+#include "dConfig.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
@@ -234,6 +235,14 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 
 	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
 
+	CDFeatureGating gating;
+	gating.major = 1;
+	gating.current = 10;
+	gating.minor = 64;
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major"), gating.major);
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current"), gating.current);
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor"), gating.minor);
+
 	for (uint32_t i = 0; i < objectsCount; ++i) {
 		SceneObject obj;
 		BinaryIO::BinaryRead(file, obj.id);
@@ -279,11 +288,17 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		bool gated = false;
 		for (LDFBaseData* data : obj.settings) {
 			if (data->GetKey() == u"gatingOnFeature") {
-				std::string featureGate = data->GetValueAsString();
-
-				if (!featureGatingTable->FeatureUnlocked(featureGate)) {
+				gating.featureName = data->GetValueAsString();
+				if (gating.featureName == Game::config->GetValue("event_1")) break;
+				else if (gating.featureName == Game::config->GetValue("event_2")) break;
+				else if (gating.featureName == Game::config->GetValue("event_3")) break;
+				else if (gating.featureName == Game::config->GetValue("event_4")) break;
+				else if (gating.featureName == Game::config->GetValue("event_5")) break;
+				else if (gating.featureName == Game::config->GetValue("event_6")) break;
+				else if (gating.featureName == Game::config->GetValue("event_7")) break;
+				else if (gating.featureName == Game::config->GetValue("event_8")) break;
+				else if (!featureGatingTable->FeatureUnlocked(gating)) {
 					gated = true;
-
 					break;
 				}
 			}

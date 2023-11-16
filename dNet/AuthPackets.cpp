@@ -203,18 +203,25 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	packet.Write(static_cast<uint8_t>(responseCode));
 
 	// Event Gating
-	packet.Write(LUString("Talk_Like_A_Pirate"));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
+	packet.Write(LUString(Game::config->GetValue("event_1")));
+	packet.Write(LUString(Game::config->GetValue("event_2")));
+	packet.Write(LUString(Game::config->GetValue("event_3")));
+	packet.Write(LUString(Game::config->GetValue("event_4")));
+	packet.Write(LUString(Game::config->GetValue("event_5")));
+	packet.Write(LUString(Game::config->GetValue("event_6")));
+	packet.Write(LUString(Game::config->GetValue("event_7")));
+	packet.Write(LUString(Game::config->GetValue("event_8")));
 
-	packet.Write(static_cast<uint16_t>(1));         // Version Major
-	packet.Write(static_cast<uint16_t>(10));        // Version Current
-	packet.Write(static_cast<uint16_t>(64));        // Version Minor
+	uint16_t version_major = 1;
+	uint16_t version_current = 10;
+	uint16_t version_minor = 64;
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major"), version_major);
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current"), version_current);
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor"), version_minor);
+
+	packet.Write(version_major);
+	packet.Write(version_current);
+	packet.Write(version_minor);
 
 	// Writes the user key
 	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();
