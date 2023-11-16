@@ -11,7 +11,7 @@ public:
 		std::string description;
 		std::string rejectionReason;
 		LWOOBJID id{};
-		LWOOBJID ownerId{};
+		uint32_t ownerId{};
 		LWOCLONEID cloneId{};
 		int32_t privacyOption{};
 		uint32_t modApproved{};

@@ -5064,7 +5064,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
 	stmt->setUInt64(1, item->GetSubKey());
 	stmt->execute();
 
@@ -5567,7 +5567,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
+			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
 			stmt->setUInt64(1, newIdBig);
 			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
 			auto* pCharacter = character->GetCharacter();

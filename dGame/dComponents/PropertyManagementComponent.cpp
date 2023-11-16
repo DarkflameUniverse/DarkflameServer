@@ -207,7 +207,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 
 	IProperty::Info info;
 	info.id = propertyId;
-	info.ownerId = playerId;
+	info.ownerId = character->GetID();
 	info.cloneId = playerCloneId;
 	info.name = name;
 	info.description = description;
