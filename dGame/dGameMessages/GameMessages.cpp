@@ -4905,7 +4905,7 @@ void GameMessages::HandleParseChatMessage(RakNet::BitStream* inStream, Entity* e
 		inStream->Read(character);
 		wsString.push_back(character);
 	}
-
+	LOG("state: %i, str: %s", iClientState, GeneralUtils::UTF16ToWTF8(wsString).c_str());
 	if (wsString[0] == L'/') {
 		SlashCommandHandler::HandleChatCommand(wsString, entity, sysAddr);
 	}

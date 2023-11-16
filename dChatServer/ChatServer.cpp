@@ -325,6 +325,7 @@ void HandlePacket(Packet* packet) {
 
 		case eChatMessageType::GUILD_GET_ALL:
 			LOG("GUILD_GET_ALL");
+			ChatPacketHandler::HandleGuildGetAll(packet);
 			break;
 
 		default:

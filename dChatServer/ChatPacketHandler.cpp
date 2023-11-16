@@ -404,39 +404,37 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 
 	LOG("Got a message from (%s) [%d]: %s", senderName.c_str(), channel, message.c_str());
 
-	if (channel != 8) return;
+	if (channel == 8) {
 
-	auto* team = playerContainer.GetTeam(playerID);
+		auto* team = playerContainer.GetTeam(playerID);
+		if (!team) return;
 
-	if (team == nullptr) return;
+		for (const auto memberId : team->memberIDs) {
+			auto* otherMember = playerContainer.GetPlayerData(memberId);
+			if (!otherMember) return;
+			const auto otherName = std::string(otherMember->playerName.c_str());
 
-	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = playerContainer.GetPlayerData(memberId);
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+			bitStream.Write(otherMember->playerID);
 
-		if (otherMember == nullptr) return;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
+			bitStream.Write(otherMember->playerID);
+			bitStream.Write<uint8_t>(8);
+			bitStream.Write<unsigned int>(69);
+			bitStream.Write(LUWString(senderName));
+			bitStream.Write(sender->playerID);
+			bitStream.Write<uint16_t>(0);
+			bitStream.Write<uint8_t>(0); //not mythran nametag
+			bitStream.Write(LUWString(otherName));
+			bitStream.Write<uint8_t>(0); //not mythran for receiver
+			bitStream.Write<uint8_t>(0); //teams?
+			bitStream.Write(LUWString(message, 512));
 
-		const auto otherName = std::string(otherMember->playerName.c_str());
-
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-		bitStream.Write(otherMember->playerID);
-
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
-		bitStream.Write(otherMember->playerID);
-		bitStream.Write<uint8_t>(8);
-		bitStream.Write<unsigned int>(69);
-		bitStream.Write(LUWString(senderName));
-		bitStream.Write(sender->playerID);
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<uint8_t>(0); //not mythran nametag
-		bitStream.Write(LUWString(otherName));
-		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(0); //teams?
-		bitStream.Write(LUWString(message, 512));
-
-		SystemAddress sysAddr = otherMember->sysAddr;
-		SEND_PACKET;
-	}
+			SystemAddress sysAddr = otherMember->sysAddr;
+			SEND_PACKET;
+		}
+	} else LOG("Private chat channel is %i", channel);
 }
 
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
@@ -714,14 +712,18 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleGuildLeave(Packet* packet){
-	CINSTREAM;
+	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
-	inStream.Read(playerID);
-	Game::logger->Log("ChatPacketHandler", "HandleGuildLeave %llu", playerID);
+	LOG("HandleGuildLeave %llu", playerID);
+	
 }
 
 void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerID = LWOOBJID_EMPTY;
+	inStream.Read(playerID);
+	LOG("HandleGuildGetAll %llu", playerID);
 	
 }
 

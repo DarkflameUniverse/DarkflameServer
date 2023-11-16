@@ -492,7 +492,7 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 
 	//Send the guild create response:
 	SendGuildCreateResponse(sysAddr, eGuildCreationResponse::CREATED, guildId, name);
-	// GameMessages::SendDisplayGuildCreateBox(, true, sysAddr)
+	// TODO: enable guild ui here
 }
 
 
