@@ -9,7 +9,7 @@ public:
 	// Get the playkey id for the given playkey.
 	// Optional of bool may seem pointless, however the optional indicates if the playkey exists
 	// and the bool indicates if the playkey is active.
-	virtual std::optional<bool> IsPlaykeyActive(const uint32_t playkeyId) = 0;
+	virtual std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) = 0;
 };
 
 #endif  //!__IPLAYKEYS__H__

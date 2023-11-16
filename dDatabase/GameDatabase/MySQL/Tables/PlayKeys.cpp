@@ -1,6 +1,6 @@
 #include "MySQLDatabase.h"
 
-std::optional<bool> MySQLDatabase::IsPlaykeyActive(const uint32_t playkeyId) {
+std::optional<bool> MySQLDatabase::IsPlaykeyActive(const int32_t playkeyId) {
 	auto keyCheckRes = ExecuteSelect("SELECT active FROM `play_keys` WHERE id=?", playkeyId);
 
 	if (!keyCheckRes->next()) {

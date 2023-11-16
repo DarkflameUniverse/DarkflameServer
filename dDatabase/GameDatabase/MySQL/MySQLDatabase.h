@@ -101,7 +101,7 @@ public:
 	void InsertDefaultPersistentId() override;
 	void UpdatePersistentId(const uint32_t id) override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
-	std::optional<bool> IsPlaykeyActive(const uint32_t playkeyId) override;
+	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
 private:
 

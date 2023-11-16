@@ -80,9 +80,10 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		return;
 	}
 
-	if (Game::config->GetValue("dont_use_keys") != "1") {
+	if (Game::config->GetValue("dont_use_keys") != "1" && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
+		LOG("");
 		//Check to see if we have a play key:
-		if (accountInfo->playKeyId == 0 && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
+		if (accountInfo->playKeyId == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
 			LOG("User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
@@ -91,12 +92,12 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		//Check if the play key is _valid_:
 		auto playKeyStatus = Database::Get()->IsPlaykeyActive(accountInfo->playKeyId);
 
-		if (!playKeyStatus || accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
+		if (!playKeyStatus) {
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a valid play key associated with it!", "", 2001, username);
 			return;
 		}
 
-		if (!playKeyStatus.value() && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
+		if (!playKeyStatus.value()) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
 			LOG("User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
