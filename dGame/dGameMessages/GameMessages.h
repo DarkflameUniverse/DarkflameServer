@@ -4,9 +4,6 @@
 #include "dCommonVars.h"
 #include <map>
 #include <string>
-#include "dMessageIdentifiers.h"
-#include "AMFFormat.h"
-#include "AMFFormat_BitStream.h"
 #include "NiQuaternion.h"
 #include "PropertySelectQueryProperty.h"
 #include "TradingManager.h"

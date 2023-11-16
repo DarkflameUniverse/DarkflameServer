@@ -499,10 +499,10 @@ void ClientPackets::HandleGuildCreation(const SystemAddress& sysAddr, Packet* pa
 void ClientPackets::SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName) {
 	CBITSTREAM;
 	CMSGHEADER;
-	bitStream.Write(MSG_CLIENT_GUILD_CREATE_RESPONSE);
+	bitStream.Write(eClientMessageType::GUILD_CREATE_RESPONSE);
 	bitStream.Write(guildResponse);
 	bitStream.Write(guildID);
-	PacketUtils::WriteWString(bitStream, guildName, 33);
+	bitStream.Write(LUWString(guildName));
 	SEND_PACKET;
 }
 

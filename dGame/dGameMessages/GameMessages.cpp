@@ -4641,7 +4641,7 @@ void GameMessages::SendDisplayGuildCreateBox(const LWOOBJID& objectID, bool bSho
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(GAME_MSG_DISPLAY_GUILD_CREATE_BOX);
+	bitStream.Write(eGameMessageType::DISPLAY_GUILD_CREATE_BOX);
 	bitStream.Write(objectID);
 	bitStream.Write((unsigned char)bShow);
 
