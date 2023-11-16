@@ -423,6 +423,25 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
+	auto* model = Game::entityManager->GetEntity(id);
+
+	if (model == nullptr) {
+		LOG("Failed to find model entity");
+
+		return;
+	}
+
+	if (model->GetLOT() == 14 && deleteReason == 0) {
+		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
+
+		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
+
+		// Need this to pop the user out of their current state
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent->GetObjectID(), 14, entity->GetRotation());
+
+		return;
+	}
+
 	const auto index = models.find(id);
 
 	if (index == models.end()) {
@@ -439,14 +458,6 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 
 	if (spawner == nullptr) {
 		LOG("Failed to find spawner");
-	}
-
-	auto* model = Game::entityManager->GetEntity(id);
-
-	if (model == nullptr) {
-		LOG("Failed to find model entity");
-
-		return;
 	}
 
 	Game::entityManager->DestructEntity(model);
