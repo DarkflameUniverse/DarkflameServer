@@ -395,14 +395,13 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 	}
 }
 
-void Item::DisassembleModel() {
+void Item::DisassembleModel(uint32_t numToDismantle) {
 	auto* table = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
-	query.bind(1, (int)componentId);
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
+	query.bind(1, static_cast<int>(componentId));
 
 	auto result = query.execQuery();
 
@@ -426,8 +425,6 @@ void Item::DisassembleModel() {
 
 	std::istream file(&buffer);
 
-	result.finalize();
-
 	if (!file.good()) {
 		buffer.close();
 		return;
@@ -438,39 +435,49 @@ void Item::DisassembleModel() {
 
 	buffer.close();
 
-	if (data.str().empty()) {
+	uint32_t fileSize;
+	file.seekg(0, std::ios::end);
+	fileSize = static_cast<uint32_t>(file.tellg());
+	file.seekg(0, std::ios::beg);
+
+	if (fileSize == 0) return;
+
+	tinyxml2::XMLDocument doc;
+
+	if (doc.Parse(data.str().c_str(), data.str().size()) != tinyxml2::XML_SUCCESS) {
 		return;
 	}
 
-	std::unique_ptr<tinyxml2::XMLDocument> doc(new tinyxml2::XMLDocument());
-
-	if (!doc) {
-		return;
-	}
-
-	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {
-		return;
-	}
-
-	std::vector<int> parts;
-
-	auto* lxfml = doc->FirstChildElement("LXFML");
+	auto* lxfml = doc.FirstChildElement("LXFML");
+	if (!lxfml) return;
 	auto* bricks = lxfml->FirstChildElement("Bricks");
 	std::string searchTerm = "Brick";
 
 	if (!bricks) {
 		searchTerm = "Part";
-		bricks = lxfml->FirstChildElement("Scene")->FirstChildElement("Model")->FirstChildElement("Group");
+		auto* scene = lxfml->FirstChildElement("Scene");
+		if (!scene) return;
 
-		if (!bricks) {
-			return;
-		}
+		auto* model = scene->FirstChildElement("Model");
+		if (!model) return;
+
+		auto* group = model->FirstChildElement("Group");
+		if (!group) return;
 	}
 
 	auto* currentBrick = bricks->FirstChildElement(searchTerm.c_str());
+
+	// First iteration gets the count
+	std::map<int32_t, int32_t> parts;
 	while (currentBrick) {
-		if (currentBrick->Attribute("designID") != nullptr) {
-			parts.push_back(std::stoi(currentBrick->Attribute("designID")));
+		auto* designID = currentBrick->Attribute("designID");
+		if (designID) {
+			uint32_t designId;
+			if (!GeneralUtils::TryParse(designID, designId)) {
+				LOG("Failed to parse designID %s", designID);
+				continue;
+			}
+			parts[designId]++;
 		}
 
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());
@@ -478,16 +485,16 @@ void Item::DisassembleModel() {
 
 	auto* brickIDTable = CDClientManager::Instance().GetTable<CDBrickIDTableTable>();
 
-	for (unsigned int part : parts) {
-		const auto brickID = brickIDTable->Query([=](const CDBrickIDTable& entry) {
-			return entry.LEGOBrickID == part;
+	// Second iteration actually distributes the bricks
+	for (const auto&[part, count] : parts) {
+		const auto partLocal = part;
+		const auto brickID = brickIDTable->Query([&](const CDBrickIDTable& entry) {
+			return entry.LEGOBrickID == partLocal;
 			});
 
-		if (brickID.empty()) {
-			continue;
-		}
+		if (brickID.empty()) continue;
 
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::DELETION);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, count * numToDismantle, eLootSourceType::DELETION);
 	}
 }
 

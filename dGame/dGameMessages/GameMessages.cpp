@@ -2708,7 +2708,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
 		}
 
-	});
+		});
 }
 
 void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5441,10 +5441,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
 
 	if (bConfirmed) {
-		for (auto i = 0; i < iStackCount; ++i) {
-			if (eInvType == eInventoryType::MODELS) {
-				item->DisassembleModel();
-			}
+		if (eInvType == eInventoryType::MODELS) {
+			item->DisassembleModel(iStackCount);
 		}
 
 		item->SetCount(item->GetCount() - iStackCount, true);
