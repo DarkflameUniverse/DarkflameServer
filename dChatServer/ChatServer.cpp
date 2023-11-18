@@ -19,6 +19,7 @@
 #include "eChatMessageType.h"
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
+#include "ChatIgnoreList.h"
 
 #include "Game.h"
 
@@ -234,7 +235,11 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GET_IGNORE_LIST:
-			LOG("Asked for ignore list, but is unimplemented right now.");
+			ChatIgnoreList::GetIgnoreList(packet);
+			break;
+
+		case eChatMessageType::ADD_IGNORE:
+			ChatIgnoreList::AddIgnore(packet);
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:

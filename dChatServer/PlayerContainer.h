@@ -7,12 +7,26 @@
 #include "dServer.h"
 #include <unordered_map>
 
+struct IgnoreData {
+	inline bool operator==(const std::string& other) const noexcept {
+		return playerName == other;
+	}
+
+	inline bool operator==(const LWOOBJID& other) const noexcept {
+		return playerId == other;
+	}
+
+	LWOOBJID playerId;
+	std::string playerName;
+};
+
 struct PlayerData {
 	LWOOBJID playerID;
 	std::string playerName;
 	SystemAddress sysAddr;
 	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
+	std::vector<IgnoreData> ignoredPlayers;
 	time_t muteExpire;
 	uint8_t countOfBestFriends = 0;
 };
