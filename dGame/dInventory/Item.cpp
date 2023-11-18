@@ -294,13 +294,13 @@ void Item::UseNonEquip(Item* item) {
 
 	const auto type = static_cast<eItemType>(info->itemType);
 	if (type == eItemType::MOUNT) {
-		if (Game::zoneManager->GetMountsAllowed()){
+		if (Game::zoneManager->GetMountsAllowed()) {
 			playerInventoryComponent->HandlePossession(this);
 		} else {
 			ChatPackets::SendSystemMessage(playerEntity->GetSystemAddress(), u"Mounts are not allowed in this zone");
 		}
-	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY ) {
-		if (Game::zoneManager->GetPetsAllowed()){
+	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
+		if (Game::zoneManager->GetPetsAllowed()) {
 			const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
 			if (databasePet.lot != LOT_NULL) {
 				playerInventoryComponent->SpawnPet(this);
@@ -410,12 +410,19 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	}
 
 	std::string renderAsset = std::string(result.getStringField(0));
+
+	// normalize path slashes
+	for (auto& c : renderAsset) {
+		if (c == '\\') c = '/';
+	}
+
 	std::string lxfmlFolderName = std::string(result.getStringField(1));
+	if (!lxfmlFolderName.empty()) lxfmlFolderName.insert(0, "/");
 
-	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
-	if (renderAssetSplit.size() == 0) return;
+	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '/');
+	if (renderAssetSplit.empty()) return;
 
-	std::string lxfmlPath = "BrickModels/" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	std::string lxfmlPath = "BrickModels" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
 	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
 
 	if (!buffer.m_Success) {
@@ -461,8 +468,8 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 		auto* model = scene->FirstChildElement("Model");
 		if (!model) return;
 
-		auto* group = model->FirstChildElement("Group");
-		if (!group) return;
+		bricks = model->FirstChildElement("Group");
+		if (!bricks) return;
 	}
 
 	auto* currentBrick = bricks->FirstChildElement(searchTerm.c_str());
@@ -486,7 +493,7 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	auto* brickIDTable = CDClientManager::Instance().GetTable<CDBrickIDTableTable>();
 
 	// Second iteration actually distributes the bricks
-	for (const auto&[part, count] : parts) {
+	for (const auto& [part, count] : parts) {
 		const auto partLocal = part;
 		const auto brickID = brickIDTable->Query([&](const CDBrickIDTable& entry) {
 			return entry.LEGOBrickID == partLocal;
