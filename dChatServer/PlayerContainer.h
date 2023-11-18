@@ -29,9 +29,9 @@ struct TeamData {
 
 class PlayerContainer {
 public:
-	PlayerContainer();
 	~PlayerContainer();
 
+	void Initialize();
 	void InsertPlayer(Packet* packet);
 	void RemovePlayer(Packet* packet);
 	void MuteUpdate(Packet* packet);
