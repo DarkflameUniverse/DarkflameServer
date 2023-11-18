@@ -96,9 +96,6 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 }
 
 void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
-	auto maxNumberOfBestFriendsAsString = Game::config->GetValue("max_number_of_best_friends");
-	// If this config option doesn't exist, default to 5 which is what live used.
-	auto maxNumberOfBestFriends = maxNumberOfBestFriendsAsString != "" ? std::stoi(maxNumberOfBestFriendsAsString) : 5U;
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID requestorPlayerID;
 	inStream.Read(requestorPlayerID);
@@ -204,11 +201,12 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 		// Only do updates if there was a change in the bff status.
 		if (oldBestFriendStatus != bestFriendStatus) {
-			if (requestee->countOfBestFriends >= maxNumberOfBestFriends || requestor->countOfBestFriends >= maxNumberOfBestFriends) {
-				if (requestee->countOfBestFriends >= maxNumberOfBestFriends) {
+			auto maxBestFriends = playerContainer.GetMaxNumberOfBestFriends();
+			if (requestee->countOfBestFriends >= maxBestFriends || requestor->countOfBestFriends >= maxBestFriends) {
+				if (requestee->countOfBestFriends >= maxBestFriends) {
 					SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::THEIRFRIENDLISTFULL, false);
 				}
-				if (requestor->countOfBestFriends >= maxNumberOfBestFriends) {
+				if (requestor->countOfBestFriends >= maxBestFriends) {
 					SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::YOURFRIENDSLISTFULL, false);
 				}
 			} else {
@@ -242,8 +240,15 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			if (requestor->sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::WAITINGAPPROVAL, true, true);
 		}
 	} else {
-		// Do not send this if we are requesting to be a best friend.
-		SendFriendRequest(requestee.get(), requestor);
+		auto maxFriends = playerContainer.GetMaxNumberOfFriends();
+		if (requestee->friends.size() >= maxFriends) {
+			SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::THEIRFRIENDLISTFULL, false);
+		} else if (requestor->friends.size() >= maxFriends) {
+			SendFriendResponse(requestor, requestee.get(), eAddFriendResponseType::YOURFRIENDSLISTFULL, false);
+		} else {
+			// Do not send this if we are requesting to be a best friend.
+			SendFriendRequest(requestee.get(), requestor);
+		}
 	}
 
 	// If the player is actually a player and not a ghost one defined above, release it from being deleted.
