@@ -25,7 +25,8 @@ BouncerComponent::~BouncerComponent() {
 void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PetEnabled);
 	if (m_PetEnabled) {
-		outBitStream->Write(m_PetBouncerEnabled);
+		LOG("NOPE.");
+		//outBitStream->Write(m_PetBouncerEnabled);
 	}
 }
 

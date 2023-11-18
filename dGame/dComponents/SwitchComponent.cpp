@@ -101,6 +101,15 @@ void SwitchComponent::Update(float deltaTime) {
 	}
 }
 
+void SwitchComponent::OnUse(Entity* originator) {
+	LOG("YOU USED ME!");
+	m_Parent->TriggerEvent(eTriggerEventType::INTERACT, originator);
+
+	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
+		script->OnUse(m_Parent, originator);
+	}
+}
+
 Entity* SwitchComponent::GetParentEntity() const {
 	return m_Parent;
 }
@@ -126,8 +135,8 @@ void SwitchComponent::SetPetBouncer(BouncerComponent* value) {
 	m_PetBouncer = value;
 
 	if (value != nullptr) {
-		m_PetBouncer->SetPetEnabled(true);
-		petSwitches.push_back(this);
+		//m_PetBouncer->SetPetEnabled(true);
+		//petSwitches.push_back(this); //This seems to govern if pets can "see" this
 	}
 }
 
