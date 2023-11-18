@@ -4170,6 +4170,13 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 		racingControlComponent->OnRequestDie(entity);
 	}
+	else {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		if (!destroyableComponent) return;
+
+		destroyableComponent->Smash(killerID, killType, deathType);
+	}
 }
 
 
