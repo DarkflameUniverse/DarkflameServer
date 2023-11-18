@@ -458,6 +458,7 @@ public:
 	void SetBillboardVisible(bool visible);
 
 private:
+	void UpdateInfoFromDatabase();
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
 	 */

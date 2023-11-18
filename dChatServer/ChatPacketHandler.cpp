@@ -30,32 +30,17 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	auto player = playerContainer.GetPlayerData(playerID);
 	if (!player) return;
 
-	//Get our friends list from the Db.  Using a derived table since the friend of a player can be in either column.
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt(
-		"SELECT fr.requested_player, best_friend, ci.name FROM "
-		"(SELECT CASE "
-		"WHEN player_id = ? THEN friend_id "
-		"WHEN friend_id = ? THEN player_id "
-		"END AS requested_player, best_friend FROM friends) AS fr "
-		"JOIN charinfo AS ci ON ci.id = fr.requested_player "
-		"WHERE fr.requested_player IS NOT NULL AND fr.requested_player != ?;"));
-	stmt->setUInt(1, static_cast<uint32_t>(playerID));
-	stmt->setUInt(2, static_cast<uint32_t>(playerID));
-	stmt->setUInt(3, static_cast<uint32_t>(playerID));
-
-	std::vector<FriendData> friends;
-
-	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
-	while (res->next()) {
+	auto friendsList = Database::Get()->GetFriendsList(playerID);
+	for (const auto& friendData : friendsList) {
 		FriendData fd;
 		fd.isFTP = false; // not a thing in DLU
-		fd.friendID = res->getUInt(1);
+		fd.friendID = friendData.friendID;
 		GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
 		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
 
-		fd.isBestFriend = res->getInt(2) == 3; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
+		fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
 		if (fd.isBestFriend) player->countOfBestFriends += 1;
-		fd.friendName = res->getString(3);
+		fd.friendName = friendData.friendName;
 
 		//Now check if they're online:
 		auto fr = playerContainer.GetPlayerData(fd.friendID);
@@ -71,7 +56,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 			fd.zoneID = LWOZONEID();
 		}
 
-		friends.push_back(fd);
+		player->friends.push_back(fd);
 	}
 
 	//Now, we need to send the friendlist to the server they came from:
@@ -83,13 +68,11 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GET_FRIENDS_LIST_RESPONSE);
 	bitStream.Write<uint8_t>(0);
 	bitStream.Write<uint16_t>(1); //Length of packet -- just writing one as it doesn't matter, client skips it.
-	bitStream.Write((uint16_t)friends.size());
+	bitStream.Write((uint16_t)player->friends.size());
 
-	for (auto& data : friends) {
+	for (auto& data : player->friends) {
 		data.Serialize(bitStream);
 	}
-
-	player->friends = friends;
 
 	SystemAddress sysAddr = player->sysAddr;
 	SEND_PACKET;
@@ -152,35 +135,26 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// If at this point we dont have a target, then they arent online and we cant send the request.
 	// Send the response code that corresponds to what the error is.
 	if (!requestee) {
-		std::unique_ptr<sql::PreparedStatement> nameQuery(Database::CreatePreppedStmt("SELECT name from charinfo where name = ?;"));
-		nameQuery->setString(1, playerName);
-		std::unique_ptr<sql::ResultSet> result(nameQuery->executeQuery());
-
 		requestee.reset(new PlayerData());
 		requestee->playerName = playerName;
+		auto responseType = Database::Get()->GetCharacterInfo(playerName)
+			? eAddFriendResponseType::NOTONLINE
+			: eAddFriendResponseType::INVALIDCHARACTER;
 
-		SendFriendResponse(requestor, requestee.get(), result->next() ? eAddFriendResponseType::NOTONLINE : eAddFriendResponseType::INVALIDCHARACTER);
+		SendFriendResponse(requestor, requestee.get(), responseType);
 		return;
 	}
 
 	if (isBestFriendRequest) {
-		std::unique_ptr<sql::PreparedStatement> friendUpdate(Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
-		friendUpdate->setUInt(1, static_cast<uint32_t>(requestorPlayerID));
-		friendUpdate->setUInt(2, static_cast<uint32_t>(requestee->playerID));
-		friendUpdate->setUInt(3, static_cast<uint32_t>(requestee->playerID));
-		friendUpdate->setUInt(4, static_cast<uint32_t>(requestorPlayerID));
-		std::unique_ptr<sql::ResultSet> result(friendUpdate->executeQuery());
 
-		LWOOBJID queryPlayerID = LWOOBJID_EMPTY;
-		LWOOBJID queryFriendID = LWOOBJID_EMPTY;
 		uint8_t oldBestFriendStatus{};
 		uint8_t bestFriendStatus{};
-
-		if (result->next()) {
+		auto bestFriendInfo = Database::Get()->GetBestFriendStatus(requestorPlayerID, requestee->playerID);
+		if (bestFriendInfo) {
 			// Get the IDs
-			queryPlayerID = result->getInt(1);
-			queryFriendID = result->getInt(2);
-			oldBestFriendStatus = result->getInt(3);
+			LWOOBJID queryPlayerID = bestFriendInfo->playerCharacterId;
+			LWOOBJID queryFriendID = bestFriendInfo->friendCharacterId;
+			oldBestFriendStatus = bestFriendInfo->bestFriendStatus;
 			bestFriendStatus = oldBestFriendStatus;
 
 			// Set the bits
@@ -211,13 +185,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				}
 			} else {
 				// Then update the database with this new info.
-				std::unique_ptr<sql::PreparedStatement> updateQuery(Database::CreatePreppedStmt("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
-				updateQuery->setUInt(1, bestFriendStatus);
-				updateQuery->setUInt(2, static_cast<uint32_t>(requestorPlayerID));
-				updateQuery->setUInt(3, static_cast<uint32_t>(requestee->playerID));
-				updateQuery->setUInt(4, static_cast<uint32_t>(requestee->playerID));
-				updateQuery->setUInt(5, static_cast<uint32_t>(requestorPlayerID));
-				updateQuery->executeUpdate();
+				Database::Get()->SetBestFriendStatus(requestorPlayerID, requestee->playerID, bestFriendStatus);
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
 					requestee->countOfBestFriends += 1;
@@ -319,11 +287,7 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 		requesteeData.isOnline = true;
 		requestor->friends.push_back(requesteeData);
 
-		std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT IGNORE INTO `friends` (`player_id`, `friend_id`, `best_friend`) VALUES (?,?,?);"));
-		statement->setUInt(1, static_cast<uint32_t>(requestor->playerID));
-		statement->setUInt(2, static_cast<uint32_t>(requestee->playerID));
-		statement->setInt(3, 0);
-		statement->execute();
+		Database::Get()->AddFriend(requestor->playerID, requestee->playerID);
 	}
 
 	if (serverResponseCode != eAddFriendResponseType::DECLINED) SendFriendResponse(requestor, requestee, serverResponseCode, isAlreadyBestFriends);
@@ -338,25 +302,17 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? LIMIT 1;"));
-	stmt->setString(1, friendName.c_str());
-
 	LWOOBJID friendID = 0;
-	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
-	while (res->next()) {
-		friendID = res->getUInt(1);
+	auto friendIdResult = Database::Get()->GetCharacterInfo(friendName);
+	if (friendIdResult) {
+		friendID = friendIdResult->id;
 	}
 
 	// Convert friendID to LWOOBJID
 	GeneralUtils::SetBit(friendID, eObjectBits::PERSISTENT);
 	GeneralUtils::SetBit(friendID, eObjectBits::CHARACTER);
 
-	std::unique_ptr<sql::PreparedStatement> deletestmt(Database::CreatePreppedStmt("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;"));
-	deletestmt->setUInt(1, static_cast<uint32_t>(playerID));
-	deletestmt->setUInt(2, static_cast<uint32_t>(friendID));
-	deletestmt->setUInt(3, static_cast<uint32_t>(friendID));
-	deletestmt->setUInt(4, static_cast<uint32_t>(playerID));
-	deletestmt->execute();
+	Database::Get()->RemoveFriend(playerID, friendID);
 
 	//Now, we need to send an update to notify the sender (and possibly, receiver) that their friendship has been ended:
 	auto goonA = playerContainer.GetPlayerData(playerID);
