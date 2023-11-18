@@ -700,7 +700,7 @@ std::string CharacterComponent::StatisticsToString() const {
 }
 
 uint64_t CharacterComponent::GetStatisticFromSplit(std::vector<std::string> split, uint32_t index) {
-	return split.size() > index ? std::stoul(split.at(index)) : 0;
+	return split.size() > index ? std::stoull(split.at(index)) : 0;
 }
 
 ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {

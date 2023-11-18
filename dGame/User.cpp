@@ -23,41 +23,23 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 
 	m_IsBestFriendMap = std::unordered_map<std::string, bool>();
 
-	//HACK HACK HACK
-	//This needs to be re-enabled / updated whenever the mute stuff is moved to another table.
-	//This was only done because otherwise the website's account page dies and the website is waiting on a migration to wordpress.
-
-	//sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id, gmlevel, mute_expire FROM accounts WHERE name=? LIMIT 1;");
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id, gm_level FROM accounts WHERE name=? LIMIT 1;");
-	stmt->setString(1, username.c_str());
-
-	sql::ResultSet* res = stmt->executeQuery();
-	while (res->next()) {
-		m_AccountID = res->getUInt(1);
-		m_MaxGMLevel = static_cast<eGameMasterLevel>(res->getInt(2));
+	auto userInfo = Database::Get()->GetAccountInfo(username);
+	if (userInfo) {
+		m_AccountID = userInfo->id;
+		m_MaxGMLevel = userInfo->maxGmLevel;
 		m_MuteExpire = 0; //res->getUInt64(3);
 	}
 
-	delete res;
-	delete stmt;
-
 	//If we're loading a zone, we'll load the last used (aka current) character:
 	if (Game::server->GetZoneID() != 0) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 1;");
-		stmt->setUInt(1, m_AccountID);
-
-		sql::ResultSet* res = stmt->executeQuery();
-		if (res->rowsCount() > 0) {
-			while (res->next()) {
-				LWOOBJID objID = res->getUInt64(1);
-				Character* character = new Character(uint32_t(objID), this);
-				m_Characters.push_back(character);
-				LOG("Loaded %llu as it is the last used char", objID);
-			}
+		auto characterList = Database::Get()->GetAccountCharacterIds(m_AccountID);
+		if (!characterList.empty()) {
+			const uint32_t lastUsedCharacterId = characterList.front();
+			Character* character = new Character(lastUsedCharacterId, this);
+			character->UpdateFromDatabase();
+			m_Characters.push_back(character);
+			LOG("Loaded %i as it is the last used char", lastUsedCharacterId);
 		}
-
-		delete res;
-		delete stmt;
 	}
 }
 
@@ -92,10 +74,7 @@ User& User::operator= (const User& other) {
 }
 
 bool User::operator== (const User& other) const {
-	if (m_Username == other.m_Username || m_SessionKey == other.m_SessionKey || m_SystemAddress == other.m_SystemAddress)
-		return true;
-
-	return false;
+	return m_Username == other.m_Username || m_SessionKey == other.m_SessionKey || m_SystemAddress == other.m_SystemAddress;
 }
 
 Character* User::GetLastUsedChar() {

@@ -2577,70 +2577,23 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		const auto zoneId = worldId.GetMapID();
 		const auto cloneId = worldId.GetCloneID();
 
-		auto query = CDClientDatabase::CreatePreppedStmt(
-			"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-		query.bind(1, (int)zoneId);
-
-		auto result = query.execQuery();
-
-		if (result.eof() || result.fieldIsNull(0)) return;
-
-		int templateId = result.getIntField(0);
-
-		auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
-
-		propertyLookup->setInt(1, templateId);
-		propertyLookup->setInt64(2, cloneId);
-
-		auto* propertyEntry = propertyLookup->executeQuery();
-		uint64_t propertyId = 0;
-
-		if (propertyEntry->next()) {
-			propertyId = propertyEntry->getUInt64(1);
-		}
-
-		delete propertyEntry;
-		delete propertyLookup;
+		auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
+		LWOOBJID propertyId = LWOOBJID_EMPTY;
+		if (propertyInfo) propertyId = propertyInfo->id;
 
 		//Insert into ugc:
-		auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
-		ugcs->setUInt(1, blueprintIDSmall);
-		ugcs->setInt(2, entity->GetParentUser()->GetAccountID());
-		ugcs->setInt(3, entity->GetCharacter()->GetID());
-		ugcs->setInt(4, 0);
-
-		//whacky stream biz
-		std::string s(sd0Data.get(), sd0Size);
-		std::istringstream iss(s);
-
-		ugcs->setBlob(5, &iss);
-		ugcs->setBoolean(6, false);
-		ugcs->setString(7, "weedeater.lxfml");
-		ugcs->execute();
-		delete ugcs;
+		std::string str(sd0Data.get(), sd0Size);
+		std::istringstream sd0DataStream(str);
+		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
-		auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-		stmt->setUInt64(1, newIDL);
-		stmt->setUInt64(2, propertyId);
-		stmt->setUInt(3, blueprintIDSmall);
-		stmt->setUInt(4, 14); // 14 is the lot the BBB models use
-		stmt->setDouble(5, 0.0f); // x
-		stmt->setDouble(6, 0.0f); // y
-		stmt->setDouble(7, 0.0f); // z
-		stmt->setDouble(8, 0.0f); // rx
-		stmt->setDouble(9, 0.0f); // ry
-		stmt->setDouble(10, 0.0f); // rz
-		stmt->setDouble(11, 0.0f); // rw
-		stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
-		stmt->setString(13, ""); // Model description.  TODO implement this.
-		stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
-		stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
-		stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
-		stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
-		stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
-		stmt->execute();
-		delete stmt;
+		IPropertyContents::Model model;
+		model.id = newIDL;
+		model.ugcId = blueprintIDSmall;
+		model.position = NiPoint3::ZERO;
+		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		model.lot = 14;
+		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
 
 		/*
 			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
@@ -4170,6 +4123,13 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 
 		racingControlComponent->OnRequestDie(entity);
 	}
+	else {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		if (!destroyableComponent) return;
+
+		destroyableComponent->Smash(killerID, killType, deathType);
+	}
 }
 
 
@@ -4225,20 +4185,12 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStre
 	if (performanceCost == 0.0f) return;
 
 	auto zone = Game::zoneManager->GetZone();
-	const auto& worldId = zone->GetZoneID();
-	const auto cloneId = worldId.GetCloneID();
-	const auto zoneId = worldId.GetMapID();
+	if (!zone) {
+		LOG("If you see this message, something is very wrong.");
+		return;
+	}
 
-	auto updatePerformanceCostQuery = Database::CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
-
-	updatePerformanceCostQuery->setDouble(1, performanceCost);
-	updatePerformanceCostQuery->setInt(2, cloneId);
-	updatePerformanceCostQuery->setInt(3, zoneId);
-
-	updatePerformanceCostQuery->executeUpdate();
-
-	delete updatePerformanceCostQuery;
-	updatePerformanceCostQuery = nullptr;
+	Database::Get()->UpdatePerformanceCost(zone->GetZoneID(), performanceCost);
 }
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5119,7 +5071,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
 	stmt->setUInt64(1, item->GetSubKey());
 	stmt->execute();
 
@@ -5622,7 +5574,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			std::unique_ptr<sql::PreparedStatement> stmt(Database::CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
+			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
 			stmt->setUInt64(1, newIdBig);
 			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
 			auto* pCharacter = character->GetCharacter();
@@ -5979,31 +5931,27 @@ void GameMessages::SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* e
 
 void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) {
 	//Definitely not stolen from autogenerated code, no sir:
-	std::u16string body;
-	std::string clientVersion;
-	std::string nOtherPlayerID;
-	std::string selection;
-	uint32_t messageLength;
-	int32_t reporterID = 0;
+	IBugReports::Info reportInfo;
 
 	//Reading:
+	uint32_t messageLength;
 	inStream->Read(messageLength);
 
 	for (uint32_t i = 0; i < (messageLength); ++i) {
 		uint16_t character;
 		inStream->Read(character);
-		body.push_back(character);
+		reportInfo.body.push_back(static_cast<char>(character));
 	}
 
 	auto character = entity->GetCharacter();
-	if (character) reporterID = character->GetID();
+	if (character) reportInfo.characterId = character->GetID();
 
 	uint32_t clientVersionLength;
 	inStream->Read(clientVersionLength);
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		clientVersion.push_back(character);
+		reportInfo.clientVersion.push_back(character);
 	}
 
 	uint32_t nOtherPlayerIDLength;
@@ -6011,32 +5959,18 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	for (unsigned int k = 0; k < nOtherPlayerIDLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		nOtherPlayerID.push_back(character);
+		reportInfo.otherPlayer.push_back(character);
 	}
-	// Convert other player id from LWOOBJID to the database id.
-	uint32_t otherPlayer = LWOOBJID_EMPTY;
-	if (nOtherPlayerID != "") otherPlayer = std::atoi(nOtherPlayerID.c_str());
 
 	uint32_t selectionLength;
 	inStream->Read(selectionLength);
 	for (unsigned int k = 0; k < selectionLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		selection.push_back(character);
+		reportInfo.selection.push_back(character);
 	}
 
-	try {
-		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
-		insertBug->setString(1, GeneralUtils::UTF16ToWTF8(body));
-		insertBug->setString(2, clientVersion);
-		insertBug->setString(3, std::to_string(otherPlayer));
-		insertBug->setString(4, selection);
-		insertBug->setInt(5, reporterID);
-		insertBug->execute();
-		delete insertBug;
-	} catch (sql::SQLException& e) {
-		LOG("Couldn't save bug report! (%s)", e.what());
-	}
+	Database::Get()->InsertNewBugReport(reportInfo);
 }
 
 void

@@ -353,30 +353,18 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
 
 		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
-			stmt->setString(1, receiver);
+			auto characterIdFetch = Database::Get()->GetCharacterInfo(receiver);
 
-			sql::ResultSet* res = stmt->executeQuery();
-
-			if (res->next()) {
-				idOfReceiver = res->getInt("id");
+			if (characterIdFetch) {
+				idOfReceiver = characterIdFetch->id;
 			}
-
-			delete stmt;
-			delete res;
 		}
 
 		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
-			stmt->setInt(1, entity->GetObjectID());
-			stmt->setInt(2, idOfReceiver);
-			stmt->setInt(3, idOfReceiver);
-			stmt->setInt(4, entity->GetObjectID());
+			auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
 
-			sql::ResultSet* res = stmt->executeQuery();
-
-			if (res->next()) {
-				isBestFriend = res->getInt("best_friend") == 3;
+			if (bffInfo) {
+				isBestFriend = bffInfo->bestFriendStatus == 3;
 			}
 
 			if (isBestFriend) {
@@ -384,9 +372,6 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 				tmpBestFriendMap[receiver] = true;
 				user->SetIsBestFriendMap(tmpBestFriendMap);
 			}
-
-			delete res;
-			delete stmt;
 		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
 			isBestFriend = true;
 		}

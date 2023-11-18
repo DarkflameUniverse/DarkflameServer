@@ -76,22 +76,19 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
 	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
-	auto* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
+	IMail::MailInfo mailInsert;
+	mailInsert.senderUsername = senderName;
+	mailInsert.recipient = recipientName;
+	mailInsert.subject = subject;
+	mailInsert.body = body;
+	mailInsert.senderId = sender;
+	mailInsert.receiverId = recipient;
+	mailInsert.itemCount = attachmentCount;
+	mailInsert.itemID = LWOOBJID_EMPTY;
+	mailInsert.itemLOT = attachment;
+	mailInsert.itemSubkey = LWOOBJID_EMPTY;
 
-	ins->setUInt(1, sender);
-	ins->setString(2, senderName.c_str());
-	ins->setUInt(3, recipient);
-	ins->setString(4, recipientName.c_str());
-	ins->setUInt64(5, time(nullptr));
-	ins->setString(6, subject.c_str());
-	ins->setString(7, body.c_str());
-	ins->setUInt(8, 0);
-	ins->setInt(9, attachment);
-	ins->setInt(10, 0);
-	ins->setInt(11, attachmentCount);
-	ins->execute();
-
-	delete ins;
+	Database::Get()->InsertNewMail(mailInsert);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
 
@@ -220,43 +217,30 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	}
 
 	//Get the receiver's id:
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id from charinfo WHERE name=? LIMIT 1;");
-	stmt->setString(1, recipient);
-	sql::ResultSet* res = stmt->executeQuery();
-	uint32_t receiverID = 0;
+	auto receiverID = Database::Get()->GetCharacterInfo(recipient);
 
-	if (res->rowsCount() > 0) {
-		while (res->next()) receiverID = res->getUInt(1);
-	} else {
+	if (!receiverID) {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::RecipientNotFound);
-		delete stmt;
-		delete res;
 		return;
 	}
 
-	delete stmt;
-	delete res;
-
 	//Check if we have a valid receiver:
-	if (GeneralUtils::CaseInsensitiveStringCompare(recipient, character->GetName()) || receiverID == character->GetObjectID()) {
+	if (GeneralUtils::CaseInsensitiveStringCompare(recipient, character->GetName()) || receiverID->id == character->GetID()) {
 		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::CannotMailSelf);
 		return;
 	} else {
-		uint64_t currentTime = time(NULL);
-		sql::PreparedStatement* ins = Database::CreatePreppedStmt("INSERT INTO `mail`(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
-		ins->setUInt(1, character->GetObjectID());
-		ins->setString(2, character->GetName());
-		ins->setUInt(3, receiverID);
-		ins->setString(4, recipient);
-		ins->setUInt64(5, currentTime);
-		ins->setString(6, subject);
-		ins->setString(7, body);
-		ins->setUInt(8, itemID);
-		ins->setInt(9, itemLOT);
-		ins->setInt(10, 0);
-		ins->setInt(11, attachmentCount);
-		ins->execute();
-		delete ins;
+		IMail::MailInfo mailInsert;
+		mailInsert.senderUsername = character->GetName();
+		mailInsert.recipient = recipient;
+		mailInsert.subject = subject;
+		mailInsert.body = body;
+		mailInsert.senderId = character->GetID();
+		mailInsert.receiverId = receiverID->id;
+		mailInsert.itemCount = attachmentCount;
+		mailInsert.itemID = itemID;
+		mailInsert.itemLOT = itemLOT;
+		mailInsert.itemSubkey = LWOOBJID_EMPTY;
+		Database::Get()->InsertNewMail(mailInsert);
 	}
 
 	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
@@ -279,61 +263,49 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 }
 
 void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM mail WHERE receiver_id=? limit 20;");
-	stmt->setUInt(1, player->GetCharacter()->GetObjectID());
-	sql::ResultSet* res = stmt->executeQuery();
+	auto playerMail = Database::Get()->GetMailForPlayer(player->GetCharacter()->GetID(), 20);
 
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailData));
 	bitStream.Write(int(0));
 
-	bitStream.Write(uint16_t(res->rowsCount()));
-	bitStream.Write(uint16_t(0));
+	bitStream.Write<uint16_t>(playerMail.size());
+	bitStream.Write<uint16_t>(0);
 
-	if (res->rowsCount() > 0) {
-		while (res->next()) {
-			bitStream.Write(res->getUInt64(1)); //MailID
+	for (const auto& mail : playerMail) {
+		bitStream.Write(mail.id); //MailID
 
-			/*std::u16string subject = GeneralUtils::UTF8ToUTF16(res->getString(7));
-			std::u16string body = GeneralUtils::UTF8ToUTF16(res->getString(8));
-			std::u16string sender = GeneralUtils::UTF8ToUTF16(res->getString(3));
+		WriteStringAsWString(&bitStream, mail.subject.c_str(), 50); //subject
+		WriteStringAsWString(&bitStream, mail.body.c_str(), 400); //body
+		WriteStringAsWString(&bitStream, mail.senderUsername.c_str(), 32); //sender
 
-			WriteToPacket(&bitStream, subject, 50);
-			WriteToPacket(&bitStream, body, 400);
-			WriteToPacket(&bitStream, sender, 32);*/
+		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint64_t(0));
 
-			WriteStringAsWString(&bitStream, res->getString(7).c_str(), 50); //subject
-			WriteStringAsWString(&bitStream, res->getString(8).c_str(), 400); //body
-			WriteStringAsWString(&bitStream, res->getString(3).c_str(), 32); //sender
+		bitStream.Write(mail.itemID); //Attachment ID
+		LOT lot = mail.itemLOT;
+		if (lot <= 0) bitStream.Write(LOT(-1));
+		else bitStream.Write(lot);
+		bitStream.Write(uint32_t(0));
 
-			bitStream.Write(uint32_t(0));
-			bitStream.Write(uint64_t(0));
+		bitStream.Write(mail.itemSubkey); //Attachment subKey
+		bitStream.Write<uint16_t>(mail.itemCount); //Attachment count
 
-			bitStream.Write(res->getUInt64(9)); //Attachment ID
-			LOT lot = res->getInt(10);
-			if (lot <= 0) bitStream.Write(LOT(-1));
-			else bitStream.Write(lot);
-			bitStream.Write(uint32_t(0));
+		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint16_t(0));
 
-			bitStream.Write(res->getInt64(11)); //Attachment subKey
-			bitStream.Write(uint16_t(res->getInt(12))); //Attachment count
+		bitStream.Write<uint64_t>(mail.timeSent); //time sent (twice?)
+		bitStream.Write<uint64_t>(mail.timeSent);
+		bitStream.Write<uint8_t>(mail.wasRead); //was read
 
-			bitStream.Write(uint32_t(0));
-			bitStream.Write(uint16_t(0));
-
-			bitStream.Write(uint64_t(res->getUInt64(6))); //time sent (twice?)
-			bitStream.Write(uint64_t(res->getUInt64(6)));
-			bitStream.Write(uint8_t(res->getBoolean(13))); //was read
-
-			bitStream.Write(uint8_t(0));
-			bitStream.Write(uint16_t(0));
-			bitStream.Write(uint32_t(0));
-		}
+		bitStream.Write(uint8_t(0));
+		bitStream.Write(uint16_t(0));
+		bitStream.Write(uint32_t(0));
 	}
 
 	Game::server->Send(&bitStream, sysAddr, false);
-	PacketUtils::SavePacket("Max_Mail_Data.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+	// PacketUtils::SavePacket("Max_Mail_Data.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {
@@ -345,31 +317,24 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 	packet->Read(playerID);
 
 	if (mailID > 0 && playerID == player->GetObjectID()) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;");
-		stmt->setUInt64(1, mailID);
-		sql::ResultSet* res = stmt->executeQuery();
+		auto playerMail = Database::Get()->GetMail(mailID);
 
 		LOT attachmentLOT = 0;
 		uint32_t attachmentCount = 0;
 
-		while (res->next()) {
-			attachmentLOT = res->getInt(1);
-			attachmentCount = res->getInt(2);
+		if (playerMail) {
+			attachmentLOT = playerMail->itemLOT;
+			attachmentCount = playerMail->itemCount;
 		}
 
-		auto inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
+		auto inv = player->GetComponent<InventoryComponent>();
 		if (!inv) return;
 
 		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::MAIL);
 
 		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
 
-		sql::PreparedStatement* up = Database::CreatePreppedStmt("UPDATE mail SET attachment_lot=0 WHERE id=?;");
-		up->setUInt64(1, mailID);
-		up->execute();
-		delete up;
-		delete res;
-		delete stmt;
+		Database::Get()->ClaimMailItem(mailID);
 	}
 }
 
@@ -394,15 +359,9 @@ void Mail::HandleMailRead(RakNet::BitStream* packet, const SystemAddress& sysAdd
 }
 
 void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID) {
-	auto returnVal = std::async(std::launch::async, [&]() {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM mail WHERE receiver_id=? AND was_read=0");
-		stmt->setUInt(1, objectID);
-		sql::ResultSet* res = stmt->executeQuery();
+	auto unreadMailCount = Database::Get()->GetUnreadMailCount(objectID);
 
-		if (res->rowsCount() > 0) Mail::SendNotification(sysAddr, res->rowsCount());
-		delete res;
-		delete stmt;
-		});
+	if (unreadMailCount > 0) Mail::SendNotification(sysAddr, unreadMailCount);
 }
 
 void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {
@@ -449,10 +408,7 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE id=? LIMIT 1;");
-	stmt->setUInt64(1, mailID);
-	stmt->execute();
-	delete stmt;
+	Database::Get()->DeleteMail(mailID);
 }
 
 void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
@@ -463,8 +419,5 @@ void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	bitStream.Write(mailID);
 	Game::server->Send(&bitStream, sysAddr, false);
 
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE mail SET was_read=1 WHERE id=?");
-	stmt->setUInt64(1, mailID);
-	stmt->execute();
-	delete stmt;
+	Database::Get()->MarkMailRead(mailID);
 }
