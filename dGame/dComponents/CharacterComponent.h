@@ -10,6 +10,7 @@
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
+#include <array>
 
 enum class eGameActivity : uint32_t;
 
