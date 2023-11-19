@@ -19,6 +19,7 @@
 #include "ePetTamingNotifyType.h"
 #include "eUseItemResponse.h"
 #include "ePlayerFlag.h"
+#include "ePetStatus.h"
 
 #include "Game.h"
 #include "dConfig.h"
@@ -80,12 +81,15 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_Timer = 0;
 	m_TimerAway = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Status = 67108866; // Tamable
+	m_Status = ePetStatus::TAMEABLE; // Tameable
 	m_Ability = PetAbilityType::Invalid;
 	m_StartPosition = NiPoint3::ZERO;
 	m_MovementAI = nullptr;
 	m_TresureTime = 0;
 	m_Preconditions = nullptr;
+
+	m_ReadyToDig = false;
+	m_InInteract = false;
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parent->GetVar<std::u16string>(u"CheckPrecondition"));
 
@@ -150,6 +154,15 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 }
 
 void PetComponent::OnUse(Entity* originator) {
+	LOG("PET USE!");
+
+	if(m_ReadyToDig) {
+		LOG("Dig initiated!");
+		m_TresureTime = 2.0f;
+		//m_ReadyToDig = false;
+		SetAbility(PetAbilityType::DigAtPosition);
+	}
+
 	if (m_Owner != LWOOBJID_EMPTY) {
 		return;
 	}
@@ -369,29 +382,8 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	if (m_TresureTime > 0) {
-		auto* tresure = Game::entityManager->GetEntity(m_Interaction);
-
-		if (tresure == nullptr) {
-			m_TresureTime = 0;
-
-			return;
-		}
-
-		m_TresureTime -= deltaTime;
-
-		m_MovementAI->Stop();
-
-		if (m_TresureTime <= 0) {
-			m_Parent->SetOwnerOverride(m_Owner);
-
-			tresure->Smash(m_Parent->GetObjectID());
-
-			m_Interaction = LWOOBJID_EMPTY;
-
-			m_TresureTime = 0;
-		}
-
+	if (m_TresureTime > 0.0f) {
+		InteractDig(deltaTime);
 		return;
 	}
 
@@ -440,10 +432,9 @@ void PetComponent::Update(float deltaTime) {
 		}
 	}
 
+	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
 	auto* missionComponent = owner->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
-
-	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
 	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
 	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
@@ -461,11 +452,14 @@ void PetComponent::Update(float deltaTime) {
 
 			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
 
-			m_TresureTime = 2;
+			SetIsReadyToDig(true);
+
 		} else if (distance < 10 * 10) {
 			haltDistance = 1;
 
 			destination = tresurePosition;
+
+			SetIsReadyToDig(false);
 		}
 	}
 
@@ -478,6 +472,49 @@ skipTresure:
 	m_MovementAI->SetDestination(destination);
 
 	m_Timer = 1;
+}
+
+void PetComponent::SetIsReadyToDig(bool isReady) {
+	if (isReady) {
+		LOG("Dig state reached!");
+		//m_Interaction = closestTresure->GetObjectID();
+		SetAbility(PetAbilityType::JumpOnObject);
+		SetStatus(ePetStatus::IS_NOT_WAITING); // Treasure dig status
+		m_ReadyToDig = true;
+	}
+	else {
+		LOG("Dig state ended!");
+		//m_Interaction = LWOOBJID_EMPTY;
+		SetAbility(PetAbilityType::Invalid);
+		SetStatus(0); // TODO: Check status
+		m_ReadyToDig = false;
+	}
+}
+
+void PetComponent::InteractDig(float deltaTime) { //Should I rename to InteractDig?
+	LOG("Pet digging!");
+
+	auto* tresure = Game::entityManager->GetEntity(m_Interaction);
+
+	if (tresure == nullptr) {
+		m_TresureTime = 0.0f;
+		return;
+	}
+
+	m_TresureTime -= deltaTime;
+
+	m_MovementAI->Stop();
+
+	if (m_TresureTime <= 0.0f) {
+		m_Parent->SetOwnerOverride(m_Owner);
+
+		tresure->Smash(m_Parent->GetObjectID());
+
+		LOG("Pet dig completed!");
+		m_Interaction = LWOOBJID_EMPTY;
+		m_TresureTime = 0.0f;
+		SetIsReadyToDig(false);
+	}
 }
 
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
@@ -736,7 +773,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(67108866);
+	SetStatus(ePetStatus::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -787,7 +824,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(67108866);
+	SetStatus(ePetStatus::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 

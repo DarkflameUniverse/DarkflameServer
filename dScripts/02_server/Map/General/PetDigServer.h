@@ -17,6 +17,13 @@ public:
 	void OnStartup(Entity* self) override;
 	void OnDie(Entity* self, Entity* killer) override;
 
+	/**
+	 * Invoked when a player interacts with treasure.
+	 * @param self the entity the script belongs to
+	 * @param user the entity that used the treasure
+	 */
+	void OnUse(Entity* self, Entity* user) override;
+
 	static Entity* GetClosestTresure(NiPoint3 position);
 
 private:
