@@ -310,25 +310,22 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		bool nameOk = IsNamePreapproved(name);
 		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-		if (name != "") {
+		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
+		std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-			std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
-			std::string pendingName = !name.empty() && !nameOk ? name : "";
+		ICharInfo::Info info;
+		info.name = nameToAssign;
+		info.pendingName = pendingName;
+		info.id = objectID;
+		info.accountId = u->GetAccountID();
 
-			ICharInfo::Info info;
-			info.name = nameToAssign;
-			info.pendingName = pendingName;
-			info.id = objectID;
-			info.accountId = u->GetAccountID();
+		Database::Get()->InsertNewCharacter(info);
 
-			Database::Get()->InsertNewCharacter(info);
+		//Now finally insert our character xml:
+		Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-			//Now finally insert our character xml:
-			Database::Get()->InsertCharacterXml(objectID, xml.str());
-
-			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-			UserManager::RequestCharacterList(sysAddr);
-		}
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+		UserManager::RequestCharacterList(sysAddr);
 	});
 }
 
