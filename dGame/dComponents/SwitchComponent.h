@@ -23,8 +23,6 @@ public:
 
 	void Update(float deltaTime) override;
 
-	void OnUse(Entity* originator) override;
-
 	Entity* GetParentEntity() const;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
