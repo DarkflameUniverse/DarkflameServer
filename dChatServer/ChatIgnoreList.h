@@ -6,6 +6,7 @@ struct Packet;
 namespace ChatIgnoreList {
 	void GetIgnoreList(Packet* packet);
 	void AddIgnore(Packet* packet);
+	void RemoveIgnore(Packet* packet);
 };
 
 #endif  //!__CHATIGNORELIST__H__

@@ -9,10 +9,9 @@
 
 #include "Database.h"
 
-extern PlayerContainer playerContainer;
-
 enum IgnoreReponse : uint8_t {
 	AddIgnoreResponse = 32,
+	RemoveIgnoreResponse = 33,
 	GetIgnoreListResponse = 34,
 };
 
@@ -23,7 +22,7 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	LWOOBJID playerId;
 	inStream.Read(playerId);
 
-	auto* receiver = playerContainer.GetPlayerData(playerId);
+	auto* receiver = Game::playerContainer.GetPlayerData(playerId);
 	if (!receiver) {
 		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
 		return;
@@ -63,11 +62,12 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	LWOOBJID playerId;
 	inStream.Read(playerId);
 
-	auto* receiver = playerContainer.GetPlayerData(playerId);
+	auto* receiver = Game::playerContainer.GetPlayerData(playerId);
 	if (!receiver) {
 		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
 		return;
 	}
+
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
 	LUWString toIgnoreName(33);
@@ -92,7 +92,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 
 		bitStream.Write(IgnoreResponse::ALREADY_IGNORED);
 	} else {
-		auto* playerData = playerContainer.GetPlayerData(toIgnoreStr);
+		auto* playerData = Game::playerContainer.GetPlayerData(toIgnoreStr);
 		if (!playerData) {
 			// Fall back to query
 			auto player = Database::Get()->GetCharacterInfo(toIgnoreStr);
@@ -116,6 +116,48 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	LUWString playerNameSend(toIgnoreStr, 33);
 	bitStream.Write(playerNameSend);
 	bitStream.Write(ignoredPlayerId);
+
+	Game::server->Send(&bitStream, packet->systemAddress, false);
+}
+
+void ChatIgnoreList::RemoveIgnore(Packet* packet) {
+	LOG_DEBUG("Removing ignore");
+
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerId;
+	inStream.Read(playerId);
+
+	auto* receiver = Game::playerContainer.GetPlayerData(playerId);
+	if (!receiver) {
+		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
+		return;
+	}
+
+	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
+
+	LUWString removedIgnoreName(33);
+	inStream.Read(removedIgnoreName);
+	std::string removedIgnoreStr = removedIgnoreName.GetAsString();
+
+	LOG("Removing ignore for %s", removedIgnoreStr.c_str());
+	auto toRemove = std::remove(receiver->ignoredPlayers.begin(), receiver->ignoredPlayers.end(), removedIgnoreStr);
+	if (toRemove == receiver->ignoredPlayers.end()) {
+		LOG_DEBUG("Player %llu is not ignoring %s", playerId, removedIgnoreStr.c_str());
+		return;
+	}
+
+	receiver->ignoredPlayers.erase(toRemove, receiver->ignoredPlayers.end());
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+
+	bitStream.Write(receiver->playerID);
+
+	//portion that will get routed:
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, IgnoreReponse::RemoveIgnoreResponse);
+
+	bitStream.Write<int8_t>(0);
+	LUWString playerNameSend(removedIgnoreStr, 33);
+	bitStream.Write(playerNameSend);
 
 	Game::server->Send(&bitStream, packet->systemAddress, false);
 }

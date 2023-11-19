@@ -35,13 +35,11 @@ namespace Game {
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
 	std::mt19937 randomEngine;
+	PlayerContainer playerContainer;
 }
-
 
 Logger* SetupLogger();
 void HandlePacket(Packet* packet);
-
-PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
@@ -109,7 +107,7 @@ int main(int argc, char** argv) {
 	
 	Game::randomEngine = std::mt19937(time(0));
 
-	playerContainer.Initialize();
+	Game::playerContainer.Initialize();
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -201,19 +199,19 @@ void HandlePacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
-			playerContainer.InsertPlayer(packet);
+			Game::playerContainer.InsertPlayer(packet);
 			break;
 
 		case eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION:
-			playerContainer.RemovePlayer(packet);
+			Game::playerContainer.RemovePlayer(packet);
 			break;
 
 		case eChatInternalMessageType::MUTE_UPDATE:
-			playerContainer.MuteUpdate(packet);
+			Game::playerContainer.MuteUpdate(packet);
 			break;
 
 		case eChatInternalMessageType::CREATE_TEAM:
-			playerContainer.CreateTeamServer(packet);
+			Game::playerContainer.CreateTeamServer(packet);
 			break;
 
 		case eChatInternalMessageType::ANNOUNCEMENT: {
@@ -240,6 +238,10 @@ void HandlePacket(Packet* packet) {
 
 		case eChatMessageType::ADD_IGNORE:
 			ChatIgnoreList::AddIgnore(packet);
+			break;
+
+		case eChatMessageType::REMOVE_IGNORE:
+			ChatIgnoreList::RemoveIgnore(packet);
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:
