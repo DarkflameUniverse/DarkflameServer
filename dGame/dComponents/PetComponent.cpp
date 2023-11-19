@@ -381,7 +381,7 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	if (m_TresureTime > 0.0f) { //TODO: Find better trigger
+	if (m_TresureTime > 0.0f) { //TODO: Find better trigger?
 		InteractDig(deltaTime);
 		return;
 	}
@@ -1036,6 +1036,12 @@ void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandTy
 
 	if (owner->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(owner->GetSystemAddress(), u"Commmand Type: " + (GeneralUtils::to_u16string(commandType)) + u" - Type Id: " + (GeneralUtils::to_u16string(typeId)));
+	}
+
+	// Add movement functionality
+	if (position != NiPoint3::ZERO) {
+		m_MovementAI->SetDestination(position);
+		m_Timer = 9; //Is this setting how long until the next update tick?
 	}
 }
 
