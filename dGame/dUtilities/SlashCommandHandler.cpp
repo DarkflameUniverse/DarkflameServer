@@ -753,19 +753,19 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	//Pet command utility
 	if (chatCommand == "petcommand" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		if (args.size() < 2) {
+		if (args.size() < 5) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
 			return;
 		}
 
 		int32_t commandType;
-		if (!GeneralUtils::TryParse(args[0], commandType)) {
+		if (!GeneralUtils::TryParse(args[0+3], commandType)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type!");
 			return;
 		}
 
 		int32_t typeId;
-		if (!GeneralUtils::TryParse(args[1], typeId)) {
+		if (!GeneralUtils::TryParse(args[1+3], typeId)) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type id!");
 			return;
 		}
@@ -777,7 +777,30 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		petComponent->Command(NiPoint3::ZERO, LWOOBJID_EMPTY, commandType, typeId, true);
+		//Determine the positional coordinates
+		NiPoint3 commandPos{};
+		float x, y, z;
+		if (!GeneralUtils::TryParse(args[0], x)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[1], y)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+			return;
+		}
+
+		if (!GeneralUtils::TryParse(args[2], z)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+			return;
+		}
+		
+		// Set command position
+		commandPos.SetX(x);
+		commandPos.SetY(y);
+		commandPos.SetZ(z);
+
+		petComponent->Command(commandPos, entity->GetObjectID(), commandType, typeId, true);
 	}
 
 
