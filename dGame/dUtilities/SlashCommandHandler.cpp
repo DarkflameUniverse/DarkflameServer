@@ -697,32 +697,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		entity->GetCharacter()->SetPlayerFlag(flagId, false);
 	}
 
-	if (chatCommand == "setpetstatus" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		if (args.size() == 0) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
-			return;
-		}
-
-		uint32_t petStatus;		
-		if (!GeneralUtils::TryParse(args[0], petStatus)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
-			return;
-		}
-
-		// Determine if player has a pet summoned
-		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
-		if (!petComponent) {
-			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
-			return;
-		}
-
-		petComponent->SetStatus(petStatus);
-		//Game::entityManager->SerializeEntity(petComponent->GetParentEntity());
-
-		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus));
-		ChatPackets::SendSystemMessage(sysAddr, msg);
-	}
-
 	if (chatCommand == "resetmission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		if (args.size() == 0) return;
 
@@ -749,6 +723,63 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		return;
 	}
+
+	// Pet status utility
+	if (chatCommand == "setpetstatus" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
+			return;
+		}
+
+		uint32_t petStatus;		
+		if (!GeneralUtils::TryParse(args[0], petStatus)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		petComponent->SetStatus(petStatus);
+		//Game::entityManager->SerializeEntity(petComponent->GetParentEntity());
+
+		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus));
+		ChatPackets::SendSystemMessage(sysAddr, msg);
+	}
+
+	//Pet command utility
+	if (chatCommand == "petcommand" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() < 2) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
+			return;
+		}
+
+		int32_t commandType;
+		if (!GeneralUtils::TryParse(args[0], commandType)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type!");
+			return;
+		}
+
+		int32_t typeId;
+		if (!GeneralUtils::TryParse(args[1], typeId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type id!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		petComponent->Command(NiPoint3::ZERO, LWOOBJID_EMPTY, commandType, typeId, true);
+	}
+
 
 	if (chatCommand == "playeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
 		int32_t effectID = 0;

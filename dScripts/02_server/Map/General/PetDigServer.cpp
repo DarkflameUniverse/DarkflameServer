@@ -115,7 +115,7 @@ void PetDigServer::OnUse(Entity* self, Entity* user) {
 		auto imagination = destroyableComponent->GetImagination();
 		if (imagination == 0) return; // TODO: Check if there was special behavior for this in the live game (PR_NEED_IMAGINATION)
 
-		petComponent->SetTreasureTime(2.0f); // TODO: Get rid of this magic number
+		petComponent->StartInteractDig();
 
 		imagination -= 1; // TODO: Get rid of this magic number
 		destroyableComponent->SetImagination(imagination);

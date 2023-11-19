@@ -5018,28 +5018,28 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
 	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
-	if (!missionComponent) return;
+	if (missionComponent) {
+		if (targetID != LWOOBJID_EMPTY) {
+			auto* targetEntity = Game::entityManager->GetEntity(targetID);
 
-	if (targetID != LWOOBJID_EMPTY) {
-		auto* targetEntity = Game::entityManager->GetEntity(targetID);
+			LOG_DEBUG("Emote target found (%d)", targetEntity != nullptr);
 
-		LOG_DEBUG("Emote target found (%d)", targetEntity != nullptr);
+			if (targetEntity != nullptr) {
+				targetEntity->OnEmoteReceived(emoteID, entity);
+				missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
+			}
+		} else {
+			LOG_DEBUG("Target ID is empty, using backup");
+			const auto scriptedEntities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 
-		if (targetEntity != nullptr) {
-			targetEntity->OnEmoteReceived(emoteID, entity);
-			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
-		}
-	} else {
-		LOG_DEBUG("Target ID is empty, using backup");
-		const auto scriptedEntities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+			const auto& referencePoint = entity->GetPosition();
 
-		const auto& referencePoint = entity->GetPosition();
+			for (auto* scripted : scriptedEntities) {
+				if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
 
-		for (auto* scripted : scriptedEntities) {
-			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
-
-			scripted->OnEmoteReceived(emoteID, entity);
-			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
+				scripted->OnEmoteReceived(emoteID, entity);
+				missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
+			}
 		}
 	}
 
