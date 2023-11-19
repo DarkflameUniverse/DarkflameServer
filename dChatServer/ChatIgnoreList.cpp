@@ -28,6 +28,11 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 		return;
 	}
 
+	if (!receiver->ignoredPlayers.empty()) {
+		LOG_DEBUG("Player %llu already has an ignore list", playerId);
+		return;
+	}
+
 	auto ignoreList = Database::Get()->GetIgnoreList(static_cast<uint32_t>(playerId));
 	if (ignoreList.empty()) {
 		LOG_DEBUG("Player %llu has no ignores", playerId);
@@ -104,25 +109,31 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 
 		bitStream.Write(IgnoreResponse::ALREADY_IGNORED);
 	} else {
+		// Get the playerId falling back to query if not online
 		auto* playerData = Game::playerContainer.GetPlayerData(toIgnoreStr);
 		if (!playerData) {
 			// Fall back to query
 			auto player = Database::Get()->GetCharacterInfo(toIgnoreStr);
 			if (!player || player->name != toIgnoreStr) {
 				LOG_DEBUG("Player %s not found", toIgnoreStr.c_str());
-
-				bitStream.Write(IgnoreResponse::PLAYER_NOT_FOUND);
 			} else {
 				ignoredPlayerId = player->id;
-				Database::Get()->AddIgnore(static_cast<uint32_t>(playerId), static_cast<uint32_t>(ignoredPlayerId));
-				GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::CHARACTER);
-				GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::PERSISTENT);
-
-				receiver->ignoredPlayers.push_back(IgnoreData{ ignoredPlayerId, toIgnoreStr });
-				LOG_DEBUG("Player %llu is ignoring %s", playerId, toIgnoreStr.c_str());
-
-				bitStream.Write(IgnoreResponse::SUCCESS);
 			}
+		} else {
+			ignoredPlayerId = playerData->playerID;
+		}
+
+		if (ignoredPlayerId != LWOOBJID_EMPTY) {
+			Database::Get()->AddIgnore(static_cast<uint32_t>(playerId), static_cast<uint32_t>(ignoredPlayerId));
+			GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::PERSISTENT);
+
+			receiver->ignoredPlayers.push_back(IgnoreData{ ignoredPlayerId, toIgnoreStr });
+			LOG_DEBUG("Player %llu is ignoring %s", playerId, toIgnoreStr.c_str());
+
+			bitStream.Write(IgnoreResponse::SUCCESS);
+		} else {
+			bitStream.Write(IgnoreResponse::PLAYER_NOT_FOUND);
 		}
 	}
 

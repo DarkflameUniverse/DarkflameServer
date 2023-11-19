@@ -14,7 +14,7 @@ std::vector<IIgnoreList::Info> MySQLDatabase::GetIgnoreList(const uint32_t playe
 }
 
 void MySQLDatabase::AddIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) {
-	ExecuteInsert("INSERT INTO ignore_list (player_id, ignored_player_id) VALUES (?, ?)", playerId, ignoredPlayerId);
+	ExecuteInsert("INSERT IGNORE INTO ignore_list (player_id, ignored_player_id) VALUES (?, ?)", playerId, ignoredPlayerId);
 }
 
 void MySQLDatabase::RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) {
