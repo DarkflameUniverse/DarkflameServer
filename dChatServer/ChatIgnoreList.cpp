@@ -28,6 +28,18 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 		return;
 	}
 
+	auto ignoreList = Database::Get()->GetIgnoreList(static_cast<uint32_t>(playerId));
+	if (ignoreList.empty()) {
+		LOG_DEBUG("Player %llu has no ignores", playerId);
+		return;
+	}
+
+	for (auto& ignoredPlayer : ignoreList) {
+		receiver->ignoredPlayers.push_back(IgnoreData{ ignoredPlayer.id, ignoredPlayer.name });
+		GeneralUtils::SetBit(receiver->ignoredPlayers.back().playerId, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(receiver->ignoredPlayers.back().playerId, eObjectBits::PERSISTENT);
+	}
+
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
 	bitStream.Write(receiver->playerID);
@@ -102,6 +114,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 				bitStream.Write(IgnoreResponse::PLAYER_NOT_FOUND);
 			} else {
 				ignoredPlayerId = player->id;
+				Database::Get()->AddIgnore(static_cast<uint32_t>(playerId), static_cast<uint32_t>(ignoredPlayerId));
 				GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::CHARACTER);
 				GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::PERSISTENT);
 
@@ -146,6 +159,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 		return;
 	}
 
+	Database::Get()->RemoveIgnore(static_cast<uint32_t>(playerId), static_cast<uint32_t>(toRemove->playerId));
 	receiver->ignoredPlayers.erase(toRemove, receiver->ignoredPlayers.end());
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
