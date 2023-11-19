@@ -6,6 +6,24 @@
 #include "Preconditions.h"
 #include "eReplicaComponentType.h"
 
+enum PetStatus : uint32_t {
+	NONE,
+	UNKNOWN1 = 0x1,
+	UNKNOWN2 = 0x2,
+	UNKNOWN3 = 0x4,
+	UNKNOWN4 = 0x8,
+	BEING_TAMED = 0x10,
+	IS_NOT_WAITING = 0x20, // Right name? - used to be decimal 20
+	PLAY_SPAWN_ANIM = 0x80, 
+	TAMEABLE = 0x4000000
+};
+
+enum PetEmote : int32_t {
+	ActivateSwitch = 201,
+	DigTreasure,
+	Bounce
+};
+
 enum class PetAbilityType
 {
 	Invalid,
@@ -28,12 +46,6 @@ public:
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
-
-	/**
-	 * Handles the pet dig interaction
-	 * @param deltaTime time elapsed
-	 */
-	void InteractDig(float deltaTime);
 
 	/**
 	 * Handles an OnUse event from another entity, initializing the pet taming minigame if this pet is untamed.
@@ -188,6 +200,22 @@ public:
 	 * @return is pet ready to dig
 	 */
 	bool GetIsReadyToDig() { return m_ReadyToDig; };
+
+	/**
+	 * Start the dig interaction
+	 */
+	void StartInteractDig();
+
+	/**
+	 * Handles the pet dig interaction
+	 * @param deltaTime time elapsed
+	 */
+	void InteractDig(float deltaTime);
+
+	/**
+	 * End the dig interaction
+	 */
+	void EndInteractDig();
 
 	/**
 	 * Sets pet's treasure timer

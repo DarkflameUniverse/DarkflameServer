@@ -19,7 +19,6 @@
 #include "ePetTamingNotifyType.h"
 #include "eUseItemResponse.h"
 #include "ePlayerFlag.h"
-#include "ePetStatus.h"
 
 #include "Game.h"
 #include "dConfig.h"
@@ -81,7 +80,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_Timer = 0;
 	m_TimerAway = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Status = ePetStatus::TAMEABLE; // Tameable
+	m_Status = PetStatus::TAMEABLE; // Tameable
 	m_Ability = PetAbilityType::Invalid;
 	m_StartPosition = NiPoint3::ZERO;
 	m_MovementAI = nullptr;
@@ -382,7 +381,7 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	if (m_TresureTime > 0.0f) {
+	if (m_TresureTime > 0.0f) { //TODO: Find better trigger
 		InteractDig(deltaTime);
 		return;
 	}
@@ -450,7 +449,7 @@ void PetComponent::Update(float deltaTime) {
 		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
-			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
+			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce , true); // Plays 'bounce' animation
 
 			SetIsReadyToDig(true);
 
@@ -478,20 +477,20 @@ void PetComponent::SetIsReadyToDig(bool isReady) {
 	if (isReady) {
 		LOG("Dig state reached!");
 		//m_Interaction = closestTresure->GetObjectID();
-		SetAbility(PetAbilityType::JumpOnObject);
-		SetStatus(ePetStatus::IS_NOT_WAITING); // Treasure dig status
+		//SetAbility(PetAbilityType::JumpOnObject);
+		SetStatus(PetStatus::IS_NOT_WAITING); // Treasure dig status
 		m_ReadyToDig = true;
 	}
 	else {
 		LOG("Dig state ended!");
 		//m_Interaction = LWOOBJID_EMPTY;
-		SetAbility(PetAbilityType::Invalid);
+		//SetAbility(PetAbilityType::Invalid);
 		SetStatus(0); // TODO: Check status
 		m_ReadyToDig = false;
 	}
 }
 
-void PetComponent::InteractDig(float deltaTime) { //Should I rename to InteractDig?
+void PetComponent::InteractDig(float deltaTime) {
 	LOG("Pet digging!");
 
 	auto* tresure = Game::entityManager->GetEntity(m_Interaction);
@@ -773,7 +772,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(ePetStatus::TAMEABLE);
+	SetStatus(PetStatus::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -824,7 +823,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(ePetStatus::TAMEABLE);
+	SetStatus(PetStatus::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -1024,10 +1023,7 @@ void PetComponent::Release() {
 
 void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandType, int32_t typeId, bool overrideObey) {
 	auto* owner = GetOwner();
-
-	if (owner == nullptr) {
-		return;
-	}
+	if (!owner) return;
 
 	if (commandType == 1) {
 		// Emotes
@@ -1150,4 +1146,14 @@ void PetComponent::LoadPetNameFromModeration() {
 
 void PetComponent::SetPreconditions(std::string& preconditions) {
 	m_Preconditions = new PreconditionExpression(preconditions);
+}
+
+void PetComponent::StartInteractDig() {
+	//m_InInteract = true;
+	m_TresureTime = 2.0f; //TODO: Remove magic number
+	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure , true);
+}
+
+void PetComponent::EndInteractDig() {
+	//m_InInteract = false;
 }
