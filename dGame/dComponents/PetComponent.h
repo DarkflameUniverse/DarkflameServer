@@ -372,7 +372,7 @@ private:
 	/**
 	 * Boolean that sets if a pet is in an interaction
 	 */
-	float m_InInteract;
+	bool m_InInteract;
 
 	/**
 	 * The position that this pet was spawned at

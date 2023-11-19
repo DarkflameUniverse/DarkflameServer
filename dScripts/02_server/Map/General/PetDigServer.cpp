@@ -1,5 +1,6 @@
 #include "dZoneManager.h"
 #include "PetDigServer.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -107,8 +108,16 @@ void PetDigServer::OnUse(Entity* self, Entity* user) {
 	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
 	if (!petComponent) return;
 
-	if(petComponent->GetIsReadyToDig()) {
+	if(petComponent->GetIsReadyToDig()) { // TODO: Add handling of the "first time" dig message
 		petComponent->SetTreasureTime(2.0f);
+
+		auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
+		if (!destroyableComponent) return;
+		
+		auto imagination = destroyableComponent->GetImagination();
+		imagination -= 1; // TODO: Get rid of this magic number
+		destroyableComponent->SetImagination(imagination);
+		Game::entityManager->SerializeEntity(user);
 	}
 }
 
