@@ -152,6 +152,11 @@ namespace GeneralUtils {
 	}
 
 	template <>
+	inline uint16_t Parse(const char* value) {
+		return std::stoul(value);
+	}
+
+	template <>
 	inline uint32_t Parse(const char* value) {
 		return std::stoul(value);
 	}

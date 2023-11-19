@@ -108,6 +108,8 @@ int main(int argc, char** argv) {
 	
 	Game::randomEngine = std::mt19937(time(0));
 
+	playerContainer.Initialize();
+
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
 	Packet* packet = nullptr;

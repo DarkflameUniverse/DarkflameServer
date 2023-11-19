@@ -2,6 +2,7 @@ set(DCOMMONTEST_SOURCES
 	"AMFDeserializeTests.cpp"
 	"Amf3Tests.cpp"
 	"HeaderSkipTest.cpp"
+	"TestCDFeatureGatingTable.cpp"
 	"TestLDFFormat.cpp"
 	"TestNiPoint3.cpp"
 	"TestEncoding.cpp"
