@@ -13,9 +13,15 @@
 // not allowing teams, rejecting DMs, friends requets etc.
 // The only thing not auto-handled is instance activities force joining the team on the server.
 
-void ChatIgnoreList::GetIgnoreList(Packet* packet) {
-	LOG_DEBUG("Getting ignore list");
+void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const ChatIgnoreList::Response type) {
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+	bitStream.Write(receivingPlayer);
 
+	//portion that will get routed:
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, type);
+}
+
+void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerId;
 	inStream.Read(playerId);
@@ -44,11 +50,7 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	}
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-	bitStream.Write(receiver->playerID);
-
-	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::GET_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver->playerID, ChatIgnoreList::Response::GET_IGNORE);
 
 	bitStream.Write<uint8_t>(false); // Probably is Is Free Trial, but we don't care about that
 	bitStream.Write<uint16_t>(0); // literally spacing due to struct alignment
@@ -63,8 +65,6 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 }
 
 void ChatIgnoreList::AddIgnore(Packet* packet) {
-	LOG_DEBUG("Adding ignore");
-
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerId;
 	inStream.Read(playerId);
@@ -88,11 +88,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	std::string toIgnoreStr = toIgnoreName.GetAsString();
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-	bitStream.Write(receiver->playerID);
-
-	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::ADD_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver->playerID, ChatIgnoreList::Response::ADD_IGNORE);
 
 	// Check if the player exists
 	LWOOBJID ignoredPlayerId = LWOOBJID_EMPTY;
@@ -141,8 +137,6 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 }
 
 void ChatIgnoreList::RemoveIgnore(Packet* packet) {
-	LOG_DEBUG("Removing ignore");
-
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerId;
 	inStream.Read(playerId);
@@ -159,7 +153,6 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	inStream.Read(removedIgnoreName);
 	std::string removedIgnoreStr = removedIgnoreName.GetAsString();
 
-	LOG("Removing ignore for %s", removedIgnoreStr.c_str());
 	auto toRemove = std::remove(receiver->ignoredPlayers.begin(), receiver->ignoredPlayers.end(), removedIgnoreStr);
 	if (toRemove == receiver->ignoredPlayers.end()) {
 		LOG_DEBUG("Player %llu is not ignoring %s", playerId, removedIgnoreStr.c_str());
@@ -170,12 +163,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	receiver->ignoredPlayers.erase(toRemove, receiver->ignoredPlayers.end());
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-
-	bitStream.Write(receiver->playerID);
-
-	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::REMOVE_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver->playerID, ChatIgnoreList::Response::REMOVE_IGNORE);
 
 	bitStream.Write<int8_t>(0);
 	LUWString playerNameSend(removedIgnoreStr, 33);
