@@ -109,12 +109,14 @@ void PetDigServer::OnUse(Entity* self, Entity* user) {
 	if (!petComponent) return;
 
 	if(petComponent->GetIsReadyToDig()) { // TODO: Add handling of the "first time" dig message
-		petComponent->SetTreasureTime(2.0f);
-
 		auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		
 		auto imagination = destroyableComponent->GetImagination();
+		if (imagination == 0) return; // TODO: Check if there was special behavior for this in the live game
+
+		petComponent->SetTreasureTime(2.0f); // TODO: Get rid of this magic number
+
 		imagination -= 1; // TODO: Get rid of this magic number
 		destroyableComponent->SetImagination(imagination);
 		Game::entityManager->SerializeEntity(user);
