@@ -101,6 +101,17 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	}
 }
 
+void PetDigServer::OnUse(Entity* self, Entity* user) {
+	LOG("Treasure used!");
+
+	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
+	if (!petComponent) return;
+
+	if(petComponent->GetIsReadyToDig()) {
+		petComponent->SetTreasureTime(2.0f);
+	}
+}
+
 void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pet) {
 	auto playerID = self->GetVar<LWOOBJID>(u"builder");
 	if (playerID == LWOOBJID_EMPTY || playerID != owner->GetObjectID())

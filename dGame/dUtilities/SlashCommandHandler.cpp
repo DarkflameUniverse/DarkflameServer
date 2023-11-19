@@ -46,6 +46,7 @@
 #include "dServer.h"
 #include "MissionComponent.h"
 #include "Mail.h"
+#include "PetComponent.h"
 #include "dpWorld.h"
 #include "Item.h"
 #include "PropertyManagementComponent.h"
@@ -694,6 +695,32 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->SetPlayerFlag(flagId, false);
+	}
+
+	if (chatCommand == "setpetstatus" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
+			return;
+		}
+
+		uint32_t petStatus;		
+		if (!GeneralUtils::TryParse(args[0], petStatus)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		petComponent->SetStatus(petStatus);
+		//Game::entityManager->SerializeEntity(petComponent->GetParentEntity());
+
+		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus));
+		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 
 	if (chatCommand == "resetmission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {

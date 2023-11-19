@@ -30,6 +30,12 @@ public:
 	void Update(float deltaTime) override;
 
 	/**
+	 * Handles the pet dig interaction
+	 * @param deltaTime time elapsed
+	 */
+	void InteractDig(float deltaTime);
+
+	/**
 	 * Handles an OnUse event from another entity, initializing the pet taming minigame if this pet is untamed.
 	 * @param originator the entity that triggered the event
 	 */
@@ -171,6 +177,23 @@ public:
 	 * @param conditions the preconditions to set
 	 */
 	void SetPreconditions(std::string& conditions);
+
+	/**
+	 * Sets if the pet is ready to dig
+	 * @param isReady whether the pet is ready to dig (true) or not (false)
+	 */
+	void SetIsReadyToDig(bool isReady);
+
+	/**
+	 * @return is pet ready to dig
+	 */
+	bool GetIsReadyToDig() { return m_ReadyToDig; };
+
+	/**
+	 * Sets pet's treasure timer
+	 * @param digTime float representing the treasure dig time in seconds
+	 */
+	void SetTreasureTime(float digTime) { m_TresureTime = digTime; };
 
 	/**
 	 * Returns the entity that this component belongs to
@@ -340,6 +363,16 @@ private:
 	 * on time
 	 */
 	float m_TresureTime;
+
+	/**
+	 * Boolean that sets if a pet is ready to dig and display the interact prompt
+	 */
+	bool m_ReadyToDig;
+
+	/**
+	 * Boolean that sets if a pet is in an interaction
+	 */
+	float m_InInteract;
 
 	/**
 	 * The position that this pet was spawned at
