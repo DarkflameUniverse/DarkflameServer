@@ -55,14 +55,8 @@ int main(int argc, char** argv) {
 	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
@@ -74,15 +68,12 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1500;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
 
-	delete res;
-	delete stmt;
+	auto masterInfo = Database::Get()->GetMasterInfo();
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
+	}
 
 	Game::randomEngine = std::mt19937(time(0));
 
@@ -134,15 +125,11 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
 			}
-
-			delete res;
-			delete stmt;
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;

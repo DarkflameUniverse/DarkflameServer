@@ -14,58 +14,35 @@ void ObjectIDManager::Initialize(Logger* logger) {
 	this->currentPersistentID = 1;
 
 	try {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-			"SELECT last_object_id FROM object_id_tracker");
+		auto lastObjectId = Database::Get()->GetCurrentPersistentId();
 
-		sql::ResultSet* result = stmt->executeQuery();
-		auto next = result->next();
-
-		if (!next) {
-			sql::PreparedStatement* insertStmt = Database::CreatePreppedStmt(
-				"INSERT INTO object_id_tracker VALUES (1)");
-
-			insertStmt->execute();
-
-			delete insertStmt;
-
+		if (!lastObjectId) {
+			Database::Get()->InsertDefaultPersistentId();
 			return;
+		} else {
+			this->currentPersistentID = lastObjectId.value();
 		}
 
-		while (next) {
-			this->currentPersistentID =
-				result->getInt(1) > 0 ? result->getInt(1) : 1;
-			next = result->next();
+		if (this->currentPersistentID <= 0) {
+			LOG("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
+			throw std::runtime_error("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
 		}
-
-		delete result;
-		delete stmt;
 	} catch (sql::SQLException& e) {
-		LOG("Unable to fetch max persistent object ID in use. Defaulting to 1.");
+		LOG("Unable to fetch max persistent object ID in use. This will cause issues. Aborting to prevent collisions.");
 		LOG("SQL error: %s", e.what());
-		this->currentPersistentID = 1;
+		throw;
 	}
 }
 
 //! Generates a new persistent ID
-uint32_t ObjectIDManager::GeneratePersistentID(void) {
+uint32_t ObjectIDManager::GeneratePersistentID() {
 	uint32_t toReturn = ++this->currentPersistentID;
 
-	// So we peroidically save our ObjID to the database:
-	// if (toReturn % 25 == 0) { // TEMP: DISABLED FOR DEBUG / DEVELOPMENT!
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-			"UPDATE object_id_tracker SET last_object_id=?");
-		stmt->setUInt(1, toReturn);
-		stmt->execute();
-		delete stmt;
-	// }
+	SaveToDatabase();
 
 	return toReturn;
 }
 
 void ObjectIDManager::SaveToDatabase() {
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-		"UPDATE object_id_tracker SET last_object_id=?");
-	stmt->setUInt(1, currentPersistentID);
-	stmt->execute();
-	delete stmt;
+	Database::Get()->UpdatePersistentId(this->currentPersistentID);
 }

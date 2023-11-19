@@ -28,7 +28,6 @@ public:
 	bool DeleteUser(const SystemAddress& sysAddr); //Returns true on succesful deletion
 	void DeletePendingRemovals();
 
-	bool IsNameAvailable(const std::string& requestedName);
 	std::string GetPredefinedName(uint32_t firstNameIndex, uint32_t middleNameIndex, uint32_t lastNameIndex);
 	bool IsNamePreapproved(const std::string& requestedName);
 

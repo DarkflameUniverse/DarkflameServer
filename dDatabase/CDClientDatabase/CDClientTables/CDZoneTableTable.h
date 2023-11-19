@@ -18,7 +18,7 @@ struct CDZoneTable {
 	float smashableMaxDistance;         //!< The maximum smashable distance?
 	UNUSED(std::string mixerProgram);              //!< ???
 	UNUSED(std::string clientPhysicsFramerate);    //!< The client physics framerate
-	UNUSED(std::string serverPhysicsFramerate);    //!< The server physics framerate
+	std::string serverPhysicsFramerate;    //!< The server physics framerate
 	unsigned int zoneControlTemplate;           //!< The Zone Control template
 	unsigned int widthInChunks;                 //!< The width of the world in chunks
 	unsigned int heightInChunks;                //!< The height of the world in chunks
@@ -27,10 +27,10 @@ struct CDZoneTable {
 	float fZoneWeight;                  //!< ???
 	UNUSED(std::string thumbnail);                 //!< The thumbnail of the world
 	bool PlayerLoseCoinsOnDeath;        //!< Whether or not the user loses coins on death
-	UNUSED(bool disableSaveLoc);                //!< Disables the saving location?
+	bool disableSaveLoc;                //!< Disables the saving location?
 	float teamRadius;                   //!< ???
 	UNUSED(std::string gate_version);              //!< The gate version
-	UNUSED(bool mountsAllowed);                 //!< Whether or not mounts are allowed
+	bool mountsAllowed;                 //!< Whether or not mounts are allowed
 };
 
 class CDZoneTableTable : public CDTable<CDZoneTableTable> {

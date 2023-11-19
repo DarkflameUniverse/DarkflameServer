@@ -39,13 +39,12 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 	instance = this;
 
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
-
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-	query.bind(1, (int)zoneId);
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT id FROM PropertyTemplate WHERE mapID = ?;");
+
+	query.bind(1, static_cast<int32_t>(zoneId));
 
 	auto result = query.execQuery();
 
@@ -55,34 +54,25 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	templateId = result.getIntField(0);
 
-	result.finalize();
+	auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 
-	auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
-
-	propertyLookup->setInt(1, templateId);
-	propertyLookup->setInt64(2, cloneId);
-
-	auto* propertyEntry = propertyLookup->executeQuery();
-
-	if (propertyEntry->next()) {
-		this->propertyId = propertyEntry->getUInt64(1);
-		this->owner = propertyEntry->getUInt64(2);
+	if (propertyInfo) {
+		this->propertyId = propertyInfo->id;
+		this->owner = propertyInfo->ownerId;
 		GeneralUtils::SetBit(this->owner, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(this->owner, eObjectBits::PERSISTENT);
-		this->clone_Id = propertyEntry->getInt(2);
-		this->propertyName = propertyEntry->getString(5).c_str();
-		this->propertyDescription = propertyEntry->getString(6).c_str();
-		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyEntry->getUInt(9));
-		this->moderatorRequested = propertyEntry->getInt(10) == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
-		this->LastUpdatedTime = propertyEntry->getUInt64(11);
-		this->claimedTime = propertyEntry->getUInt64(12);
-		this->rejectionReason = std::string(propertyEntry->getString(13).c_str());
-		this->reputation = propertyEntry->getUInt(14);
+		this->clone_Id = propertyInfo->cloneId;
+		this->propertyName = propertyInfo->name;
+		this->propertyDescription = propertyInfo->description;
+		this->privacyOption = static_cast<PropertyPrivacyOption>(propertyInfo->privacyOption);
+		this->rejectionReason = propertyInfo->rejectionReason;
+		this->moderatorRequested = propertyInfo->modApproved == 0 && rejectionReason == "" && privacyOption == PropertyPrivacyOption::Public;
+		this->LastUpdatedTime = propertyInfo->lastUpdatedTime;
+		this->claimedTime = propertyInfo->claimedTime;
+		this->reputation = propertyInfo->reputation;
 
 		Load();
 	}
-
-	delete propertyLookup;
 }
 
 LWOOBJID PropertyManagementComponent::GetOwnerId() const {
@@ -152,14 +142,13 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	}
 	privacyOption = value;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;");
+	IProperty::Info info;
+	info.id = propertyId;
+	info.privacyOption = static_cast<uint32_t>(privacyOption);
+	info.rejectionReason = rejectionReason;
+	info.modApproved = 0;
 
-	propertyUpdate->setInt(1, static_cast<int32_t>(value));
-	propertyUpdate->setString(2, "");
-	propertyUpdate->setInt(3, 0);
-	propertyUpdate->setInt64(4, propertyId);
-
-	propertyUpdate->executeUpdate();
+	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
 void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::string description) {
@@ -169,13 +158,12 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 
 	propertyDescription = description;
 
-	auto* propertyUpdate = Database::CreatePreppedStmt("UPDATE properties SET name = ?, description = ? WHERE id = ?;");
+	IProperty::Info info;
+	info.id = propertyId;
+	info.name = propertyName;
+	info.description = propertyDescription;
 
-	propertyUpdate->setString(1, name.c_str());
-	propertyUpdate->setString(2, description.c_str());
-	propertyUpdate->setInt64(3, propertyId);
-
-	propertyUpdate->executeUpdate();
+	Database::Get()->UpdatePropertyDetails(info);
 
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
 }
@@ -217,28 +205,14 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 
 	propertyId = ObjectIDManager::GenerateRandomObjectID();
 
-	auto* insertion = Database::CreatePreppedStmt(
-		"INSERT INTO properties"
-		"(id, owner_id, template_id, clone_id, name, description, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, zone_id, performance_cost)"
-		"VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, ?, 0.0)"
-	);
-	insertion->setUInt64(1, propertyId);
-	insertion->setUInt64(2, (uint32_t)playerId);
-	insertion->setUInt(3, templateId);
-	insertion->setUInt64(4, playerCloneId);
-	insertion->setString(5, name.c_str());
-	insertion->setString(6, description.c_str());
-	insertion->setInt(7, propertyZoneId);
+	IProperty::Info info;
+	info.id = propertyId;
+	info.ownerId = character->GetID();
+	info.cloneId = playerCloneId;
+	info.name = name;
+	info.description = description;
 
-	// Try and execute the query, print an error if it fails.
-	try {
-		insertion->execute();
-	} catch (sql::SQLException& exception) {
-		LOG("Failed to execute query: (%s)!", exception.what());
-
-		throw exception;
-		return false;
-	}
+	Database::Get()->InsertNewProperty(info, templateId, worldId);
 
 	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
@@ -423,6 +397,25 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
+	auto* model = Game::entityManager->GetEntity(id);
+
+	if (model == nullptr) {
+		LOG("Failed to find model entity");
+
+		return;
+	}
+
+	if (model->GetLOT() == 14 && deleteReason == 0) {
+		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
+
+		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
+
+		// Need this to pop the user out of their current state
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent->GetObjectID(), 14, entity->GetRotation());
+
+		return;
+	}
+
 	const auto index = models.find(id);
 
 	if (index == models.end()) {
@@ -439,14 +432,6 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 
 	if (spawner == nullptr) {
 		LOG("Failed to find spawner");
-	}
-
-	auto* model = Game::entityManager->GetEntity(id);
-
-	if (model == nullptr) {
-		LOG("Failed to find model entity");
-
-		return;
 	}
 
 	Game::entityManager->DestructEntity(model);
@@ -534,7 +519,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->SetCount(item->GetCount() - 1);
 
-		LOG("YES IT GOES HERE");
+		LOG("BODGE TIME, YES IT GOES HERE");
 
 		break;
 	}
@@ -558,14 +543,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 void PropertyManagementComponent::UpdateApprovedStatus(const bool value) {
 	if (owner == LWOOBJID_EMPTY) return;
 
-	auto* update = Database::CreatePreppedStmt("UPDATE properties SET mod_approved = ? WHERE id = ?;");
+	IProperty::Info info;
+	info.id = propertyId;
+	info.modApproved = value;
+	info.privacyOption = static_cast<uint32_t>(privacyOption);
+	info.rejectionReason = "";
 
-	update->setBoolean(1, value);
-	update->setInt64(2, propertyId);
-
-	update->executeUpdate();
-
-	delete update;
+	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
 void PropertyManagementComponent::Load() {
@@ -573,39 +557,17 @@ void PropertyManagementComponent::Load() {
 		return;
 	}
 
-	auto* lookup = Database::CreatePreppedStmt("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;");
+	auto propertyModels = Database::Get()->GetPropertyModels(propertyId);
 
-	lookup->setUInt64(1, propertyId);
-
-	auto* lookupResult = lookup->executeQuery();
-
-	while (lookupResult->next()) {
-		const LWOOBJID id = lookupResult->getUInt64(1);
-		const LOT lot = lookupResult->getInt(2);
-
-		const NiPoint3 position =
-		{
-			static_cast<float>(lookupResult->getDouble(3)),
-			static_cast<float>(lookupResult->getDouble(4)),
-			static_cast<float>(lookupResult->getDouble(5))
-		};
-
-		const NiQuaternion rotation =
-		{
-			static_cast<float>(lookupResult->getDouble(9)),
-			static_cast<float>(lookupResult->getDouble(6)),
-			static_cast<float>(lookupResult->getDouble(7)),
-			static_cast<float>(lookupResult->getDouble(8))
-		};
-
+	for (const auto& databaseModel : propertyModels) {
 		auto* node = new SpawnerNode();
 
-		node->position = position;
-		node->rotation = rotation;
+		node->position = databaseModel.position;
+		node->rotation = databaseModel.rotation;
 
 		SpawnerInfo info{};
 
-		info.templateID = lot;
+		info.templateID = databaseModel.lot;
 		info.nodes = { node };
 		info.templateScale = 1.0f;
 		info.activeOnLoad = true;
@@ -615,13 +577,13 @@ void PropertyManagementComponent::Load() {
 		//info.emulated = true;
 		//info.emulator = Game::entityManager->GetZoneControlEntity()->GetObjectID();
 
-		info.spawnerID = id;
+		info.spawnerID = databaseModel.id;
 
 		std::vector<LDFBaseData*> settings;
 
 		//BBB property models need to have extra stuff set for them:
-		if (lot == 14) {
-			LWOOBJID blueprintID = lookupResult->getUInt(10);
+		if (databaseModel.lot == 14) {
+			LWOOBJID blueprintID = databaseModel.ugcId;
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
@@ -629,7 +591,7 @@ void PropertyManagementComponent::Load() {
 			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
 			LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
 			LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", databaseModel.id);
 
 			settings.push_back(ldfBlueprintID);
 			settings.push_back(componentWhitelist);
@@ -638,7 +600,7 @@ void PropertyManagementComponent::Load() {
 			settings.push_back(userModelID);
 		} else {
 			auto modelType = new LDFData<int>(u"modelType", 2);
-			auto userModelID = new LDFData<LWOOBJID>(u"userModelID", id);
+			auto userModelID = new LDFData<LWOOBJID>(u"userModelID", databaseModel.id);
 			auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
 			auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
 			auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
@@ -660,8 +622,6 @@ void PropertyManagementComponent::Load() {
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 	}
-
-	delete lookup;
 }
 
 void PropertyManagementComponent::Save() {
@@ -669,27 +629,7 @@ void PropertyManagementComponent::Save() {
 		return;
 	}
 
-	auto* insertion = Database::CreatePreppedStmt("INSERT INTO properties_contents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
-	auto* update = Database::CreatePreppedStmt("UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;");
-	auto* lookup = Database::CreatePreppedStmt("SELECT id FROM properties_contents WHERE property_id = ?;");
-	auto* remove = Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE id = ?;");
-
-	lookup->setUInt64(1, propertyId);
-	sql::ResultSet* lookupResult = nullptr;
-	try {
-		lookupResult = lookup->executeQuery();
-	} catch (sql::SQLException& ex) {
-		LOG("lookup error %s", ex.what());
-	}
-	std::vector<LWOOBJID> present;
-
-	while (lookupResult->next()) {
-		const auto dbId = lookupResult->getUInt64(1);
-
-		present.push_back(dbId);
-	}
-
-	delete lookupResult;
+	auto present = Database::Get()->GetPropertyModels(propertyId);
 
 	std::vector<LWOOBJID> modelIds;
 
@@ -708,69 +648,26 @@ void PropertyManagementComponent::Save() {
 		const auto rotation = entity->GetRotation();
 
 		if (std::find(present.begin(), present.end(), id) == present.end()) {
-			insertion->setInt64(1, id);
-			insertion->setUInt64(2, propertyId);
-			insertion->setNull(3, 0);
-			insertion->setInt(4, entity->GetLOT());
-			insertion->setDouble(5, position.x);
-			insertion->setDouble(6, position.y);
-			insertion->setDouble(7, position.z);
-			insertion->setDouble(8, rotation.x);
-			insertion->setDouble(9, rotation.y);
-			insertion->setDouble(10, rotation.z);
-			insertion->setDouble(11, rotation.w);
-			insertion->setString(12, ("Objects_" + std::to_string(entity->GetLOT()) + "_name").c_str()); // Model name.  TODO make this customizable
-			insertion->setString(13, ""); // Model description.  TODO implement this.
-			insertion->setDouble(14, 0); // behavior 1.  TODO implement this.
-			insertion->setDouble(15, 0); // behavior 2.  TODO implement this.
-			insertion->setDouble(16, 0); // behavior 3.  TODO implement this.
-			insertion->setDouble(17, 0); // behavior 4.  TODO implement this.
-			insertion->setDouble(18, 0); // behavior 5.  TODO implement this.
-			try {
-				insertion->execute();
-			} catch (sql::SQLException& ex) {
-				LOG("Error inserting into properties_contents. Error %s", ex.what());
-			}
-		} else {
-			update->setDouble(1, position.x);
-			update->setDouble(2, position.y);
-			update->setDouble(3, position.z);
-			update->setDouble(4, rotation.x);
-			update->setDouble(5, rotation.y);
-			update->setDouble(6, rotation.z);
-			update->setDouble(7, rotation.w);
+			IPropertyContents::Model model;
+			model.id = id;
+			model.lot = entity->GetLOT();
+			model.position = position;
+			model.rotation = rotation;
+			model.ugcId = 0;
 
-			update->setInt64(8, id);
-			try {
-				update->executeUpdate();
-			} catch (sql::SQLException& ex) {
-				LOG("Error updating properties_contents. Error: %s", ex.what());
-			}
+			Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_" + std::to_string(model.lot) + "_name");
+		} else {
+			Database::Get()->UpdateModelPositionRotation(id, position, rotation);
 		}
 	}
 
-	for (auto id : present) {
-		if (std::find(modelIds.begin(), modelIds.end(), id) != modelIds.end()) {
+	for (auto model : present) {
+		if (std::find(modelIds.begin(), modelIds.end(), model.id) != modelIds.end()) {
 			continue;
 		}
 
-		remove->setInt64(1, id);
-		try {
-			remove->execute();
-		} catch (sql::SQLException& ex) {
-			LOG("Error removing from properties_contents. Error %s", ex.what());
-		}
+		Database::Get()->RemoveModel(model.id);
 	}
-
-	auto* removeUGC = Database::CreatePreppedStmt("DELETE FROM ugc WHERE id NOT IN (SELECT ugc_id FROM properties_contents);");
-
-	removeUGC->execute();
-
-	delete removeUGC;
-	delete insertion;
-	delete update;
-	delete lookup;
-	delete remove;
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {
@@ -788,6 +685,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 	const auto zoneId = worldId.GetMapID();
+	const auto cloneId = worldId.GetCloneID();
 
 	LOG("Getting property info for %d", zoneId);
 	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
@@ -795,45 +693,25 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;
 
 	LWOOBJID ownerId = GetOwnerId();
-	std::string ownerName = "";
+	std::string ownerName;
+	auto charInfo = Database::Get()->GetCharacterInfo(ownerId);
+	if (charInfo) ownerName = charInfo->name;
 	std::string name = "";
 	std::string description = "";
 	uint64_t claimed = 0;
 	char privacy = 0;
 
 	if (isClaimed) {
-		const auto cloneId = worldId.GetCloneID();
-
-		auto* nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
-		nameLookup->setUInt64(1, cloneId);
-
-		auto* nameResult = nameLookup->executeQuery();
-		if (nameResult->next()) {
-			ownerName = nameResult->getString(1).c_str();
-		}
-
-		delete nameResult;
-		delete nameLookup;
-
 		name = propertyName;
 		description = propertyDescription;
 		claimed = claimedTime;
 		privacy = static_cast<char>(this->privacyOption);
 		if (moderatorRequested) {
-			auto checkStatus = Database::CreatePreppedStmt("SELECT rejection_reason, mod_approved FROM properties WHERE id = ?;");
-
-			checkStatus->setInt64(1, propertyId);
-
-			auto result = checkStatus->executeQuery();
-
-			result->next();
-
-			const auto reason = std::string(result->getString(1).c_str());
-			const auto modApproved = result->getInt(2);
-			if (reason != "") {
+			auto moderationInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
+			if (moderationInfo->rejectionReason != "") {
 				moderatorRequested = false;
-				rejectionReason = reason;
-			} else if (reason == "" && modApproved == 1) {
+				rejectionReason = moderationInfo->rejectionReason;
+			} else if (moderationInfo->rejectionReason == "" && moderationInfo->modApproved == 1) {
 				moderatorRequested = false;
 				rejectionReason = "";
 			} else {

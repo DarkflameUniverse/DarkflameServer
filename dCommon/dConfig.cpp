@@ -38,13 +38,11 @@ const std::string& dConfig::GetValue(std::string key) {
 }
 
 void dConfig::ProcessLine(const std::string& line) {
-	auto splitLine = GeneralUtils::SplitString(line, '=');
-
-	if (splitLine.size() != 2) return;
+	auto splitLoc = line.find('=');
+	auto key = line.substr(0, splitLoc);
+	auto value = line.substr(splitLoc + 1);
 
 	//Make sure that on Linux, we remove special characters:
-	auto& key = splitLine.at(0);
-	auto& value = splitLine.at(1);
 	if (!value.empty() && value.at(value.size() - 1) == '\r') value.erase(value.size() - 1);
 
 	if (this->m_ConfigValues.find(key) != this->m_ConfigValues.end()) return;

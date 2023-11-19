@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <unordered_map>
+
 enum class eReplicaComponentType : uint32_t;
 struct CDComponentsRegistry {
 	unsigned int id;                    //!< The LOT is used as the ID

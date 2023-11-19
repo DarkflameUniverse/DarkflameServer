@@ -29,6 +29,7 @@
 #include "RenderComponent.h"
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
+#include "eMissionState.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -439,9 +440,15 @@ void PetComponent::Update(float deltaTime) {
 		}
 	}
 
+	auto* missionComponent = owner->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
+
+	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
+	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
+
 	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
 
-	if (closestTresure != nullptr) {
+	if (closestTresure != nullptr && digUnlocked) {
 		// Skeleton Dragon Pat special case for bone digging
 		if (closestTresure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
 			goto skipTresure;
@@ -1090,37 +1097,18 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 		approved = 2; //approved
 	}
 
-	auto deleteStmt = Database::CreatePreppedStmt("DELETE FROM pet_names WHERE id = ? LIMIT 1;");
-	deleteStmt->setUInt64(1, m_DatabaseId);
-
-	deleteStmt->execute();
-
-	delete deleteStmt;
-
 	//Save to db:
-	auto stmt = Database::CreatePreppedStmt("INSERT INTO `pet_names` (`id`, `pet_name`, `approved`) VALUES (?, ?, ?);");
-	stmt->setUInt64(1, m_DatabaseId);
-	stmt->setString(2, petName);
-	stmt->setInt(3, approved);
-	stmt->execute();
-	delete stmt;
+	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{petName, approved});
 }
 
 void PetComponent::LoadPetNameFromModeration() {
-	auto stmt = Database::CreatePreppedStmt("SELECT pet_name, approved FROM pet_names WHERE id = ? LIMIT 1;");
-	stmt->setUInt64(1, m_DatabaseId);
-
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		m_ModerationStatus = res->getInt(2);
-
+	auto petNameInfo = Database::Get()->GetPetNameInfo(m_DatabaseId);
+	if (petNameInfo) {
+		m_ModerationStatus = petNameInfo->approvalStatus;
 		if (m_ModerationStatus == 2) {
-			m_Name = res->getString(1);
+			m_Name = petNameInfo->petName;
 		}
 	}
-
-	delete res;
-	delete stmt;
 }
 
 void PetComponent::SetPreconditions(std::string& preconditions) {
