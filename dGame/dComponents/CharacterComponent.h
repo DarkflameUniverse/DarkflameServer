@@ -566,6 +566,10 @@ private:
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
 
 	LWOOBJID m_CurrentInteracting = LWOOBJID_EMPTY;
+
+	std::array<uint64_t, 4> m_ClaimCodes{};
+
+	void AwardClaimCodes();
 };
 
 #endif // CHARACTERCOMPONENT_H
