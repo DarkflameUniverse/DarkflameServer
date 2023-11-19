@@ -329,7 +329,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 			UserManager::RequestCharacterList(sysAddr);
 		}
-		});
+	});
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
