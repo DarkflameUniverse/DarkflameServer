@@ -9,11 +9,9 @@
 
 #include "Database.h"
 
-enum IgnoreReponse : uint8_t {
-	AddIgnoreResponse = 32,
-	RemoveIgnoreResponse = 33,
-	GetIgnoreListResponse = 34,
-};
+// A note to future readers, The client handles all the actual ignoring logic:
+// not allowing teams, rejecting DMs, friends requets etc.
+// The only thing not auto-handled is instance activities force joining the team on the server.
 
 void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	LOG_DEBUG("Getting ignore list");
@@ -50,27 +48,19 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, IgnoreReponse::GetIgnoreListResponse);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::GET_IGNORE);
+
 	bitStream.Write<uint8_t>(false); // Probably is Is Free Trial, but we don't care about that
 	bitStream.Write<uint16_t>(0); // literally spacing due to struct alignment
+
 	bitStream.Write<uint16_t>(receiver->ignoredPlayers.size());
 	for (const auto& ignoredPlayer : receiver->ignoredPlayers) {
 		bitStream.Write(ignoredPlayer.playerId);
 		bitStream.Write(LUWString(ignoredPlayer.playerName, 36));
 	}
+
 	Game::server->Send(&bitStream, packet->systemAddress, false);
 }
-
-// Remove from ignore list and response
-// Not much else to do with editing the list, maybe more messages are needed for refreshes or something
-// but you can only add or remove from the list, and you only request the list on world start so pretty small file
-// After the above all work, move to implement the actual ignore functionality in the chat server
-enum class IgnoreResponse : uint8_t {
-	SUCCESS,
-	ALREADY_IGNORED,
-	PLAYER_NOT_FOUND,
-	GENERAL_ERROR,
-};
 
 void ChatIgnoreList::AddIgnore(Packet* packet) {
 	LOG_DEBUG("Adding ignore");
@@ -85,6 +75,12 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 		return;
 	}
 
+	constexpr int32_t MAX_IGNORES = 32;
+	if (receiver->ignoredPlayers.size() > MAX_IGNORES) {
+		LOG_DEBUG("Player %llu has too many ignores", playerId);
+		return;
+	}
+
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
 	LUWString toIgnoreName(33);
@@ -96,18 +92,18 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, IgnoreReponse::AddIgnoreResponse);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::ADD_IGNORE);
 
 	// Check if the player exists
 	LWOOBJID ignoredPlayerId = LWOOBJID_EMPTY;
 	if (toIgnoreStr == receiver->playerName || toIgnoreStr.find("[GM]") == 0) {
 		LOG_DEBUG("Player %llu tried to ignore themselves", playerId);
 
-		bitStream.Write(IgnoreResponse::GENERAL_ERROR);
+		bitStream.Write(ChatIgnoreList::AddResponse::GENERAL_ERROR);
 	} else if (std::count(receiver->ignoredPlayers.begin(), receiver->ignoredPlayers.end(), toIgnoreStr) > 0) {
 		LOG_DEBUG("Player %llu is already ignoring %s", playerId, toIgnoreStr.c_str());
 
-		bitStream.Write(IgnoreResponse::ALREADY_IGNORED);
+		bitStream.Write(ChatIgnoreList::AddResponse::ALREADY_IGNORED);
 	} else {
 		// Get the playerId falling back to query if not online
 		auto* playerData = Game::playerContainer.GetPlayerData(toIgnoreStr);
@@ -131,9 +127,9 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 			receiver->ignoredPlayers.push_back(IgnoreData{ ignoredPlayerId, toIgnoreStr });
 			LOG_DEBUG("Player %llu is ignoring %s", playerId, toIgnoreStr.c_str());
 
-			bitStream.Write(IgnoreResponse::SUCCESS);
+			bitStream.Write(ChatIgnoreList::AddResponse::SUCCESS);
 		} else {
-			bitStream.Write(IgnoreResponse::PLAYER_NOT_FOUND);
+			bitStream.Write(ChatIgnoreList::AddResponse::PLAYER_NOT_FOUND);
 		}
 	}
 
@@ -172,13 +168,14 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 
 	Database::Get()->RemoveIgnore(static_cast<uint32_t>(playerId), static_cast<uint32_t>(toRemove->playerId));
 	receiver->ignoredPlayers.erase(toRemove, receiver->ignoredPlayers.end());
+
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
 
 	bitStream.Write(receiver->playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, IgnoreReponse::RemoveIgnoreResponse);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, ChatIgnoreList::Response::REMOVE_IGNORE);
 
 	bitStream.Write<int8_t>(0);
 	LUWString playerNameSend(removedIgnoreStr, 33);
