@@ -34,7 +34,7 @@ bool dpShapeBox::IsColliding(dpShapeBase* other) {
 		return dpCollisionChecks::CheckBoxes(m_ParentEntity, other->GetParentEntity());
 
 	default:
-		std::cout << "No collision detection for: " << (int)m_ShapeType << "-to-" << (int)other->GetShapeType() << " collision!" << std::endl;
+		LOG("No collision detection for: %i-to-%i collision!", static_cast<int32_t>(m_ShapeType), static_cast<int32_t>(other->GetShapeType()));
 	}
 
 	return false;
@@ -72,10 +72,7 @@ void dpShapeBox::SetScale(float scale) {
 	m_Height *= scale;
 	m_Depth *= scale;
 
-	//fuuuckkk yoouu
 	InitVertices();
-
-	//SetRotation(m_ParentEntity->GetRotation());
 }
 
 void dpShapeBox::SetRotation(const NiQuaternion& rotation) {
