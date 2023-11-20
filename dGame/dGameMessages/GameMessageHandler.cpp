@@ -34,6 +34,8 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
+#include "ePlayerFlag.h"
+#include "dConfig.h"
 
 using namespace std;
 
@@ -173,6 +175,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::SendPlayerReady(entity, sysAddr);
 		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
+		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
+			|| !entity->GetCharacter()
+			|| !entity->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+		entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
+			if (!entity) return;
+			GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
+			});
 		break;
 	}
 
