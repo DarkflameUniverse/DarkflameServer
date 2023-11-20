@@ -1,14 +1,16 @@
-#include "ServerPreconditions.hpp"
+#include "ServerPreconditions.h"
 
 #include "tinyxml2.h"
 
 using namespace ServerPreconditions;
 
-std::unordered_map<LOT, std::vector<std::pair<bool, PreconditionExpression>>> ServerPreconditions::m_Preconditions;
+namespace {
+	std::unordered_map<LOT, std::vector<std::pair<bool, PreconditionExpression>>> m_Preconditions;
 
-std::unordered_map<LWOOBJID, LWOOBJID> ServerPreconditions::m_SoloActors;
+	std::unordered_map<LWOOBJID, LWOOBJID> m_SoloActors;
 
-std::unordered_map<LWOOBJID, std::unordered_set<LWOOBJID>> ServerPreconditions::m_ExcludeForPlayer;
+	std::unordered_map<LWOOBJID, std::unordered_set<LWOOBJID>> m_ExcludeForPlayer;
+}
 
 void ServerPreconditions::LoadPreconditions(std::string file) {
 	tinyxml2::XMLDocument doc;

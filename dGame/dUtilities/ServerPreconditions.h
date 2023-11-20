@@ -15,12 +15,6 @@ class Entity;
 namespace ServerPreconditions
 {
 
-extern std::unordered_map<LOT, std::vector<std::pair<bool, PreconditionExpression>>> m_Preconditions;
-
-extern std::unordered_map<LWOOBJID, LWOOBJID> m_SoloActors;
-
-extern std::unordered_map<LWOOBJID, std::unordered_set<LWOOBJID>> m_ExcludeForPlayer;
-
 /**
  * @brief Loads the preconditions from the given file.
  * 

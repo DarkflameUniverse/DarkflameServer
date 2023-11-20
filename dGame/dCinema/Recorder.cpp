@@ -7,15 +7,19 @@
 #include "ChatPackets.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
-#include "ServerPreconditions.hpp"
+#include "ServerPreconditions.h"
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
 
 using namespace Cinema::Recording;
 
-std::unordered_map<LWOOBJID, Recorder*> m_Recorders = {};
+namespace {
 
-std::unordered_map<int32_t, std::string> m_EffectAnimations = {};
+	std::unordered_map<LWOOBJID, Recorder*> m_Recorders = {};
+
+	std::unordered_map<int32_t, std::string> m_EffectAnimations = {};
+
+}
 
 Recorder::Recorder() {
 	this->m_StartTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
@@ -23,8 +27,7 @@ Recorder::Recorder() {
 	this->m_LastRecordTime = this->m_StartTime;
 }
 
-Recorder::~Recorder() {
-}
+Recorder::~Recorder() = default;
 
 void Recorder::AddRecord(Record* record)
 {
@@ -521,8 +524,6 @@ void Cinema::Recording::Recorder::RegisterEffectForActor(LWOOBJID actorID, const
 			const auto animationName = result.getStringField(0);
 
 			m_EffectAnimations.emplace(effectId, animationName);
-
-			result.finalize();
 
 			recorder->AddRecord(new AnimationRecord(animationName));
 		}

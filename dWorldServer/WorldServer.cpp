@@ -75,7 +75,7 @@
 #include "EntityManager.h"
 #include "CheatDetection.h"
 
-#include "ServerPreconditions.hpp"
+#include "ServerPreconditions.h"
 #include "Scene.h"
 
 namespace Game {

@@ -4,7 +4,7 @@
 
 #include <tinyxml2.h>
 
-#include "ServerPreconditions.hpp"
+#include "ServerPreconditions.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "MissionComponent.h"

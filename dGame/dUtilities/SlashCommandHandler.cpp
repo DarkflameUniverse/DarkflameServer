@@ -87,7 +87,7 @@
 #include "CDZoneTableTable.h"
 
 #include "Recorder.h"
-#include "ServerPreconditions.hpp"
+#include "ServerPreconditions.h"
 #include "Prefab.h"
 #include "Scene.h"
 
@@ -953,7 +953,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (record) {
 			record->Act(actor);
 		} else {
-			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
 		}
 	}
 
@@ -981,7 +981,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 			}
 		} else {
-			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
 		}
 	}
 
@@ -995,7 +995,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (record) {
 			record->SaveToFile(args[0]);
 		} else {
-			Game::logger->Log("SlashCommandHandler", "Failed to get recorder for objectID: %llu", entity->GetObjectID());
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
 		}
 	}
 
@@ -1005,7 +1005,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (record) {
 			Cinema::Recording::Recorder::AddRecording(entity->GetObjectID(), record);
 		} else {
-			Game::logger->Log("SlashCommandHandler", "Failed to load recording from file: %s", args[0].c_str());
+			LOG("Failed to load recording from file: %s", args[0].c_str());
 		}
 	}
 
