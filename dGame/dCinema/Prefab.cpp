@@ -9,13 +9,31 @@
 
 using namespace Cinema;
 
-std::unordered_map<std::string, Prefab> Prefab::m_Prefabs;
-std::unordered_map<size_t, Prefab::Instance> Prefab::m_Instances;
+struct PrefabInstance
+{
+	std::vector<LWOOBJID> m_Entities;
+};
+
+
+namespace {
+
+
+	std::unordered_map<std::string, Prefab> m_Prefabs;
+	std::unordered_map<size_t, PrefabInstance> m_Instances;
+
+	float m_AngleToRadians = 0.0174532925f;
+}
 
 size_t Prefab::AddObject(LOT lot, NiPoint3 position, NiQuaternion rotation, float scale) {
 	const auto id = ObjectIDManager::GenerateRandomObjectID();
 
-	m_Pieces.emplace(id, Prefab::Piece { lot, position, rotation, scale, {} });
+	m_Pieces.emplace(id, Prefab::Piece { 
+		lot,
+		position,
+		rotation,
+		scale,
+		std::vector<int32_t>()
+	});
 
 	return id;
 }
@@ -55,9 +73,9 @@ const Prefab& Prefab::LoadFromFile(std::string file) {
 		// Check if the qx attribute exists, if so the rotation is a quaternion, otherwise it's a vector
 		if (!element->Attribute("qx")) {
 			rotation = NiQuaternion::FromEulerAngles( { 
-				element->FloatAttribute("rx") * 0.0174532925f,
-				element->FloatAttribute("ry") * 0.0174532925f,
-				element->FloatAttribute("rz") * 0.0174532925f
+				element->FloatAttribute("rx") * m_AngleToRadians,
+				element->FloatAttribute("ry") * m_AngleToRadians,
+				element->FloatAttribute("rz") * m_AngleToRadians
 			} );
 		}
 		else {
@@ -141,7 +159,7 @@ size_t Prefab::Instantiate(NiPoint3 position, float scale) const {
 			// Generate random name
 			std::string effectName = "Effect_";
 			for (int i = 0; i < 10; ++i) {
-				effectName += std::to_string(rand() % 10);
+				effectName += std::to_string(GeneralUtils::GenerateRandomNumber<size_t>(0, 10));
 			}
 
 			renderComponent->PlayEffect(effect, u"create", effectName);
@@ -152,7 +170,7 @@ size_t Prefab::Instantiate(NiPoint3 position, float scale) const {
 		Game::entityManager->ConstructEntity(entity);
 	}
 
-	m_Instances.emplace(id, Prefab::Instance { entities });
+	m_Instances.emplace(id, PrefabInstance { entities });
 
 	return id;
 }

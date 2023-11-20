@@ -6,7 +6,7 @@
 
 using namespace Cinema;
 
-void Cinema::Play::Conclude() {
+void Play::Conclude() {
 	auto* player = Game::entityManager->GetEntity(this->player);
 
 	if (player == nullptr) {
@@ -16,7 +16,7 @@ void Cinema::Play::Conclude() {
 	scene->Conclude(player);
 }
 
-void Cinema::Play::SetupCheckForAudience() {
+void Play::SetupCheckForAudience() {
 	if (m_CheckForAudience) {
 		return;
 	}
@@ -26,7 +26,7 @@ void Cinema::Play::SetupCheckForAudience() {
 	CheckForAudience();
 }
 
-void Cinema::Play::CheckForAudience() {
+void Play::CheckForAudience() {
 	auto* player = Game::entityManager->GetEntity(this->player);
 
 	if (player == nullptr) {
@@ -51,13 +51,13 @@ void Cinema::Play::CheckForAudience() {
 		return;
 	}
 
-	// Still don't care
+	// As the scene isn't associated with a specifc objects, we'll use the zone control entity to setup a callback.
 	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [this]() {
 		CheckForAudience();
 	});
 }
 
-void Cinema::Play::CleanUp() {
+void Play::CleanUp() {
 	LOG("Cleaning up play with %d entities", entities.size());
 
 	for (const auto& entity : entities) {
@@ -65,25 +65,23 @@ void Cinema::Play::CleanUp() {
 	}
 }
 
-void Cinema::Play::SetupBarrier(const std::string& barrier, std::function<void()> callback) {
+void Play::SetupBarrier(const std::string& barrier, const std::function<void()>& callback) {
 	// Add the callback to the barrier
-	if (m_Barriers.find(barrier) == m_Barriers.end()) {
-		m_Barriers[barrier] = std::vector<std::function<void()>>();
-	}
-
 	m_Barriers[barrier].push_back(callback);
 }
 
-void Cinema::Play::SignalBarrier(const std::string& barrier) {
-	if (m_Barriers.find(barrier) == m_Barriers.end()) {
+void Play::SignalBarrier(const std::string& barrier) {
+	const auto& it = m_Barriers.find(barrier);
+
+	if (it == m_Barriers.end()) {
 		return;
 	}
 
-	for (const auto& callback : m_Barriers[barrier]) {
+	for (const auto& callback : it->second) {
 		callback();
 	}
 
-	m_Barriers.erase(barrier);
+	m_Barriers.erase(it);
 }
 
 

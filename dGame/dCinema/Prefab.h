@@ -18,6 +18,8 @@ class Prefab
 public:
 	Prefab() = default;
 
+	~Prefab() = default;
+
 	/**
 	 * @brief Adds an object to the prefab.
 	 * 
@@ -87,8 +89,6 @@ public:
 	static void DestroyInstance(size_t instanceID);
 	
 
-	~Prefab() = default;
-
 private:
 	struct Piece
 	{
@@ -99,16 +99,7 @@ private:
 		std::vector<int32_t> m_Effects;
 	};
 
-	struct Instance
-	{
-		std::vector<LWOOBJID> m_Entities;
-	};
-
 	std::unordered_map<size_t, Piece> m_Pieces;
-
-	static std::unordered_map<std::string, Prefab> m_Prefabs;
-
-	static std::unordered_map<size_t, Instance> m_Instances;
 };
 
 }

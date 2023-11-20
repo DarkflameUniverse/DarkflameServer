@@ -60,7 +60,7 @@ public:
 	 * @param barrier The name of the barrier.
 	 * @param callback The callback to call when the barrier is signaled.
 	 */
-	void SetupBarrier(const std::string& barrier, std::function<void()> callback);
+	void SetupBarrier(const std::string& barrier, const std::function<void()>& callback);
 
 	/**
 	 * @brief Signal a barrier.
