@@ -130,13 +130,8 @@ int main(int argc, char** argv) {
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		LOG("Migrations not run");
@@ -225,19 +220,14 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
-		std::unique_ptr<sql::PreparedStatement> userLookupStatement(Database::CreatePreppedStmt("SELECT id FROM accounts WHERE name=? LIMIT 1;"));
-		userLookupStatement->setString(1, username.c_str());
-		std::unique_ptr<sql::ResultSet> res(userLookupStatement->executeQuery());
-		if (res->rowsCount() > 0) {
+		auto accountId = Database::Get()->GetAccountInfo(username);
+		if (accountId) {
 			LOG("Account with name \"%s\" already exists", username.c_str());
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
 			if (prompt == "y" || prompt == "yes") {
-				uint32_t accountId = 0;
-				res->next();
-				accountId = res->getUInt(1);
-				if (accountId == 0) return EXIT_FAILURE;
+				if (accountId->id == 0) return EXIT_FAILURE;
 
 				//Read the password from the console without echoing it.
 #ifdef __linux__
@@ -257,10 +247,7 @@ int main(int argc, char** argv) {
 				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
 				assert(bcryptState == 0);
 
-				std::unique_ptr<sql::PreparedStatement> userUpdateStatement(Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE id = ?;"));
-				userUpdateStatement->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
-				userUpdateStatement->setUInt(2, accountId);
-				userUpdateStatement->execute();
+				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
 				LOG("Account \"%s\" password updated successfully!", username.c_str());
 			} else {
@@ -289,11 +276,7 @@ int main(int argc, char** argv) {
 
 		//Create account
 		try {
-			std::unique_ptr<sql::PreparedStatement> statement(Database::CreatePreppedStmt("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);"));
-			statement->setString(1, username.c_str());
-			statement->setString(2, std::string(hash, BCRYPT_HASHSIZE).c_str());
-			statement->setInt(3, 9);
-			statement->execute();
+			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
 		} catch(sql::SQLException& e) {
 			LOG("A SQL error occurred!:\n %s",  e.what());
 			return EXIT_FAILURE;
@@ -312,8 +295,6 @@ int main(int argc, char** argv) {
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
 
 	//Query for the database for a server labeled "master"
-	auto* masterLookupStatement = Database::CreatePreppedStmt("SELECT id FROM `servers` WHERE `name` = 'master'");
-	auto* result = masterLookupStatement->executeQuery();
 
 	auto master_server_ip = Game::config->GetValue("master_ip");
 
@@ -321,22 +302,7 @@ int main(int argc, char** argv) {
 		master_server_ip = Game::server->GetIP();
 	}
 
-	//If we found a server, update it's IP and port to the current one.
-	if (result->next()) {
-		auto* updateStatement = Database::CreatePreppedStmt("UPDATE `servers` SET `ip` = ?, `port` = ? WHERE `id` = ?");
-		updateStatement->setString(1, master_server_ip.c_str());
-		updateStatement->setInt(2, Game::server->GetPort());
-		updateStatement->setInt(3, result->getInt("id"));
-		updateStatement->execute();
-		delete updateStatement;
-	} else {
-		//If we didn't find a server, create one.
-		auto* insertStatement = Database::CreatePreppedStmt("INSERT INTO `servers` (`name`, `ip`, `port`, `state`, `version`) VALUES ('master', ?, ?, 0, 171023)");
-		insertStatement->setString(1, master_server_ip.c_str());
-		insertStatement->setInt(2, Game::server->GetPort());
-		insertStatement->execute();
-		delete insertStatement;
-	}
+	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
 
 	//Create additional objects here:
 	ObjectIDManager::Instance()->Initialize(Game::logger);
@@ -384,15 +350,11 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
 			}
-
-			delete res;
-			delete stmt;
 
 			framesSinceLastSQLPing = 0;
 		} else

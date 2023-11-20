@@ -42,9 +42,9 @@ std::vector<CDFeatureGating> CDFeatureGatingTable::Query(std::function<bool(CDFe
 	return data;
 }
 
-bool CDFeatureGatingTable::FeatureUnlocked(const std::string& feature) const {
+bool CDFeatureGatingTable::FeatureUnlocked(const CDFeatureGating& feature) const {
 	for (const auto& entry : entries) {
-		if (entry.featureName == feature) {
+		if (entry.featureName == feature.featureName && entry >= feature) {
 			return true;
 		}
 	}
