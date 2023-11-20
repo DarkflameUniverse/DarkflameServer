@@ -14,6 +14,8 @@
 |resurrect|`/resurrect`|Resurrects the player.||
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
 |who|`/who`|Displays in chat all players on the instance.||
+|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 or if `allow_nameplate_off` is set to exactly `1` in the settings|
+|toggleskipcinematics|`/toggleskipcinematics`|Skips mission and world load related cinematics.|8 or if `allow_players_to_skip_cinematics` is set to exactly `1` in the settings then 0|
 
 ## Moderation Commands
 
@@ -49,8 +51,6 @@ These commands are primarily for development and testing. The usage of many of t
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
-|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 or if `allow_nameplate_off` is set to exactly `1` in the settings|
-|toggleskipcinematics|`/toggleskipcinematics`|Skips mission and world load related cinematics.|8 or if `allow_players_to_skip_cinematics` is set to exactly `1` in the settings then 0|
 |fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.||
 |join|`/join <password>`|Joins a private zone with given password.||
 |leave-zone|`/leave-zone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.||
