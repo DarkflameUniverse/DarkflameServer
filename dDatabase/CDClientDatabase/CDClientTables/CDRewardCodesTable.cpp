@@ -29,12 +29,6 @@ void CDRewardCodesTable::LoadValuesFromDatabase() {
 		this->entries.push_back(entry);
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
-}
-
-const std::vector<CDRewardCode>& CDRewardCodesTable::GetEntries() const {
-	return this->entries;
 }
 
 LOT CDRewardCodesTable::GetAttachmentLOT(uint32_t rewardCodeId) const {

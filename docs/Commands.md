@@ -112,6 +112,7 @@ These commands are primarily for development and testing. The usage of many of t
 |setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|8|
 |addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
 |getfactions|`/getfactions`|Shows the player's factions|8|
+|setrewardcode|`/setrewardcode <code>`|Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`|8|
 ## Detailed `/inspect` Usage
 
 `/inspect <component> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`

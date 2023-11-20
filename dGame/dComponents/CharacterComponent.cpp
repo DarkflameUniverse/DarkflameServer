@@ -768,10 +768,10 @@ void CharacterComponent::AwardClaimCodes() {
 	if (rewardCodes.empty()) return;
 
 	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
-	for (auto rewardCode: rewardCodes){
+	for (auto const rewardCode: rewardCodes){
 		LOG_DEBUG("Processing RewardCode %i", rewardCode);
-		int rewardCodeIndex = rewardCode >> 6;
-		int bitIndex = rewardCode % 64;
+		const uint32_t rewardCodeIndex = rewardCode >> 6;
+		const uint32_t bitIndex = rewardCode % 64;
 		if (GeneralUtils::CheckBit(m_ClaimCodes[rewardCodeIndex], bitIndex)) continue;
 		m_ClaimCodes[rewardCodeIndex] = GeneralUtils::SetBit(m_ClaimCodes[rewardCodeIndex], bitIndex);
 
