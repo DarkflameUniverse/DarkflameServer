@@ -8,21 +8,10 @@ PackIndex::PackIndex(const std::filesystem::path& filePath) {
 
 	BinaryIO::BinaryRead<uint32_t>(m_FileStream, m_Version);
 	BinaryIO::BinaryRead<uint32_t>(m_FileStream, m_PackPathCount);
-
-	for (int i = 0; i < m_PackPathCount; i++) {
-		uint32_t stringLen = 0;
-		BinaryIO::BinaryRead<uint32_t>(m_FileStream, stringLen);
-
-		std::string path;
-
-		for (int j = 0; j < stringLen; j++) {
-			char inChar;
-			BinaryIO::BinaryRead<char>(m_FileStream, inChar);
-
-			path += inChar;
-		}
-
-		m_PackPaths.push_back(path);
+	
+	m_PackPaths.resize(m_PackPathCount);
+	for (auto& item : m_PackPaths) {
+		BinaryIO::ReadString<uint32_t>(m_FileStream, item, BinaryIO::ReadType::String);
 	}
 
 	BinaryIO::BinaryRead<uint32_t>(m_FileStream, m_PackFileIndexCount);

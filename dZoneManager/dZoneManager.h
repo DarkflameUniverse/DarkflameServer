@@ -14,7 +14,6 @@ public:
 		ReloadZone, //Forces the server and all connects clients to reload the map
 		UserJoined,
 		UserMoved,
-		PrintAllGameObjects, //Using this is a BAD idea in production
 		InvalidNotifier
 	};
 
@@ -30,7 +29,6 @@ public:
 
 	Zone* GetZone(); //Gets a pointer to the currently loaded zone.
 	void LoadZone(const LWOZONEID& zoneID); //Discard the current zone (if any) and loads a new zone.
-	void NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID); //Notifies the zone of a certain event or command.
 	void AddSpawner(LWOOBJID id, Spawner* spawner);
 	LWOZONEID GetZoneID() const;
 	LWOOBJID MakeSpawner(SpawnerInfo info);

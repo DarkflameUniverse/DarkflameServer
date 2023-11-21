@@ -16,12 +16,6 @@
 #include "AssetManager.h"
 #include "dConfig.h"
 
-void Level::SceneObjectDataChunk::PrintAllObjects() const {
-	for (const auto& [id, sceneObj] : objects) {
-		LOG("ID: %d LOT: %d", id, sceneObj.lot);
-	}
-}
-
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
 
@@ -38,14 +32,7 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	buffer.close();
 }
 
-Level::~Level() {
-	for (auto& [id, header] : m_ChunkHeaders) {
-		if (header.id == Level::ChunkTypeID::FileInfo) delete header.fileInfo;
-		if (header.id == Level::ChunkTypeID::SceneObjectData) delete header.sceneObjects;
-	}
-}
-
-void Level::MakeSpawner(SceneObject obj){
+void Level::MakeSpawner(SceneObject obj) {
 	SpawnerInfo spawnInfo = SpawnerInfo();
 	SpawnerNode* node = new SpawnerNode();
 	spawnInfo.templateID = obj.lot;
@@ -56,7 +43,7 @@ void Level::MakeSpawner(SceneObject obj){
 	node->config = obj.settings;
 	spawnInfo.nodes.push_back(node);
 	for (LDFBaseData* data : obj.settings) {
-	if (data) {
+		if (!data) continue;
 		if (data->GetKey() == u"spawntemplate") {
 			spawnInfo.templateID = std::stoi(data->GetValueAsString());
 		}
@@ -111,16 +98,8 @@ void Level::MakeSpawner(SceneObject obj){
 			spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
 		}
 	}
-	}
-	Game::zoneManager->MakeSpawner(spawnInfo);
-}
 
-const void Level::PrintAllObjects() {
-	for (std::map<uint32_t, Header>::iterator it = m_ChunkHeaders.begin(); it != m_ChunkHeaders.end(); ++it) {
-		if (it->second.id == Level::ChunkTypeID::SceneObjectData) {
-			it->second.sceneObjects->PrintAllObjects();
-		}
-	}
+	Game::zoneManager->MakeSpawner(spawnInfo);
 }
 
 void Level::ReadChunks(std::istream& file) {
@@ -155,11 +134,10 @@ void Level::ReadChunks(std::istream& file) {
 				file.seekg(0);
 				Header header;
 				header.id = ChunkTypeID::FileInfo; //I guess?
-				FileInfoChunk* fileInfo = new FileInfoChunk();
 				BinaryIO::BinaryRead(file, header.chunkVersion);
 				BinaryIO::BinaryRead(file, header.chunkType);
 				file.ignore(1);
-				BinaryIO::BinaryRead(file, fileInfo->revision);
+				BinaryIO::BinaryRead(file, header.fileInfo.revision);
 
 				if (header.chunkVersion >= 45) file.ignore(4);
 				file.ignore(4 * (4 * 3));
@@ -172,9 +150,7 @@ void Level::ReadChunks(std::istream& file) {
 							uint32_t s = 0;
 							BinaryIO::BinaryRead(file, s);
 							for (uint32_t i = 0; i < s; ++i) {
-								file.ignore(4); //a uint
-								file.ignore(4); //two floats
-								file.ignore(4);
+								file.ignore(4 * 3); //a uint and two floats
 							}
 						}
 					} else {
@@ -208,7 +184,6 @@ void Level::ReadChunks(std::istream& file) {
 				BinaryIO::BinaryRead(file, count);
 				file.ignore(count * 12);
 
-				header.fileInfo = fileInfo;
 				m_ChunkHeaders.insert(std::make_pair(header.id, header));
 
 				//Now pretend to be a normal file and read Objects chunk:
@@ -222,20 +197,17 @@ void Level::ReadChunks(std::istream& file) {
 }
 
 void Level::ReadFileInfoChunk(std::istream& file, Header& header) {
-	FileInfoChunk* fi = new FileInfoChunk;
-	BinaryIO::BinaryRead(file, fi->version);
-	BinaryIO::BinaryRead(file, fi->revision);
-	BinaryIO::BinaryRead(file, fi->enviromentChunkStart);
-	BinaryIO::BinaryRead(file, fi->objectChunkStart);
-	BinaryIO::BinaryRead(file, fi->particleChunkStart);
-	header.fileInfo = fi;
+	BinaryIO::BinaryRead(file, header.fileInfo.version);
+	BinaryIO::BinaryRead(file, header.fileInfo.revision);
+	BinaryIO::BinaryRead(file, header.fileInfo.enviromentChunkStart);
+	BinaryIO::BinaryRead(file, header.fileInfo.objectChunkStart);
+	BinaryIO::BinaryRead(file, header.fileInfo.particleChunkStart);
 
 	//PATCH FOR AG: (messed up file?)
-	if (header.fileInfo->revision == 3452816845 && m_ParentZone->GetZoneID().GetMapID() == 1100) header.fileInfo->revision = 26;
+	if (header.fileInfo.revision == 0xCDCDCDCD && m_ParentZone->GetZoneID().GetMapID() == 1100) header.fileInfo.revision = 26;
 }
 
 void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
-	SceneObjectDataChunk* chunk = new SceneObjectDataChunk;
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
 
@@ -249,33 +221,28 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current"), gating.current);
 	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor"), gating.minor);
 
+	const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
+	DluAssert(zoneControlObject != nullptr);
 	for (uint32_t i = 0; i < objectsCount; ++i) {
+		std::u16string ldfString;
 		SceneObject obj;
 		BinaryIO::BinaryRead(file, obj.id);
 		BinaryIO::BinaryRead(file, obj.lot);
 
-		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.nodeType);
-		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.glomId);
+		/*if (header.fileInfo.version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.nodeType);
+		/*if (header.fileInfo.version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.glomId);
 
 		BinaryIO::BinaryRead(file, obj.position);
 		BinaryIO::BinaryRead(file, obj.rotation);
 		BinaryIO::BinaryRead(file, obj.scale);
+		BinaryIO::ReadString<uint32_t>(file, ldfString);
+		BinaryIO::BinaryRead(file, obj.value3);
 
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
 			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
 			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
-		}
-
-		std::u16string ldfString = u"";
-		uint32_t length = 0;
-		BinaryIO::BinaryRead(file, length);
-
-		for (uint32_t i = 0; i < length; ++i) {
-			uint16_t data;
-			BinaryIO::BinaryRead(file, data);
-			ldfString.push_back(data);
 		}
 
 		std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
@@ -288,34 +255,39 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			obj.settings.push_back(ldfData);
 		}
 
-		BinaryIO::BinaryRead(file, obj.value3);
 
-		// Feature gating
-		bool gated = false;
+		// We should never have more than 1 zone control object
+		bool skipLoadingObject = obj.lot == zoneControlObject->GetLOT();
 		for (LDFBaseData* data : obj.settings) {
+			if (!data) continue;
 			if (data->GetKey() == u"gatingOnFeature") {
 				gating.featureName = data->GetValueAsString();
-				if (gating.featureName == Game::config->GetValue("event_1")) break;
-				else if (gating.featureName == Game::config->GetValue("event_2")) break;
-				else if (gating.featureName == Game::config->GetValue("event_3")) break;
-				else if (gating.featureName == Game::config->GetValue("event_4")) break;
-				else if (gating.featureName == Game::config->GetValue("event_5")) break;
-				else if (gating.featureName == Game::config->GetValue("event_6")) break;
-				else if (gating.featureName == Game::config->GetValue("event_7")) break;
-				else if (gating.featureName == Game::config->GetValue("event_8")) break;
+				if (gating.featureName == Game::config->GetValue("event_1")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_2")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_3")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_4")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_5")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_6")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_7")) continue;
+				else if (gating.featureName == Game::config->GetValue("event_8")) continue;
 				else if (!featureGatingTable->FeatureUnlocked(gating)) {
-					gated = true;
+					// The feature is not unlocked, so we can skip loading this object
+					skipLoadingObject = true;
 					break;
 				}
 			}
+			// If this is a client only object, we can skip loading it
+			if (data->GetKey() == u"loadOnClientOnly") {
+				skipLoadingObject = static_cast<bool>(std::stoi(data->GetValueAsString()));
+				break;
+			}
 		}
 
-		if (gated) {
+		if (skipLoadingObject) {
 			for (auto* setting : obj.settings) {
 				delete setting;
+				setting = nullptr;
 			}
-
-			obj.settings.clear();
 
 			continue;
 		}
@@ -331,45 +303,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			info.rot = obj.rotation;
 			info.settings = obj.settings;
 			info.scale = obj.scale;
-
-			//Check to see if we shouldn't be loading this:
-			bool clientOnly = false;
-			bool serverOnly = false;
-			std::string featureGate = "";
-			for (LDFBaseData* data : obj.settings) {
-				if (data) {
-					if (data->GetKey() == u"loadOnClientOnly") {
-						clientOnly = (bool)std::stoi(data->GetValueAsString());
-						break;
-					}
-					if (data->GetKey() == u"loadSrvrOnly") {
-						serverOnly = (bool)std::stoi(data->GetValueAsString());
-						break;
-					}
-				}
-			}
-
-			if (!clientOnly) {
-
-				// We should never have more than 1 zone control object
-				const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
-				if (zoneControlObject != nullptr && info.lot == zoneControlObject->GetLOT())
-					goto deleteSettings;
-
-				Game::entityManager->CreateEntity(info, nullptr);
-			} else {
-			deleteSettings:
-
-				for (auto* setting : info.settings) {
-					delete setting;
-					setting = nullptr;
-				}
-
-				info.settings.clear();
-				obj.settings.clear();
-			}
+			Game::entityManager->CreateEntity(info);
 		}
 	}
-
-	header.sceneObjects = chunk;
 }

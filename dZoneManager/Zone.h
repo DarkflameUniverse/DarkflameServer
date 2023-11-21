@@ -210,7 +210,6 @@ public:
 	void AddRevision(LWOSCENEID sceneID, uint32_t revision);
 	const LWOZONEID& GetZoneID() const { return m_ZoneID; }
 	const uint32_t GetChecksum() const { return m_CheckSum; }
-	const void PrintAllGameObjects();
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
 	const Path* GetPath(std::string name) const;
 
@@ -228,7 +227,6 @@ public:
 private:
 	LWOZONEID m_ZoneID;
 	std::string m_ZoneFilePath;
-	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
 	FileFormatVersion m_FileFormatVersion;
@@ -254,7 +252,7 @@ private:
 
 	//private ("helper") functions:
 	void LoadScene(std::istream& file);
-	std::vector<LUTriggers::Trigger*> LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID);
+	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
 	void LoadPath(std::istream& file);
