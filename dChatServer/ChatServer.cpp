@@ -19,6 +19,7 @@
 #include "eChatMessageType.h"
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
+#include "PacketUtils.h"
 
 #include "Game.h"
 
@@ -293,10 +294,16 @@ void HandlePacket(Packet* packet) {
 
 		// Guild messages
 		case eChatMessageType::GUILD_CREATE:
+			PacketUtils::SavePacket("GUILD_CREATE", (const char*) packet->data, packet->length);
 			LOG("GUILD_CREATE");
+			break;
+		
+		case eChatMessageType::GUILD_INVITE:
+			PacketUtils::SavePacket("GUILD_INVITE", (const char*) packet->data, packet->length);
 			break;
 
 		case eChatMessageType::GUILD_INVITE_RESPONSE:
+			PacketUtils::SavePacket("GUILD_INVITE_RESPONSE", (const char*) packet->data, packet->length);
 			LOG("GUILD_INVITE_RESPONSE");
 			break;
 
@@ -305,14 +312,17 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GUILD_KICK:
+			PacketUtils::SavePacket("GUILD_KICK", (const char*) packet->data, packet->length);
 			LOG("GUILD_KICK");
 			break;
 
 		case eChatMessageType::GUILD_GET_STATUS:
+			PacketUtils::SavePacket("GUILD_GET_STATUS", (const char*) packet->data, packet->length);
 			LOG("GUILD_GET_STATUS");
 			break;
 
 		case eChatMessageType::GUILD_GET_ALL:
+			PacketUtils::SavePacket("GUILD_GET_ALL", (const char*) packet->data, packet->length);
 			LOG("GUILD_GET_ALL");
 			ChatPacketHandler::HandleGuildGetAll(packet);
 			break;

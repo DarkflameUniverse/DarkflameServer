@@ -18,6 +18,7 @@
 #include "eChatInternalMessageType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
+#include "eGuildLeaveReason.h"
 
 extern PlayerContainer playerContainer;
 
@@ -676,8 +677,25 @@ void ChatPacketHandler::HandleGuildLeave(Packet* packet){
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
-	LOG("HandleGuildLeave %llu", playerID);
+	auto* player = playerContainer.GetPlayerData(playerID);
+	if (!player) return;
+	auto guild_id = Database::Get()->GetMembersGuild(playerID);
+	Database::Get()->DeleteGuildMember(player->playerID);
+	auto members = Database::Get()->GetGuildMembers(guild_id);
+	if (members.empty()) Database::Get()->DeleteGuild(guild_id);
+
+	// Send the removal, need to send this to all players in guild TODO
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+	bitStream.Write(player->playerID);
 	
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GUILD_REMOVE_PLAYER);
+	bitStream.Write(eGuildLeaveReason::LEFT);
+	bitStream.Write(LUWString(player->playerName));
+	bitStream.Write(player->playerID);
+
+	SystemAddress sysAddr = player->sysAddr;
+	SEND_PACKET;
 }
 
 void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
@@ -685,7 +703,42 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
 	LOG("HandleGuildGetAll %llu", playerID);
-	
+	auto player = playerContainer.GetPlayerData(playerID);
+	if (!player) return;
+	auto guild_id = Database::Get()->GetMembersGuild(player->playerID);
+	if (!guild_id) return;
+	auto guild = Database::Get()->GetGuild(guild_id);
+	if (!guild) return;
+	auto members  = Database::Get()->GetGuildMembers(guild_id);
+
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+	bitStream.Write(playerID);
+
+	//portion that will get routed:
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GUILD_DATA);
+	bitStream.Write0();
+	bitStream.Write(LUWString(guild->name, 31));
+	bitStream.Write(LUWString("test1", 11));
+	bitStream.Write(LUWString("test2", 11));
+	bitStream.Write<uint32_t>(69);
+	bitStream.Write<uint32_t>(0);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write<uint8_t>(0);
+	bitStream.Write<uint8_t>(members.size());
+	//Member data
+	bitStream.Write1();
+	bitStream.Write1();
+	bitStream.Write<uint16_t>(1200);
+	bitStream.Write<uint16_t>(1);
+	bitStream.Write<uint16_t>(1);
+	bitStream.Write<uint16_t>(1);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write(LUWString(player->playerName, 25));
+	bitStream.Write<uint8_t>(0); //???
+
+	SystemAddress sysAddr = packet->systemAddress;
+	SEND_PACKET;
 }
 
 void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender) {

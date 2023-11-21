@@ -21,12 +21,13 @@
 #include "ICharInfo.h"
 #include "IAccounts.h"
 #include "IActivityLog.h"
-
+#include "IGuilds.h"
+#include "IGuildMembers.h"
 namespace sql {
 	class Statement;
 	class PreparedStatement;
 };
-
+#define _DEBUG
 #ifdef _DEBUG
 #  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (sql::SQLException& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
 #else
@@ -38,7 +39,7 @@ class GameDatabase :
 	public IMail, public ICommandLog, public IPlayerCheatDetections, public IBugReports,
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
-	public IAccounts, public IActivityLog {
+	public IAccounts, public IActivityLog, public IGuilds, public IGuildMembers {
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.

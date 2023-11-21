@@ -1239,7 +1239,7 @@ void HandlePacket(Packet* packet) {
 
 	case eWorldMessageType::TMP_GUILD_CREATE: {
 		Game::logger->Log("WorldServer", "create a guild");
-		ClientPackets::HandleGuildCreation(packet->systemAddress, packet);
+		ClientPackets::HandleGuildCreation(packet);
 	}
 	case eWorldMessageType::UI_HELP_TOP_5: {
 		ClientPackets::SendTop5HelpIssues(packet);

@@ -17,8 +17,8 @@ namespace ClientPackets {
 	void SendTop5HelpIssues(Packet* packet);
 
 	// Guild stuff
-	void HandleGuildCreation(const SystemAddress& sysAddr, Packet* packet);
-	void SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guildID, std::u16string& guildName);
+	void HandleGuildCreation(Packet* packet);
+	void SendGuildCreateResponse(const SystemAddress& sysAddr, eGuildCreationResponse guildResponse, LWOOBJID guild_id, std::u16string& guildName);
 };
 
 #endif // CLIENTPACKETS_H

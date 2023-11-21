@@ -103,6 +103,17 @@ public:
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
+	std::optional<IGuilds::Guild> CreateGuild(const std::string_view name, const int32_t owner_id, const uint64_t reputation) override;
+	std::optional<IGuilds::Guild> GetGuild(const uint32_t guild_id) override;
+	std::optional<IGuilds::Guild> GetGuildByName(const std::string_view name) override;
+	bool CheckGuildNameExists(const std::string_view name) override;
+	void SetMOTD(const uint32_t guild_id, const std::string_view motd) override;
+	void DeleteGuild(const uint32_t guild_id) override;
+	void InsertGuildMember(const uint32_t guild_id, const uint32_t member_id, const uint16_t rank) override;
+	void DeleteGuildMember(const uint32_t member_id) override;
+	uint32_t GetMembersGuild(const uint32_t member_id) override;
+	std::vector<GuildMember> GetGuildMembers(const uint32_t guild_id) override;
+	bool CheckIsInGuild(const uint32_t guild_id, const uint32_t character_id) override;
 private:
 
 	// Generic query functions that can be used for any query.

@@ -6,6 +6,8 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"CharXml.cpp"
 	"CommandLog.cpp"
 	"Friends.cpp"
+	"Guilds.cpp"
+	"GuildMembers.cpp"
 	"Leaderboard.cpp"
 	"Mail.cpp"
 	"MigrationHistory.cpp"

@@ -197,10 +197,10 @@ public:
 	/**
 	 * @brief Set the character's Guild
 	 *
-	 * @param guildID
+	 * @param guild_id
 	 * @param guildName
 	 */
-	void SetGuild(LWOOBJID& guildID, std::u16string guildName);
+	void SetGuild(uint32_t guild_id, std::u16string guildName);
 
 	/**
 	 * Initializes the player statistics from the string stored in the XML

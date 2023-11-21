@@ -17,6 +17,8 @@
 #include "eGameMasterLevel.h"
 #include "eGameActivity.h"
 #include <ctime>
+#include "Database.h"
+#include "eObjectBits.h"
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
 	m_Character = character;
@@ -40,10 +42,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
-
-	
-	m_GuildID = 0;
-	m_GuildName = u"";
+	m_GuildID = LWOOBJID_EMPTY;
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -153,11 +152,9 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 
 	outBitStream->Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
-		outBitStream->Write(m_GuildID);
-		outBitStream->Write<unsigned char>(static_cast<unsigned char>(m_GuildName.size()));
-		if (!m_GuildName.empty())
-			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
-
+		outBitStream->Write<uint64_t>(m_GuildID);
+		outBitStream->Write<uint16_t>(m_GuildName.size());
+		if (!m_GuildName.empty()) outBitStream->Write(m_GuildName);
 		outBitStream->Write(m_IsLEGOClubMember);
 		outBitStream->Write(m_CountryCode);
 		m_DirtySocialInfo = false;
@@ -180,9 +177,15 @@ void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_GMLevel = gmlevel;
 }
 
-void CharacterComponent::SetGuild(LWOOBJID& guildID, std::u16string guildName) {
-	m_GuildID = guildID;
-	m_GuildName = guildName;
+void CharacterComponent::SetGuild(uint32_t guild_id, std::u16string guildName) {
+	if (guild_id == 0 || guildName.empty()){
+		m_GuildID = LWOOBJID_EMPTY;
+		m_GuildName.clear();
+	} else {
+		m_GuildID = guild_id;
+		GeneralUtils::SetBit(m_GuildID, eObjectBits::CHARACTER);
+		m_GuildName = guildName;
+	}
 	m_DirtySocialInfo = true;
 }
 
@@ -261,16 +264,20 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	}
 
 	// Guild Stuff:
-	const tinyxml2::XMLAttribute* guildName = character->FindAttribute("gn");
-	if (guildName) {
-		const char* gn = guildName->Value();
-		int64_t gid = 0;
-		character->QueryInt64Attribute("gid", &gid);
-		if (gid != 0) {
-			std::string guildname(gn);
-			m_GuildName = GeneralUtils::UTF8ToUTF16(guildname);
+	// Ensure the guild they are a part of still exists
+	// Update the guild name if it has changed
+	int64_t gid = 0;
+	character->QueryInt64Attribute("gid", &gid);
+	if (gid != 0) {
+		auto guild = Database::Get()->GetGuild(gid);
+		if (guild && Database::Get()->CheckIsInGuild(guild->id, m_Parent->GetCharacter()->GetID())) {
+			LOG("Found Guild %i name %s", guild->id, guild->name.c_str());
+			m_GuildName = GeneralUtils::UTF8ToUTF16(guild->name);
 			m_GuildID = gid;
 			m_DirtySocialInfo = true;
+		} else {
+			LOG("Unalbe to find Guild %i name %s", guild->id, guild->name.c_str());
+			SetGuild(0, u"");
 		}
 	}
 
@@ -362,7 +369,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	// End custom attributes
 	//
 
-	if (m_GuildID != 0 || m_GuildName != u"") {
+	if (m_GuildID != 0 || !m_GuildName.empty()) {
 		character->SetAttribute("gn", GeneralUtils::UTF16ToWTF8(m_GuildName).c_str());
 		character->SetAttribute("gid", m_GuildID);
 	}
