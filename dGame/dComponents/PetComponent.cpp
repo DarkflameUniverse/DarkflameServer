@@ -368,15 +368,12 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	auto* owner = GetOwner();
-
 	if (owner == nullptr) {
 		m_Parent->Kill();
-
 		return;
 	}
 
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-
 	if (m_MovementAI == nullptr) {
 		return;
 	}
@@ -390,7 +387,6 @@ void PetComponent::Update(float deltaTime) {
 	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
 
 	float distanceToOwner = Vector3::DistanceSquared(position, destination);
-
 	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
 		m_MovementAI->Warp(destination);
 
@@ -437,7 +433,6 @@ void PetComponent::Update(float deltaTime) {
 	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
 	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
-
 	if (closestTresure != nullptr && digUnlocked) {
 		// Skeleton Dragon Pat special case for bone digging
 		if (closestTresure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
@@ -449,7 +444,7 @@ void PetComponent::Update(float deltaTime) {
 		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
-			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce , true); // Plays 'bounce' animation
+			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
 
 			SetIsReadyToDig(true);
 
@@ -1157,7 +1152,7 @@ void PetComponent::SetPreconditions(std::string& preconditions) {
 void PetComponent::StartInteractDig() {
 	//m_InInteract = true;
 	m_TresureTime = 2.0f; //TODO: Remove magic number
-	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure , true);
+	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure, true);
 }
 
 void PetComponent::EndInteractDig() {
