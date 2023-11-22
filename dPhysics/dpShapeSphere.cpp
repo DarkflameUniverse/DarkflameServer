@@ -1,5 +1,7 @@
 #include "dpShapeSphere.h"
 #include "dpCollisionChecks.h"
+#include "Game.h"
+#include "Logger.h"
 #include <iostream>
 
 dpShapeSphere::dpShapeSphere(dpEntity* parentEntity, float radius) :
@@ -22,7 +24,7 @@ bool dpShapeSphere::IsColliding(dpShapeBase* other) {
 		return dpCollisionChecks::CheckSphereBox(m_ParentEntity, other->GetParentEntity());
 
 	default:
-		std::cout << "No collision detection for: " << (int)m_ShapeType << "-to-" << (int)other->GetShapeType() << " collision!" << std::endl;
+		LOG("No collision detection for: %i-to-%i collision!", static_cast<int32_t>(m_ShapeType), static_cast<int32_t>(other->GetShapeType()));
 	}
 
 	return false;

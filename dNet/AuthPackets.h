@@ -15,6 +15,8 @@ namespace AuthPackets {
 
 	void HandleLoginRequest(dServer* server, Packet* packet);
 	void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username);
+	void LoadClaimCodes();
+
 }
 
 #endif // AUTHPACKETS_H

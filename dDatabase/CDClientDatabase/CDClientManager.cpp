@@ -37,6 +37,7 @@
 #include "CDPropertyTemplateTable.h"
 #include "CDFeatureGatingTable.h"
 #include "CDRailActivatorComponent.h"
+#include "CDRewardCodesTable.h"
 
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
 // A vanilla CDClient takes about 46MB of memory + the regular world data.
@@ -82,6 +83,7 @@ CDClientManager::CDClientManager() {
 	CDRailActivatorComponentTable::Instance().LoadValuesFromDatabase();
 	CDRarityTableTable::Instance().LoadValuesFromDatabase();
 	CDRebuildComponentTable::Instance().LoadValuesFromDatabase();
+	CDRewardCodesTable::Instance().LoadValuesFromDatabase();
 	CDRewardsTable::Instance().LoadValuesFromDatabase();
 	CDScriptComponentTable::Instance().LoadValuesFromDatabase();
 	CDSkillBehaviorTable::Instance().LoadValuesFromDatabase();
