@@ -5017,6 +5017,14 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
+	if (emotes) {
+		CDEmoteTable* emote = emotes->GetEmote(emoteID);
+		if (emote) sAnimationName = emote->animationName;
+	}
+
+	RenderComponent::PlayAnimation(entity, sAnimationName);
+
 	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
@@ -5042,14 +5050,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
-
-	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
-	if (emotes) {
-		CDEmoteTable* emote = emotes->GetEmote(emoteID);
-		if (emote) sAnimationName = emote->animationName;
-	}
-
-	RenderComponent::PlayAnimation(entity, sAnimationName);
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
