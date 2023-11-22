@@ -16,6 +16,12 @@
 #include "AssetManager.h"
 #include "dConfig.h"
 
+void Level::SceneObjectDataChunk::PrintAllObjects() const {
+	for (const auto& [id, sceneObj] : objects) {
+		LOG("ID: %d LOT: %d", id, sceneObj.lot);
+	}
+}
+
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
 
@@ -33,9 +39,9 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 }
 
 Level::~Level() {
-	for (std::map<uint32_t, Header>::iterator it = m_ChunkHeaders.begin(); it != m_ChunkHeaders.end(); ++it) {
-		if (it->second.id == Level::ChunkTypeID::FileInfo) delete it->second.fileInfo;
-		if (it->second.id == Level::ChunkTypeID::SceneObjectData) delete it->second.sceneObjects;
+	for (auto& [id, header] : m_ChunkHeaders) {
+		if (header.id == Level::ChunkTypeID::FileInfo) delete header.fileInfo;
+		if (header.id == Level::ChunkTypeID::SceneObjectData) delete header.sceneObjects;
 	}
 }
 
@@ -248,8 +254,8 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		BinaryIO::BinaryRead(file, obj.id);
 		BinaryIO::BinaryRead(file, obj.lot);
 
-		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.value1);
-		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.value2);
+		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.nodeType);
+		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.glomId);
 
 		BinaryIO::BinaryRead(file, obj.position);
 		BinaryIO::BinaryRead(file, obj.rotation);

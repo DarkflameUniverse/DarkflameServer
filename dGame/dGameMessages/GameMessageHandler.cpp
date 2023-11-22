@@ -34,6 +34,8 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
+#include "ePlayerFlag.h"
+#include "dConfig.h"
 
 using namespace std;
 
@@ -173,6 +175,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::SendPlayerReady(entity, sysAddr);
 		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
+		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
+			|| !entity->GetCharacter()
+			|| !entity->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+		entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
+			if (!entity) return;
+			GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
+			});
 		break;
 	}
 
@@ -244,13 +253,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 	case eGameMessageType::REQUEST_RESURRECT: {
 		GameMessages::SendResurrect(entity);
-		/*auto* dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
-		if (dest) {
-			dest->SetHealth(4);
-			dest->SetArmor(0);
-			dest->SetImagination(6);
-			Game::entityManager->SerializeEntity(entity);
-		}*/
 		break;
 	}
 	case eGameMessageType::GET_HOT_PROPERTY_DATA: {
@@ -339,11 +341,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		RakNet::BitStream bitStreamLocal;
 		BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		bitStreamLocal.Write(entity->GetObjectID());
-		//bitStreamLocal.Write((unsigned short)eGameMessageType::ECHO_SYNC_SKILL);
-		//bitStreamLocal.Write(inStream);
 
 		SyncSkill sync = SyncSkill(inStream); // inStream replaced &bitStream
-		//sync.Serialize(&bitStreamLocal);
 
 		ostringstream buffer;
 
@@ -352,8 +351,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			s = sync.sBitStream.at(k);
 			buffer << setw(2) << hex << setfill('0') << (int)s << " ";
 		}
-
-		//cout << buffer.str() << endl;
 
 		if (usr != nullptr) {
 			RakNet::BitStream* bs = new RakNet::BitStream((unsigned char*)sync.sBitStream.c_str(), sync.sBitStream.size(), false);

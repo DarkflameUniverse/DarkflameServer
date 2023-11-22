@@ -22,6 +22,7 @@
 #include "IAccounts.h"
 #include "IActivityLog.h"
 #include "IIgnoreList.h"
+#include "IAccountsRewardCodes.h"
 
 namespace sql {
 	class Statement;
@@ -39,7 +40,7 @@ class GameDatabase :
 	public IMail, public ICommandLog, public IPlayerCheatDetections, public IBugReports,
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
-	public IAccounts, public IActivityLog, public IIgnoreList {
+	public IAccounts, public IActivityLog, public IAccountsRewardCodes, public IIgnoreList {
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.

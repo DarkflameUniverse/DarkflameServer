@@ -43,6 +43,7 @@
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
 #include "eConnectionType.h"
+#include "ePlayerFlag.h"
 
 #include <sstream>
 #include <future>
@@ -5161,6 +5162,14 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		missionComponent->CompleteMission(missionID);
 	}
+
+	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
+	|| !player->GetCharacter()
+	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+	player->AddCallbackTimer(0.5f, [player]() {
+		if (!player) return;
+		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
+	});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity) {
