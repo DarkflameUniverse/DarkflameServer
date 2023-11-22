@@ -1033,9 +1033,8 @@ void HandlePacket(Packet* packet) {
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
 
 				auto* characterComponent = player->GetComponent<CharacterComponent>();
-				if (characterComponent) {
-					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
-				}
+				if (!characterComponent) return;
+				characterComponent->RocketUnEquip(player);
 
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();

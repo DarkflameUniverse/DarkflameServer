@@ -83,6 +83,7 @@
 #include "eChatInternalMessageType.h"
 #include "eMasterMessageType.h"
 
+#include "CDRewardCodesTable.h"
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
 #include "ePlayerFlag.h"
@@ -1909,6 +1910,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				ChatPackets::SendSystemMessage(sysAddr, (GeneralUtils::to_u16string(entry)));
 			}
 		}
+	}
+
+	if (chatCommand == "setrewardcode" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+
+		auto id = cdrewardCodes->GetCodeID(args[0]);
+		if (id != -1) Database::Get()->InsertRewardCode(user->GetAccountID(), id);
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
