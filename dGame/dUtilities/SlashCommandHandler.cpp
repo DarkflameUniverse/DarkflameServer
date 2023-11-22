@@ -83,8 +83,10 @@
 #include "eChatInternalMessageType.h"
 #include "eMasterMessageType.h"
 
+#include "CDRewardCodesTable.h"
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
+#include "ePlayerFlag.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	auto commandCopy = command;
@@ -170,6 +172,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 		return;
 	}
+
+	if (chatCommand == "toggleskipcinematics" && (Game::config->GetValue("allow_players_to_skip_cinematics") == "1" || entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER)) {
+		auto* character = entity->GetCharacter();
+		if (!character) return;
+		bool current = character->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS);
+		character->SetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS, !current);
+		if (!current) {
+			ChatPackets::SendSystemMessage(sysAddr, u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.");
+		} else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Cinematics will no longer be skipped.");
+		}
+
+		return;
+	}
+
 
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	//HANDLE ALL NON GM SLASH COMMANDS RIGHT HERE!
@@ -1889,6 +1906,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				ChatPackets::SendSystemMessage(sysAddr, (GeneralUtils::to_u16string(entry)));
 			}
 		}
+	}
+
+	if (chatCommand == "setrewardcode" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+
+		auto id = cdrewardCodes->GetCodeID(args[0]);
+		if (id != -1) Database::Get()->InsertRewardCode(user->GetAccountID(), id);
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
