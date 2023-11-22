@@ -5016,32 +5016,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
-	if (missionComponent) {
-		if (targetID != LWOOBJID_EMPTY) {
-			auto* targetEntity = Game::entityManager->GetEntity(targetID);
-
-			LOG_DEBUG("Emote target found (%d)", targetEntity != nullptr);
-
-			if (targetEntity != nullptr) {
-				targetEntity->OnEmoteReceived(emoteID, entity);
-				missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
-			}
-		} else {
-			LOG_DEBUG("Target ID is empty, using backup");
-			const auto scriptedEntities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
-
-			const auto& referencePoint = entity->GetPosition();
-
-			for (auto* scripted : scriptedEntities) {
-				if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
-
-				scripted->OnEmoteReceived(emoteID, entity);
-				missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
-			}
-		}
-	}
-
 	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
 	if (emotes) {
 		CDEmoteTable* emote = emotes->GetEmote(emoteID);
@@ -5049,6 +5023,32 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	}
 
 	RenderComponent::PlayAnimation(entity, sAnimationName);
+
+	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
+
+	if (targetID != LWOOBJID_EMPTY) {
+		auto* targetEntity = Game::entityManager->GetEntity(targetID);
+
+		LOG_DEBUG("Emote target found (%d)", targetEntity != nullptr);
+
+		if (targetEntity != nullptr) {
+			targetEntity->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, targetID);
+		}
+	} else {
+		LOG_DEBUG("Target ID is empty, using backup");
+		const auto scriptedEntities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
+
+		const auto& referencePoint = entity->GetPosition();
+
+		for (auto* scripted : scriptedEntities) {
+			if (Vector3::DistanceSquared(scripted->GetPosition(), referencePoint) > 5.0f * 5.0f) continue;
+
+			scripted->OnEmoteReceived(emoteID, entity);
+			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
+		}
+	}
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
