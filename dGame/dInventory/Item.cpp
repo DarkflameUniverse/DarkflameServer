@@ -423,24 +423,15 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	if (renderAssetSplit.empty()) return;
 
 	std::string lxfmlPath = "BrickModels" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
-	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
+	auto file = Game::assetManager->GetFile(lxfmlPath.c_str());
 
-	if (!buffer.m_Success) {
+	if (!file) {
 		LOG("Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
-		return;
-	}
-
-	std::istream file(&buffer);
-
-	if (!file.good()) {
-		buffer.close();
 		return;
 	}
 
 	std::stringstream data;
 	data << file.rdbuf();
-
-	buffer.close();
 
 	uint32_t fileSize;
 	file.seekg(0, std::ios::end);

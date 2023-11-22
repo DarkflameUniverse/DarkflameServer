@@ -19,17 +19,14 @@
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
 
-	auto buffer = Game::assetManager->GetFileAsBuffer(filepath.c_str());
+	auto stream = Game::assetManager->GetFile(filepath.c_str());
 
-	if (!buffer.m_Success) {
+	if (!stream) {
 		LOG("Failed to load %s", filepath.c_str());
 		return;
 	}
-
-	std::istream file(&buffer);
-	ReadChunks(file);
-
-	buffer.close();
+	
+	ReadChunks(stream);
 }
 
 void Level::MakeSpawner(SceneObject obj) {

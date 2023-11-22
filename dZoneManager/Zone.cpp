@@ -45,14 +45,13 @@ void Zone::LoadZoneIntoMemory() {
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 	if (m_ZoneFilePath == "ERR") return;
 
-	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer(m_ZoneFilePath.c_str());
+	auto file = Game::assetManager->GetFile(m_ZoneFilePath.c_str());
 
-	if (!buffer.m_Success) {
+	if (!file) {
 		LOG("Failed to load %s", m_ZoneFilePath.c_str());
 		throw std::runtime_error("Aborting Zone loading due to no Zone File.");
 	}
 
-	std::istream file(&buffer);
 	if (file) {
 		BinaryIO::BinaryRead(file, m_FileFormatVersion);
 
@@ -148,9 +147,8 @@ void Zone::LoadZoneIntoMemory() {
 	} else {
 		LOG("Failed to open: %s", m_ZoneFilePath.c_str());
 	}
+	
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
-
-	buffer.close();
 }
 
 std::string Zone::GetFilePathForZoneID() {
@@ -243,23 +241,33 @@ void Zone::LoadScene(std::istream& file) {
 	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
 }
 
+<<<<<<< Updated upstream
 void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
 	auto buffer = Game::assetManager->GetFileAsBuffer((m_ZonePath + triggerFile).c_str());
+=======
+std::vector<LUTriggers::Trigger*> Zone::LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID) {
+	std::vector<LUTriggers::Trigger*> lvlTriggers;
 
-	if (!buffer.m_Success) {
+	auto file = Game::assetManager->GetFile((m_ZonePath + triggerFile).c_str());
+>>>>>>> Stashed changes
+
+	if (!file) {
 		LOG("Failed to load %s from disk. Skipping loading triggers", (m_ZonePath + triggerFile).c_str());
 		return;
 	}
-
-	std::istream file(&buffer);
+	
 	std::stringstream data;
 	data << file.rdbuf();
 
+<<<<<<< Updated upstream
 	buffer.close();
 
 	data.seekg(0, std::ios::end);
 	int32_t size = data.tellg();
 	data.seekg(0, std::ios::beg);
+=======
+	if (data.str().size() == 0) return lvlTriggers;
+>>>>>>> Stashed changes
 
 	if (size == 0) return;
 
