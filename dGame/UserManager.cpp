@@ -207,7 +207,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars[i]->SaveXMLToDatabase();
 
 		chars[i]->GetEntity()->SetCharacter(nullptr);
-		
+
 		delete chars[i];
 	}
 
@@ -275,60 +275,58 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		}
 
 		std::stringstream xml;
-		xml << "<obj v=\"1\"><mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
+		xml << "<obj v=\"1\">";
+
+		xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
 		xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
 		xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
 
 		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
 		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
 		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
+
 		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
+
 		xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
-		std::string xmlSave1 = xml.str();
 
-		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforshirt) {
-			std::stringstream xml2;
+		LWOOBJID lwoidforshirt = ObjectIDManager::GenerateRandomObjectID();
+		LWOOBJID lwoidforpants;
 
-			LWOOBJID lwoidforshirt = idforshirt;
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
-			xml2 << xmlSave1 << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		do {
+			lwoidforpants = ObjectIDManager::GenerateRandomObjectID();
+		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
 
-			std::string xmlSave2 = xml2.str();
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
-			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforpants) {
-				LWOOBJID lwoidforpants = idforpants;
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
+		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
-				std::stringstream xml3;
-				xml3 << xmlSave2 << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
 
-				xml3 << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
+		//Check to see if our name was pre-approved:
+		bool nameOk = IsNamePreapproved(name);
+		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-				//Check to see if our name was pre-approved:
-				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
+		std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-				std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
-				std::string pendingName = !name.empty() && !nameOk ? name : "";
+		ICharInfo::Info info;
+		info.name = nameToAssign;
+		info.pendingName = pendingName;
+		info.id = objectID;
+		info.accountId = u->GetAccountID();
 
-				ICharInfo::Info info;
-				info.name = nameToAssign;
-				info.pendingName = pendingName;
-				info.id = objectID;
-				info.accountId = u->GetAccountID();
+		Database::Get()->InsertNewCharacter(info);
 
-				Database::Get()->InsertNewCharacter(info);
+		//Now finally insert our character xml:
+		Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-				//Now finally insert our character xml:
-				Database::Get()->InsertCharacterXml(objectID, xml3.str());
-
-				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-				UserManager::RequestCharacterList(sysAddr);
-				});
-			});
-		});
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+		UserManager::RequestCharacterList(sysAddr);
+	});
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
@@ -466,16 +464,18 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	try {
-		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
-		shirtQuery += std::to_string(shirtColor);
-		shirtQuery += " AND icc.decal == ";
-		shirtQuery = shirtQuery + std::to_string(shirtStyle);
-		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
-		auto shirtLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ? AND icc.decal == ?"
+		);
+		stmt.bind(1, "character create shirt");
+		stmt.bind(2, static_cast<int>(shirtColor));
+		stmt.bind(3, static_cast<int>(shirtStyle));
+		auto tableData = stmt.execQuery();
+		auto shirtLOT = tableData.getIntField(0, 4069);
 		tableData.finalize();
 		return shirtLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up shirt %i %i: %s", shirtColor, shirtStyle, ex.what());
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -483,14 +483,17 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
 	try {
-		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
-		pantsQuery += std::to_string(pantsColor);
-		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
-		auto pantsLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ?"
+		);
+		stmt.bind(1, "cc pants");
+		stmt.bind(2, static_cast<int>(pantsColor));
+		auto tableData = stmt.execQuery();
+		auto pantsLOT = tableData.getIntField(0, 2508);
 		tableData.finalize();
 		return pantsLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up pants %i: %s", pantsColor, ex.what());
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}
