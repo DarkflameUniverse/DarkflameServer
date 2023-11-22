@@ -16,12 +16,6 @@
 #include "AssetManager.h"
 #include "dConfig.h"
 
-void Level::SceneObjectDataChunk::PrintAllObjects() const {
-	for (const auto& [id, sceneObj] : objects) {
-		LOG("ID: %d LOT: %d", id, sceneObj.lot);
-	}
-}
-
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
 
