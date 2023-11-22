@@ -1372,7 +1372,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ChatPackets::SendSystemMessage(sysAddr, u"<" + (GeneralUtils::to_u16string(position.x)) + u", " + (GeneralUtils::to_u16string(position.y)) + u", " + (GeneralUtils::to_u16string(position.z)) + u">");
 
-		std::cout << position.x << ", " << position.y << ", " << position.z << std::endl;
+		LOG("Position: %f, %f, %f", position.x, position.y, position.z);
 	}
 
 	if (chatCommand == "rot" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1380,14 +1380,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ChatPackets::SendSystemMessage(sysAddr, u"<" + (GeneralUtils::to_u16string(rotation.w)) + u", " + (GeneralUtils::to_u16string(rotation.x)) + u", " + (GeneralUtils::to_u16string(rotation.y)) + u", " + (GeneralUtils::to_u16string(rotation.z)) + u">");
 
-		std::cout << rotation.w << ", " << rotation.x << ", " << rotation.y << ", " << rotation.z << std::endl;
+		LOG("Rotation: %f, %f, %f, %f", rotation.w, rotation.x, rotation.y, rotation.z);
 	}
 
 	if (chatCommand == "locrow" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		const auto position = entity->GetPosition();
 		const auto rotation = entity->GetRotation();
 
-		std::cout << "<location x=\"" << position.x << "\" y=\"" << position.y << "\" z=\"" << position.z << "\" rw=\"" << rotation.w << "\" rx=\"" << rotation.x << "\" ry=\"" << rotation.y << "\" rz=\"" << rotation.z << "\" />" << std::endl;
+		LOG("<location x=\"%f\" y=\"%f\" z=\"%f\" rw=\"%f\" rx=\"%f\" ry=\"%f\" rz=\"%f\" />", position.x, position.y, position.z, rotation.w, rotation.x, rotation.y, rotation.z);
 	}
 
 	if (chatCommand == "playlvlfx" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1652,7 +1652,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 					auto sphere = static_cast<dpShapeSphere*>(prox.second->GetShape());
 					auto pos = prox.second->GetPosition();
-					std::cout << prox.first << ", r: " << sphere->GetRadius() << ", pos: " << pos.x << "," << pos.y << "," << pos.z << std::endl;
+					LOG("Proximity: %s, r: %f, pos: %f, %f, %f", prox.first.c_str(), sphere->GetRadius(), pos.x, pos.y, pos.z);
 				}
 			}
 		}

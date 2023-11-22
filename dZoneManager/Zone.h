@@ -148,6 +148,8 @@ struct PropertyPath {
 	float repMultiplier;
 	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
+
+	// Player respawn coordinates in the main zone (not the property zone)
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
 };
