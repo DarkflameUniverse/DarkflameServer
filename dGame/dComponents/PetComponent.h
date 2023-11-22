@@ -48,6 +48,12 @@ public:
 	void Update(float deltaTime) override;
 
 	/**
+	 * Handles updates for unowned pets
+	 * @param deltaTime time since last update
+	 */
+	void UpdateUnowned(float deltaTime);
+
+	/**
 	 * Handles an OnUse event from another entity, initializing the pet taming minigame if this pet is untamed.
 	 * @param originator the entity that triggered the event
 	 */

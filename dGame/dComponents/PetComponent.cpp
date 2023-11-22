@@ -341,42 +341,18 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	if (m_Owner == LWOOBJID_EMPTY) {
-		if (m_Tamer != LWOOBJID_EMPTY) {
-			if (m_Timer > 0) {
-				m_Timer -= deltaTime;
-
-				if (m_Timer <= 0) {
-					m_Timer = 0;
-
-					ClientFailTamingMinigame();
-				}
-			}
-		} else {
-			if (m_Timer > 0) {
-				m_Timer -= deltaTime;
-
-				if (m_Timer <= 0) {
-					Wander();
-					Game::entityManager->SerializeEntity(m_Parent);
-				}
-			} else {
-				m_Timer = 5;
-			}
-		}
-
+		UpdateUnowned(deltaTime);
 		return;
 	}
 
 	auto* owner = GetOwner();
-	if (owner == nullptr) {
+	if (!owner) {
 		m_Parent->Kill();
 		return;
 	}
 
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-	if (m_MovementAI == nullptr) {
-		return;
-	}
+	if (!m_MovementAI) return;
 
 	if (m_TresureTime > 0.0f) { //TODO: Find better trigger?
 		InteractDig(deltaTime);
@@ -404,7 +380,6 @@ void PetComponent::Update(float deltaTime) {
 
 	if (m_Timer > 0) {
 		m_Timer -= deltaTime;
-
 		return;
 	}
 
@@ -466,6 +441,29 @@ skipTresure:
 	m_MovementAI->SetDestination(destination);
 
 	m_Timer = 1;
+}
+
+void PetComponent::UpdateUnowned(float deltaTime) {
+	if (m_Tamer != LWOOBJID_EMPTY) {
+		if (m_Timer > 0) {
+			m_Timer -= deltaTime;
+
+			if (m_Timer <= 0) {
+				m_Timer = 0;
+
+				ClientFailTamingMinigame();
+			}
+		}
+	} 
+	else {
+		if (m_Timer > 0) {
+			m_Timer -= deltaTime;
+
+			if (m_Timer <= 0) Wander();
+		} else {
+			m_Timer = 5;
+		}
+	}
 }
 
 void PetComponent::SetIsReadyToDig(bool isReady) {
