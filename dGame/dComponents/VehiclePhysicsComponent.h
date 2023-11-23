@@ -6,6 +6,13 @@
 #include "eReplicaComponentType.h"
 
 struct RemoteInputInfo {
+	RemoteInputInfo() {
+		m_RemoteInputX = 0;
+		m_RemoteInputY = 0;
+		m_IsPowersliding = false;
+		m_IsModified = false;
+	}
+
 	void operator=(const RemoteInputInfo& other) {
 		m_RemoteInputX = other.m_RemoteInputX;
 		m_RemoteInputY = other.m_RemoteInputY;
