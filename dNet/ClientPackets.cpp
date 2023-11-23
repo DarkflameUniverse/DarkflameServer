@@ -439,7 +439,7 @@ void ClientPackets::HandleGuildCreation(Packet* packet) {
 		return;
 	}
 	
-	Database::Get()->InsertGuildMember(newGuild->id, character->GetID(), eGuildRank::FOUNDER);
+	Database::Get()->InsertGuildMember(newGuild->id, character->GetID(), eGuildRank::LEADER);
 
 	characterComp->SetGuild(newGuild->id, guildName.string);
 	SendGuildCreateResponse(packet->systemAddress, eGuildCreationResponse::CREATED, newGuild->id, guildName.string);

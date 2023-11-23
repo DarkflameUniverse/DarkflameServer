@@ -724,21 +724,32 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
 	bitStream.Write<uint32_t>(69);
 	bitStream.Write<uint32_t>(0);
 	bitStream.Write<uint32_t>(1);
-	bitStream.Write<uint8_t>(0);
-	bitStream.Write<uint8_t>(members.size());
+	bitStream.Write<unsigned short>(0);
+	bitStream.Write<unsigned short>(2); // Size
 	//Member data
 	bitStream.Write1();
 	bitStream.Write1();
 	bitStream.Write<uint16_t>(1200);
 	bitStream.Write<uint16_t>(1);
-	bitStream.Write<uint16_t>(1);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write<unsigned short>(1);
+	bitStream.Write(LUWString(player->playerName, 25));
+	bitStream.Write<wchar_t>(0); //???
+
+	bitStream.Write0();
+	bitStream.Write0();
+	bitStream.Write<uint16_t>(1200);
 	bitStream.Write<uint16_t>(1);
 	bitStream.Write<uint32_t>(1);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write<unsigned short>(1);
 	bitStream.Write(LUWString(player->playerName, 25));
-	bitStream.Write<uint8_t>(0); //???
+	bitStream.Write<wchar_t>(0); //???
 
 	SystemAddress sysAddr = packet->systemAddress;
 	SEND_PACKET;
+	LOG("Send GUILD DATA");
 }
 
 void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender) {

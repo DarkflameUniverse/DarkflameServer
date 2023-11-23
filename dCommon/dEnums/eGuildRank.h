@@ -5,10 +5,10 @@
 
 
 enum eGuildRank {
-	FOUNDER = 1,
-	RANK2,
-	RANK3,
-	MEMBER
+	LEADER = 1,
+	OFFICER,
+	VETERAN,
+	RECRUIT
 };
 
 #endif  //!__EGUILDRANK__H__
