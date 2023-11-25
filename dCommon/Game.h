@@ -12,6 +12,7 @@ class AssetManager;
 struct SystemAddress;
 class EntityManager;
 class dZoneManager;
+class PlayerContainer;
 
 namespace Game {
 	extern Logger* logger;
@@ -26,4 +27,5 @@ namespace Game {
 	extern bool shouldShutdown;
 	extern EntityManager* entityManager;
 	extern dZoneManager* zoneManager;
+	extern PlayerContainer playerContainer;
 }

@@ -103,6 +103,9 @@ public:
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
+	void AddIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) override;
+	void RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) override;
+	std::vector<IIgnoreList::Info> GetIgnoreList(const uint32_t playerId) override;
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
 private:
