@@ -223,7 +223,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	server->Send(&packet, sysAddr, false);
 
 	//Inform the master server that we've created a session for this user:
-	{
+	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);

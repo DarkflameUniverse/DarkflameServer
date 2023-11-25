@@ -209,6 +209,11 @@
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
 #include "NtImagimeterVisibility.h"
+#include "FrictionVolumeServer.h"
+#include "NTPipeVisibilityServer.h"
+#include "NTNaomiDirtServer.h"
+#include "MinigameBlueMark.h"
+#include "NtNaomiBreadcrumbServer.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -311,6 +316,7 @@
 #include "WildNinjaStudent.h"
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
+#include "VisToggleNotifierServer.h"
 
 namespace {
 	InvalidScript* invalidToReturn = new InvalidScript();
@@ -694,19 +700,30 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtDukeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_HAEL_SERVER.lua")
 		script = new NtHaelServer();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_FACTION_SPY_SERVER.lua")
+		script = new NtFactionSpyServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_OVERBUILD_SERVER.lua")
 		script = new NtOverbuildServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_VANDA_SERVER.lua")
 		script = new NtVandaServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FORCE_VOLUME_SERVER.lua")
 		script = new ForceVolumeServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FRICTION_VOLUME_SERVER.lua")
+		script = new FrictionVolumeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_XRAY_SERVER.lua")
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua")
 		script = new NTImagimeterVisibility();
-	}
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_PIPE_VISIBILITY_SERVER.lua")
+		script = new NTPipeVisibilityServer();
+	else if (scriptName == "scripts\\ai\\MINIGAME\\Objects\\MINIGAME_BLUE_MARK.lua")
+		script = new MinigameBlueMark();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_BREADCRUMB_SERVER.lua")
+		script = new NtNaomiBreadcrumbServer();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_DIRT_SERVER.lua")
+		script = new NTNaomiDirtServer();
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
