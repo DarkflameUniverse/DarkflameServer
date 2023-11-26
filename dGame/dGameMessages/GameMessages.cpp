@@ -1133,12 +1133,18 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write((uint16_t)eGameMessageType::PLAYER_REACHED_RESPAWN_CHECKPOINT);
 
-	bitStream.Write(position);
+	bitStream.Write(position.x);
+	bitStream.Write(position.y);
+	bitStream.Write(position.z);
 
 	const bool isNotIdentity = rotation != NiQuaternion::IDENTITY;
 	bitStream.Write(isNotIdentity);
+	
 	if (isNotIdentity) {
-		bitStream.Write(rotation);
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
