@@ -554,6 +554,12 @@ void Entity::Initialize() {
 				Loot::CacheMatrix(activityID);
 			}
 
+			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
+
+			if (timeBeforeSmash > 0) {
+				rebuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
+			}
+
 			const auto compTime = GetVar<float>(u"compTime");
 
 			if (compTime > 0) {
