@@ -944,14 +944,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-		});
-
-
-	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (cont && entity->GetLOT() == 1) {
-		cont->SetPosition(entity->GetRespawnPosition());
-		cont->SetRotation(entity->GetRespawnRotation());
-	}
+	});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1144,17 +1137,15 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	auto con = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (con) {
-		auto rot = con->GetRotation();
-		bitStream.Write(rot.x);
-		bitStream.Write(rot.y);
-		bitStream.Write(rot.z);
-		bitStream.Write(rot.w);
+	const bool isNotIdentity = rotation != NiQuaternion::IDENTITY;
+	bitStream.Write(isNotIdentity);
+	
+	if (isNotIdentity) {
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
-
-	//bitStream.Write(position);
-	//bitStream.Write(rotation);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
