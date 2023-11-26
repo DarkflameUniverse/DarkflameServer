@@ -1509,7 +1509,7 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 	destroyableComponent->Smash(source, killType, deathType);
 }
 
-void Entity::Kill(Entity* murderer) {
+void Entity::Kill(Entity* murderer, const eKillType killType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
 	for (const auto& cb : m_DieCallbacks) {
@@ -1533,7 +1533,7 @@ void Entity::Kill(Entity* murderer) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0;
+			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
