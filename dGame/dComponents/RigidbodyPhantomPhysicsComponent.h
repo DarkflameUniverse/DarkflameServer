@@ -17,6 +17,7 @@
   * Component that handles rigid bodies that can be interacted with, mostly client-side rendered. An example is the
   * bananas that fall from trees in GF.
   */
+
 class RigidbodyPhantomPhysicsComponent : public PhysicsComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;

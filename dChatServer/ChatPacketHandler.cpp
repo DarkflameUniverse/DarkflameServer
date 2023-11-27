@@ -673,7 +673,7 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 	}
 }
 
-void ChatPacketHandler::HandleGuildLeave(Packet* packet){
+void ChatPacketHandler::HandleGuildLeave(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
@@ -688,7 +688,7 @@ void ChatPacketHandler::HandleGuildLeave(Packet* packet){
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
 	bitStream.Write(player->playerID);
-	
+
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GUILD_REMOVE_PLAYER);
 	bitStream.Write(eGuildLeaveReason::LEFT);
 	bitStream.Write(LUWString(player->playerName));
@@ -698,7 +698,7 @@ void ChatPacketHandler::HandleGuildLeave(Packet* packet){
 	SEND_PACKET;
 }
 
-void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
+void ChatPacketHandler::HandleGuildGetAll(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
@@ -709,7 +709,7 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
 	if (!guild_id) return;
 	auto guild = Database::Get()->GetGuild(guild_id);
 	if (!guild) return;
-	auto members  = Database::Get()->GetGuildMembers(guild_id);
+	auto members = Database::Get()->GetGuildMembers(guild_id);
 
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
@@ -717,39 +717,35 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet){
 
 	//portion that will get routed:
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GUILD_DATA);
-	bitStream.Write0();
+	bitStream.Write<uint8_t>(0);
 	bitStream.Write(LUWString(guild->name, 31));
 	bitStream.Write(LUWString("test1", 11));
 	bitStream.Write(LUWString("test2", 11));
 	bitStream.Write<uint32_t>(69);
 	bitStream.Write<uint32_t>(0);
 	bitStream.Write<uint32_t>(1);
-	bitStream.Write<unsigned short>(0);
-	bitStream.Write<unsigned short>(2); // Size
+	bitStream.Write<uint16_t>(0);
+	constexpr int32_t sizeThing = 100;
+	bitStream.Write<uint16_t>(sizeThing); // Size
 	//Member data
-	bitStream.Write1();
-	bitStream.Write1();
-	bitStream.Write<uint16_t>(1200);
-	bitStream.Write<uint16_t>(1);
-	bitStream.Write<uint32_t>(1);
-	bitStream.Write<uint32_t>(1);
-	bitStream.Write<unsigned short>(1);
-	bitStream.Write(LUWString(player->playerName, 25));
-	bitStream.Write<wchar_t>(0); //???
-
-	bitStream.Write0();
-	bitStream.Write0();
-	bitStream.Write<uint16_t>(1200);
-	bitStream.Write<uint16_t>(1);
-	bitStream.Write<uint32_t>(1);
-	bitStream.Write<uint32_t>(1);
-	bitStream.Write<unsigned short>(1);
-	bitStream.Write(LUWString(player->playerName, 25));
-	bitStream.Write<wchar_t>(0); //???
+	for (int i = 0; i < sizeThing; i++) {
+		bitStream.Write<uint8_t>(1); // 0
+		bitStream.Write<uint8_t>(1); // 1
+		bitStream.Write<uint16_t>(1200); // 2
+		bitStream.Write<uint16_t>(1200); // 4
+		bitStream.Write<uint16_t>(1200); // 6
+		bitStream.Write<uint16_t>(1200); // 4
+		bitStream.Write<LWOOBJID>(player->playerID + i); // 8
+		bitStream.Write(LUWString((i % 2 == 0 ? "abcdefghijklmnopqrstuvw" : "ABCDEFGHIJKLMNOPQRSTUVW"), 24)); // 16
+		bitStream.Write<uint16_t>(0);
+		bitStream.Write<LWOOBJID>(0);
+		bitStream.Write<LWOOBJID>(0);
+	}
 
 	SystemAddress sysAddr = packet->systemAddress;
 	SEND_PACKET;
 	LOG("Send GUILD DATA");
+	PacketUtils::SavePacket("GuildData.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void ChatPacketHandler::SendTeamInvite(PlayerData* receiver, PlayerData* sender) {
