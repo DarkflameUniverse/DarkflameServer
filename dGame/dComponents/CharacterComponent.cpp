@@ -271,12 +271,10 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	if (gid != 0) {
 		auto guild = Database::Get()->GetGuild(gid);
 		if (guild && Database::Get()->CheckIsInGuild(guild->id, m_Parent->GetCharacter()->GetID())) {
-			LOG("Found Guild %i name %s", guild->id, guild->name.c_str());
 			m_GuildName = GeneralUtils::UTF8ToUTF16(guild->name);
 			m_GuildID = gid;
 			m_DirtySocialInfo = true;
 		} else {
-			LOG("Unalbe to find Guild %i name %s", guild->id, guild->name.c_str());
 			SetGuild(0, u"");
 		}
 	}

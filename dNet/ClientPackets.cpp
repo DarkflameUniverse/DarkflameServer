@@ -444,8 +444,8 @@ void ClientPackets::HandleGuildCreation(Packet* packet) {
 	characterComp->SetGuild(newGuild->id, guildName.string);
 	SendGuildCreateResponse(packet->systemAddress, eGuildCreationResponse::CREATED, newGuild->id, guildName.string);
 	AMFArrayValue data;
-	data.Insert("bOn", true);
-	GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "ToggleGuildUI", data);
+	data.Insert("bDisplay", true);
+	GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "EnableGuild", data);
 
 }
 
