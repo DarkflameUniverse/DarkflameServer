@@ -717,27 +717,26 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet) {
 
 	//portion that will get routed:
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GUILD_DATA);
-	bitStream.Write<uint8_t>(0);
-	bitStream.Write(LUWString(guild->name, 31));
-	bitStream.Write(LUWString("test1", 11));
-	bitStream.Write(LUWString("test2", 11));
-	bitStream.Write<uint32_t>(69);
-	bitStream.Write<uint32_t>(0);
-	bitStream.Write<uint32_t>(1);
-	bitStream.Write<uint16_t>(0);
-	constexpr int32_t sizeThing = 100;
-	bitStream.Write<uint16_t>(sizeThing); // Size
+	bitStream.Write<uint8_t>(0); // has Guild data/in a guild
+	bitStream.Write(LUWString(guild->name, 31)); // guild name
+	bitStream.Write(LUWString("test1", 11)); // unknown
+	bitStream.Write(LUWString("test2", 11)); // unknown
+	bitStream.Write<uint32_t>(69); // unknown
+	bitStream.Write<uint32_t>(0); // unknown
+	bitStream.Write<uint32_t>(1); // unknown
+	bitStream.Write<uint16_t>(0); // unknown
+	bitStream.Write<uint16_t>(members.size()); // Size
 	//Member data
-	for (int i = 0; i < sizeThing; i++) {
-		bitStream.Write<uint8_t>(4); // rank
+	for (const auto &member : members) {
+		bitStream.Write<uint8_t>(member.rank); // rank
 		bitStream.Write<uint8_t>(1); // online status
 		bitStream.Write<uint16_t>(1100); // zone
 		bitStream.Write<uint16_t>(1200); // instance
 		bitStream.Write<uint16_t>(1300); // clone
-		bitStream.Write<uint16_t>(1200); // 4
-		bitStream.Write<LWOOBJID>(player->playerID + i); // playerId
-		bitStream.Write(LUWString((i % 2 == 0 ? "abcdefghijklmnopqrstuvw" : "ABCDEFGHIJKLMNOPQRSTUVW"), 24)); // 16
-		bitStream.Write<uint16_t>(0); // unknown
+		bitStream.Write<uint16_t>(1200); // unknown
+		bitStream.Write<LWOOBJID>(player->playerID); // playerId
+		bitStream.Write(LUWString(player->playerName, 24)); // playername Wchar[24]
+		bitStream.Write<uint16_t>(0); // null terminator for playername
 		bitStream.Write<LWOOBJID>(0); // unknown
 		bitStream.Write<LWOOBJID>(0); // unknown
 	}
