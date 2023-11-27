@@ -729,17 +729,17 @@ void ChatPacketHandler::HandleGuildGetAll(Packet* packet) {
 	bitStream.Write<uint16_t>(sizeThing); // Size
 	//Member data
 	for (int i = 0; i < sizeThing; i++) {
-		bitStream.Write<uint8_t>(1); // 0
-		bitStream.Write<uint8_t>(1); // 1
-		bitStream.Write<uint16_t>(1200); // 2
+		bitStream.Write<uint8_t>(4); // rank
+		bitStream.Write<uint8_t>(1); // online status
+		bitStream.Write<uint16_t>(1100); // zone
+		bitStream.Write<uint16_t>(1200); // instance
+		bitStream.Write<uint16_t>(1300); // clone
 		bitStream.Write<uint16_t>(1200); // 4
-		bitStream.Write<uint16_t>(1200); // 6
-		bitStream.Write<uint16_t>(1200); // 4
-		bitStream.Write<LWOOBJID>(player->playerID + i); // 8
+		bitStream.Write<LWOOBJID>(player->playerID + i); // playerId
 		bitStream.Write(LUWString((i % 2 == 0 ? "abcdefghijklmnopqrstuvw" : "ABCDEFGHIJKLMNOPQRSTUVW"), 24)); // 16
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<LWOOBJID>(0);
-		bitStream.Write<LWOOBJID>(0);
+		bitStream.Write<uint16_t>(0); // unknown
+		bitStream.Write<LWOOBJID>(0); // unknown
+		bitStream.Write<LWOOBJID>(0); // unknown
 	}
 
 	SystemAddress sysAddr = packet->systemAddress;
