@@ -29,6 +29,22 @@
 #include "eMasterMessageType.h"
 #include "eGameMasterLevel.h"
 
+namespace {
+	std::vector<uint32_t> claimCodes;
+}
+
+void AuthPackets::LoadClaimCodes() {
+	if(!claimCodes.empty()) return;
+	auto rcstring = Game::config->GetValue("rewardcodes");
+	auto codestrings = GeneralUtils::SplitString(rcstring, ',');
+	for(auto const &codestring: codestrings){
+		uint32_t code = -1;
+		if(GeneralUtils::TryParse(codestring, code) && code != -1){
+			claimCodes.push_back(code);
+		}
+	}
+}
+
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
 	uint64_t header = inStream.Read(header);
@@ -128,6 +144,10 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) {
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username);
 			});
+	}
+
+	for(auto const code: claimCodes){
+		Database::Get()->InsertRewardCode(accountInfo->id, code);
 	}
 }
 

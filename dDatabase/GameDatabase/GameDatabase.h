@@ -23,6 +23,9 @@
 #include "IActivityLog.h"
 #include "IGuilds.h"
 #include "IGuildMembers.h"
+#include "IIgnoreList.h"
+#include "IAccountsRewardCodes.h"
+
 namespace sql {
 	class Statement;
 	class PreparedStatement;
@@ -39,7 +42,9 @@ class GameDatabase :
 	public IMail, public ICommandLog, public IPlayerCheatDetections, public IBugReports,
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
-	public IAccounts, public IActivityLog, public IGuilds, public IGuildMembers {
+	public IAccounts, public IActivityLog, public IAccountsRewardCodes, public IIgnoreList,
+	public IGuilds, public IGuildMembers {
+
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.

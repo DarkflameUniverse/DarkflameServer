@@ -43,6 +43,7 @@
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
 #include "eConnectionType.h"
+#include "ePlayerFlag.h"
 
 #include <sstream>
 #include <future>
@@ -943,14 +944,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-		});
-
-
-	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (cont && entity->GetLOT() == 1) {
-		cont->SetPosition(entity->GetRespawnPosition());
-		cont->SetRotation(entity->GetRespawnRotation());
-	}
+	});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1143,17 +1137,15 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	auto con = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (con) {
-		auto rot = con->GetRotation();
-		bitStream.Write(rot.x);
-		bitStream.Write(rot.y);
-		bitStream.Write(rot.z);
-		bitStream.Write(rot.w);
+	const bool isNotIdentity = rotation != NiQuaternion::IDENTITY;
+	bitStream.Write(isNotIdentity);
+	
+	if (isNotIdentity) {
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
-
-	//bitStream.Write(position);
-	//bitStream.Write(rotation);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
@@ -5027,6 +5019,14 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
+	if (emotes) {
+		CDEmoteTable* emote = emotes->GetEmote(emoteID);
+		if (emote) sAnimationName = emote->animationName;
+	}
+
+	RenderComponent::PlayAnimation(entity, sAnimationName);
+
 	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
@@ -5052,14 +5052,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
-
-	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
-	if (emotes) {
-		CDEmoteTable* emote = emotes->GetEmote(emoteID);
-		if (emote) sAnimationName = emote->animationName;
-	}
-
-	RenderComponent::PlayAnimation(entity, sAnimationName);
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5172,6 +5164,14 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		missionComponent->CompleteMission(missionID);
 	}
+
+	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
+	|| !player->GetCharacter()
+	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+	player->AddCallbackTimer(0.5f, [player]() {
+		if (!player) return;
+		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
+	});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity) {

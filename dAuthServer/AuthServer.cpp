@@ -94,6 +94,8 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
+	AuthPackets::LoadClaimCodes();
+	
 	while (!Game::shouldShutdown) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {

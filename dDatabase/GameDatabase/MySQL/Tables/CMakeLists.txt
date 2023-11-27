@@ -1,5 +1,6 @@
 set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"Accounts.cpp"
+	"AccountsRewardCodes.cpp"
 	"ActivityLog.cpp"
 	"BugReports.cpp"
 	"CharInfo.cpp"
@@ -8,6 +9,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"Friends.cpp"
 	"Guilds.cpp"
 	"GuildMembers.cpp"
+	"IgnoreList.cpp"
 	"Leaderboard.cpp"
 	"Mail.cpp"
 	"MigrationHistory.cpp"

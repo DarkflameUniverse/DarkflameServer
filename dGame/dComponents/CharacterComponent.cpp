@@ -16,6 +16,10 @@
 #include "Amf3.h"
 #include "eGameMasterLevel.h"
 #include "eGameActivity.h"
+#include "User.h"
+#include "Database.h"
+#include "CDRewardCodesTable.h"
+#include "Mail.h"
 #include <ctime>
 #include "Database.h"
 #include "eObjectBits.h"
@@ -77,10 +81,14 @@ CharacterComponent::~CharacterComponent() {
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write0();
-		outBitStream->Write0();
-		outBitStream->Write0();
-		outBitStream->Write0();
+		outBitStream->Write(m_ClaimCodes[0] != 0);
+		if (m_ClaimCodes[0] != 0) outBitStream->Write(m_ClaimCodes[0]);
+		outBitStream->Write(m_ClaimCodes[1] != 0);
+		if (m_ClaimCodes[1] != 0) outBitStream->Write(m_ClaimCodes[1]);
+		outBitStream->Write(m_ClaimCodes[2] != 0);
+		if (m_ClaimCodes[2] != 0) outBitStream->Write(m_ClaimCodes[2]);
+		outBitStream->Write(m_ClaimCodes[3] != 0);
+		if (m_ClaimCodes[3] != 0) outBitStream->Write(m_ClaimCodes[3]);
 
 		outBitStream->Write(m_Character->GetHairColor());
 		outBitStream->Write(m_Character->GetHairStyle());
@@ -199,6 +207,13 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	if (character->QueryAttribute("rpt", &m_Reputation) == tinyxml2::XML_NO_ATTRIBUTE) {
 		SetReputation(0);
 	}
+
+	character->QueryUnsigned64Attribute("co", &m_ClaimCodes[0]);
+	character->QueryUnsigned64Attribute("co1", &m_ClaimCodes[1]);
+	character->QueryUnsigned64Attribute("co2", &m_ClaimCodes[2]);
+	character->QueryUnsigned64Attribute("co3", &m_ClaimCodes[3]);
+
+	AwardClaimCodes();
 
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
@@ -323,6 +338,11 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		LOG("Failed to find char tag while updating XML!");
 		return;
 	}
+
+	if (m_ClaimCodes[0] != 0) character->SetAttribute("co", m_ClaimCodes[0]);
+	if (m_ClaimCodes[1] != 0) character->SetAttribute("co1", m_ClaimCodes[1]);
+	if (m_ClaimCodes[2] != 0) character->SetAttribute("co2", m_ClaimCodes[2]);
+	if (m_ClaimCodes[3] != 0) character->SetAttribute("co3", m_ClaimCodes[3]);
 
 	character->SetAttribute("ls", m_Uscore);
 	// Custom attribute to keep track of reputation.
@@ -760,4 +780,30 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
 }
 
+void CharacterComponent::AwardClaimCodes() {
+	if (!m_Parent) return;
+	auto* user = m_Parent->GetParentUser();
+	if (!user) return;
+	
+	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
+	if (rewardCodes.empty()) return;
 
+	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+	for (auto const rewardCode: rewardCodes){
+		LOG_DEBUG("Processing RewardCode %i", rewardCode);
+		const uint32_t rewardCodeIndex = rewardCode >> 6;
+		const uint32_t bitIndex = rewardCode % 64;
+		if (GeneralUtils::CheckBit(m_ClaimCodes[rewardCodeIndex], bitIndex)) continue;
+		m_ClaimCodes[rewardCodeIndex] = GeneralUtils::SetBit(m_ClaimCodes[rewardCodeIndex], bitIndex);
+
+		// Don't send it on this one since it's default and the mail doesn't make sense
+		if (rewardCode == 30) continue;
+
+		auto attachmentLOT = cdrewardCodes->GetAttachmentLOT(rewardCode);
+		std::ostringstream subject;
+		subject << "%[RewardCodes_" << rewardCode << "_subjectText]";
+		std::ostringstream body;
+		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
+		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
+	}
+}
