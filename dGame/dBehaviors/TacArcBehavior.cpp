@@ -121,7 +121,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		const auto targetPos = validTarget->GetPosition();
 
 		// make sure we aren't too high or low in comparison to the targer
-		const auto heightDifference = abs(reference.y - targetPos.y);
+		const auto heightDifference = std::abs(reference.y - targetPos.y);
 		if (targetPos.y > reference.y && heightDifference > this->m_upperBound || targetPos.y < reference.y && heightDifference > this->m_lowerBound)
 			continue;
 
@@ -195,8 +195,8 @@ void TacArcBehavior::Load() {
 		GetFloat("offset_z", 0.0f)
 	);
 	this->m_method = GetInt("method", 1);
-	this->m_upperBound = abs(GetFloat("upper_bound", 4.4f));
-	this->m_lowerBound = abs(GetFloat("lower_bound", 0.4f));
+	this->m_upperBound = std::abs(GetFloat("upper_bound", 4.4f));
+	this->m_lowerBound = std::abs(GetFloat("lower_bound", 0.4f));
 	this->m_usePickedTarget = GetBoolean("use_picked_target", false);
 	this->m_useTargetPostion = GetBoolean("use_target_position", false);
 	this->m_checkEnv = GetBoolean("check_env", false);
