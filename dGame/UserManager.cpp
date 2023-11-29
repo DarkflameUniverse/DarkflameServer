@@ -405,7 +405,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			return;
 		}
 
-		if (Database::Get()->GetCharacterInfo(newName)) {
+		if (!Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(charID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
