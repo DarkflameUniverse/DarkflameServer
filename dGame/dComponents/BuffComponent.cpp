@@ -137,6 +137,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	// Prevent buffs from stacking.
 	if (HasBuff(id)) {
 		m_Buffs[id].refCount++;
+		m_Buffs[id].time = duration;
 		return;
 	}
 
@@ -205,7 +206,7 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 		return;
 	}
 
-	if (!ignoreRefCount) {
+	if (!ignoreRefCount && !iter->second.cancelOnRemoveBuff) {
 		iter->second.refCount--;
 		LOG_DEBUG("refCount for buff %i is now %i", id, iter->second.refCount);
 		if (iter->second.refCount > 0) {
