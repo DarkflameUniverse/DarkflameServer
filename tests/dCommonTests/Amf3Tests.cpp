@@ -71,25 +71,15 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	array.Insert<std::vector<uint32_t>>("Undefined", {});
 	array.Insert("Null", nullptr);
 
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<const char*>("CString")->GetValueType(), eAmf::String);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<std::string>("String")->GetValueType(), eAmf::String);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<bool>("False")->GetValueType(), eAmf::False);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<bool>("True")->GetValueType(), eAmf::True);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<int32_t>("Integer")->GetValueType(), eAmf::Integer);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<double>("Double")->GetValueType(), eAmf::Double);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.GetArray("Array")->GetValueType(), eAmf::Array);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<nullptr_t>("Null")->GetValueType(), eAmf::Null);
-	std::cout << "test" << std::endl;
 	ASSERT_EQ(array.Get<std::vector<uint32_t>>("Undefined")->GetValueType(), eAmf::Undefined);
-	std::cout << "test" << std::endl;
 }
 
 TEST(dCommonTests, AMF3InsertionDenseTest) {

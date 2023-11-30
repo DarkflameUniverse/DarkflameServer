@@ -41,7 +41,7 @@ public:
 	/*!
 	  \return The new persistent ID
 	 */
-	uint32_t GeneratePersistentID(void);
+	uint32_t GeneratePersistentID();
 
 	void SaveToDatabase();
 };

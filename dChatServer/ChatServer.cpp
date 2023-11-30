@@ -19,6 +19,7 @@
 #include "eChatMessageType.h"
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
+#include "ChatIgnoreList.h"
 
 #include "Game.h"
 
@@ -34,13 +35,11 @@ namespace Game {
 	AssetManager* assetManager = nullptr;
 	bool shouldShutdown = false;
 	std::mt19937 randomEngine;
+	PlayerContainer playerContainer;
 }
-
 
 Logger* SetupLogger();
 void HandlePacket(Packet* packet);
-
-PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
@@ -78,13 +77,8 @@ int main(int argc, char** argv) {
 	}
 
 	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
@@ -96,16 +90,11 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
+	auto masterInfo = Database::Get()->GetMasterInfo();
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
 	}
-
-	delete res;
-	delete stmt;
-
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	uint32_t maxClients = 50;
 	uint32_t ourPort = 1501;
@@ -117,6 +106,8 @@ int main(int argc, char** argv) {
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 	
 	Game::randomEngine = std::mt19937(time(0));
+
+	Game::playerContainer.Initialize();
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -158,15 +149,12 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
 
-			delete res;
-			delete stmt;
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
+			}
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -211,19 +199,19 @@ void HandlePacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
-			playerContainer.InsertPlayer(packet);
+			Game::playerContainer.InsertPlayer(packet);
 			break;
 
 		case eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION:
-			playerContainer.RemovePlayer(packet);
+			Game::playerContainer.RemovePlayer(packet);
 			break;
 
 		case eChatInternalMessageType::MUTE_UPDATE:
-			playerContainer.MuteUpdate(packet);
+			Game::playerContainer.MuteUpdate(packet);
 			break;
 
 		case eChatInternalMessageType::CREATE_TEAM:
-			playerContainer.CreateTeamServer(packet);
+			Game::playerContainer.CreateTeamServer(packet);
 			break;
 
 		case eChatInternalMessageType::ANNOUNCEMENT: {
@@ -245,7 +233,15 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		case eChatMessageType::GET_IGNORE_LIST:
-			LOG("Asked for ignore list, but is unimplemented right now.");
+			ChatIgnoreList::GetIgnoreList(packet);
+			break;
+
+		case eChatMessageType::ADD_IGNORE:
+			ChatIgnoreList::AddIgnore(packet);
+			break;
+
+		case eChatMessageType::REMOVE_IGNORE:
+			ChatIgnoreList::RemoveIgnore(packet);
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:

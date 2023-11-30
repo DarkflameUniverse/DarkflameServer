@@ -237,7 +237,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	}
 	baseLookup += " LIMIT 1";
 	LOG_DEBUG("query is %s", baseLookup.c_str());
-	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseLookup));
+	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::Get()->CreatePreppedStmt(baseLookup));
 	baseQuery->setInt(1, this->gameID);
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
 
@@ -250,7 +250,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
 	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
+	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt(lookupBuffer.get()));
 	LOG_DEBUG("Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
 	query->setInt(1, this->gameID);
 	if (this->infoType == InfoType::Friends) {
@@ -301,7 +301,7 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
+	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
 	query->setInt(1, playerID);
 	query->setInt(2, activityId);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
@@ -378,14 +378,14 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		saveQuery = FormatInsert(leaderboardType, newScore, false);
 	}
 	LOG("save query %s %i %i", saveQuery.c_str(), playerID, activityId);
-	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::CreatePreppedStmt(saveQuery));
+	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::Get()->CreatePreppedStmt(saveQuery));
 	saveStatement->setInt(1, playerID);
 	saveStatement->setInt(2, activityId);
 	saveStatement->execute();
 
 	// track wins separately
 	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
-		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::Get()->CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
 		winUpdate->setInt(1, playerID);
 		winUpdate->setInt(2, activityId);
 		winUpdate->execute();

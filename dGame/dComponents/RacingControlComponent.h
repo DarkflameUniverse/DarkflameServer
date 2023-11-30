@@ -151,13 +151,6 @@ public:
 	 */
 	RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
-	/**
-	 * Formats a time to a string, currently unused
-	 * @param time the time to format
-	 * @return the time formatted as string
-	 */
-	static std::string FormatTimeString(time_t time);
-
 private:
 
 	/**
@@ -251,4 +244,5 @@ private:
 	 * Value for message box response to know if we are exiting the race via the activity dialogue
 	 */
 	const int32_t m_ActivityExitConfirm = 1;
+	bool m_AllPlayersReady = false;
 };

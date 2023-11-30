@@ -13,9 +13,8 @@
 
 //! Forward declarations
 
-std::unique_ptr<sql::ResultSet> GetModelsFromDatabase();
 void WriteSd0Magic(char* input, uint32_t chunkSize);
-bool CheckSd0Magic(sql::Blob* streamToCheck);
+bool CheckSd0Magic(std::istream& streamToCheck);
 
 /**
  * @brief Truncates all models with broken data from the database.
@@ -24,28 +23,24 @@ bool CheckSd0Magic(sql::Blob* streamToCheck);
  */
 uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 	uint32_t modelsTruncated{};
-	auto modelsToTruncate = GetModelsFromDatabase();
-	bool previousCommitValue = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
-	while (modelsToTruncate->next()) {
-		std::unique_ptr<sql::PreparedStatement> ugcModelToDelete(Database::CreatePreppedStmt("DELETE FROM ugc WHERE ugc.id = ?;"));
-		std::unique_ptr<sql::PreparedStatement> pcModelToDelete(Database::CreatePreppedStmt("DELETE FROM properties_contents WHERE ugc_id = ?;"));
+	auto modelsToTruncate = Database::Get()->GetAllUgcModels();
+	bool previousCommitValue = Database::Get()->GetAutoCommit();
+	Database::Get()->SetAutoCommit(false);
+	for (auto& model : modelsToTruncate) {
 		std::string completeUncompressedModel{};
 		uint32_t chunkCount{};
-		uint64_t modelId = modelsToTruncate->getInt(1);
-		std::unique_ptr<sql::Blob> modelAsSd0(modelsToTruncate->getBlob(2));
 		// Check that header is sd0 by checking for the sd0 magic.
-		if (CheckSd0Magic(modelAsSd0.get())) {
+		if (CheckSd0Magic(model.lxfmlData)) {
 			while (true) {
 				uint32_t chunkSize{};
-				modelAsSd0->read(reinterpret_cast<char*>(&chunkSize), sizeof(uint32_t)); // Extract chunk size from istream
+				model.lxfmlData.read(reinterpret_cast<char*>(&chunkSize), sizeof(uint32_t)); // Extract chunk size from istream
 
 				// Check if good here since if at the end of an sd0 file, this will have eof flagged.
-				if (!modelAsSd0->good()) break;
+				if (!model.lxfmlData.good()) break;
 
 				std::unique_ptr<uint8_t[]> compressedChunk(new uint8_t[chunkSize]);
 				for (uint32_t i = 0; i < chunkSize; i++) {
-					compressedChunk[i] = modelAsSd0->get();
+					compressedChunk[i] = model.lxfmlData.get();
 				}
 
 				// Ignore the valgrind warning about uninitialized values.  These are discarded later when we know the actual uncompressed size.
@@ -59,7 +54,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					completeUncompressedModel.append((char*)uncompressedChunk.get());
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
 				} else {
-					LOG("Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, modelId, err);
+					LOG("Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, model.id, err);
 					break;
 				}
 				chunkCount++;
@@ -75,26 +70,20 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					"</LXFML>",
 					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
 					) {
-					LOG("Brick-by-brick model %llu will be deleted!", modelId);
-					ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
-					pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
-					ugcModelToDelete->execute();
-					pcModelToDelete->execute();
+					LOG("Brick-by-brick model %llu will be deleted!", model.id);
+					Database::Get()->DeleteUgcModelData(model.id);
 					modelsTruncated++;
 				}
 			}
 		} else {
-			LOG("Brick-by-brick model %llu will be deleted!", modelId);
-			ugcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
-			pcModelToDelete->setInt64(1, modelsToTruncate->getInt64(1));
-			ugcModelToDelete->execute();
-			pcModelToDelete->execute();
+			LOG("Brick-by-brick model %llu will be deleted!", model.id);
+			Database::Get()->DeleteUgcModelData(model.id);
 			modelsTruncated++;
 		}
 	}
 
-	Database::Commit();
-	Database::SetAutoCommit(previousCommitValue);
+	Database::Get()->Commit();
+	Database::Get()->SetAutoCommit(previousCommitValue);
 	return modelsTruncated;
 }
 
@@ -106,21 +95,17 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
  */
 uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 	uint32_t updatedModels = 0;
-	auto modelsToUpdate = GetModelsFromDatabase();
-	auto previousAutoCommitState = Database::GetAutoCommit();
-	Database::SetAutoCommit(false);
-	std::unique_ptr<sql::PreparedStatement> insertionStatement(Database::CreatePreppedStmt("UPDATE ugc SET lxfml = ? WHERE id = ?;"));
-	while (modelsToUpdate->next()) {
-		int64_t modelId = modelsToUpdate->getInt64(1);
-		std::unique_ptr<sql::Blob> oldLxfml(modelsToUpdate->getBlob(2));
+	auto modelsToUpdate = Database::Get()->GetAllUgcModels();
+	auto previousAutoCommitState = Database::Get()->GetAutoCommit();
+	Database::Get()->SetAutoCommit(false);
+	for (auto& model : modelsToUpdate) {
 		// Check if the stored blob starts with zlib magic (0x78 0xDA - best compression of zlib)
 		// If it does, convert it to sd0.
-		if (oldLxfml->get() == 0x78 && oldLxfml->get() == 0xDA) {
-
+		if (model.lxfmlData.get() == 0x78 && model.lxfmlData.get() == 0xDA) {
 			// Get and save size of zlib compressed chunk.
-			oldLxfml->seekg(0, std::ios::end);
-			uint32_t oldLxfmlSize = static_cast<uint32_t>(oldLxfml->tellg());
-			oldLxfml->seekg(0);
+			model.lxfmlData.seekg(0, std::ios::end);
+			uint32_t oldLxfmlSize = static_cast<uint32_t>(model.lxfmlData.tellg());
+			model.lxfmlData.seekg(0);
 
 			// Allocate 9 extra bytes.  5 for sd0 magic, 4 for the only zlib compressed size.
 			uint32_t oldLxfmlSizeWithHeader = oldLxfmlSize + 9;
@@ -128,32 +113,25 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 
 			WriteSd0Magic(sd0ConvertedModel.get(), oldLxfmlSize);
 			for (uint32_t i = 9; i < oldLxfmlSizeWithHeader; i++) {
-				sd0ConvertedModel.get()[i] = oldLxfml->get();
+				sd0ConvertedModel.get()[i] = model.lxfmlData.get();
 			}
 
 			std::string outputString(sd0ConvertedModel.get(), oldLxfmlSizeWithHeader);
 			std::istringstream outputStringStream(outputString);
 
-			insertionStatement->setBlob(1, static_cast<std::istream*>(&outputStringStream));
-			insertionStatement->setInt64(2, modelId);
 			try {
-				insertionStatement->executeUpdate();
-				LOG("Updated model %i to sd0", modelId);
+				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
+				LOG("Updated model %i to sd0", model.id);
 				updatedModels++;
 			} catch (sql::SQLException exception) {
 				LOG("Failed to update model %i.  This model should be inspected manually to see why."
-					"The database error is %s", modelId, exception.what());
+					"The database error is %s", model.id, exception.what());
 			}
 		}
 	}
-	Database::Commit();
-	Database::SetAutoCommit(previousAutoCommitState);
+	Database::Get()->Commit();
+	Database::Get()->SetAutoCommit(previousAutoCommitState);
 	return updatedModels;
-}
-
-std::unique_ptr<sql::ResultSet> GetModelsFromDatabase() {
-	std::unique_ptr<sql::PreparedStatement> modelsRawDataQuery(Database::CreatePreppedStmt("SELECT id, lxfml FROM ugc;"));
-	return std::unique_ptr<sql::ResultSet>(modelsRawDataQuery->executeQuery());
 }
 
 /**
@@ -171,6 +149,6 @@ void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize; // Write the integer to the character array
 }
 
-bool CheckSd0Magic(sql::Blob* streamToCheck) {
-	return streamToCheck->get() == 's' && streamToCheck->get() == 'd' && streamToCheck->get() == '0' && streamToCheck->get() == 0x01 && streamToCheck->get() == 0xFF;
+bool CheckSd0Magic(std::istream& streamToCheck) {
+	return streamToCheck.get() == 's' && streamToCheck.get() == 'd' && streamToCheck.get() == '0' && streamToCheck.get() == 0x01 && streamToCheck.get() == 0xFF;
 }

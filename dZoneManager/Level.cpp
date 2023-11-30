@@ -14,6 +14,13 @@
 #include "CDFeatureGatingTable.h"
 #include "CDClientManager.h"
 #include "AssetManager.h"
+#include "dConfig.h"
+
+void Level::SceneObjectDataChunk::PrintAllObjects() const {
+	for (const auto& [id, sceneObj] : objects) {
+		LOG("ID: %d LOT: %d", id, sceneObj.lot);
+	}
+}
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
@@ -32,9 +39,9 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 }
 
 Level::~Level() {
-	for (std::map<uint32_t, Header>::iterator it = m_ChunkHeaders.begin(); it != m_ChunkHeaders.end(); ++it) {
-		if (it->second.id == Level::ChunkTypeID::FileInfo) delete it->second.fileInfo;
-		if (it->second.id == Level::ChunkTypeID::SceneObjectData) delete it->second.sceneObjects;
+	for (auto& [id, header] : m_ChunkHeaders) {
+		if (header.id == Level::ChunkTypeID::FileInfo) delete header.fileInfo;
+		if (header.id == Level::ChunkTypeID::SceneObjectData) delete header.sceneObjects;
 	}
 }
 
@@ -234,13 +241,21 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 
 	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
 
+	CDFeatureGating gating;
+	gating.major = 1;
+	gating.current = 10;
+	gating.minor = 64;
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major"), gating.major);
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current"), gating.current);
+	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor"), gating.minor);
+
 	for (uint32_t i = 0; i < objectsCount; ++i) {
 		SceneObject obj;
 		BinaryIO::BinaryRead(file, obj.id);
 		BinaryIO::BinaryRead(file, obj.lot);
 
-		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.value1);
-		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.value2);
+		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.nodeType);
+		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.glomId);
 
 		BinaryIO::BinaryRead(file, obj.position);
 		BinaryIO::BinaryRead(file, obj.rotation);
@@ -279,11 +294,17 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		bool gated = false;
 		for (LDFBaseData* data : obj.settings) {
 			if (data->GetKey() == u"gatingOnFeature") {
-				std::string featureGate = data->GetValueAsString();
-
-				if (!featureGatingTable->FeatureUnlocked(featureGate)) {
+				gating.featureName = data->GetValueAsString();
+				if (gating.featureName == Game::config->GetValue("event_1")) break;
+				else if (gating.featureName == Game::config->GetValue("event_2")) break;
+				else if (gating.featureName == Game::config->GetValue("event_3")) break;
+				else if (gating.featureName == Game::config->GetValue("event_4")) break;
+				else if (gating.featureName == Game::config->GetValue("event_5")) break;
+				else if (gating.featureName == Game::config->GetValue("event_6")) break;
+				else if (gating.featureName == Game::config->GetValue("event_7")) break;
+				else if (gating.featureName == Game::config->GetValue("event_8")) break;
+				else if (!featureGatingTable->FeatureUnlocked(gating)) {
 					gated = true;
-
 					break;
 				}
 			}

@@ -10,6 +10,7 @@
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
+#include <array>
 
 enum class eGameActivity : uint32_t;
 
@@ -566,6 +567,10 @@ private:
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
 
 	LWOOBJID m_CurrentInteracting = LWOOBJID_EMPTY;
+
+	std::array<uint64_t, 4> m_ClaimCodes{};
+
+	void AwardClaimCodes();
 };
 
 #endif // CHARACTERCOMPONENT_H

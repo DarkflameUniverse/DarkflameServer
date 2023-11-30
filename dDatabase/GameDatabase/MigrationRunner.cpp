@@ -32,9 +32,7 @@ Migration LoadMigration(std::string path) {
 }
 
 void MigrationRunner::RunMigrations() {
-	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
-	stmt->execute();
-	delete stmt;
+	Database::Get()->CreateMigrationHistoryTable();
 
 	sql::SQLString finalSQL = "";
 	bool runSd0Migrations = false;
@@ -45,13 +43,7 @@ void MigrationRunner::RunMigrations() {
 			continue;
 		}
 
-		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		stmt->setString(1, migration.name.c_str());
-		auto* res = stmt->executeQuery();
-		bool doExit = res->next();
-		delete res;
-		delete stmt;
-		if (doExit) continue;
+		if (Database::Get()->IsMigrationRun(migration.name)) continue;
 
 		LOG("Running migration: %s", migration.name.c_str());
 		if (migration.name == "dlu/5_brick_model_sd0.sql") {
@@ -60,10 +52,7 @@ void MigrationRunner::RunMigrations() {
 			finalSQL.append(migration.data.c_str());
 		}
 
-		stmt = Database::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-		stmt->setString(1, migration.name.c_str());
-		stmt->execute();
-		delete stmt;
+		Database::Get()->InsertMigration(migration.name);
 	}
 
 	if (finalSQL.empty() && !runSd0Migrations) {
@@ -73,11 +62,10 @@ void MigrationRunner::RunMigrations() {
 
 	if (!finalSQL.empty()) {
 		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
-		std::unique_ptr<sql::Statement> simpleStatement(Database::CreateStmt());
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
-				simpleStatement->execute(query.c_str());
+				Database::Get()->ExecuteCustomQuery(query.c_str());
 			} catch (sql::SQLException& e) {
 				LOG("Encountered error running migration: %s", e.what());
 			}
@@ -98,9 +86,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 	cdstmt.execQuery().finalize();
 	cdstmt.finalize();
 
-	auto* stmt = Database::CreatePreppedStmt("CREATE TABLE IF NOT EXISTS migration_history (name TEXT NOT NULL, date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP());");
-	stmt->execute();
-	delete stmt;
+	Database::Get()->CreateMigrationHistoryTable();
 
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
 		auto migration = LoadMigration("cdserver/" + entry);
@@ -111,25 +97,15 @@ void MigrationRunner::RunSQLiteMigrations() {
 		cdstmt = CDClientDatabase::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
 		cdstmt.bind((int32_t) 1, migration.name.c_str());
 		auto cdres = cdstmt.execQuery();
-		bool doExit = !cdres.eof();
-		cdres.finalize();
-		cdstmt.finalize();
 
-		if (doExit) continue;
+		if (!cdres.eof()) continue;
 
 		// Check first if there is entry in the migration history table on the main database.
-		stmt = Database::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		stmt->setString(1, migration.name.c_str());
-		auto* res = stmt->executeQuery();
-		doExit = res->next();
-		delete res;
-		delete stmt;
-		if (doExit) {
+		if (Database::Get()->IsMigrationRun(migration.name)) {
 			// Insert into cdclient database if there is an entry in the main database but not the cdclient database.
 			cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-			cdstmt.bind((int32_t) 1, migration.name.c_str());
-			cdstmt.execQuery().finalize();
-			cdstmt.finalize();
+			cdstmt.bind(static_cast<int32_t>(1), migration.name.c_str());
+			cdstmt.execQuery();
 			continue;
 		}
 
@@ -149,8 +125,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 		// Insert into cdclient database.
 		cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
 		cdstmt.bind((int32_t) 1, migration.name.c_str());
-		cdstmt.execQuery().finalize();
-		cdstmt.finalize();
+		cdstmt.execQuery();
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 

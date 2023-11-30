@@ -74,6 +74,7 @@
 #include "ZCompression.h"
 #include "EntityManager.h"
 #include "CheatDetection.h"
+#include "eGameMasterLevel.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -180,20 +181,15 @@ int main(int argc, char** argv) {
 
 	CDClientManager::Instance();
 
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
 	if (!Game::config->GetValue("dump_folder").empty()) {
 		Diagnostics::SetOutDirectory(Game::config->GetValue("dump_folder"));
 	}
 
+	//Connect to the MySQL Database:
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		return EXIT_FAILURE;
@@ -202,15 +198,12 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
 	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
+	auto masterInfo = Database::Get()->GetMasterInfo();
 
-	delete res;
-	delete stmt;
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
+	}
 
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
@@ -485,15 +478,11 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
 			}
-
-			delete res;
-			delete stmt;
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -886,20 +875,15 @@ void HandlePacket(Packet* packet) {
 
 		// If the check is turned on, validate the client's database checksum.
 		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
-			uint32_t gmLevel = 0;
-			auto* stmt = Database::CreatePreppedStmt("SELECT gm_level FROM accounts WHERE name=? LIMIT 1;");
-			stmt->setString(1, username.c_str());
-
-			auto* res = stmt->executeQuery();
-			while (res->next()) {
-				gmLevel = res->getInt(1);
+			auto accountInfo = Database::Get()->GetAccountInfo(username);
+			if (!accountInfo) {
+				LOG("Client's account does not exist in the database, aborting connection.");
+				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
+				return;
 			}
 
-			delete stmt;
-			delete res;
-
 			// Developers may skip this check
-			if (gmLevel < 8 && clientDatabaseChecksum != databaseChecksum) {
+			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum != databaseChecksum) {
 				LOG("Client's database checksum does not match the server's, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;
@@ -963,7 +947,7 @@ void HandlePacket(Packet* packet) {
 			CheckType::Entity,
 			"Sending GM with a sending player that does not match their own. GM ID: %i",
 			static_cast<int32_t>(messageID)
-			);
+		);
 
 		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
 		break;
@@ -987,7 +971,7 @@ void HandlePacket(Packet* packet) {
 			CheckType::User,
 			"Sending login request with a sending player that does not match their own. Player ID: %llu",
 			playerID
-			);
+		);
 
 		if (!valid) return;
 
@@ -1049,32 +1033,31 @@ void HandlePacket(Packet* packet) {
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
 
 				auto* characterComponent = player->GetComponent<CharacterComponent>();
-				if (characterComponent) {
-					player->GetComponent<CharacterComponent>()->RocketUnEquip(player);
-				}
+				if (!characterComponent) return;
+				characterComponent->RocketUnEquip(player);
 
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				if (!levelComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
-				switch(version) {
-					case eCharacterVersion::RELEASE:
-						// TODO: Implement, super low priority
-					case eCharacterVersion::LIVE:
-						LOG("Updating Character Flags");
-						c->SetRetroactiveFlags();
-						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
-					case eCharacterVersion::PLAYER_FACTION_FLAGS:
-						LOG("Updating Vault Size");
-						player->RetroactiveVaultSize();
-						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
-					case eCharacterVersion::VAULT_SIZE:
-						LOG("Updaing Speedbase");
-						levelComponent->SetRetroactiveBaseSpeed();
-						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
-					case eCharacterVersion::UP_TO_DATE:
-						break;
+				switch (version) {
+				case eCharacterVersion::RELEASE:
+					// TODO: Implement, super low priority
+				case eCharacterVersion::LIVE:
+					LOG("Updating Character Flags");
+					c->SetRetroactiveFlags();
+					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+				case eCharacterVersion::PLAYER_FACTION_FLAGS:
+					LOG("Updating Vault Size");
+					player->RetroactiveVaultSize();
+					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+				case eCharacterVersion::VAULT_SIZE:
+					LOG("Updaing Speedbase");
+					levelComponent->SetRetroactiveBaseSpeed();
+					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+				case eCharacterVersion::UP_TO_DATE:
+					break;
 				}
 
 				player->GetCharacter()->SetTargetScene("");
@@ -1090,89 +1073,45 @@ void HandlePacket(Packet* packet) {
 				if (g_CloneID != 0) {
 					const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
-					const auto zoneId = Game::server->GetZoneID();
+					const auto zoneId = worldId.GetMapID();
 					const auto cloneId = g_CloneID;
 
-					auto query = CDClientDatabase::CreatePreppedStmt(
-						"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-					query.bind(1, (int)zoneId);
+					//Check for BBB models:
+					auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 
-					auto result = query.execQuery();
-
-					if (result.eof() || result.fieldIsNull(0)) {
-						LOG("No property templates found for zone %d, not sending BBB", zoneId);
+					LWOOBJID propertyId = LWOOBJID_EMPTY;
+					if (propertyInfo) propertyId = propertyInfo->id;
+					else {
+						LOG("Couldn't find property ID for zone %i, clone %i", zoneId, cloneId);
 						goto noBBB;
 					}
+					for (auto& bbbModel : Database::Get()->GetUgcModels(propertyId)) {
+						LOG("Getting lxfml ugcID: %llu", bbbModel.id);
 
-					//Check for BBB models:
-					auto stmt = Database::CreatePreppedStmt("SELECT ugc_id FROM properties_contents WHERE lot=14 AND property_id=?");
+						bbbModel.lxfmlData.seekg(0, std::ios::end);
+						size_t lxfmlSize = bbbModel.lxfmlData.tellg();
+						bbbModel.lxfmlData.seekg(0);
 
-					int32_t templateId = result.getIntField(0);
+						//Send message:
+						LWOOBJID blueprintID = bbbModel.id;
+						GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+						GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
-					result.finalize();
+						CBITSTREAM;
+						BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+						bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+						bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+						bitStream.Write<uint32_t>(1);
+						bitStream.Write(blueprintID);
 
-					auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
+						bitStream.Write<uint32_t>(lxfmlSize);
 
-					propertyLookup->setInt(1, templateId);
-					propertyLookup->setInt64(2, g_CloneID);
+						bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(bbbModel.lxfmlData.str().c_str()), lxfmlSize);
 
-					auto* propertyEntry = propertyLookup->executeQuery();
-					uint64_t propertyId = 0;
-
-					if (propertyEntry->next()) {
-						propertyId = propertyEntry->getUInt64(1);
+						SystemAddress sysAddr = packet->systemAddress;
+						SEND_PACKET;
+						// PacketUtils::SavePacket("lxfml packet " + std::to_string(bbbModel.id) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 					}
-
-					delete propertyLookup;
-
-					stmt->setUInt64(1, propertyId);
-					auto res = stmt->executeQuery();
-					while (res->next()) {
-						LOG("Getting lxfml ugcID: %u", res->getUInt(1));
-
-						//Get lxfml:
-						auto stmtL = Database::CreatePreppedStmt("SELECT lxfml from ugc where id=?");
-						stmtL->setUInt(1, res->getUInt(1));
-
-						auto lxres = stmtL->executeQuery();
-
-						while (lxres->next()) {
-							auto lxfml = lxres->getBlob(1);
-
-							lxfml->seekg(0, std::ios::end);
-							size_t lxfmlSize = lxfml->tellg();
-							lxfml->seekg(0);
-
-							//Send message:
-							{
-								LWOOBJID blueprintID = res->getUInt(1);
-								GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-								GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
-
-								CBITSTREAM;
-								BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
-								bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
-								bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
-								bitStream.Write<uint32_t>(1);
-								bitStream.Write(blueprintID);
-
-								bitStream.Write<uint32_t>(lxfmlSize);
-
-								for (size_t i = 0; i < lxfmlSize; ++i)
-									bitStream.Write<uint8_t>(lxfml->get());
-
-								SystemAddress sysAddr = packet->systemAddress;
-								SEND_PACKET;
-								PacketUtils::SavePacket("lxfml packet " + std::to_string(res->getUInt(1)) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
-							}
-						}
-
-						delete stmtL;
-						delete lxres;
-					}
-
-					delete stmt;
-					delete res;
 				}
 
 			noBBB:
@@ -1297,6 +1236,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
+
+	case eWorldMessageType::UI_HELP_TOP_5: {
+		ClientPackets::SendTop5HelpIssues(packet);
+		break;
+	}
+
 	default:
 		LOG("Unknown world packet received: %i", int(packet->data[3]));
 	}
@@ -1324,6 +1269,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 	if (PropertyManagementComponent::Instance() != nullptr) {
 		LOG("Saving ALL property data for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 		PropertyManagementComponent::Instance()->Save();
+		Database::Get()->RemoveUnreferencedUgcModels();
 		LOG("ALL property data saved for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 	}
 

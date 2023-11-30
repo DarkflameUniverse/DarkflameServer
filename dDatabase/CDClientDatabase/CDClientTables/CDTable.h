@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cstdint>
 
 // CPPLinq
 #ifdef _WIN32

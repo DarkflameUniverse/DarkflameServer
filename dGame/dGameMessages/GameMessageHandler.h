@@ -18,7 +18,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "GameMessages.h"
-#include "../dDatabase/CDClientDatabase.h"
+#include "CDClientDatabase.h"
 
 enum class eGameMessageType : uint16_t;
 

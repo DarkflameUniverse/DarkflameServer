@@ -27,6 +27,23 @@
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
 #include "eMasterMessageType.h"
+#include "eGameMasterLevel.h"
+
+namespace {
+	std::vector<uint32_t> claimCodes;
+}
+
+void AuthPackets::LoadClaimCodes() {
+	if(!claimCodes.empty()) return;
+	auto rcstring = Game::config->GetValue("rewardcodes");
+	auto codestrings = GeneralUtils::SplitString(rcstring, ',');
+	for(auto const &codestring: codestrings){
+		uint32_t code = -1;
+		if(GeneralUtils::TryParse(codestring, code) && code != -1){
+			claimCodes.push_back(code);
+		}
+	}
+}
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	RakNet::BitStream inStream(packet->data, packet->length, false);
@@ -64,120 +81,54 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	const char* szUsername = username.c_str();
 
 	// Fetch account details
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT password, banned, locked, play_key_id, gm_level FROM accounts WHERE name=? LIMIT 1;");
-	stmt->setString(1, szUsername);
+	auto accountInfo = Database::Get()->GetAccountInfo(username);
 
-	sql::ResultSet* res = stmt->executeQuery();
-
-	if (res->rowsCount() == 0) {
-		LOG("No user found!");
+	if (!accountInfo) {
+		LOG("No user by name %s found!", username.c_str());
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username);
 		return;
 	}
 
-	std::string sqlPass = "";
-	bool sqlBanned = false;
-	bool sqlLocked = false;
-	uint32_t sqlPlayKey = 0;
-	uint32_t sqlGmLevel = 0;
-
-	while (res->next()) {
-		sqlPass = res->getString(1).c_str();
-		sqlBanned = res->getBoolean(2);
-		sqlLocked = res->getBoolean(3);
-		sqlPlayKey = res->getInt(4);
-		sqlGmLevel = res->getInt(5);
-	}
-
-	delete stmt;
-	delete res;
-
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	const auto& closedToNonDevs = Game::config->GetValue("closed_to_non_devs");
-	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && sqlGmLevel == 0) {
+	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username);
 		return;
 	}
 
-	if (Game::config->GetValue("dont_use_keys") != "1") {
+	if (Game::config->GetValue("dont_use_keys") != "1" && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
+		LOG("");
 		//Check to see if we have a play key:
-		if (sqlPlayKey == 0 && sqlGmLevel == 0) {
+		if (accountInfo->playKeyId == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
 			LOG("User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
 		}
 
 		//Check if the play key is _valid_:
-		auto keyCheckStmt = Database::CreatePreppedStmt("SELECT active FROM `play_keys` WHERE id=?");
-		keyCheckStmt->setInt(1, sqlPlayKey);
-		auto keyRes = keyCheckStmt->executeQuery();
-		bool isKeyActive = false;
+		auto playKeyStatus = Database::Get()->IsPlaykeyActive(accountInfo->playKeyId);
 
-		if (keyRes->rowsCount() == 0 && sqlGmLevel == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
+		if (!playKeyStatus) {
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a valid play key associated with it!", "", 2001, username);
 			return;
 		}
 
-		while (keyRes->next()) {
-			isKeyActive = (bool)keyRes->getInt(1);
-		}
-
-		if (!isKeyActive && sqlGmLevel == 0) {
+		if (!playKeyStatus.value()) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
 			LOG("User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
 		}
 	}
 
-	if (sqlBanned) {
+	if (accountInfo->banned) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username); return;
 	}
 
-	if (sqlLocked) {
+	if (accountInfo->locked) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username); return;
 	}
 
-	/*
-	 * Updated hashing method:
-	 * First attempt bcrypt.
-	 * If that fails, fallback to old method and setup bcrypt for new login.
-	 */
-
-	bool loginSuccess = true;
-
-	int32_t bcryptState = ::bcrypt_checkpw(password.c_str(), sqlPass.c_str());
-
-	if (bcryptState != 0) {
-		// Fallback on old method
-
-		std::string oldPassword = sha512(password + username);
-
-		if (sqlPass != oldPassword) {
-			loginSuccess = false;
-		} else {
-			// Generate new hash for bcrypt
-
-			char salt[BCRYPT_HASHSIZE];
-			char hash[BCRYPT_HASHSIZE];
-
-			bcryptState = ::bcrypt_gensalt(12, salt);
-
-			assert(bcryptState == 0);
-
-			bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-
-			assert(bcryptState == 0);
-
-			sql::PreparedStatement* accountUpdate = Database::CreatePreppedStmt("UPDATE accounts SET password = ? WHERE name = ? LIMIT 1;");
-
-			accountUpdate->setString(1, std::string(hash, BCRYPT_HASHSIZE).c_str());
-			accountUpdate->setString(2, szUsername);
-
-			accountUpdate->executeUpdate();
-		}
-	} else {
-		// Login success with bcrypt
-	}
+	bool loginSuccess = ::bcrypt_checkpw(password.c_str(), accountInfo->bcryptPassword.c_str()) == 0;
 
 	if (!loginSuccess) {
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username);
@@ -194,6 +145,10 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username);
 			});
 	}
+
+	for(auto const code: claimCodes){
+		Database::Get()->InsertRewardCode(accountInfo->id, code);
+	}
 }
 
 void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username) {
@@ -203,18 +158,25 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	packet.Write(static_cast<uint8_t>(responseCode));
 
 	// Event Gating
-	packet.Write(LUString("Talk_Like_A_Pirate"));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
-	packet.Write(LUString(""));
+	packet.Write(LUString(Game::config->GetValue("event_1")));
+	packet.Write(LUString(Game::config->GetValue("event_2")));
+	packet.Write(LUString(Game::config->GetValue("event_3")));
+	packet.Write(LUString(Game::config->GetValue("event_4")));
+	packet.Write(LUString(Game::config->GetValue("event_5")));
+	packet.Write(LUString(Game::config->GetValue("event_6")));
+	packet.Write(LUString(Game::config->GetValue("event_7")));
+	packet.Write(LUString(Game::config->GetValue("event_8")));
 
-	packet.Write(static_cast<uint16_t>(1));         // Version Major
-	packet.Write(static_cast<uint16_t>(10));        // Version Current
-	packet.Write(static_cast<uint16_t>(64));        // Version Minor
+	uint16_t version_major = 1;
+	uint16_t version_current = 10;
+	uint16_t version_minor = 64;
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major"), version_major);
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current"), version_current);
+	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor"), version_minor);
+
+	packet.Write(version_major);
+	packet.Write(version_current);
+	packet.Write(version_minor);
 
 	// Writes the user key
 	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();

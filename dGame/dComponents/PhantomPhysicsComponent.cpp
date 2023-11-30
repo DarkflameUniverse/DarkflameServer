@@ -402,10 +402,10 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
 void PhantomPhysicsComponent::SpawnVertices() {
 	if (!m_dpEntity) return;
 
-	std::cout << m_Parent->GetObjectID() << std::endl;
+	LOG("%llu", m_Parent->GetObjectID());
 	auto box = static_cast<dpShapeBox*>(m_dpEntity->GetShape());
 	for (auto vert : box->GetVertices()) {
-		std::cout << vert.x << ", " << vert.y << ", " << vert.z << std::endl;
+		LOG("%f, %f, %f", vert.x, vert.y, vert.z);
 
 		EntityInfo info;
 		info.lot = 33;
