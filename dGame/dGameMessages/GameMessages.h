@@ -206,7 +206,7 @@ namespace GameMessages {
 	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
 		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
-		bool cancelOnUnequip = false, bool cancelOnZone = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+		bool cancelOnUnequip = false, bool cancelOnZone = false, bool addedByTeammate = false, bool applyOnTeammates = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
 	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
 
