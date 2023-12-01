@@ -164,6 +164,8 @@ public:
 
 	LWOCLONEID GetCloneId() { return clone_Id; };
 
+	LWOOBJID GetId() const noexcept { return propertyId; }
+
 private:
 	/**
 	 * This
