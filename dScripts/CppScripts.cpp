@@ -154,6 +154,12 @@
 #include "FvBounceOverWall.h"
 #include "FvFong.h"
 #include "FvMaelstromGeyser.h"
+#include "FvRaceDragonLap1.h"
+#include "FvRaceDragonLap2.h"
+#include "FvRaceDragonLap3.h"
+#include "FvRacePillarABCServer.h"
+#include "FvRacePillarDServer.h"
+#include "RaceFireballs.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -611,9 +617,21 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new FvBounceOverWall();
 	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
 		script = new FvFong();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua") {
+	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua")
 		script = new FvMaelstromGeyser();
-	}
+	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP1_SERVER.lua")
+		script = new FvRaceDragonLap1();
+	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP2_SERVER.lua")
+		script = new FvRaceDragonLap2();
+	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP3_SERVER.lua")
+		script = new FvRaceDragonLap3();
+	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_PILLAR_ABC_SERVER.lua")
+		script = new FvRacePillarABCServer();
+	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_PILLAR_D_SERVER.lua")
+		script = new FvRacePillarDServer();
+	else if (scriptName == "scripts\\02_server\\Map\\FV\\Racing\\RACE_FIREBALLS.lua")
+		script = new RaceFireballs();
+
 
 	//Misc:
 	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
