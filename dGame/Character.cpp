@@ -314,6 +314,11 @@ void Character::SaveXMLToDatabase() {
 		return;
 	}
 
+	if (!m_OurEntity->GetPlayerReadyForUpdates()) {
+		LOG("Attempted to save before player %i:%s was not ready for updates. Character will NOT be saved.", GetID(), GetName().c_str());
+		return;
+	}
+
 	m_OurEntity->UpdateXMLDoc(m_Doc);
 
 	WriteToDatabase();
