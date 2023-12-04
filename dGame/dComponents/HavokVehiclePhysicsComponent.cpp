@@ -1,7 +1,7 @@
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "EntityManager.h"
 
-VehiclePhysicsComponent::VehiclePhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
+HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
 	m_Velocity = NiPoint3::ZERO;
 	m_AngularVelocity = NiPoint3::ZERO;
 	m_IsOnGround = true;
@@ -12,45 +12,45 @@ VehiclePhysicsComponent::VehiclePhysicsComponent(Entity* parent) : PhysicsCompon
 	m_EndBehavior = GeneralUtils::GenerateRandomNumber<uint32_t>(0, 7);
 }
 
-void VehiclePhysicsComponent::SetVelocity(const NiPoint3& vel) {
+void HavokVehiclePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 	if (vel == m_Velocity) return;
 	m_DirtyPosition = true;
 	m_Velocity = vel;
 }
 
-void VehiclePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
+void HavokVehiclePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
 	if (vel == m_AngularVelocity) return;
 	m_DirtyPosition = true;
 	m_AngularVelocity = vel;
 }
 
-void VehiclePhysicsComponent::SetIsOnGround(bool val) {
+void HavokVehiclePhysicsComponent::SetIsOnGround(bool val) {
 	if (val == m_IsOnGround) return;
 	m_DirtyPosition = true;
 	m_IsOnGround = val;
 }
 
-void VehiclePhysicsComponent::SetIsOnRail(bool val) {
+void HavokVehiclePhysicsComponent::SetIsOnRail(bool val) {
 	if (val == m_IsOnRail) return;
 	m_DirtyPosition = true;
 	m_IsOnRail = val;
 }
 
-void VehiclePhysicsComponent::SetRemoteInputInfo(const RemoteInputInfo& remoteInputInfo) {
+void HavokVehiclePhysicsComponent::SetRemoteInputInfo(const RemoteInputInfo& remoteInputInfo) {
 	if (m_RemoteInputInfo == remoteInputInfo) return;
 	this->m_RemoteInputInfo = remoteInputInfo;
 	m_DirtyRemoteInput = true;
 }
 
-void VehiclePhysicsComponent::SetDirtyVelocity(bool val) {
+void HavokVehiclePhysicsComponent::SetDirtyVelocity(bool val) {
 	m_DirtyVelocity = val;
 }
 
-void VehiclePhysicsComponent::SetDirtyAngularVelocity(bool val) {
+void HavokVehiclePhysicsComponent::SetDirtyAngularVelocity(bool val) {
 	m_DirtyAngularVelocity = val;
 }
 
-void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyPosition);
 
 	if (bIsInitialUpdate || m_DirtyPosition) {
@@ -111,7 +111,7 @@ void VehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	outBitStream->Write0();
 }
 
-void VehiclePhysicsComponent::Update(float deltaTime) {
+void HavokVehiclePhysicsComponent::Update(float deltaTime) {
 	if (m_SoftUpdate > 5) {
 		Game::entityManager->SerializeEntity(m_Parent);
 		m_SoftUpdate = 0;

@@ -71,7 +71,7 @@
 #include "MovingPlatformComponent.h"
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"

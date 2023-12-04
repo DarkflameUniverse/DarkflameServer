@@ -33,11 +33,11 @@ struct RemoteInputInfo {
 /**
  * Physics component for vehicles.
  */
-class VehiclePhysicsComponent : public PhysicsComponent {
+class HavokVehiclePhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VEHICLE_PHYSICS;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 
-	VehiclePhysicsComponent(Entity* parentEntity);
+	HavokVehiclePhysicsComponent(Entity* parentEntity);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

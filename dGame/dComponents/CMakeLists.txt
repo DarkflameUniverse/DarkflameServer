@@ -43,7 +43,7 @@ set(DGAME_DCOMPONENTS_SOURCES "BaseCombatAIComponent.cpp"
 	"SoundTriggerComponent.cpp"
 	"SwitchComponent.cpp"
 	"TriggerComponent.cpp"
-	"VehiclePhysicsComponent.cpp"
+	"HavokVehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp"
 	"ZoneControlComponent.cpp"
 	PARENT_SCOPE

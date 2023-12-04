@@ -62,7 +62,7 @@
 #include "ModelComponent.h"
 #include "ZCompression.h"
 #include "PetComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "ModuleAssemblyComponent.h"
@@ -299,10 +299,10 @@ void Entity::Initialize() {
 		AddComponent<PhantomPhysicsComponent>()->SetPhysicsEffectActive(false);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS) > 0) {
-		auto* vehiclePhysicsComponent = AddComponent<VehiclePhysicsComponent>();
-		vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-		vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) > 0) {
+		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+		havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+		havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
@@ -744,7 +744,7 @@ void Entity::Initialize() {
 			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
 			!HasComponent(eReplicaComponentType::PROPERTY) &&
 			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
+			!HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS)
 			)
 			//if (HasComponent(eReplicaComponentType::BASE_COMBAT_AI))
 		{
@@ -1023,9 +1023,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	VehiclePhysicsComponent* vehiclePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
+	HavokVehiclePhysicsComponent* havokVehiclePhysicsComponent;
+	if (TryGetComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS, havokVehiclePhysicsComponent)) {
+		havokVehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
@@ -1846,7 +1846,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return simple->GetPosition();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetPosition();
@@ -1874,7 +1874,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return simple->GetRotation();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
@@ -1902,7 +1902,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		simple->SetPosition(position);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetPosition(position);
@@ -1930,7 +1930,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		simple->SetRotation(rotation);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
