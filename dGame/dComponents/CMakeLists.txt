@@ -45,6 +45,6 @@ set(DGAME_DCOMPONENTS_SOURCES "BaseCombatAIComponent.cpp"
 	"TriggerComponent.cpp"
 	"HavokVehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp"
-	"ZoneControlComponent.cpp"
+	"MiniGameControlComponent.cpp"
 	PARENT_SCOPE
 )
