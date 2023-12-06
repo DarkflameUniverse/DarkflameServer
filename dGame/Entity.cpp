@@ -76,7 +76,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
-#include "ZoneControlComponent.h"
+#include "MiniGameControlComponent.h"
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
@@ -217,8 +217,8 @@ void Entity::Initialize() {
 		AddComponent<PetComponent>(petComponentId);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ZONE_CONTROL) > 0) {
-		AddComponent<ZoneControlComponent>();
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL) > 0) {
+		AddComponent<MiniGameControlComponent>();
 	}
 
 	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
@@ -1197,9 +1197,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		}
 	}
 
-	ZoneControlComponent* zoneControlComponent;
-	if (TryGetComponent(eReplicaComponentType::ZONE_CONTROL, zoneControlComponent)) {
-		zoneControlComponent->Serialize(outBitStream, bIsInitialUpdate);
+	MiniGameControlComponent* miniGameControlComponent;
+	if (TryGetComponent(eReplicaComponentType::MINI_GAME_CONTROL, miniGameControlComponent)) {
+		miniGameControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	// BBB Component, unused currently

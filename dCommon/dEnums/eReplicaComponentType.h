@@ -54,7 +54,7 @@ enum class eReplicaComponentType : uint32_t {
 	PHYSICS_SYSTEM,
 	QUICK_BUILD,
 	SWITCH,
-	ZONE_CONTROL, // Minigame
+	MINI_GAME_CONTROL,
 	CHANGLING,
 	CHOICE_BUILD,
 	PACKAGE,
