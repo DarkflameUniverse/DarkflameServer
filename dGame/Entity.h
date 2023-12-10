@@ -210,7 +210,7 @@ public:
 	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
-	void Kill(Entity* murderer = nullptr);
+	void Kill(Entity* murderer = nullptr, const eKillType killType = eKillType::SILENT);
 	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
 	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback);
 	void AddDieCallback(const std::function<void()>& callback);

@@ -17,7 +17,7 @@
 #include "PossessorComponent.h"
 #include "eRacingTaskParam.h"
 #include "Spawner.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "dServer.h"
 #include "dZoneManager.h"
 #include "dConfig.h"

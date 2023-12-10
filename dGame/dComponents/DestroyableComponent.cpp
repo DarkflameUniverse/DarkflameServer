@@ -796,7 +796,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 	}
 
-	m_Parent->Kill(owner);
+	m_Parent->Kill(owner, killType);
 }
 
 void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
