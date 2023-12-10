@@ -155,12 +155,12 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 void PetComponent::OnUse(Entity* originator) {
 	LOG("PET USE!");
 
-	if(m_ReadyToDig) {
+	/*if(m_ReadyToDig) {
 		LOG("Dig initiated!");
 		m_TresureTime = 2.0f;
 		//m_ReadyToDig = false;
 		SetAbility(PetAbilityType::DigAtPosition);
-	}
+	}*/
 
 	if (m_Owner != LWOOBJID_EMPTY) {
 		return;
@@ -434,9 +434,9 @@ void PetComponent::Update(float deltaTime) {
 
 skipTresure:
 
-	m_MovementAI->SetHaltDistance(haltDistance);
+	//m_MovementAI->SetHaltDistance(haltDistance);
 
-	m_MovementAI->SetMaxSpeed(2.5f);
+	//m_MovementAI->SetMaxSpeed(2.5f);
 
 	m_MovementAI->SetDestination(destination);
 
