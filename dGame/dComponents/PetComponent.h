@@ -6,6 +6,21 @@
 #include "Preconditions.h"
 #include "eReplicaComponentType.h"
 
+/*
+* The current state of the pet AI
+*/
+enum class PetAiState : uint {
+	idle = 0,   	// Doing nothing
+	spawn,			// Spawning into the world
+	follow, 		// Following player
+	interact,		// Beginning interaction
+	goToObj,		// Go to object
+	despawn 		// Despawning from world
+};
+
+/*
+* The status of the pet: Governs the icon above their head and the interactions available
+*/
 enum PetStatus : uint32_t {
 	NONE,
 	BEING_TAMED = 0x10,
@@ -41,6 +56,18 @@ public:
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+
+	/**
+	 * Sets the AI state of the pet
+	 * @param newState New pet AI state
+	*/
+	void SetPetAiState(PetAiState newState);
+
+	/**
+	 * Gets the AI state of the pet
+	*/
+	PetAiState GetPetAiState() { return m_State; };
+
 	void Update(float deltaTime) override;
 
 	/**
@@ -374,6 +401,11 @@ private:
 	uint32_t m_Status;
 
 	/**
+	 * The current state of the pet AI
+	 */
+	PetAiState m_State;
+
+	/**
 	 * A currently active ability, mostly unused
 	 */
 	PetAbilityType m_Ability;
@@ -400,11 +432,6 @@ private:
 	bool m_ReadyToDig;
 
 	/**
-	 * Boolean that sets if a pet is in an interaction
-	 */
-	bool m_InInteract;
-
-	/**
 	 * The position that this pet was spawned at
 	 */
 	NiPoint3 m_StartPosition;
@@ -423,4 +450,19 @@ private:
 	 * The rate at which imagination is drained from the user for having the pet out.
 	 */
 	float imaginationDrainRate;
+
+	/**
+	 * The walk speed of the pet
+	*/
+	float m_walkSpeed;
+
+	/**
+	 * The run speed of the pet
+	*/
+	float m_RunSpeed;
+
+	/**
+	 * The sprint speed of the pet
+	*/
+	float m_SprintSpeed;
 };
