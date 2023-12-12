@@ -9,13 +9,22 @@
 /*
 * The current state of the pet AI
 */
-enum class PetAiState : uint {
+enum class PetAiState : uint8_t {
 	idle = 0,   	// Doing nothing
 	spawn,			// Spawning into the world
-	follow, 		// Following player
-	interact,		// Beginning interaction
+	follow,			// Begin following
 	goToObj,		// Go to object
+	interact,		// Interact with an object
 	despawn 		// Despawning from world
+};
+
+/*
+* The type of object the pet is interacting with
+*/
+enum class PetInteractType : uint8_t {
+	none,		// Not interacting
+	treasure,	// Treasure dig
+	bouncer		// Bouncer switch
 };
 
 /*
@@ -24,7 +33,7 @@ enum class PetAiState : uint {
 enum PetStatus : uint32_t {
 	NONE,
 	BEING_TAMED = 0x10,
-	IS_NOT_WAITING = 0x20, // Right name? - used to be decimal 20
+	IS_NOT_WAITING = 0x20,
 	PLAY_SPAWN_ANIM = 0x80, 
 	TAMEABLE = 0x4000000
 };
@@ -35,8 +44,7 @@ enum PetEmote : int32_t {
 	Bounce
 };
 
-enum class PetAbilityType
-{
+enum class PetAbilityType {
 	Invalid,
 	GoToObject,
 	JumpOnObject,
@@ -124,6 +132,46 @@ public:
 	 * Makes the pet wander around
 	 */
 	void Wander();
+
+	/**
+	 * Called when the pet is first spawned
+	*/
+	void OnSpawn();
+
+	/**
+	 * Continues a step in the follow state, making sure that the entity is around its start position
+	*/
+	void OnFollow();
+
+	/**
+	 * Continues a step in the interact state, handling the pet's interaction with an entity
+	*/
+	void OnInteract();
+
+	/**
+	 * Continues a step in the tether state, making the entity run towards its target
+	*/
+	void OnTether();
+
+	/**
+	 * Start a pet interaction with an object at a given position
+	*/
+	void StartInteract(NiPoint3 position, PetInteractType interactType);
+
+	/**
+	 * Stop a pet interaction with an object
+	*/
+	void StopInteract();
+
+	/**
+	 * Set the type of interaction the pet is executing
+	*/
+	void SetInteractType(PetInteractType interactType) { m_InteractType = interactType; };
+
+	/**
+	 * Get the type of interaction the pet is executing
+	*/
+	PetInteractType GetInteractType() { return m_InteractType; };
 
 	/**
 	 * Spawns a pet from an item in the inventory of an owner
@@ -231,7 +279,12 @@ public:
 	bool GetIsReadyToDig() { return m_ReadyToDig; };
 
 	/**
-	 * Start the dig interaction
+	 * Start the pet bouncer interaction
+	*/
+	void StartInteractBouncer();
+
+	/**
+	 * Start the treasure dig interaction
 	 */
 	void StartInteractDig();
 
@@ -361,6 +414,11 @@ private:
 	LWOOBJID m_Interaction;
 
 	/**
+	 * The type of object that the pet is currently interacting with (e.g. a treasure chest or switch)
+	*/
+	PetInteractType m_InteractType;
+
+	/**
 	 * The ID of the entity that owns this pet
 	 */
 	LWOOBJID m_Owner;
@@ -435,6 +493,11 @@ private:
 	 * The position that this pet was spawned at
 	 */
 	NiPoint3 m_StartPosition;
+
+	/**
+	 * The halting radius of the pet while following a player
+	*/
+	float m_FollowRadius;
 
 	/**
 	 * The movement AI component that is related to this pet, required to move it around
