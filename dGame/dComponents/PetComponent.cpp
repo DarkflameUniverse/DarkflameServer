@@ -159,7 +159,6 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 void PetComponent::SetPetAiState(PetAiState newState) {
 	if (newState == GetPetAiState()) return;
 	this->m_State = newState;
-	LOG_DEBUG("Set pet AI state!");
 }
 
 void PetComponent::OnUse(Entity* originator) {
@@ -331,13 +330,6 @@ void PetComponent::Update(float deltaTime) {
 	/*if (m_Owner == LWOOBJID_EMPTY) {
 		UpdateUnowned(deltaTime);
 		return;
-	}
-
-	// Determine pet owner
-	auto* owner = GetOwner();
-	if (!owner) {
-		m_Parent->Kill(); // Kill pet if no owner
-		return;
 	}*/
 
 	// Update timers
@@ -373,7 +365,6 @@ void PetComponent::Update(float deltaTime) {
 		break;
 		
 	case PetAiState::goToObj:
-		LOG_DEBUG("Going to object!");
 		if (m_MovementAI->AtFinalWaypoint()) {
 			LOG_DEBUG("Reached object!");
 			m_MovementAI->Stop();
@@ -497,25 +488,6 @@ void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
 		}
 	}
 }
-
-/*void PetComponent::SetIsReadyToDig(bool isReady) {
-	if (isReady) {
-		LOG("Dig state reached!");
-		//m_Interaction = closestTresure->GetObjectID();
-		//SetAbility(PetAbilityType::JumpOnObject);
-		SetStatus(PetStatus::IS_NOT_WAITING); // Treasure dig status
-		m_ReadyToDig = true;
-		Game::entityManager->SerializeEntity(m_Parent);
-	}
-	else {
-		LOG("Dig state ended!");
-		//m_Interaction = LWOOBJID_EMPTY;
-		//SetAbility(PetAbilityType::Invalid);
-		SetStatus(0); // TODO: Check status
-		m_ReadyToDig = false;
-		Game::entityManager->SerializeEntity(m_Parent);
-	}
-}*/
 
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
@@ -922,7 +894,8 @@ void PetComponent::OnFollow() {
 	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
 	Entity* closestTreasure = PetDigServer::GetClosestTresure(ownerPos);
-	if (closestTreasure != nullptr && digUnlocked) {
+	const bool nonDragonForBone = closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067;
+	if (closestTreasure != nullptr && digUnlocked && !nonDragonForBone) {
 		const NiPoint3 treasurePos = closestTreasure->GetPosition();
 		const LWOOBJID treasureID = closestTreasure->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
@@ -1022,6 +995,7 @@ void PetComponent::SetupInteractTreasureDig() {
 
 	SetIsReadyToInteract(true);
 
+	SetAbility(PetAbilityType::JumpOnObject);
 	SetStatus(PetStatus::IS_NOT_WAITING); // TODO: Double-check this is the right flag being set
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 	m_Timer += 0.5f;
@@ -1208,6 +1182,7 @@ void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandTy
 		// Emotes
 		GameMessages::SendPlayEmote(m_Parent->GetObjectID(), typeId, owner->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (commandType == 3) {
+		StopInteract(); // TODO: Verify this is necessary
 		SetPetAiState(PetAiState::follow);
 	} else if (commandType == 6) {
 		// TODO: Go to player
@@ -1220,7 +1195,6 @@ void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandTy
 	// Add movement functionality
 	if (position != NiPoint3::ZERO) {
 		m_MovementAI->SetDestination(position);
-		//m_Timer = 9; //Is this setting how long until the next update tick?
 	}
 }
 
