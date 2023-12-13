@@ -108,7 +108,7 @@ void PetDigServer::OnUse(Entity* self, Entity* user) {
 	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
 	if (!petComponent) return;
 
-	if(petComponent->GetIsReadyToInteract()) { // TODO: Add handling of the "first time" dig message
+	if(petComponent->IsReadyToInteract()) { // TODO: Add handling of the "first time" dig message
 		auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		

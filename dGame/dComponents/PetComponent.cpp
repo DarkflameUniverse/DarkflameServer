@@ -896,12 +896,12 @@ void PetComponent::OnInteract() {
 
 	switch (GetInteractType()) {
 		case PetInteractType::bouncer:
-		if (GetIsReadyToInteract()) LOG_DEBUG("Add the HandleInteractBouncer()!");
+		if (IsReadyToInteract()) LOG_DEBUG("Add the HandleInteractBouncer()!");
 		else SetupInteractBouncer();
 		break;
 
 		case PetInteractType::treasure:
-		if (GetIsReadyToInteract()) HandleInteractTreasureDig(); 
+		if (IsReadyToInteract()) HandleInteractTreasureDig(); 
 		else SetupInteractTreasureDig();
 		break;
 

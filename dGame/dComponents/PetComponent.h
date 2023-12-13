@@ -272,7 +272,7 @@ public:
 	/**
 	 * @return is pet ready to interact with an object
 	 */
-	bool GetIsReadyToInteract() { return m_ReadyToInteract; };
+	bool IsReadyToInteract() { return m_ReadyToInteract; };
 
 	/**
 	 * Set up the pet bouncer interaction
