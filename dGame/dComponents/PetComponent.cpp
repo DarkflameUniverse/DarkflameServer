@@ -106,7 +106,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	auto result = query.execQuery();
 
 	if (!result.eof()) {
-		m_walkSpeed = result.getFloatField(0, 2.5f);
+		m_WalkSpeed = result.getFloatField(0, 2.5f);
 		m_RunSpeed = result.getFloatField(1, 5.0f);
 		m_SprintSpeed = result.getFloatField(2, 10.0f);
 		imaginationDrainRate = result.getFloatField(3, 60.0f);

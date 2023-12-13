@@ -505,7 +505,7 @@ private:
 	/**
 	 * The walk speed of the pet
 	*/
-	float m_walkSpeed;
+	float m_WalkSpeed;
 
 	/**
 	 * The run speed of the pet
