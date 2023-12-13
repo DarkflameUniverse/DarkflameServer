@@ -855,7 +855,7 @@ void PetComponent::OnFollow() {
 
 	Entity* closestTreasure = PetDigServer::GetClosestTresure(ownerPos);
 	const bool nonDragonForBone = closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067;
-	if (closestTreasure != nullptr && digUnlocked && !nonDragonForBone) {
+	if (!nonDragonForBone && closestTreasure != nullptr && digUnlocked) {
 		const NiPoint3 treasurePos = closestTreasure->GetPosition();
 		const LWOOBJID treasureID = closestTreasure->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
