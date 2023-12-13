@@ -384,7 +384,6 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	/*
-
 	auto destination = owner->GetPosition();
 	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
 
@@ -424,46 +423,7 @@ void PetComponent::Update(float deltaTime) {
 			destination = switchPosition;
 		}
 	}
-
-	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
-	auto* missionComponent = owner->GetComponent<MissionComponent>();
-	if (!missionComponent) return;
-	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
-
-	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
-	if (closestTresure != nullptr && digUnlocked) {
-		// Skeleton Dragon Pat special case for bone digging
-		if (closestTresure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
-			goto skipTresure;
-		}
-
-		NiPoint3 tresurePosition = closestTresure->GetPosition();
-		float distance = Vector3::DistanceSquared(position, tresurePosition);
-		if (distance < 5 * 5) {
-			m_Interaction = closestTresure->GetObjectID();
-
-			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
-
-			SetIsReadyToDig(true);
-
-		} else if (distance < 10 * 10) {
-			haltDistance = 1;
-
-			destination = tresurePosition;
-
-			SetIsReadyToDig(false);
-		}
-	}
-
-skipTresure:
-
-	m_MovementAI->SetHaltDistance(haltDistance);
-
-	//m_MovementAI->SetMaxSpeed(2.5f);
-
-	m_MovementAI->SetDestination(destination);
-
-	m_Timer = 1;*/
+	*/
 }
 
 void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
