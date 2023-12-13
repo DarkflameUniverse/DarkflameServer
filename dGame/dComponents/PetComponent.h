@@ -32,6 +32,7 @@ enum class PetInteractType : uint8_t {
 */
 enum PetStatus : uint32_t {
 	NONE,
+	//READY_TO_DIG,
 	BEING_TAMED = 0x10,
 	IS_NOT_WAITING = 0x20,
 	PLAY_SPAWN_ANIM = 0x80, 
@@ -149,14 +150,9 @@ public:
 	void OnInteract();
 
 	/**
-	 * Continues a step in the tether state, making the entity run towards its target
-	*/
-	void OnTether();
-
-	/**
 	 * Start a pet interaction with an object at a given position
 	*/
-	void StartInteract(NiPoint3 position, PetInteractType interactType);
+	void StartInteract(const NiPoint3 position, const PetInteractType interactType, const LWOOBJID interactID);
 
 	/**
 	 * Stop a pet interaction with an object
@@ -268,42 +264,35 @@ public:
 	void SetPreconditions(std::string& conditions);
 
 	/**
-	 * Sets if the pet is ready to dig
-	 * @param isReady whether the pet is ready to dig (true) or not (false)
+	 * Sets if the pet is ready to interact with an object
+	 * @param isReady whether the pet is ready to interact (true) or not (false)
 	 */
-	void SetIsReadyToDig(bool isReady);
+	void SetIsReadyToInteract(bool isReady) { m_ReadyToInteract = isReady; };
 
 	/**
-	 * @return is pet ready to dig
+	 * @return is pet ready to interact with an object
 	 */
-	bool GetIsReadyToDig() { return m_ReadyToDig; };
+	bool GetIsReadyToInteract() { return m_ReadyToInteract; };
 
 	/**
-	 * Start the pet bouncer interaction
+	 * Set up the pet bouncer interaction
 	*/
-	void StartInteractBouncer();
+	void SetupInteractBouncer();
 
 	/**
-	 * Start the treasure dig interaction
+	 * Set up the treasure dig interaction
 	 */
-	void StartInteractDig();
+	void SetupInteractTreasureDig();
 
 	/**
-	 * Handles the pet dig interaction
-	 * @param deltaTime time elapsed
-	 */
-	void InteractDig(float deltaTime);
+	 * Starts the pet treasure dig interaction
+	*/
+	void StartInteractTreasureDig();
 
 	/**
-	 * End the dig interaction
-	 */
-	void EndInteractDig();
-
-	/**
-	 * Sets pet's treasure timer
-	 * @param digTime float representing the treasure dig time in seconds
-	 */
-	void SetTreasureTime(float digTime) { m_TresureTime = digTime; };
+	 * Handles the pet treasure dig interaction
+	*/
+	void HandleInteractTreasureDig();
 
 	/**
 	 * Returns the entity that this component belongs to
@@ -479,15 +468,14 @@ private:
 	float m_TimerAway;
 
 	/**
-	 * Timer that tracks how long a pet has been digging up some treasure, required to spawn the treasure contents
-	 * on time
-	 */
-	float m_TresureTime;
+	 * A timer that tracks how long until a tamed pet will bounce again when standing over a treasure dig site
+	*/
+	float m_TimerBounce;
 
 	/**
-	 * Boolean that sets if a pet is ready to dig and display the interact prompt
+	 * Boolean that sets if a pet is ready to interact with an object
 	 */
-	bool m_ReadyToDig;
+	bool m_ReadyToInteract;
 
 	/**
 	 * The position that this pet was spawned at
@@ -497,7 +485,7 @@ private:
 	/**
 	 * The halting radius of the pet while following a player
 	*/
-	float m_FollowRadius;
+	const float m_FollowRadius = 8.0f;
 
 	/**
 	 * The movement AI component that is related to this pet, required to move it around

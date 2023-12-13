@@ -108,14 +108,14 @@ void PetDigServer::OnUse(Entity* self, Entity* user) {
 	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
 	if (!petComponent) return;
 
-	if(petComponent->GetIsReadyToDig()) { // TODO: Add handling of the "first time" dig message
+	if(petComponent->GetIsReadyToInteract()) { // TODO: Add handling of the "first time" dig message
 		auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		
 		auto imagination = destroyableComponent->GetImagination();
 		if (imagination == 0) return; // TODO: Check if there was special behavior for this in the live game (PR_NEED_IMAGINATION)
 
-		petComponent->StartInteractDig();
+		petComponent->StartInteractTreasureDig();
 
 		imagination -= 1; // TODO: Get rid of this magic number
 		destroyableComponent->SetImagination(imagination);

@@ -80,17 +80,17 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_ModelId = LWOOBJID_EMPTY;
 	m_Timer = 0;
 	m_TimerAway = 0;
+	m_TimerBounce = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
 	m_Status = PetStatus::TAMEABLE; // Tameable
 	m_Ability = PetAbilityType::Invalid;
 	m_StartPosition = m_Parent->GetPosition(); //NiPoint3::ZERO;
 	m_MovementAI = nullptr;
-	m_TresureTime = 0;
 	m_Preconditions = nullptr;
 
-	m_ReadyToDig = false;
+	m_ReadyToInteract = false;
 	SetPetAiState(PetAiState::spawn);
-	m_FollowRadius = 5.0f;
+	//m_FollowRadius = 8.0f;
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parent->GetVar<std::u16string>(u"CheckPrecondition"));
 
@@ -160,7 +160,6 @@ void PetComponent::SetPetAiState(PetAiState newState) {
 	if (newState == GetPetAiState()) return;
 	this->m_State = newState;
 	LOG_DEBUG("Set pet AI state!");
-	//Game::entityManager->SerializeEntity(m_Parent); // Do we need to serialize entity?
 }
 
 void PetComponent::OnUse(Entity* originator) {
@@ -341,16 +340,24 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}*/
 
-	if (m_StartPosition == NiPoint3::ZERO) {
-		m_StartPosition = m_Parent->GetPosition();
-	}
+	// Update timers
+	m_TimerBounce -= deltaTime;
 
-	// Update timer
 	if (m_Timer > 0) {
 		m_Timer -= deltaTime;
 		return;
 	}
 
+	// Remove "left behind" pets
+	if (m_Owner != LWOOBJID_EMPTY) {
+		Entity* owner = GetOwner();
+		if (!owner) {
+			m_Parent->Kill();
+			return;
+		}
+	}
+
+	// Handle pet AI states
 	switch (m_State) {
 	case PetAiState::spawn:
 		LOG_DEBUG("Pet spawn beginning!");
@@ -468,7 +475,7 @@ skipTresure:
 	m_Timer = 1;*/
 }
 
-void PetComponent::UpdateUnowned(float deltaTime) { //CURRENTLY UNUSED
+void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
 	if (m_Tamer != LWOOBJID_EMPTY) {
 		if (m_Timer > 0) {
 			m_Timer -= deltaTime;
@@ -491,7 +498,7 @@ void PetComponent::UpdateUnowned(float deltaTime) { //CURRENTLY UNUSED
 	}
 }
 
-void PetComponent::SetIsReadyToDig(bool isReady) {
+/*void PetComponent::SetIsReadyToDig(bool isReady) {
 	if (isReady) {
 		LOG("Dig state reached!");
 		//m_Interaction = closestTresure->GetObjectID();
@@ -508,33 +515,7 @@ void PetComponent::SetIsReadyToDig(bool isReady) {
 		m_ReadyToDig = false;
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
-}
-
-void PetComponent::InteractDig(float deltaTime) {
-	LOG("Pet digging!");
-
-	auto* tresure = Game::entityManager->GetEntity(m_Interaction);
-
-	if (tresure == nullptr) {
-		m_TresureTime = 0.0f;
-		return;
-	}
-
-	m_TresureTime -= deltaTime;
-
-	m_MovementAI->Stop();
-
-	if (m_TresureTime <= 0.0f) {
-		m_Parent->SetOwnerOverride(m_Owner);
-
-		tresure->Smash(m_Parent->GetObjectID());
-
-		LOG("Pet dig completed!");
-		m_Interaction = LWOOBJID_EMPTY;
-		m_TresureTime = 0.0f;
-		SetIsReadyToDig(false);
-	}
-}
+}*/
 
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
@@ -856,9 +837,9 @@ void PetComponent::ClientFailTamingMinigame() {
 }
 
 void PetComponent::Wander() {
-	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
+	//m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
 
-	if (m_MovementAI == nullptr || !m_MovementAI->AtFinalWaypoint()) return;
+	if (/*m_MovementAI == nullptr ||*/ !m_MovementAI->AtFinalWaypoint()) return;
 
 	m_MovementAI->SetHaltDistance(0);
 
@@ -889,48 +870,48 @@ void PetComponent::Wander() {
 		return;
 	}
 
-	m_MovementAI->SetMaxSpeed(info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(m_SprintSpeed); //info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / info.wanderSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_SprintSpeed; //info.wanderSpeed;
 }
 
 void PetComponent::OnSpawn() {
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-	if (!m_MovementAI) return;
+	//if (!m_MovementAI) return;
+
+	if (m_StartPosition == NiPoint3::ZERO) {
+		m_StartPosition = m_Parent->GetPosition();
+	}
 
 	LOG_DEBUG("Pet spawn complete, setting AI state.");
 	
-	if (m_Owner != LWOOBJID_EMPTY) SetPetAiState(PetAiState::follow);
-	else SetPetAiState(PetAiState::idle);
+	if (m_Owner != LWOOBJID_EMPTY) {
+		m_Parent->SetOwnerOverride(m_Owner);
+		m_MovementAI->SetMaxSpeed(m_SprintSpeed);
+		m_MovementAI->SetHaltDistance(m_FollowRadius);
+		SetStatus(PetStatus::NONE);
+		SetPetAiState(PetAiState::follow);
+	}
+	else {
+		SetPetAiState(PetAiState::idle);
+	}
 }
 
 void PetComponent::OnFollow() {
-	m_MovementAI->SetHaltDistance(5.0f); // TODO: Remove this magic number
-
 	Entity* owner = GetOwner();
-	NiPoint3 ownerPos = owner->GetPosition();
-	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	if (!owner) return;
+	const NiPoint3 ownerPos = owner->GetPosition();
 
-	// If the player's position is within range, stop moving
-	if (Vector3::DistanceSquared(currentPos, ownerPos) <= m_FollowRadius * m_FollowRadius) {
-		m_MovementAI->Stop();
-	}
-	else { // Chase the player's new position
-		m_MovementAI->SetMaxSpeed(m_SprintSpeed);
-		m_MovementAI->SetDestination(ownerPos);
-		LOG_DEBUG("New pet destination: %f %f %f", ownerPos.x, ownerPos.y, ownerPos.z);
-		//SetPetAiState(PetAiState::tether);
-	}
-
-	//TEST SECTION
+	// Find interactions
 	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(ownerPos);
 	if (closestSwitch != nullptr && !closestSwitch->GetActive()) {
-		NiPoint3 switchPos = closestSwitch->GetParentEntity()->GetPosition();
+		const NiPoint3 switchPos = closestSwitch->GetParentEntity()->GetPosition();
+		const LWOOBJID switchID = closestSwitch->GetParentEntity()->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, switchPos);
-		if (distance < 20 * 20) {
-			StartInteract(switchPos, PetInteractType::bouncer);
+		if (distance < 16 * 16) {
+			StartInteract(switchPos, PetInteractType::bouncer, switchID);
 			return;
 		}
 	}
@@ -942,22 +923,36 @@ void PetComponent::OnFollow() {
 
 	Entity* closestTreasure = PetDigServer::GetClosestTresure(ownerPos);
 	if (closestTreasure != nullptr && digUnlocked) {
-		NiPoint3 treasurePos = closestTreasure->GetPosition();
+		const NiPoint3 treasurePos = closestTreasure->GetPosition();
+		const LWOOBJID treasureID = closestTreasure->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
-		if (distance < 10 * 10) {
-			StartInteract(treasurePos, PetInteractType::treasure);
+		if (distance < 16 * 16) {
+			StartInteract(treasurePos, PetInteractType::treasure, treasureID);
 			return;
 		}
+	}
+
+	// Handle actual following logic
+	const NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+
+	// If the player's position is within range, stop moving
+	if (Vector3::DistanceSquared(currentPos, ownerPos) <= m_FollowRadius * m_FollowRadius) {
+		m_MovementAI->Stop();
+	}
+	else { // Chase the player's new position
+		m_MovementAI->SetDestination(ownerPos);
+		LOG_DEBUG("New pet destination: %f %f %f", ownerPos.x, ownerPos.y, ownerPos.z);
 	}
 
 	m_Timer += 0.5f;
 }
 
 void PetComponent::OnInteract() {
-	LOG_DEBUG("Beginning interaction with object!");
+	Entity* owner = GetOwner();
+	if (!owner) return;
 
-	NiPoint3 ownerPos = GetOwner()->GetPosition();
-	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	const NiPoint3 ownerPos = owner->GetPosition();
+	const NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
 	const float distanceFromOwner = Vector3::DistanceSquared(ownerPos, currentPos);
 
 	if (distanceFromOwner > 25 * 25) {
@@ -968,11 +963,13 @@ void PetComponent::OnInteract() {
 
 	switch (GetInteractType()) {
 		case PetInteractType::bouncer:
-		StartInteractBouncer();
+		if (GetIsReadyToInteract()) LOG_DEBUG("Add the HandleInteractBouncer()!");
+		else SetupInteractBouncer();
 		break;
 
 		case PetInteractType::treasure:
-		StartInteractDig();
+		if (GetIsReadyToInteract()) HandleInteractTreasureDig(); 
+		else SetupInteractTreasureDig();
 		break;
 
 		default:
@@ -983,11 +980,8 @@ void PetComponent::OnInteract() {
 	}
 }
 
-void PetComponent::OnTether() {
-	m_Timer += 0.5f;
-}
-
-void PetComponent::StartInteract(NiPoint3 position, PetInteractType interactType) {
+void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType interactType, const LWOOBJID interactID) {
+	SetInteraction(interactID); // TODO: Check if this should be serialized for goToObj
 	SetInteractType(interactType);
 	SetAbility(PetAbilityType::GoToObject);
 	SetPetAiState(PetAiState::goToObj);
@@ -999,30 +993,68 @@ void PetComponent::StartInteract(NiPoint3 position, PetInteractType interactType
 }
 
 void PetComponent::StopInteract() {
+	SetInteraction(LWOOBJID_EMPTY);
 	SetInteractType(PetInteractType::none);
 	SetAbility(PetAbilityType::Invalid);
 	SetPetAiState(PetAiState::follow);
+	SetStatus(PetStatus::NONE);
+	SetIsReadyToInteract(false);
 	m_MovementAI->SetMaxSpeed(m_SprintSpeed);
 	m_MovementAI->SetHaltDistance(m_FollowRadius);
 	LOG_DEBUG("Stopping interaction!");
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void PetComponent::StartInteractBouncer() {
-	SetAbility(PetAbilityType::JumpOnObject);
+void PetComponent::SetupInteractBouncer() {
+	// THIS IS ALL BAD, BAD, BAD! FIX IT, ME! >:(
+	/*SetAbility(PetAbilityType::JumpOnObject);
 	NiPoint3 destination = m_MovementAI->GetDestination(); 
 	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(destination);
 	m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
 	Game::entityManager->SerializeEntity(m_Parent);
-	closestSwitch->EntityEnter(m_Parent);
+	closestSwitch->EntityEnter(m_Parent);*/
 }
 
-void PetComponent::StartInteractDig() {
-	//m_InInteract = true;
-	//m_TresureTime = 2.0f; //TODO: Remove magic number
-	m_Interaction == LWOOBJID_EMPTY; //TODO: Make this not empty
-	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true);\
-	m_Timer = 2.0f;
+void PetComponent::SetupInteractTreasureDig() {
+	LOG_DEBUG("Setting up dig interaction!");
+	Entity* closestTreasure = Game::entityManager->GetEntity(GetInteraction());
+	if (!closestTreasure) return;
+
+	SetIsReadyToInteract(true);
+
+	SetStatus(PetStatus::IS_NOT_WAITING); // TODO: Double-check this is the right flag being set
+	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
+	m_Timer += 0.5f;
+}
+
+void PetComponent::StartInteractTreasureDig() {
+	SetAbility(PetAbilityType::DigAtPosition);
+	Game::entityManager->SerializeEntity(m_Parent);
+
+	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure, true); // Plays 'dig' animation
+	m_Timer = 1.5f;
+}
+
+void PetComponent::HandleInteractTreasureDig() {
+	if (GetAbility() == PetAbilityType::DigAtPosition) {
+		auto* owner = GetOwner();
+
+		auto* treasure = Game::entityManager->GetEntity(GetInteraction());
+		if (!treasure) return;
+		treasure->Smash(m_Parent->GetObjectID());
+
+		LOG_DEBUG("Pet dig completed!");
+		StopInteract(); //TODO: This may not be totally consistent with live behavior, where the pet seems to stay near the dig and not immediately follow
+		m_Timer = 1.5f;
+		return;
+	}
+	
+	if (m_TimerBounce <= 0.0f) {
+		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
+		m_TimerBounce = 1.0f;
+	}
+
+	m_Timer += 0.5f;
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
@@ -1042,7 +1074,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
-	SetStatus(1);
+	SetStatus(PetStatus::PLAY_SPAWN_ANIM);
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
@@ -1075,7 +1107,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	activePets[m_Owner] = m_Parent->GetObjectID();
 
-	m_Timer = 3;
+	//m_Timer = 3;
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
