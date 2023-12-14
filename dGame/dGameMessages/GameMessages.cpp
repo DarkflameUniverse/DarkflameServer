@@ -507,14 +507,14 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t
 	SEND_PACKET;
 }
 
-void GameMessages::SendHelp(const LWOOBJID& objectID, const eHelpType help, const SystemAddress& sysAddr) {
+void GameMessages::SendHelp(const LWOOBJID& objectId, const eHelpType help, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
-
-	bitStream.Write(objectID);
-    bitStream.Write(eGameMessageType::HELP);
-    bitStream.Write(help);
-
+	
+	bitStream.Write(objectId);
+	bitStream.Write(eGameMessageType::HELP);
+	bitStream.Write(help);
+	
 	SEND_PACKET;
 }
 
@@ -3521,7 +3521,7 @@ void GameMessages::SendClientExitTamingMinigame(LWOOBJID objectId, bool bVolunta
 	SEND_PACKET;
 }
 
-void GameMessages::SendShowPetActionButton(const LWOOBJID& objectId, const ePetAbilityType petAbility, bool bShow, const SystemAddress& sysAddr) {
+void GameMessages::SendShowPetActionButton(const LWOOBJID& objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -3531,7 +3531,7 @@ void GameMessages::SendShowPetActionButton(const LWOOBJID& objectId, const ePetA
 	bitStream.Write(petAbility);
 	bitStream.Write(bShow);
 
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST; // TODO: Don't think this should ever be broadcasted, need to confirm
 	SEND_PACKET;
 }
 
