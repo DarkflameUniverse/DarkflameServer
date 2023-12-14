@@ -82,7 +82,7 @@ namespace GameMessages {
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::NONE);
 	void SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr);
-	void SendHelp(const LWOOBJID& objectID, const eHelpType help, const SystemAddress& sysAddr);
+	void SendHelp(const LWOOBJID& objectId, const eHelpType help, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
 
 	void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
@@ -387,7 +387,7 @@ namespace GameMessages {
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 
-	void SendShowPetActionButton(const LWOOBJID& objectId, const ePetAbilityType petAbility, bool bShow, const SystemAddress& sysAddr);
+	void SendShowPetActionButton(const LWOOBJID& objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr);
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 
