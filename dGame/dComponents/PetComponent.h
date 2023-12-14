@@ -33,11 +33,10 @@ enum class PetInteractType : uint8_t {
 */
 enum PetStatus : uint32_t {
 	NONE,
-	//READY_TO_DIG,
-	BEING_TAMED = 0x10,
-	IS_NOT_WAITING = 0x20,
-	PLAY_SPAWN_ANIM = 0x80, 
-	TAMEABLE = 0x4000000
+	BEING_TAMED = 1 << 4, //0x10,
+	IS_NOT_WAITING = 1 << 5, //0x20,
+	PLAY_SPAWN_ANIM = 1 << 7, //0x80, 
+	TAMEABLE = 1 << 8 //0x4000000
 };
 
 enum PetEmote : int32_t {
