@@ -79,8 +79,6 @@ dZoneManager::~dZoneManager() {
 			delete p.second;
 			p.second = nullptr;
 		}
-
-		m_Spawners.erase(p.first);
 	}
 	if (m_WorldConfig) delete m_WorldConfig;
 }
