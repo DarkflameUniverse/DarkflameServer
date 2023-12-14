@@ -359,8 +359,8 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 				idOfReceiver = characterIdFetch->id;
 			}
 		}
-
-		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
+		const auto& bffMap = user->GetIsBestFriendMap();
+		if (bffMap.find(receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
 			auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
 
 			if (bffInfo) {
@@ -368,11 +368,9 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 			}
 
 			if (isBestFriend) {
-				auto tmpBestFriendMap = user->GetIsBestFriendMap();
-				tmpBestFriendMap[receiver] = true;
-				user->SetIsBestFriendMap(tmpBestFriendMap);
+				user->UpdateBestFriendValue(receiver, true);
 			}
-		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+		} else if (bffMap.find(receiver) != bffMap.end()) {
 			isBestFriend = true;
 		}
 	}

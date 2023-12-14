@@ -110,3 +110,7 @@ void User::UserOutOfSync() {
 		Game::server->Disconnect(this->m_SystemAddress, eServerDisconnectIdentifiers::PLAY_SCHEDULE_TIME_DONE);
 	}
 }
+
+void User::UpdateBestFriendValue(const std::string_view playerName, const bool newValue) {
+	m_IsBestFriendMap[playerName.data()] = newValue;
+}
