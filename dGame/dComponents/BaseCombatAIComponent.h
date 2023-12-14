@@ -1,5 +1,4 @@
-#ifndef BASECOMBATAICOMPONENT_H
-#define BASECOMBATAICOMPONENT_H
+#pragma once
 
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
@@ -388,5 +387,3 @@ private:
 	 */
 	bool IsMech();
 };
-
-#endif // BASECOMBATAICOMPONENT_H

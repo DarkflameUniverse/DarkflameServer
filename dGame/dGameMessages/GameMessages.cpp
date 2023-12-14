@@ -44,6 +44,8 @@
 #include "eStateChangeType.h"
 #include "eConnectionType.h"
 #include "ePlayerFlag.h"
+#include "eHelpType.h"
+#include "ePetAbilityType.h"
 
 #include <sstream>
 #include <future>
@@ -501,6 +503,17 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t
 	bitStream.Write((uint16_t)eGameMessageType::NOTIFY_CLIENT_FLAG_CHANGE);
 	bitStream.Write(bFlag);
 	bitStream.Write(iFlagID);
+
+	SEND_PACKET;
+}
+
+void GameMessages::SendHelp(const LWOOBJID& objectID, const eHelpType help, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectID);
+    bitStream.Write(eGameMessageType::HELP);
+    bitStream.Write(help);
 
 	SEND_PACKET;
 }
@@ -3508,14 +3521,14 @@ void GameMessages::SendClientExitTamingMinigame(LWOOBJID objectId, bool bVolunta
 	SEND_PACKET;
 }
 
-void GameMessages::SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr) {
+void GameMessages::SendShowPetActionButton(const LWOOBJID& objectId, const ePetAbilityType petAbility, bool bShow, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::SHOW_PET_ACTION_BUTTON);
 
-	bitStream.Write(buttonLabel);
+	bitStream.Write(petAbility);
 	bitStream.Write(bShow);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;

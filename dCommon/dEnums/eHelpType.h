@@ -1,6 +1,4 @@
-
-#ifndef __EHELPTYPE__H__
-#define __EHELPTYPE__H__
+#pragma once
 
 #include <cstdint>
 
@@ -37,5 +35,3 @@ enum class eHelpType : int32_t {
 	PET_DESPAWN_TAMING_NEW_PET = 70,
 	UI_INVENTORY_FULL_CANNOT_PICKUP_ITEM = 86
 };
-
-#endif  //!__EHELPTYPE__H__

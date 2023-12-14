@@ -103,23 +103,13 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 }
 
 void PetDigServer::OnUse(Entity* self, Entity* user) {
-	LOG("Treasure used!");
+	LOG_DEBUG("Treasure used! LWOOBJID: %d", self->GetObjectID());
 
 	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
 	if (!petComponent) return;
 
-	if(petComponent->IsReadyToInteract()) { // TODO: Add handling of the "first time" dig message
-		auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
-		if (!destroyableComponent) return;
-		
-		auto imagination = destroyableComponent->GetImagination();
-		if (imagination == 0) return; // TODO: Check if there was special behavior for this in the live game (PR_NEED_IMAGINATION)
-
+	if(petComponent->IsReadyToInteract()) {
 		petComponent->StartInteractTreasureDig();
-
-		imagination -= 1; // TODO: Get rid of this magic number
-		destroyableComponent->SetImagination(imagination);
-		Game::entityManager->SerializeEntity(user);
 	}
 }
 

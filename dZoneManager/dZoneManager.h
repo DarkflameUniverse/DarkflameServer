@@ -44,6 +44,7 @@ public:
 	bool GetDisableSaveLocation() { return m_DisableSaveLocation; }
 	bool GetMountsAllowed() { return m_MountsAllowed; }
 	bool GetPetsAllowed() { return m_PetsAllowed; }
+	float GetPetFollowRadius();
 	uint32_t GetUniqueMissionIdStartingValue();
 	bool CheckIfAccessibleZone(LWOMAPID zoneID);
 

@@ -5,6 +5,7 @@
 #include "Component.h"
 #include "Preconditions.h"
 #include "eReplicaComponentType.h"
+#include "ePetAbilityType.h"
 
 /*
 * The current state of the pet AI
@@ -43,13 +44,6 @@ enum PetEmote : int32_t {
 	ActivateSwitch = 201,
 	DigTreasure,
 	Bounce
-};
-
-enum class PetAbilityType {
-	Invalid,
-	GoToObject,
-	JumpOnObject,
-	DigAtPosition
 };
 
 /**
@@ -249,13 +243,13 @@ public:
 	 * Returns an ability the pet may perform, currently unused
 	 * @return an ability the pet may perform
 	 */
-	PetAbilityType GetAbility() const;
+	ePetAbilityType GetAbility() const;
 
 	/**
 	 * Sets the ability of the pet, currently unused
 	 * @param value the ability to set
 	 */
-	void SetAbility(PetAbilityType value);
+	void SetAbility(ePetAbilityType value);
 
 	/**
 	 * Sets preconditions for the pet that need  to be met before it can be tamed
@@ -273,6 +267,17 @@ public:
 	 * @return is pet ready to interact with an object
 	 */
 	bool IsReadyToInteract() { return m_ReadyToInteract; };
+
+	/**
+	 * Sets if the pet is currently handling an interaction with an object
+	 * @param isHandlingInteraction whether the pet is currently handling an interaction with an object
+	*/
+	void SetIsHandlingInteraction(bool isHandlingInteraction) { m_IsHandlingInteraction = isHandlingInteraction; };
+
+	/**
+	 * @return is pet currently handling an interaction with an object
+	*/
+	bool IsHandlingInteraction() { return m_IsHandlingInteraction; };
 
 	/**
 	 * Set up the pet bouncer interaction
@@ -388,6 +393,11 @@ private:
 	static std::map<LOT, int32_t> petFlags;
 
 	/**
+	 * The halting radius of the pet while following a player
+	*/
+	static float m_FollowRadius;
+
+	/**
 	 * The ID of the component in the pet component table
 	 */
 	uint32_t m_ComponentId;
@@ -455,7 +465,7 @@ private:
 	/**
 	 * A currently active ability, mostly unused
 	 */
-	PetAbilityType m_Ability;
+	ePetAbilityType m_Ability;
 
 	/**
 	 * The time an entity has left to complete the minigame
@@ -478,14 +488,14 @@ private:
 	bool m_ReadyToInteract;
 
 	/**
+	 * Boolean that sets if a pet is currently handling an interaction with an object
+	*/
+	bool m_IsHandlingInteraction;
+
+	/**
 	 * The position that this pet was spawned at
 	 */
 	NiPoint3 m_StartPosition;
-
-	/**
-	 * The halting radius of the pet while following a player
-	*/
-	const float m_FollowRadius = 8.0f;
 
 	/**
 	 * The movement AI component that is related to this pet, required to move it around

@@ -226,6 +226,10 @@ std::vector<Spawner*> dZoneManager::GetSpawnersInGroup(std::string group) {
 	return spawnersInGroup;
 }
 
+float dZoneManager::GetPetFollowRadius() {
+	return GetWorldConfig()->petFollowRadius;
+}
+
 uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
 	if (m_UniqueMissionIdStart == 0) {
 		auto tableData = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Missions WHERE isMission = 0 GROUP BY isMission;");
