@@ -1150,10 +1150,10 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	const bool isNotIdentity = rotation != NiQuaternion::IDENTITY;
-	bitStream.Write(isNotIdentity);
+	const bool bIsNotIdentity = rotation != NiQuaternion::IDENTITY;
+	bitStream.Write(bIsNotIdentity);
 	
-	if (isNotIdentity) {
+	if (bIsNotIdentity) {
 		bitStream.Write(rotation.w);
 		bitStream.Write(rotation.x);
 		bitStream.Write(rotation.y);
