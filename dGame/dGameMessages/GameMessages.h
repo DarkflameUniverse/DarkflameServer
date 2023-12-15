@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GAMEMESSAGES_H
+#define GAMEMESSAGES_H
 
 #include "dCommonVars.h"
 #include <map>
@@ -661,3 +662,5 @@ namespace GameMessages {
 	void HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
 	void HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
 };
+
+#endif // GAMEMESSAGES_H
