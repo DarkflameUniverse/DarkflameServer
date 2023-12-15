@@ -86,7 +86,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_TimerAway = 0;
 	m_TimerBounce = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Flags = 1 << PetFlag::TAMEABLE; // Tameable
+	m_Flags = PetFlag::TAMEABLE; // Tameable
 	m_Ability = ePetAbilityType::Invalid;
 	m_StartPosition = m_Parent->GetPosition(); //NiPoint3::ZERO;
 	m_MovementAI = nullptr;
@@ -720,7 +720,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(1 << PetFlag::TAMEABLE);
+	SetStatus(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -771,7 +771,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(1 << PetFlag::TAMEABLE);
+	SetStatus(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -836,7 +836,7 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_SprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		SetStatus(1 << PetFlag::NONE);
+		SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	}
 	else {
@@ -947,7 +947,7 @@ void PetComponent::StopInteract() {
 	SetInteractType(PetInteractType::none);
 	SetAbility(petAbility);
 	SetPetAiState(PetAiState::follow);
-	SetStatus(1 << PetFlag::NONE);
+	SetStatus(PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_SprintSpeed);
@@ -977,7 +977,7 @@ void PetComponent::SetupInteractTreasureDig() {
 	auto petAbility = ePetAbilityType::DigAtPosition;
 
 	SetAbility(petAbility);
-	SetStatus(1 << PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
 	const auto sysAddr = owner->GetSystemAddress();
@@ -1054,7 +1054,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
-	SetStatus(1 << PetFlag::SPAWNING);
+	SetFlag(SPAWNING); //SetStatus(PetFlag::SPAWNING);
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 

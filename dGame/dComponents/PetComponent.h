@@ -34,23 +34,15 @@ enum PetInteractType : uint8_t {
 */
 enum PetFlag : uint32_t {
 	NONE,
-	BEING_TAMED = 4,
-	NOT_WAITING = 5,
-	SPAWNING = 7,
-	TAMEABLE = 8
+	BEING_TAMED = 1 << 4, 	//0x10,
+	NOT_WAITING = 1 << 5, 	//0x20,
+	SPAWNING = 1 << 7,		//0x80
+	TAMEABLE = 1 << 26		//0x4000000
 };
 
-/*
-* DEPRECATED The status of the pet: Governs the icon above their head and the interactions available
+/**
+ * The pet emote animation ids that can used in PetComponent::Command()
 */
-/*enum PetStatus : uint32_t {
-	NONE,
-	BEING_TAMED = 1 << 4, //PetFlag::BEING_TAMED, //0x10,
-	IS_NOT_WAITING = 1 << 5, //PetFlag::NOT_WAITING, //0x20,
-	PLAY_SPAWN_ANIM = 1 << 7, //PetFlag::PLAY_SPAWN_ANIM, //0x80, 
-	TAMEABLE = 1 << 8 // PetFlag::TAMEABLE //0x4000000
-};*/
-
 enum PetEmote : int32_t {
 	ActivateSwitch = 201,
 	DigTreasure,
@@ -93,36 +85,43 @@ public:
 
 	/**
 	 * Sets one or more pet flags
+	 * @param flag PetFlag(s) to set
 	*/
 	template <typename... varArg>
-	void SetFlag(varArg... flag) {
-		const auto initFlags = m_Flags;
-		m_Flags |= (static_cast<uint32_t>(1 << flag) | ...);
-		LOG_DEBUG("SetFlag: %d + %d = %d", initFlags, 1 << (flag | ...), m_Flags);
-	}
+	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); }
+
+	/**
+	 * Sets the pet to ONLY have the specified flag(s), clearing all others
+	 * @param flag PetFlag(s) to set exclusively
+	*/
+	template <typename... varArg>
+	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); }
 
 	/**
 	 * Unsets one or more pet flags
+	 * @param flag PetFlag(s) to unset
 	*/
 	template <typename... varArg>
-	void UnsetFlag(varArg... flag) {
-		const auto initFlags = m_Flags;
-		m_Flags &= ~(static_cast<uint32_t>(1 << flag) | ...);
-		LOG_DEBUG("UnsetFlag: %d - %d = %d", initFlags, 1 << (flag | ...), m_Flags);
-		} // THIS IS PROBLEMATIC
+	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); }
 
 	/**
-	 * Gets one or more pet flags
+	 * Returns true if the pet has all the specified flag(s)
+	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	const bool HasFlag(varArg... flag) {
-		const auto lside = (m_Flags & (static_cast<uint32_t>(1 << flag) | ...));
-		const auto rside = (static_cast<uint32_t>(1 << flag) | ...);
-		LOG_DEBUG("HasFlag: %d == %d", lside, rside);
-		return lside == rside;
-		//return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...);
-	}
+	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); }
 
+	/**
+	 * Returns true if the pet has ONLY the specified flag(s)
+	 * @param flag PetFlag(s) to check if the pet has exclusively
+	*/
+	template <typename... varArg>
+	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); }
+
+	/**
+	 * Governs the pet update loop
+	 * @param deltaTime Time elapsed since last update
+	*/
 	void Update(float deltaTime) override;
 
 	/**
