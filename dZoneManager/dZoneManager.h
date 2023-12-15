@@ -54,6 +54,9 @@ public:
 		return m_WorldConfig;
 	};
 
+	// Override world config (for debugging purposes)
+	void SetWorldConfig(WorldConfig* worldConfig) { m_WorldConfig = worldConfig; }
+
 private:
 	/**
 	 * The starting unique mission ID.

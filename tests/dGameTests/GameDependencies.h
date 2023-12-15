@@ -6,7 +6,9 @@
 #include "dServer.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dZoneManager.h"
 #include "dConfig.h"
+#include "WorldConfig.h"
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -33,6 +35,12 @@ protected:
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 		Game::entityManager = new EntityManager();
+		
+		// Set up zone manager
+		Game::zoneManager = new dZoneManager();
+		auto worldConfig = new WorldConfig();
+		worldConfig->petFollowRadius = 10.0f;
+		Game::zoneManager->SetWorldConfig(worldConfig);
 	}
 
 	void TearDownDependencies() {

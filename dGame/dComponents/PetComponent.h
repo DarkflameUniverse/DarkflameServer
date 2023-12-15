@@ -36,7 +36,7 @@ enum PetFlag : uint32_t {
 	NONE,
 	BEING_TAMED = 4,
 	NOT_WAITING = 5,
-	PLAY_SPAWN_ANIM = 7,
+	SPAWNING = 7,
 	TAMEABLE = 8
 };
 
@@ -68,6 +68,16 @@ public:
 	PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
 
+	/**
+	 * Loads pet data from CDClient
+	*/
+	void LoadDataFromTemplate(); //TODO: Move
+
+	/**
+	 * Serializes the pet
+	 * @param outBitStream The output bitstream
+	 * @param bIsInitialUpdate Boolean value of whether this is the initial update
+	*/
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
@@ -82,23 +92,35 @@ public:
 	PetAiState GetPetAiState() { return m_State; };
 
 	/**
-	 * Template function for setting pet flags
+	 * Sets one or more pet flags
 	*/
-	template <typename... T>
-	void SetFlag(T... flag) {
-		//m_Flags |= (uint32_t)flag;
-		m_Flags |= ((uint32_t)flag | ...);//(static_cast<uint32_t>(flag) | ...);
-		//T::operator|(m_Flags, flag...);
+	template <typename... varArg>
+	void SetFlag(varArg... flag) {
+		const auto initFlags = m_Flags;
+		m_Flags |= (static_cast<uint32_t>(1 << flag) | ...);
+		LOG_DEBUG("SetFlag: %d + %d = %d", initFlags, 1 << (flag | ...), m_Flags);
 	}
 
 	/**
-	 * Template function for getting pet flags
+	 * Unsets one or more pet flags
 	*/
-	template <typename... T>
-	const bool HasFlag(T... flag) {
-		//return (m_Flags & (u_int32_t)flag) == (u_int32_t)flag;
-		//return T::operator&(m_Flags, flag...) == T::operator&(flag...);
-		return true;
+	template <typename... varArg>
+	void UnsetFlag(varArg... flag) {
+		const auto initFlags = m_Flags;
+		m_Flags &= ~(static_cast<uint32_t>(1 << flag) | ...);
+		LOG_DEBUG("UnsetFlag: %d - %d = %d", initFlags, 1 << (flag | ...), m_Flags);
+		} // THIS IS PROBLEMATIC
+
+	/**
+	 * Gets one or more pet flags
+	*/
+	template <typename... varArg>
+	const bool HasFlag(varArg... flag) {
+		const auto lside = (m_Flags & (static_cast<uint32_t>(1 << flag) | ...));
+		const auto rside = (static_cast<uint32_t>(1 << flag) | ...);
+		LOG_DEBUG("HasFlag: %d == %d", lside, rside);
+		return lside == rside;
+		//return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...);
 	}
 
 	void Update(float deltaTime) override;

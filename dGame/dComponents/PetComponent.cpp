@@ -103,10 +103,13 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 		SetPreconditions(checkPreconditions);
 	}
 	
-	// Get pet information from the CDClient
+	//LoadDataFromTemplate(); // TODO: Figure out how to load this with the tests (DarkflameServer/dDatabase/CDClientDatabase/CDClientTables/)
+}
+
+void PetComponent::LoadDataFromTemplate() {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT walkSpeed, runSpeed, sprintSpeed, imaginationDrainRate FROM PetComponent WHERE id = ?;");
-	query.bind(1, static_cast<int>(componentId));
+	query.bind(1, static_cast<int>(m_ComponentId));
 
 	auto result = query.execQuery();
 
@@ -116,8 +119,6 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 		m_SprintSpeed = result.getFloatField(2, 10.0f);
 		imaginationDrainRate = result.getFloatField(3, 60.0f);
 	}
-
-	result.finalize();
 }
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
@@ -1053,7 +1054,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
-	SetStatus(1 << PetFlag::PLAY_SPAWN_ANIM);
+	SetStatus(1 << PetFlag::SPAWNING);
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
