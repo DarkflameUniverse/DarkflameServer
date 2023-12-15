@@ -86,7 +86,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_TimerAway = 0;
 	m_TimerBounce = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Status = PetStatus::TAMEABLE; // Tameable
+	m_Flags = 1 << PetFlag::TAMEABLE; // Tameable
 	m_Ability = ePetAbilityType::Invalid;
 	m_StartPosition = m_Parent->GetPosition(); //NiPoint3::ZERO;
 	m_MovementAI = nullptr;
@@ -125,7 +125,7 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 
 	outBitStream->Write1(); // Always serialize as dirty for now
 
-	outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Status));
+	outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Flags));
 	outBitStream->Write<uint32_t>(static_cast<uint32_t>(tamed ? m_Ability : ePetAbilityType::Invalid)); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
@@ -719,7 +719,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(PetStatus::TAMEABLE);
+	SetStatus(1 << PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -770,7 +770,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(PetStatus::TAMEABLE);
+	SetStatus(1 << PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -835,7 +835,7 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_SprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		SetStatus(PetStatus::NONE);
+		SetStatus(1 << PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	}
 	else {
@@ -946,7 +946,7 @@ void PetComponent::StopInteract() {
 	SetInteractType(PetInteractType::none);
 	SetAbility(petAbility);
 	SetPetAiState(PetAiState::follow);
-	SetStatus(PetStatus::NONE);
+	SetStatus(1 << PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_SprintSpeed);
@@ -976,7 +976,7 @@ void PetComponent::SetupInteractTreasureDig() {
 	auto petAbility = ePetAbilityType::DigAtPosition;
 
 	SetAbility(petAbility);
-	SetStatus(PetStatus::IS_NOT_WAITING); // TODO: Double-check this is the right flag being set
+	SetStatus(1 << PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
 	const auto sysAddr = owner->GetSystemAddress();
@@ -1053,7 +1053,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
-	SetStatus(PetStatus::PLAY_SPAWN_ANIM);
+	SetStatus(1 << PetFlag::PLAY_SPAWN_ANIM);
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
@@ -1220,7 +1220,7 @@ LWOOBJID PetComponent::GetItemId() const {
 }
 
 uint32_t PetComponent::GetStatus() const {
-	return m_Status;
+	return m_Flags;
 }
 
 ePetAbilityType PetComponent::GetAbility() const {
@@ -1232,8 +1232,8 @@ void PetComponent::SetInteraction(LWOOBJID value) {
 }
 
 void PetComponent::SetStatus(uint32_t value) {
-	m_Status = value;
-	LOG_DEBUG("Pet status set to: %x", m_Status);
+	m_Flags = value;
+	LOG_DEBUG("Pet status set to: %x", m_Flags);
 }
 
 void PetComponent::SetAbility(ePetAbilityType value) {

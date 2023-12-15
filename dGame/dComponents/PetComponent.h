@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PETCOMPONENT_H
+#define PETCOMPONENT_H
 
 #include "Entity.h"
 #include "MovementAIComponent.h"
@@ -22,22 +23,33 @@ enum class PetAiState : uint8_t {
 /*
 * The type of object the pet is interacting with
 */
-enum class PetInteractType : uint8_t {
+enum PetInteractType : uint8_t {
 	none,		// Not interacting
 	treasure,	// Treasure dig
 	bouncer		// Bouncer switch
 };
 
-/*
-* The status of the pet: Governs the icon above their head and the interactions available
+/**
+ * The flags governing the status of the pet: Governs the icon above their head and the interactions available
 */
-enum PetStatus : uint32_t {
+enum PetFlag : uint32_t {
 	NONE,
-	BEING_TAMED = 1 << 4, //0x10,
-	IS_NOT_WAITING = 1 << 5, //0x20,
-	PLAY_SPAWN_ANIM = 1 << 7, //0x80, 
-	TAMEABLE = 1 << 8 //0x4000000
+	BEING_TAMED = 4,
+	NOT_WAITING = 5,
+	PLAY_SPAWN_ANIM = 7,
+	TAMEABLE = 8
 };
+
+/*
+* DEPRECATED The status of the pet: Governs the icon above their head and the interactions available
+*/
+/*enum PetStatus : uint32_t {
+	NONE,
+	BEING_TAMED = 1 << 4, //PetFlag::BEING_TAMED, //0x10,
+	IS_NOT_WAITING = 1 << 5, //PetFlag::NOT_WAITING, //0x20,
+	PLAY_SPAWN_ANIM = 1 << 7, //PetFlag::PLAY_SPAWN_ANIM, //0x80, 
+	TAMEABLE = 1 << 8 // PetFlag::TAMEABLE //0x4000000
+};*/
 
 enum PetEmote : int32_t {
 	ActivateSwitch = 201,
@@ -49,12 +61,11 @@ enum PetEmote : int32_t {
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
  * to dig for treasure and activate pet bouncers.
  */
-class PetComponent : public Component
-{
+class PetComponent : public Component {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
-	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
+	PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
@@ -69,6 +80,26 @@ public:
 	 * Gets the AI state of the pet
 	*/
 	PetAiState GetPetAiState() { return m_State; };
+
+	/**
+	 * Template function for setting pet flags
+	*/
+	template <typename... T>
+	void SetFlag(T... flag) {
+		//m_Flags |= (uint32_t)flag;
+		m_Flags |= ((uint32_t)flag | ...);//(static_cast<uint32_t>(flag) | ...);
+		//T::operator|(m_Flags, flag...);
+	}
+
+	/**
+	 * Template function for getting pet flags
+	*/
+	template <typename... T>
+	const bool HasFlag(T... flag) {
+		//return (m_Flags & (u_int32_t)flag) == (u_int32_t)flag;
+		//return T::operator&(m_Flags, flag...) == T::operator&(flag...);
+		return true;
+	}
 
 	void Update(float deltaTime) override;
 
@@ -452,9 +483,9 @@ private:
 	std::string m_OwnerName;
 
 	/**
-	 * The current state of the pet (e.g. tamable, tamed, etc).
+	 * The current flags of the pet (e.g. tamable, tamed, etc).
 	 */
-	uint32_t m_Status;
+	uint32_t m_Flags;
 
 	/**
 	 * The current state of the pet AI
@@ -526,3 +557,5 @@ private:
 	*/
 	float m_SprintSpeed;
 };
+
+#endif // PETCOMPONENT_H
