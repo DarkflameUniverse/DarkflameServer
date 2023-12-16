@@ -7,6 +7,7 @@
 #include "Preconditions.h"
 #include "eReplicaComponentType.h"
 #include "ePetAbilityType.h"
+#include "CDPetComponentTable.h"
 
 /*
 * The current state of the pet AI
@@ -34,6 +35,8 @@ enum PetInteractType : uint8_t {
 */
 enum PetFlag : uint32_t {
 	NONE,
+	UNKNOWN1 = 1 << 0,		//0x01,
+	UNKNOWN4 = 1 << 2,		//0x04,
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
 	SPAWNING = 1 << 7,		//0x80
@@ -61,10 +64,10 @@ public:
 	~PetComponent() override;
 
 	/**
-	 * Loads pet data from CDClient
+	 * Loads pet info from CDClient
 	*/
-	void LoadDataFromTemplate(); //TODO: Move
-
+	bool GetPetInfo(uint32_t petId, CDPetComponent& result);
+	
 	/**
 	 * Serializes the pet
 	 * @param outBitStream The output bitstream
@@ -88,35 +91,35 @@ public:
 	 * @param flag PetFlag(s) to set
 	*/
 	template <typename... varArg>
-	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); }
+	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Sets the pet to ONLY have the specified flag(s), clearing all others
 	 * @param flag PetFlag(s) to set exclusively
 	*/
 	template <typename... varArg>
-	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); }
+	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Unsets one or more pet flags
 	 * @param flag PetFlag(s) to unset
 	*/
 	template <typename... varArg>
-	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); }
+	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has all the specified flag(s)
 	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); }
+	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has ONLY the specified flag(s)
 	 * @param flag PetFlag(s) to check if the pet has exclusively
 	*/
 	template <typename... varArg>
-	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); }
+	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Governs the pet update loop
@@ -424,6 +427,11 @@ private:
 	};
 
 	/**
+	 * Information that describes the different variables used to make a pet entity move around
+	 */
+	CDPetComponent m_PetInfo;
+
+	/**
 	 * Cache of all the pets that are currently spawned, indexed by tamer
 	 */
 	static std::unordered_map<LWOOBJID, LWOOBJID> activePets;
@@ -444,9 +452,9 @@ private:
 	static std::map<LOT, int32_t> petFlags;
 
 	/**
-	 * The halting radius of the pet while following a player
+	 * The halting radius of the pet while following a player TODO: Move into struct?
 	*/
-	static float m_FollowRadius;
+	float m_FollowRadius;
 
 	/**
 	 * The ID of the component in the pet component table
@@ -557,26 +565,6 @@ private:
 	 * Preconditions that need to be met before an entity can tame this pet
 	 */
 	PreconditionExpression* m_Preconditions;
-
-	/**
-	 * The rate at which imagination is drained from the user for having the pet out.
-	 */
-	float imaginationDrainRate;
-
-	/**
-	 * The walk speed of the pet
-	*/
-	float m_WalkSpeed;
-
-	/**
-	 * The run speed of the pet
-	*/
-	float m_RunSpeed;
-
-	/**
-	 * The sprint speed of the pet
-	*/
-	float m_SprintSpeed;
 };
 
 #endif // PETCOMPONENT_H

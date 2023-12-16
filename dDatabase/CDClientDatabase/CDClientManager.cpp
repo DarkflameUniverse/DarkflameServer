@@ -77,6 +77,7 @@ CDClientManager::CDClientManager() {
 	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
 	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
 	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
+	CDPetComponentTable::Instance().LoadValuesFromDatabase();
 	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyTemplateTable::Instance().LoadValuesFromDatabase();
