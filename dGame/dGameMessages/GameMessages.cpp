@@ -5578,7 +5578,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
 			stmt->setUInt64(1, newIdBig);
-			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
+			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules).c_str());
 			auto* pCharacter = character->GetCharacter();
 			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
 			stmt->execute();

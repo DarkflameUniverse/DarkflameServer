@@ -18,6 +18,7 @@
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
+#include "dPlatforms.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -1284,11 +1285,13 @@ void WorldShutdownProcess(uint32_t zoneId) {
 }
 
 void WorldShutdownSequence() {
-	if (Game::shouldShutdown || worldShutdownSequenceComplete) {
+	Game::shouldShutdown = true;
+#ifndef DARKFLAME_PLATFORM_WIN32
+	if (Game::shouldShutdown || worldShutdownSequenceComplete)
+#endif
+	{
 		return;
 	}
-
-	Game::shouldShutdown = true;
 
 	LOG("Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());
@@ -1302,11 +1305,17 @@ void FinalizeShutdown() {
 	Metrics::Clear();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
+	Game::chatFilter = nullptr;
 	if (Game::zoneManager) delete Game::zoneManager;
+	Game::zoneManager = nullptr;
 	if (Game::server) delete Game::server;
+	Game::server = nullptr;
 	if (Game::config) delete Game::config;
+	Game::config = nullptr;
 	if (Game::entityManager) delete Game::entityManager;
+	Game::entityManager = nullptr;
 	if (Game::logger) delete Game::logger;
+	Game::logger = nullptr;
 
 	worldShutdownSequenceComplete = true;
 
