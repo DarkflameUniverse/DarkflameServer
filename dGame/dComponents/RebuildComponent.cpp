@@ -197,18 +197,17 @@ void RebuildComponent::Update(float deltaTime) {
 			DestroyableComponent* destComp = builder->GetComponent<DestroyableComponent>();
 			if (!destComp) break;
 
-			int newImagination = destComp->GetImagination();
-
 			++m_DrainedImagination;
-			--newImagination;
+			const int32_t imaginationCostRemaining = m_TakeImagination - m_DrainedImagination;
+
+			const int32_t newImagination = destComp->GetImagination() - 1;
 			destComp->SetImagination(newImagination);
 			Game::entityManager->SerializeEntity(builder);
 
-			if (newImagination <= 0) {
+			if (newImagination <= 0 && imaginationCostRemaining > 0) {
 				CancelRebuild(builder, eQuickBuildFailReason::OUT_OF_IMAGINATION, true);
 				break;
 			}
-
 		}
 
 		if (m_Timer >= m_CompleteTime && m_DrainedImagination >= m_TakeImagination) {
