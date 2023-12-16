@@ -35,7 +35,7 @@ enum PetInteractType : uint8_t {
 */
 enum PetFlag : uint32_t {
 	NONE,
-	UNKNOWN1 = 1 << 0,		//0x01,
+	UNKNOWN1 = 1 << 0,		//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
 	UNKNOWN4 = 1 << 2,		//0x04,
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
@@ -66,7 +66,7 @@ public:
 	/**
 	 * Loads pet info from CDClient
 	*/
-	bool GetPetInfo(uint32_t petId, CDPetComponent& result);
+	bool LoadPetInfo(uint32_t petId, CDPetComponent& result);
 	
 	/**
 	 * Serializes the pet
@@ -427,7 +427,7 @@ private:
 	};
 
 	/**
-	 * Information that describes the different variables used to make a pet entity move around
+	 * Pet information loaded from the CDClientDatabase
 	 */
 	CDPetComponent m_PetInfo;
 

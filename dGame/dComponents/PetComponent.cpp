@@ -104,20 +104,17 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	
 	// Load database values
 	m_FollowRadius = Game::zoneManager->GetPetFollowRadius();
-	if (!GetPetInfo(m_ComponentId, m_PetInfo)) LOG("Failed to load PetComponent information from CDClient!");
-
-	/*m_PetInfo.id;
-	m_PetInfo.runSpeed;
-	m_PetInfo.sprintSpeed;
-	m_PetInfo.walkSpeed;*/
-
-	//CDClientManager::GetTable<CDComp>()
-	//LoadDataFromTemplate(); // TODO: Figure out how to load this with the tests (DarkflameServer/dDatabase/CDClientDatabase/CDClientTables/)
+	if (!LoadPetInfo(componentId, m_PetInfo)) LOG("Failed to load PetComponent (id: %d) information from CDClient!", componentId);
 }
 
-bool PetComponent::GetPetInfo(uint32_t petId, CDPetComponent& result) {
-	auto* petTable = CDClientManager::Instance().GetTable<CDPetComponentTable>();
-
+bool PetComponent::LoadPetInfo(uint32_t petId, CDPetComponent& result) {
+	CDPetComponentTable* petTable;
+	try {
+		petTable = CDClientManager::Instance().GetTable<CDPetComponentTable>();
+	} catch(...) {
+		return false;
+	}
+	
 	const auto pet = petTable->GetByID(petId);
 	if (!pet) return false;
 
@@ -381,7 +378,6 @@ void PetComponent::Update(float deltaTime) {
 	// Handle pet AI states
 	switch (m_State) {
 	case PetAiState::spawn:
-		LOG_DEBUG("Pet spawn beginning!");
 		OnSpawn();
 		break;
 
@@ -613,7 +609,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
-	SetFlag(UNKNOWN1); // SetStatus(1);
+	SetOnlyFlag(UNKNOWN1); // SetStatus(1);
 
 	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -726,7 +722,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(PetFlag::TAMEABLE);
+	SetOnlyFlag(TAMEABLE); //SetStatus(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -777,7 +773,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(PetFlag::TAMEABLE);
+	SetOnlyFlag(TAMEABLE); //SetStatus(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -830,19 +826,16 @@ void PetComponent::Wander() {
 
 void PetComponent::OnSpawn() {
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-	//if (!m_MovementAI) return;
 
 	if (m_StartPosition == NiPoint3::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
-
-	LOG_DEBUG("Pet spawn complete, setting AI state.");
 	
 	if (m_Owner != LWOOBJID_EMPTY) {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		SetStatus(PetFlag::NONE);
+		SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	}
 	else {
@@ -953,7 +946,7 @@ void PetComponent::StopInteract() {
 	SetInteractType(PetInteractType::none);
 	SetAbility(petAbility);
 	SetPetAiState(PetAiState::follow);
-	SetOnlyFlag(NONE); //SetStatus(PetFlag::NONE);
+	SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
