@@ -35,6 +35,9 @@
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
 
+#define START_BITMASK_SWITCH(x) \
+    for (uint32_t bit = 1; x >= bit; bit *= 2) if (x & bit) switch (bit)
+
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
@@ -86,7 +89,7 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	m_TimerAway = 0;
 	m_TimerBounce = 0;
 	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Flags = PetFlag::TAMEABLE; // Tameable
+	m_Flags = PetFlag::SPAWNING; // Tameable
 	m_Ability = ePetAbilityType::Invalid;
 	m_StartPosition = m_Parent->GetPosition(); //NiPoint3::ZERO;
 	m_MovementAI = nullptr;
@@ -104,16 +107,11 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	
 	// Load database values
 	m_FollowRadius = Game::zoneManager->GetPetFollowRadius();
-	if (!LoadPetInfo(componentId, m_PetInfo)) LOG("Failed to load PetComponent (id: %d) information from CDClient!", componentId);
 }
 
 bool PetComponent::LoadPetInfo(uint32_t petId, CDPetComponent& result) {
 	CDPetComponentTable* petTable;
-	try {
-		petTable = CDClientManager::Instance().GetTable<CDPetComponentTable>();
-	} catch(...) {
-		return false;
-	}
+	petTable = CDClientManager::Instance().GetTable<CDPetComponentTable>();
 	
 	const auto pet = petTable->GetByID(petId);
 	if (!pet) return false;
@@ -375,12 +373,31 @@ void PetComponent::Update(float deltaTime) {
 		}
 	}
 
-	// Handle pet AI states
-	switch (m_State) {
-	case PetAiState::spawn:
+	/*START_BITMASK_SWITCH(m_Flags) {
+	case TAMEABLE:
+		break;
+
+	case SPAWNING:
+		LOG_DEBUG("Has SPAWNING flag!");
 		OnSpawn();
 		break;
 
+	case NOT_WAITING:
+		LOG_DEBUG("Has NOT_WAITING flag!");
+		break;
+
+	case UNKNOWN1:
+		LOG_DEBUG("Has UNKNOWN1 flag!");
+		break;
+
+	default:
+		LOG_DEBUG("Triggered default case!");
+	}*/
+
+	//if (HasFlag(SPAWNING)) OnSpawn();
+
+	// Handle pet AI states
+	switch (m_State) {
 	case PetAiState::idle:
 		Wander();
 		break;
@@ -405,6 +422,7 @@ void PetComponent::Update(float deltaTime) {
 		break;
 
 	default:
+		LOG_DEBUG("Unknown state: %d!", m_Flags);
 		break;
 	}
 
@@ -825,6 +843,9 @@ void PetComponent::Wander() {
 }
 
 void PetComponent::OnSpawn() {
+	if (!LoadPetInfo(m_ComponentId, m_PetInfo)) {
+		LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
+	}
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
 
 	if (m_StartPosition == NiPoint3::ZERO) {
@@ -835,12 +856,17 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
+		//SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	}
 	else {
+		SetFlag(TAMEABLE);
 		SetPetAiState(PetAiState::idle);
 	}
+	
+	SetFlag(UNKNOWN1); //IDLE?
+	UnsetFlag(SPAWNING);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void PetComponent::OnFollow() {
@@ -869,10 +895,9 @@ void PetComponent::OnFollow() {
 	const bool nonDragonForBone = closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067;
 	if (!nonDragonForBone && closestTreasure != nullptr && digUnlocked) {
 		const NiPoint3 treasurePos = closestTreasure->GetPosition();
-		const LWOOBJID treasureID = closestTreasure->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
 		if (distance < 16 * 16) {
-			StartInteract(treasurePos, PetInteractType::treasure, treasureID);
+			StartInteract(treasurePos, PetInteractType::treasure, m_Owner);
 			return;
 		}
 	}
@@ -940,6 +965,7 @@ void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType 
 void PetComponent::StopInteract() {
 	Entity* owner = GetOwner();
 	if (!owner) return;
+
 	const auto petAbility = ePetAbilityType::Invalid;
 
 	SetInteraction(LWOOBJID_EMPTY);
@@ -977,6 +1003,7 @@ void PetComponent::SetupInteractTreasureDig() {
 
 	SetAbility(petAbility);
 	SetFlag(NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
 	const auto sysAddr = owner->GetSystemAddress();
@@ -1016,14 +1043,16 @@ void PetComponent::StartInteractTreasureDig() {
 void PetComponent::HandleInteractTreasureDig() {
 	if (IsHandlingInteraction()) {
 		auto* owner = GetOwner();
-		auto* treasure = Game::entityManager->GetEntity(GetInteraction());
-		if (!treasure || !owner) return;
+		if (!owner) return;
+		
+		auto* treasure = PetDigServer::GetClosestTresure(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 		treasure->Smash(m_Parent->GetObjectID());
 
-		LOG_DEBUG("Pet dig completed!");
 		GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_03, owner->GetSystemAddress());
+
+		LOG_DEBUG("Pet dig completed!");
 		StopInteract(); //TODO: This may not be totally consistent with live behavior, where the pet seems to stay near the dig and not immediately follow
-		//m_Timer = 1.5f;
+
 		return;
 	}
 	

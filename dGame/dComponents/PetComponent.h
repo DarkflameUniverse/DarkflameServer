@@ -36,12 +36,19 @@ enum PetInteractType : uint8_t {
 enum PetFlag : uint32_t {
 	NONE,
 	UNKNOWN1 = 1 << 0,		//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
-	UNKNOWN4 = 1 << 2,		//0x04,
+	UNKNOWN4 = 1 << 2,		//0x04 - FOLLOWING(?)
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
+	STOP_MOVING = 1 << 6,	//0x40 - Seems to be the "stop moving" flag - called when taming begins and stays active until a name is submitted
 	SPAWNING = 1 << 7,		//0x80
+	UNKNOWN256 = 1 << 8, 	//0x100
+	UNKNOWN1024 = 1 << 10,	//0x400
 	TAMEABLE = 1 << 26		//0x4000000
 };
+
+/*
+132 = 128 + 4
+*/
 
 /**
  * The pet emote animation ids that can used in PetComponent::Command()
