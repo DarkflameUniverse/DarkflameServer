@@ -377,19 +377,6 @@ void PetComponent::Update(float deltaTime) {
 	case TAMEABLE:
 		break;
 
-	case SPAWNING:
-		LOG_DEBUG("Has SPAWNING flag!");
-		OnSpawn();
-		break;
-
-	case NOT_WAITING:
-		LOG_DEBUG("Has NOT_WAITING flag!");
-		break;
-
-	case IDLE:
-		LOG_DEBUG("Has IDLE flag!");
-		break;
-
 	default:
 		LOG_DEBUG("Triggered default case!");
 	}*/
@@ -889,7 +876,6 @@ void PetComponent::OnFollow(const float& deltaTime) {
 	}
 	else { // Chase the player's new position
 		m_MovementAI->SetDestination(ownerPos);
-		//LOG_DEBUG("New pet destination: %f %f %f", ownerPos.x, ownerPos.y, ownerPos.z);
 	}
 
 	// Teleporting logic
