@@ -285,7 +285,7 @@ private:
 	float m_CompleteTime = 0;
 
 	/**
-	 * The imagination that's deducted when compeleting the rebuild
+	 * The imagination that's deducted when completing the rebuild
 	 */
 	int m_TakeImagination = 0;
 
