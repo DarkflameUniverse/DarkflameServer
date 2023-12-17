@@ -38,8 +38,6 @@
 #include "ePlayerFlag.h"
 #include "dConfig.h"
 
-using namespace std;
-
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;

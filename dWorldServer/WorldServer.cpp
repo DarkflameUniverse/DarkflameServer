@@ -1244,7 +1244,10 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		LOG("Unknown world packet received: %i", int(packet->data[3]));
+		const auto data = packet->data[3];
+		const uint32_t worldMessageId = static_cast<uint32_t>(data);
+		const char* worldMessageString = eWorldMessageType_as_string(static_cast<eWorldMessageType>(data));
+		LOG("Unknown world packet received: (%4i) %s", worldMessageId, worldMessageString);
 	}
 }
 
