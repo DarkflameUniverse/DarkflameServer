@@ -12,7 +12,6 @@ set(DCOMMON_SOURCES
 		"NiPoint3.cpp"
 		"NiQuaternion.cpp"
 		"SHA512.cpp"
-		"StringifyEnums.h"
 		"Demangler.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
