@@ -339,7 +339,7 @@ void PetComponent::OnUse(Entity* originator) {
 	GameMessages::SendNotifyPetTamingPuzzleSelected(originator->GetObjectID(), bricks, originator->GetSystemAddress());
 
 	m_Tamer = originator->GetObjectID();
-	SetFlag(UNKNOWN1, UNKNOWN4); //SetStatus(5);
+	SetFlag(IDLE, UNKNOWN4); //SetStatus(5);
 
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
@@ -386,15 +386,15 @@ void PetComponent::Update(float deltaTime) {
 		LOG_DEBUG("Has NOT_WAITING flag!");
 		break;
 
-	case UNKNOWN1:
-		LOG_DEBUG("Has UNKNOWN1 flag!");
+	case IDLE:
+		LOG_DEBUG("Has IDLE flag!");
 		break;
 
 	default:
 		LOG_DEBUG("Triggered default case!");
 	}*/
 
-	//if (HasFlag(SPAWNING)) OnSpawn();
+	if (HasFlag(SPAWNING)) OnSpawn();
 
 	// Handle pet AI states
 	switch (m_State) {
@@ -403,7 +403,7 @@ void PetComponent::Update(float deltaTime) {
 		break;
 
 	case PetAiState::follow:
-		OnFollow();
+		OnFollow(deltaTime);
 		break;
 		
 	case PetAiState::goToObj:
@@ -427,30 +427,6 @@ void PetComponent::Update(float deltaTime) {
 	}
 
 	/*
-	auto destination = owner->GetPosition();
-	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
-
-	float distanceToOwner = Vector3::DistanceSquared(position, destination);
-	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
-		m_MovementAI->Warp(destination);
-
-		m_Timer = 1;
-		m_TimerAway = 0;
-
-		return;
-	}
-
-	if (distanceToOwner > 15 * 15 || std::abs(destination.y - position.y) >= 3) {
-		m_TimerAway += deltaTime;
-	} else {
-		m_TimerAway = 0;
-	}
-
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-		return;
-	}
-
 	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(position);
 
 	float haltDistance = 5;
@@ -627,7 +603,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
-	SetOnlyFlag(UNKNOWN1); // SetStatus(1);
+	SetOnlyFlag(IDLE); // SetStatus(1);
 
 	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -856,7 +832,7 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		//SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
+		//SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	}
 	else {
@@ -864,14 +840,15 @@ void PetComponent::OnSpawn() {
 		SetPetAiState(PetAiState::idle);
 	}
 	
-	SetFlag(UNKNOWN1); //IDLE?
+	SetFlag(IDLE);
 	UnsetFlag(SPAWNING);
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void PetComponent::OnFollow() {
+void PetComponent::OnFollow(const float& deltaTime) {
 	Entity* owner = GetOwner();
 	if (!owner) return;
+
 	const NiPoint3 ownerPos = owner->GetPosition();
 
 	// Find interactions
@@ -904,14 +881,28 @@ void PetComponent::OnFollow() {
 
 	// Handle actual following logic
 	const NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	const float distanceToOwner = Vector3::DistanceSquared(currentPos, ownerPos);
 
 	// If the player's position is within range, stop moving
-	if (Vector3::DistanceSquared(currentPos, ownerPos) <= m_FollowRadius * m_FollowRadius) {
+	if (distanceToOwner <= m_FollowRadius * m_FollowRadius) {
 		m_MovementAI->Stop();
 	}
 	else { // Chase the player's new position
 		m_MovementAI->SetDestination(ownerPos);
-		LOG_DEBUG("New pet destination: %f %f %f", ownerPos.x, ownerPos.y, ownerPos.z);
+		//LOG_DEBUG("New pet destination: %f %f %f", ownerPos.x, ownerPos.y, ownerPos.z);
+	}
+
+	// Teleporting logic
+	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
+		m_MovementAI->Warp(ownerPos);
+
+		m_Timer = 1;
+		m_TimerAway = 0;
+
+		return;
+	}
+	else if (distanceToOwner > 15 * 15 || std::abs(ownerPos.y - currentPos.y) >= 3) {
+		m_TimerAway += deltaTime;
 	}
 
 	m_Timer += 0.5f;
@@ -962,7 +953,7 @@ void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType 
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void PetComponent::StopInteract() {
+void PetComponent::StopInteract(bool bDontSerialize) {
 	Entity* owner = GetOwner();
 	if (!owner) return;
 
@@ -972,14 +963,17 @@ void PetComponent::StopInteract() {
 	SetInteractType(PetInteractType::none);
 	SetAbility(petAbility);
 	SetPetAiState(PetAiState::follow);
-	SetOnlyFlag(UNKNOWN1); //SetStatus(PetFlag::NONE);
+	SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 	m_MovementAI->SetHaltDistance(m_FollowRadius);
 	LOG_DEBUG("Stopping interaction!");
 
-	Game::entityManager->SerializeEntity(m_Parent);
+	if (!bDontSerialize) {
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
+
 	GameMessages::SendShowPetActionButton(m_Owner, petAbility, false, owner->GetSystemAddress()); // Needed?
 }
 
@@ -1002,7 +996,8 @@ void PetComponent::SetupInteractTreasureDig() {
 	auto petAbility = ePetAbilityType::DigAtPosition;
 
 	SetAbility(petAbility);
-	SetFlag(NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	UnsetFlag(IDLE);
+	SetFlag(UNKNOWN256, NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
 	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
@@ -1033,7 +1028,9 @@ void PetComponent::StartInteractTreasureDig() {
 	Game::entityManager->SerializeEntity(user);
 
 	SetIsHandlingInteraction(true);
-	UnsetFlag(NOT_WAITING); // TODO: FIND THE CORRECT STATUS TO USE HERE
+	UnsetFlag(UNKNOWN256, NOT_WAITING); // TODO: FIND THE CORRECT STATUS TO USE HERE
+	SetFlag(IDLE);
+	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure, true); // Plays 'dig' animation
@@ -1051,7 +1048,7 @@ void PetComponent::HandleInteractTreasureDig() {
 		GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_03, owner->GetSystemAddress());
 
 		LOG_DEBUG("Pet dig completed!");
-		StopInteract(); //TODO: This may not be totally consistent with live behavior, where the pet seems to stay near the dig and not immediately follow
+		StopInteract(true); //TODO: This may not be totally consistent with live behavior, where the pet seems to stay near the dig and not immediately follow
 
 		return;
 	}

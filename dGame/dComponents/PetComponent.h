@@ -35,7 +35,7 @@ enum PetInteractType : uint8_t {
 */
 enum PetFlag : uint32_t {
 	NONE,
-	UNKNOWN1 = 1 << 0,		//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
+	IDLE = 1 << 0,			//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
 	UNKNOWN4 = 1 << 2,		//0x04 - FOLLOWING(?)
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
@@ -197,7 +197,7 @@ public:
 	/**
 	 * Continues a step in the follow state, making sure that the entity is around its start position
 	*/
-	void OnFollow();
+	void OnFollow(const float& deltaTime);
 
 	/**
 	 * Continues a step in the interact state, handling the pet's interaction with an entity
@@ -211,8 +211,9 @@ public:
 
 	/**
 	 * Stop a pet interaction with an object
+	 * @param bDontSerialize optional parameter, set to true to not serialize afterwards
 	*/
-	void StopInteract();
+	void StopInteract(bool bDontSerialize = false);
 
 	/**
 	 * Set the type of interaction the pet is executing
