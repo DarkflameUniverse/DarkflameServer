@@ -5,8 +5,8 @@
 #include "eWorldMessageType.h"
 #include <chrono>
 
-#define log_test(y, z) LOG("%s %s", eWorldMessageType_as_string(static_cast<eWorldMessageType>(y)), #z); ASSERT_EQ(eWorldMessageType_as_string(static_cast<eWorldMessageType>(y)), #z);
-#define log_test_invalid(y) LOG("%s", eWorldMessageType_as_string(static_cast<eWorldMessageType>(y))); ASSERT_EQ(eWorldMessageType_as_string(static_cast<eWorldMessageType>(y)), "<none>");
+#define log_test(y, z) LOG("%s %s", StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), #z); ASSERT_EQ(StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), #z);
+#define log_test_invalid(y) LOG("%s", StringifiedEnum::ToString(static_cast<eWorldMessageType>(y))); ASSERT_EQ(StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), "<none>");
 
 TEST(StringifiedMacroTest, eWorldMessageTypeMacroTest) {
 	Game::logger = new Logger("./MacroTest.log", true, true);
@@ -48,7 +48,7 @@ TEST(StringifiedMacroTest, eWorldMessageTypeMacroTest) {
 
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
-		volatile auto f = eWorldMessageType_as_string(static_cast<eWorldMessageType>(i));
+		volatile auto f = StringifiedEnum::ToString(static_cast<eWorldMessageType>(i));
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
 		if (rand() % 100000 == 0) LOG("%i, %s", i, f);

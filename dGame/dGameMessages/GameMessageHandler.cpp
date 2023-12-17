@@ -52,7 +52,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: (%4i) %s", messageID, eGameMessageType_as_string(messageID));
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: (%4i) %s", messageID, StringifiedEnum::ToString(messageID));
 
 	switch (messageID) {
 
@@ -690,7 +690,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
 		break;
 	default:
-		LOG_DEBUG("Unknown game message ID: (%4i) %s", messageID, eGameMessageType_as_string(messageID));
+		LOG_DEBUG("Unknown game message ID: (%4i) %s", messageID, StringifiedEnum::ToString(messageID));
 		break;
 	}
 }
