@@ -7,7 +7,7 @@
 
 /**
  * The #defines in the #ifndef block below create the actual enum class in the corresponding stringified enum's header file.
- * The code generation for the string lookup function 'StringifiedEnum::ToString)' is defined in the #else block further below.
+ * The code generation for the string lookup function 'StringifiedEnum::ToString()' is defined in the #else block further below.
  * To use this macro, in any header file of your choosing, create an enum of the form:
  * 
  * 		#include "StringifiedEnum.h"
@@ -25,7 +25,7 @@
  *
  *		#undef GENERATE_ENUM_STRINGS
  *
- * When the program is compiled, the string corresponding to each enum id can be found with the function 'StringifiedEnum::ToString)'
+ * When the program is compiled, the string corresponding to each enum id can be found with the function 'StringifiedEnum::ToString()'
  * For instance, using the examples above
  * 		
  * 		const char* enumString = StringifiedEnum::ToString(eMyEnum::MY_STUFF)
@@ -62,7 +62,7 @@
 		}
 
 /**
- * The #defines in the #else block below govern the actual generation of the 'StringifiedEnum::ToString)' functions for each enum.
+ * The #defines in the #else block below govern the actual generation of the 'StringifiedEnum::ToString()' functions for each enum.
  * The header file of each stringified enum must be #included in StringifiedEnum.cpp for the preprocessor to generate the functions correctly.
  * As the macro inputs are identical to those above, the documentation of each is not repeated below.
 */

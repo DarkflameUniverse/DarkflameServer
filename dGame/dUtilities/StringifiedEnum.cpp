@@ -2,8 +2,8 @@
 
 /**
  * This #define is part of the system used in StringifiedEnum.h.
- * Defining GENERATING_ENUM_STRINGS causes the 'StringifiedEnum::ToString)' function to be generated for each stringified enum
- * This needs to be done in a .cpp file as these functions are actual code and not just header entries
+ * Defining GENERATING_ENUM_STRINGS causes the 'StringifiedEnum::ToString()' function to be generated for each stringified enum
+ * This needs to be done in a .cpp file as these functions are actual code and not just header entries.
 */
 #define GENERATE_ENUM_STRINGS
 
@@ -12,6 +12,6 @@
 
 #undef GENERATE_ENUM_STRINGS
 /**
- * The #undef above stops further 'StringifiedEnum::ToString)' function generation.
- * Only header files between the #define and #undef statements will generate
+ * The #undef above stops further 'StringifiedEnum::ToString()' function generation.
+ * Only header files placed between the #define and #undef statements will generate functions.
 */
