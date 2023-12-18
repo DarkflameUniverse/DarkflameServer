@@ -290,10 +290,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "leave-zone" || chatCommand == "leavezone") {
 		const auto currentZone = Game::zoneManager->GetZone()->GetZoneID().GetMapID();
-		const auto VeZoneBugEnabled = Game::config->GetValue("enable_venture_explorer_bug");
+		const auto veZoneBugEnabled = Game::config->GetValue("enable_venture_explorer_bug");
 		LWOMAPID newZone = 0;
 
-		if (currentZone == 1001 && VeZoneBugEnabled != "1") {
+		if (currentZone == 1001 && veZoneBugEnabled != "1") {
 			newZone = 1100; // Send to AG if we're in a Return to Venture Explorer instance
 		} else if (currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
