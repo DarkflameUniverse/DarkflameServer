@@ -1,6 +1,5 @@
 set(DGAMETEST_SOURCES
 	"GameDependencies.cpp"
-	"MacroStringifyTests.cpp"
 )
 
 add_subdirectory(dComponentsTests)

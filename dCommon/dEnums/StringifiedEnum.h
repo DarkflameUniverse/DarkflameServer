@@ -8,7 +8,13 @@
 /**
  * The #defines in the #ifndef block below create the actual enum class in the corresponding stringified enum's header file.
  * The code generation for the string lookup function 'StringifiedEnum::ToString()' is defined in the #else block further below.
- * To use this macro, in any header file of your choosing, create an enum of the form:
+ * To use this macro, create an enum header file of the form:
+ * 
+ * 		#if (!defined(__EMYENUM__H__) || defined(GENERATE_ENUM_STRINGS))
+ *
+ *		#if (!defined(__EMYENUM__H__))
+ *			#define __EMYENUM__H__
+ *		#endif
  * 
  * 		#include "StringifiedEnum.h"
  * 
@@ -16,6 +22,8 @@
  * 			STRINGIFIED_ENUM_ENTRY(MY_STUFF, 2)
  * 			STRINGIFIED_ENUM_ENTRY(MY_JUNK, 6)
  * 		END_STRINGIFIED_ENUM(eMyEnum, uint_32t)
+ * 
+ * 		#endif  //!__EMYENUM__H__
  * 
  * Then, in StringifiedEnum.cpp, include said header file between the #define GENERATE_ENUM_STRINGS and #undef GENERATE_ENUM_STRINGS statements
  * 
