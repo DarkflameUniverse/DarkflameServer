@@ -71,7 +71,7 @@
 #include "MovingPlatformComponent.h"
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
@@ -944,14 +944,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-		});
-
-
-	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (cont && entity->GetLOT() == 1) {
-		cont->SetPosition(entity->GetRespawnPosition());
-		cont->SetRotation(entity->GetRespawnRotation());
-	}
+	});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1144,17 +1137,15 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	auto con = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (con) {
-		auto rot = con->GetRotation();
-		bitStream.Write(rot.x);
-		bitStream.Write(rot.y);
-		bitStream.Write(rot.z);
-		bitStream.Write(rot.w);
+	const bool isNotIdentity = rotation != NiQuaternion::IDENTITY;
+	bitStream.Write(isNotIdentity);
+	
+	if (isNotIdentity) {
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
 	}
-
-	//bitStream.Write(position);
-	//bitStream.Write(rotation);
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
@@ -4486,7 +4477,7 @@ void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const System
 
 void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 	bool addImmunity, bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout,
-	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone,
+	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool addedByTeammate, bool applyOnTeammates,
 	const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -4494,27 +4485,29 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::ADD_BUFF);
 
-	bitStream.Write(false); // Added by teammate
-	bitStream.Write(false); // Apply on teammates
-	bitStream.Write(false); // Cancel on damage absorb ran out
+	bitStream.Write(addedByTeammate); // Added by teammate
+	bitStream.Write(applyOnTeammates); // Apply on teammates
 	bitStream.Write(cancelOnDamaged);
 	bitStream.Write(cancelOnDeath);
 	bitStream.Write(cancelOnLogout);
+
 	bitStream.Write(false); // Cancel on move
 	bitStream.Write(cancelOnRemoveBuff);
-
 	bitStream.Write(cancelOnUi);
 	bitStream.Write(cancelOnUnequip);
 	bitStream.Write(cancelOnZone);
+
 	bitStream.Write(false); // Ignore immunities
 	bitStream.Write(addImmunity);
 	bitStream.Write(false); // Use ref count
 
-	bitStream.Write(buffID);
-	bitStream.Write(msDuration);
+	bitStream.Write(casterID != LWOOBJID_EMPTY);
+	if (casterID != LWOOBJID_EMPTY) bitStream.Write(casterID);
 
-	bitStream.Write(casterID);
-	bitStream.Write(casterID);
+	bitStream.Write(buffID);
+
+	bitStream.Write(msDuration != 0);
+	if (msDuration != 0) bitStream.Write(msDuration);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -5017,6 +5010,14 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
+	if (emotes) {
+		CDEmoteTable* emote = emotes->GetEmote(emoteID);
+		if (emote) sAnimationName = emote->animationName;
+	}
+
+	RenderComponent::PlayAnimation(entity, sAnimationName);
+
 	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
@@ -5042,14 +5043,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
-
-	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
-	if (emotes) {
-		CDEmoteTable* emote = emotes->GetEmote(emoteID);
-		if (emote) sAnimationName = emote->animationName;
-	}
-
-	RenderComponent::PlayAnimation(entity, sAnimationName);
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5585,7 +5578,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 
 			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
 			stmt->setUInt64(1, newIdBig);
-			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules));
+			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules).c_str());
 			auto* pCharacter = character->GetCharacter();
 			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
 			stmt->execute();

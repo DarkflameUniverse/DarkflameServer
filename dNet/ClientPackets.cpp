@@ -27,7 +27,7 @@
 #include "Zone.h"
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "dConfig.h"
 #include "CharacterComponent.h"
 #include "Database.h"
@@ -187,17 +187,17 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
 			}
 
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-			if (vehiclePhysicsComponent != nullptr) {
-				vehiclePhysicsComponent->SetPosition(position);
-				vehiclePhysicsComponent->SetRotation(rotation);
-				vehiclePhysicsComponent->SetIsOnGround(onGround);
-				vehiclePhysicsComponent->SetIsOnRail(onRail);
-				vehiclePhysicsComponent->SetVelocity(velocity);
-				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
-				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
-				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent != nullptr) {
+				havokVehiclePhysicsComponent->SetPosition(position);
+				havokVehiclePhysicsComponent->SetRotation(rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(onRail);
+				havokVehiclePhysicsComponent->SetVelocity(velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
+				havokVehiclePhysicsComponent->SetAngularVelocity(angVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
 			} else {
 				// Need to get the mount's controllable physics
 				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
@@ -359,8 +359,8 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 				idOfReceiver = characterIdFetch->id;
 			}
 		}
-
-		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
+		const auto& bffMap = user->GetIsBestFriendMap();
+		if (bffMap.find(receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
 			auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
 
 			if (bffInfo) {
@@ -368,11 +368,9 @@ void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Pa
 			}
 
 			if (isBestFriend) {
-				auto tmpBestFriendMap = user->GetIsBestFriendMap();
-				tmpBestFriendMap[receiver] = true;
-				user->SetIsBestFriendMap(tmpBestFriendMap);
+				user->UpdateBestFriendValue(receiver, true);
 			}
-		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
+		} else if (bffMap.find(receiver) != bffMap.end()) {
 			isBestFriend = true;
 		}
 	}

@@ -62,7 +62,7 @@
 #include "ModelComponent.h"
 #include "ZCompression.h"
 #include "PetComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "ModuleAssemblyComponent.h"
@@ -76,7 +76,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
-#include "ZoneControlComponent.h"
+#include "MiniGameControlComponent.h"
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
@@ -217,8 +217,8 @@ void Entity::Initialize() {
 		AddComponent<PetComponent>(petComponentId);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ZONE_CONTROL) > 0) {
-		AddComponent<ZoneControlComponent>();
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL) > 0) {
+		AddComponent<MiniGameControlComponent>();
 	}
 
 	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
@@ -299,10 +299,10 @@ void Entity::Initialize() {
 		AddComponent<PhantomPhysicsComponent>()->SetPhysicsEffectActive(false);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS) > 0) {
-		auto* vehiclePhysicsComponent = AddComponent<VehiclePhysicsComponent>();
-		vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-		vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) > 0) {
+		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+		havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+		havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
@@ -554,6 +554,12 @@ void Entity::Initialize() {
 				Loot::CacheMatrix(activityID);
 			}
 
+			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
+
+			if (timeBeforeSmash > 0) {
+				rebuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
+			}
+
 			const auto compTime = GetVar<float>(u"compTime");
 
 			if (compTime > 0) {
@@ -738,7 +744,7 @@ void Entity::Initialize() {
 			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
 			!HasComponent(eReplicaComponentType::PROPERTY) &&
 			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
+			!HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS)
 			)
 			//if (HasComponent(eReplicaComponentType::BASE_COMBAT_AI))
 		{
@@ -1017,9 +1023,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	VehiclePhysicsComponent* vehiclePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
+	HavokVehiclePhysicsComponent* havokVehiclePhysicsComponent;
+	if (TryGetComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS, havokVehiclePhysicsComponent)) {
+		havokVehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
@@ -1191,9 +1197,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		}
 	}
 
-	ZoneControlComponent* zoneControlComponent;
-	if (TryGetComponent(eReplicaComponentType::ZONE_CONTROL, zoneControlComponent)) {
-		zoneControlComponent->Serialize(outBitStream, bIsInitialUpdate);
+	MiniGameControlComponent* miniGameControlComponent;
+	if (TryGetComponent(eReplicaComponentType::MINI_GAME_CONTROL, miniGameControlComponent)) {
+		miniGameControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	// BBB Component, unused currently
@@ -1503,7 +1509,7 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 	destroyableComponent->Smash(source, killType, deathType);
 }
 
-void Entity::Kill(Entity* murderer) {
+void Entity::Kill(Entity* murderer, const eKillType killType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
 	for (const auto& cb : m_DieCallbacks) {
@@ -1527,7 +1533,7 @@ void Entity::Kill(Entity* murderer) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0;
+			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
@@ -1840,7 +1846,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return simple->GetPosition();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetPosition();
@@ -1868,7 +1874,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return simple->GetRotation();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
@@ -1896,7 +1902,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		simple->SetPosition(position);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetPosition(position);
@@ -1924,7 +1930,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		simple->SetRotation(rotation);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);

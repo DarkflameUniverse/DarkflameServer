@@ -7,6 +7,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"CharXml.cpp"
 	"CommandLog.cpp"
 	"Friends.cpp"
+	"IgnoreList.cpp"
 	"Leaderboard.cpp"
 	"Mail.cpp"
 	"MigrationHistory.cpp"

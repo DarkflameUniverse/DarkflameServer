@@ -141,7 +141,7 @@ public:
 	 * @param count the number of values to progress by (differs by task type)
 	 * @return true if a achievement was accepted, false otherwise
 	 */
-	bool LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
+	const std::vector<uint32_t> LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
 
 	/**
 	 * Checks if there's a mission active that requires the collection of the specified LOT

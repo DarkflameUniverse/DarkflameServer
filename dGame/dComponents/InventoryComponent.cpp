@@ -19,7 +19,7 @@
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
@@ -981,7 +981,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
+	auto* vehicleComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
 	if (vehicleComponent) characterComponent->SetIsRacing(true);
 
 	// Setup the destroyable stats
