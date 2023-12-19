@@ -11,10 +11,13 @@
 
 #define log_test(y, z)\
 	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
-	LOG("%s %s", str_##z.c_str(), #z); ASSERT_EQ(str_##z, static_cast<std::string>(#z));
+	LOG("%s %s", str_##z.c_str(), #z);\
+	ASSERT_EQ(str_##z, static_cast<std::string>(#z));
+	
 #define log_test_invalid(y)\
 	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
-	LOG("%s", str_##z.c_str()); ASSERT_EQ(str_##z, "");
+	LOG("%s", str_##z.c_str());\
+	ASSERT_EQ(str_##z, "");
 
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	Game::logger = new Logger("./MagicEnumTest.log", true, true);
