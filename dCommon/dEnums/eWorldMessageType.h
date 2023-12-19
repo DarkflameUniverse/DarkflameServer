@@ -1,8 +1,5 @@
-#if (!defined(__EWORLDMESSAGETYPE__H__) || defined(GENERATE_ENUM_STRINGS))
-
-#if (!defined(__EWORLDMESSAGETYPE__H__))
-	#define __EWORLDMESSAGETYPE__H__
-#endif
+#ifndef __EWORLDMESSAGETYPE__H__
+#define __EWORLDMESSAGETYPE__H__
 
 #include <cstdint>
 #include "StringifiedEnum.h"

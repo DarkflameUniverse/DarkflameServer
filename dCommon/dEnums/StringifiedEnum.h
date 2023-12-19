@@ -10,11 +10,8 @@
  * The code generation for the string lookup function 'StringifiedEnum::ToString()' is defined in the #else block further below.
  * To use this macro, create an enum header file of the form:
  * 
- * 		#if (!defined(__EMYENUM__H__) || defined(GENERATE_ENUM_STRINGS))
- *
- *		#if (!defined(__EMYENUM__H__))
- *			#define __EMYENUM__H__
- *		#endif
+ * 		#ifndef __EMYENUM__H__
+ *		#define __EMYENUM__H__
  * 
  * 		#include "StringifiedEnum.h"
  * 
