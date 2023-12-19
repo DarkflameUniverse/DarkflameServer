@@ -297,6 +297,7 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+	"thirdparty/magic_enum/include"
 
 	"tests"
 	"tests/dCommonTests"

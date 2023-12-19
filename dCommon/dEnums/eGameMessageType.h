@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "magic_enum/magic_enum.hpp"
+
 enum class eGameMessageType : uint16_t {
     GET_POSITION = 0,
     GET_ROTATION = 1,
@@ -1600,6 +1602,12 @@ enum class eGameMessageType : uint16_t {
     CAN_ITEMS_BE_REFORGED = 1769,
     NOTIFY_CLIENT_RAIL_START_FAILED = 1771,
     GET_IS_ON_RAIL = 1772
+};
+
+template <>
+struct magic_enum::customize::enum_range<eGameMessageType> {
+  static constexpr int min = 0;
+  static constexpr int max = 1772;
 };
 
 #endif  //!__EGAMEMESSAGETYPE__H__
