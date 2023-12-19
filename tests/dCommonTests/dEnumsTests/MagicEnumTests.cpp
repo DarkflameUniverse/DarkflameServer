@@ -13,7 +13,7 @@
 	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
 	LOG("%s %s", str_##z.c_str(), #z);\
 	ASSERT_EQ(str_##z, static_cast<std::string>(#z));
-	
+
 #define log_test_invalid(y)\
 	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
 	LOG("%s", str_##z.c_str());\
@@ -21,6 +21,7 @@
 
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	Game::logger = new Logger("./MagicEnumTest.log", true, true);
+	
 	log_test(1, VALIDATION);
 	log_test(2, CHARACTER_LIST_REQUEST);
 	log_test(3, CHARACTER_CREATE_REQUEST);
