@@ -58,7 +58,7 @@ if(UNIX)
 	if(APPLE)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
 	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC -lstdc++fs")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O0 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC -lstdc++fs")
 	endif()
 	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
@@ -292,6 +292,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/zone/PROPERTY/GF"
 	"dScripts/zone/PROPERTY/NS"
 
+	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"

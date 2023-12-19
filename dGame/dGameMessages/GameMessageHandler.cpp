@@ -38,6 +38,11 @@
 #include "ePlayerFlag.h"
 #include "dConfig.h"
 
+// magic_enum defines and includes
+#define MAGIC_ENUM_RANGE_MIN 0
+#define MAGIC_ENUM_RANGE_MAX 2048
+#include "magic_enum.hpp"
+
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;
@@ -52,7 +57,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: (%4i) %s", messageID, StringifiedEnum::ToString(messageID));
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: (%4i) %s", messageID, magic_enum::enum_name<eGameMessageType>(static_cast<eGameMessageType>(messageID)));
 
 	switch (messageID) {
 
@@ -690,7 +695,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
 		break;
 	default:
-		LOG_DEBUG("Unknown game message ID: (%4i) %s", messageID, StringifiedEnum::ToString(messageID));
+		LOG_DEBUG("Unknown game message ID: (%4i) %s", messageID, magic_enum::enum_name<eGameMessageType>(messageID));
 		break;
 	}
 }

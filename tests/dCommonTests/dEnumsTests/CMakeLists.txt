@@ -1,5 +1,5 @@
 set(DENUMS_TESTS
-	"MacroStringifyTests.cpp"
+	"MagicEnumTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above
