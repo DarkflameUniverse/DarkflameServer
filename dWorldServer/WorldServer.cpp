@@ -1251,7 +1251,7 @@ void HandlePacket(Packet* packet) {
 	default:
 		const auto data = packet->data[3];
 		const uint32_t worldMessageId = static_cast<uint32_t>(data);
-		const auto worldMessageString = magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(data));
+		const auto worldMessageString = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(data))).c_str();
 		LOG("Unknown world packet received: (%4i) %s", worldMessageId, worldMessageString);
 	}
 }

@@ -13,7 +13,6 @@
 #define log_test_invalid(y) LOG("%s", magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(y))); ASSERT_EQ(magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(y)), "<none>");
 
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
-	//LOG("%s %s", magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(1)), eWorldMessageType::VALIDATION); ASSERT_EQ(magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(1)), eWorldMessageType::VALIDATION)
 	log_test(1, eWorldMessageType::VALIDATION);
 	log_test(2, eWorldMessageType::CHARACTER_LIST_REQUEST);
 	log_test(3, eWorldMessageType::CHARACTER_CREATE_REQUEST);
@@ -52,7 +51,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
-		auto f = magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(i));
+		volatile auto f = std::string(magic_enum::enum_name<eWorldMessageType>(static_cast<eWorldMessageType>(i))).c_str();
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
 		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
