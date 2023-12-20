@@ -55,7 +55,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
-		volatile auto f = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(i))).c_str();
+		volatile auto f = magic_enum::enum_name(static_cast<eWorldMessageType>(i)).data();
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
 		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
