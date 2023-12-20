@@ -1249,7 +1249,7 @@ void HandlePacket(Packet* packet) {
 
 		uint32_t messageId = *reinterpret_cast<uint32_t*>(&packet->data[3]);
 		const char* messageIdString = magic_enum::enum_name(static_cast<eWorldMessageType>(messageId)).data();
-		LOG("Unknown world packet received: (%4i) %s", messageId, messageIdString);
+		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString);
 	}
 }
 

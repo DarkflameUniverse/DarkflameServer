@@ -49,7 +49,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		LOG("Failed to find associated entity (%llu), aborting GM (%4i) %s!", objectID, messageID, magic_enum::enum_name(messageID).data());
+		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, magic_enum::enum_name(messageID).data());
 		return;
 	}
 
