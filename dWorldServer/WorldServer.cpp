@@ -76,10 +76,6 @@
 #include "EntityManager.h"
 #include "CheatDetection.h"
 #include "eGameMasterLevel.h"
-
-// magic_enum defines and includes
-#define MAGIC_ENUM_RANGE_MIN 0
-#define MAGIC_ENUM_RANGE_MAX 2048
 #include "magic_enum.hpp"
 
 namespace Game {
@@ -1249,10 +1245,11 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const auto data = packet->data[3];
-		const uint32_t worldMessageId = static_cast<uint32_t>(data);
-		const auto worldMessageString = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(data))).c_str();
-		LOG("Unknown world packet received: (%4i) %s", worldMessageId, worldMessageString);
+		if (packet->bitSize < (16 + sizeof(uint32_t) * 8)) break;
+
+		uint32_t messageId = *reinterpret_cast<uint32_t*>(&packet->data[3]);
+		const char* messageIdString = magic_enum::enum_name(static_cast<eWorldMessageType>(messageId)).data();
+		LOG("Unknown world packet received: (%4i) %s", messageId, messageIdString);
 	}
 }
 
