@@ -1,8 +1,5 @@
 #include <gtest/gtest.h>
 
-#define MAGIC_ENUM_RANGE_MIN 0
-#define MAGIC_ENUM_RANGE_MAX 2048
-
 #include "magic_enum.hpp"
 #include "Logger.h"
 #include "Game.h"
@@ -10,14 +7,12 @@
 #include <chrono>
 
 #define log_test(y, z)\
-	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
-	LOG("%s %s", str_##z.c_str(), #z);\
-	ASSERT_EQ(str_##z, static_cast<std::string>(#z));
+	LOG("%s %s", magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), #z);\
+	ASSERT_STREQ(magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), #z);
 
 #define log_test_invalid(y)\
-	auto str_##z = std::string(magic_enum::enum_name(static_cast<eWorldMessageType>(y)));\
-	LOG("%s", str_##z.c_str());\
-	ASSERT_EQ(str_##z, "");
+	LOG("%s", magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data());\
+	ASSERT_STREQ(magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), NULL);
 
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	Game::logger = new Logger("./MagicEnumTest.log", true, true);
