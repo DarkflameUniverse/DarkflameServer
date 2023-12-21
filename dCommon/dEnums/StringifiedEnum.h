@@ -20,7 +20,6 @@ namespace StringifiedEnum {
 
 		if (it != sv->end() && it->first == e)
 			output = it->second;
-
 		else
 			output = "UNKNOWN";
 
