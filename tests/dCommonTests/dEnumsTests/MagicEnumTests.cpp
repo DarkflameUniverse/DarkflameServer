@@ -13,7 +13,7 @@
 	ASSERT_STREQ(StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);
 
 #define log_test_invalid(e, y)\
-	log_test(e, y, "UNKNOWN");
+	log_test(e, y, UNKNOWN);
 
 // Test World Message Enum Reflection
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
