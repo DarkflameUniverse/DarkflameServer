@@ -1606,8 +1606,8 @@ enum class eGameMessageType : uint16_t {
 
 template <>
 struct magic_enum::customize::enum_range<eGameMessageType> {
-  static constexpr int min = 0;
-  static constexpr int max = 1772;
+	static constexpr int min = 0;
+	static constexpr int max = 1772;
 };
 
 #endif  //!__EGAMEMESSAGETYPE__H__
