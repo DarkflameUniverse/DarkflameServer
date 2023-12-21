@@ -55,6 +55,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	log_test(91, UI_HELP_TOP_5);
 	log_test_invalid(123);
 
+	srand(time(NULL));
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
 		volatile auto f = StringifiedEnum::ToString(static_cast<eWorldMessageType>(i)).data();
@@ -108,6 +109,7 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 	log_test_invalid(32);
 	log_test_invalid(1776);
 
+	srand(time(NULL));
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
 		volatile auto f = StringifiedEnum::ToString(static_cast<eGameMessageType>(i)).data();
