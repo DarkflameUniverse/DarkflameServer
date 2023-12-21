@@ -8,7 +8,7 @@
 
 namespace StringifiedEnum {
 	template<typename T>
-	const auto ToString(const T e) {
+	const std::string_view ToString(const T e) {
 		constexpr auto sv = &magic_enum::enum_entries<T>();
 
 		const auto it = std::lower_bound(
