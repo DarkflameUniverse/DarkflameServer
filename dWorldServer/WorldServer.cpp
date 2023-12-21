@@ -3,6 +3,7 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <type_traits>
 
 #include "MD5.h"
 
@@ -1245,8 +1246,9 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const char* messageIdString = StringifiedEnum::ToString(*reinterpret_cast<eWorldMessageType*>(&packet->data[3])).data();
-		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString);
+		const auto* messageId = *reinterpret_cast<std::underlying_type<eWorldMessageType>*>(&packet->data[3]);
+		const std::string_view messageIdString =  StringifiedEnum::ToString(*reinterpret_cast<eWorldMessageType*>(messageId));
+		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}
 }
 
