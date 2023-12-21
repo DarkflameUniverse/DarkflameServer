@@ -166,7 +166,9 @@ void Entity::Initialize() {
 
 	if (!groupIDs.empty()) {
 		m_Groups = GeneralUtils::SplitString(groupIDs, ';');
-		m_Groups.erase(m_Groups.end() - 1);
+		if (!m_Groups.empty()) {
+			if (m_Groups.back().empty()) m_Groups.erase(m_Groups.end() - 1);
+		}
 	}
 
 	/**

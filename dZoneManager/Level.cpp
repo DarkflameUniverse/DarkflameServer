@@ -99,7 +99,7 @@ void Level::MakeSpawner(SceneObject obj){
 		if (data->GetKey() == u"groupID") { // Load object groups
 			std::string groupStr = data->GetValueAsString();
 			spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
-			spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
+			if (spawnInfo.groups.back().empty()) spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
 		}
 		if (data->GetKey() == u"no_auto_spawn") {
 			spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();

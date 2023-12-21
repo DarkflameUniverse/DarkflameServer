@@ -129,9 +129,9 @@ void Zone::LoadZoneIntoMemory() {
 								} else if (data->GetKey() == u"groupID") { // Load object group
 									std::string groupStr = data->GetValueAsString();
 									info.groups = GeneralUtils::SplitString(groupStr, ';');
-									info.groups.erase(info.groups.end() - 1);
+									if (info.groups.back().empty()) info.groups.erase(info.groups.end() - 1);
 								} else if (data->GetKey() == u"grpNameQBShowBricks") {
-									if (data->GetValueAsString() == "") continue;
+									if (data->GetValueAsString().empty()) continue;
 									/*std::string groupStr = data->GetValueAsString();
 									info.groups.push_back(groupStr);*/
 									info.grpNameQBShowBricks = data->GetValueAsString();

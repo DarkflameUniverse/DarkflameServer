@@ -24,6 +24,7 @@ void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool i
 		outBitStream->Write<uint32_t>(0);
 	} else {
 		outBitStream->Write<uint32_t>(1);
+		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
 		for (size_t i = 0; i < 10; i++) {
 			outBitStream->Write<float_t>(0.0f);
 		}
@@ -60,6 +61,7 @@ void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool i
 		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
 		outBitStream->Write<float_t>(m_DynamicParams.cannonTimeout);
 		outBitStream->Write<float_t>(m_DynamicParams.cannonFOV);
+		if (!isInitialUpdate) m_Dirty = false;
 	}
 }
 
