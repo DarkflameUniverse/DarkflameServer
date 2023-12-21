@@ -49,11 +49,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, StringifiedEnum::ToString(messageID));
+		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, StringifiedEnum::ToString(messageID).data());
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID,  StringifiedEnum::ToString(messageID));
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID,  StringifiedEnum::ToString(messageID).data());
 
 	switch (messageID) {
 
@@ -694,7 +694,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
 		break;
 	default:
-		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID,  StringifiedEnum::ToString(messageID));
+		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID,  StringifiedEnum::ToString(messageID).data());
 		break;
 	}
 }
