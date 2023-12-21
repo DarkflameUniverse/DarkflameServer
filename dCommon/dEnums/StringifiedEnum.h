@@ -14,7 +14,7 @@ namespace StringifiedEnum {
 
 		const auto it = std::lower_bound(
 			sv->begin(), sv->end(), e,
-			[&](const std::pair<T, auto>& lhs, const T rhs)
+			[&](const std::pair<T, std::string_view>& lhs, const T rhs)
 			{ return lhs.first < rhs; }
 		);
 
