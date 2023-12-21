@@ -1245,10 +1245,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		if (packet->bitSize < (16 + sizeof(uint32_t) * 8)) break;
-
-		uint32_t messageId = *reinterpret_cast<uint32_t*>(&packet->data[3]);
-		const char* messageIdString =  StringifiedEnum::ToString(static_cast<eWorldMessageType>(messageId)).data();
+		const char* messageIdString = StringifiedEnum::ToString(*reinterpret_cast<eWorldMessageType*>(&packet->data[3])).data();
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString);
 	}
 }
