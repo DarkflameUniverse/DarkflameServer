@@ -20,7 +20,7 @@ namespace StringifiedEnum {
 		if (it != sv->end() && it->first == e)
 			return it->second;
 
-		return std::string_view("UNKNOWN");
+		return "UNKNOWN";
 	}
 }
 
