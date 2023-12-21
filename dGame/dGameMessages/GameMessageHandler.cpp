@@ -37,7 +37,7 @@
 #include "eGameMessageType.h"
 #include "ePlayerFlag.h"
 #include "dConfig.h"
-#include "magic_enum.hpp"
+#include "StringifiedEnum.h"
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
@@ -49,11 +49,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, magic_enum::enum_name(messageID).data());
+		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, StringifiedEnum::ToString(messageID));
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID, magic_enum::enum_name(messageID).data());
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID,  StringifiedEnum::ToString(messageID));
 
 	switch (messageID) {
 
@@ -691,7 +691,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
 		break;
 	default:
-		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, magic_enum::enum_name(messageID).data());
+		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID,  StringifiedEnum::ToString(messageID));
 		break;
 	}
 }

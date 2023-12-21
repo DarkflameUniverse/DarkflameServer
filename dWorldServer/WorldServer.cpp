@@ -76,7 +76,7 @@
 #include "EntityManager.h"
 #include "CheatDetection.h"
 #include "eGameMasterLevel.h"
-#include "magic_enum.hpp"
+#include "StringifiedEnum.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -1248,7 +1248,7 @@ void HandlePacket(Packet* packet) {
 		if (packet->bitSize < (16 + sizeof(uint32_t) * 8)) break;
 
 		uint32_t messageId = *reinterpret_cast<uint32_t*>(&packet->data[3]);
-		const char* messageIdString = magic_enum::enum_name(static_cast<eWorldMessageType>(messageId)).data();
+		const char* messageIdString =  StringifiedEnum::ToString(static_cast<eWorldMessageType>(messageId));
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString);
 	}
 }

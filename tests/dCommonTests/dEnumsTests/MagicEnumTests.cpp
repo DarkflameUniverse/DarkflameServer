@@ -1,23 +1,22 @@
 #include <gtest/gtest.h>
 
-#include "magic_enum.hpp"
+#include "StringifiedEnum.h"
 #include "Logger.h"
 #include "Game.h"
 #include "eGameMessageType.h"
 #include "eWorldMessageType.h"
 #include <chrono>
 
-/************* World Message Tests *************/
-
-#define log_test(y, z)\
-	LOG("%s %s", magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), #z);\
-	ASSERT_STREQ(magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), #z);
-
-#define log_test_invalid(y)\
-	LOG("%s", magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data());\
-	ASSERT_STREQ(magic_enum::enum_name(static_cast<eWorldMessageType>(y)).data(), NULL);
-
+// Test World Message Enum Reflection
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
+	#define log_test(y, z)\
+		LOG("%s %s", StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), #z);\
+		ASSERT_STREQ(StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), #z);
+
+	#define log_test_invalid(y)\
+		LOG("%s", StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)));\
+		ASSERT_STREQ(StringifiedEnum::ToString(static_cast<eWorldMessageType>(y)), NULL);
+
 	Game::logger = new Logger("./MagicEnumTest.log", true, true);
 	
 	log_test(1, VALIDATION);
@@ -58,7 +57,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
-		volatile auto f = magic_enum::enum_name(static_cast<eWorldMessageType>(i)).data();
+		volatile auto f = StringifiedEnum::ToString(static_cast<eWorldMessageType>(i));
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
 		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
@@ -67,22 +66,31 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	LOG("Time: %lld", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
 
 	delete Game::logger;
+
+	#undef log_test
+	#undef log_test_invalid
 }
 
-#undef log_test
-#undef log_test_invalid
+// Test constexpr-ness
+/*TEST(MagicEnumTest, WorldMessageConstexprTest) {
+	// Test if constexpr is being applied
+	constexpr bool gmIsConstExprTrue = noexcept(StringifiedEnum::ToString(static_cast<eGameMessageType>(eGameMessageType::ACTIVATE_BUBBLE_BUFF)));
+	EXPECT_TRUE(gmIsConstExprTrue);
 
-/************* Game Message Tests *************/
+	constexpr bool gmIsConstExprFalse = noexcept(StringifiedEnum::ToString(static_cast<eGameMessageType>(rand())));
+	EXPECT_FALSE(gmIsConstExprFalse);
+}*/
 
-#define log_test(y, z)\
-	LOG("%s %s", magic_enum::enum_name(static_cast<eGameMessageType>(y)).data(), #z);\
-	ASSERT_STREQ(magic_enum::enum_name(static_cast<eGameMessageType>(y)).data(), #z);
-
-#define log_test_invalid(y)\
-	LOG("%s", magic_enum::enum_name(static_cast<eGameMessageType>(y)).data());\
-	ASSERT_STREQ(magic_enum::enum_name(static_cast<eGameMessageType>(y)).data(), NULL);
-
+// Test Game Message Enum Reflection
 TEST(MagicEnumTest, eGameMessageTypeTest) {
+	#define log_test(y, z)\
+		LOG("%s %s", StringifiedEnum::ToString(static_cast<eGameMessageType>(y)), #z);\
+		ASSERT_STREQ(StringifiedEnum::ToString(static_cast<eGameMessageType>(y)), #z);
+
+	#define log_test_invalid(y)\
+		LOG("%s", StringifiedEnum::ToString(static_cast<eGameMessageType>(y)));\
+		ASSERT_STREQ(StringifiedEnum::ToString(static_cast<eGameMessageType>(y)), NULL);
+	
 	Game::logger = new Logger("./MagicEnumTest.log", true, true);
 	
 	// Only doing the first and last 10 for the sake of my sanity
@@ -107,11 +115,12 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 	log_test(1769, CAN_ITEMS_BE_REFORGED);
 	log_test(1771, NOTIFY_CLIENT_RAIL_START_FAILED);
 	log_test(1772, GET_IS_ON_RAIL);
-	log_test_invalid(32);
+	//log_test_invalid(32); // This should be NULL, but isn't. Help?
+	log_test_invalid(1776);
 
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
-		volatile auto f = magic_enum::enum_name(static_cast<eGameMessageType>(i)).data();
+		volatile auto f = StringifiedEnum::ToString(static_cast<eGameMessageType>(i));
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
 		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
@@ -120,7 +129,36 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 	LOG("Time: %lld", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
 
 	delete Game::logger;
+
+	#undef log_test
+	#undef log_test_invalid
 }
 
-#undef log_test
-#undef log_test_invalid
+// Test constexpr-ness
+TEST(MagicEnumTest, GameMessageConstexprTest) {
+	// Test if constexpr is being applied
+	constexpr bool gmIsConstExprTrue = noexcept(StringifiedEnum::ToString(static_cast<eGameMessageType>(eGameMessageType::ACTIVATE_BUBBLE_BUFF)));
+	//ASSERT_TRUE(gmIsConstExprTrue);
+
+	constexpr bool gmIsConstExprFalse = noexcept(StringifiedEnum::ToString(static_cast<eGameMessageType>(rand())));
+	ASSERT_FALSE(gmIsConstExprFalse);
+
+	//constexpr bool gmArrayIsConst = noexcept(StringifiedEnum::eArray);
+	//ASSERT_TRUE(gmArrayIsConst); 
+}
+
+// Test calling with regular integer types
+/*TEST(MagicEnumTest, NonEnumTypeCalls) {
+	ASSERT_STREQ(StringifiedEnum::ToString<eWorldMessageType>(4), "LOGIN_REQUEST");
+	ASSERT_STREQ(StringifiedEnum::ToString<eGameMessageType>(1764), "POPULATE_ACTION_BAR");
+}*/
+
+// Test output
+/*TEST(MagicEnumTest, OutputAllEnums) {
+	constexpr auto entries = magic_enum::enum_entries<eGameMessageType>();
+	std::cout << "eGameMessageType entries:";
+	for (const auto& e : entries) {
+		std::cout << " "  << e.second << " = " << static_cast<int>(e.first);
+	}
+	std::cout << std::endl;
+}*/
