@@ -118,7 +118,6 @@ public:
 		}
 
 		stream->Read(skillID);
-		LOG_DEBUG("StartSkill::Deserialize() skillID = %i", skillID);
 
 		bool uiSkillHandleIsDefault{};
 		stream->Read(uiSkillHandleIsDefault);

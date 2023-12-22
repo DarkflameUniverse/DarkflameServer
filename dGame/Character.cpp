@@ -507,8 +507,6 @@ bool Character::HasPermission(ePermissionMap permission) const {
 }
 
 void Character::SetRespawnPoint(LWOMAPID map, const NiPoint3& point) {
-	LOG_DEBUG("WE ARE HERE TOO!");
-	//if (!this) return;
 	m_WorldRespawnCheckpoints[map] = point;
 }
 

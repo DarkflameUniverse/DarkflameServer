@@ -292,12 +292,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
 		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
-		LOG_DEBUG("behaviorId = %i", behaviorId);
 
 		bool success = false;
 
 		if (behaviorId > 0) {
-			LOG_DEBUG("behaviorId > 0!");
 			RakNet::BitStream* bs = new RakNet::BitStream((unsigned char*)startSkill.sBitStream.c_str(), startSkill.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
@@ -313,12 +311,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		if (Game::server->GetZoneID() == 1302) {
-			LOG_DEBUG("GetZoneID() == 1302!");
 			break;
 		}
 
 		if (success) {
-			LOG_DEBUG("success!");
 			//Broadcast our startSkill:
 			RakNet::BitStream bitStreamLocal;
 			BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
@@ -336,8 +332,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.skillID = startSkill.skillID;
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
 			echoStartSkill.Serialize(&bitStreamLocal);
-
-			LOG_DEBUG("skillID = %i", static_cast<int>(startSkill.skillID));
 
 			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
 		}
