@@ -307,6 +307,7 @@
 #include "WildAndScared.h"
 #include "WildGfGlowbug.h"
 #include "WildAmbientCrab.h"
+#include "WildMedusa.h"
 #include "WildPants.h"
 #include "WildNinjaStudent.h"
 #include "WildNinjaSensei.h"
@@ -921,6 +922,18 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildNinjaStudent();
 	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
 		script = new WildNinjaSensei();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_MEDUSA.lua")
+		script = new WildMedusa();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_snake_01.lua")
+		script = new WildSnake01();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_snake_02.lua")
+		script = new WildSnake01();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_snake_03.lua")
+		script = new WildSnake01();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_snake_04.lua")
+		script = new WildSnake01();
+	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_snake_05.lua")
+		script = new WildSnake01();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
