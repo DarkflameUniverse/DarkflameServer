@@ -1,3 +1,6 @@
+#include <chrono>
+#include <string>
+
 #include <gtest/gtest.h>
 
 #include "StringifiedEnum.h"
@@ -5,8 +8,6 @@
 #include "Game.h"
 #include "eGameMessageType.h"
 #include "eWorldMessageType.h"
-#include <chrono>
-#include <string>
 
 #define ENUM_EQ(e, y, z)\
 	LOG("%s %s", StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);\

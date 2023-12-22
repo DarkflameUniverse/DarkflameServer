@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef __STRINGIFIEDENUM_H__
 #define __STRINGIFIEDENUM_H__
 

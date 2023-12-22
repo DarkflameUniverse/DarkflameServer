@@ -374,7 +374,7 @@ add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
 
 # Add platform specific common libraries
 if (UNIX)
