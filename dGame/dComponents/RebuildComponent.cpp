@@ -198,9 +198,9 @@ void RebuildComponent::Update(float deltaTime) {
 			if (!destComp) break;
 
 			++m_DrainedImagination;
-			const int32_t imaginationCostRemaining = m_TakeImagination - m_DrainedImagination;
+			const auto imaginationCostRemaining = m_TakeImagination - m_DrainedImagination;
 
-			const int32_t newImagination = destComp->GetImagination() - 1;
+			const auto newImagination = destComp->GetImagination() - 1;
 			destComp->SetImagination(newImagination);
 			Game::entityManager->SerializeEntity(builder);
 

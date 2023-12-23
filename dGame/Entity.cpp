@@ -336,7 +336,7 @@ void Entity::Initialize() {
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-  
+
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
 	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
 		DestroyableComponent* comp = AddComponent<DestroyableComponent>();
@@ -543,8 +543,7 @@ void Entity::Initialize() {
 
 				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
 				// This extends the smash time so players can ride up the lift.
-				if (m_TemplateID == 9483)
-				{
+				if (m_TemplateID == 9483) {
 					rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() + 25);
 				}
 			}
