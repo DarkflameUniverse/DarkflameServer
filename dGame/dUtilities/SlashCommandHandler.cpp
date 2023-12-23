@@ -621,14 +621,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (args[0].find("/") != std::string::npos) return;
 		if (args[0].find("\\") != std::string::npos) return;
 
-		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
+		auto infile = Game::assetManager->GetFile(("macros/" + args[0] + ".scm").c_str());
 
-		if (!buf.m_Success) {
+		if (!infile) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 			return;
 		}
-
-		std::istream infile(&buf);
 
 		if (infile.good()) {
 			std::string line;
@@ -638,8 +636,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 		}
-
-		buf.close();
 
 		return;
 	}

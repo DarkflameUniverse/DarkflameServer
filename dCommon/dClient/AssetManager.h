@@ -25,6 +25,10 @@ struct AssetMemoryBuffer : std::streambuf {
 		this->setg(base, base, base + n);
 	}
 
+	~AssetMemoryBuffer() {
+		free(m_Base);
+	}
+
 	pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
 		return seekoff(sp - pos_type(off_type(0)), std::ios_base::beg, which);
 	}
@@ -40,9 +44,17 @@ struct AssetMemoryBuffer : std::streambuf {
 			setg(eback(), eback() + off, egptr());
 		return gptr() - eback();
 	}
+};
 
-	void close() {
-		free(m_Base);
+struct AssetStream : std::istream {
+	AssetStream(char* base, std::ptrdiff_t n, bool success) : std::istream(new AssetMemoryBuffer(base, n, success)) {}
+
+	~AssetStream() {
+		delete rdbuf();
+	}
+
+	operator bool() {
+		return reinterpret_cast<AssetMemoryBuffer*>(rdbuf())->m_Success;
 	}
 };
 
@@ -56,7 +68,7 @@ public:
 
 	bool HasFile(const char* name);
 	bool GetFile(const char* name, char** data, uint32_t* len);
-	AssetMemoryBuffer GetFileAsBuffer(const char* name);
+	AssetStream GetFile(const char* name);
 
 private:
 	void LoadPackIndex();

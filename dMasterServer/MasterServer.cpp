@@ -169,8 +169,8 @@ int main(int argc, char** argv) {
 				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
 				(Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
 
-			AssetMemoryBuffer cdClientBuffer = Game::assetManager->GetFileAsBuffer("cdclient.fdb");
-			if (!cdClientBuffer.m_Success) {
+			auto cdclientStream = Game::assetManager->GetFile("cdclient.fdb");
+			if (!cdclientStream) {
 				LOG("Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
 				throw std::runtime_error("Aborting initialization due to missing cdclient.fdb.");
 			}
@@ -178,11 +178,10 @@ int main(int argc, char** argv) {
 			LOG("Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
 			Game::logger->Flush();
 
-			if (FdbToSqlite::Convert((BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase(cdClientBuffer) == false) {
+			if (FdbToSqlite::Convert((BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase(cdclientStream) == false) {
 				LOG("Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
-			cdClientBuffer.close();
 		}
 	}
 

@@ -324,14 +324,9 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 }
 
 ControlBehaviors::ControlBehaviors() {
-	auto blocksDefStreamBuffer = Game::assetManager->GetFileAsBuffer("ui\\ingame\\blocksdef.xml");
-	if (!blocksDefStreamBuffer.m_Success) {
-		LOG("failed to open blocksdef");
-		return;
-	}
-	std::istream blocksBuffer(&blocksDefStreamBuffer);
-	if (!blocksBuffer.good()) {
-		LOG("Blocks buffer is not good!");
+	auto blocksBuffer = Game::assetManager->GetFile("ui\\ingame\\blocksdef.xml");
+	if (!blocksBuffer) {
+		LOG("Failed to open blocksdef.xml");
 		return;
 	}
 
@@ -342,7 +337,7 @@ ControlBehaviors::ControlBehaviors() {
 	std::string buffer{};
 	bool commentBlockStart = false;
 	while (std::getline(blocksBuffer, read)) {
-		// tinyxml2 should handle comment blocks but the client has one that fails the processing.  
+		// tinyxml2 should handle comment blocks but the client has one that fails the processing.
 		// This preprocessing just removes all comments from the read file out of an abundance of caution.
 		if (read.find("<!--") != std::string::npos) {
 			commentBlockStart = true;
