@@ -7,7 +7,9 @@
 namespace StringifiedEnum {
 	template<typename T>
 	constexpr std::string_view ToString(const T& e) {
-		// Evaluate as constexpr if possible
+		// Check type
+		static_assert(std::is_enum<T>::value, "Not an enum");
+
 		if (__builtin_constant_p(e)) {
 			return magic_enum::enum_name<T>(e).empty() ? "UNKNOWN" : magic_enum::enum_name<T>(e);
 		}
