@@ -804,6 +804,7 @@ void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
 	m_EnemyFactionIDs.clear();
 
 	AddFaction(factionID, ignoreChecks);
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void DestroyableComponent::SetStatusImmunity(
