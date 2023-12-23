@@ -187,10 +187,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		return;
 	}
 
-	const float immunityTime = Game::zoneManager->GetWorldConfig()->globalImmunityTime;
-
-	const bool isImmune = (destroyableComponent->IsImmune()) || (destroyableComponent->IsCooldownImmune());
-
+	const bool isImmune = destroyableComponent->IsImmune() || destroyableComponent->IsCooldownImmune();
 	bitStream->Write(isImmune);
 
 	if (isImmune) {
@@ -217,7 +214,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	//Handle player damage cooldown
 	if (isSuccess && targetEntity->IsPlayer() && !this->m_DontApplyImmune) {
-		destroyableComponent->SetDamageCooldownTimer(immunityTime);
+		destroyableComponent->SetDamageCooldownTimer(Game::zoneManager->GetWorldConfig()->globalImmunityTime);
 	}
 
 	eBasicAttackSuccessTypes successState = eBasicAttackSuccessTypes::FAILIMMUNE;

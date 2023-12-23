@@ -239,11 +239,11 @@ namespace GeneralUtils {
 	 * @param entry Enum entry to cast
 	 * @returns The enum entry's value in its underlying type
 	*/
-	template <typename T>
-	inline constexpr typename std::underlying_type<T>::type CastUnderlyingType(const T& entry) {
-		static_assert(std::is_enum<T>::value, "Not an enum");
+	template <typename eType>
+	inline constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) {
+		static_assert(std::is_enum_v<eType>, "Not an enum");
 
-		return static_cast<typename std::underlying_type<T>::type>(entry);
+		return static_cast<typename std::underlying_type_t<eType>>(entry);
 	}
 
 	// on Windows we need to undef these or else they conflict with our numeric limits calls

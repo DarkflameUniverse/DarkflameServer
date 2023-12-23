@@ -31,7 +31,7 @@ void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID,
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_ZONE_TRANSFER);
 
 	bitStream.Write(requestID);
-	bitStream.Write(static_cast<uint8_t>(mythranShift));
+	bitStream.Write<uint8_t>(mythranShift);
 	bitStream.Write(zoneID);
 	bitStream.Write(cloneID);
 
@@ -58,7 +58,7 @@ void MasterPackets::SendZoneRequestPrivate(dServer* server, uint64_t requestID, 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_PRIVATE_ZONE);
 
 	bitStream.Write(requestID);
-	bitStream.Write(static_cast<uint8_t>(mythranShift));
+	bitStream.Write<uint8_t>(mythranShift);
 
 	bitStream.Write<uint32_t>(password.size());
 	for (auto character : password) {
@@ -83,11 +83,11 @@ void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddres
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE);
 
 	bitStream.Write(requestID);
-	bitStream.Write(static_cast<uint8_t>(mythranShift));
+	bitStream.Write<uint8_t>(mythranShift);
 	bitStream.Write(zoneID);
 	bitStream.Write(zoneInstance);
 	bitStream.Write(zoneClone);
-	bitStream.Write(static_cast<uint16_t>(serverPort));
+	bitStream.Write<uint16_t>(serverPort);
 	bitStream.Write(LUString(serverIP, static_cast<uint32_t>(serverIP.size() + 1)));
 
 	server->Send(&bitStream, sysAddr, false);

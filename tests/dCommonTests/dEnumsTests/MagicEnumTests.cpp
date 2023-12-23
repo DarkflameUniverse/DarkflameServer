@@ -140,24 +140,3 @@ TEST(MagicEnumTest, ArraysAreSorted) {
 
 	delete Game::logger;
 }
-
-#define IS_CONSTEXPR2(...) std::integral_constant<bool, __builtin_constant_p(([] () { __VA_ARGS__; } (), 0))>::value
-
-/* Test that the StringifiedEnum::ToString() function is evaluated as a constexpr when possible
- * As the 'static_asserts' will generate compiler errors, this test simply checks if it is ran
- * The main purpose of including it at all is to have a logical place to store this code 
- */
-TEST(MagicEnumTest, ConstexprEvaluation) {
-	volatile bool isCompiled = false; // Trying to keep the compiler from optimizing away this variable, but it's otherwise a dummy
-
-	constexpr eWorldMessageType wmVal = eWorldMessageType::CANCEL_MAP_QUEUE;
-	static_assert(StringifiedEnum::ToString(wmVal)=="CANCEL_MAP_QUEUE");
-	static_assert(StringifiedEnum::ToString(eWorldMessageType::CANCEL_MAP_QUEUE)=="CANCEL_MAP_QUEUE");
-
-	constexpr eGameMessageType gmVal = eGameMessageType::ACTIVATE_BRICK_MODE;
-	static_assert(StringifiedEnum::ToString(gmVal)=="ACTIVATE_BRICK_MODE");
-	static_assert(StringifiedEnum::ToString(eGameMessageType::ACTIVATE_BRICK_MODE)=="ACTIVATE_BRICK_MODE");
-
-	isCompiled = true;
-	ASSERT_TRUE(isCompiled);
-}
