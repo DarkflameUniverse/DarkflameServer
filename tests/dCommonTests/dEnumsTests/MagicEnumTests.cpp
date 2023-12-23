@@ -119,9 +119,9 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 #define ASSERT_EARRAY_SORTED(EARRAY_VAR)\
 	for (int i = 0; i < EARRAY_VAR->size(); i++) {\
 		const auto entryCurr = EARRAY_VAR->at(i).first;\
-		LOG_EARRAY(wmArray, i, entryCurr);\
+		LOG_EARRAY(EARRAY_VAR, i, entryCurr);\
 		const auto entryNext = EARRAY_VAR->at(++i).first;\
-		LOG_EARRAY(wmArray, i, entryNext);\
+		LOG_EARRAY(EARRAY_VAR, i, entryNext);\
 		ASSERT_TRUE(entryCurr < entryNext);\
 	};\
 
