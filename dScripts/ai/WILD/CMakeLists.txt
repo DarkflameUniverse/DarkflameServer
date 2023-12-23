@@ -9,4 +9,9 @@ set(DSCRIPTS_SOURCES_AI_WILD
 	"WildNinjaStudent.cpp"
 	"WildNinjaSensei.cpp"
 	"WildPants.cpp"
+	"WildSnake01.cpp"
+	"WildSnake02.cpp"
+	"WildSnake03.cpp"
+	"WildSnake04.cpp"
+	"WildSnake05.cpp"
 	PARENT_SCOPE)
