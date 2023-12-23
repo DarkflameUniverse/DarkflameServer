@@ -11,6 +11,9 @@ set(DCOMMONTEST_SOURCES
 	"dCommonDependencies.cpp"
 )
 
+add_subdirectory(dEnumsTests)
+list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
+
 # Set our executable
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
 
