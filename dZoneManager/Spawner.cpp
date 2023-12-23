@@ -205,6 +205,15 @@ void Spawner::Update(const float deltaTime) {
 	}
 }
 
+std::vector<LWOOBJID> Spawner::GetSpawnedObjectIDs() const {
+	std::vector<LWOOBJID> ids;
+	ids.reserve(m_Entities.size());
+	for (const auto& [objId, spawnerNode] : m_Entities) {
+		ids.push_back(objId);
+	}
+	return ids;
+}
+
 void Spawner::NotifyOfEntityDeath(const LWOOBJID& objectID) {
 	for (std::function<void()> cb : m_SpawnedEntityDieCallbacks) {
 		cb();

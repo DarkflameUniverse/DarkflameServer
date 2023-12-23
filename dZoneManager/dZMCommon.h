@@ -5,10 +5,6 @@
 #include "LDFFormat.h"
 #include <vector>
 
-struct mapCompareLwoSceneIDs {
-	bool operator()(const LWOSCENEID& lhs, const LWOSCENEID& rhs) const { return lhs < rhs; }
-};
-
 struct SceneObject {
 	LWOOBJID id;
 	LOT lot;

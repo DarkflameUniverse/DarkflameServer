@@ -345,6 +345,19 @@ void GameMessages::SendStartPathing(Entity* entity) {
 	SEND_PACKET_BROADCAST;
 }
 
+void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::RESET_MISSIONS);
+
+	bitStream.Write(missionid != -1);
+	if (missionid != -1) bitStream.Write(missionid);
+
+	SEND_PACKET;
+}
+
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
 	eMovementPlatformState movementState) {

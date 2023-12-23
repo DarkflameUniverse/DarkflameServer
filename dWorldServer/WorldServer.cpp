@@ -76,6 +76,7 @@
 #include "EntityManager.h"
 #include "CheatDetection.h"
 #include "eGameMasterLevel.h"
+#include "StringifiedEnum.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -1244,7 +1245,9 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		LOG("Unknown world packet received: %i", int(packet->data[3]));
+		const auto messageId = *reinterpret_cast<eWorldMessageType*>(&packet->data[3]);
+		const std::string_view messageIdString =  StringifiedEnum::ToString(messageId);
+		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}
 }
 
