@@ -29,11 +29,11 @@ uint32_t OfferedMission::GetMissionId() const {
 	return this->missionId;
 }
 
-bool OfferedMission::GetOfferMission() const {
+bool OfferedMission::GetOffersMission() const {
 	return this->offersMission;
 }
 
-bool OfferedMission::GetAcceptMission() const {
+bool OfferedMission::GetAcceptsMission() const {
 	return this->acceptsMission;
 }
 
@@ -203,7 +203,10 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 			const auto selected = canAcceptPool[GeneralUtils::GenerateRandomNumber<int>(0, canAcceptPool.size() - 1)];
 
 			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), selected, m_Parent->GetObjectID());
-		} else if (std::find(offered.begin(), offered.end(), missionId) == offered.end() && offeredMission->GetOfferMission()) {
+		} else if (
+			std::find(offered.begin(), offered.end(), missionId) == offered.end()
+			&&
+			(offeredMission->GetOffersMission() || offeredMission->GetAcceptsMission())) {
 			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
 		}
 	}

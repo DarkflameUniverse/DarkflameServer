@@ -621,3 +621,12 @@ bool MissionComponent::HasCollectible(int32_t collectibleID) {
 bool MissionComponent::HasMission(uint32_t missionId) {
 	return GetMission(missionId) != nullptr;
 }
+
+void MissionComponent::ResetMission(const int32_t missionId) {
+	auto* mission = GetMission(missionId);
+
+	if (!mission) return;
+
+	m_Missions.erase(missionId);
+	GameMessages::SendResetMissions(m_Parent, m_Parent->GetSystemAddress(), missionId);
+}

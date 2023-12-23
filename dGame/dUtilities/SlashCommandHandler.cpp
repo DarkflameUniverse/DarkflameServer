@@ -349,6 +349,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			});
 	}
 
+	if (chatCommand == "resetmission") {
+		uint32_t missionId;
+		if (!GeneralUtils::TryParse(args[0], missionId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission ID.");
+			return;
+		}
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
+		if (!missionComponent) return;
+		missionComponent->ResetMission(missionId);
+	}
+
 	if (user->GetMaxGMLevel() == eGameMasterLevel::CIVILIAN || entity->GetGMLevel() >= eGameMasterLevel::CIVILIAN) {
 		if (chatCommand == "die") {
 			entity->Smash(entity->GetObjectID());

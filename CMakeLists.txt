@@ -269,6 +269,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai/GENERAL"
 	"dScripts/ai/GF"
 	"dScripts/ai/MINIGAME"
+	"dScripts/ai/MINIGAME/Objects"
 	"dScripts/ai/NP"
 	"dScripts/ai/NS"
 	"dScripts/ai/PETS"

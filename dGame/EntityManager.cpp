@@ -47,10 +47,6 @@ std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
 
 // Configure some exceptions for ghosting, nessesary for some special objects.
 std::vector<LOT> EntityManager::m_GhostingExcludedLOTs = {
-	// NT - Pipes
-	9524,
-	12408,
-
 	// AG - Footrace
 	4967
 };

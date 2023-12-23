@@ -66,6 +66,7 @@ public:
 	void SetRespawnTime(float time);
 	void SetNumToMaintain(int32_t value);
 	bool GetIsSpawnSmashGroup() const { return m_SpawnSmashFoundGroup; };
+	std::vector<LWOOBJID> GetSpawnedObjectIDs() const;
 
 	SpawnerInfo m_Info;
 	bool m_Active = true;

@@ -18,9 +18,12 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NT
 	"NtXRayServer.cpp"
 	"NtSleepingGuard.cpp"
 	"NtImagimeterVisibility.cpp"
+	"NTPipeVisibilityServer.cpp"
 	"NtSentinelWalkwayServer.cpp"
 	"NtDarkitectRevealServer.cpp"
 	"NtParadoxTeleServer.cpp"
 	"NtVentureSpeedPadServer.cpp"
 	"NtVentureCannonServer.cpp"
+	"NtBcSubmitServer.cpp"
+	"NtNaomiBreadcrumbServer.cpp"
 	PARENT_SCOPE)
