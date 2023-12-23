@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "eGameMessageType.h"
 #include "eWorldMessageType.h"
+#include "magic_enum.hpp"
 
 #define ENUM_EQ(e, y, z)\
 	LOG("%s %s", StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);\
@@ -18,8 +19,7 @@
 
 // Test World Message Enum Reflection
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
-
-	Game::logger = new Logger("./MagicEnumTest_WM.log", true, true);
+	Game::logger = new Logger("./MagicEnumTest_eWorldMessageTypeTest.log", true, true);
 	
 	ENUM_EQ(eWorldMessageType, 1, VALIDATION);
 	ENUM_EQ(eWorldMessageType, 2, CHARACTER_LIST_REQUEST);
@@ -75,7 +75,7 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 // Test Game Message Enum Reflection
 TEST(MagicEnumTest, eGameMessageTypeTest) {
 	
-	Game::logger = new Logger("./MagicEnumTest_GM.log", true, true);
+	Game::logger = new Logger("./MagicEnumTest_eGameMessageTypeTest.log", true, true);
 	
 	// Only doing the first and last 10 for the sake of my sanity
 	ENUM_EQ(eGameMessageType, 0, GET_POSITION);
@@ -112,6 +112,31 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	LOG("Time: %lld", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
+
+	delete Game::logger;
+}
+
+#define ASSERT_EARRAY_SORTED(EARRAY_VAR)\
+	for (int i = 0; i < EARRAY_VAR->size(); i++) {\
+		const auto entryCurr = EARRAY_VAR->at(i).first;\
+		LOG_EARRAY(wmArray, i, entryCurr);\
+		const auto entryNext = EARRAY_VAR->at(++i).first;\
+		LOG_EARRAY(wmArray, i, entryNext);\
+		ASSERT_TRUE(entryCurr < entryNext);\
+	};\
+
+#define LOG_EARRAY(EARRAY_VAR, INDICE, ENTRY)\
+	LOG(#EARRAY_VAR"[%i] = %i, %s", INDICE, ENTRY, magic_enum::enum_name(ENTRY).data());
+
+// Test that the magic enum arrays are pre-sorted
+TEST(MagicEnumTest, ArraysAreSorted) {
+	Game::logger = new Logger("./MagicEnumTest_ArraysAreSorted.log", true, true);
+
+	constexpr auto wmArray = &magic_enum::enum_entries<eWorldMessageType>();
+	ASSERT_EARRAY_SORTED(wmArray);
+
+	constexpr auto gmArray = &magic_enum::enum_entries<eGameMessageType>();
+	ASSERT_EARRAY_SORTED(gmArray);
 
 	delete Game::logger;
 }
