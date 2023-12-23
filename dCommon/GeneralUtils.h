@@ -242,6 +242,7 @@ namespace GeneralUtils {
 	template <typename T>
 	inline constexpr typename std::underlying_type<T>::type CastUnderlyingType(const T& entry) {
 		static_assert(std::is_enum<T>::value, "Not an enum");
+
 		return static_cast<typename std::underlying_type<T>::type>(entry);
 	}
 
@@ -256,6 +257,7 @@ namespace GeneralUtils {
 	inline T GenerateRandomNumber() {
 		// Make sure it is a numeric type
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+
 		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 }
