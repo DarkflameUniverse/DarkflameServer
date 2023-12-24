@@ -53,7 +53,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID,  StringifiedEnum::ToString(messageID).data());
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 
 	switch (messageID) {
 
@@ -694,7 +694,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
 		break;
 	default:
-		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID,  StringifiedEnum::ToString(messageID).data());
+		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 		break;
 	}
 }

@@ -21,19 +21,19 @@ void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, flo
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::LOAD_STATIC_ZONE);
 
 	auto zone = Game::zoneManager->GetZone()->GetZoneID();
-	bitStream.Write(static_cast<uint16_t>(zone.GetMapID()));
-	bitStream.Write(static_cast<uint16_t>(zone.GetInstanceID()));
-	//bitStream.Write(static_cast<uint32_t>(zone.GetCloneID()));
+	bitStream.Write<uint16_t>(zone.GetMapID());
+	bitStream.Write<uint16_t>(zone.GetInstanceID());
+	//bitStream.Write<uint32_t>(zone.GetCloneID());
 	bitStream.Write(0);
 
 	bitStream.Write(checksum);
-	bitStream.Write(static_cast<uint16_t>(0));     // ??
+	bitStream.Write<uint16_t>(0);     // ??
 
 	bitStream.Write(x);
 	bitStream.Write(y);
 	bitStream.Write(z);
 
-	bitStream.Write(static_cast<uint32_t>(0));     // Change this to eventually use 4 on activity worlds
+	bitStream.Write<uint32_t>(0);     // Change this to eventually use 4 on activity worlds
 
 	SEND_PACKET;
 }
@@ -45,18 +45,18 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
 
 	std::vector<Character*> characters = user->GetCharacters();
-	bitStream.Write(static_cast<uint8_t>(characters.size()));
-	bitStream.Write(static_cast<uint8_t>(0)); //character index in front, just picking 0
+	bitStream.Write<uint8_t>(characters.size());
+	bitStream.Write<uint8_t>(0); //character index in front, just picking 0
 
 	for (uint32_t i = 0; i < characters.size(); ++i) {
 		bitStream.Write(characters[i]->GetObjectID());
-		bitStream.Write(static_cast<uint32_t>(0));
+		bitStream.Write<uint32_t>(0);
 
 		bitStream.Write(LUWString(characters[i]->GetName()));
 		bitStream.Write(LUWString(characters[i]->GetUnapprovedName()));
 
-		bitStream.Write(static_cast<uint8_t>(characters[i]->GetNameRejected()));
-		bitStream.Write(static_cast<uint8_t>(false));
+		bitStream.Write<uint8_t>(characters[i]->GetNameRejected());
+		bitStream.Write<uint8_t>(false);
 
 		bitStream.Write(LUString("", 10));
 
@@ -70,16 +70,16 @@ void WorldPackets::SendCharacterList(const SystemAddress& sysAddr, User* user) {
 		bitStream.Write(characters[i]->GetEyebrows());
 		bitStream.Write(characters[i]->GetEyes());
 		bitStream.Write(characters[i]->GetMouth());
-		bitStream.Write(static_cast<uint32_t>(0));
+		bitStream.Write<uint32_t>(0);
 
-		bitStream.Write(static_cast<uint16_t>(characters[i]->GetZoneID()));
-		bitStream.Write(static_cast<uint16_t>(characters[i]->GetZoneInstance()));
+		bitStream.Write<uint16_t>(characters[i]->GetZoneID());
+		bitStream.Write<uint16_t>(characters[i]->GetZoneInstance());
 		bitStream.Write(characters[i]->GetZoneClone());
 
 		bitStream.Write(characters[i]->GetLastLogin());
 
 		const auto& equippedItems = characters[i]->GetEquippedItems();
-		bitStream.Write(static_cast<uint16_t>(equippedItems.size()));
+		bitStream.Write<uint16_t>(equippedItems.size());
 
 		for (uint32_t j = 0; j < equippedItems.size(); ++j) {
 			bitStream.Write(equippedItems[j]);
@@ -106,7 +106,7 @@ void WorldPackets::SendCharacterRenameResponse(const SystemAddress& sysAddr, eRe
 void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::DELETE_CHARACTER_RESPONSE);
-	bitStream.Write(static_cast<uint8_t>(response));
+	bitStream.Write<uint8_t>(response);
 	SEND_PACKET;
 }
 
@@ -115,8 +115,8 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::TRANSFER_TO_WORLD);
 
 	bitStream.Write(LUString(serverIP));
-	bitStream.Write(static_cast<uint16_t>(serverPort));
-	bitStream.Write(static_cast<uint8_t>(mythranShift));
+	bitStream.Write<uint16_t>(serverPort);
+	bitStream.Write<uint8_t>(mythranShift);
 
 	SEND_PACKET;
 }
@@ -124,7 +124,7 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SERVER_STATES);
-	bitStream.Write(static_cast<uint8_t>(1)); //If the server is receiving this request, it probably is ready anyway.
+	bitStream.Write<uint8_t>(1); //If the server is receiving this request, it probably is ready anyway.
 	SEND_PACKET;
 }
 
@@ -204,8 +204,8 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 	bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
 	bitStream.Write<uint16_t>(0x16); // Source ID, unknown
 
-	bitStream.Write(static_cast<uint8_t>(requestID)); // request ID
-	bitStream.Write(static_cast<char>(0)); // chat mode
+	bitStream.Write<uint8_t>(requestID); // request ID
+	bitStream.Write<char>(0); // chat mode
 
 	bitStream.Write(LUWString(receiver, 42)); // receiver name
 

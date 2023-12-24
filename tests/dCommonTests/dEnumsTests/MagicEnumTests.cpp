@@ -20,7 +20,7 @@
 // Test World Message Enum Reflection
 TEST(MagicEnumTest, eWorldMessageTypeTest) {
 	Game::logger = new Logger("./MagicEnumTest_eWorldMessageTypeTest.log", true, true);
-	
+
 	ENUM_EQ(eWorldMessageType, 1, VALIDATION);
 	ENUM_EQ(eWorldMessageType, 2, CHARACTER_LIST_REQUEST);
 	ENUM_EQ(eWorldMessageType, 3, CHARACTER_CREATE_REQUEST);
@@ -74,9 +74,9 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 
 // Test Game Message Enum Reflection
 TEST(MagicEnumTest, eGameMessageTypeTest) {
-	
+
 	Game::logger = new Logger("./MagicEnumTest_eGameMessageTypeTest.log", true, true);
-	
+
 	// Only doing the first and last 10 for the sake of my sanity
 	ENUM_EQ(eGameMessageType, 0, GET_POSITION);
 	ENUM_EQ(eGameMessageType, 1, GET_ROTATION);

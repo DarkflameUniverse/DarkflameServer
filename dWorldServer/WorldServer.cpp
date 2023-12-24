@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
 	uint32_t chatPort = 1501;
 	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
-	auto chatSock = SocketDescriptor(uint16_t(ourPort + 2), 0);
+	auto chatSock = SocketDescriptor(static_cast<uint16_t>(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
 	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
@@ -1246,7 +1246,7 @@ void HandlePacket(Packet* packet) {
 
 	default:
 		const auto messageId = *reinterpret_cast<eWorldMessageType*>(&packet->data[3]);
-		const std::string_view messageIdString =  StringifiedEnum::ToString(messageId);
+		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}
 }
