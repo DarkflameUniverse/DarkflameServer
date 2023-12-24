@@ -275,7 +275,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			}
 			// If this is a client only object, we can skip loading it
 			if (data->GetKey() == u"loadOnClientOnly") {
-				skipLoadingObject = static_cast<bool>(std::stoi(data->GetValueAsString()));
+				skipLoadingObject |= static_cast<bool>(std::stoi(data->GetValueAsString()));
 				break;
 			}
 		}
