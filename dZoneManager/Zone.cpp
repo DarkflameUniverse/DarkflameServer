@@ -280,7 +280,8 @@ void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
 				newCommand->target = currentCommand->Attribute("target");
 				if (currentCommand->Attribute("targetName")) {
 					newCommand->targetName = currentCommand->Attribute("targetName");
-				} else if (currentCommand->Attribute("args")) {
+				}
+				if (currentCommand->Attribute("args")) {
 					newCommand->args = currentCommand->Attribute("args");
 				}
 
