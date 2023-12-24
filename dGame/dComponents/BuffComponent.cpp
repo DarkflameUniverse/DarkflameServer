@@ -398,7 +398,8 @@ void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	for (const auto& [id, buff] : m_Buffs) {
 		auto* buffEntry = doc->NewElement("b");
-		if (buff.cancelOnZone || buff.cancelOnLogout) continue;
+		// TODO: change this if to if (buff.cancelOnZone || buff.cancelOnLogout) handling at some point.  No current way to differentiate between zone transfer and logout.
+		if (buff.cancelOnZone) continue;
 
 		buffEntry->SetAttribute("id", id);
 		buffEntry->SetAttribute("t", buff.time);
