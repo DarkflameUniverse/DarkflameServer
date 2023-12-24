@@ -269,7 +269,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 				else if (gating.featureName == Game::config->GetValue("event_8")) continue;
 				else if (!featureGatingTable->FeatureUnlocked(gating)) {
 					// The feature is not unlocked, so we can skip loading this object
-					skipLoadingObject |= true;
+					skipLoadingObject = true;
 					break;
 				}
 			}
