@@ -26,7 +26,7 @@ struct AssetMemoryBuffer : std::streambuf {
 	}
 
 	~AssetMemoryBuffer() {
-		free(m_Base);
+		if (m_Success) free(m_Base);
 	}
 
 	pos_type seekpos(pos_type sp, std::ios_base::openmode which) override {
