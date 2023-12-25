@@ -10,7 +10,7 @@ void CDComponentsRegistryTable::LoadValuesFromDatabase() {
 		entry.component_type = static_cast<eReplicaComponentType>(tableData.getIntField("component_type", 0));
 		entry.component_id = tableData.getIntField("component_id", -1);
 
-		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
+		this->mappedEntries.insert_or_assign(static_cast<uint64_t>(entry.component_type) << 32 | static_cast<uint64_t>(entry.id), entry.component_id);
 		this->mappedEntries.insert_or_assign(entry.id, 0);
 
 		tableData.nextRow();
@@ -22,7 +22,7 @@ void CDComponentsRegistryTable::LoadValuesFromDatabase() {
 int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue) {
 	auto exists = mappedEntries.find(id);
 	if (exists != mappedEntries.end()) {
-		auto iter = mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
+		auto iter = mappedEntries.find(static_cast<uint64_t>(componentType) << 32 | static_cast<uint64_t>(id));
 		return iter == mappedEntries.end() ? defaultValue : iter->second;
 	}
 
@@ -38,14 +38,14 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 		entry.component_type = static_cast<eReplicaComponentType>(tableData.getIntField("component_type", 0));
 		entry.component_id = tableData.getIntField("component_id", -1);
 
-		this->mappedEntries.insert_or_assign(((uint64_t)entry.component_type) << 32 | ((uint64_t)entry.id), entry.component_id);
+		this->mappedEntries.insert_or_assign(staitc_cast<uint64_t>(entry.component_type) << 32 | static_cast<uint64_t>(entry.id), entry.component_id);
 
 		tableData.nextRow();
 	}
 
 	mappedEntries.insert_or_assign(id, 0);
 
-	auto iter = this->mappedEntries.find(((uint64_t)componentType) << 32 | ((uint64_t)id));
+	auto iter = this->mappedEntries.find(static_cast<uint64_t>(componentType) << 32 | static_cast<uint64_t>(id));
 
 	return iter == this->mappedEntries.end() ? defaultValue : iter->second;
 }

@@ -113,8 +113,8 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 
 	outBitStream->Write1(); // Always serialize as dirty for now
 
-	outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Status));
-	outBitStream->Write<uint32_t>(static_cast<uint32_t>(tamed ? m_Ability : PetAbilityType::Invalid)); // Something with the overhead icon?
+	outBitStream->Write<uint32_t>(m_Status);
+	outBitStream->Write<uint32_t>(tamed ? m_Ability : PetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
 
@@ -136,12 +136,12 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
 			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-			outBitStream->Write(static_cast<uint8_t>(nameData.size()));
+			outBitStream->Write<uint8_t>(nameData.size());
 			for (const auto c : nameData) {
 				outBitStream->Write(c);
 			}
 
-			outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
+			outBitStream->Write<uint8_t>(ownerNameData.size());
 			for (const auto c : ownerNameData) {
 				outBitStream->Write(c);
 			}

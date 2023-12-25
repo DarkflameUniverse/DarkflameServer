@@ -389,7 +389,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
 	bitStream.Write(eCommand);
-	bitStream.Write<int32_t>(static_cast<int32_t>(movementState));
+	bitStream.Write<int32_t>(movementState);
 	bitStream.Write(eUnexpectedCommand);
 	bitStream.Write(fIdleTimeElapsed);
 	bitStream.Write(fMoveTimeElapsed);
@@ -5282,7 +5282,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity)
 	/*uint32_t deathTypeLength = deathType.size();
 	inStream->Read(deathTypeLength);
 	for (uint32_t k = 0; k < deathTypeLength; k++) {
-		inStream->Read(static_cast<uint16_t>(deathType[k]));
+		inStream->Read<uint16_t>(deathType[k]);
 	}*/
 
 	inStream->Read(directionRelative_AngleXZ);
@@ -6070,7 +6070,7 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
+		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))));
 	}
 }
 

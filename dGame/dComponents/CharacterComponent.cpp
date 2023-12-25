@@ -135,7 +135,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 		outBitStream->Write0();
 		outBitStream->Write(m_IsLanding);
 		if (m_IsLanding) {
-			outBitStream->Write(uint16_t(m_LastRocketConfig.size()));
+			outBitStream->Write<uint16_t>(m_LastRocketConfig.size());
 			for (uint16_t character : m_LastRocketConfig) {
 				outBitStream->Write(character);
 			}
@@ -157,7 +157,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 	outBitStream->Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
 		outBitStream->Write(m_GuildID);
-		outBitStream->Write<unsigned char>(static_cast<unsigned char>(m_GuildName.size()));
+		outBitStream->Write<unsigned char>(m_GuildName.size());
 		if (!m_GuildName.empty())
 			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
 
@@ -515,9 +515,9 @@ void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
 	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
 
 	if (m_IsRacing) {
-		UpdatePlayerStatistic(DistanceDriven, (uint64_t)distance);
+		UpdatePlayerStatistic(DistanceDriven, static_cast<uint64_t>(distance));
 	} else {
-		UpdatePlayerStatistic(MetersTraveled, (uint64_t)distance);
+		UpdatePlayerStatistic(MetersTraveled, static_cast<uint64_t>(distance));
 	}
 }
 

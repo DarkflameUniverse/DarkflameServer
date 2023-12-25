@@ -1792,7 +1792,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				totalRuns += 1;
 				bool doBreak = false;
 				for (const auto& kv : lootRoll) {
-					if ((uint32_t)kv.first == targetLot) {
+					if (static_cast<uint32_t>(kv.first) == targetLot) {
 						doBreak = true;
 					}
 				}

@@ -187,7 +187,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	propertyLookup->setString(2, searchString.c_str());
 	propertyLookup->setString(3, searchString.c_str());
 	propertyLookup->setString(4, searchString.c_str());
-	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
+	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? static_cast<uint32_t>(PropertyPrivacyOption::Friends) : static_cast<uint32_t>(PropertyPrivacyOption::Public));
 	propertyLookup->setInt(6, numResults);
 	propertyLookup->setInt(7, startIndex);
 

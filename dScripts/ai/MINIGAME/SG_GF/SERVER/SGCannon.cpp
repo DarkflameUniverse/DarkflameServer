@@ -171,7 +171,7 @@ void SGCannon::SuperChargeTimerFunc(Entity* self) {
 void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
 		self->SetVar<bool>(WaveStatusVariable, true);
-		const auto wave = (int32_t)self->GetVar<uint32_t>(ThisWaveVariable);
+		const auto wave = static_cast<int32_t>(self->GetVar<uint32_t>(ThisWaveVariable));
 
 		if (wave != 0 && self->GetVar<bool>(SuperChargePausedVariable)) {
 			StartChargedCannon(self, self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable));
@@ -187,7 +187,7 @@ void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 		LOG("Current wave spawn: %i/%i", wave, m_Waves.size());
 
 		// All waves completed
-		const auto timeLimit = (float_t)self->GetVar<uint32_t>(TimeLimitVariable);
+		const auto timeLimit = static_cast<float_t>(self->GetVar<uint32_t>(TimeLimitVariable));
 		if (wave >= m_Waves.size()) {
 			ActivityTimerStart(self, GameOverTimer, timeLimit, timeLimit);
 		} else {
@@ -262,7 +262,7 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
 		LOG_DEBUG("time name %s %s", name.c_str(), name.substr(7).c_str());
-		const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
+		const auto spawnNumber = static_cast<uint32_t>(std::stoi(name.substr(7)));
 		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
 		LOG_DEBUG("size %i, %i", activeSpawns.size(), spawnNumber);
 		if (activeSpawns.size() <= spawnNumber) {
@@ -555,7 +555,7 @@ void SGCannon::PlaySceneAnimation(Entity* self, const std::u16string& animationN
 }
 
 void SGCannon::PauseChargeCannon(Entity* self) {
-	const auto time = std::max((uint32_t)std::ceil(ActivityTimerGetCurrentTime(self, SuperChargeTimer)), (uint32_t)1);
+	const auto time = std::max(static_cast<uint32_t>(std::ceil(ActivityTimerGetCurrentTime(self, SuperChargeTimer))), static_cast<uint32_t>(1));
 
 	self->SetVar<bool>(SuperChargePausedVariable, true);
 	self->SetVar<uint32_t>(CurrentSuperChargedTimeVariable, time);

@@ -439,7 +439,7 @@ void RacingControlComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 	// BEGIN Scripted Activity
 	outBitStream->Write1();
 
-	outBitStream->Write(static_cast<uint32_t>(m_RacingPlayers.size()));
+	outBitStream->Write<uint32_t>(m_RacingPlayers.size());
 	for (const auto& player : m_RacingPlayers) {
 		outBitStream->Write(player.playerID);
 
@@ -461,7 +461,7 @@ void RacingControlComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 	// END Scripted Activity
 
 	outBitStream->Write1();
-	outBitStream->Write(static_cast<uint16_t>(m_RacingPlayers.size()));
+	outBitStream->Write<uint16_t>(m_RacingPlayers.size());
 
 	outBitStream->Write(!m_AllPlayersReady);
 	if (!m_AllPlayersReady) {
@@ -495,7 +495,7 @@ void RacingControlComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 	outBitStream->Write(bIsInitialUpdate);
 	if (bIsInitialUpdate) {
 		outBitStream->Write(m_RemainingLaps);
-		outBitStream->Write(static_cast<uint16_t>(m_PathName.size()));
+		outBitStream->Write<uint16_t>(m_PathName.size());
 		for (const auto character : m_PathName) {
 			outBitStream->Write(character);
 		}

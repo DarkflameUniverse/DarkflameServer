@@ -105,8 +105,8 @@ void WriteFlagNumber(RakNet::BitStream* bs, uint32_t v) {
  * RakNet writes in the correct byte order - do not reverse this.
  */
 void WriteAMFString(RakNet::BitStream* bs, const std::string& str) {
-	WriteFlagNumber(bs, (uint32_t)str.size());
-	bs->Write(str.c_str(), (uint32_t)str.size());
+	WriteFlagNumber(bs, static_cast<uint32_t>(str.size()));
+	bs->Write(str.c_str(), static_cast<uint32_t>(str.size()));
 }
 
 /**

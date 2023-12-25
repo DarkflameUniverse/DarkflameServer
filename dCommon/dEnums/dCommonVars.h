@@ -148,11 +148,11 @@ public:
 		if (size > maxSize) size = maxSize;
 
 		for (uint32_t i = 0; i < size; ++i) {
-			bitStream.Write(static_cast<uint16_t>(friendName[i]));
+			bitStream.Write<uint16_t>(friendName[i]);
 		}
 
 		for (uint32_t j = 0; j < remSize; ++j) {
-			bitStream.Write(static_cast<uint16_t>(0));
+			bitStream.Write<uint16_t>(0);
 		}
 
 		bitStream.Write<uint32_t>(0); //???

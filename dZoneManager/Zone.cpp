@@ -59,7 +59,7 @@ void Zone::LoadZoneIntoMemory() {
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
 		BinaryIO::BinaryRead(file, m_WorldID);
-		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
+		if (m_WorldID != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 

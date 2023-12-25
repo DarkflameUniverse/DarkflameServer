@@ -437,7 +437,7 @@ std::vector<Wave> ZoneNsWaves::GetWaves() {
 																									}, {}, {},
 																									"Treasure_Camera",
 																									5.0f,
-																									(uint32_t)-1,
+																									static_cast<uint32_t>(-1),
 																									true,
 																									60,
 																								},

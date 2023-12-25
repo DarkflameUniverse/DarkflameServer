@@ -53,9 +53,9 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity* self, Entity* player) {
 	// Buff the player
 	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
-		destroyableComponent->SetHealth((int32_t)destroyableComponent->GetMaxHealth());
-		destroyableComponent->SetArmor((int32_t)destroyableComponent->GetMaxArmor());
-		destroyableComponent->SetImagination((int32_t)destroyableComponent->GetMaxImagination());
+		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
+		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
+		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
 	}
 
 	// Add player ID to instance
@@ -309,7 +309,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* low
 		if (destroyableComponent != nullptr) {
 			const auto doubleHealth = destroyableComponent->GetHealth() * 2;
 			destroyableComponent->SetHealth(doubleHealth);
-			destroyableComponent->SetMaxHealth((float_t)doubleHealth);
+			destroyableComponent->SetMaxHealth(static_cast<float_t>(doubleHealth));
 		}
 
 		ActivityTimerStart(self, FrakjawSpawnInTimer + std::to_string(lowerFrakjaw->GetObjectID()),
@@ -328,7 +328,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 		return;
 
 	// Progress the fight to the last wave if frakjaw has less than 50% of his health left
-	if (destroyableComponent->GetHealth() <= (uint32_t)destroyableComponent->GetMaxHealth() / 2 && !self->GetVar<bool>(OnLastWaveVarbiale)) {
+	if (destroyableComponent->GetHealth() <= static_cast<uint32_t>(destroyableComponent->GetMaxHealth()) / 2 && !self->GetVar<bool>(OnLastWaveVarbiale)) {
 		self->SetVar<bool>(OnLastWaveVarbiale, true);
 
 		// Stun frakjaw during the cinematic
