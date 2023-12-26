@@ -1191,9 +1191,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto dest = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 		if (dest) {
-			dest->SetHealth((int)dest->GetMaxHealth());
-			dest->SetArmor((int)dest->GetMaxArmor());
-			dest->SetImagination((int)dest->GetMaxImagination());
+			dest->SetHealth(static_cast<int32_t>(dest->GetMaxHealth()));
+			dest->SetArmor(static_cast<int32_t>(dest->GetMaxArmor()));
+			dest->SetImagination(static_cast<int32_t>(dest->GetMaxImagination()));
 		}
 
 		Game::entityManager->SerializeEntity(entity);
@@ -1317,7 +1317,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		int32_t type;
 		if (args.size() >= 2 && GeneralUtils::TryParse(args[1], type)) {
-			lootType = (eLootSourceType)type;
+			lootType = static_cast<eLootSourceType>(type);
 		}
 
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
@@ -1357,7 +1357,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (!characterComponent) return;
 		auto levelComponent = entity->GetComponent<LevelProgressionComponent>();
 		auto query = CDClientDatabase::CreatePreppedStmt("SELECT requiredUScore from LevelProgressionLookup WHERE id = ?;");
-		query.bind(1, (int)requestedLevel);
+		query.bind(1, static_cast<int>(requestedLevel));
 		auto result = query.execQuery();
 
 		if (result.eof()) return;
@@ -1741,13 +1741,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		ChatPackets::SendSystemMessage(
 			sysAddr,
-			u"Peak RSS: " + GeneralUtils::to_u16string((float)((double)Metrics::GetPeakRSS() / 1.024e6)) +
+			u"Peak RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6)) +
 			u"MB"
 		);
 
 		ChatPackets::SendSystemMessage(
 			sysAddr,
-			u"Current RSS: " + GeneralUtils::to_u16string((float)((double)Metrics::GetCurrentRSS() / 1.024e6)) +
+			u"Current RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6)) +
 			u"MB"
 		);
 
@@ -1807,7 +1807,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			+ u" times. It ran "
 			+ GeneralUtils::to_u16string(totalRuns)
 			+ u" times. Averaging out at "
-			+ GeneralUtils::to_u16string((float)totalRuns / loops);
+			+ GeneralUtils::to_u16string(static_cast<float>(totalRuns) / loops);
 
 		ChatPackets::SendSystemMessage(sysAddr, message);
 	}

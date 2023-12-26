@@ -370,7 +370,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 
 			for (const auto& survivalMission : missionsToUpdate) {
 				auto* mission = missionComponent->GetMission(survivalMission.first);
-				if (mission != nullptr && (uint32_t)time >= survivalMission.second
+				if (mission != nullptr && static_cast<uint32_t>(time) >= survivalMission.second
 					&& (mission->GetMissionState() == eMissionState::ACTIVE
 						|| mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
 

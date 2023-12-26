@@ -436,7 +436,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 			}
 		}
 	} else {
-		if (wave.timeLimit != (uint32_t)-1) {
+		if (wave.timeLimit != static_cast<uint32_t>(-1)) {
 			ActivityTimerStart(self, TimedWaveTimer, 1.0f, wave.timeLimit);
 			self->SetNetworkVar<uint32_t>(StartTimedWaveVariable, { wave.timeLimit, state.waveNumber + 1 });
 		} else {

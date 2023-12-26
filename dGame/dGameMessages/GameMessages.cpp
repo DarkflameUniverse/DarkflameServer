@@ -389,7 +389,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
 	bitStream.Write(eCommand);
-	bitStream.Write<int32_t>(movementState);
+	bitStream.Write(static_cast<int32_t>(movementState));
 	bitStream.Write(eUnexpectedCommand);
 	bitStream.Write(fIdleTimeElapsed);
 	bitStream.Write(fMoveTimeElapsed);
@@ -582,7 +582,7 @@ void GameMessages::SendNotifyMissionTask(Entity* entity, const SystemAddress& sy
 
 	bitStream.Write(missionID);
 	bitStream.Write(taskMask);
-	bitStream.Write((unsigned char)updates.size());
+	bitStream.Write<unsigned char>(updates.size());
 
 	for (uint32_t i = 0; i < updates.size(); ++i) {
 		bitStream.Write(updates[i]);
@@ -1950,7 +1950,7 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
+	PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property
@@ -4916,7 +4916,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 			mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 		}
 
-		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), (int)mapId, (int)cloneId);
+		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
 
 		auto* character = player->GetCharacter();
 
@@ -6070,7 +6070,7 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))));
+		characterComponent->UpdatePlayerStatistic(static_cast<StatisticID>(updateID), static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))));
 	}
 }
 

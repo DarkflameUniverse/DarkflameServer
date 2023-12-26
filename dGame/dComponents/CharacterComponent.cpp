@@ -229,7 +229,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 			uint32_t mapID;
 			child->QueryAttribute("map", &mapID);
 
-			m_ZoneStatistics.insert({ (LWOMAPID)mapID, statistics });
+			m_ZoneStatistics.insert({ static_cast<LWOMAPID>(mapID), statistics });
 
 			child = child->NextSiblingElement();
 		}

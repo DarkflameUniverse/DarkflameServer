@@ -76,7 +76,7 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 	fseek(file, pos, SEEK_SET);
 
 	if (!isCompressed) {
-		char* tempData = (char*)malloc(pkRecord.m_UncompressedSize);
+		char* tempData = static_cast<char*>(malloc(pkRecord.m_UncompressedSize));
 		int32_t readInData = fread(tempData, sizeof(uint8_t), pkRecord.m_UncompressedSize, file);
 
 		*data = tempData;
@@ -90,7 +90,7 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 
 	fseek(file, pos, SEEK_SET);
 
-	char* decompressedData = (char*)malloc(pkRecord.m_UncompressedSize);
+	char* decompressedData = static_cast<char*>(malloc(pkRecord.m_UncompressedSize));
 	uint32_t currentReadPos = 0;
 
 	while (true) {
@@ -100,12 +100,12 @@ bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
 		int32_t readInData = fread(&size, sizeof(uint32_t), 1, file);
 		pos += 4; // Move pointer position 4 to the right
 
-		char* chunk = (char*)malloc(size);
+		char* chunk = static_cast<char*>(malloc(size));
 		int32_t readInData2 = fread(chunk, sizeof(int8_t), size, file);
 		pos += size; // Move pointer position the amount of bytes read to the right
 
 		int32_t err;
-		currentReadPos += ZCompression::Decompress((uint8_t*)chunk, size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), ZCompression::MAX_SD0_CHUNK_SIZE, err);
+		currentReadPos += ZCompression::Decompress(reinterpret_cast<uint8_t*>(chunk), size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), ZCompression::MAX_SD0_CHUNK_SIZE, err);
 
 		free(chunk);
 	}

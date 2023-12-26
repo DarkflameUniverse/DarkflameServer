@@ -380,7 +380,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT enemyList FROM Factions WHERE faction = ?;");
-	query.bind(1, (int)factionID);
+	query.bind(1, static_cast<int>(factionID));
 
 	auto result = query.execQuery();
 

@@ -226,9 +226,9 @@ void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success,
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAKE_GM_RESPONSE);
 
 	bitStream.Write<uint8_t>(success);
-	bitStream.Write<uint16_t>(highestLevel);
-	bitStream.Write<uint16_t>(prevLevel);
-	bitStream.Write<uint16_t>(newLevel);
+	bitStream.Write(static_cast<uint16_t>(highestLevel));
+	bitStream.Write(static_cast<uint16_t>(prevLevel));
+	bitStream.Write(static_cast<uint16_t>(newLevel));
 
 	SEND_PACKET;
 }

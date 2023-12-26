@@ -431,7 +431,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM BuffParameters WHERE BuffID = ?;");
-	query.bind(1, (int)buffId);
+	query.bind(1, static_cast<int>(buffId));
 
 	auto result = query.execQuery();
 

@@ -368,11 +368,11 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 	if (!type.empty()) {
 		typeQuery.bind(1, typeString.c_str());
-		typeQuery.bind(2, (int)effectId);
+		typeQuery.bind(2, static_cast<int>(effectId));
 
 		result = typeQuery.execQuery();
 	} else {
-		idQuery.bind(1, (int)effectId);
+		idQuery.bind(1, static_cast<int>(effectId));
 
 		result = idQuery.execQuery();
 	}

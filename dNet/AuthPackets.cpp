@@ -155,7 +155,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	RakNet::BitStream packet;
 	BitStreamUtils::WriteHeader(packet, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
 
-	packet.Write<uint8_t>(responseCode);
+	packet.Write<uint8_t>(GeneralUtils::CastUnderlyingType(responseCode));
 
 	// Event Gating
 	packet.Write(LUString(Game::config->GetValue("event_1")));

@@ -40,7 +40,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, (int)id);
+	componentQuery.bind(1, static_cast<int>(id));
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -77,7 +77,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	 */
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, (int)parent->GetLOT());
+	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
 
 	auto result = skillQuery.execQuery();
 
@@ -523,7 +523,7 @@ bool BaseCombatAIComponent::IsMech() {
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
-		outBitStream->Write<uint32_t>(m_State);
+		outBitStream->Write(m_State);
 		outBitStream->Write(m_Target);
 		m_DirtyStateOrTarget = false;
 	}

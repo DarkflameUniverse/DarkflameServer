@@ -107,7 +107,7 @@ void Metrics::EndMeasurement(MetricVariable variable) {
 }
 
 float Metrics::ToMiliseconds(int64_t nanoseconds) {
-	return (float)nanoseconds / 1e6;
+	return static_cast<float>(nanoseconds) / 1e6;
 }
 
 std::string Metrics::MetricVariableToString(MetricVariable variable) {

@@ -35,7 +35,7 @@ MoverSubComponent::~MoverSubComponent() = default;
 void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write<bool>(true);
 
-	outBitStream->Write<uint32_t>(mState);
+	outBitStream->Write(mState);
 	outBitStream->Write<int32_t>(mDesiredWaypointIndex);
 	outBitStream->Write(mShouldStopAtDesiredWaypoint);
 	outBitStream->Write(mInReverse);
@@ -107,7 +107,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 	if (hasPlatform) {
 		auto* mover = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-		outBitStream->Write<uint32_t>(m_MoverSubComponentType);
+		outBitStream->Write(m_MoverSubComponentType);
 
 		if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
 			// TODO

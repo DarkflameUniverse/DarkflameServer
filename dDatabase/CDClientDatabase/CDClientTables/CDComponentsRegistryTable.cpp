@@ -38,7 +38,7 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 		entry.component_type = static_cast<eReplicaComponentType>(tableData.getIntField("component_type", 0));
 		entry.component_id = tableData.getIntField("component_id", -1);
 
-		this->mappedEntries.insert_or_assign(staitc_cast<uint64_t>(entry.component_type) << 32 | static_cast<uint64_t>(entry.id), entry.component_id);
+		this->mappedEntries.insert_or_assign(static_cast<uint64_t>(entry.component_type) << 32 | static_cast<uint64_t>(entry.id), entry.component_id);
 
 		tableData.nextRow();
 	}
@@ -49,4 +49,3 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 
 	return iter == this->mappedEntries.end() ? defaultValue : iter->second;
 }
-

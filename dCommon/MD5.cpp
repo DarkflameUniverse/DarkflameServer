@@ -133,8 +133,8 @@ void MD5::init() {
 // decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
 void MD5::decode(uint4 output[], const uint1 input[], size_type len) {
 	for (unsigned int i = 0, j = 0; j < len; i++, j += 4)
-		output[i] = ((uint4)input[j]) | (((uint4)input[j + 1]) << 8) |
-		(((uint4)input[j + 2]) << 16) | (((uint4)input[j + 3]) << 24);
+		output[i] = static_cast<uint4>(input[j]) | (static_cast<uint4>(input[j + 1]) << 8) |
+		(static_cast<uint4>(input[j + 2]) << 16) | (static_cast<uint4>(input[j + 3]) << 24);
 }
 
 //////////////////////////////
@@ -278,7 +278,7 @@ void MD5::update(const unsigned char input[], size_type length) {
 
 // for convenience provide a verson with signed char
 void MD5::update(const char input[], size_type length) {
-	update((const unsigned char*)input, length);
+	update(reinterpret_cast<const unsigned char*>(input), length);
 }
 
 //////////////////////////////
