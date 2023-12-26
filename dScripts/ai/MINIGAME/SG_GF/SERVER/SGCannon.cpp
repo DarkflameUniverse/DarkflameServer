@@ -634,7 +634,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 		ActivityTimerStart(self, timerName, respawnTime, respawnTime);
 	}
 
-	uint32_t score = spawnInfo.score;
+	int32_t score = spawnInfo.score;
 
 	if (score > 0) {
 		score += score * GetCurrentBonus(self);
@@ -673,7 +673,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 		target->GetPosition()
 	);
 
-	uint32_t newScore = self->GetVar<uint32_t>(TotalScoreVariable) + score;
+	auto newScore = self->GetVar<int32_t>(TotalScoreVariable) + score;
 
 	if (newScore < 0) {
 		newScore = 0;
