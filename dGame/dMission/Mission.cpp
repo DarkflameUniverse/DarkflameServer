@@ -257,7 +257,7 @@ bool Mission::IsComplete() const {
 }
 
 bool Mission::IsActive() const {
-	return m_State == eMissionState::ACTIVE || m_State == eMissionState::COMPLETE_AVAILABLE;
+	return m_State == eMissionState::ACTIVE || m_State == eMissionState::COMPLETE_ACTIVE;
 }
 
 void Mission::MakeActive() {
