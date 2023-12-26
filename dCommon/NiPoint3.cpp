@@ -246,7 +246,7 @@ NiPoint3 NiPoint3::MoveTowards(const NiPoint3& current, const NiPoint3& target, 
 		return target;
 	}
 
-	float length = static_cast<float>(std::sqrt(static_cast<double>(lengthSquared)));
+	float length = std::sqrtf(lengthSquared);
 	return NiPoint3(current.x + dx / length * maxDistanceDelta, current.y + dy / length * maxDistanceDelta, current.z + dz / length * maxDistanceDelta);
 }
 

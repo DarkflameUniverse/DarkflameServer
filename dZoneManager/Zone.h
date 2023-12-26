@@ -213,7 +213,7 @@ public:
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
 	const Path* GetPath(std::string name) const;
 
-	LWOMAPID GetWorldID() const { return m_WorldID; }
+	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }
 	std::string GetZoneRawPath() const { return m_ZoneRawPath; }
 	std::string GetZonePath() const { return m_ZonePath; }
@@ -231,7 +231,7 @@ private:
 	uint32_t m_NumberOfSceneTransitionsLoaded;
 	FileFormatVersion m_FileFormatVersion;
 	uint32_t m_CheckSum;
-	LWOMAPID m_WorldID; //should be equal to the MapID
+	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;
 	NiQuaternion m_SpawnpointRotation;
 	uint32_t m_SceneCount;
