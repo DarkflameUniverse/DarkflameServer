@@ -52,8 +52,3 @@ foreach(file ${DSCRIPTS_SOURCES_ZONE})
 endforeach()
 
 set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} PARENT_SCOPE)
-
-# If using gcc, warn on old-style C casts
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	set_source_files_properties(${DSCRIPTS_SOURCES} PROPERTIES COMPILE_FLAGS "-Wold-style-cast")
-endif()

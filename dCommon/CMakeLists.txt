@@ -31,12 +31,6 @@ add_library(dCommon STATIC ${DCOMMON_SOURCES})
 
 target_link_libraries(dCommon bcrypt dDatabase tinyxml2)
 
-# If using gcc, warn on old-style C casts
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	set_source_files_properties(${DCOMMON_SOURCES} PROPERTIES COMPILE_FLAGS "-Wold-style-cast")
-endif()
-
-# Handle zlib dependency
 if (UNIX)
 	find_package(ZLIB REQUIRED)
 elseif (WIN32)
