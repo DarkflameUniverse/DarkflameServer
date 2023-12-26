@@ -163,7 +163,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto modApproved = playerPropertyLookupResults->getBoolean(10);
 		const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
 		const auto reputation = playerPropertyLookupResults->getUInt(14);
-		const auto performanceCost = playerPropertyLookupResults->getFloat(16); //CHECK THIS
+		const auto performanceCost = playerPropertyLookupResults->getFloat(16);
 
 		playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), propertyName, propertyDescription, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
 	} else {
@@ -203,7 +203,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto modApproved = propertyEntry->getBoolean(10);
 		const auto dateLastUpdated = propertyEntry->getInt(11);
 		const float reputation = propertyEntry->getInt(14);
-		const auto performanceCost = propertyEntry->getFloat(16); // CHECK THIS
+		const auto performanceCost = propertyEntry->getFloat(16);
 
 		PropertySelectQueryProperty entry{};
 
