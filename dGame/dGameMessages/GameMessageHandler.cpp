@@ -34,10 +34,10 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
+#include "eGameMessageType.h"
 #include "ePlayerFlag.h"
 #include "dConfig.h"
-
-using namespace std;
+#include "StringifiedEnum.h"
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
@@ -49,11 +49,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!entity) {
-		LOG("Failed to find associated entity (%llu), aborting GM (%X)!", objectID, messageID);
+		LOG("Failed to find associated entity (%llu), aborting GM: %4i, %s!", objectID, messageID, StringifiedEnum::ToString(messageID).data());
 		return;
 	}
 
-	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("received game message ID: %i", messageID);
+	if (messageID != eGameMessageType::READY_FOR_UPDATES) LOG_DEBUG("Received GM with ID and name: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 
 	switch (messageID) {
 
@@ -344,12 +344,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		SyncSkill sync = SyncSkill(inStream); // inStream replaced &bitStream
 
-		ostringstream buffer;
+		std::ostringstream buffer;
 
 		for (unsigned int k = 0; k < sync.sBitStream.size(); k++) {
 			char s;
 			s = sync.sBitStream.at(k);
-			buffer << setw(2) << hex << setfill('0') << (int)s << " ";
+			buffer << std::setw(2) << std::hex << std::setfill('0') << static_cast<int>(s) << " ";
 		}
 
 		if (usr != nullptr) {
@@ -690,8 +690,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	case eGameMessageType::CANCEL_DONATION_ON_PLAYER:
 		GameMessages::HandleCancelDonationOnPlayer(inStream, entity);
 		break;
+	case eGameMessageType::REQUEST_VENDOR_STATUS_UPDATE:
+		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
+		break;
 	default:
-		LOG_DEBUG("Unknown game message ID: %i", messageID);
+		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 		break;
 	}
 }

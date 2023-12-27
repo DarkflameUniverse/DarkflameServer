@@ -557,7 +557,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	if (IsImmune() || IsCooldownImmune()) {
-		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID()); //Immune is succesfully proc'd
+		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID());
 		return;
 	}
 

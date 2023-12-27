@@ -170,6 +170,7 @@ public:
 	 */
 	bool HasMission(uint32_t missionId);
 
+	void ResetMission(const int32_t missionId);
 private:
 	/**
 	 * All the missions owned by this entity, mapped by mission ID

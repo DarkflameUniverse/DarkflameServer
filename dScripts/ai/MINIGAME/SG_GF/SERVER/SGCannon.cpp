@@ -1040,6 +1040,13 @@ void SGCannon::ResetVars(Entity* self) {
 	self->SetVar<std::vector<LOT>>(RewardsVariable, {});
 	self->SetVar<uint32_t>(TotalScoreVariable, 0);
 
+	self->SetVar<uint32_t>(u"m_curStreak", 0);
+	self->SetNetworkVar<float>(u"SuperChargeBar", 0);
+	self->SetVar<uint32_t>(u"LastSuperTotal", 0);
+	self->SetNetworkVar<float>(u"SuperChargeBar", 0.0f);
+	self->SetNetworkVar<bool>(u"ShowStreak", 0);
+	self->SetNetworkVar<bool>(u"UnMarkAll", true);
+
 	const_cast<std::vector<SGEnemy>&>(self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable)).clear();
 	self->SetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable, {});
 

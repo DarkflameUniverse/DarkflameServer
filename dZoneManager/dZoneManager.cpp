@@ -94,33 +94,6 @@ void dZoneManager::LoadZone(const LWOZONEID& zoneID) {
 	m_pZone = new Zone(zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 }
 
-void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID) {
-	switch (notifier) {
-	case dZoneNotifier::SpawnedObjectDestroyed:
-		break;
-	case dZoneNotifier::SpawnedChildObjectDestroyed:
-		break;
-	case dZoneNotifier::ReloadZone:
-		LOG("Forcing reload of zone %i", m_ZoneID.GetMapID());
-		LoadZone(m_ZoneID);
-
-		m_pZone->Initalize();
-		break;
-	case dZoneNotifier::UserJoined:
-		break;
-	case dZoneNotifier::UserMoved:
-		break;
-	case dZoneNotifier::PrintAllGameObjects:
-		m_pZone->PrintAllGameObjects();
-		break;
-	case dZoneNotifier::InvalidNotifier:
-		LOG("Got an invalid zone notifier.");
-		break;
-	default:
-		LOG("Unknown zone notifier: %i", int(notifier));
-	}
-}
-
 void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner) {
 	m_Spawners.insert_or_assign(id, spawner);
 }

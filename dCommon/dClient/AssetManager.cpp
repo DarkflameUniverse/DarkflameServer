@@ -152,13 +152,12 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 	return success;
 }
 
-AssetMemoryBuffer AssetManager::GetFileAsBuffer(const char* name) {
-	char* buf;
-	uint32_t len;
+AssetStream AssetManager::GetFile(const char* name) {
+	char* buf; uint32_t len;
 
 	bool success = this->GetFile(name, &buf, &len);
 
-	return AssetMemoryBuffer(buf, len, success);
+	return AssetStream(buf, len, success);
 }
 
 uint32_t AssetManager::crc32b(uint32_t base, uint8_t* message, size_t l) {

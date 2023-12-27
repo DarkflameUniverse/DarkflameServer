@@ -19,6 +19,9 @@ add_library(bcrypt ${SOURCES_LIBBCRYPT})
 # Source code for sqlite
 add_subdirectory(SQLite)
 
+# Source code for magic_enum
+add_subdirectory(magic_enum)
+
 # MariaDB C++ Connector
 include(CMakeMariaDBLists.txt)
 

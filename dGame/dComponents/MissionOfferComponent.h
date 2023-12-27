@@ -30,13 +30,13 @@ struct OfferedMission {
 	 * Returns if this mission is offered by the entity
 	 * @return true if this mission is offered by the entity, false otherwise
 	 */
-	bool GetOfferMission() const;
+	bool GetOffersMission() const;
 
 	/**
 	 * Returns if this mission may be accepted by the entity (currently unused)
 	 * @return true if this mission may be accepted by the entity, false otherwise
 	 */
-	bool GetAcceptMission() const;
+	bool GetAcceptsMission() const;
 
 private:
 

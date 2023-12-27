@@ -269,6 +269,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/ai/GENERAL"
 	"dScripts/ai/GF"
 	"dScripts/ai/MINIGAME"
+	"dScripts/ai/MINIGAME/Objects"
 	"dScripts/ai/NP"
 	"dScripts/ai/NS"
 	"dScripts/ai/PETS"
@@ -292,6 +293,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/zone/PROPERTY/GF"
 	"dScripts/zone/PROPERTY/NS"
 
+	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"
@@ -373,7 +375,7 @@ add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
 
 # Add platform specific common libraries
 if (UNIX)

@@ -289,11 +289,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
-	if (chatCommand == "leave-zone") {
+	if (chatCommand == "leave-zone" || chatCommand == "leavezone") {
 		const auto currentZone = Game::zoneManager->GetZone()->GetZoneID().GetMapID();
-
 		LWOMAPID newZone = 0;
-		if (currentZone % 100 == 0) {
+
+		if (currentZone == 1001 || currentZone % 100 == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
 			return;
 		} else {
@@ -346,6 +346,17 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
 			});
+	}
+
+	if (chatCommand == "resetmission") {
+		uint32_t missionId;
+		if (!GeneralUtils::TryParse(args[0], missionId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission ID.");
+			return;
+		}
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
+		if (!missionComponent) return;
+		missionComponent->ResetMission(missionId);
 	}
 
 	if (user->GetMaxGMLevel() == eGameMasterLevel::CIVILIAN || entity->GetGMLevel() >= eGameMasterLevel::CIVILIAN) {
@@ -609,14 +620,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (args[0].find("/") != std::string::npos) return;
 		if (args[0].find("\\") != std::string::npos) return;
 
-		auto buf = Game::assetManager->GetFileAsBuffer(("macros/" + args[0] + ".scm").c_str());
+		auto infile = Game::assetManager->GetFile(("macros/" + args[0] + ".scm").c_str());
 
-		if (!buf.m_Success) {
+		if (!infile) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 			return;
 		}
-
-		std::istream infile(&buf);
 
 		if (infile.good()) {
 			std::string line;
@@ -626,8 +635,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		} else {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 		}
-
-		buf.close();
 
 		return;
 	}
