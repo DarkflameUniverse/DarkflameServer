@@ -240,8 +240,8 @@ size_t Metrics::GetCurrentRSS() {
 	/* OSX ------------------------------------------------------ */
 	struct mach_task_basic_info info;
 	mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
-	if (static_cast<task_info>(mach_task_self(), MACH_TASK_BASIC_INFO,
-		static_cast<task_info_t>(&info), &infoCount) != KERN_SUCCESS)
+	if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
+		reinterpret_cast<task_info_t>(&info), &infoCount) != KERN_SUCCESS)
 		return static_cast<size_t>(0L);      /* Can't access? */
 	return static_cast<size_t>(info.resident_size);
 
