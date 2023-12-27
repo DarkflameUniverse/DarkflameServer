@@ -145,7 +145,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& contex
 	behavior.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
 	auto* stateArray = behavior.InsertArray("states");
 	for (const auto& [stateId, state] : context.modelComponent->m_Behaviors[behaviorMsg.GetBehaviorId()].m_States) {
-		auto* stateInfo = stateArray->InsertArray(static_cast<int32_t>(stateId));
+		auto* stateInfo = stateArray->PushArray();
 		stateInfo->Insert("id", static_cast<double>(stateId));
 
 		auto* stripArray = stateInfo->InsertArray("strips");
