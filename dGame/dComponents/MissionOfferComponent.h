@@ -64,7 +64,6 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
 	MissionOfferComponent(Entity* parent, LOT parentLot);
-	~MissionOfferComponent() override;
 
 	/**
 	 * Handles the OnUse event triggered by some entity, determines which missions to show based on what they may
@@ -85,7 +84,7 @@ private:
 	/**
 	 * The missions this entity has to offer
 	 */
-	std::vector<OfferedMission*> offeredMissions;
+	std::vector<OfferedMission> offeredMissions;
 };
 
 #endif // MISSIONOFFERCOMPONENT_H
