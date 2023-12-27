@@ -9,11 +9,32 @@ void Strip::AddStrip(AddStripMessage& msg) {
 	m_Position = msg.GetPosition();
 };
 
+void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+	m_Position.SendBehaviorBlocksToClient(args);
+
+	auto* actions = args.InsertArray("actions");
+	for (auto& action : m_Actions) {
+		action.SendBehaviorBlocksToClient(*actions);
+	}
+}
+
 void State::AddStrip(AddStripMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
 	}
 	m_Strips[msg.GetActionContext().GetStripId()].AddStrip(msg);
+};
+
+void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+	auto* strips = args.InsertArray("strips");
+	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
+		auto& strip = m_Strips.at(stripId);
+
+		auto* stripArgs = strips->PushArray();
+		stripArgs->Insert("id", static_cast<double>(stripId));
+
+		strip.SendBehaviorBlocksToClient(*stripArgs);
+	}
 };
 
 void PropertyBehavior::AddStrip(AddStripMessage& msg) {
@@ -24,6 +45,15 @@ void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
 	args.Insert("name", m_Name);
 	args.Insert("isLocked", isLocked);
 	args.Insert("isLoot", isLoot);
+}
+
+void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+	auto* stateArray = args.InsertArray("states");
+	for (auto&[stateId, state] : m_States) {
+		auto* stateArgs = stateArray->PushArray();
+		stateArgs->Insert("id", static_cast<double>(stateId));
+		state.SendBehaviorBlocksToClient(*stateArgs);
+	}
 }
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
@@ -73,4 +103,10 @@ void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
 		behaviorArgs->Insert("id", std::to_string(behaviorId));
 		behavior.SendBehaviorListToClient(*behaviorArgs);
 	}
+}
+
+void ModelComponent::SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) {
+	args.Insert("BehaviorID", std::to_string(behaviorToSend));
+	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
+	m_Behaviors[behaviorToSend].SendBehaviorBlocksToClient(args);
 }

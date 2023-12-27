@@ -21,7 +21,9 @@ class AddStripMessage;
 class Strip {
 public:
 	void AddStrip(AddStripMessage& msg);
-// private:
+	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+	StripUiPosition GetPosition() { return m_Position; }
+private:
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
 };
@@ -29,7 +31,8 @@ public:
 class State {
 public:
 	void AddStrip(AddStripMessage& msg);
-// private:
+	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+private:
 	std::vector<Strip> m_Strips;
 };
 
@@ -37,7 +40,8 @@ class PropertyBehavior {
 public:
 	void AddStrip(AddStripMessage& msg);
 	void SendBehaviorListToClient(AMFArrayValue& args);
-// private:
+	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+private:
 
 	// The states this behavior has.
 	std::map<BehaviorState, State> m_States;
@@ -105,8 +109,10 @@ public:
 	 */
 	void SendBehaviorListToClient(AMFArrayValue& args);
 
-	std::map<int32_t, PropertyBehavior> m_Behaviors;
+	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args);
+
 private:
+	std::map<int32_t, PropertyBehavior> m_Behaviors;
 
 	/**
 	 * The original position of the model

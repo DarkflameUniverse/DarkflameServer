@@ -15,6 +15,8 @@ public:
 	const std::string& GetValueParameterName() { return valueParameterName; };
 	const std::string& GetValueParameterString() { return valueParameterString; };
 	const double GetValueParameterDouble() { return valueParameterDouble; };
+
+	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 private:
 	std::string type;
 	std::string valueParameterName;

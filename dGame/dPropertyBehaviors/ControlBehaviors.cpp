@@ -124,40 +124,11 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
 void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& context) {
+	if (!context) return;
 	BehaviorMessageBase behaviorMsg(context.arguments);
 
 	AMFArrayValue behavior;
-	behavior.Insert("BehaviorID", std::to_string(behaviorMsg.GetBehaviorId()));
-	behavior.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
-	auto* stateArray = behavior.InsertArray("states");
-	for (const auto& [stateId, state] : context.modelComponent->m_Behaviors[behaviorMsg.GetBehaviorId()].m_States) {
-		auto* stateInfo = stateArray->PushArray();
-		stateInfo->Insert("id", static_cast<double>(stateId));
-
-		auto* stripArray = stateInfo->InsertArray("strips");
-		for (int32_t stripId = 0; stripId < state.m_Strips.size(); stripId++) {
-			auto strip = state.m_Strips.at(stripId);
-
-			auto* stripInfo = stripArray->InsertArray(stripId);
-			stripInfo->Insert("id", static_cast<double>(stripId));
-			auto* uiInfo = stripInfo->InsertArray("ui");
-			uiInfo->Insert("x", strip.m_Position.GetX());
-			uiInfo->Insert("y", strip.m_Position.GetY());
-
-			auto* actions = stripInfo->InsertArray("actions");
-			for (int32_t i = 0; i < strip.m_Actions.size(); i++) {
-				auto action = strip.m_Actions.at(i);
-				auto* actionInfo = actions->InsertArray(i);
-				actionInfo->Insert("Type", action.GetType());
-				if (action.GetValueParameterName() == "Message") {
-					actionInfo->Insert(action.GetValueParameterName(), action.GetValueParameterString());
-				} else if (!action.GetValueParameterName().empty()) {
-					actionInfo->Insert(action.GetValueParameterName(), action.GetValueParameterDouble());
-				}
-			}
-		}
-	}
-
+	context.modelComponent->SendBehaviorBlocksToClient(behaviorMsg.GetBehaviorId(), behavior);
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorBlocks", behavior);
 }
 

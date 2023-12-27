@@ -29,3 +29,17 @@ Action::Action(AMFArrayValue* arguments) {
 		}
 	}
 }
+
+void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+	auto* actionArgs = args.PushArray();
+	actionArgs->Insert("Type", type);
+
+	auto valueParameterName = GetValueParameterName();
+	if (valueParameterName.empty()) return;
+
+	if (valueParameterName == "Message") {
+		actionArgs->Insert(valueParameterName, valueParameterString);
+	} else {
+		actionArgs->Insert(valueParameterName, valueParameterDouble);
+	}
+}
