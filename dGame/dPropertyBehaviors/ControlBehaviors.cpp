@@ -33,6 +33,10 @@
 void ControlBehaviors::RequestUpdatedID(ControlBehaviorContext& context) {
 	ObjectIDManager::Instance()->RequestPersistentID(
 		[context](uint32_t persistentId) {
+			if (!context) {
+				LOG("Model to update behavior ID for is null. Cannot update ID.");
+				return;
+			}
 			// This updates the behavior ID of the behavior should this be a new behavior
 			AMFArrayValue args;
 
@@ -40,35 +44,17 @@ void ControlBehaviors::RequestUpdatedID(ControlBehaviorContext& context) {
 			args.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
 
 			GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorID", args);
-			context.modelComponent->m_Behaviors[persistentId] = context.modelComponent->m_Behaviors[BehaviorMessageBase::DefaultBehaviorId];
-			context.modelComponent->m_Behaviors.erase(BehaviorMessageBase::DefaultBehaviorId);
+			context.modelComponent->UpdatePendingBehaviorId(persistentId);
 
 			ControlBehaviors::Instance().SendBehaviorListToClient(context);
 		});
 }
 
 void ControlBehaviors::SendBehaviorListToClient(const ControlBehaviorContext& context) {
+	if (!context) return;
+
 	AMFArrayValue behaviorsToSerialize;
-
-	/**
-	 * The behaviors AMFArray will have up to 5 elements in the dense portion.
-	 * Each element in the dense portion will be made up of another AMFArray
-	 * with the following information mapped in the associative portion
-	 * "id": Behavior ID cast to an AMFString
-	 * "isLocked": AMFTrue or AMFFalse of whether or not the behavior is locked
-	 * "isLoot": AMFTrue or AMFFalse of whether or not the behavior is a custom behavior (true if custom)
-	 * "name": The name of the behavior formatted as an AMFString
-	 */
-
-	int32_t index = 0;
-	auto behaviors = behaviorsToSerialize.InsertArray("behaviors");
-	for (const auto& [id, behaviorInfo] : context.modelComponent->m_Behaviors) {
-		auto* array = behaviors->InsertArray(index++);
-		array->Insert("id", std::to_string(id));
-		array->Insert("name", "Test name");
-		array->Insert("isLoot", false);
-	}
-	behaviorsToSerialize.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
+	context.modelComponent->SendBehaviorListToClient(behaviorsToSerialize);
 
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorList", behaviorsToSerialize);
 }
@@ -93,7 +79,7 @@ void ControlBehaviors::AddStrip(ControlBehaviorContext& context) {
 		RequestUpdatedID(context);
 	}
 
-	context.modelComponent->m_Behaviors[addStripMessage.GetBehaviorId()].AddStrip(addStripMessage);
+	context.modelComponent->HandleControlBehaviorsMsg(addStripMessage);
 }
 
 void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {

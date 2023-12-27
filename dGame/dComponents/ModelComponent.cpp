@@ -1,6 +1,31 @@
 #include "ModelComponent.h"
 #include "Entity.h"
 
+void Strip::AddStrip(AddStripMessage& msg) {
+	m_Actions = msg.GetActionsToAdd();
+	for (auto& action : m_Actions) {
+		LOG("%s %s %f %s", action.GetType().c_str(), action.GetValueParameterName().c_str(), (float)action.GetValueParameterDouble(), action.GetValueParameterString().c_str());
+	}
+	m_Position = msg.GetPosition();
+};
+
+void State::AddStrip(AddStripMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
+	}
+	m_Strips[msg.GetActionContext().GetStripId()].AddStrip(msg);
+};
+
+void PropertyBehavior::AddStrip(AddStripMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].AddStrip(msg);
+};
+
+void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
+	args.Insert("name", m_Name);
+	args.Insert("isLocked", isLocked);
+	args.Insert("isLoot", isLoot);
+}
+
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
@@ -28,4 +53,24 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	outBitStream->Write<uint32_t>(0); // Number of behaviors
 	outBitStream->Write1(); // Is this model paused
 	if (bIsInitialUpdate) outBitStream->Write0(); // We are not writing model editing info
+}
+
+void ModelComponent::HandleControlBehaviorsMsg(AddStripMessage& msg) {
+	m_Behaviors[msg.GetBehaviorId()].AddStrip(msg);
+}
+
+void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {
+	m_Behaviors[newId] = m_Behaviors[BehaviorMessageBase::DefaultBehaviorId];
+	m_Behaviors.erase(BehaviorMessageBase::DefaultBehaviorId);
+}
+
+void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
+	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
+
+	auto* behaviorArray = args.InsertArray("behaviors");
+	for (auto& [behaviorId, behavior] : m_Behaviors) {
+		auto* behaviorArgs = behaviorArray->PushArray();
+		behaviorArgs->Insert("id", std::to_string(behaviorId));
+		behavior.SendBehaviorListToClient(*behaviorArgs);
+	}
 }

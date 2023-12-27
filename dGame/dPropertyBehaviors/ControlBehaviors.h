@@ -19,6 +19,11 @@ typedef std::string BlockName;					//! A block name
 
 struct ControlBehaviorContext {
 	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) : arguments(args), modelComponent(modelComponent), modelOwner(modelOwner) {};
+
+	operator bool() const {
+		return arguments != nullptr && modelComponent != nullptr && modelOwner != nullptr;
+	}
+
 	AMFArrayValue* arguments;
 	Entity* modelOwner;
 	ModelComponent* modelComponent;

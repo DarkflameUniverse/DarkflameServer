@@ -16,34 +16,40 @@
 
 class Action;
 class Entity;
+class AddStripMessage;
 
-struct Strip {
-	void AddStrip(AddStripMessage& msg) {
-		m_Actions = msg.GetActionsToAdd();
-		for (auto& action : m_Actions) {
-			LOG("%s %s %f %s", action.GetType().c_str(), action.GetValueParameterName().c_str(), (float)action.GetValueParameterDouble(), action.GetValueParameterString().c_str());
-		}
-		m_Position = msg.GetPosition();
-	};
+class Strip {
+public:
+	void AddStrip(AddStripMessage& msg);
+// private:
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
 };
 
-struct State {
-	void AddStrip(AddStripMessage& msg) {
-		if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
-			m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
-		}
-		m_Strips[msg.GetActionContext().GetStripId()].AddStrip(msg);
-	};
+class State {
+public:
+	void AddStrip(AddStripMessage& msg);
+// private:
 	std::vector<Strip> m_Strips;
 };
 
-struct PropertyBehavior {
-	void AddStrip(AddStripMessage& msg) {
-		m_States[msg.GetActionContext().GetStateId()].AddStrip(msg);
-	};
+class PropertyBehavior {
+public:
+	void AddStrip(AddStripMessage& msg);
+	void SendBehaviorListToClient(AMFArrayValue& args);
+// private:
+
+	// The states this behavior has.
 	std::map<BehaviorState, State> m_States;
+
+	// The name of this behavior.
+	std::string m_Name = "Test name new";
+
+	// Whether this behavior is locked and cannot be edited.
+	bool isLocked = false;
+
+	// Whether this behavior is custom or pre-fab.
+	bool isLoot = false;
 };
 
 /**
@@ -80,6 +86,24 @@ public:
 	 * @param rot the original rotation to set
 	 */
 	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; }
+
+	void HandleControlBehaviorsMsg(AddStripMessage& msg);
+
+	// Updates the pending behavior ID to the new ID.
+	void UpdatePendingBehaviorId(const int32_t newId);
+
+	// Sends the behavior list to the client.
+
+	/**
+	 * The behaviors AMFArray will have up to 5 elements in the dense portion.
+	 * Each element in the dense portion will be made up of another AMFArray
+	 * with the following information mapped in the associative portion
+	 * "id": Behavior ID cast to an AMFString
+	 * "isLocked": AMFTrue or AMFFalse of whether or not the behavior is locked
+	 * "isLoot": AMFTrue or AMFFalse of whether or not the behavior is a custom behavior (true if custom)
+	 * "name": The name of the behavior formatted as an AMFString
+	 */
+	void SendBehaviorListToClient(AMFArrayValue& args);
 
 	std::map<int32_t, PropertyBehavior> m_Behaviors;
 private:
