@@ -1215,6 +1215,15 @@ void GameMessages::SendRemoveSkill(Entity* entity, TSkillID skillID) {
 	SEND_PACKET;
 }
 
+void GameMessages::HandleSelectSkill(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr){
+	bool bFromSkillSet = false;
+	TSkillID skillID = 0;
+	inStream->Read(bFromSkillSet);
+	inStream->Read(skillID);
+	LOG("skill set: %i, skillID: %i", bFromSkillSet, skillID);
+}
+
+
 void GameMessages::SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildArea) {
 	CBITSTREAM;
 	CMSGHEADER;

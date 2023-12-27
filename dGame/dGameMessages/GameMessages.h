@@ -125,6 +125,7 @@ namespace GameMessages {
 
 	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
+	void HandleSelectSkill(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);
 	void SendModularBuildEnd(Entity* entity);
