@@ -134,7 +134,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& contex
 
 void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 	UpdateActionMessage updateActionMessage(arguments);
-	auto* blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
+	auto blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
 	if (!blockDefinition) {
 		LOG("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
@@ -219,7 +219,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 ControlBehaviors::ControlBehaviors() {
 	auto blocksBuffer = Game::assetManager->GetFile("ui\\ingame\\blocksdef.xml");
 	if (!blocksBuffer) {
-		LOG("Failed to open blocksdef.xml");
+		LOG("Failed to open blocksdef.xml, property behaviors will be disabled for this zone!");
 		return;
 	}
 
@@ -264,14 +264,14 @@ ControlBehaviors::ControlBehaviors() {
 		while (block) {
 			blockName = block->Name();
 
-			BlockDefinition* blockDefinition = new BlockDefinition();
+			auto& blockDefinition = blockTypes[blockName];
 			std::string name{};
 			std::string typeName{};
 
 			auto* argument = block->FirstChildElement("Argument");
 			if (argument) {
 				auto* defaultDefinition = argument->FirstChildElement("DefaultValue");
-				if (defaultDefinition) blockDefinition->SetDefaultValue(defaultDefinition->GetText());
+				if (defaultDefinition) blockDefinition.SetDefaultValue(defaultDefinition->GetText());
 
 				auto* typeDefinition = argument->FirstChildElement("Type");
 				if (typeDefinition) typeName = typeDefinition->GetText();
@@ -281,23 +281,23 @@ ControlBehaviors::ControlBehaviors() {
 
 				// Now we parse the blocksdef file for the relevant information
 				if (typeName == "String") {
-					blockDefinition->SetMaximumValue(50); // The client has a hardcoded limit of 50 characters in a string field
+					blockDefinition.SetMaximumValue(50); // The client has a hardcoded limit of 50 characters in a string field
 				} else if (typeName == "Float" || typeName == "Integer") {
 					auto* maximumDefinition = argument->FirstChildElement("Maximum");
-					if (maximumDefinition) blockDefinition->SetMaximumValue(std::stof(maximumDefinition->GetText()));
+					if (maximumDefinition) blockDefinition.SetMaximumValue(std::stof(maximumDefinition->GetText()));
 
 					auto* minimumDefinition = argument->FirstChildElement("Minimum");
-					if (minimumDefinition) blockDefinition->SetMinimumValue(std::stof(minimumDefinition->GetText()));
+					if (minimumDefinition) blockDefinition.SetMinimumValue(std::stof(minimumDefinition->GetText()));
 				} else if (typeName == "Enumeration") {
 					auto* values = argument->FirstChildElement("Values");
 					if (values) {
 						auto* value = values->FirstChildElement("Value");
 						while (value) {
-							if (value->GetText() == blockDefinition->GetDefaultValue()) blockDefinition->GetDefaultValue() = std::to_string(blockDefinition->GetMaximumValue());
-							blockDefinition->SetMaximumValue(blockDefinition->GetMaximumValue() + 1);
+							if (value->GetText() == blockDefinition.GetDefaultValue()) blockDefinition.GetDefaultValue() = std::to_string(blockDefinition.GetMaximumValue());
+							blockDefinition.SetMaximumValue(blockDefinition.GetMaximumValue() + 1);
 							value = value->NextSiblingElement("Value");
 						}
-						blockDefinition->SetMaximumValue(blockDefinition->GetMaximumValue() - 1); // Maximum value is 0 indexed
+						blockDefinition.SetMaximumValue(blockDefinition.GetMaximumValue() - 1); // Maximum value is 0 indexed
 					} else {
 						values = argument->FirstChildElement("EnumerationSource");
 						if (!values) {
@@ -314,8 +314,8 @@ ControlBehaviors::ControlBehaviors() {
 						std::string serviceName = serviceNameNode->GetText();
 						if (serviceName == "GetBehaviorSoundList") {
 							auto res = CDClientDatabase::ExecuteQuery("SELECT MAX(id) as countSounds FROM UGBehaviorSounds;");
-							blockDefinition->SetMaximumValue(res.getIntField("countSounds"));
-							blockDefinition->SetDefaultValue("0");
+							blockDefinition.SetMaximumValue(res.getIntField("countSounds"));
+							blockDefinition.SetDefaultValue("0");
 						} else {
 							LOG("Unsupported Enumeration ServiceType (%s)", serviceName.c_str());
 							continue;
@@ -326,19 +326,18 @@ ControlBehaviors::ControlBehaviors() {
 					continue;
 				}
 			}
-			blockTypes.insert(std::make_pair(blockName, blockDefinition));
 			block = block->NextSiblingElement();
 		}
 		blockSections = blockSections->NextSiblingElement();
 	}
 	isInitialized = true;
 	LOG_DEBUG("Created all base block classes");
-	for (auto b : blockTypes) {
-		LOG_DEBUG("block name is %s default %s min %f max %f", b.first.c_str(), b.second->GetDefaultValue().c_str(), b.second->GetMinimumValue(), b.second->GetMaximumValue());
+	for (auto&[name, block] : blockTypes) {
+		LOG_DEBUG("block name is %s default %s min %f max %f", name.c_str(), block.GetDefaultValue().c_str(), block.GetMinimumValue(), block.GetMaximumValue());
 	}
 }
 
-BlockDefinition* ControlBehaviors::GetBlockInfo(const BlockName& blockName) {
+std::optional<BlockDefinition> ControlBehaviors::GetBlockInfo(const BlockName& blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
-	return blockDefinition != blockTypes.end() ? blockDefinition->second : nullptr;
+	return blockDefinition != blockTypes.end() ? std::optional(blockDefinition->second) : std::nullopt;
 }

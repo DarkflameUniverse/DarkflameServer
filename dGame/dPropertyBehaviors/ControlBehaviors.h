@@ -4,12 +4,13 @@
 #define __CONTROLBEHAVIORS__H__
 
 #include <map>
+#include <optional>
 #include <string>
 
+#include "BlockDefinition.h"
 #include "Singleton.h"
 
 class AMFArrayValue;
-class BlockDefinition;
 class Entity;
 class ModelComponent;
 class SystemAddress;
@@ -51,7 +52,7 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	BlockDefinition* GetBlockInfo(const BlockName& blockName);
+	std::optional<BlockDefinition> GetBlockInfo(const BlockName& blockName);
 private:
 	void RequestUpdatedID(ControlBehaviorContext& context);
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);
@@ -71,7 +72,7 @@ private:
 	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
 	void UpdateAction(AMFArrayValue* arguments);
 	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	std::map<BlockName, BlockDefinition*> blockTypes{};
+	std::map<BlockName, BlockDefinition> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.
 	bool isInitialized = false;
