@@ -1950,7 +1950,7 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
+	//PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property

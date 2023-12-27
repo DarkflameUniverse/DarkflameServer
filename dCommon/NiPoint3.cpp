@@ -114,13 +114,13 @@ bool NiPoint3::operator!=(const NiPoint3& point) const {
 //! Operator for subscripting
 float& NiPoint3::operator[](int i) {
 	float* base = &x;
-	return const_cast<float&>(base[i]);
+	return base[i];
 }
 
 //! Operator for subscripting
 const float& NiPoint3::operator[](int i) const {
 	const float* base = &x;
-	return const_cast<float&>(base[i]);
+	return base[i];
 }
 
 //! Operator for addition of vectors
