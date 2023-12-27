@@ -30,37 +30,24 @@
 #include "UpdateActionMessage.h"
 #include "UpdateStripUiMessage.h"
 
-void ControlBehaviors::RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr) {
-	// auto behavior = modelComponent->FindBehavior(behaviorID);
-	// if (behavior->GetBehaviorID() == -1 || behavior->GetShouldSetNewID()) {
-	// 	ObjectIDManager::Instance()->RequestPersistentID(
-	// 		[behaviorID, behavior, modelComponent, modelOwner, sysAddr](uint32_t persistentId) {
-	// 		behavior->SetShouldGetNewID(false);
-	// 		behavior->SetIsTemplated(false);
-	// 		behavior->SetBehaviorID(persistentId);
+void ControlBehaviors::RequestUpdatedID(ControlBehaviorContext& context) {
+	ObjectIDManager::Instance()->RequestPersistentID(
+		[context](uint32_t persistentId) {
+			// This updates the behavior ID of the behavior should this be a new behavior
+			AMFArrayValue args;
 
-	// 		// This updates the behavior ID of the behavior should this be a new behavior
-	// 		AMFArrayValue args;
+			args.Insert("behaviorID", std::to_string(persistentId));
+			args.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
 
-	// 		AMFStringValue* behaviorIDString = new AMFStringValue();
-	// 		behaviorIDString->SetValue(std::to_string(persistentId));
-	// 		args.InsertValue("behaviorID", behaviorIDString);
+			GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorID", args);
+			context.modelComponent->m_Behaviors[persistentId] = context.modelComponent->m_Behaviors[BehaviorMessageBase::DefaultBehaviorId];
+			context.modelComponent->m_Behaviors.erase(BehaviorMessageBase::DefaultBehaviorId);
 
-	// 		AMFStringValue* objectIDAsString = new AMFStringValue();
-	// 		objectIDAsString->SetValue(std::to_string(modelComponent->GetParent()->GetObjectID()));
-	// 		args.InsertValue("objectID", objectIDAsString);
-
-	// 		GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorID", &args);
-	// 		ControlBehaviors::SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
-	// 	});
-	// }
+			ControlBehaviors::Instance().SendBehaviorListToClient(context);
+		});
 }
 
-void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner) {
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
-
-	if (!modelComponent) return;
-
+void ControlBehaviors::SendBehaviorListToClient(const ControlBehaviorContext& context) {
 	AMFArrayValue behaviorsToSerialize;
 
 	/**
@@ -73,10 +60,17 @@ void ControlBehaviors::SendBehaviorListToClient(Entity* modelEntity, const Syste
 	 * "name": The name of the behavior formatted as an AMFString
 	 */
 
-	behaviorsToSerialize.Insert("behaviors");
-	behaviorsToSerialize.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
+	int32_t index = 0;
+	auto behaviors = behaviorsToSerialize.InsertArray("behaviors");
+	for (const auto& [id, behaviorInfo] : context.modelComponent->m_Behaviors) {
+		auto* array = behaviors->InsertArray(index++);
+		array->Insert("id", std::to_string(id));
+		array->Insert("name", "Test name");
+		array->Insert("isLoot", false);
+	}
+	behaviorsToSerialize.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
 
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorList", behaviorsToSerialize);
+	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorList", behaviorsToSerialize);
 }
 
 void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
@@ -92,8 +86,14 @@ void ControlBehaviors::ToggleExecutionUpdates() {
 	//TODO do something with this info
 }
 
-void ControlBehaviors::AddStrip(AMFArrayValue* arguments) {
-	AddStripMessage addStripMessage(arguments);
+void ControlBehaviors::AddStrip(ControlBehaviorContext& context) {
+	AddStripMessage addStripMessage(context.arguments);
+
+	if (addStripMessage.IsDefaultBehaviorId()) {
+		RequestUpdatedID(context);
+	}
+
+	context.modelComponent->m_Behaviors[addStripMessage.GetBehaviorId()].AddStrip(addStripMessage);
 }
 
 void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
@@ -137,109 +137,42 @@ void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr,
 }
 
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
-void ControlBehaviors::SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
-	// uint32_t behaviorID = ControlBehaviors::GetBehaviorIDFromArgument(arguments);
+void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& context) {
+	BehaviorMessageBase behaviorMsg(context.arguments);
 
-	// auto modelBehavior = modelComponent->FindBehavior(behaviorID);
+	AMFArrayValue behavior;
+	behavior.Insert("BehaviorID", std::to_string(behaviorMsg.GetBehaviorId()));
+	behavior.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
+	auto* stateArray = behavior.InsertArray("states");
+	for (const auto& [stateId, state] : context.modelComponent->m_Behaviors[behaviorMsg.GetBehaviorId()].m_States) {
+		auto* stateInfo = stateArray->InsertArray(static_cast<int32_t>(stateId));
+		stateInfo->Insert("id", static_cast<double>(stateId));
 
-	// if (!modelBehavior) return;
+		auto* stripArray = stateInfo->InsertArray("strips");
+		for (int32_t stripId = 0; stripId < state.m_Strips.size(); stripId++) {
+			auto strip = state.m_Strips.at(stripId);
 
-	// modelBehavior->VerifyStates();
+			auto* stripInfo = stripArray->InsertArray(stripId);
+			stripInfo->Insert("id", static_cast<double>(stripId));
+			auto* uiInfo = stripInfo->InsertArray("ui");
+			uiInfo->Insert("x", strip.m_Position.GetX());
+			uiInfo->Insert("y", strip.m_Position.GetY());
 
-	// auto states = modelBehavior->GetBehaviorStates();
+			auto* actions = stripInfo->InsertArray("actions");
+			for (int32_t i = 0; i < strip.m_Actions.size(); i++) {
+				auto action = strip.m_Actions.at(i);
+				auto* actionInfo = actions->InsertArray(i);
+				actionInfo->Insert("Type", action.GetType());
+				if (action.GetValueParameterName() == "Message") {
+					actionInfo->Insert(action.GetValueParameterName(), action.GetValueParameterString());
+				} else if (!action.GetValueParameterName().empty()) {
+					actionInfo->Insert(action.GetValueParameterName(), action.GetValueParameterDouble());
+				}
+			}
+		}
+	}
 
-	// // Begin serialization.
-
-	// /**
-	//  * for each state
-	//  *	  strip id
-	//  *	  ui info
-	//  *		  x
-	//  *		  y
-	//  *	  actions
-	//  *		  action1
-	//  *		  action2
-	//  *		  ...
-	//  * behaviorID of strip
-	//  * objectID of strip
-	//  */
-	// LWOOBJID targetObjectID = LWOOBJID_EMPTY;
-	// behaviorID = 0;
-	// AMFArrayValue behaviorInfo;
-
-	// AMFArrayValue* stateSerialize = new AMFArrayValue();
-
-	// for (auto it = states.begin(); it != states.end(); it++) {
-	// 	LOG("Begin serialization of state %i!\n", it->first);
-	// 	AMFArrayValue* state = new AMFArrayValue();
-
-	// 	AMFDoubleValue* stateAsDouble = new AMFDoubleValue();
-	// 	stateAsDouble->SetValue(it->first);
-	// 	state->InsertValue("id", stateAsDouble);
-
-	// 	AMFArrayValue* strips = new AMFArrayValue();
-	// 	auto stripsInState = it->second->GetStrips();
-	// 	for (auto strip = stripsInState.begin(); strip != stripsInState.end(); strip++) {
-	// 		LOG("Begin serialization of strip %i!\n", strip->first);
-	// 		AMFArrayValue* thisStrip = new AMFArrayValue();
-
-	// 		AMFDoubleValue* stripID = new AMFDoubleValue();
-	// 		stripID->SetValue(strip->first);
-	// 		thisStrip->InsertValue("id", stripID);
-
-	// 		AMFArrayValue* uiArray = new AMFArrayValue();
-	// 		AMFDoubleValue* yPosition = new AMFDoubleValue();
-	// 		yPosition->SetValue(strip->second->GetYPosition());
-	// 		uiArray->InsertValue("y", yPosition);
-
-	// 		AMFDoubleValue* xPosition = new AMFDoubleValue();
-	// 		xPosition->SetValue(strip->second->GetXPosition());
-	// 		uiArray->InsertValue("x", xPosition);
-
-	// 		thisStrip->InsertValue("ui", uiArray);
-	// 		targetObjectID = modelComponent->GetParent()->GetObjectID();
-	// 		behaviorID = modelBehavior->GetBehaviorID();
-
-	// 		AMFArrayValue* stripSerialize = new AMFArrayValue();
-	// 		for (auto behaviorAction : strip->second->GetActions()) {
-	// 			LOG("Begin serialization of action %s!\n", behaviorAction->actionName.c_str());
-	// 			AMFArrayValue* thisAction = new AMFArrayValue();
-
-	// 			AMFStringValue* actionName = new AMFStringValue();
-	// 			actionName->SetValue(behaviorAction->actionName);
-	// 			thisAction->InsertValue("Type", actionName);
-
-	// 			if (behaviorAction->parameterValueString != "")
-	// 			{
-	// 				AMFStringValue* valueAsString = new AMFStringValue();
-	// 				valueAsString->SetValue(behaviorAction->parameterValueString);
-	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsString);
-	// 			}
-	// 			else if (behaviorAction->parameterValueDouble != 0.0)
-	// 			{
-	// 				AMFDoubleValue* valueAsDouble = new AMFDoubleValue();
-	// 				valueAsDouble->SetValue(behaviorAction->parameterValueDouble);
-	// 				thisAction->InsertValue(behaviorAction->parameterName, valueAsDouble);
-	// 			}
-	// 			stripSerialize->PushBackValue(thisAction);
-	// 		}
-	// 		thisStrip->InsertValue("actions", stripSerialize);
-	// 		strips->PushBackValue(thisStrip);
-	// 	}
-	// 	state->InsertValue("strips", strips);
-	// 	stateSerialize->PushBackValue(state);
-	// }
-	// behaviorInfo.InsertValue("states", stateSerialize);
-
-	// AMFStringValue* objectidAsString = new AMFStringValue();
-	// objectidAsString->SetValue(std::to_string(targetObjectID));
-	// behaviorInfo.InsertValue("objectID", objectidAsString);
-
-	// AMFStringValue* behaviorIDAsString = new AMFStringValue();
-	// behaviorIDAsString->SetValue(std::to_string(behaviorID));
-	// behaviorInfo.InsertValue("BehaviorID", behaviorIDAsString);
-
-	// GameMessages::SendUIMessageServerToSingleClient(modelOwner, sysAddr, "UpdateBehaviorBlocks", &behaviorInfo);
+	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorBlocks", behavior);
 }
 
 void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
@@ -276,7 +209,7 @@ void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const Sys
 
 	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
-	SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
+	// SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
 }
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
@@ -285,42 +218,45 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 
 	if (!modelComponent) return;
 
-	if (command == "sendBehaviorListToClient")
-		SendBehaviorListToClient(modelEntity, sysAddr, modelOwner);
-	else if (command == "modelTypeChanged")
+	ControlBehaviorContext context(arguments, modelComponent, modelOwner);
+
+	if (command == "sendBehaviorListToClient") {
+		SendBehaviorListToClient(context);
+	} else if (command == "modelTypeChanged") {
 		ModelTypeChanged(arguments, modelComponent);
-	else if (command == "toggleExecutionUpdates")
+	} else if (command == "toggleExecutionUpdates") {
 		ToggleExecutionUpdates();
-	else if (command == "addStrip")
-		AddStrip(arguments);
-	else if (command == "removeStrip")
+	} else if (command == "addStrip") {
+		AddStrip(context);
+	} else if (command == "removeStrip") {
 		RemoveStrip(arguments);
-	else if (command == "mergeStrips")
+	} else if (command == "mergeStrips") {
 		MergeStrips(arguments);
-	else if (command == "splitStrip")
+	} else if (command == "splitStrip") {
 		SplitStrip(arguments);
-	else if (command == "updateStripUI")
+	} else if (command == "updateStripUI") {
 		UpdateStripUI(arguments);
-	else if (command == "addAction")
+	} else if (command == "addAction") {
 		AddAction(arguments);
-	else if (command == "migrateActions")
+	} else if (command == "migrateActions") {
 		MigrateActions(arguments);
-	else if (command == "rearrangeStrip")
+	} else if (command == "rearrangeStrip") {
 		RearrangeStrip(arguments);
-	else if (command == "add")
+	} else if (command == "add") {
 		Add(arguments);
-	else if (command == "removeActions")
+	} else if (command == "removeActions") {
 		RemoveActions(arguments);
-	else if (command == "rename")
+	} else if (command == "rename") {
 		Rename(modelEntity, sysAddr, modelOwner, arguments);
-	else if (command == "sendBehaviorBlocksToClient")
-		SendBehaviorBlocksToClient(modelComponent, sysAddr, modelOwner, arguments);
-	else if (command == "moveToInventory")
+	} else if (command == "sendBehaviorBlocksToClient") {
+		SendBehaviorBlocksToClient(context);
+	} else if (command == "moveToInventory") {
 		MoveToInventory(modelComponent, sysAddr, modelOwner, arguments);
-	else if (command == "updateAction")
+	} else if (command == "updateAction") {
 		UpdateAction(arguments);
-	else
-		LOG("Unknown behavior command (%s)\n", command.c_str());
+	} else {
+		LOG("Unknown behavior command (%s)", command.c_str());
+	}
 }
 
 ControlBehaviors::ControlBehaviors() {

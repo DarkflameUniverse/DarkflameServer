@@ -12,19 +12,19 @@ Action::Action(AMFArrayValue* arguments) {
 	valueParameterName = "";
 	valueParameterString = "";
 	valueParameterDouble = 0.0;
-	for (auto& typeValueMap : arguments->GetAssociative()) {
-		if (typeValueMap.first == "Type") {
-			if (typeValueMap.second->GetValueType() != eAmf::String) continue;
-			type = static_cast<AMFStringValue*>(typeValueMap.second)->GetValue();
+	for (auto& [paramName, paramValue] : arguments->GetAssociative()) {
+		if (paramName == "Type") {
+			if (paramValue->GetValueType() != eAmf::String) continue;
+			type = static_cast<AMFStringValue*>(paramValue)->GetValue();
 		} else {
-			valueParameterName = typeValueMap.first;
+			valueParameterName = paramName;
 			// Message is the only known string parameter
 			if (valueParameterName == "Message") {
-				if (typeValueMap.second->GetValueType() != eAmf::String) continue;
-				valueParameterString = static_cast<AMFStringValue*>(typeValueMap.second)->GetValue();
+				if (paramValue->GetValueType() != eAmf::String) continue;
+				valueParameterString = static_cast<AMFStringValue*>(paramValue)->GetValue();
 			} else {
-				if (typeValueMap.second->GetValueType() != eAmf::Double) continue;
-				valueParameterDouble = static_cast<AMFDoubleValue*>(typeValueMap.second)->GetValue();
+				if (paramValue->GetValueType() != eAmf::Double) continue;
+				valueParameterDouble = static_cast<AMFDoubleValue*>(paramValue)->GetValue();
 			}
 		}
 	}

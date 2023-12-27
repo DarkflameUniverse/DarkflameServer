@@ -17,6 +17,13 @@ class SystemAddress;
 // Type definition to clarify what is used where
 typedef std::string BlockName;					//! A block name
 
+struct ControlBehaviorContext {
+	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) : arguments(args), modelComponent(modelComponent), modelOwner(modelOwner) {};
+	AMFArrayValue* arguments;
+	Entity* modelOwner;
+	ModelComponent* modelComponent;
+};
+
 class ControlBehaviors: public Singleton<ControlBehaviors> {
 public:
 	ControlBehaviors();
@@ -41,11 +48,11 @@ public:
 	 */
 	BlockDefinition* GetBlockInfo(const BlockName& blockName);
 private:
-	void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
-	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
+	void RequestUpdatedID(ControlBehaviorContext& context);
+	void SendBehaviorListToClient(const ControlBehaviorContext& context);
 	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
 	void ToggleExecutionUpdates();
-	void AddStrip(AMFArrayValue* arguments);
+	void AddStrip(ControlBehaviorContext& context);
 	void RemoveStrip(AMFArrayValue* arguments);
 	void MergeStrips(AMFArrayValue* arguments);
 	void SplitStrip(AMFArrayValue* arguments);
@@ -56,7 +63,7 @@ private:
 	void Add(AMFArrayValue* arguments);
 	void RemoveActions(AMFArrayValue* arguments);
 	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
 	void UpdateAction(AMFArrayValue* arguments);
 	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	std::map<BlockName, BlockDefinition*> blockTypes{};
