@@ -1,3 +1,5 @@
+// Source: http://www.zedwood.com/article/cpp-sha512-function
+
 #include "SHA512.h"
 
 #include <cstring>
@@ -51,7 +53,7 @@ void SHA512::transform(const unsigned char* message, unsigned int block_nb) {
 	uint64 t1, t2;
 	const unsigned char* sub_block;
 	int i, j;
-	for (i = 0; i < static_cast<int>(block_nb); i++) {
+	for (i = 0; i < (int)block_nb; i++) {
 		sub_block = message + (i << 7);
 		for (j = 0; j < 16; j++) {
 			SHA2_PACK64(&sub_block[j << 3], &w[j]);
@@ -140,7 +142,7 @@ std::string sha512(std::string input) {
 	memset(digest, 0, SHA512::DIGEST_SIZE);
 	class SHA512 ctx;
 	ctx.init();
-	ctx.update(reinterpret_cast<unsigned char*>(const_cast<char*>(input.c_str())), input.length());
+	ctx.update((unsigned char*)input.c_str(), input.length());
 	ctx.final(digest);
 
 	char buf[2 * SHA512::DIGEST_SIZE + 1];
