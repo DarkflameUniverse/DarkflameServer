@@ -188,7 +188,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "splitStrip") {
 		SplitStrip(arguments);
 	} else if (command == "updateStripUI") {
-		UpdateStripUI(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<UpdateStripUiMessage>(arguments);
 	} else if (command == "addAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<AddActionMessage>(arguments);
 	} else if (command == "migrateActions") {

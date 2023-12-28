@@ -23,7 +23,12 @@ void Strip::HandleMsg(AddActionMessage& msg) {
 	if (msg.GetActionIndex() == -1) return;
 
 	m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
-}
+};
+
+template<>
+void Strip::HandleMsg(UpdateStripUiMessage& msg) {
+	m_Position = msg.GetPosition();
+};
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	m_Position.SendBehaviorBlocksToClient(args);
@@ -53,6 +58,15 @@ void State::HandleMsg(AddActionMessage& msg) {
 	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
 };
 
+template<>
+void State::HandleMsg(UpdateStripUiMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+};
+
 void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* strips = args.InsertArray("strips");
 	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
@@ -74,6 +88,11 @@ void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+};
+
+template<>
+void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 };
 
