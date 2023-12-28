@@ -27,6 +27,7 @@ public:
 
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 	StripUiPosition GetPosition() { return m_Position; }
+	bool IsEmpty() { return m_Actions.empty(); }
 private:
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
@@ -38,6 +39,7 @@ public:
 	void HandleMsg(Msg& msg);
 
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+	bool IsEmpty();
 private:
 	std::vector<Strip> m_Strips;
 };
@@ -62,6 +64,8 @@ private:
 
 	// Whether this behavior is custom or pre-fab.
 	bool isLoot = false;
+
+	BehaviorState m_LastEditedState = BehaviorState::HOME_STATE;
 };
 
 /**

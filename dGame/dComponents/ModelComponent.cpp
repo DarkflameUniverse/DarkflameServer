@@ -31,6 +31,11 @@ void Strip::HandleMsg(UpdateStripUiMessage& msg) {
 };
 
 template<>
+void Strip::HandleMsg(RemoveStripMessage& msg) {
+	m_Actions.clear();
+};
+
+template<>
 void Strip::HandleMsg(SplitStripMessage& msg) {
 	if (msg.GetTransferredActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -80,6 +85,15 @@ void State::HandleMsg(UpdateStripUiMessage& msg) {
 };
 
 template<>
+void State::HandleMsg(RemoveStripMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+};
+
+template<>
 void State::HandleMsg(SplitStripMessage& msg) {
 	if (msg.GetTransferredActions().empty()) {
 		if (m_Strips.size() <= msg.GetSourceActionContext().GetStripId()) {
@@ -96,10 +110,18 @@ void State::HandleMsg(SplitStripMessage& msg) {
 	}
 };
 
+bool State::IsEmpty() {
+	for (auto& strip : m_Strips) {
+		if (!strip.IsEmpty()) return false;
+	}
+	return true;
+}
+
 void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* strips = args.InsertArray("strips");
 	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
 		auto& strip = m_Strips.at(stripId);
+		if (strip.IsEmpty()) continue;
 
 		auto* stripArgs = strips->PushArray();
 		stripArgs->Insert("id", static_cast<double>(stripId));
@@ -113,22 +135,32 @@ void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 template<>
 void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
@@ -139,11 +171,28 @@ void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
 
 void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* stateArray = args.InsertArray("states");
+
+	auto lastState = BehaviorState::HOME_STATE;
 	for (auto& [stateId, state] : m_States) {
+		if (state.IsEmpty()) continue;
+
+		LOG("Serializing state %d", stateId);
 		auto* stateArgs = stateArray->PushArray();
 		stateArgs->Insert("id", static_cast<double>(stateId));
 		state.SendBehaviorBlocksToClient(*stateArgs);
+		if (m_States[m_LastEditedState].IsEmpty()) {
+			m_LastEditedState = stateId;
+		}
 	}
+
+	if (stateArray->GetDense().empty()) {
+		LOG("No states found, sending default state");
+		m_LastEditedState = BehaviorState::HOME_STATE;
+	}
+
+	auto* executionState = args.InsertArray("executionState");
+	executionState->Insert("stateID", static_cast<double>(m_LastEditedState));
+	executionState->InsertArray("strips");
 }
 
 //////////////////////// ModelComponent ////////////////////////

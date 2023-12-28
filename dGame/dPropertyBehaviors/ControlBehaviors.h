@@ -59,9 +59,7 @@ private:
 	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
 	void ToggleExecutionUpdates();
 	void AddStrip(ControlBehaviorContext& context);
-	void RemoveStrip(AMFArrayValue* arguments);
 	void MergeStrips(AMFArrayValue* arguments);
-	void UpdateStripUI(AMFArrayValue* arguments);
 	void MigrateActions(AMFArrayValue* arguments);
 	void RearrangeStrip(AMFArrayValue* arguments);
 	void Add(AMFArrayValue* arguments);

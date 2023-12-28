@@ -82,16 +82,8 @@ void ControlBehaviors::AddStrip(ControlBehaviorContext& context) {
 	context.modelComponent->HandleControlBehaviorsMsg<AddStripMessage>(context.arguments);
 }
 
-void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
-	RemoveStripMessage removeStrip(arguments);
-}
-
 void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
 	MergeStripsMessage mergeStripsMessage(arguments);
-}
-
-void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
-	UpdateStripUiMessage updateStripUiMessage(arguments);
 }
 
 void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
@@ -178,7 +170,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "addStrip") {
 		AddStrip(context);
 	} else if (command == "removeStrip") {
-		RemoveStrip(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<RemoveStripMessage>(arguments);
 	} else if (command == "mergeStrips") {
 		MergeStrips(arguments);
 	} else if (command == "splitStrip") {
