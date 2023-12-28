@@ -7,9 +7,6 @@
 #include "Amf3.h"
 #include "dCommonVars.h"
 
-#include "Game.h"
-#include "Logger.h"
-
 enum class BehaviorState : uint32_t;
 
 /**
@@ -24,7 +21,7 @@ public:
 	BehaviorMessageBase(AMFArrayValue* arguments);
 protected:
 	int32_t GetBehaviorIdFromArgument(AMFArrayValue* arguments);
-	uint32_t GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName = "actionIndex");
+	int32_t GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName = "actionIndex");
 	int32_t behaviorId = DefaultBehaviorId;
 };
 

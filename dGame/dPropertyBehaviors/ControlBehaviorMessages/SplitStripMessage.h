@@ -16,12 +16,12 @@ public:
 	SplitStripMessage(AMFArrayValue* arguments);
 	ActionContext GetSourceActionContext() { return sourceActionContext; };
 	ActionContext GetDestinationActionContext() { return destinationActionContext; };
-	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
+	int32_t GetSrcActionIndex() { return srcActionIndex; };
 	StripUiPosition GetPosition() { return destinationPosition; };
 private:
 	ActionContext sourceActionContext;
 	ActionContext destinationActionContext;
-	uint32_t srcActionIndex;
+	int32_t srcActionIndex;
 	StripUiPosition destinationPosition;
 };
 

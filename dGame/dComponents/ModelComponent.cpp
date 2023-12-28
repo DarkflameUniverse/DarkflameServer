@@ -4,20 +4,26 @@
 #include "Game.h"
 #include "Logger.h"
 
-#include "AddStripMessage.h"
-#include "AddActionMessage.h"
+#include "ControlBehaviorMsgs.h"
 
-void Strip::AddStrip(AddStripMessage& msg) {
+///////////////// Strip ///////////////////
+
+template<>
+void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
 	for (auto& action : m_Actions) {
 		LOG("%s %s %f %s", action.GetType().c_str(), action.GetValueParameterName().c_str(), (float)action.GetValueParameterDouble(), action.GetValueParameterString().c_str());
 	}
+
 	m_Position = msg.GetPosition();
 };
 
-void Strip::AddAction(AddActionMessage& msg) {
+template<>
+void Strip::HandleMsg(AddActionMessage& msg) {
+	if (msg.GetActionIndex() == -1) return;
+
 	m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
-};
+}
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	m_Position.SendBehaviorBlocksToClient(args);
@@ -26,21 +32,25 @@ void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	for (auto& action : m_Actions) {
 		action.SendBehaviorBlocksToClient(*actions);
 	}
-}
+};
 
-void State::AddStrip(AddStripMessage& msg) {
+///////////////// State ///////////////////
+
+template<>
+void State::HandleMsg(AddStripMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
 	}
-	m_Strips[msg.GetActionContext().GetStripId()].AddStrip(msg);
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
 };
 
-void State::AddAction(AddActionMessage& msg) {
+template<>
+void State::HandleMsg(AddActionMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].AddAction(msg);
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
 };
 
 void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
@@ -55,12 +65,16 @@ void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	}
 };
 
-void PropertyBehavior::AddStrip(AddStripMessage& msg) {
-	m_States[msg.GetActionContext().GetStateId()].AddStrip(msg);
+///////////////// PropertyBehavior ///////////////////
+
+template<>
+void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 };
 
-void PropertyBehavior::AddAction(AddActionMessage& msg) {
-	m_States[msg.GetActionContext().GetStateId()].AddAction(msg);
+template<>
+void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 };
 
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
@@ -107,14 +121,6 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 	outBitStream->Write<uint32_t>(0); // Number of behaviors
 	outBitStream->Write1(); // Is this model paused
 	if (bIsInitialUpdate) outBitStream->Write0(); // We are not writing model editing info
-}
-
-void ModelComponent::HandleControlBehaviorsMsg(AddStripMessage& msg) {
-	m_Behaviors[msg.GetBehaviorId()].AddStrip(msg);
-}
-
-void ModelComponent::HandleControlBehaviorsMsg(AddActionMessage& msg) {
-	m_Behaviors[msg.GetBehaviorId()].AddAction(msg);
 }
 
 void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {

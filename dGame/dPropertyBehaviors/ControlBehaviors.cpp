@@ -73,13 +73,13 @@ void ControlBehaviors::ToggleExecutionUpdates() {
 }
 
 void ControlBehaviors::AddStrip(ControlBehaviorContext& context) {
-	AddStripMessage addStripMessage(context.arguments);
+	BehaviorMessageBase msgBase(context.arguments);
 
-	if (addStripMessage.IsDefaultBehaviorId()) {
+	if (msgBase.IsDefaultBehaviorId()) {
 		RequestUpdatedID(context);
 	}
 
-	context.modelComponent->HandleControlBehaviorsMsg(addStripMessage);
+	context.modelComponent->HandleControlBehaviorsMsg<AddStripMessage>(context.arguments);
 }
 
 void ControlBehaviors::RemoveStrip(AMFArrayValue* arguments) {
@@ -96,13 +96,6 @@ void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
 
 void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
 	UpdateStripUiMessage updateStripUiMessage(arguments);
-}
-
-void ControlBehaviors::AddAction(ControlBehaviorContext& context) {
-	if (!context) return;
-	AddActionMessage addActionMessage(context.arguments);
-
-	context.modelComponent->HandleControlBehaviorsMsg(addActionMessage);
 }
 
 void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
@@ -197,7 +190,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "updateStripUI") {
 		UpdateStripUI(arguments);
 	} else if (command == "addAction") {
-		AddAction(context);
+		context.modelComponent->HandleControlBehaviorsMsg<AddActionMessage>(arguments);
 	} else if (command == "migrateActions") {
 		MigrateActions(arguments);
 	} else if (command == "rearrangeStrip") {

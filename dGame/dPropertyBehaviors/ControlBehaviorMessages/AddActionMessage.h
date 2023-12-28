@@ -18,7 +18,7 @@ public:
 	Action GetAction() { return action; };
 	ActionContext GetActionContext() { return actionContext; };
 private:
-	uint32_t actionIndex;
+	int32_t actionIndex = -1;
 	ActionContext actionContext;
 	Action action;
 };

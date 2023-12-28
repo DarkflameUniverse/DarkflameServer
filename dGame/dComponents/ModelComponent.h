@@ -10,6 +10,8 @@
 #include "eReplicaComponentType.h"
 #include "Amf3.h"
 
+#include "BehaviorMessageBase.h"
+
 #include "BehaviorStates.h"
 #include "StripUiPosition.h"
 #include "Action.h"
@@ -20,8 +22,9 @@ class AddActionMessage;
 
 class Strip {
 public:
-	void AddStrip(AddStripMessage& msg);
-	void AddAction(AddActionMessage& msg);
+	template<typename Msg>
+	void HandleMsg(Msg& msg);
+
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 	StripUiPosition GetPosition() { return m_Position; }
 private:
@@ -31,8 +34,9 @@ private:
 
 class State {
 public:
-	void AddStrip(AddStripMessage& msg);
-	void AddAction(AddActionMessage& msg);
+	template<typename Msg>
+	void HandleMsg(Msg& msg);
+
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 private:
 	std::vector<Strip> m_Strips;
@@ -40,8 +44,9 @@ private:
 
 class PropertyBehavior {
 public:
-	void AddStrip(AddStripMessage& msg);
-	void AddAction(AddActionMessage& msg);
+	template<typename Msg>
+	void HandleMsg(Msg& msg);
+
 	void SendBehaviorListToClient(AMFArrayValue& args);
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 private:
@@ -94,8 +99,12 @@ public:
 	 */
 	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; }
 
-	void HandleControlBehaviorsMsg(AddStripMessage& msg);
-	void HandleControlBehaviorsMsg(AddActionMessage& msg);
+	template<typename Msg>
+	void HandleControlBehaviorsMsg(AMFArrayValue* args) {
+		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
+		Msg msg(args);
+		m_Behaviors[msg.GetBehaviorId()].HandleMsg(msg);
+	};
 
 	// Updates the pending behavior ID to the new ID.
 	void UpdatePendingBehaviorId(const int32_t newId);
