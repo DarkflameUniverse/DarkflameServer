@@ -87,7 +87,7 @@ void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 				}
 			}
 		}
-		m_DirtyActivityInfo = false;
+		if (!bIsInitialUpdate) m_DirtyActivityInfo = false;
 	}
 }
 
@@ -122,8 +122,6 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 		auto* instance = NewInstance();
 		instance->AddParticipant(player);
 	}
-	m_DirtyActivityInfo = true;
-	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ActivityComponent::PlayerJoinLobby(Entity* player) {
