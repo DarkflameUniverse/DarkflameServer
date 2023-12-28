@@ -886,7 +886,7 @@ void PetComponent::OnInteract() {
 	}
 }
 
-void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType interactType, const LWOOBJID interactID) {
+void PetComponent::StartInteract(const NiPoint3& position, const PetInteractType interactType, const LWOOBJID& interactID) {
 	SetInteraction(interactID); // TODO: Check if this should be serialized for goToObj
 	SetInteractType(interactType);
 	SetAbility(ePetAbilityType::GoToObject);
@@ -978,6 +978,7 @@ void PetComponent::HandleInteractBouncer() {
 	if (IsHandlingInteraction()) {
 		auto* const owner = GetOwner();
 		if (!owner) return;
+		const auto sysAddr = owner->GetSystemAddress();
 
 		auto* const petSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 		if (!petSwitch) return;
@@ -985,16 +986,25 @@ void PetComponent::HandleInteractBouncer() {
 		auto* const petSwitchEntity = petSwitch->GetParentEntity();
 		if (!petSwitchEntity) return;
 
-		m_Parent->AddCallbackTimer(2.0f, [petSwitch, petSwitchEntity]() {
+		m_Parent->AddCallbackTimer(1.0f, [this, petSwitch, petSwitchEntity, sysAddr]() {
 			LOG_DEBUG("Callback start!");
 
-			petSwitch->GetPetBouncer()->SetPetBouncerEnabled(false);
+			const auto bouncerComp = petSwitch->GetPetBouncer();
+			const auto bouncerCompPos = bouncerComp->GetParentEntity()->GetPosition();
+			const auto bouncerId = bouncerComp->GetParentEntity()->GetObjectID();
+
+			const auto petId = this->GetParentEntity()->GetObjectID();
+
+			RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
+			bouncerComp->SetPetBouncerEnabled(true);
+			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3::ZERO, NiPoint3::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
+			bouncerComp->SetPetBouncerEnabled(false);
 			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
 
 			LOG_DEBUG("Callback end!");
-			});
+		});
 
-		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
+		//RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
 
 		auto* const petBouncer = petSwitch->GetPetBouncer();
 		petBouncer->SetPetBouncerEnabled(true);
@@ -1223,7 +1233,7 @@ void PetComponent::Release() {
 	item->SetCount(0, false, false);
 }
 
-void PetComponent::Command(NiPoint3 position, LWOOBJID source, int32_t commandType, int32_t typeId, bool overrideObey) {
+void PetComponent::Command(const NiPoint3& position, const LWOOBJID& source, int32_t commandType, int32_t typeId, bool overrideObey) {
 	auto* owner = GetOwner();
 	if (!owner) return;
 

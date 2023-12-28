@@ -93,35 +93,35 @@ public:
 	 * @param flag PetFlag(s) to set
 	*/
 	template <typename... varArg>
-	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
+	inline void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Sets the pet to ONLY have the specified flag(s), clearing all others
 	 * @param flag PetFlag(s) to set exclusively
 	*/
 	template <typename... varArg>
-	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
+	inline void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Unsets one or more pet flags
 	 * @param flag PetFlag(s) to unset
 	*/
 	template <typename... varArg>
-	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
+	inline void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has all the specified flag(s)
 	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
+	inline constexpr bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has ONLY the specified flag(s)
 	 * @param flag PetFlag(s) to check if the pet has exclusively
 	*/
 	template <typename... varArg>
-	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
+	inline constexpr bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Governs the pet update loop
@@ -202,7 +202,7 @@ public:
 	/**
 	 * Start a pet interaction with an object at a given position
 	*/
-	void StartInteract(const NiPoint3 position, const PetInteractType interactType, const LWOOBJID interactID);
+	void StartInteract(const NiPoint3& position, const PetInteractType interactType, const LWOOBJID& interactID);
 
 	/**
 	 * Stop a pet interaction with an object
@@ -245,7 +245,7 @@ public:
 	 * @param typeId extra information about the command, e.g. the emote to play
 	 * @param overrideObey unused
 	 */
-	void Command(NiPoint3 position, LWOOBJID source, int32_t commandType, int32_t typeId, bool overrideObey);
+	void Command(const NiPoint3& position, const LWOOBJID& source, int32_t commandType, int32_t typeId, bool overrideObey);
 
 	/**
 	 * Returns the ID of the owner of this pet (if any)

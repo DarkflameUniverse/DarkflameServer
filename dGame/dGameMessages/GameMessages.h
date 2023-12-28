@@ -393,7 +393,25 @@ namespace GameMessages {
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 
+	/**
+	 * Sends the bouncer active status
+	 * @param objectId Object ID of the bouncer
+	 * @param bActive Active state of the bouncer
+	 * @param sysAddr System address of the user
+	*/
 	void SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr);
+
+	/**
+	 * Sends a request to the client to bounce (I think?)
+	 * @param objectId Object ID
+	 * @param bounceTargetId The object ID of the bounce target
+	 * @param bounceTargetPos The position of the bounce target
+	 * @param bouncedObjLinVel TODO: UNUSED
+	 * @param requestSourceId The object Id of the entity requesting the bounce
+	 * @param bAllBounced Whether to bounce all entities standing on the bouncer pad
+	 * @param bAllowClientOverload TODO: UNUSED
+	*/
+	void SendRequestClientBounce(const LWOOBJID& objectId, const LWOOBJID& bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr);
 
 	void SendSetPetName(LWOOBJID objectId, std::u16string name, LWOOBJID petDBID, const SystemAddress& sysAddr);
 
