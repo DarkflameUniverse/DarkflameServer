@@ -57,7 +57,7 @@ void ModuleAssemblyComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 		outBitStream->Write(m_UseOptionalParts);
 
-		outBitStream->Write(static_cast<uint16_t>(m_AssemblyPartsLOTs.size()));
+		outBitStream->Write<uint16_t>(m_AssemblyPartsLOTs.size());
 		for (char16_t character : m_AssemblyPartsLOTs) {
 			outBitStream->Write(character);
 		}

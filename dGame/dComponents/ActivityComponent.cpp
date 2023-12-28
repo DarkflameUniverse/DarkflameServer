@@ -439,7 +439,7 @@ float_t ActivityComponent::GetActivityValue(LWOOBJID playerID, uint32_t index) {
 
 	auto* data = GetActivityPlayerData(playerID);
 	if (data != nullptr) {
-		value = data->values[std::min(index, (uint32_t)9)];
+		value = data->values[std::min(index, static_cast<uint32_t>(9))];
 	}
 
 	return value;
@@ -448,7 +448,7 @@ float_t ActivityComponent::GetActivityValue(LWOOBJID playerID, uint32_t index) {
 void ActivityComponent::SetActivityValue(LWOOBJID playerID, uint32_t index, float_t value) {
 	auto* data = AddActivityPlayerData(playerID);
 	if (data != nullptr) {
-		data->values[std::min(index, (uint32_t)9)] = value;
+		data->values[std::min(index, static_cast<uint32_t>(9))] = value;
 	}
 	m_DirtyActivityInfo = true;
 	Game::entityManager->SerializeEntity(m_Parent);

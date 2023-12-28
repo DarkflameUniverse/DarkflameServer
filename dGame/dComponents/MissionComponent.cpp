@@ -458,7 +458,7 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskTyp
 bool MissionComponent::RequiresItem(const LOT lot) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT type FROM Objects WHERE id = ?;");
-	query.bind(1, (int)lot);
+	query.bind(1, static_cast<int>(lot));
 
 	auto result = query.execQuery();
 

@@ -50,7 +50,7 @@ void RaceImagineCrateServer::OnDie(Entity* self, Entity* killer) {
 
 			// Progress racing smashable missions
 			if (missionComponent == nullptr) return;
-			missionComponent->Progress(eMissionTaskType::RACING, 0, (LWOOBJID)eRacingTaskParam::SMASHABLES);
+			missionComponent->Progress(eMissionTaskType::RACING, 0, static_cast<LWOOBJID>(eRacingTaskParam::SMASHABLES));
 		}
 	}
 }

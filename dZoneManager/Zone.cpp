@@ -59,7 +59,7 @@ void Zone::LoadZoneIntoMemory() {
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::Alpha) BinaryIO::BinaryRead(file, mapRevision);
 
 		BinaryIO::BinaryRead(file, m_WorldID);
-		if ((uint16_t)m_WorldID != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
+		if (static_cast<LWOMAPID>(m_WorldID) != m_ZoneID.GetMapID()) LOG("WorldID: %i doesn't match MapID %i! Is this intended?", m_WorldID, m_ZoneID.GetMapID());
 
 		AddRevision(LWOSCENEID_INVALID, mapRevision);
 
@@ -147,7 +147,7 @@ void Zone::LoadZoneIntoMemory() {
 	} else {
 		LOG("Failed to open: %s", m_ZoneFilePath.c_str());
 	}
-	
+
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 }
 
@@ -243,7 +243,7 @@ void Zone::LoadScene(std::istream& file) {
 
 void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
 	auto file = Game::assetManager->GetFile((m_ZonePath + triggerFile).c_str());
-	
+
 	std::stringstream data;
 	data << file.rdbuf();
 

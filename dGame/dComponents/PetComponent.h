@@ -6,7 +6,7 @@
 #include "Preconditions.h"
 #include "eReplicaComponentType.h"
 
-enum class PetAbilityType
+enum class PetAbilityType : uint32_t
 {
 	Invalid,
 	GoToObject,
