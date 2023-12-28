@@ -61,7 +61,6 @@ private:
 	void AddStrip(ControlBehaviorContext& context);
 	void RemoveStrip(AMFArrayValue* arguments);
 	void MergeStrips(AMFArrayValue* arguments);
-	void SplitStrip(AMFArrayValue* arguments);
 	void UpdateStripUI(AMFArrayValue* arguments);
 	void MigrateActions(AMFArrayValue* arguments);
 	void RearrangeStrip(AMFArrayValue* arguments);

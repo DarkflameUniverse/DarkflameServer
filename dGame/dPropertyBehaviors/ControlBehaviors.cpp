@@ -90,10 +90,6 @@ void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
 	MergeStripsMessage mergeStripsMessage(arguments);
 }
 
-void ControlBehaviors::SplitStrip(AMFArrayValue* arguments) {
-	SplitStripMessage splitStripMessage(arguments);
-}
-
 void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
 	UpdateStripUiMessage updateStripUiMessage(arguments);
 }
@@ -186,7 +182,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "mergeStrips") {
 		MergeStrips(arguments);
 	} else if (command == "splitStrip") {
-		SplitStrip(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<SplitStripMessage>(arguments);
 	} else if (command == "updateStripUI") {
 		context.modelComponent->HandleControlBehaviorsMsg<UpdateStripUiMessage>(arguments);
 	} else if (command == "addAction") {

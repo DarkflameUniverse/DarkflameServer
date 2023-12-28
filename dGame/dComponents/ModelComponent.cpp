@@ -30,6 +30,18 @@ void Strip::HandleMsg(UpdateStripUiMessage& msg) {
 	m_Position = msg.GetPosition();
 };
 
+template<>
+void Strip::HandleMsg(SplitStripMessage& msg) {
+	if (msg.GetTransferredActions().empty() && !m_Actions.empty()) {
+		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
+		msg.SetTransferredActions(startToMove, m_Actions.end());
+		m_Actions.erase(startToMove, m_Actions.end());
+	} else {
+		m_Actions = msg.GetTransferredActions();
+		m_Position = msg.GetPosition();
+	}
+};
+
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	m_Position.SendBehaviorBlocksToClient(args);
 
@@ -67,6 +79,23 @@ void State::HandleMsg(UpdateStripUiMessage& msg) {
 	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
 };
 
+template<>
+void State::HandleMsg(SplitStripMessage& msg) {
+	if (msg.GetTransferredActions().empty()) {
+		if (m_Strips.size() <= msg.GetSourceActionContext().GetStripId()) {
+			return;
+		}
+
+		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+	} else {
+		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
+			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
+		}
+
+		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+	}
+};
+
 void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* strips = args.InsertArray("strips");
 	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
@@ -96,6 +125,12 @@ void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 };
 
+template<>
+void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
+	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
+	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
+};
+
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
 	args.Insert("name", m_Name);
 	args.Insert("isLocked", isLocked);
@@ -104,7 +139,7 @@ void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
 
 void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* stateArray = args.InsertArray("states");
-	for (auto&[stateId, state] : m_States) {
+	for (auto& [stateId, state] : m_States) {
 		auto* stateArgs = stateArray->PushArray();
 		stateArgs->Insert("id", static_cast<double>(stateId));
 		state.SendBehaviorBlocksToClient(*stateArgs);
