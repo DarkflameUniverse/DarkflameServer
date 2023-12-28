@@ -142,11 +142,13 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 
 void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
 	// This closes the UI menu should it be open while the player is removing behaviors
+	// Replace this with BehaviorRemoved with the single argument objectID
 	AMFArrayValue args;
 
-	args.Insert("visible", false);
+	// untested, should work.
+	args.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
 
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "ToggleBehaviorEditor", args);
+	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "BehaviorRemoved", args);
 
 	MoveToInventoryMessage moveToInventoryMessage(arguments);
 
