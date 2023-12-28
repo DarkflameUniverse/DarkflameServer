@@ -197,10 +197,10 @@ void MakeBacktrace() {
 	sigact.sa_sigaction = CritErrHdlr;
 	sigact.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	if (sigaction(SIGSEGV, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGFPE, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGABRT, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGILL, &sigact, (struct sigaction*)nullptr) != 0) {
+	if (sigaction(SIGSEGV, &sigact, nullptr) != 0 ||
+		sigaction(SIGFPE, &sigact, nullptr) != 0 ||
+		sigaction(SIGABRT, &sigact, nullptr) != 0 ||
+		sigaction(SIGILL, &sigact, nullptr) != 0) {
 		fprintf(stderr, "error setting signal handler for %d (%s)\n",
 			SIGSEGV,
 			strsignal(SIGSEGV));

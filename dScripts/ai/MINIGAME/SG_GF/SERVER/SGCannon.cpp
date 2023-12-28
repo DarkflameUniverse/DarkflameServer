@@ -171,7 +171,7 @@ void SGCannon::SuperChargeTimerFunc(Entity* self) {
 void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
 		self->SetVar<bool>(WaveStatusVariable, true);
-		const auto wave = (int32_t)self->GetVar<uint32_t>(ThisWaveVariable);
+		const auto wave = static_cast<int32_t>(self->GetVar<uint32_t>(ThisWaveVariable));
 
 		if (wave != 0 && self->GetVar<bool>(SuperChargePausedVariable)) {
 			StartChargedCannon(self, self->GetVar<uint32_t>(CurrentSuperChargedTimeVariable));
@@ -187,7 +187,7 @@ void SGCannon::SpawnWaveTimerFunc(Entity* self) {
 		LOG("Current wave spawn: %i/%i", wave, m_Waves.size());
 
 		// All waves completed
-		const auto timeLimit = (float_t)self->GetVar<uint32_t>(TimeLimitVariable);
+		const auto timeLimit = static_cast<float_t>(self->GetVar<uint32_t>(TimeLimitVariable));
 		if (wave >= m_Waves.size()) {
 			ActivityTimerStart(self, GameOverTimer, timeLimit, timeLimit);
 		} else {
@@ -262,7 +262,7 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
 		LOG_DEBUG("time name %s %s", name.c_str(), name.substr(7).c_str());
-		const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
+		const auto spawnNumber = static_cast<uint32_t>(std::stoi(name.substr(7)));
 		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
 		LOG_DEBUG("size %i, %i", activeSpawns.size(), spawnNumber);
 		if (activeSpawns.size() <= spawnNumber) {
@@ -518,7 +518,7 @@ void SGCannon::SpawnObject(Entity* self, const SGEnemy& toSpawn, bool spawnNow) 
 }
 
 void SGCannon::RecordPlayerScore(Entity* self) {
-	const auto totalScore = self->GetVar<uint32_t>(TotalScoreVariable);
+	const auto totalScore = self->GetVar<int32_t>(TotalScoreVariable);
 	const auto currentWave = self->GetVar<uint32_t>(ThisWaveVariable);
 
 	if (currentWave > 0) {
@@ -555,7 +555,7 @@ void SGCannon::PlaySceneAnimation(Entity* self, const std::u16string& animationN
 }
 
 void SGCannon::PauseChargeCannon(Entity* self) {
-	const auto time = std::max((uint32_t)std::ceil(ActivityTimerGetCurrentTime(self, SuperChargeTimer)), (uint32_t)1);
+	const auto time = std::max(static_cast<uint32_t>(std::ceil(ActivityTimerGetCurrentTime(self, SuperChargeTimer))), static_cast<uint32_t>(1));
 
 	self->SetVar<bool>(SuperChargePausedVariable, true);
 	self->SetVar<uint32_t>(CurrentSuperChargedTimeVariable, time);
@@ -587,17 +587,17 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<uint32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<int32_t>(TotalScoreVariable), self->GetObjectID(), "performact_score");
 			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, self->GetVar<uint32_t>(MaxStreakVariable), self->GetObjectID(), "performact_streak");
-			missionComponent->Progress(eMissionTaskType::ACTIVITY, m_CannonLot, 0, "", self->GetVar<uint32_t>(TotalScoreVariable));
+			missionComponent->Progress(eMissionTaskType::ACTIVITY, m_CannonLot, 0, "", self->GetVar<int32_t>(TotalScoreVariable));
 		}
 
-		Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<uint32_t>(TotalScoreVariable));
+		Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<int32_t>(TotalScoreVariable));
 
 		SaveScore(self, player->GetObjectID(),
-			static_cast<float>(self->GetVar<uint32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);
+			static_cast<float>(self->GetVar<int32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);
 
-		StopActivity(self, player->GetObjectID(), self->GetVar<uint32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
+		StopActivity(self, player->GetObjectID(), self->GetVar<int32_t>(TotalScoreVariable), self->GetVar<uint32_t>(MaxStreakVariable), percentage);
 		self->SetNetworkVar<bool>(AudioFinalWaveDoneVariable, true);
 
 		// Give the player the model rewards they earned
@@ -609,7 +609,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		}
 
 		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
-			GeneralUtils::to_u16string(self->GetVar<uint32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
+			GeneralUtils::to_u16string(self->GetVar<int32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
 		);
 	}
 
@@ -634,7 +634,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 		ActivityTimerStart(self, timerName, respawnTime, respawnTime);
 	}
 
-	int score = spawnInfo.score;
+	int32_t score = spawnInfo.score;
 
 	if (score > 0) {
 		score += score * GetCurrentBonus(self);
@@ -652,7 +652,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 
 	auto lastSuperTotal = self->GetVar<uint32_t>(u"LastSuperTotal");
 
-	auto scScore = self->GetVar<uint32_t>(TotalScoreVariable) - lastSuperTotal;
+	auto scScore = self->GetVar<int32_t>(TotalScoreVariable) - lastSuperTotal;
 
 	LOG("LastSuperTotal: %i, scScore: %i, constants.chargedPoints: %i",
 		lastSuperTotal, scScore, constants.chargedPoints
@@ -661,7 +661,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	if (!self->GetVar<bool>(SuperChargeActiveVariable) && scScore >= constants.chargedPoints && score >= 0) {
 		StartChargedCannon(self);
 		self->SetNetworkVar<float>(u"SuperChargeBar", 100.0f);
-		self->SetVar<uint32_t>(u"LastSuperTotal", self->GetVar<uint32_t>(TotalScoreVariable));
+		self->SetVar<uint32_t>(u"LastSuperTotal", self->GetVar<int32_t>(TotalScoreVariable));
 	}
 
 	UpdateStreak(self);
@@ -673,13 +673,13 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 		target->GetPosition()
 	);
 
-	auto newScore = (int)self->GetVar<uint32_t>(TotalScoreVariable) + score;
+	auto newScore = self->GetVar<int32_t>(TotalScoreVariable) + score;
 
 	if (newScore < 0) {
 		newScore = 0;
 	}
 
-	self->SetVar<uint32_t>(TotalScoreVariable, newScore);
+	self->SetVar<int32_t>(TotalScoreVariable, newScore);
 
 	self->SetNetworkVar<uint32_t>(u"updateScore", newScore);
 
@@ -1038,7 +1038,7 @@ void SGCannon::ResetVars(Entity* self) {
 	self->SetVar<uint32_t>(LastSuperTotalVariable, 0);
 	self->SetVar<LOT>(CurrentRewardVariable, LOT_NULL);
 	self->SetVar<std::vector<LOT>>(RewardsVariable, {});
-	self->SetVar<uint32_t>(TotalScoreVariable, 0);
+	self->SetVar<int32_t>(TotalScoreVariable, 0);
 
 	self->SetVar<uint32_t>(u"m_curStreak", 0);
 	self->SetNetworkVar<float>(u"SuperChargeBar", 0);

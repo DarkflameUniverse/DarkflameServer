@@ -51,7 +51,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 
 				if (actualUncompressedSize != -1) {
 					uint32_t previousSize = completeUncompressedModel.size();
-					completeUncompressedModel.append((char*)uncompressedChunk.get());
+					completeUncompressedModel.append(reinterpret_cast<char*>(uncompressedChunk.get()));
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
 				} else {
 					LOG("Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, model.id, err);

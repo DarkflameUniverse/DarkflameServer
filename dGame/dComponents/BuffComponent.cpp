@@ -41,7 +41,7 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 		for (const auto& [id, buff] : m_Buffs) {
 			outBitStream->Write<uint32_t>(id);
 			outBitStream->Write(buff.time != 0.0f);
-			if (buff.time != 0.0f) outBitStream->Write(static_cast<uint32_t>(buff.time * 1000.0f));
+			if (buff.time != 0.0f) outBitStream->Write<uint32_t>(buff.time * 1000.0f);
 			outBitStream->Write(buff.cancelOnDeath);
 			outBitStream->Write(buff.cancelOnZone);
 			outBitStream->Write(buff.cancelOnDamaged);
@@ -147,8 +147,8 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 		addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent->GetObjectID()) > 0;
 	}
 
-	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, (uint32_t)id,
-		(uint32_t)duration * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
+	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, static_cast<uint32_t>(id),
+		static_cast<uint32_t>(duration) * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
 		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, addedByTeammate, applyOnTeammates);
 
 	float tick = 0;
@@ -431,7 +431,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM BuffParameters WHERE BuffID = ?;");
-	query.bind(1, (int)buffId);
+	query.bind(1, static_cast<int>(buffId));
 
 	auto result = query.execQuery();
 

@@ -19,7 +19,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
-	query.bind(1, (int)id);
+	query.bind(1, static_cast<int>(id));
 
 	auto result = query.execQuery();
 

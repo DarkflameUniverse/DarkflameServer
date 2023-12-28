@@ -115,7 +115,7 @@ void BaseSurvivalServer::BasePlayerExit(Entity* self, Entity* player) {
 
 	SetActivityValue(self, player->GetObjectID(), 1, 0);
 	self->SetNetworkVar<uint32_t>(NumberOfPlayersVariable,
-		std::min((uint32_t)0, self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
+		std::min(static_cast<uint32_t>(0), self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
 }
 
 void BaseSurvivalServer::BaseFireEvent(Entity* self, Entity* sender, const std::string& args, int32_t param1, int32_t param2,
@@ -370,7 +370,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 
 			for (const auto& survivalMission : missionsToUpdate) {
 				auto* mission = missionComponent->GetMission(survivalMission.first);
-				if (mission != nullptr && (uint32_t)time >= survivalMission.second
+				if (mission != nullptr && static_cast<uint32_t>(time) >= survivalMission.second
 					&& (mission->GetMissionState() == eMissionState::ACTIVE
 						|| mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
 
@@ -421,7 +421,7 @@ void BaseSurvivalServer::SpawnerReset(SpawnerNetworkCollection& spawnerNetworkCo
 		}
 	}
 
-	state.totalSpawned = std::max((uint32_t)totalSpawned, state.totalSpawned);
+	state.totalSpawned = std::max(static_cast<uint32_t>(totalSpawned), state.totalSpawned);
 }
 
 void BaseSurvivalServer::SpawnerUpdate(Entity* self, SpawnerNetworkCollection& spawnerNetworkCollection, uint32_t amount) {
