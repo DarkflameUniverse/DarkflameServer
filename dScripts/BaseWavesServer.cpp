@@ -95,7 +95,7 @@ void BaseWavesServer::BasePlayerExit(Entity* self, Entity* player) {
 	SetActivityValue(self, player->GetObjectID(), 2, 0);
 
 	self->SetNetworkVar<uint32_t>(NumberOfPlayersVariable,
-		std::min((uint32_t)0, self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
+		std::min(static_cast<uint32_t>(0), self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
 }
 
 // Done
@@ -212,7 +212,7 @@ void BaseWavesServer::OnActivityTimerDone(Entity* self, const std::string& name)
 		const auto currentTime = ActivityTimerGetCurrentTime(self, ClockTickTimer);
 		const auto currentWave = state.waveNumber;
 
-		self->SetNetworkVar<uint32_t>(WaveCompleteVariable, { currentWave, (uint32_t)currentTime });
+		self->SetNetworkVar<uint32_t>(WaveCompleteVariable, { currentWave, static_cast<uint32_t>(currentTime) });
 	} else if (name == GameOverWinTimer) {
 		GameOver(self, true);
 	} else if (name == CinematicDoneTimer) {
@@ -421,7 +421,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 	const auto wave = waves.at(state.waveNumber);
 
 	// Handles meta info to the client about the current round
-	if (wave.winDelay != (uint32_t)-1) {
+	if (wave.winDelay != static_cast<uint32_t>(-1)) {
 		self->SetNetworkVar<bool>(WonWaveVariable, true);
 
 		// Close the game if we don't expect a notification from an other entity to end it
@@ -436,7 +436,7 @@ void BaseWavesServer::SpawnWave(Entity* self) {
 			}
 		}
 	} else {
-		if (wave.timeLimit != (uint32_t)-1) {
+		if (wave.timeLimit != static_cast<uint32_t>(-1)) {
 			ActivityTimerStart(self, TimedWaveTimer, 1.0f, wave.timeLimit);
 			self->SetNetworkVar<uint32_t>(StartTimedWaveVariable, { wave.timeLimit, state.waveNumber + 1 });
 		} else {
@@ -548,7 +548,7 @@ bool BaseWavesServer::UpdateSpawnedEnemies(Entity* self, LWOOBJID enemyID, uint3
 		}
 
 		// Might seem odd to send the next wave but the client isn't 0-indexed so it thinks it completed the correct wave
-		self->SetNetworkVar<uint32_t>(WaveCompleteVariable, { state.waveNumber, (uint32_t)currentTime });
+		self->SetNetworkVar<uint32_t>(WaveCompleteVariable, { state.waveNumber, static_cast<uint32_t>(currentTime) });
 		return true;
 	}
 

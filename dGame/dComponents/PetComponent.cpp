@@ -114,7 +114,7 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 
 	outBitStream->Write1(); // Always serialize as dirty for now
 
-	outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Flags));
+	outBitStream->Write<uint32_t>(m_Flags);
 	outBitStream->Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
@@ -137,12 +137,12 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
 			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-			outBitStream->Write(static_cast<uint8_t>(nameData.size()));
+			outBitStream->Write<uint8_t>(nameData.size());
 			for (const auto c : nameData) {
 				outBitStream->Write(c);
 			}
 
-			outBitStream->Write(static_cast<uint8_t>(ownerNameData.size()));
+			outBitStream->Write<uint8_t>(ownerNameData.size());
 			for (const auto c : ownerNameData) {
 				outBitStream->Write(c);
 			}
@@ -208,7 +208,7 @@ void PetComponent::OnUse(Entity* originator) {
 	if (cached == buildCache.end()) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = ?;");
-		query.bind(1, (int)m_Parent->GetLOT());
+		query.bind(1, static_cast<int>(m_Parent->GetLOT()));
 
 		auto result = query.execQuery();
 

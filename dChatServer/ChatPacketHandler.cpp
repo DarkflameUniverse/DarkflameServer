@@ -66,7 +66,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GET_FRIENDS_LIST_RESPONSE);
 	bitStream.Write<uint8_t>(0);
 	bitStream.Write<uint16_t>(1); //Length of packet -- just writing one as it doesn't matter, client skips it.
-	bitStream.Write((uint16_t)player->friends.size());
+	bitStream.Write<uint16_t>(player->friends.size());
 
 	for (auto& data : player->friends) {
 		data.Serialize(bitStream);
@@ -705,7 +705,7 @@ void ChatPacketHandler::SendTeamInviteConfirm(PlayerData* receiver, bool bLeader
 	bitStream.Write(ucLootFlag);
 	bitStream.Write(ucNumOfOtherPlayers);
 	bitStream.Write(ucResponseCode);
-	bitStream.Write(static_cast<uint32_t>(wsLeaderName.size()));
+	bitStream.Write<uint32_t>(wsLeaderName.size());
 	for (const auto character : wsLeaderName) {
 		bitStream.Write(character);
 	}
@@ -730,7 +730,7 @@ void ChatPacketHandler::SendTeamStatus(PlayerData* receiver, LWOOBJID i64LeaderI
 	bitStream.Write<uint32_t>(0); // BinaryBuffe, no clue what's in here
 	bitStream.Write(ucLootFlag);
 	bitStream.Write(ucNumOfOtherPlayers);
-	bitStream.Write(static_cast<uint32_t>(wsLeaderName.size()));
+	bitStream.Write<uint32_t>(wsLeaderName.size());
 	for (const auto character : wsLeaderName) {
 		bitStream.Write(character);
 	}
@@ -771,7 +771,7 @@ void ChatPacketHandler::SendTeamAddPlayer(PlayerData* receiver, bool bIsFreeTria
 	bitStream.Write(bLocal);
 	bitStream.Write(bNoLootOnDeath);
 	bitStream.Write(i64PlayerID);
-	bitStream.Write(static_cast<uint32_t>(wsPlayerName.size()));
+	bitStream.Write<uint32_t>(wsPlayerName.size());
 	for (const auto character : wsPlayerName) {
 		bitStream.Write(character);
 	}
@@ -802,7 +802,7 @@ void ChatPacketHandler::SendTeamRemovePlayer(PlayerData* receiver, bool bDisband
 	bitStream.Write(bLocal);
 	bitStream.Write(i64LeaderID);
 	bitStream.Write(i64PlayerID);
-	bitStream.Write(static_cast<uint32_t>(wsPlayerName.size()));
+	bitStream.Write<uint32_t>(wsPlayerName.size());
 	for (const auto character : wsPlayerName) {
 		bitStream.Write(character);
 	}

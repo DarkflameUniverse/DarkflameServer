@@ -10,13 +10,13 @@ namespace StringifiedEnum {
 		static_assert(std::is_enum_v<T>, "Not an enum"); // Check type
 
 		constexpr auto sv = &magic_enum::enum_entries<T>();
-		std::string_view output;
 
 		const auto it = std::lower_bound(
 			sv->begin(), sv->end(), e,
 			[&](const std::pair<T, std::string_view>& lhs, const T rhs) { return lhs.first < rhs; }
 		);
 
+		std::string_view output;
 		if (it != sv->end() && it->first == e) {
 			output = it->second;
 		} else {

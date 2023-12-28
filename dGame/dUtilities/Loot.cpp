@@ -242,7 +242,7 @@ void Loot::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID,
 
 	GiveLoot(player, selectedReward->LootMatrixIndex, eLootSourceType::ACTIVITY);
 
-	uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+	uint32_t coins = static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
 
 	auto* character = player->GetCharacter();
 
@@ -280,7 +280,7 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT
 		}
 	}
 
-	uint32_t coins = (int)(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
+	uint32_t coins = static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
 
 	GameMessages::SendDropClientLoot(player, source, LOT_NULL, coins, spawnPosition);
 }

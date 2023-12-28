@@ -181,8 +181,8 @@ void EntityManager::SerializeEntities() {
 		m_SerializationCounter++;
 
 		RakNet::BitStream stream;
-		stream.Write(static_cast<char>(ID_REPLICA_MANAGER_SERIALIZE));
-		stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+		stream.Write<char>(ID_REPLICA_MANAGER_SERIALIZE);
+		stream.Write<unsigned short>(entity->GetNetworkId());
 
 		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
 		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
@@ -366,9 +366,9 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 
 	RakNet::BitStream stream;
 
-	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_CONSTRUCTION));
+	stream.Write<char>(ID_REPLICA_MANAGER_CONSTRUCTION);
 	stream.Write(true);
-	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+	stream.Write<unsigned short>(entity->GetNetworkId());
 
 	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
 	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
@@ -416,8 +416,8 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	RakNet::BitStream stream;
 
-	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_DESTRUCTION));
-	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+	stream.Write<char>(ID_REPLICA_MANAGER_DESTRUCTION);
+	stream.Write<unsigned short>(entity->GetNetworkId());
 
 	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 

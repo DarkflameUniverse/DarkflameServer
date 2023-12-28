@@ -92,7 +92,7 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT path FROM PropertyTemplate WHERE mapID = ?;");
-	query.bind(1, (int)zoneId);
+	query.bind(1, static_cast<int>(zoneId));
 
 	auto result = query.execQuery();
 

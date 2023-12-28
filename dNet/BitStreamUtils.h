@@ -47,9 +47,9 @@ struct LUWString {
 namespace BitStreamUtils {
 	template<typename T>
 	void WriteHeader(RakNet::BitStream& bitStream, eConnectionType connectionType, T internalPacketID) {
-		bitStream.Write<uint8_t>(MessageID(ID_USER_PACKET_ENUM));
+		bitStream.Write<MessageID>(ID_USER_PACKET_ENUM);
 		bitStream.Write<eConnectionType>(connectionType);
-		bitStream.Write<uint32_t>(static_cast<uint32_t>(internalPacketID));
+		bitStream.Write(static_cast<uint32_t>(internalPacketID));
 		bitStream.Write<uint8_t>(0);
 	}
 

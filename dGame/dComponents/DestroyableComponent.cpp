@@ -154,7 +154,7 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		outBitStream->Write(m_fMaxArmor);
 		outBitStream->Write(m_fMaxImagination);
 
-		outBitStream->Write(uint32_t(m_FactionIDs.size()));
+		outBitStream->Write<uint32_t>(m_FactionIDs.size());
 		for (size_t i = 0; i < m_FactionIDs.size(); ++i) {
 			outBitStream->Write(m_FactionIDs[i]);
 		}
@@ -380,7 +380,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT enemyList FROM Factions WHERE faction = ?;");
-	query.bind(1, (int)factionID);
+	query.bind(1, static_cast<int>(factionID));
 
 	auto result = query.execQuery();
 

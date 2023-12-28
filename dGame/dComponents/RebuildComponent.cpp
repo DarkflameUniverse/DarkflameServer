@@ -81,14 +81,14 @@ void RebuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 	Entity* builder = GetBuilder();
 
 	if (builder) {
-		outBitStream->Write((uint32_t)1);
+		outBitStream->Write<uint32_t>(1);
 		outBitStream->Write(builder->GetObjectID());
 
 		for (int i = 0; i < 10; i++) {
 			outBitStream->Write(0.0f);
 		}
 	} else {
-		outBitStream->Write((uint32_t)0);
+		outBitStream->Write<uint32_t>(0);
 	}
 	// END Scripted Activity
 

@@ -89,7 +89,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	query.bind(1, (int)sync_entry.lot);
+	query.bind(1, static_cast<int>(sync_entry.lot));
 
 	auto result = query.execQuery();
 
@@ -299,7 +299,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		}
 		//start.optionalTargetID = target;
 
-		start.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
+		start.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
 
 		// Write message
 		RakNet::BitStream message;
@@ -409,7 +409,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	query.bind(1, (int)entry.lot);
+	query.bind(1, static_cast<int>(entry.lot));
 	auto result = query.execQuery();
 
 	if (result.eof()) {
@@ -430,7 +430,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	DoClientProjectileImpact projectileImpact;
 
-	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
+	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
