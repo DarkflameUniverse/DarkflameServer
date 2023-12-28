@@ -1,12 +1,22 @@
 #include "ModelComponent.h"
 #include "Entity.h"
 
+#include "Game.h"
+#include "Logger.h"
+
+#include "AddStripMessage.h"
+#include "AddActionMessage.h"
+
 void Strip::AddStrip(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
 	for (auto& action : m_Actions) {
 		LOG("%s %s %f %s", action.GetType().c_str(), action.GetValueParameterName().c_str(), (float)action.GetValueParameterDouble(), action.GetValueParameterString().c_str());
 	}
 	m_Position = msg.GetPosition();
+};
+
+void Strip::AddAction(AddActionMessage& msg) {
+	m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
 };
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
@@ -25,6 +35,14 @@ void State::AddStrip(AddStripMessage& msg) {
 	m_Strips[msg.GetActionContext().GetStripId()].AddStrip(msg);
 };
 
+void State::AddAction(AddActionMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].AddAction(msg);
+};
+
 void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	auto* strips = args.InsertArray("strips");
 	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
@@ -41,6 +59,10 @@ void PropertyBehavior::AddStrip(AddStripMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].AddStrip(msg);
 };
 
+void PropertyBehavior::AddAction(AddActionMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].AddAction(msg);
+};
+
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
 	args.Insert("name", m_Name);
 	args.Insert("isLocked", isLocked);
@@ -55,6 +77,8 @@ void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 		state.SendBehaviorBlocksToClient(*stateArgs);
 	}
 }
+
+//////////////////////// ModelComponent ////////////////////////
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
@@ -87,6 +111,10 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 
 void ModelComponent::HandleControlBehaviorsMsg(AddStripMessage& msg) {
 	m_Behaviors[msg.GetBehaviorId()].AddStrip(msg);
+}
+
+void ModelComponent::HandleControlBehaviorsMsg(AddActionMessage& msg) {
+	m_Behaviors[msg.GetBehaviorId()].AddAction(msg);
 }
 
 void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {

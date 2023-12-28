@@ -98,8 +98,11 @@ void ControlBehaviors::UpdateStripUI(AMFArrayValue* arguments) {
 	UpdateStripUiMessage updateStripUiMessage(arguments);
 }
 
-void ControlBehaviors::AddAction(AMFArrayValue* arguments) {
-	AddActionMessage addActionMessage(arguments);
+void ControlBehaviors::AddAction(ControlBehaviorContext& context) {
+	if (!context) return;
+	AddActionMessage addActionMessage(context.arguments);
+
+	context.modelComponent->HandleControlBehaviorsMsg(addActionMessage);
 }
 
 void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
@@ -194,7 +197,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "updateStripUI") {
 		UpdateStripUI(arguments);
 	} else if (command == "addAction") {
-		AddAction(arguments);
+		AddAction(context);
 	} else if (command == "migrateActions") {
 		MigrateActions(arguments);
 	} else if (command == "rearrangeStrip") {

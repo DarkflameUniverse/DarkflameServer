@@ -11,16 +11,17 @@
 #include "Amf3.h"
 
 #include "BehaviorStates.h"
-#include "AddStripMessage.h"
+#include "StripUiPosition.h"
 #include "Action.h"
 
-class Action;
 class Entity;
 class AddStripMessage;
+class AddActionMessage;
 
 class Strip {
 public:
 	void AddStrip(AddStripMessage& msg);
+	void AddAction(AddActionMessage& msg);
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 	StripUiPosition GetPosition() { return m_Position; }
 private:
@@ -31,6 +32,7 @@ private:
 class State {
 public:
 	void AddStrip(AddStripMessage& msg);
+	void AddAction(AddActionMessage& msg);
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 private:
 	std::vector<Strip> m_Strips;
@@ -39,6 +41,7 @@ private:
 class PropertyBehavior {
 public:
 	void AddStrip(AddStripMessage& msg);
+	void AddAction(AddActionMessage& msg);
 	void SendBehaviorListToClient(AMFArrayValue& args);
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
 private:
@@ -92,6 +95,7 @@ public:
 	void SetRotation(const NiQuaternion& rot) { m_OriginalRotation = rot; }
 
 	void HandleControlBehaviorsMsg(AddStripMessage& msg);
+	void HandleControlBehaviorsMsg(AddActionMessage& msg);
 
 	// Updates the pending behavior ID to the new ID.
 	void UpdatePendingBehaviorId(const int32_t newId);
