@@ -39,9 +39,9 @@ enum PetFlag : uint32_t {
 	UNKNOWN4 = 1 << 2,		//0x04 - FOLLOWING(?)
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
-	STOP_MOVING = 1 << 6,	//0x40 - Seems to be the "stop moving" flag - called when taming begins and stays active until a name is submitted
+	IMMOBILE = 1 << 6,		//0x40 - Seems to be the "stop moving" flag - called when taming begins and stays active until a name is submitted
 	SPAWNING = 1 << 7,		//0x80
-	UNKNOWN256 = 1 << 8, 	//0x100
+	ON_SWITCH = 1 << 8, 	//0x100
 	UNKNOWN1024 = 1 << 10,	//0x400
 	TAMEABLE = 1 << 26		//0x4000000
 };
@@ -69,11 +69,6 @@ public:
 
 	PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
-
-	/**
-	 * Loads pet info from CDClient
-	*/
-	bool LoadPetInfo(uint32_t petId, CDPetComponent& result);
 	
 	/**
 	 * Serializes the pet
@@ -347,6 +342,16 @@ public:
 	void SetupInteractBouncer();
 
 	/**
+	 * Starts the pet bouncer interaction
+	*/
+	void StartInteractBouncer();
+
+	/**
+	 * Handles the pet bouncer interaction
+	*/
+	void HandleInteractBouncer();
+
+	/**
 	 * Set up the treasure dig interaction
 	 */
 	void SetupInteractTreasureDig();
@@ -437,7 +442,7 @@ private:
 	/**
 	 * Pet information loaded from the CDClientDatabase
 	 */
-	CDPetComponent m_PetInfo;
+	CDPetComponent* m_PetInfo;
 
 	/**
 	 * Cache of all the pets that are currently spawned, indexed by tamer

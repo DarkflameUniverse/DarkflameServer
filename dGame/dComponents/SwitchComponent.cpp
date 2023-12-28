@@ -60,8 +60,8 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 
 		if (m_PetBouncer != nullptr) {
 			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 2602, u"pettriggeractive", "BounceEffect", LWOOBJID_EMPTY, 1, 1, true);
-			RenderComponent::PlayAnimation(m_Parent, u"engaged");
-			m_PetBouncer->SetPetBouncerEnabled(true);
+			//RenderComponent::PlayAnimation(m_Parent, u"engaged");
+			//m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {
 			Game::entityManager->SerializeEntity(m_Parent);
 		}

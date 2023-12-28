@@ -76,7 +76,7 @@ std::map<LOT, int32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(parent) {
+PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(parent) {
 	m_ComponentId = componentId;
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -104,21 +104,9 @@ PetComponent::PetComponent(Entity* parent, uint32_t componentId): Component(pare
 	if (!checkPreconditions.empty()) {
 		SetPreconditions(checkPreconditions);
 	}
-	
+
 	// Load database values
 	m_FollowRadius = Game::zoneManager->GetPetFollowRadius();
-}
-
-bool PetComponent::LoadPetInfo(uint32_t petId, CDPetComponent& result) {
-	CDPetComponentTable* petTable;
-	petTable = CDClientManager::Instance().GetTable<CDPetComponentTable>();
-	
-	const auto pet = petTable->GetByID(petId);
-	if (!pet) return false;
-
-	result = pet[0];
-
-	return true;
 }
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
@@ -127,7 +115,7 @@ void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpd
 	outBitStream->Write1(); // Always serialize as dirty for now
 
 	outBitStream->Write<uint32_t>(static_cast<unsigned int>(m_Flags));
-	outBitStream->Write<uint32_t>(static_cast<uint32_t>(tamed ? m_Ability : ePetAbilityType::Invalid)); // Something with the overhead icon?
+	outBitStream->Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
 
@@ -172,15 +160,15 @@ void PetComponent::OnUse(Entity* originator) {
 
 	if (IsReadyToInteract()) {
 		switch (GetAbility()) {
-			case ePetAbilityType::DigAtPosition: // Treasure dig TODO: FIX ICON
+		case ePetAbilityType::DigAtPosition: // Treasure dig TODO: FIX ICON
 			StartInteractTreasureDig();
-			break; 
-			
-			case ePetAbilityType::JumpOnObject: // Bouncer
-			//StartInteractBouncer();
 			break;
 
-			default:
+		case ePetAbilityType::JumpOnObject: // Bouncer
+			StartInteractBouncer();
+			break;
+
+		default:
 			break;
 		}
 	}
@@ -350,12 +338,6 @@ void PetComponent::OnUse(Entity* originator) {
 }
 
 void PetComponent::Update(float deltaTime) {
-	// If pet does not have an owner, use the UpdateUnowned() loop
-	/*if (m_Owner == LWOOBJID_EMPTY) {
-		UpdateUnowned(deltaTime);
-		return;
-	}*/
-
 	// Update timers
 	m_TimerBounce -= deltaTime;
 
@@ -392,14 +374,13 @@ void PetComponent::Update(float deltaTime) {
 	case PetAiState::follow:
 		OnFollow(deltaTime);
 		break;
-		
+
 	case PetAiState::goToObj:
 		if (m_MovementAI->AtFinalWaypoint()) {
 			LOG_DEBUG("Reached object!");
 			m_MovementAI->Stop();
 			SetPetAiState(PetAiState::interact);
-		}
-		else {
+		} else {
 			m_Timer += 0.5f;
 		}
 		break;
@@ -412,24 +393,6 @@ void PetComponent::Update(float deltaTime) {
 		LOG_DEBUG("Unknown state: %d!", m_Flags);
 		break;
 	}
-
-	/*
-	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(position);
-
-	float haltDistance = 5;
-
-	if (closestSwitch != nullptr && !closestSwitch->GetActive()) {
-		NiPoint3 switchPosition = closestSwitch->GetParentEntity()->GetPosition();
-		float distance = Vector3::DistanceSquared(position, switchPosition);
-		if (distance < 3 * 3) {
-			m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-			closestSwitch->EntityEnter(m_Parent);
-		} else if (distance < 20 * 20) {
-			haltDistance = 1;
-			destination = switchPosition;
-		}
-	}
-	*/
 }
 
 void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
@@ -443,8 +406,7 @@ void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
 				ClientFailTamingMinigame();
 			}
 		}
-	} 
-	else {
+	} else {
 		if (m_Timer > 0) {
 			m_Timer -= deltaTime;
 
@@ -551,7 +513,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
 
 	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
-	
+
 	auto* item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
 	if (!item) return;
 
@@ -798,35 +760,34 @@ void PetComponent::Wander() {
 		return;
 	}
 
-	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed); //info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed); //info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_PetInfo.sprintSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_PetInfo->sprintSpeed;
 }
 
 void PetComponent::OnSpawn() {
-	if (!LoadPetInfo(m_ComponentId, m_PetInfo)) {
-		LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
-	}
+	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(m_ComponentId);
+	if (!m_PetInfo) LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
+
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
 
 	if (m_StartPosition == NiPoint3::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
-	
+
 	if (m_Owner != LWOOBJID_EMPTY) {
 		m_Parent->SetOwnerOverride(m_Owner);
-		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
+		m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
 		//SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
-	}
-	else {
+	} else {
 		SetFlag(TAMEABLE);
 		SetPetAiState(PetAiState::idle);
 	}
-	
+
 	SetFlag(IDLE);
 	UnsetFlag(SPAWNING);
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -873,8 +834,7 @@ void PetComponent::OnFollow(const float& deltaTime) {
 	// If the player's position is within range, stop moving
 	if (distanceToOwner <= m_FollowRadius * m_FollowRadius) {
 		m_MovementAI->Stop();
-	}
-	else { // Chase the player's new position
+	} else { // Chase the player's new position
 		m_MovementAI->SetDestination(ownerPos);
 	}
 
@@ -886,8 +846,7 @@ void PetComponent::OnFollow(const float& deltaTime) {
 		m_TimerAway = 0;
 
 		return;
-	}
-	else if (distanceToOwner > 15 * 15 || std::abs(ownerPos.y - currentPos.y) >= 3) {
+	} else if (distanceToOwner > 15 * 15 || std::abs(ownerPos.y - currentPos.y) >= 3) {
 		m_TimerAway += deltaTime;
 	}
 
@@ -909,17 +868,17 @@ void PetComponent::OnInteract() {
 	}
 
 	switch (GetInteractType()) {
-		case PetInteractType::bouncer:
-		if (IsReadyToInteract()) LOG_DEBUG("Add the HandleInteractBouncer()!");
+	case PetInteractType::bouncer:
+		if (IsReadyToInteract()) HandleInteractBouncer();
 		else SetupInteractBouncer();
 		break;
 
-		case PetInteractType::treasure:
-		if (IsReadyToInteract()) HandleInteractTreasureDig(); 
+	case PetInteractType::treasure:
+		if (IsReadyToInteract()) HandleInteractTreasureDig();
 		else SetupInteractTreasureDig();
 		break;
 
-		default:
+	default:
 		LOG_DEBUG("INTERACT = NONE! RETURNING!");
 		StopInteract();
 		m_Timer += 0.5f;
@@ -932,7 +891,7 @@ void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType 
 	SetInteractType(interactType);
 	SetAbility(ePetAbilityType::GoToObject);
 	SetPetAiState(PetAiState::goToObj);
-	m_MovementAI->SetMaxSpeed(m_PetInfo.runSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo->runSpeed);
 	m_MovementAI->SetHaltDistance(0.0f);
 	m_MovementAI->SetDestination(position);
 	LOG_DEBUG("Starting interaction!");
@@ -952,7 +911,7 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 	SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
-	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed);
 	m_MovementAI->SetHaltDistance(m_FollowRadius);
 	LOG_DEBUG("Stopping interaction!");
 
@@ -964,44 +923,38 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 }
 
 void PetComponent::SetupInteractBouncer() {
-	// THIS IS ALL BAD, BAD, BAD! FIX IT, ME! >:(
-	/*SetAbility(ePetAbilityType::JumpOnObject);
-	NiPoint3 destination = m_MovementAI->GetDestination(); 
-	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(destination);
-	m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-	Game::entityManager->SerializeEntity(m_Parent);
-	closestSwitch->EntityEnter(m_Parent);*/
-}
-
-void PetComponent::SetupInteractTreasureDig() {
-	auto* owner = GetOwner();
+	const auto* owner = GetOwner();
 	if (!owner) return;
 
-	LOG_DEBUG("Setting up dig interaction!");
+	LOG_DEBUG("Setting up bouncer interaction!");
 	SetIsReadyToInteract(true);
-	auto petAbility = ePetAbilityType::DigAtPosition;
+	const auto petAbility = ePetAbilityType::JumpOnObject;
 
 	SetAbility(petAbility);
 	UnsetFlag(IDLE);
-	SetFlag(UNKNOWN256, NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	SetFlag(ON_SWITCH, NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
 	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
 	const auto sysAddr = owner->GetSystemAddress();
-	GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_01, sysAddr);
+	GameMessages::SendHelp(m_Owner, eHelpType::PR_BOUNCER_TUTORIAL_03, sysAddr);
 	GameMessages::SendShowPetActionButton(m_Owner, petAbility, true, sysAddr);
+
+	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+	closestSwitch->EntityEnter(m_Parent);
+
 	m_Timer += 0.5f;
 }
 
-void PetComponent::StartInteractTreasureDig() {
+void PetComponent::StartInteractBouncer() {
 	Entity* user = GetOwner();
 	if (IsHandlingInteraction() || !user) return;
-	
+
 	auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent) return;
-	
+
 	auto imagination = destroyableComponent->GetImagination();
-	int32_t imaginationCost = 1; // TODO: Get rid of this magic number - make static variable from lookup
+	const int32_t imaginationCost = 2; // TODO: Get rid of this magic number - make static variable from lookup
 	if (imagination < imaginationCost) {
 		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
 		return;
@@ -1009,12 +962,93 @@ void PetComponent::StartInteractTreasureDig() {
 
 	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, user->GetSystemAddress());
 
-	imagination -= imaginationCost; 
+	imagination -= imaginationCost;
+	destroyableComponent->SetImagination(imagination);
+	Game::entityManager->SerializeEntity(user);
+
+	// THIS IS ALL BAD, BAD, BAD! FIX IT, ME! >:(
+	SetIsHandlingInteraction(true);
+	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+	closestSwitch->EntityEnter(m_Parent);
+
+	//m_Timer += 0.5;
+}
+
+void PetComponent::HandleInteractBouncer() {
+	if (IsHandlingInteraction()) {
+		auto* const owner = GetOwner();
+		if (!owner) return;
+
+		auto* const petSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+		if (!petSwitch) return;
+
+		auto* const petSwitchEntity = petSwitch->GetParentEntity();
+		if (!petSwitchEntity) return;
+
+		m_Parent->AddCallbackTimer(2.0f, [petSwitch, petSwitchEntity]() {
+			LOG_DEBUG("Callback start!");
+
+			petSwitch->GetPetBouncer()->SetPetBouncerEnabled(false);
+			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
+
+			LOG_DEBUG("Callback end!");
+			});
+
+		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
+
+		auto* const petBouncer = petSwitch->GetPetBouncer();
+		petBouncer->SetPetBouncerEnabled(true);
+
+
+		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::ActivateSwitch, true); // Plays 'jump on switch' animation
+		StopInteract();
+	}
+	m_Timer += 0.5f;
+}
+
+void PetComponent::SetupInteractTreasureDig() {
+	const auto* owner = GetOwner();
+	if (!owner) return;
+
+	LOG_DEBUG("Setting up dig interaction!");
+	SetIsReadyToInteract(true);
+	const auto petAbility = ePetAbilityType::DigAtPosition;
+
+	SetAbility(petAbility);
+	UnsetFlag(IDLE);
+	SetFlag(ON_SWITCH, NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	LOG_DEBUG("m_Flags = %d", m_Flags);
+	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
+
+	const auto sysAddr = owner->GetSystemAddress();
+	GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_01, sysAddr);
+	GameMessages::SendShowPetActionButton(m_Owner, petAbility, true, sysAddr);
+
+	m_Timer += 0.5f;
+}
+
+void PetComponent::StartInteractTreasureDig() {
+	Entity* user = GetOwner();
+	if (IsHandlingInteraction() || !user) return;
+
+	auto* destroyableComponent = user->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
+
+	auto imagination = destroyableComponent->GetImagination();
+	const int32_t imaginationCost = 1; // TODO: Get rid of this magic number - make static variable from lookup
+	if (imagination < imaginationCost) {
+		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
+		return;
+	}
+
+	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, user->GetSystemAddress());
+
+	imagination -= imaginationCost;
 	destroyableComponent->SetImagination(imagination);
 	Game::entityManager->SerializeEntity(user);
 
 	SetIsHandlingInteraction(true);
-	UnsetFlag(UNKNOWN256, NOT_WAITING); // TODO: FIND THE CORRECT STATUS TO USE HERE
+	UnsetFlag(ON_SWITCH, NOT_WAITING); // TODO: FIND THE CORRECT STATUS TO USE HERE
 	SetFlag(IDLE);
 	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -1025,10 +1059,10 @@ void PetComponent::StartInteractTreasureDig() {
 
 void PetComponent::HandleInteractTreasureDig() {
 	if (IsHandlingInteraction()) {
-		auto* owner = GetOwner();
+		auto* const owner = GetOwner();
 		if (!owner) return;
-		
-		auto* treasure = PetDigServer::GetClosestTresure(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+
+		auto* const treasure = PetDigServer::GetClosestTresure(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 		treasure->Smash(m_Parent->GetObjectID());
 
 		GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_03, owner->GetSystemAddress());
@@ -1038,7 +1072,7 @@ void PetComponent::HandleInteractTreasureDig() {
 
 		return;
 	}
-	
+
 	if (m_TimerBounce <= 0.0f) {
 		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
 		m_TimerBounce = 1.0f;
@@ -1048,6 +1082,9 @@ void PetComponent::HandleInteractTreasureDig() {
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // TODO: Offset spawn position so it's not on top of player char
+	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(m_ComponentId);
+	if (!m_PetInfo) LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
+
 	AddDrainImaginationTimer(item, fromTaming);
 
 	m_ItemId = item->GetId();
@@ -1129,22 +1166,22 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	if (!fromTaming) playerDestroyableComponent->Imagine(-1);
 
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
-	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
+	m_Parent->AddCallbackTimer(m_PetInfo->imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
 			LOG("No petComponent and/or no playerDestroyableComponent");
 			return;
 		}
 
-	// If we are out of imagination despawn the pet.
-	if (playerDestroyableComponent->GetImagination() == 0) {
-		this->Deactivate();
-		auto playerEntity = playerDestroyableComponent->GetParent();
-		if (!playerEntity) return;
+		// If we are out of imagination despawn the pet.
+		if (playerDestroyableComponent->GetImagination() == 0) {
+			this->Deactivate();
+			auto playerEntity = playerDestroyableComponent->GetParent();
+			if (!playerEntity) return;
 
-		GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
-	}
+			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
+		}
 
-	this->AddDrainImaginationTimer(item);
+		this->AddDrainImaginationTimer(item);
 		});
 }
 
@@ -1303,7 +1340,7 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	}
 
 	//Save to db:
-	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{petName, approved});
+	Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ petName, approved });
 }
 
 void PetComponent::LoadPetNameFromModeration() {
