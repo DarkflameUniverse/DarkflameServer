@@ -76,16 +76,18 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 }
 
 void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(!m_ActivityPlayers.empty());
-	if (m_ActivityPlayers.empty()) return;
-	outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
-	if (!m_ActivityPlayers.empty()) {
-		for (const auto& activityPlayer : m_ActivityPlayers) {
-			outBitStream->Write<LWOOBJID>(activityPlayer->playerID);
-			for (const auto& activityValue : activityPlayer->values) {
-				outBitStream->Write<float_t>(activityValue);
+	outBitStream->Write(m_DirtyActivityInfo);
+	if (m_DirtyActivityInfo) {
+		outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
+		if (!m_ActivityPlayers.empty()) {
+			for (const auto& activityPlayer : m_ActivityPlayers) {
+				outBitStream->Write<LWOOBJID>(activityPlayer->playerID);
+				for (const auto& activityValue : activityPlayer->values) {
+					outBitStream->Write<float_t>(activityValue);
+				}
 			}
 		}
+		m_DirtyActivityInfo = false;
 	}
 }
 
@@ -120,7 +122,7 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 		auto* instance = NewInstance();
 		instance->AddParticipant(player);
 	}
-
+	m_DirtyActivityInfo = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
@@ -412,6 +414,7 @@ void ActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) {
 			m_ActivityPlayers[i] = nullptr;
 
 			m_ActivityPlayers.erase(m_ActivityPlayers.begin() + i);
+			m_DirtyActivityInfo = true;
 			Game::entityManager->SerializeEntity(m_Parent);
 
 			return;
@@ -425,6 +428,7 @@ ActivityPlayer* ActivityComponent::AddActivityPlayerData(LWOOBJID playerID) {
 		return data;
 
 	m_ActivityPlayers.push_back(new ActivityPlayer{ playerID, {} });
+	m_DirtyActivityInfo = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	return GetActivityPlayerData(playerID);
@@ -446,7 +450,7 @@ void ActivityComponent::SetActivityValue(LWOOBJID playerID, uint32_t index, floa
 	if (data != nullptr) {
 		data->values[std::min(index, (uint32_t)9)] = value;
 	}
-
+	m_DirtyActivityInfo = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 

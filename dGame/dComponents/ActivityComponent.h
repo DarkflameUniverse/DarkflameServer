@@ -359,9 +359,13 @@ private:
 
 	/**
 	 * The activity id
-	 *
 	 */
 	int32_t m_ActivityID;
+
+	/**
+	 * If the Activity info is dirty
+	*/
+	bool m_DirtyActivityInfo = true;
 };
 
 #endif // ACTIVITYCOMPONENT_H
