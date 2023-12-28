@@ -354,7 +354,7 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 
 	if (!deleteTeam) {
 		bitStream.Write(team->lootFlag);
-		bitStream.Write(static_cast<char>(team->memberIDs.size()));
+		bitStream.Write<char>(team->memberIDs.size());
 		for (const auto memberID : team->memberIDs) {
 			bitStream.Write(memberID);
 		}

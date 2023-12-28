@@ -20,40 +20,40 @@ RawChunk::RawChunk(std::ifstream& stream) {
 
 	uint32_t colorMapSize;
 	BinaryIO::BinaryRead(stream, colorMapSize);
-	stream.seekg((uint32_t)stream.tellg() + (colorMapSize * colorMapSize * 4));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize * colorMapSize * 4));
 
 	uint32_t lightmapSize;
 	BinaryIO::BinaryRead(stream, lightmapSize);
-	stream.seekg((uint32_t)stream.tellg() + (lightmapSize));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (lightmapSize));
 
 	uint32_t colorMapSize2;
 	BinaryIO::BinaryRead(stream, colorMapSize2);
-	stream.seekg((uint32_t)stream.tellg() + (colorMapSize2 * colorMapSize2 * 4));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize2 * colorMapSize2 * 4));
 
 	uint8_t unknown;
 	BinaryIO::BinaryRead(stream, unknown);
 
 	uint32_t blendmapSize;
 	BinaryIO::BinaryRead(stream, blendmapSize);
-	stream.seekg((uint32_t)stream.tellg() + (blendmapSize));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (blendmapSize));
 
 	uint32_t pointSize;
 	BinaryIO::BinaryRead(stream, pointSize);
-	stream.seekg((uint32_t)stream.tellg() + (pointSize * 9 * 4));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (pointSize * 9 * 4));
 
-	stream.seekg((uint32_t)stream.tellg() + (colorMapSize * colorMapSize));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (colorMapSize * colorMapSize));
 
 	uint32_t endCounter;
 	BinaryIO::BinaryRead(stream, endCounter);
-	stream.seekg((uint32_t)stream.tellg() + (endCounter * 2));
+	stream.seekg(static_cast<uint32_t>(stream.tellg()) + (endCounter * 2));
 
 	if (endCounter != 0) {
-		stream.seekg((uint32_t)stream.tellg() + (32));
+		stream.seekg(static_cast<uint32_t>(stream.tellg()) + (32));
 
 		for (int i = 0; i < 0x10; i++) {
 			uint16_t finalCountdown;
 			BinaryIO::BinaryRead(stream, finalCountdown);
-			stream.seekg((uint32_t)stream.tellg() + (finalCountdown * 2));
+			stream.seekg(static_cast<uint32_t>(stream.tellg()) + (finalCountdown * 2));
 		}
 	}
 

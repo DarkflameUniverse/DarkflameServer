@@ -251,7 +251,7 @@ bool Item::Consume() {
 
 	auto skills = skillsTable->Query([=](const CDObjectSkills entry) {
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
-		});
+	});
 
 	auto success = false;
 

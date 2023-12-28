@@ -25,7 +25,7 @@ void CDMissionEmailTable::LoadValuesFromDatabase() {
 		entry.notificationGroup = tableData.getIntField("notificationGroup", -1);
 		entry.missionID = tableData.getIntField("missionID", -1);
 		entry.attachmentLOT = tableData.getIntField("attachmentLOT", 0);
-		entry.localize = (bool)tableData.getIntField("localize", -1);
+		entry.localize = static_cast<bool>(tableData.getIntField("localize", 1));
 		entry.locStatus = tableData.getIntField("locStatus", -1);
 		entry.gate_version = tableData.getStringField("gate_version", "");
 
@@ -50,4 +50,3 @@ std::vector<CDMissionEmail> CDMissionEmailTable::Query(std::function<bool(CDMiss
 const std::vector<CDMissionEmail>& CDMissionEmailTable::GetEntries() const {
 	return this->entries;
 }
-

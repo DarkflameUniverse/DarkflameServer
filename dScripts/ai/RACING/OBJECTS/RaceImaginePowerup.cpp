@@ -32,6 +32,6 @@ void RaceImaginePowerup::OnFireEventServerSide(Entity* self, Entity* sender, std
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 
 		if (missionComponent == nullptr) return;
-		missionComponent->Progress(eMissionTaskType::RACING, self->GetLOT(), (LWOOBJID)eRacingTaskParam::COLLECT_IMAGINATION);
+		missionComponent->Progress(eMissionTaskType::RACING, self->GetLOT(), static_cast<LWOOBJID>(eRacingTaskParam::COLLECT_IMAGINATION));
 	}
 }

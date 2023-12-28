@@ -99,7 +99,7 @@ void AmDrawBridge::MoveBridgeDown(Entity* self, Entity* bridge, bool down) {
 
 	const auto travelTime = 2.0f;
 
-	forwardVect = forwardVect * (float)((degrees / travelTime) * (3.14f / 180.0f));
+	forwardVect = forwardVect * static_cast<float>((degrees / travelTime) * (3.14f / 180.0f));
 
 	simplePhysicsComponent->SetAngularVelocity(forwardVect);
 

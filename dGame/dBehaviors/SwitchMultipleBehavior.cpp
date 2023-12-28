@@ -42,7 +42,7 @@ void SwitchMultipleBehavior::Load() {
 		"(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = ?1 AND bP2.parameterID LIKE 'value %' "
 		"AND replace(bP1.parameterID, 'behavior ', '') = replace(bP2.parameterID, 'value ', '')) as value "
 		"FROM BehaviorParameter bP1 WHERE bP1.behaviorID = ?1 AND bP1.parameterID LIKE 'behavior %';");
-	query.bind(1, (int)this->m_behaviorId);
+	query.bind(1, static_cast<int>(this->m_behaviorId));
 
 	auto result = query.execQuery();
 

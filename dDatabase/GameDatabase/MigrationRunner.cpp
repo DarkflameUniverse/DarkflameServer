@@ -95,7 +95,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Check if there is an entry in the migration history table on the cdclient database.
 		cdstmt = CDClientDatabase::CreatePreppedStmt("SELECT name FROM migration_history WHERE name = ?;");
-		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		cdstmt.bind(static_cast<int32_t>(1), migration.name.c_str());
 		auto cdres = cdstmt.execQuery();
 
 		if (!cdres.eof()) continue;
@@ -124,7 +124,7 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Insert into cdclient database.
 		cdstmt = CDClientDatabase::CreatePreppedStmt("INSERT INTO migration_history (name) VALUES (?);");
-		cdstmt.bind((int32_t) 1, migration.name.c_str());
+		cdstmt.bind(static_cast<int32_t>(1), migration.name.c_str());
 		cdstmt.execQuery();
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
