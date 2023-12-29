@@ -11,22 +11,21 @@
 class LUPExhibitComponent : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::EXHIBIT;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LUP_EXHIBIT;
 
 	LUPExhibitComponent(Entity* parent);
-	~LUPExhibitComponent();
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * After the timer runs out, this changes the currently exhibited LOT to the next one
 	 */
-	void NextExhibit();
+	void NextLUPExhibit();
 private:
 	/**
 	 * The LOT that's currently on exhibit
 	 */
-	LOT m_Exhibit;
+	LOT m_LUPExhibit;
 
 	/**
 	 * The time since we've last updated the exhibit
@@ -36,10 +35,15 @@ private:
 	/**
 	 * The list of possible exhibits to show
 	 */
-	std::vector<LOT> m_Exhibits;
+	std::vector<LOT> m_LUPExhibits;
 
 	/**
 	 * The current index in the exhibit list
 	 */
-	size_t m_ExhibitIndex;
+	size_t m_LUPExhibitIndex;
+
+	/**
+	 * If the data is dirty
+	*/
+	bool m_DirtyLUPExhibit = false;
 };
