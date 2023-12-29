@@ -725,7 +725,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
+	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false);
 
 	//NANI?!
 	if (!isPlayer) {

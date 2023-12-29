@@ -105,7 +105,7 @@ namespace GameMessages {
 	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
 	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
 
-	void SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime);
+	void SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot);
 
 	void SendSetInventorySize(Entity* entity, int invType, int size);
 
@@ -612,7 +612,6 @@ namespace GameMessages {
 	void HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* entity);
 	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity);
 	void HandlePickupCurrency(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity);
 	void HandleEquipItem(RakNet::BitStream* inStream, Entity* entity);
 	void HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRemoveItemFromInventory(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);

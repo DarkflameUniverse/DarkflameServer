@@ -41,7 +41,7 @@ QuickBuildComponent::QuickBuildComponent(Entity* parent, uint32_t id) : Activity
 		SetPostImaginationCost(rebCompData[0].post_imagination_cost);
 		SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 		const auto compTime = m_Parent->GetVar<float>(u"compTime");
-		if (compTime > 0) SetCompleteTime(compTime);
+		if (m_Parent->HasVar(u"compTime") && compTime > 0) SetCompleteTime(compTime);
 	}
 	std::u16string checkPreconditions = m_Parent->GetVar<std::u16string>(u"CheckPrecondition");
 
@@ -118,8 +118,6 @@ void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIni
 }
 
 void QuickBuildComponent::Update(float deltaTime) {
-	m_Activator = GetActivator();
-
 	switch (m_State) {
 	case eQuickBuildState::OPEN: {
 		SpawnActivator();
@@ -141,9 +139,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 				if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 					ClearActivityPlayerData();
-
 					GameMessages::SendDie(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
-
 					ResetQuickBuild(false);
 				}
 			}
@@ -179,7 +175,6 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 		if (!builder) {
 			ResetQuickBuild(false);
-
 			return;
 		}
 
@@ -206,6 +201,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 				break;
 			}
 		}
+		Game::entityManager->SerializeEntity(builder);
 
 		if (m_Timer >= m_CompleteTime && m_DrainedImagination >= m_TakeImagination) {
 			CompleteQuickBuild(builder);
@@ -226,9 +222,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 			if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 				ClearActivityPlayerData();
-
 				GameMessages::SendDie(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
-
 				ResetQuickBuild(false);
 			}
 		}
@@ -273,11 +267,8 @@ void QuickBuildComponent::SpawnActivator() {
 void QuickBuildComponent::DespawnActivator() {
 	if (m_Activator) {
 		Game::entityManager->DestructEntity(m_Activator);
-
 		m_Activator->ScheduleKillAfterUpdate();
-
 		m_Activator = nullptr;
-
 		m_ActivatorId = LWOOBJID_EMPTY;
 	}
 }

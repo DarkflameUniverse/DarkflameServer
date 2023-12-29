@@ -814,7 +814,7 @@ void GameMessages::SendTerminateInteraction(const LWOOBJID& objectID, eTerminate
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime) {
+void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -824,9 +824,6 @@ void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOB
 
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
-
-	//bitStream.Write(coinSpawnTime != -1.0f);
-	//if (coinSpawnTime != -1.0f) bitStream.Write(coinSpawnTime);
 
 	uint32_t deathTypeLength = deathType.size();
 	bitStream.Write(deathTypeLength);
@@ -4050,7 +4047,6 @@ void GameMessages::HandleRacingClientReady(RakNet::BitStream* inStream, Entity* 
 
 void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	bool bClientDeath;
-	bool bSpawnLoot;
 	std::u16string deathType;
 	float directionRelativeAngleXZ;
 	float directionRelativeAngleY;
@@ -4058,17 +4054,14 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 	eKillType killType = eKillType::VIOLENT;
 	LWOOBJID killerID;
 	LWOOBJID lootOwnerID = LWOOBJID_EMPTY;
+	uint32_t deathTypeLength = 0;
 
 	bClientDeath = inStream->ReadBit();
-	bSpawnLoot = inStream->ReadBit();
-
-	uint32_t deathTypeLength = 0;
 	inStream->Read(deathTypeLength);
 
 	for (size_t i = 0; i < deathTypeLength; i++) {
 		char16_t character;
 		inStream->Read(character);
-
 		deathType.push_back(character);
 	}
 
@@ -4076,39 +4069,25 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 	inStream->Read(directionRelativeAngleY);
 	inStream->Read(directionRelativeForce);
 
-	if (inStream->ReadBit()) {
-		inStream->Read(killType);
-	}
-
+	if (inStream->ReadBit()) inStream->Read(killType);
 	inStream->Read(killerID);
-
-	if (inStream->ReadBit()) {
-		inStream->Read(lootOwnerID);
-	}
+	inStream->Read(lootOwnerID);
 
 	auto* zoneController = Game::zoneManager->GetZoneControlObject();
-
 	auto* racingControlComponent = zoneController->GetComponent<RacingControlComponent>();
 
 	LOG("Got die request: %i", entity->GetLOT());
 
-	if (racingControlComponent != nullptr) {
+	if (racingControlComponent) {
 		auto* possessableComponent = entity->GetComponent<PossessableComponent>();
-
-		if (possessableComponent != nullptr) {
+		if (possessableComponent) {
 			entity = Game::entityManager->GetEntity(possessableComponent->GetPossessor());
-
-			if (entity == nullptr) {
-				return;
-			}
+			if (!entity) return;
 		}
-
 		racingControlComponent->OnRequestDie(entity);
 	} else {
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
-
 		if (!destroyableComponent) return;
-
 		destroyableComponent->Smash(killerID, killType, deathType);
 	}
 }
@@ -5234,45 +5213,6 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream* inStream, Entity* ent
 	if (entity->CanPickupCoins(currency)) {
 		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::PICKUP);
 	}
-}
-
-void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity) {
-	LWOOBJID killerID;
-	LWOOBJID lootOwnerID;
-	bool bDieAccepted = false;
-	eKillType killType;
-	std::u16string deathType;
-	float directionRelative_AngleY;
-	float directionRelative_AngleXZ;
-	float directionRelative_Force;
-	bool bClientDeath = false;
-	bool bSpawnLoot = true;
-	float coinSpawnTime = -1.0f;
-
-	inStream->Read(bClientDeath);
-	inStream->Read(bDieAccepted);
-	inStream->Read(bSpawnLoot);
-
-	bool coinSpawnTimeIsDefault{};
-	inStream->Read(coinSpawnTimeIsDefault);
-	if (coinSpawnTimeIsDefault != 0) inStream->Read(coinSpawnTime);
-
-	/*uint32_t deathTypeLength = deathType.size();
-	inStream->Read(deathTypeLength);
-	for (uint32_t k = 0; k < deathTypeLength; k++) {
-		inStream->Read<uint16_t>(deathType[k]);
-	}*/
-
-	inStream->Read(directionRelative_AngleXZ);
-	inStream->Read(directionRelative_AngleY);
-	inStream->Read(directionRelative_Force);
-
-	bool killTypeIsDefault{};
-	inStream->Read(killTypeIsDefault);
-	if (killTypeIsDefault != 0) inStream->Read(killType);
-
-	inStream->Read(lootOwnerID);
-	inStream->Read(killerID);
 }
 
 void GameMessages::HandleEquipItem(RakNet::BitStream* inStream, Entity* entity) {
