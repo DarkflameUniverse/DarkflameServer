@@ -3,6 +3,9 @@
 #include "Component.h"
 #include "Entity.h"
 #include "eReplicaComponentType.h"
+#include <cstdint>
+#include <array>
+#include "dCommonVars.h"
 
 /**
  * Component that handles the LOT that is shown in the LUP exhibit in the LUP world. Works by setting a timer and
@@ -13,37 +16,13 @@ class LUPExhibitComponent : public Component
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LUP_EXHIBIT;
 
-	LUPExhibitComponent(Entity* parent);
+	LUPExhibitComponent(Entity* parent) : Component(parent) {};
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
-
-	/**
-	 * After the timer runs out, this changes the currently exhibited LOT to the next one
-	 */
 	void NextLUPExhibit();
 private:
-	/**
-	 * The LOT that's currently on exhibit
-	 */
-	LOT m_LUPExhibit;
-
-	/**
-	 * The time since we've last updated the exhibit
-	 */
-	float m_UpdateTimer;
-
-	/**
-	 * The list of possible exhibits to show
-	 */
-	std::vector<LOT> m_LUPExhibits;
-
-	/**
-	 * The current index in the exhibit list
-	 */
-	size_t m_LUPExhibitIndex;
-
-	/**
-	 * If the data is dirty
-	*/
-	bool m_DirtyLUPExhibit = false;
+	float m_UpdateTimer = 0.0f;
+	std::array<LOT, 4> m_LUPExhibits = { 11121, 11295, 11423, 11979 };
+	uint8_t m_LUPExhibitIndex = 0;
+	bool m_DirtyLUPExhibit = true;
 };
