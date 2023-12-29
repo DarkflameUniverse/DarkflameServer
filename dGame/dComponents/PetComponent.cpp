@@ -976,39 +976,25 @@ void PetComponent::StartInteractBouncer() {
 
 void PetComponent::HandleInteractBouncer() {
 	if (IsHandlingInteraction()) {
-		auto* const owner = GetOwner();
-		if (!owner) return;
-		const auto sysAddr = owner->GetSystemAddress();
-
 		auto* const petSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 		if (!petSwitch) return;
 
 		auto* const petSwitchEntity = petSwitch->GetParentEntity();
 		if (!petSwitchEntity) return;
 
-		m_Parent->AddCallbackTimer(1.0f, [this, petSwitch, petSwitchEntity, sysAddr]() {
-			LOG_DEBUG("Callback start!");
-
-			const auto bouncerComp = petSwitch->GetPetBouncer();
+		m_Parent->AddCallbackTimer(1.0f, [this, petSwitch, petSwitchEntity]() {
+			auto* const bouncerComp = petSwitch->GetPetBouncer();
 			const auto bouncerCompPos = bouncerComp->GetParentEntity()->GetPosition();
 			const auto bouncerId = bouncerComp->GetParentEntity()->GetObjectID();
 
-			const auto petId = this->GetParentEntity()->GetObjectID();
-
-			RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
 			bouncerComp->SetPetBouncerEnabled(true);
 			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3::ZERO, NiPoint3::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
 			bouncerComp->SetPetBouncerEnabled(false);
 			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
-
-			LOG_DEBUG("Callback end!");
 		});
 
-		//RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged");
-
-		auto* const petBouncer = petSwitch->GetPetBouncer();
-		petBouncer->SetPetBouncerEnabled(true);
-
+		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged"); //TODO: Check if the timing on this is right
+		// TODO: Need to freeze player movement until the bounce begins!
 
 		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::ActivateSwitch, true); // Plays 'jump on switch' animation
 		StopInteract();
