@@ -814,28 +814,6 @@ void GameMessages::SendTerminateInteraction(const LWOOBJID& objectID, eTerminate
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(eGameMessageType::DIE);
-	bitStream.Write(bClientDeath);
-	bitStream.Write(bSpawnLoot);
-	bitStream.Write(deathType);
-	bitStream.Write(directionRelative_AngleXZ);
-	bitStream.Write(directionRelative_AngleY);
-	bitStream.Write(directionRelative_Force);
-
-	bitStream.Write(killType != eKillType::VIOLENT);
-	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
-
-	bitStream.Write(killerID);
-	bitStream.Write(lootOwnerID);
-
-	SEND_PACKET_BROADCAST;
-}
-
 void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -4953,7 +4931,7 @@ void GameMessages::HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* e
 	inStream->Read(bEarlyRelease);
 	inStream->Read(userID);
 
-	auto* quickBuildComponent = static_cast<QuickBuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));;
+	auto* quickBuildComponent = entity->GetComponent<QuickBuildComponent>();
 	if (!quickBuildComponent) return;
 
 	quickBuildComponent->CancelQuickBuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);

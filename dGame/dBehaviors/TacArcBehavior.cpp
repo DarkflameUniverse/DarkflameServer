@@ -6,7 +6,6 @@
 #include "BehaviorContext.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityManager.h"
-#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 
 #include <vector>

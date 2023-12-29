@@ -8,7 +8,7 @@
 #include "NiPoint3.h"
 #include "ScriptedActivityComponent.h"
 #include "Preconditions.h"
-#include "Component.h"
+#include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
 #include "eQuickBuildState.h"
 
@@ -20,11 +20,11 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class QuickBuildComponent : public Component {
+class QuickBuildComponent : public ActivityComponent {
 public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	QuickBuildComponent(Entity* entity);
+	QuickBuildComponent(Entity* parent,  uint32_t id);
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
@@ -213,11 +213,11 @@ public:
 
 	/**
 	 * Cancels the quickbuild if it wasn't completed
-	 * @param builder the player that's currently building
+	 * @param entity the player that's currently building
 	 * @param failReason the reason the quickbuild was cancelled
 	 * @param skipChecks whether or not to skip the check for the quickbuild not being completed
 	 */
-	void CancelQuickBuild(Entity* builder, eQuickBuildFailReason failReason, bool skipChecks = false);
+	void CancelQuickBuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks = false);
 private:
 	/**
 	 * Whether or not the quickbuild state has been changed since we last serialized it.
@@ -305,11 +305,6 @@ private:
 	std::vector<int> m_CustomModules{};
 
 	/**
-	 * The activity ID that players partake in when doing this quickbuild
-	 */
-	int m_ActivityId = 0;
-
-	/**
 	 * Currently unused
 	 */
 	int m_PostImaginationCost = 0;
@@ -340,11 +335,6 @@ private:
 	float m_SoftTimer = 0;
 
 	/**
-	 * The ID of the entity that's currently building the quickbuild
-	 */
-	LWOOBJID m_Builder = LWOOBJID_EMPTY;
-
-	/**
 	 * Preconditions to be met before being able to start the quickbuild
 	 */
 	PreconditionExpression* m_Precondition = nullptr;
@@ -360,6 +350,11 @@ private:
 	 * @param user the entity that completed the quickbuild
 	 */
 	void CompleteQuickBuild(Entity* user);
+
+	/**
+	 * Is this quickbuild from a choicebuild
+	*/
+	bool m_IsChoiceBuild = false;
 };
 
 #endif // QUICKBUILDCOMPONENT_H

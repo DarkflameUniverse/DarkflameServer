@@ -521,52 +521,7 @@ void Entity::Initialize() {
 	}
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
-
-		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
-
-		if (rebCompData.size() > 0) {
-			quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
-			quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
-			quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
-			quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
-			quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
-			quickBuildComponent->SetActivityId(rebCompData[0].activityID);
-			quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
-
-			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
-
-			if (rebuildResetTime != 0.0f) {
-				quickBuildComponent->SetResetTime(rebuildResetTime);
-
-				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
-				// This extends the smash time so players can ride up the lift.
-				if (m_TemplateID == 9483) {
-					quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 25);
-				}
-			}
-
-			const auto activityID = GetVar<int32_t>(u"activityID");
-
-			if (activityID > 0) {
-				quickBuildComponent->SetActivityId(activityID);
-				Loot::CacheMatrix(activityID);
-			}
-
-			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
-
-			if (timeBeforeSmash > 0) {
-				quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
-			}
-
-			const auto compTime = GetVar<float>(u"compTime");
-
-			if (compTime > 0) {
-				quickBuildComponent->SetCompleteTime(compTime);
-			}
-		}
+		auto* quickBuildComponent = AddComponent<QuickBuildComponent>(componentID);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SWITCH, -1) != -1) {
@@ -2021,6 +1976,10 @@ LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
 	}
 
 	return nullptr;
+}
+
+bool Entity::CheckIfVarExists(const std::u16string& name) const {
+	return GetVarData(name) != nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {

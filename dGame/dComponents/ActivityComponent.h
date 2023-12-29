@@ -150,7 +150,7 @@ struct ActivityPlayer {
  */
 class ActivityComponent : public Component {
 public:
-	ActivityComponent(Entity* parent, int32_t activityID);
+	ActivityComponent(Entity* parent, int32_t activityID = -1);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
@@ -204,6 +204,12 @@ public:
 	 * @return the ID of this activity
 	 */
 	int GetActivityID() { return m_ActivityInfo.ActivityID; }
+
+	/**
+	 * Sets the ID of this activity
+	*/
+	void SetActivityID(int32_t activityID) { m_ActivityID = activityID; }
+
 
 	/**
 	 * Returns if this activity has a lobby, e.g. if it needs to instance players to some other map
@@ -280,7 +286,7 @@ public:
 	 * Returns all the score for the players that are currently playing this activity
 	 * @return
 	 */
-	std::vector<ActivityPlayer*> GetActivityPlayers() { return m_ActivityPlayers; };
+	std::vector<ActivityPlayer*> GetActivityPlayers() const { return m_ActivityPlayers; };
 
 	/**
 	 * Returns activity data for a specific entity (e.g. score and such).
@@ -330,6 +336,13 @@ public:
 	 * @return the LMI that this activity points to for a team size
 	 */
 	uint32_t GetLootMatrixForTeamSize(uint32_t teamSize) { return m_ActivityLootMatrices[teamSize]; }
+
+	/**
+	 * Sets up the activity data for a gievn activity
+	*/
+	void SetupActivity(int32_t activityID);
+
+	void ClearActivityPlayerData() { m_ActivityPlayers.clear(); m_DirtyActivityInfo = true;};
 private:
 
 	/**

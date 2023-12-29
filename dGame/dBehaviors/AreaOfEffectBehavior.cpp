@@ -7,7 +7,6 @@
 #include "Logger.h"
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
-#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "Logger.h"

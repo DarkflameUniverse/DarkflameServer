@@ -30,8 +30,14 @@
 #include "LeaderboardManager.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+	m_Parent = parent;
+	if (activityID == -1) return;
+	SetupActivity(activityID);
+}
+
+void ActivityComponent::SetupActivity(int32_t activityID){
 	if (activityID > 0) m_ActivityID = activityID;
-	else m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+	else m_ActivityID = m_Parent->GetVar<int32_t>(u"activityID");
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
@@ -42,7 +48,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 			m_ActivityInfo.minTeams = 1;
 		}
 		if (m_ActivityInfo.instanceMapID == -1) {
-			const auto& transferOverride = parent->GetVarAsString(u"transferZoneID");
+			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
 			if (!transferOverride.empty()) {
 				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
 			}

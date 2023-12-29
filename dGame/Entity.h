@@ -283,6 +283,12 @@ public:
 	LDFBaseData* GetVarData(const std::u16string& name) const;
 
 	/**
+	 * Returns if a var exists
+	*/
+	bool CheckIfVarExists(const std::u16string& name) const;
+
+
+	/**
 	 * Get the LDF value and convert it to a string.
 	 */
 	std::string GetVarAsString(const std::u16string& name) const;
