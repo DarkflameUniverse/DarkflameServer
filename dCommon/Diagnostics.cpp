@@ -115,6 +115,13 @@ void GenerateDump() {
 }
 
 void CatchUnhandled(int sig) {
+	std::exception_ptr eptr = std::current_exception();
+	try {
+		if (eptr) std::rethrow_exception(eptr);
+	} catch(const std::exception& e) {
+		LOG("Caught exception: '%s'", e.what());
+	}
+
 #ifndef __include_backtrace__
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
