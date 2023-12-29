@@ -1,6 +1,6 @@
 #include "AmDropshipComputer.h"
 #include "MissionComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
 #include "eMissionState.h"
@@ -10,9 +10,9 @@ void AmDropshipComputer::OnStartup(Entity* self) {
 }
 
 void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
+	if (quickBuildComponent == nullptr || quickBuildComponent->GetState() != eQuickBuildState::COMPLETED) {
 		return;
 	}
 
@@ -70,13 +70,13 @@ void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 }
 
 void AmDropshipComputer::OnTimerDone(Entity* self, std::string timerName) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr) {
+	if (quickBuildComponent == nullptr) {
 		return;
 	}
 
-	if (timerName == "reset" && rebuildComponent->GetState() == eRebuildState::OPEN) {
+	if (timerName == "reset" && quickBuildComponent->GetState() == eQuickBuildState::OPEN) {
 		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }

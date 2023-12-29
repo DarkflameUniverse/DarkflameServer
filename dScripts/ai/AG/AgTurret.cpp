@@ -12,6 +12,6 @@ void AgTurret::OnTimerDone(Entity* self, std::string timerName) {
 	}
 }
 
-void AgTurret::OnRebuildStart(Entity* self, Entity* user) {
+void AgTurret::OnQuickBuildStart(Entity* self, Entity* user) {
 	GameMessages::SendLockNodeRotation(self, "base");
 }

@@ -6,7 +6,7 @@ void NsQbImaginationStatue::OnStartup(Entity* self) {
 
 }
 
-void NsQbImaginationStatue::OnRebuildComplete(Entity* self, Entity* target) {
+void NsQbImaginationStatue::OnQuickBuildComplete(Entity* self, Entity* target) {
 	if (target == nullptr) return;
 
 	self->SetVar(u"Player", target->GetObjectID());

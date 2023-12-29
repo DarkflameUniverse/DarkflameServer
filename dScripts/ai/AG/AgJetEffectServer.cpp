@@ -20,7 +20,7 @@ void AgJetEffectServer::OnUse(Entity* self, Entity* user) {
 	self->AddTimer("CineDone", 7.5f + 5.0f); // 7.5f is time the cinematic takes to play
 }
 
-void AgJetEffectServer::OnRebuildComplete(Entity* self, Entity* target) {
+void AgJetEffectServer::OnQuickBuildComplete(Entity* self, Entity* target) {
 	if (self->GetLOT() != 6209) return;
 	auto entities = Game::entityManager->GetEntitiesInGroup("Jet_FX");
 	if (entities.empty()) return;

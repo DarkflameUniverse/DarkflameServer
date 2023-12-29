@@ -1,5 +1,5 @@
 #include "ImgBrickConsoleQB.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
@@ -19,18 +19,18 @@ void ImgBrickConsoleQB::OnStartup(Entity* self) {
 }
 
 void ImgBrickConsoleQB::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+	if (quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
 		if (!self->GetNetworkVar<bool>(u"used")) {
 			const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 			auto bothBuilt = false;
 
 			for (auto* console : consoles) {
-				auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
+				auto* consoleQuickBuildComponent = console->GetComponent<QuickBuildComponent>();
 
-				if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
+				if (consoleQuickBuildComponent->GetState() != eQuickBuildState::COMPLETED) {
 					continue;
 				}
 
@@ -124,7 +124,7 @@ void ImgBrickConsoleQB::SmashCanister(Entity* self) {
 	}
 }
 
-void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
+void ImgBrickConsoleQB::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto energyFX = 0;
 
 	const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
@@ -145,9 +145,9 @@ void ImgBrickConsoleQB::OnRebuildComplete(Entity* self, Entity* target) {
 	const auto consoles = Game::entityManager->GetEntitiesInGroup("Console");
 
 	for (auto* console : consoles) {
-		auto* consoleRebuildComponent = console->GetComponent<RebuildComponent>();
+		auto* consoleQuickBuildComponent = console->GetComponent<QuickBuildComponent>();
 
-		if (consoleRebuildComponent->GetState() != eRebuildState::COMPLETED) {
+		if (consoleQuickBuildComponent->GetState() != eQuickBuildState::COMPLETED) {
 			continue;
 		}
 
@@ -166,9 +166,9 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 	self->SetVar(u"Died", true);
 
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+	if (quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
 		auto offFX = 0;
 
 		const auto location = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"console"));
@@ -227,9 +227,9 @@ void ImgBrickConsoleQB::OnDie(Entity* self, Entity* killer) {
 
 void ImgBrickConsoleQB::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
-		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+		auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-		if (rebuildComponent->GetState() == eRebuildState::OPEN) {
+		if (quickBuildComponent->GetState() == eQuickBuildState::OPEN) {
 			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	} else if (timerName == "Die") {

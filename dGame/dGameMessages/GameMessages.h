@@ -35,7 +35,7 @@ enum class eStateChangeType : uint32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
-enum class eRebuildState : uint32_t;
+enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
 
 namespace GameMessages {
@@ -100,8 +100,8 @@ namespace GameMessages {
 	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
 	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
-	void SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID);
-	void SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
+	void SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID);
+	void SendEnableQuickBuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
 	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
 	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
 
@@ -602,7 +602,7 @@ namespace GameMessages {
 	void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity);
+	void HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);

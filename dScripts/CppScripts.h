@@ -9,7 +9,7 @@ class Entity;
 class NiPoint3;
 enum class eMissionState : int32_t;
 enum class ePetTamingNotifyType : uint32_t;
-enum class eRebuildState : uint32_t;
+enum class eQuickBuildState : uint32_t;
 
 namespace CppScripts {
 	/**
@@ -154,23 +154,23 @@ namespace CppScripts {
 		/**
 		 * Invoked when a player has started building this quickbuild.
 		 *
-		 * Equivalent to 'function onRebuildStart(self, msg)'
+		 * Equivalent to 'function onQuickBuildStart(self, msg)'
 		 */
-		virtual void OnRebuildStart(Entity* self, Entity* target) {};
+		virtual void OnQuickBuildStart(Entity* self, Entity* target) {};
 
 		/**
 		 * Invoked when this quickbuild has changed state.
 		 *
-		 * Equivalent to 'function onRebuildNotifyState(self, msg)'
+		 * Equivalent to 'function onQuickBuildNotifyState(self, msg)'
 		 */
-		virtual void OnRebuildNotifyState(Entity* self, eRebuildState state) {};
+		virtual void OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {};
 
 		/**
 		 * Invoked when this quickbuild has been completed.
 		 *
-		 * Equivalent to 'function onRebuildComplete(self, msg)'
+		 * Equivalent to 'function OnQuickBuildComplete(self, msg)'
 		 */
-		virtual void OnRebuildComplete(Entity* self, Entity* target) {};
+		virtual void OnQuickBuildComplete(Entity* self, Entity* target) {};
 
 		/**
 		 * Invoked when self has received either a hit or heal.

@@ -1,9 +1,9 @@
 #include "PropertyPlatform.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "GameMessages.h"
 #include "MovingPlatformComponent.h"
 
-void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
+void PropertyPlatform::OnQuickBuildComplete(Entity* self, Entity* target) {
 	//    auto* movingPlatform = self->GetComponent<MovingPlatformComponent>();
 	//    if (movingPlatform != nullptr) {
 	//        movingPlatform->StopPathing();
@@ -14,8 +14,8 @@ void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
 }
 
 void PropertyPlatform::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
 		//        auto* movingPlatform = self->GetComponent<MovingPlatformComponent>();
 		//        if (movingPlatform != nullptr) {
 		//            movingPlatform->GotoWaypoint(1);
