@@ -422,7 +422,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		break;
 
 	case eGameMessageType::REBUILD_CANCEL:
-		GameMessages::HandleRebuildCancel(inStream, entity);
+		GameMessages::HandleQuickBuildCancel(inStream, entity);
 		break;
 
 	case eGameMessageType::MATCH_REQUEST:

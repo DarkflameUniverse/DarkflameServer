@@ -1,6 +1,6 @@
 #include "CavePrisonCage.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "GameMessages.h"
 #include "Character.h"
 #include "dZoneManager.h"
@@ -45,8 +45,8 @@ void CavePrisonCage::Setup(Entity* self, Spawner* spawner) {
 	Game::entityManager->ConstructEntity(entity);
 }
 
-void CavePrisonCage::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state != eRebuildState::RESETTING) {
+void CavePrisonCage::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state != eQuickBuildState::RESETTING) {
 		return;
 	}
 
@@ -68,14 +68,14 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 
 	self->SetVar<LWOOBJID>(u"Counterweight", counterweight->GetObjectID());
 
-	auto* rebuildComponent = counterweight->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = counterweight->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildStateCallback([this, self](eRebuildState state) {
-			OnRebuildNotifyState(self, state);
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddQuickBuildStateCallback([this, self](eQuickBuildState state) {
+			OnQuickBuildNotifyState(self, state);
 			});
 
-		rebuildComponent->AddRebuildCompleteCallback([this, self](Entity* user) {
+		quickBuildComponent->AddQuickBuildCompleteCallback([this, self](Entity* user) {
 			// The counterweight is a simple mover, which is not implemented, so we'll just set it's position
 			auto* counterweight = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"Counterweight"));
 

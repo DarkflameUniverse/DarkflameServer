@@ -117,11 +117,11 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	}
 }
 
-void MovingPlatformComponent::OnRebuildInitilized() {
+void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
 }
 
-void MovingPlatformComponent::OnCompleteRebuild() {
+void MovingPlatformComponent::OnCompleteQuickBuild() {
 	if (m_NoAutoStart)
 		return;
 

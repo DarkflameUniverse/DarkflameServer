@@ -5,7 +5,7 @@
 #include "SkillComponent.h"
 #include "TeamManager.h"
 
-void AgSurvivalBuffStation::OnRebuildComplete(Entity* self, Entity* target) {
+void AgSurvivalBuffStation::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
 	// We set the faction to 1 so that the buff station sees players as friendly targets to buff
 	if (destroyableComponent != nullptr) destroyableComponent->SetFaction(1);

@@ -10,7 +10,7 @@ public:
 	 * @param self The Entity that called this script.
 	 * @param target The target of the self that called this script.
 	 */
-	void OnRebuildComplete(Entity* self, Entity* target) override;
+	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 	void OnTimerDone(Entity* self, std::string timerName) override;
 private:
 	/**

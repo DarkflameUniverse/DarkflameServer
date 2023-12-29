@@ -8,7 +8,7 @@ void RainOfArrows::OnStartup(Entity* self) {
 
 }
 
-void RainOfArrows::OnRebuildComplete(Entity* self, Entity* target) {
+void RainOfArrows::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto myPos = self->GetPosition();
 	auto myRot = self->GetRotation();
 

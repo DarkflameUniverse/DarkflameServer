@@ -2,7 +2,7 @@
 #include "Entity.h"
 #include "Character.h"
 
-void NTPipeVisibilityServer::OnRebuildComplete(Entity* self, Entity* target) {
+void NTPipeVisibilityServer::OnQuickBuildComplete(Entity* self, Entity* target) {
 	const auto flag = self->GetVar<int32_t>(u"flag");
 	if (flag == 0) return;
 

@@ -7,7 +7,7 @@ void AgQbElevator::OnStartup(Entity* self) {
 }
 
 //when the QB is finished being built by a player
-void AgQbElevator::OnRebuildComplete(Entity* self, Entity* target) {
+void AgQbElevator::OnQuickBuildComplete(Entity* self, Entity* target) {
 	self->SetProximityRadius(proxRadius, "elevatorProx");
 	self->SetI64(u"qbPlayer", target->GetObjectID());
 

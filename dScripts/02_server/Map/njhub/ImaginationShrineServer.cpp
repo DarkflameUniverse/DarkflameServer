@@ -1,15 +1,15 @@
 #include "ImaginationShrineServer.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 
 void ImaginationShrineServer::OnUse(Entity* self, Entity* user) {
 	// If the rebuild component is complete, use the shrine
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr) {
+	if (quickBuildComponent == nullptr) {
 		return;
 	}
 
-	if (rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+	if (quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
 		// Use the shrine
 		BaseUse(self, user);
 	}

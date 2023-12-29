@@ -11,10 +11,10 @@ enum InstrumentLot {
 class NsConcertInstrument : public CppScripts::Script {
 public:
 	void OnStartup(Entity* self) override;
-	void OnRebuildNotifyState(Entity* self, eRebuildState state) override;
+	void OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) override;
 	void OnFireEventServerSide(Entity* self, Entity* sender, std::string args, int32_t param1, int32_t param2,
 		int32_t param3) override;
-	void OnRebuildComplete(Entity* self, Entity* target) override;
+	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 	void OnTimerDone(Entity* self, std::string name) override;
 private:
 	static void StartPlayingInstrument(Entity* self, Entity* player);

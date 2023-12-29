@@ -13,7 +13,7 @@
 #include "DestroyableComponent.h"
 #include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "eReplicaComponentType.h"
 #include "TeamManager.h"
 #include "eConnectionType.h"
@@ -412,8 +412,8 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 	if (!target) return false;
 
 	// ignore quickbuilds that aren't completed
-	auto* targetQuickbuildComponent = target->GetComponent<RebuildComponent>();
-	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != eRebuildState::COMPLETED) return false;
+	auto* targetQuickbuildComponent = target->GetComponent<QuickBuildComponent>();
+	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != eQuickBuildState::COMPLETED) return false;
 
 	return true;
 }
