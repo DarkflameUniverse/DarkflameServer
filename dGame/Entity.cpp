@@ -605,8 +605,8 @@ void Entity::Initialize() {
 	}
 
 	// Scripted activity component
-	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY);
-	if ((scriptedActivityID > 0)) {
+	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+	if ((scriptedActivityID != -1)) {
 		AddComponent<ScriptedActivityComponent>(scriptedActivityID);
 	}
 
