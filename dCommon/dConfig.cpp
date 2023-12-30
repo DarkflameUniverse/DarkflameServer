@@ -10,7 +10,7 @@ dConfig::dConfig(const std::string& filepath) {
 	LoadConfig();
 }
 
-std::filesystem::path getConfigDir() {
+std::filesystem::path GetConfigDir() {
 	std::filesystem::path config_dir = BinaryPathFinder::GetBinaryDir();
 	if (const char* env_p = std::getenv("DLU_CONFIG_DIR")) {
 		config_dir /= env_p;
@@ -19,12 +19,12 @@ std::filesystem::path getConfigDir() {
 }
 
 const bool dConfig::Exists(const std::string& filepath) {
-	std::filesystem::path config_dir = getConfigDir();
+	std::filesystem::path config_dir = GetConfigDir();
 	return std::filesystem::exists(config_dir / filepath);
 }
 
 void dConfig::LoadConfig() {
-	std::filesystem::path config_dir = getConfigDir();
+	std::filesystem::path config_dir = GetConfigDir();
 
 	std::ifstream in(config_dir / m_ConfigFilePath);
 	if (!in.good()) return;
