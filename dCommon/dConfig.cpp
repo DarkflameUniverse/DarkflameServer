@@ -34,6 +34,11 @@ void dConfig::ReloadConfig() {
 }
 
 const std::string& dConfig::GetValue(std::string key) {
+	std::string upper_key(key);
+	std::transform(upper_key.begin(), upper_key.end(), upper_key.begin(), ::toupper);
+	if (const char* env_p = std::getenv(upper_key.c_str())) {
+		this->m_ConfigValues[key] = env_p;
+	}
 	return this->m_ConfigValues[key];
 }
 
