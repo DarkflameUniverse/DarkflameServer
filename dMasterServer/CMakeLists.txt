@@ -6,6 +6,7 @@ set(DMASTERSERVER_SOURCES
 
 add_library(dMasterServer ${DMASTERSERVER_SOURCES})
 add_executable(MasterServer "MasterServer.cpp")
+add_compile_definitions(MasterServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 
 target_link_libraries(dMasterServer ${COMMON_LIBRARIES})
 target_link_libraries(MasterServer ${COMMON_LIBRARIES} dMasterServer)

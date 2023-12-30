@@ -11,11 +11,7 @@
 #include "SHA512.h"
 #include "GeneralUtils.h"
 
-#ifdef _WIN32
-#include <bcrypt/BCrypt.hpp>
-#else
-#include <bcrypt.h>
-#endif
+#include <BCrypt.hpp>
 
 #include <BitStream.h>
 #include <future>

@@ -525,12 +525,12 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 #endif
 		// Replace "__TIMESTAMP__" with the __TIMESTAMP__
 		GeneralUtils::ReplaceInString(line, "__TIMESTAMP__", __TIMESTAMP__);
-		// Replace "__VERSION__" wit'h the PROJECT_VERSION
-		GeneralUtils::ReplaceInString(line, "__VERSION__", STRINGIFY(PROJECT_VERSION));
+		// Replace "__VERSION__" with the PROJECT_VERSION
+		GeneralUtils::ReplaceInString(line, "__VERSION__", Game::projectVersion);
 		// Replace "__SOURCE__" with SOURCE
 		GeneralUtils::ReplaceInString(line, "__SOURCE__", Game::config->GetValue("source"));
 		// Replace "__LICENSE__" with LICENSE
-		GeneralUtils::ReplaceInString(line, "__LICENSE__", STRINGIFY(LICENSE));
+		GeneralUtils::ReplaceInString(line, "__LICENSE__", "AGPL-3.0");
 
 		if (line.find("##") != std::string::npos) {
 			// Add "&lt;font size=&apos;18&apos; color=&apos;#000000&apos;&gt;" before the header

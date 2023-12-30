@@ -93,7 +93,7 @@ else() # Build from source
 									-DINSTALL_PLUGINDIR=plugin
 									${MARIADB_EXTRA_CMAKE_ARGS}
 						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${__maria_db_connector_compile_jobs__}
+						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${MARIADB_CONNECTOR_COMPILE_JOBS}
 						INSTALL_COMMAND "")
 
 	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)

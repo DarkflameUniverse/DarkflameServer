@@ -14,3 +14,6 @@ endforeach()
 
 add_library(dDatabase STATIC ${DDATABASE_SOURCES})
 target_link_libraries(dDatabase sqlite3 mariadbConnCpp)
+if ({CDCLIENT_CACHE_ALL})
+	add_compile_definitions(dDatabase CDCLIENT_CACHE_ALL=${CDCLIENT_CACHE_ALL})
+endif()

@@ -11,9 +11,9 @@ file(
 	GLOB SOURCES_LIBBCRYPT
 	LIST_DIRECTORIES false
 	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/*.c
 	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
 )
+
 add_library(bcrypt ${SOURCES_LIBBCRYPT})
 
 # Source code for sqlite
@@ -31,7 +31,7 @@ add_subdirectory(raknet)
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
 	include(FetchContent)
-	if (__include_backtrace__ AND __compile_backtrace__)
+	if (${INCLUDE_BACKTRACE} AND ${COMPILE_BACKTRACE})
 		FetchContent_Declare(
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
