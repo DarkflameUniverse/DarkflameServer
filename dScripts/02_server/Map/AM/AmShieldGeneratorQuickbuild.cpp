@@ -6,7 +6,7 @@
 #include "BaseCombatAIComponent.h"
 #include "SkillComponent.h"
 #include "EntityInfo.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "MissionComponent.h"
 
 void AmShieldGeneratorQuickbuild::OnStartup(Entity* self) {
@@ -100,7 +100,7 @@ void AmShieldGeneratorQuickbuild::OnTimerDone(Entity* self, std::string timerNam
 	}
 }
 
-void AmShieldGeneratorQuickbuild::OnRebuildComplete(Entity* self, Entity* target) {
+void AmShieldGeneratorQuickbuild::OnQuickBuildComplete(Entity* self, Entity* target) {
 	StartShield(self);
 
 	auto enemiesInProximity = self->GetVar<std::vector<LWOOBJID>>(u"Enemies");
@@ -174,9 +174,9 @@ void AmShieldGeneratorQuickbuild::BuffPlayers(Entity* self) {
 }
 
 void AmShieldGeneratorQuickbuild::EnemyEnteredShield(Entity* self, Entity* intruder) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
+	if (quickBuildComponent == nullptr || quickBuildComponent->GetState() != eQuickBuildState::COMPLETED) {
 		return;
 	}
 

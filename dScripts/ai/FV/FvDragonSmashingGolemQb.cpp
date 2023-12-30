@@ -3,7 +3,7 @@
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "Entity.h"
-#include "eRebuildState.h"
+#include "eQuickBuildState.h"
 
 void FvDragonSmashingGolemQb::OnStartup(Entity* self) {
 	self->AddTimer("GolemBreakTimer", 10.5f);
@@ -15,8 +15,8 @@ void FvDragonSmashingGolemQb::OnTimerDone(Entity* self, std::string timerName) {
 	}
 }
 
-void FvDragonSmashingGolemQb::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::COMPLETED) {
+void FvDragonSmashingGolemQb::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state == eQuickBuildState::COMPLETED) {
 		RenderComponent::PlayAnimation(self, u"dragonsmash");
 
 		const auto dragonId = self->GetVar<LWOOBJID>(u"Dragon");

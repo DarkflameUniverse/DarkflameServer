@@ -11,7 +11,7 @@
 #include "CDClientManager.h"
 #include "CDDestructibleComponentTable.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "CppScripts.h"
 #include "Loot.h"
 #include "Character.h"
@@ -85,11 +85,11 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 
 	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
 	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
-	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
+	int32_t quickBuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
 
 	int32_t componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (rebuildComponentID > 0) componentID = rebuildComponentID;
+	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();

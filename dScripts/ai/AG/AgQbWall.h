@@ -3,5 +3,5 @@
 
 class AgQbWall : public CppScripts::Script {
 public:
-	void OnRebuildComplete(Entity* self, Entity* player) override;
+	void OnQuickBuildComplete(Entity* self, Entity* player) override;
 };

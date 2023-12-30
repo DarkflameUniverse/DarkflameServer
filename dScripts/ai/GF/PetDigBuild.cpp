@@ -4,7 +4,7 @@
 #include "MissionComponent.h"
 #include "eMissionState.h"
 
-void PetDigBuild::OnRebuildComplete(Entity* self, Entity* target) {
+void PetDigBuild::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto flagNumber = self->GetVar<std::u16string>(u"flagNum");
 
 	EntityInfo info{};

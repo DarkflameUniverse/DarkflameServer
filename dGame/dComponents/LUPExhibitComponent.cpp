@@ -1,44 +1,24 @@
 #include "LUPExhibitComponent.h"
-
 #include "EntityManager.h"
-
-LUPExhibitComponent::LUPExhibitComponent(Entity* parent) : Component(parent) {
-	m_Exhibits = { 11121, 11295, 11423, 11979 };
-
-	m_ExhibitIndex = 0;
-
-	m_Exhibit = m_Exhibits[m_ExhibitIndex];
-
-
-}
-
-LUPExhibitComponent::~LUPExhibitComponent() {
-
-}
 
 void LUPExhibitComponent::Update(float deltaTime) {
 	m_UpdateTimer += deltaTime;
-
 	if (m_UpdateTimer > 20.0f) {
-		NextExhibit();
-
+		NextLUPExhibit();
 		m_UpdateTimer = 0.0f;
 	}
 }
 
-void LUPExhibitComponent::NextExhibit() {
-	m_ExhibitIndex++;
-
-	if (m_ExhibitIndex >= m_Exhibits.size()) {
-		m_ExhibitIndex = 0;
-	}
-
-	m_Exhibit = m_Exhibits[m_ExhibitIndex];
-
+void LUPExhibitComponent::NextLUPExhibit() {
+	m_LUPExhibitIndex++;
+	m_DirtyLUPExhibit = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void LUPExhibitComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write1(); // Dirty flag?
-	outBitStream->Write(m_Exhibit);
+	outBitStream->Write(m_DirtyLUPExhibit);
+	if (m_DirtyLUPExhibit) {
+		outBitStream->Write(m_LUPExhibits[m_LUPExhibitIndex % m_LUPExhibits.size()]);
+		if (!bIsInitialUpdate) m_DirtyLUPExhibit = false;
+	}
 }

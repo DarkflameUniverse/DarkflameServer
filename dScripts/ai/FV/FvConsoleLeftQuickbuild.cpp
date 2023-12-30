@@ -2,15 +2,15 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eTerminateType.h"
-#include "eRebuildState.h"
+#include "eQuickBuildState.h"
 
 void FvConsoleLeftQuickbuild::OnStartup(Entity* self) {
 	self->SetVar(u"IAmBuilt", false);
 	self->SetVar(u"AmActive", false);
 }
 
-void FvConsoleLeftQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::COMPLETED) {
+void FvConsoleLeftQuickbuild::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state == eQuickBuildState::COMPLETED) {
 		self->SetVar(u"IAmBuilt", true);
 
 		const auto objects = Game::entityManager->GetEntitiesInGroup("Facility");
@@ -18,7 +18,7 @@ void FvConsoleLeftQuickbuild::OnRebuildNotifyState(Entity* self, eRebuildState s
 		if (!objects.empty()) {
 			objects[0]->NotifyObject(self, "ConsoleLeftUp");
 		}
-	} else if (state == eRebuildState::RESETTING) {
+	} else if (state == eQuickBuildState::RESETTING) {
 		self->SetVar(u"IAmBuilt", false);
 		self->SetVar(u"AmActive", false);
 
