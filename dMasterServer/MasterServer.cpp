@@ -43,6 +43,7 @@
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
+#include "Start.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -58,8 +59,6 @@ bool shutdownSequenceStarted = false;
 void ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
 Logger* SetupLogger();
-void StartAuthServer();
-void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
@@ -812,43 +811,6 @@ void HandlePacket(Packet* packet) {
 			LOG("Unknown master packet ID from server: %i", packet->data[3]);
 		}
 	}
-}
-
-void StartChatServer() {
-	if (Game::shouldShutdown) {
-		LOG("Currently shutting down.  Chat will not be restarted.");
-		return;
-	}
-#ifdef __APPLE__
-	//macOS doesn't need sudo to run on ports < 1024
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-#elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
-#else
-	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-}
-#endif
-}
-
-void StartAuthServer() {
-	if (Game::shouldShutdown) {
-		LOG("Currently shutting down.  Auth will not be restarted.");
-		return;
-	}
-#ifdef __APPLE__
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-#elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
-#else
-	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-}
-#endif
 }
 
 void ShutdownSequence(int32_t signal) {
