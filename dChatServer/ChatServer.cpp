@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "chatconfig.ini").string());
+	Game::config = new dConfig("chatconfig.ini");
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 

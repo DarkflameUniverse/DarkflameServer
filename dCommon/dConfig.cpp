@@ -10,8 +10,23 @@ dConfig::dConfig(const std::string& filepath) {
 	LoadConfig();
 }
 
+std::filesystem::path getConfigDir() {
+	std::filesystem::path config_dir = BinaryPathFinder::GetBinaryDir();
+	if (const char* env_p = std::getenv("DLU_CONFIG_DIR")) {
+		config_dir /= env_p;
+	}
+	return config_dir;
+}
+
+const bool dConfig::Exists(const std::string& filepath) {
+	std::filesystem::path config_dir = getConfigDir();
+	return std::filesystem::exists(config_dir / filepath);
+}
+
 void dConfig::LoadConfig() {
-	std::ifstream in(BinaryPathFinder::GetBinaryDir() / m_ConfigFilePath);
+	std::filesystem::path config_dir = getConfigDir();
+
+	std::ifstream in(config_dir / m_ConfigFilePath);
 	if (!in.good()) return;
 
 	std::string line{};
@@ -19,7 +34,7 @@ void dConfig::LoadConfig() {
 		if (!line.empty() && line.front() != '#') ProcessLine(line);
 	}
 
-	std::ifstream sharedConfig(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini", std::ios::in);
+	std::ifstream sharedConfig(config_dir / "sharedconfig.ini", std::ios::in);
 	if (!sharedConfig.good()) return;
 
 	line.clear();
