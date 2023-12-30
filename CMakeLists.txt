@@ -287,7 +287,7 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/zone/PROPERTY/GF"
 	"dScripts/zone/PROPERTY/NS"
 
-	"thirdparty/libbcrypt/include/bcrypt"
+	"thirdparty/libbcrypt/include"
 	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"

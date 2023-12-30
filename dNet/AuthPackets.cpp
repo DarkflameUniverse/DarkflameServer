@@ -11,7 +11,7 @@
 #include "SHA512.h"
 #include "GeneralUtils.h"
 
-#include <BCrypt.hpp>
+#include <bcrypt/BCrypt.hpp>
 
 #include <BitStream.h>
 #include <future>

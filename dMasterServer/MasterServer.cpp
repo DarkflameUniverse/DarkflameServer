@@ -7,7 +7,7 @@
 #include <thread>
 #include <fstream>
 
-#include <BCrypt.hpp>
+#include <bcrypt/BCrypt.hpp>
 
 #include <csignal>
 
