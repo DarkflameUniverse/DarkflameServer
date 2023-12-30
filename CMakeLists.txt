@@ -287,7 +287,6 @@ set(INCLUDED_DIRECTORIES
 	"dScripts/zone/PROPERTY/GF"
 	"dScripts/zone/PROPERTY/NS"
 
-	"thirdparty/libbcrypt/include"
 	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
@@ -310,6 +309,12 @@ endif()
 foreach (dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
+
+if (NOT WIN32)
+	include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt")
+endif()
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
+
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
