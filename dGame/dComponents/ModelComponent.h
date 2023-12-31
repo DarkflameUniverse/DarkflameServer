@@ -57,7 +57,7 @@ private:
 	std::map<BehaviorState, State> m_States;
 
 	// The name of this behavior.
-	std::string m_Name = "Test name new";
+	std::string m_Name = "New Behavior";
 
 	// Whether this behavior is locked and cannot be edited.
 	bool isLocked = false;

@@ -36,6 +36,12 @@ void Strip::HandleMsg(RemoveStripMessage& msg) {
 };
 
 template<>
+void Strip::HandleMsg(RemoveActionsMessage& msg) {
+	if (msg.GetActionIndex() >= m_Actions.size()) return;
+	m_Actions.erase(m_Actions.begin() + msg.GetActionIndex(), m_Actions.end());
+};
+
+template<>
 void Strip::HandleMsg(SplitStripMessage& msg) {
 	if (msg.GetTransferredActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -77,6 +83,15 @@ void State::HandleMsg(AddActionMessage& msg) {
 
 template<>
 void State::HandleMsg(UpdateStripUiMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+};
+
+template<>
+void State::HandleMsg(RemoveActionsMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		return;
 	}
@@ -161,6 +176,16 @@ template<>
 void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(RenameMessage& msg) {
+	m_Name = msg.GetName();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 };
 
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {

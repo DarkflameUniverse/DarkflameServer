@@ -188,9 +188,11 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "add") {
 		Add(arguments);
 	} else if (command == "removeActions") {
-		RemoveActions(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<RemoveActionsMessage>(arguments);
 	} else if (command == "rename") {
-		Rename(modelEntity, sysAddr, modelOwner, arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<RenameMessage>(arguments);
+		// Send the list back to the client so the name is updated.
+		SendBehaviorListToClient(context);
 	} else if (command == "sendBehaviorBlocksToClient") {
 		SendBehaviorBlocksToClient(context);
 	} else if (command == "moveToInventory") {
