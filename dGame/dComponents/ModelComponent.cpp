@@ -53,6 +53,17 @@ void Strip::HandleMsg(SplitStripMessage& msg) {
 	}
 };
 
+template<>
+void Strip::HandleMsg(MigrateActionsMessage& msg) {
+	if (msg.GetMigratedActions().empty() && !m_Actions.empty()) {
+		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
+		msg.SetMigratedActions(startToMove, m_Actions.end());
+		m_Actions.erase(startToMove, m_Actions.end());
+	} else {
+		m_Actions.insert(m_Actions.begin() + msg.GetDstActionIndex(), msg.GetMigratedActions().begin(), msg.GetMigratedActions().end());
+	}
+};
+
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 	m_Position.SendBehaviorBlocksToClient(args);
 
@@ -125,6 +136,23 @@ void State::HandleMsg(SplitStripMessage& msg) {
 	}
 };
 
+template<>
+void State::HandleMsg(MigrateActionsMessage& msg) {
+	if (msg.GetMigratedActions().empty()) {
+		if (m_Strips.size() <= msg.GetSourceActionContext().GetStripId()) {
+			return;
+		}
+
+		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+	} else {
+		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
+			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
+		}
+
+		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+	}
+};
+
 bool State::IsEmpty() {
 	for (auto& strip : m_Strips) {
 		if (!strip.IsEmpty()) return false;
@@ -173,6 +201,13 @@ void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 };
 
 template<>
+void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
+	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
+	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
+};
+
+template<>
 void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
@@ -186,6 +221,7 @@ void PropertyBehavior::HandleMsg(RenameMessage& msg) {
 template<>
 void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {

@@ -182,7 +182,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "addAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<AddActionMessage>(arguments);
 	} else if (command == "migrateActions") {
-		MigrateActions(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<MigrateActionsMessage>(arguments);
 	} else if (command == "rearrangeStrip") {
 		RearrangeStrip(arguments);
 	} else if (command == "add") {
