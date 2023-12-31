@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	LOG("Starting Auth server...");
-	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("Version: %s", PROJECT_VERSION);
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	try {

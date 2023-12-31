@@ -7,11 +7,7 @@
 #include <thread>
 #include <fstream>
 
-#ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
-#else
-#include <bcrypt.h>
-#endif
 
 #include <csignal>
 
@@ -125,7 +121,7 @@ int main(int argc, char** argv) {
 	LOG("Using net version %s", Game::config->GetValue("client_net_version").c_str());
 
 	LOG("Starting Master server...");
-	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("Version: %s", PROJECT_VERSION);
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
