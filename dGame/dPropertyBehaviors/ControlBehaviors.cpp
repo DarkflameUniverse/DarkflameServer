@@ -166,15 +166,17 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	if (command == "sendBehaviorListToClient") {
 		SendBehaviorListToClient(context);
 	} else if (command == "modelTypeChanged") {
-		ModelTypeChanged(arguments, modelComponent);
+		ModelTypeChanged(arguments, modelComponent); // TODO
 	} else if (command == "toggleExecutionUpdates") {
-		ToggleExecutionUpdates();
+		ToggleExecutionUpdates(); // TODO
 	} else if (command == "addStrip") {
-		AddStrip(context);
+		if (BehaviorMessageBase(context.arguments).IsDefaultBehaviorId()) RequestUpdatedID(context);
+
+		context.modelComponent->HandleControlBehaviorsMsg<AddStripMessage>(context.arguments);
 	} else if (command == "removeStrip") {
 		context.modelComponent->HandleControlBehaviorsMsg<RemoveStripMessage>(arguments);
 	} else if (command == "mergeStrips") {
-		MergeStrips(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<MergeStripsMessage>(arguments);
 	} else if (command == "splitStrip") {
 		context.modelComponent->HandleControlBehaviorsMsg<SplitStripMessage>(arguments);
 	} else if (command == "updateStripUI") {
@@ -186,11 +188,12 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "rearrangeStrip") {
 		context.modelComponent->HandleControlBehaviorsMsg<RearrangeStripMessage>(arguments);
 	} else if (command == "add") {
-		Add(arguments);
+		Add(arguments); // TODO
 	} else if (command == "removeActions") {
 		context.modelComponent->HandleControlBehaviorsMsg<RemoveActionsMessage>(arguments);
 	} else if (command == "rename") {
 		context.modelComponent->HandleControlBehaviorsMsg<RenameMessage>(arguments);
+
 		// Send the list back to the client so the name is updated.
 		SendBehaviorListToClient(context);
 	} else if (command == "sendBehaviorBlocksToClient") {
@@ -320,7 +323,7 @@ ControlBehaviors::ControlBehaviors() {
 	}
 	isInitialized = true;
 	LOG_DEBUG("Created all base block classes");
-	for (auto&[name, block] : blockTypes) {
+	for (auto& [name, block] : blockTypes) {
 		LOG_DEBUG("block name is %s default %s min %f max %f", name.c_str(), block.GetDefaultValue().c_str(), block.GetMinimumValue(), block.GetMaximumValue());
 	}
 }

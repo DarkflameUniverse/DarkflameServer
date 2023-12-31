@@ -66,6 +66,16 @@ void Strip::HandleMsg(SplitStripMessage& msg) {
 };
 
 template<>
+void Strip::HandleMsg(MergeStripsMessage& msg) {
+	if (msg.GetMigratedActions().empty() && !m_Actions.empty()) {
+		msg.SetMigratedActions(m_Actions.begin(), m_Actions.end());
+		m_Actions.erase(m_Actions.begin(), m_Actions.end());
+	} else {
+		m_Actions.insert(m_Actions.begin() + msg.GetDstActionIndex(), msg.GetMigratedActions().begin(), msg.GetMigratedActions().end());
+	}
+};
+
+template<>
 void Strip::HandleMsg(MigrateActionsMessage& msg) {
 	if (msg.GetMigratedActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -167,6 +177,23 @@ void State::HandleMsg(SplitStripMessage& msg) {
 };
 
 template<>
+void State::HandleMsg(MergeStripsMessage& msg) {
+	if (msg.GetMigratedActions().empty()) {
+		if (m_Strips.size() <= msg.GetSourceActionContext().GetStripId()) {
+			return;
+		}
+
+		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+	} else {
+		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
+			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
+		}
+
+		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+	}
+};
+
+template<>
 void State::HandleMsg(MigrateActionsMessage& msg) {
 	if (msg.GetMigratedActions().empty()) {
 		if (m_Strips.size() <= msg.GetSourceActionContext().GetStripId()) {
@@ -244,6 +271,13 @@ void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
+	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
+	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(MergeStripsMessage& msg) {
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
