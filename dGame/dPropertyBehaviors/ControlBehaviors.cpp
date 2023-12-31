@@ -59,53 +59,6 @@ void ControlBehaviors::SendBehaviorListToClient(const ControlBehaviorContext& co
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorList", behaviorsToSerialize);
 }
 
-void ControlBehaviors::ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent) {
-	auto* modelTypeAmf = arguments->Get<double>("ModelType");
-	if (!modelTypeAmf) return;
-
-	uint32_t modelType = static_cast<uint32_t>(modelTypeAmf->GetValue());
-
-	//TODO Update the model type here
-}
-
-void ControlBehaviors::ToggleExecutionUpdates() {
-	//TODO do something with this info
-}
-
-void ControlBehaviors::AddStrip(ControlBehaviorContext& context) {
-	BehaviorMessageBase msgBase(context.arguments);
-
-	if (msgBase.IsDefaultBehaviorId()) {
-		RequestUpdatedID(context);
-	}
-
-	context.modelComponent->HandleControlBehaviorsMsg<AddStripMessage>(context.arguments);
-}
-
-void ControlBehaviors::MergeStrips(AMFArrayValue* arguments) {
-	MergeStripsMessage mergeStripsMessage(arguments);
-}
-
-void ControlBehaviors::MigrateActions(AMFArrayValue* arguments) {
-	MigrateActionsMessage migrateActionsMessage(arguments);
-}
-
-void ControlBehaviors::RearrangeStrip(AMFArrayValue* arguments) {
-	RearrangeStripMessage rearrangeStripMessage(arguments);
-}
-
-void ControlBehaviors::Add(AMFArrayValue* arguments) {
-	AddMessage addMessage(arguments);
-}
-
-void ControlBehaviors::RemoveActions(AMFArrayValue* arguments) {
-	RemoveActionsMessage removeActionsMessage(arguments);
-}
-
-void ControlBehaviors::Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
-	RenameMessage renameMessage(arguments);
-}
-
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
 void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& context) {
 	if (!context) return;
@@ -166,9 +119,12 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	if (command == "sendBehaviorListToClient") {
 		SendBehaviorListToClient(context);
 	} else if (command == "modelTypeChanged") {
-		ModelTypeChanged(arguments, modelComponent); // TODO
+		auto* modelType = arguments->Get<double>("ModelType");
+		if (!modelType) return;
+
+		modelEntity->SetVar<int>(u"modelType", modelType->GetValue());
 	} else if (command == "toggleExecutionUpdates") {
-		ToggleExecutionUpdates(); // TODO
+		// TODO
 	} else if (command == "addStrip") {
 		if (BehaviorMessageBase(context.arguments).IsDefaultBehaviorId()) RequestUpdatedID(context);
 
@@ -214,7 +170,8 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 ControlBehaviors::ControlBehaviors() {
 	auto blocksBuffer = Game::assetManager->GetFile("ui\\ingame\\blocksdef.xml");
 	if (!blocksBuffer) {
-		LOG("Failed to open blocksdef.xml, property behaviors will be disabled for this zone!");
+		LOG("Failed to open blocksdef.xml, property behaviors will be disabled for this zone! "
+		"(This is a necessary file for cheat detection and ensuring we do not send unexpected values to the client)");
 		return;
 	}
 

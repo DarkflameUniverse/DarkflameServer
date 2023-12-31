@@ -56,15 +56,6 @@ public:
 private:
 	void RequestUpdatedID(ControlBehaviorContext& context);
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);
-	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
-	void ToggleExecutionUpdates();
-	void AddStrip(ControlBehaviorContext& context);
-	void MergeStrips(AMFArrayValue* arguments);
-	void MigrateActions(AMFArrayValue* arguments);
-	void RearrangeStrip(AMFArrayValue* arguments);
-	void Add(AMFArrayValue* arguments);
-	void RemoveActions(AMFArrayValue* arguments);
-	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
 	void UpdateAction(AMFArrayValue* arguments);
 	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
