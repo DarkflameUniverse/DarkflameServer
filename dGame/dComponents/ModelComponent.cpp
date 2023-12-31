@@ -42,6 +42,18 @@ void Strip::HandleMsg(RemoveActionsMessage& msg) {
 };
 
 template<>
+void Strip::HandleMsg(UpdateActionMessage& msg) {
+	if (msg.GetActionIndex() >= m_Actions.size()) return;
+	m_Actions[msg.GetActionIndex()] = msg.GetAction();
+};
+
+template<>
+void Strip::HandleMsg(RearrangeStripMessage& msg) {
+	if (msg.GetDstActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() <= msg.GetDstActionIndex()) return;
+	std::rotate(m_Actions.begin() + msg.GetDstActionIndex(), m_Actions.begin() + msg.GetSrcActionIndex(), m_Actions.end());
+};
+
+template<>
 void Strip::HandleMsg(SplitStripMessage& msg) {
 	if (msg.GetTransferredActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -103,6 +115,24 @@ void State::HandleMsg(UpdateStripUiMessage& msg) {
 
 template<>
 void State::HandleMsg(RemoveActionsMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+};
+
+template<>
+void State::HandleMsg(RearrangeStripMessage& msg) {
+	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
+		return;
+	}
+
+	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+};
+
+template<>
+void State::HandleMsg(UpdateActionMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		return;
 	}
@@ -183,6 +213,18 @@ void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(RearrangeStripMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(UpdateActionMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };

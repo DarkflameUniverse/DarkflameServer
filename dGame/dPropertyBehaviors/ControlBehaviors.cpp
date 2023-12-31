@@ -184,7 +184,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "migrateActions") {
 		context.modelComponent->HandleControlBehaviorsMsg<MigrateActionsMessage>(arguments);
 	} else if (command == "rearrangeStrip") {
-		RearrangeStrip(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<RearrangeStripMessage>(arguments);
 	} else if (command == "add") {
 		Add(arguments);
 	} else if (command == "removeActions") {
@@ -196,9 +196,9 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "sendBehaviorBlocksToClient") {
 		SendBehaviorBlocksToClient(context);
 	} else if (command == "moveToInventory") {
-		MoveToInventory(modelComponent, sysAddr, modelOwner, arguments);
+		MoveToInventory(modelComponent, sysAddr, modelOwner, arguments); // TODO
 	} else if (command == "updateAction") {
-		UpdateAction(arguments);
+		context.modelComponent->HandleControlBehaviorsMsg<UpdateActionMessage>(arguments);
 	} else {
 		LOG("Unknown behavior command (%s)", command.c_str());
 	}
