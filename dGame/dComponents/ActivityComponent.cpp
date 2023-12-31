@@ -115,6 +115,7 @@ void ActivityComponent::HandleMessageBoxResponse(Entity* player, const std::stri
 }
 
 void ActivityComponent::PlayerJoin(Entity* player) {
+	if (PlayerIsInQueue(player)) return;
 	// If we have a lobby, queue the player and allow others to join, otherwise spin up an instance on the spot
 	if (HasLobby()) {
 		PlayerJoinLobby(player);

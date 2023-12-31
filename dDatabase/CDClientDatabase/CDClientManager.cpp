@@ -39,9 +39,11 @@
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
 
+#ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
 // A vanilla CDClient takes about 46MB of memory + the regular world data.
-// #define CDCLIENT_CACHE_ALL
+// #  define CDCLIENT_CACHE_ALL
+#endif // CDCLIENT_CACHE_ALL
 
 #ifdef CDCLIENT_CACHE_ALL
 	#define CDCLIENT_DONT_CACHE_TABLE(x) x
