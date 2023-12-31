@@ -300,7 +300,19 @@ void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
+template<>
+void PropertyBehavior::HandleMsg(AddMessage& msg) {
+	// TODO Parse the corresponding behavior xml file.
+	if (msg.GetBehaviorId() != 7965) isLoot = true;
+	m_BehaviorId = msg.GetBehaviorId();
+};
+
+void PropertyBehavior::SetBehaviorId(int32_t behaviorId) {
+	m_BehaviorId = behaviorId;
+}
+
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
+	args.Insert("id", std::to_string(m_BehaviorId));
 	args.Insert("name", m_Name);
 	args.Insert("isLocked", isLocked);
 	args.Insert("isLoot", isLoot);
@@ -364,17 +376,15 @@ void ModelComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialU
 }
 
 void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {
-	m_Behaviors[newId] = m_Behaviors[BehaviorMessageBase::DefaultBehaviorId];
-	m_Behaviors.erase(BehaviorMessageBase::DefaultBehaviorId);
+	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == -1) behavior.SetBehaviorId(newId);
 }
 
 void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
 	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
 
 	auto* behaviorArray = args.InsertArray("behaviors");
-	for (auto& [behaviorId, behavior] : m_Behaviors) {
+	for (auto& behavior : m_Behaviors) {
 		auto* behaviorArgs = behaviorArray->PushArray();
-		behaviorArgs->Insert("id", std::to_string(behaviorId));
 		behavior.SendBehaviorListToClient(*behaviorArgs);
 	}
 }
@@ -382,5 +392,18 @@ void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
 void ModelComponent::SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) {
 	args.Insert("BehaviorID", std::to_string(behaviorToSend));
 	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
-	m_Behaviors[behaviorToSend].SendBehaviorBlocksToClient(args);
+	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == behaviorToSend) behavior.SendBehaviorBlocksToClient(args);
+}
+
+void ModelComponent::AddBehavior(AddMessage& msg) {
+	// Can only have 1 of the loot behaviors
+	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == msg.GetBehaviorId()) return;
+	m_Behaviors.insert(m_Behaviors.begin() + msg.GetBehaviorIndex(), PropertyBehavior());
+	m_Behaviors[msg.GetBehaviorIndex()].HandleMsg(msg);
+}
+
+void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
+	if (msg.GetBehaviorIndex() >= m_Behaviors.size() || m_Behaviors.at(msg.GetBehaviorIndex()).GetBehaviorId() != msg.GetBehaviorId()) return;
+	m_Behaviors.erase(m_Behaviors.begin() + msg.GetBehaviorIndex());
+	// TODO move to the inventory
 }

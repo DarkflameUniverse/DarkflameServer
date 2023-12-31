@@ -188,7 +188,9 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "rearrangeStrip") {
 		context.modelComponent->HandleControlBehaviorsMsg<RearrangeStripMessage>(arguments);
 	} else if (command == "add") {
-		Add(arguments); // TODO
+		AddMessage msg(context.arguments);
+		context.modelComponent->AddBehavior(msg);
+		SendBehaviorListToClient(context);
 	} else if (command == "removeActions") {
 		context.modelComponent->HandleControlBehaviorsMsg<RemoveActionsMessage>(arguments);
 	} else if (command == "rename") {
@@ -199,7 +201,9 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "sendBehaviorBlocksToClient") {
 		SendBehaviorBlocksToClient(context);
 	} else if (command == "moveToInventory") {
-		MoveToInventory(modelComponent, sysAddr, modelOwner, arguments); // TODO
+		MoveToInventoryMessage msg(arguments);
+		context.modelComponent->MoveToInventory(msg);
+		SendBehaviorListToClient(context);
 	} else if (command == "updateAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<UpdateActionMessage>(arguments);
 	} else {

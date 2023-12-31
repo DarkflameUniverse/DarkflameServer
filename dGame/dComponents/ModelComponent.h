@@ -17,8 +17,8 @@
 #include "Action.h"
 
 class Entity;
-class AddStripMessage;
-class AddActionMessage;
+class MoveToInventoryMessage;
+class AddMessage;
 
 class Strip {
 public:
@@ -51,6 +51,9 @@ public:
 
 	void SendBehaviorListToClient(AMFArrayValue& args);
 	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+
+	int32_t GetBehaviorId() const { return m_BehaviorId; }
+	void SetBehaviorId(int32_t id);
 private:
 
 	// The states this behavior has.
@@ -66,6 +69,8 @@ private:
 	bool isLoot = false;
 
 	BehaviorState m_LastEditedState = BehaviorState::HOME_STATE;
+
+	int32_t m_BehaviorId = -1;
 };
 
 /**
@@ -107,8 +112,20 @@ public:
 	void HandleControlBehaviorsMsg(AMFArrayValue* args) {
 		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
 		Msg msg(args);
-		m_Behaviors[msg.GetBehaviorId()].HandleMsg(msg);
+		for (auto& behavior : m_Behaviors) {
+			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) { 
+				behavior.HandleMsg(msg);
+				return;
+			}
+		}
+
+		m_Behaviors.insert(m_Behaviors.begin(), PropertyBehavior());
+		m_Behaviors.at(0).HandleMsg(msg);
 	};
+
+	void AddBehavior(AddMessage& msg);
+
+	void MoveToInventory(MoveToInventoryMessage& msg);
 
 	// Updates the pending behavior ID to the new ID.
 	void UpdatePendingBehaviorId(const int32_t newId);
@@ -129,7 +146,7 @@ public:
 	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args);
 
 private:
-	std::map<int32_t, PropertyBehavior> m_Behaviors;
+	std::vector<PropertyBehavior> m_Behaviors;
 
 	/**
 	 * The original position of the model
