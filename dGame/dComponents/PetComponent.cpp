@@ -793,7 +793,7 @@ void PetComponent::OnSpawn() {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void PetComponent::OnFollow(const float& deltaTime) {
+void PetComponent::OnFollow(const float deltaTime) {
 	Entity* owner = GetOwner();
 	if (!owner) return;
 
