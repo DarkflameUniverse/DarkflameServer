@@ -193,7 +193,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking
 		WHERE leaderboardsRanked.ranking
 		BETWEEN
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 9)
+		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), CAST(lowestRanking.lowestRank AS SIGNED) - 9)
 		AND
 		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank)
 		ORDER BY ranking ASC;

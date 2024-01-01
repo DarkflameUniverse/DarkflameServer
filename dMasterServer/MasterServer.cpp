@@ -7,11 +7,7 @@
 #include <thread>
 #include <fstream>
 
-#ifdef _WIN32
 #include <bcrypt/BCrypt.hpp>
-#else
-#include <bcrypt.h>
-#endif
 
 #include <csignal>
 
@@ -43,6 +39,7 @@
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
+#include "Start.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -58,8 +55,6 @@ bool shutdownSequenceStarted = false;
 void ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
 Logger* SetupLogger();
-void StartAuthServer();
-void StartChatServer();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
@@ -85,32 +80,32 @@ int main(int argc, char** argv) {
 	Game::logger = SetupLogger();
 	if (!Game::logger) return EXIT_FAILURE;
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "authconfig.ini")) {
+	if (!dConfig::Exists("authconfig.ini")) {
 		LOG("Couldnt find authconfig.ini");
 		return EXIT_FAILURE;
 	}
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "chatconfig.ini")) {
+	if (!dConfig::Exists("chatconfig.ini")) {
 		LOG("Couldnt find chatconfig.ini");
 		return EXIT_FAILURE;
 	}
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "masterconfig.ini")) {
+	if (!dConfig::Exists("masterconfig.ini")) {
 		LOG("Couldnt find masterconfig.ini");
 		return EXIT_FAILURE;
 	}
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "sharedconfig.ini")) {
+	if (!dConfig::Exists("sharedconfig.ini")) {
 		LOG("Couldnt find sharedconfig.ini");
 		return EXIT_FAILURE;
 	}
 
-	if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "worldconfig.ini")) {
+	if (!dConfig::Exists("worldconfig.ini")) {
 		LOG("Couldnt find worldconfig.ini");
 		return EXIT_FAILURE;
 	}
 
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "masterconfig.ini").string());
+	Game::config = new dConfig("masterconfig.ini");
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
@@ -126,7 +121,7 @@ int main(int argc, char** argv) {
 	LOG("Using net version %s", Game::config->GetValue("client_net_version").c_str());
 
 	LOG("Starting Master server...");
-	LOG("Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
+	LOG("Version: %s", PROJECT_VERSION);
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
@@ -812,43 +807,6 @@ void HandlePacket(Packet* packet) {
 			LOG("Unknown master packet ID from server: %i", packet->data[3]);
 		}
 	}
-}
-
-void StartChatServer() {
-	if (Game::shouldShutdown) {
-		LOG("Currently shutting down.  Chat will not be restarted.");
-		return;
-	}
-#ifdef __APPLE__
-	//macOS doesn't need sudo to run on ports < 1024
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-#elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
-#else
-	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-}
-#endif
-}
-
-void StartAuthServer() {
-	if (Game::shouldShutdown) {
-		LOG("Currently shutting down.  Auth will not be restarted.");
-		return;
-	}
-#ifdef __APPLE__
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-#elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
-#else
-	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
-		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-	} else {
-		auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-}
-#endif
 }
 
 void ShutdownSequence(int32_t signal) {

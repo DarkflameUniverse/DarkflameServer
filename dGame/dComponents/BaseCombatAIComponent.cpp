@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "SkillComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
@@ -242,12 +242,12 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hadRemainingDowntime = m_SkillTime > 0.0f;
 	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
 
-	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
+	auto* rebuild = m_Parent->GetComponent<QuickBuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return;
 		}
 	}
@@ -558,12 +558,12 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* quickbuild = entity->GetComponent<QuickBuildComponent>();
 
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return false;
 		}
 	}

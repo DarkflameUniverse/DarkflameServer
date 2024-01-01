@@ -8,7 +8,7 @@ public:
 	void OnUse(Entity* self, Entity* user) override;
 	void SpawnBrick(Entity* self);
 	void SmashCanister(Entity* self);
-	void OnRebuildComplete(Entity* self, Entity* target) override;
+	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 	void OnDie(Entity* self, Entity* killer) override;
 	void OnTimerDone(Entity* self, std::string timerName) override;
 

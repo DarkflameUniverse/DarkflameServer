@@ -1,10 +1,10 @@
 #include "NjRailPostServer.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "EntityManager.h"
 
 void NjRailPostServer::OnStartup(Entity* self) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
 		self->SetNetworkVar<bool>(NetworkNotActiveVariable, true);
 	}
 }
@@ -18,8 +18,8 @@ void NjRailPostServer::OnNotifyObject(Entity* self, Entity* sender, const std::s
 	}
 }
 
-void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::COMPLETED) {
+void NjRailPostServer::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state == eQuickBuildState::COMPLETED) {
 		auto* relatedRail = GetRelatedRail(self);
 		if (relatedRail == nullptr)
 			return;
@@ -30,7 +30,7 @@ void NjRailPostServer::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 			return;
 
 		self->SetNetworkVar(NetworkNotActiveVariable, false);
-	} else if (state == eRebuildState::RESETTING) {
+	} else if (state == eQuickBuildState::RESETTING) {
 		auto* relatedRail = GetRelatedRail(self);
 		if (relatedRail == nullptr)
 			return;

@@ -498,7 +498,7 @@ void CharacterComponent::TrackArmorDelta(int32_t armor) {
 	}
 }
 
-void CharacterComponent::TrackRebuildComplete() {
+void CharacterComponent::TrackQuickBuildComplete() {
 	UpdatePlayerStatistic(QuickBuildsCompleted);
 
 	const auto mapID = Game::zoneManager->GetZoneID().GetMapID();

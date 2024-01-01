@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <random>
 
 class dServer;
@@ -28,4 +29,5 @@ namespace Game {
 	extern EntityManager* entityManager;
 	extern dZoneManager* zoneManager;
 	extern PlayerContainer playerContainer;
+	extern std::string projectVersion;
 }

@@ -116,12 +116,12 @@ public:
 	/**
 	 * Stops all pathing, called when an entity starts a quick build associated with this platform
 	 */
-	void OnRebuildInitilized();
+	void OnQuickBuildInitilized();
 
 	/**
 	 * Starts the pathing, called when an entity completed a quick build associated with this platform
 	 */
-	void OnCompleteRebuild();
+	void OnCompleteQuickBuild();
 
 	/**
 	 * Updates the movement state for the moving platform

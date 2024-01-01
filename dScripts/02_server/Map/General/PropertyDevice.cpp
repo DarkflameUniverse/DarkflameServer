@@ -11,7 +11,7 @@ void PropertyDevice::OnStartup(Entity* self) {
 	}
 }
 
-void PropertyDevice::OnRebuildComplete(Entity* self, Entity* target) {
+void PropertyDevice::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto propertyOwnerID = self->GetNetworkVar<std::string>(m_PropertyOwnerVariable);
 	if (propertyOwnerID == std::to_string(LWOOBJID_EMPTY))
 		return;

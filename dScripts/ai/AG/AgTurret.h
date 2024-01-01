@@ -4,5 +4,5 @@
 class AgTurret : public CppScripts::Script {
 	void OnStartup(Entity* self);
 	void OnTimerDone(Entity* self, std::string timerName);
-	void OnRebuildStart(Entity* self, Entity* user);
+	void OnQuickBuildStart(Entity* self, Entity* user);
 };

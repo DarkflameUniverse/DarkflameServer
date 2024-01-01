@@ -233,7 +233,7 @@ public:
 	/**
 	 * Handles completing a rebuild by updating the statistics
 	 */
-	void TrackRebuildComplete();
+	void TrackQuickBuildComplete();
 
 	/**
 	 * Tracks a player completing the race, also updates stats

@@ -2,7 +2,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "Spawner.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 
 void FvBrickPuzzleServer::OnStartup(Entity* self) {
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
@@ -59,9 +59,9 @@ void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 
 void FvBrickPuzzleServer::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "reset") {
-		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+		auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-		if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::OPEN) {
+		if (quickBuildComponent != nullptr && quickBuildComponent->GetState() == eQuickBuildState::OPEN) {
 			self->Smash(self->GetObjectID(), eKillType::SILENT);
 		}
 	}

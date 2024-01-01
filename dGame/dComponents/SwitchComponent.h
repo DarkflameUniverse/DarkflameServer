@@ -5,7 +5,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BouncerComponent.h"
 #include <algorithm>
 #include "Component.h"
@@ -75,7 +75,7 @@ private:
 	/**
 	 * Attached rebuild component.
 	 */
-	RebuildComponent* m_Rebuild;
+	QuickBuildComponent* m_QuickBuild;
 
 	/**
 	 * If the switch is on or off.

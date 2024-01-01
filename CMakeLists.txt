@@ -28,16 +28,13 @@ foreach(variable ${variables})
 			# Set the variable
 			set(${variable_name} ${variable_value})
 
-			# Add compiler definition
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
-
 			message(STATUS "Variable: ${variable_name} = ${variable_value}")
 		endif()
 	endif()
 endforeach()
 
 # Set the version
-set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+set(PROJECT_VERSION "\"${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}\"")
 
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
@@ -53,19 +50,21 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJECT_VERSION=${PROJECT_VERSION}")
 if(UNIX)
-	if(APPLE)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
-	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC -lstdc++fs")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -fPIC")
+	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
+	if(NOT APPLE)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
 	endif()
-	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+	if (${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 	endif()
-	if (__ggdb)
+
+	if (${GGDB})
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
 	endif()
+
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
@@ -154,10 +153,7 @@ if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
 endif()
 
 # Copy navmesh data on first build and extract it
-configure_file(
-	${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
-	COPYONLY
-)
+configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip COPYONLY)
 
 file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
 file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
@@ -173,24 +169,14 @@ file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
-		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file}
-			COPYONLY
-		)
-	endif()
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
 endforeach()
 
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
-		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file}
-			COPYONLY
-		)
-	endif()
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
 # Create our list of include directories
@@ -198,7 +184,9 @@ set(INCLUDED_DIRECTORIES
 	"dCommon"
 	"dCommon/dClient"
 	"dCommon/dEnums"
+
 	"dChatFilter"
+
 	"dGame"
 	"dGame/dBehaviors"
 	"dGame/dComponents"
@@ -209,10 +197,14 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dPropertyBehaviors"
 	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
+
 	"dPhysics"
+
 	"dNavigation"
 	"dNavigation/dTerrain"
+
 	"dZoneManager"
+
 	"dDatabase"
 	"dDatabase/CDClientDatabase"
 	"dDatabase/CDClientDatabase/CDClientTables"
@@ -220,7 +212,9 @@ set(INCLUDED_DIRECTORIES
 	"dDatabase/GameDatabase/ITables"
 	"dDatabase/GameDatabase/MySQL"
 	"dDatabase/GameDatabase/MySQL/Tables"
+
 	"dNet"
+
 	"dScripts"
 	"dScripts/02_server"
 	"dScripts/ai"
@@ -304,27 +298,23 @@ set(INCLUDED_DIRECTORIES
 	"tests/dCommonTests"
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
-	)
+)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-if (WIN32)
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include")
-elseif (UNIX)
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt")
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
-endif()
-
-# Add binary directory as an include directory
-include_directories(${PROJECT_BINARY_DIR})
-
 # Actually include the directories from our list
 foreach (dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
+
+if (NOT WIN32)
+	include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt")
+endif()
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
+
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
@@ -381,7 +371,7 @@ set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "mag
 if (UNIX)
 	set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "dl" "pthread")
 
-	if (NOT APPLE AND __include_backtrace__)
+	if (NOT APPLE AND ${INCLUDE_BACKTRACE})
 		set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "backtrace")
 	endif()
 endif()
@@ -419,6 +409,6 @@ target_precompile_headers(
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
 
-if (${__enable_testing__} MATCHES "1")
+if (${ENABLE_TESTING})
 	add_subdirectory(tests)
 endif()

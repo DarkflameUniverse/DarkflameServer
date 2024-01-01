@@ -47,7 +47,7 @@
 #include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 #include "MissionOfferComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
@@ -327,11 +327,11 @@ void Entity::Initialize() {
 	 * Multiple components require the destructible component.
 	 */
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	int rebuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+	int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
 	int componentID = -1;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (rebuildComponentID > 0) componentID = rebuildComponentID;
+	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
@@ -521,50 +521,50 @@ void Entity::Initialize() {
 	}
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		auto* rebuildComponent = AddComponent<RebuildComponent>();
+		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
 
 		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == rebuildComponentID); });
+		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
-			rebuildComponent->SetResetTime(rebCompData[0].reset_time);
-			rebuildComponent->SetCompleteTime(rebCompData[0].complete_time);
-			rebuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
-			rebuildComponent->SetInterruptible(rebCompData[0].interruptible);
-			rebuildComponent->SetSelfActivator(rebCompData[0].self_activator);
-			rebuildComponent->SetActivityId(rebCompData[0].activityID);
-			rebuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			rebuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+			quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
+			quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
+			quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
+			quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
+			quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
+			quickBuildComponent->SetActivityId(rebCompData[0].activityID);
+			quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
+			quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
 			if (rebuildResetTime != 0.0f) {
-				rebuildComponent->SetResetTime(rebuildResetTime);
+				quickBuildComponent->SetResetTime(rebuildResetTime);
 
 				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
 				// This extends the smash time so players can ride up the lift.
 				if (m_TemplateID == 9483) {
-					rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() + 25);
+					quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 25);
 				}
 			}
 
 			const auto activityID = GetVar<int32_t>(u"activityID");
 
 			if (activityID > 0) {
-				rebuildComponent->SetActivityId(activityID);
+				quickBuildComponent->SetActivityId(activityID);
 				Loot::CacheMatrix(activityID);
 			}
 
 			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
 
 			if (timeBeforeSmash > 0) {
-				rebuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
+				quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
 			}
 
 			const auto compTime = GetVar<float>(u"compTime");
 
 			if (compTime > 0) {
-				rebuildComponent->SetCompleteTime(compTime);
+				quickBuildComponent->SetCompleteTime(compTime);
 			}
 		}
 	}
@@ -605,8 +605,8 @@ void Entity::Initialize() {
 	}
 
 	// Scripted activity component
-	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY);
-	if ((scriptedActivityID > 0)) {
+	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+	if ((scriptedActivityID != -1)) {
 		AddComponent<ScriptedActivityComponent>(scriptedActivityID);
 	}
 
@@ -1125,14 +1125,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	RebuildComponent* rebuildComponent;
-	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, rebuildComponent)) {
+	QuickBuildComponent* quickBuildComponent;
+	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, quickBuildComponent)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
-		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate);
+		quickBuildComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	MovingPlatformComponent* movingPlatformComponent;
@@ -1588,10 +1588,10 @@ void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target
 	m_PhantomCollisionCallbacks.push_back(callback);
 }
 
-void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
-	auto* rebuildComponent = GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildCompleteCallback(callback);
+void Entity::AddQuickBuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
+	auto* quickBuildComponent = GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddQuickBuildCompleteCallback(callback);
 	}
 }
 

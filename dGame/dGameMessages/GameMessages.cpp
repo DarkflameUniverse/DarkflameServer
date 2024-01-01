@@ -65,7 +65,7 @@
 #include "MissionComponent.h"
 #include "DestroyableComponent.h"
 #include "ScriptComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "VendorComponent.h"
 #include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -780,7 +780,7 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	SEND_PACKET;
 }
 
-void GameMessages::SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID) {
+void GameMessages::SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -794,7 +794,7 @@ void GameMessages::SendRebuildNotifyState(Entity* entity, eRebuildState prevStat
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID) {
+void GameMessages::SendEnableQuickBuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
@@ -4986,17 +4986,17 @@ void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Enti
 	GameMessages::SendPlatformResync(entity, sysAddr);
 }
 
-void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity) {
+void GameMessages::HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity) {
 	bool bEarlyRelease;
 	LWOOBJID userID;
 
 	inStream->Read(bEarlyRelease);
 	inStream->Read(userID);
 
-	RebuildComponent* rebComp = static_cast<RebuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));
-	if (!rebComp) return;
+	auto* quickBuildComponent = static_cast<QuickBuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));;
+	if (!quickBuildComponent) return;
 
-	rebComp->CancelRebuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
+	quickBuildComponent->CancelQuickBuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
 }
 
 void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
