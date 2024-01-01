@@ -114,14 +114,14 @@ public:
 	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	inline constexpr bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
+	inline const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has ONLY the specified flag(s)
 	 * @param flag PetFlag(s) to check if the pet has exclusively
 	*/
 	template <typename... varArg>
-	inline constexpr bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
+	inline const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Governs the pet update loop
