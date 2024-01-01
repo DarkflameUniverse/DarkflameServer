@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: pod-template
+template:
+  metadata:
+    labels:
+      app: darkflame-server
+  spec:
+    restartPolicy: OnFailure
+    volumes:
+    - name: game-config
+      configMap:
+        name: game-config
+    - name: vanity
+      configMap:
+        name: vanity
+    - name: luclient
+      hostPath:
+        path: /luclient
+    - name: res-server
+      hostPath:
+        path: /resServer
+    containers:
+    - name: darkflame-server
+      image: ghcr.io/darkflameuniverse/darkflameserver
+      imagePullPolicy: IfNotPresent
+      ports:
+      - containerPort: 3000
+        protocol: UDP
+        name: raknet
+      envFrom:
+      - configMapRef:
+          name: env-common
+      - secretRef:
+          name: db-secret
+        prefix: MYSQL_
+      volumeMounts:
+      - mountPath: "/app/res"
+        readOnly: true
+        name: luclient
+      - mountPath: "/app/resServer"
+        readOnly: true
+        name: res-server
+      - mountPath: "/app/config"
+        readOnly: true
+        name: game-config
+      - mountPath: "/app/vanity"
+        readOnly: true
+        name: vanity

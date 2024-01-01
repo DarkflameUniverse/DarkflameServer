@@ -121,6 +121,7 @@ void CatchUnhandled(int sig) {
 	} catch(const std::exception& e) {
 		LOG("Caught exception: '%s'", e.what());
 	}
+	Game::logger->Flush();
 
 #ifndef INCLUDE_BACKTRACE
 
@@ -186,7 +187,7 @@ void CatchUnhandled(int sig) {
 	Bt(state);
 
 #endif // INCLUDE_BACKTRACE
-
+	Game::logger->Flush();
 	exit(EXIT_FAILURE);
 }
 

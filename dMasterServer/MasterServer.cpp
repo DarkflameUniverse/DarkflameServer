@@ -125,6 +125,8 @@ int main(int argc, char** argv) {
 	LOG("Version: %s", PROJECT_VERSION);
 	LOG("Compiled on: %s", __TIMESTAMP__);
 
+	Game::logger->Flush();
+
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
@@ -851,6 +853,7 @@ int ShutdownSequence(int32_t signal) {
 	}
 
 	LOG("Attempting to shutdown instances, max 60 seconds...");
+	Game::logger->Flush();
 
 	auto t = std::chrono::high_resolution_clock::now();
 	uint32_t framesSinceShutdownStart = 0;

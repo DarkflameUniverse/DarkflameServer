@@ -1,0 +1,17 @@
+resources:
+  - mariadb.yml
+  - ../resources
+  - ../vanity
+  - pod-template.yml
+  - darkflame.yml
+secretGenerator:
+- name: db-secret
+  literals:
+  - DATABASE=darkflame
+  - USER=darkflame # for MariaDB
+  - USERNAME=darkflame # for DLU
+  - PASSWORD=gjN@5#TTE&H&Yees5Q3a%tTC
+configMapGenerator:
+- name: env-common
+  envs:
+  - common.env
