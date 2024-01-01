@@ -93,35 +93,35 @@ public:
 	 * @param flag PetFlag(s) to set
 	*/
 	template <typename... varArg>
-	inline void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
+	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Sets the pet to ONLY have the specified flag(s), clearing all others
 	 * @param flag PetFlag(s) to set exclusively
 	*/
 	template <typename... varArg>
-	inline void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
+	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Unsets one or more pet flags
 	 * @param flag PetFlag(s) to unset
 	*/
 	template <typename... varArg>
-	inline void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
+	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has all the specified flag(s)
 	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	inline const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
+	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Returns true if the pet has ONLY the specified flag(s)
 	 * @param flag PetFlag(s) to check if the pet has exclusively
 	*/
 	template <typename... varArg>
-	inline const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
+	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
 
 	/**
 	 * Governs the pet update loop
@@ -192,7 +192,7 @@ public:
 	/**
 	 * Continues a step in the follow state, making sure that the entity is around its start position
 	*/
-	void OnFollow(const float& deltaTime);
+	void OnFollow(const float deltaTime);
 
 	/**
 	 * Continues a step in the interact state, handling the pet's interaction with an entity
