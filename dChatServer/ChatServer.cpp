@@ -33,7 +33,7 @@ namespace Game {
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
-	bool shouldShutdown = false;
+	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 	PlayerContainer playerContainer;
 }
@@ -41,12 +41,20 @@ namespace Game {
 Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
+void OnSignal(int signal)
+{
+    Game::lastSignal = signal;
+}
+
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
 	constexpr uint32_t chatFrameDelta = mediumFrameDelta;
 	Diagnostics::SetProcessName("Chat");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
+
+	std::signal(SIGINT, OnSignal);
+	std::signal(SIGTERM, OnSignal);
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -101,7 +109,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
 
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
 	
@@ -118,7 +126,8 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
-	while (!Game::shouldShutdown) {
+	Game::logger->Flush(); // once immediately before main loop
+	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
