@@ -303,8 +303,8 @@ void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
 template<>
 void PropertyBehavior::HandleMsg(AddMessage& msg) {
 	// TODO Parse the corresponding behavior xml file.
-	if (msg.GetBehaviorId() != 7965) isLoot = true;
 	m_BehaviorId = msg.GetBehaviorId();
+	isLoot = m_BehaviorId != 7965;
 };
 
 void PropertyBehavior::SetBehaviorId(int32_t behaviorId) {

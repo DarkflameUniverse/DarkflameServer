@@ -119,8 +119,9 @@ public:
 			}
 		}
 
-		m_Behaviors.insert(m_Behaviors.begin(), PropertyBehavior());
-		m_Behaviors.at(0).HandleMsg(msg);
+		auto newBehavior = m_Behaviors.insert(m_Behaviors.begin(), PropertyBehavior());
+		newBehavior->SetBehaviorId(msg.GetBehaviorId());
+		newBehavior->HandleMsg(msg);
 	};
 
 	void AddBehavior(AddMessage& msg);
