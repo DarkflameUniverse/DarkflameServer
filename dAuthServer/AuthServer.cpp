@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <csignal>
 #include <chrono>
 #include <thread>
 
@@ -28,7 +29,7 @@ namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
-	bool shouldShutdown = false;
+	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 }
 
@@ -41,6 +42,9 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessName("Auth");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
+
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -74,6 +78,7 @@ int main(int argc, char** argv) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
 	}
+	LOG("Master is at %s:%d", masterIP.c_str(), masterPort);
 
 	Game::randomEngine = std::mt19937(time(0));
 
@@ -83,7 +88,7 @@ int main(int argc, char** argv) {
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
 	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -96,13 +101,16 @@ int main(int argc, char** argv) {
 
 	AuthPackets::LoadClaimCodes();
 	
-	while (!Game::shouldShutdown) {
+	Game::logger->Flush(); // once immediately before main loop
+	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			if (framesSinceMasterDisconnect >= authFramerate)
+			if (framesSinceMasterDisconnect >= authFramerate) {
+				LOG("No connection to master!");
 				break; //Exit our loop, shut down.
+			}
 		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
@@ -141,6 +149,7 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 
+	LOG("Exited Main Loop! (signal %d)", Game::lastSignal);
 	//Delete our objects here:
 	Database::Destroy("AuthServer");
 	delete Game::server;
