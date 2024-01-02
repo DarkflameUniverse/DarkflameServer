@@ -366,7 +366,6 @@ docker run -it \
     -v /path/to/dumps/:/app/dumps \
     -v /path/to/res:/app/res:ro \
     -v /path/to/resServer:/app/resServer \
-    -e DLU_CONFIG_DIR=/app/configs \
     -e DUMP_FOLDER=/app/dumps \
     -p 1001:1001/udp \
     -p 2005:2005/udp \
