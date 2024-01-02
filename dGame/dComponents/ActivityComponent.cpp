@@ -33,7 +33,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 	if (activityID > 0) m_ActivityID = activityID;
 	else m_ActivityID = parent->GetVar<int32_t>(u"activityID");
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
@@ -93,7 +93,7 @@ void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 
 void ActivityComponent::ReloadConfig() {
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 	for (auto activity : activities) {
 		auto mapID = m_ActivityInfo.instanceMapID;
 		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
@@ -532,7 +532,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 
 	// First, get the activity data
 	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
-	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
+	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([this](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;

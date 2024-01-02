@@ -6,6 +6,8 @@
 #include <stdarg.h>
 
 Writer::~Writer() {
+	// Flush before we close
+	Flush();
 	// Dont try to close stdcout...
 	if (!m_Outfile || m_IsConsoleWriter) return;
 

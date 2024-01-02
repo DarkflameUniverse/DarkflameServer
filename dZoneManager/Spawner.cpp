@@ -51,20 +51,20 @@ Spawner::Spawner(const SpawnerInfo info) {
 		std::vector<Spawner*> spawnSmashSpawnersN = Game::zoneManager->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
 		for (Entity* ssEntity : spawnSmashEntities) {
 			m_SpawnSmashFoundGroup = true;
-			ssEntity->AddDieCallback([=]() {
+			ssEntity->AddDieCallback([=, this]() {
 				Spawn();
 				});
 		}
 		for (Spawner* ssSpawner : spawnSmashSpawners) {
 			m_SpawnSmashFoundGroup = true;
-			ssSpawner->AddSpawnedEntityDieCallback([=]() {
+			ssSpawner->AddSpawnedEntityDieCallback([=, this]() {
 				Spawn();
 				});
 		}
 		for (Spawner* ssSpawner : spawnSmashSpawnersN) {
 			m_SpawnSmashFoundGroup = true;
 			m_SpawnOnSmash = ssSpawner;
-			ssSpawner->AddSpawnedEntityDieCallback([=]() {
+			ssSpawner->AddSpawnedEntityDieCallback([=, this]() {
 				Spawn();
 				});
 		}

@@ -263,7 +263,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
+	ObjectIDManager::Instance()->RequestPersistentID([=, this](uint32_t objectID) {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
