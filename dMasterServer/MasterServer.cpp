@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 #endif
 
 	//Triggers the shutdown sequence at application exit
-	std::atexit([]() { ShutdownSequence(); });
+	std::atexit([]() { printf("\n"); ShutdownSequence(); });
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
