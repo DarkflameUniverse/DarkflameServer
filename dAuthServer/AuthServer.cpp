@@ -36,11 +36,6 @@ namespace Game {
 Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
-void OnSignal(int signal)
-{
-    Game::lastSignal = signal;
-}
-
 int main(int argc, char** argv) {
 	constexpr uint32_t authFramerate = mediumFramerate;
 	constexpr uint32_t authFrameDelta = mediumFrameDelta;
@@ -48,8 +43,8 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
-	std::signal(SIGINT, OnSignal);
-	std::signal(SIGTERM, OnSignal);
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();

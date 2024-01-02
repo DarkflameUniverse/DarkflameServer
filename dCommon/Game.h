@@ -36,4 +36,5 @@ namespace Game {
 	inline bool ShouldShutdown() {
 		return lastSignal != 0;
 	}
+	void OnSignal(int signal);
 }

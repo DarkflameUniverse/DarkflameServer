@@ -61,11 +61,6 @@ std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 
-void OnSignal(int signal)
-{
-    Game::lastSignal = signal;
-}
-
 int main(int argc, char** argv) {
 	constexpr uint32_t masterFramerate = mediumFramerate;
 	constexpr uint32_t masterFrameDelta = mediumFrameDelta;
@@ -79,8 +74,8 @@ int main(int argc, char** argv) {
 
 	//Triggers the shutdown sequence at application exit
 	std::atexit([]() { ShutdownSequence(); });
-	std::signal(SIGINT, OnSignal);
-	std::signal(SIGTERM, OnSignal);
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();

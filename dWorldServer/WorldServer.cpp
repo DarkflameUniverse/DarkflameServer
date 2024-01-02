@@ -124,8 +124,8 @@ int main(int argc, char** argv) {
 	// Triggers the shutdown sequence at application exit
 	std::atexit(WorldShutdownSequence);
 
-	signal(SIGINT, [](int) { WorldShutdownSequence(); });
-	signal(SIGTERM, [](int) { WorldShutdownSequence(); });
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
 
 	uint32_t zoneID = 1000;
 	uint32_t cloneID = 0;
