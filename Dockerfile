@@ -23,6 +23,7 @@ RUN --mount=type=cache,id=build-apt-cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 # Grab libraries and load them
+COPY --from=build /app/build/mariadbcpp/src/mariadb_connector_cpp-build/libmariadbcpp.so /usr/local/lib/
 COPY --from=build /app/build/mariadbcpp/src/mariadb_connector_cpp-build/libmariadb/libmariadb/libmariadb.so.3 /usr/local/lib
 RUN ldconfig
 
