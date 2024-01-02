@@ -14,5 +14,8 @@ set(DSCRIPTS_SOURCES_AI_AG
 	"AgDarkSpiderling.cpp"
 	"AgPicnicBlanket.cpp"
 	"AgStagePlatforms.cpp"
-	"AgQbWall.cpp"
-	PARENT_SCOPE)
+	"AgQbWall.cpp")
+
+add_library(dScriptsAiAG STATIC ${DSCRIPTS_SOURCES_AI_AG})
+target_include_directories(dScriptsAiAG PUBLIC ".")
+target_precompile_headers(dScriptsAiAG REUSE_FROM dScriptsBase)

@@ -9,4 +9,6 @@ foreach(file ${DSCRIPTS_SOURCES_AI_ACT_FOOTRACE})
 	set(DSCRIPTS_SOURCES_AI_ACT ${DSCRIPTS_SOURCES_AI_ACT} "FootRace/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_AI_ACT ${DSCRIPTS_SOURCES_AI_ACT} PARENT_SCOPE)
+add_library(dScriptsAiAct STATIC ${DSCRIPTS_SOURCES_AI_ACT})
+target_include_directories(dScriptsAiAct PUBLIC "." "FootRace")
+target_precompile_headers(dScriptsAiAct REUSE_FROM dScriptsBase)

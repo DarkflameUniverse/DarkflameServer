@@ -8,4 +8,10 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"ZoneInstanceManager.cpp")
 
 add_library(dNet STATIC ${DNET_SOURCES})
-target_link_libraries(dNet dCommon dDatabase)
+target_include_directories(dNet PRIVATE
+	${PROJECT_SOURCE_DIR}/dGame/dComponents
+	${PROJECT_SOURCE_DIR}/dScripts # transitive through components
+)
+target_link_libraries(dNet
+	PUBLIC dCommon dDatabase
+	INTERFACE dZoneManager)
