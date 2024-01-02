@@ -31,13 +31,16 @@ RUN ldconfig
 COPY --from=build /app/build/*Server /app/
 
 # Necessary suplimentary files
-COPY --from=build /app/build/*.ini /app/default-configs/
 COPY --from=build /app/build/*.ini /app/configs/
-COPY --from=build /app/build/vanity/*.* /app/default-vanity/*
 COPY --from=build /app/build/vanity/*.* /app/vanity/*
 COPY --from=build /app/build/navmeshes /app/navmeshes
 COPY --from=build /app/build/migrations /app/migrations
 COPY --from=build /app/build/*.dcf /app/
+
+# backup of config and vanity files to copy to the host incase 
+# of a mount clobbering the copy from above
+COPY --from=build /app/build/*.ini /app/default-configs/ 
+COPY --from=build /app/build/vanity/*.* /app/default-vanity/*
 
 # needed as the container runs with the root user
 # and therefore sudo doesn't exist
