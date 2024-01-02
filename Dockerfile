@@ -32,7 +32,9 @@ COPY --from=build /app/build/*Server /app/
 
 # Necessary suplimentary files
 COPY --from=build /app/build/*.ini /app/default-configs/
-COPY --from=build /app/build/vanity /app/default-vanity
+COPY --from=build /app/build/*.ini /app/configs/
+COPY --from=build /app/build/vanity/*.* /app/default-vanity/*
+COPY --from=build /app/build/vanity/*.* /app/vanity/*
 COPY --from=build /app/build/navmeshes /app/navmeshes
 COPY --from=build /app/build/migrations /app/migrations
 COPY --from=build /app/build/*.dcf /app/
@@ -40,6 +42,7 @@ COPY --from=build /app/build/*.dcf /app/
 # needed as the container runs with the root user
 # and therefore sudo doesn't exist
 ENV USE_SUDO_AUTH=0
+ENV DLU_CONFIG_DIR=/app/configs/
 
 COPY --chmod=0500 ./entrypoint.sh /app/
 ENTRYPOINT [ "/app/entrypoint.sh" ]
