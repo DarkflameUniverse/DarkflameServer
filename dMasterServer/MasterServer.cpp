@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 #endif
 
 	//Triggers the shutdown sequence at application exit
-	std::atexit([]() { ShutdownSequence(); });
+	std::atexit([]() { printf("\n"); ShutdownSequence(); });
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
@@ -812,6 +812,7 @@ void HandlePacket(Packet* packet) {
 }
 
 int ShutdownSequence(int32_t signal) {
+	if (!Game::logger) return -1;
 	LOG("Recieved Signal %d", signal);
 	if (shutdownSequenceStarted) {
 		LOG("Duplicate Shutdown Sequence");
@@ -900,9 +901,13 @@ int32_t FinalizeShutdown(int32_t signal) {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
 	if (Game::config) delete Game::config;
+	Game::config = nullptr;
 	if (Game::im) delete Game::im;
+	Game::im = nullptr;
 	if (Game::server) delete Game::server;
+	Game::server = nullptr;
 	if (Game::logger) delete Game::logger;
+	Game::logger = nullptr;
 
 	if (signal != EXIT_SUCCESS) exit(signal);
 	return signal;
