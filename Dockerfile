@@ -13,7 +13,7 @@ RUN sed -i 's/MARIADB_CONNECTOR_COMPILE_JOBS__=.*/MARIADB_CONNECTOR_COMPILE_JOBS
 RUN chmod +x build.sh
 RUN ./build.sh
 
-FROM debian:12 as runtime
+FROM gcc:13 as runtime
 
 WORKDIR /app
 
