@@ -1291,13 +1291,16 @@ void WorldShutdownProcess(uint32_t zoneId) {
 }
 
 void WorldShutdownSequence() {
+	bool shouldShutdown = Game::ShouldShutdown() || worldShutdownSequenceComplete;
 	Game::lastSignal = -1;
 #ifndef DARKFLAME_PLATFORM_WIN32
-	if (Game::ShouldShutdown() || worldShutdownSequenceComplete)
+	if (shouldShutdown)
 #endif
 	{
 		return;
 	}
+
+	if (!Game::logger) return;
 
 	LOG("Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());
