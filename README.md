@@ -37,6 +37,7 @@ If you would like a setup for a single player server only on a Windows machine, 
 * [Verify your setup](#verify-your-setup)
 * [Running the server](#running-the-server)
 * [User Guide](#user-guide)
+* [Docker](#docker)
 
 ## Clone the repository
 If you are on Windows, you will need to download and install git from [here](https://git-scm.com/download/win)
@@ -346,6 +347,43 @@ certutil -hashfile <file> SHA1
 
 Known good *SHA1* checksum of the Darkflame Universe client:
 - `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
+
+# Docker
+
+## Standalone
+
+For standalone deployment, you can use the image provided via Github's Container Repository:
+`ghcr.io/darkflameuniverse/darkfameserver`
+
+This assumes that you have a database deployed to your host or in another docker container.
+
+A basic deployment of this contianer would look like:
+```sh
+# example docker contianer deployment
+docker run -it \
+    -v /path/to/configs/:/app/configs \
+    -v /path/to/logs/:/app/logs \
+    -v /path/to/dumps/:/app/dumps \
+    -v /path/to/res:/app/res:ro \
+    -v /path/to/resServer:/app/resServer \
+    -e DLU_CONFIG_DIR=/app/configs \
+    -e DUMP_FOLDER=/app/dumps \
+    -p 1001:1001/udp \
+    -p 2005:2005/udp \
+    -p 3000-3300:3000-3300/udp \
+ghcr.io/darkflameuniverse/darkfameserver:latest
+```
+You will need to replace the `/path/to/`'s to reflect the paths on your host.
+
+Any config option in the `.ini`'s can be overridden with environmental variables: Ex: `log_to_console=1` from `shared_config.ini` would be overidden like  `-e LOG_TO_CONSOLE=0`
+
+## Compose
+
+See the [compose](docker-compose.yml) file in the root of the repo.
+
+This compose file is for a full deployment: MariaDB, DarkflameServer, and Nexus Dashboard.
+
+All of the environmental options are listed in the compose file so the can be pass through, or you can edit the compose file to suit your specific needs
 
 # Development Documentation
 This is a Work in Progress, but below are some quick links to documentaion for systems and structs in the server
