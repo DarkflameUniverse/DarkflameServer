@@ -14,7 +14,7 @@ services:
   darkfameserver:
     networks:
       - darkflame
-    image: ghcr.io/darkflameuniverse/darkfameserver:latest
+    image: ghcr.io/darkflameuniverse/darkflameserver:latest
     volumes:
       - $HOST_CONFIG_DIR:/app/configs/
       - $HOST_CLIENT_LOCATION:$CLIENT_LOCATION:ro

@@ -26,10 +26,11 @@ COPY --from=build /app/build/vanity /app/default-vanity
 COPY --from=build /app/build/navmeshes /app/navmeshes
 COPY --from=build /app/build/migrations /app/migrations
 COPY --from=build /app/build/*.dcf /app/
-COPY ./entrypoint.sh /app/
+COPY --chmod=0500 ./entrypoint.sh /app/
 RUN ldconfig
+
 # needed as the container runs with the root user
 # and therefore sudo doesn't exist
 ENV USE_SUDO_AUTH=0
-RUN chmod +x entrypoint.sh
-CMD [ "/app/entrypoint.sh" ]
+
+ENTRYPOINT [ "/app/entrypoint.sh" ]

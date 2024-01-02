@@ -353,7 +353,7 @@ Known good *SHA1* checksum of the Darkflame Universe client:
 ## Standalone
 
 For standalone deployment, you can use the image provided via Github's Container Repository:
-`ghcr.io/darkflameuniverse/darkfameserver`
+`ghcr.io/darkflameuniverse/darkflameserver`
 
 This assumes that you have a database deployed to your host or in another docker container.
 
@@ -371,7 +371,7 @@ docker run -it \
     -p 1001:1001/udp \
     -p 2005:2005/udp \
     -p 3000-3300:3000-3300/udp \
-ghcr.io/darkflameuniverse/darkfameserver:latest
+ghcr.io/darkflameuniverse/darkflameserver:latest
 ```
 You will need to replace the `/path/to/`'s to reflect the paths on your host.
 
