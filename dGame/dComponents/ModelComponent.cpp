@@ -351,6 +351,8 @@ void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	auto* executionState = args.InsertArray("executionState");
 	executionState->Insert("stateID", static_cast<double>(m_LastEditedState));
 	executionState->InsertArray("strips");
+
+	// TODO Serialize the execution state of the behavior
 }
 
 //////////////////////// ModelComponent ////////////////////////
