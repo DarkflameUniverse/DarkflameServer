@@ -53,4 +53,4 @@ target_include_directories(dScriptsServerEnemy PUBLIC "."
 	"VE"
 	"Waves"
 )
-target_precompile_headers(dScriptsServerEnemy PRIVATE ${HEADERS_DGAME})
+target_precompile_headers(dScriptsServerEnemy REUSE_FROM dScriptsBase)
