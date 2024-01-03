@@ -39,7 +39,7 @@ add_subdirectory(zone)
 
 add_library(dScripts STATIC "CppScripts.cpp")
 target_precompile_headers(dScripts REUSE_FROM dScriptsBase)
-target_include_directories(dScripts PUBLIC .)
+target_include_directories(dScripts PUBLIC ".")
 target_link_libraries(dScripts
 	dScriptsBase
 	dScriptsServer
