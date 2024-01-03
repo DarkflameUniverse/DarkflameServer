@@ -100,6 +100,9 @@ set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldco
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
+UpdateConfigOption(${PROJECT_BINARY_DIR}/authconfig.ini "port" "auth_server_port")
+UpdateConfigOption(${PROJECT_BINARY_DIR}/chatconfig.ini "port" "chat_server_port")
+UpdateConfigOption(${PROJECT_BINARY_DIR}/masterconfig.ini "port" "master_server_port")
 
 foreach(resource_file ${RESOURCE_FILES})
 	set(file_size 0)

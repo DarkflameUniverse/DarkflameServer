@@ -14,9 +14,6 @@
 	path = thirdparty/mariadb-connector-cpp
 	url = https://github.com/mariadb-corporation/mariadb-connector-cpp.git
 	ignore = dirty
-[submodule "thirdparty/AccountManager"]
-	path = thirdparty/AccountManager
-	url = https://github.com/DarkflameUniverse/AccountManager
 [submodule "thirdparty/magic_enum"]
 	path = thirdparty/magic_enum
 	url = https://github.com/Neargye/magic_enum.git

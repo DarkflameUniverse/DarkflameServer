@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
 	uint32_t maxClients = 999;
 	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
+	if (Game::config->GetValue("master_server_port") != "") ourPort = std::stoi(Game::config->GetValue("master_server_port"));
 
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
 
