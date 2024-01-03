@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 	uint32_t maxClients = 50;
 	uint32_t ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
+	if (Game::config->GetValue("auth_server_port") != "") ourPort = std::atoi(Game::config->GetValue("auth_server_port").c_str());
 
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
 

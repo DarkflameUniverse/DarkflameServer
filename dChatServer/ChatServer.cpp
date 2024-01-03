@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
 	uint32_t maxClients = 50;
 	uint32_t ourPort = 1501;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
+	if (Game::config->GetValue("chat_server_port") != "") ourPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
 	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
 
