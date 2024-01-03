@@ -11,9 +11,9 @@
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
 	RearrangeStripMessage(AMFArrayValue* arguments);
-	int32_t GetSrcActionIndex() { return srcActionIndex; };
-	int32_t GetDstActionIndex() { return dstActionIndex; };
-	ActionContext GetActionContext() { return actionContext; };
+	int32_t GetSrcActionIndex() const { return srcActionIndex; };
+	int32_t GetDstActionIndex() const { return dstActionIndex; };
+	ActionContext GetActionContext() const { return actionContext; };
 private:
 	ActionContext actionContext;
 	int32_t srcActionIndex;

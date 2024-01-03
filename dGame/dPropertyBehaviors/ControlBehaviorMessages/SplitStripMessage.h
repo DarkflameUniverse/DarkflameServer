@@ -15,11 +15,11 @@ class AMFArrayValue;
 class SplitStripMessage : public BehaviorMessageBase {
 public:
 	SplitStripMessage(AMFArrayValue* arguments);
-	ActionContext GetSourceActionContext() { return sourceActionContext; };
-	ActionContext GetDestinationActionContext() { return destinationActionContext; };
-	int32_t GetSrcActionIndex() { return srcActionIndex; };
-	StripUiPosition GetPosition() { return destinationPosition; };
-	const std::vector<Action>& GetTransferredActions() { return transferredActions; };
+	ActionContext GetSourceActionContext() const { return sourceActionContext; };
+	ActionContext GetDestinationActionContext() const { return destinationActionContext; };
+	int32_t GetSrcActionIndex() const { return srcActionIndex; };
+	StripUiPosition GetPosition() const { return destinationPosition; };
+	const std::vector<Action>& GetTransferredActions() const { return transferredActions; };
 	void SetTransferredActions(std::vector<Action>::const_iterator begin, std::vector<Action>::const_iterator end) { transferredActions.assign(begin, end); };
 private:
 	ActionContext sourceActionContext;

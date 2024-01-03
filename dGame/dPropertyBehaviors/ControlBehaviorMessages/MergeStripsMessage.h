@@ -14,10 +14,10 @@ class AMFArrayValue;
 class MergeStripsMessage : public BehaviorMessageBase {
 public:
 	MergeStripsMessage(AMFArrayValue* arguments);
-	int32_t GetDstActionIndex() { return dstActionIndex; };
-	ActionContext GetSourceActionContext() { return sourceActionContext; };
-	ActionContext GetDestinationActionContext() { return destinationActionContext; };
-	const std::vector<Action>& GetMigratedActions() { return migratedActions; };
+	int32_t GetDstActionIndex() const { return dstActionIndex; };
+	ActionContext GetSourceActionContext() const { return sourceActionContext; };
+	ActionContext GetDestinationActionContext() const { return destinationActionContext; };
+	const std::vector<Action>& GetMigratedActions() const { return migratedActions; };
 	void SetMigratedActions(std::vector<Action>::const_iterator start, std::vector<Action>::const_iterator end) { migratedActions.assign(start, end); };
 private:
 	std::vector<Action> migratedActions;

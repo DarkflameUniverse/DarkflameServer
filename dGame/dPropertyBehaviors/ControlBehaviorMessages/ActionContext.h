@@ -14,8 +14,8 @@ class ActionContext {
 public:
 	ActionContext();
 	ActionContext(AMFArrayValue* arguments, std::string customStateKey = "stateID", std::string customStripKey = "stripID");
-	const StripId GetStripId() { return stripId; };
-	const BehaviorState GetStateId() { return stateId; };
+	const StripId GetStripId() const { return stripId; };
+	const BehaviorState GetStateId() const { return stateId; };
 private:
 	BehaviorState GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key);
 	StripId GetStripIdFromArgument(AMFArrayValue* arguments, const std::string& key);

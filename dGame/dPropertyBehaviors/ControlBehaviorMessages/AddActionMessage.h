@@ -14,9 +14,9 @@ class AMFArrayValue;
 class AddActionMessage : public BehaviorMessageBase {
 public:
 	AddActionMessage(AMFArrayValue* arguments);
-	const uint32_t GetActionIndex() { return actionIndex; };
-	Action GetAction() { return action; };
-	ActionContext GetActionContext() { return actionContext; };
+	int32_t GetActionIndex() const { return actionIndex; };
+	Action GetAction() const { return action; };
+	ActionContext GetActionContext() const { return actionContext; };
 private:
 	int32_t actionIndex = -1;
 	ActionContext actionContext;
