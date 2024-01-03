@@ -11,7 +11,7 @@ services:
     networks:
       - darkflame
 
-  darkfameserver:
+  darkflameserver:
     networks:
       - darkflame
     image: ghcr.io/darkflameuniverse/darkflameserver:latest
