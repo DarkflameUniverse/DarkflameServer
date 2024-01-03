@@ -16,7 +16,7 @@ Writer::~Writer() {
 }
 
 void Writer::Log(const char* time, const char* message) {
-	if (!m_Outfile) return;
+	if (!m_Outfile || !m_Enabled) return;
 
 	fputs(time, m_Outfile);
 	fputs(message, m_Outfile);
