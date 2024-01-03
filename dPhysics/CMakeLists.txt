@@ -7,6 +7,10 @@ set(DPHYSICS_SOURCES "dpCollisionChecks.cpp"
 	"dpWorld.cpp")
 
 add_library(dPhysics STATIC ${DPHYSICS_SOURCES})
+target_include_directories(dPhysics PUBLIC "."
+	"${PROJECT_SOURCE_DIR}/dCommon"
+	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
+)
 target_link_libraries(dPhysics
 	PUBLIC Recast Detour
-	INTERFACE dNavigation)
+	INTERFACE dNavigation dCommon)

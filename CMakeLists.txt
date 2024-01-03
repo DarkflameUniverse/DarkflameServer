@@ -212,10 +212,6 @@ add_subdirectory(thirdparty)
 
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
-	"dCommon"
-	"dCommon/dClient"
-	"dCommon/dEnums"
-
 	"dChatFilter"
 
 	"dPhysics"

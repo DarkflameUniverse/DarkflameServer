@@ -10,7 +10,11 @@ foreach(file ${DDATABASE_CDCLIENTDATABASE_CDCLIENTTABLES_SOURCES})
 endforeach()
 
 add_library(dDatabaseCDClient STATIC ${DDATABASE_CDCLIENTDATABASE_SOURCES})
-target_include_directories(dDatabaseCDClient PUBLIC "." "CDClientTables")
+target_include_directories(dDatabaseCDClient PUBLIC "."
+	"CDClientTables"
+	"${PROJECT_SOURCE_DIR}/dCommon"
+	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
+)
 target_link_libraries(dDatabaseCDClient PRIVATE sqlite3)
 
 if (${CDCLIENT_CACHE_ALL})

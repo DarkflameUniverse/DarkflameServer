@@ -9,7 +9,11 @@ foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
 endforeach()
 
 add_library(dDatabaseGame STATIC ${DDATABASE_GAMEDATABASE_SOURCES})
-target_include_directories(dDatabaseGame PUBLIC "." "ITables" PRIVATE "MySQL")
+target_include_directories(dDatabaseGame PUBLIC "."
+	"ITables" PRIVATE "MySQL"
+	"${PROJECT_SOURCE_DIR}/dCommon"
+	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
+)
 target_link_libraries(dDatabaseGame
 	PUBLIC mariadbConnCpp
 	INTERFACE dCommon)

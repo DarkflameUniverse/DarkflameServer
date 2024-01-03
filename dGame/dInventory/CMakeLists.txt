@@ -9,6 +9,7 @@ add_library(dInventory STATIC ${DGAME_DINVENTORY_SOURCES})
 target_include_directories(dInventory PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # Item.h uses Preconditions.h
 	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dCommon/dClient" # Item.cpp uses AssetManager
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
