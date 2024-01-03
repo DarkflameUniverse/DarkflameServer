@@ -9,78 +9,15 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
-#include "StripUiPosition.h"
 #include "Action.h"
+#include "PropertyBehavior.h"
+#include "StripUiPosition.h"
 
 class AddMessage;
 class AMFArrayValue;
 class BehaviorMessageBase;
 class Entity;
 class MoveToInventoryMessage;
-
-enum class BehaviorState : uint32_t;
-
-class Strip {
-public:
-	template<typename Msg>
-	void HandleMsg(Msg& msg);
-
-	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
-	bool IsEmpty() const { return m_Actions.empty(); }
-private:
-	std::vector<Action> m_Actions;
-	StripUiPosition m_Position;
-};
-
-class State {
-public:
-	template<typename Msg>
-	void HandleMsg(Msg& msg);
-
-	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
-	bool IsEmpty() const;
-private:
-	std::vector<Strip> m_Strips;
-};
-
-/**
- * Represents the Entity of a Property Behavior and holds data associated with the behavior
- */
-class PropertyBehavior {
-public:
-	PropertyBehavior();
-	template<typename Msg>
-	void HandleMsg(Msg& msg);
-
-	// If the last edited state has no strips, this method will set the last edited state to the first state that has strips.
-	void VerifyLastEditedState();
-	void SendBehaviorListToClient(AMFArrayValue& args) const;
-	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
-
-	int32_t GetBehaviorId() const { return m_BehaviorId; }
-	void SetBehaviorId(int32_t id);
-private:
-
-	// The states this behavior has.
-	std::map<BehaviorState, State> m_States;
-
-	// The name of this behavior.
-	std::string m_Name = "New Behavior";
-
-	// Whether this behavior is locked and cannot be edited.
-	bool isLocked = false;
-
-	// Whether this behavior is custom or pre-fab.
-	bool isLoot = false;
-
-	// The last state that was edited. This is used so when the client re-opens the behavior editor, it will open to the last edited state.
-	// If the last edited state has no strips, it will open to the first state that has strips.
-	BehaviorState m_LastEditedState;
-
-	// The behavior id for this behavior. This is expected to be fully unique, however an id of -1 means this behavior was just created
-	// and needs to be assigned an id.
-	int32_t m_BehaviorId = -1;
-};
 
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
