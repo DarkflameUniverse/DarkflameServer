@@ -50,7 +50,16 @@ set(DGAME_DCOMPONENTS_SOURCES
 )
 
 add_library(dComponents STATIC ${DGAME_DCOMPONENTS_SOURCES})
-target_include_directories(dComponents PRIVATE ${PROJECT_SOURCE_DIR}/dScripts/02_server/Map/General) # PetDigServer.h
+target_include_directories(dComponents PUBLIC "."
+	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
+	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dScripts/02_server/Map/General" # PetDigServer.h
+	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
+	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct Loot.h
+	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
+)
 target_precompile_headers(dComponents REUSE_FROM dGameBase)
 target_link_libraries(dComponents
 	PUBLIC dPhysics dDatabase

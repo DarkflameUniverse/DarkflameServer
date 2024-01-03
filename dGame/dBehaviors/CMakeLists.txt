@@ -58,5 +58,12 @@ set(DGAME_DBEHAVIORS_SOURCES "AirMovementBehavior.cpp"
 
 add_library(dBehaviors STATIC ${DGAME_DBEHAVIORS_SOURCES})
 target_link_libraries(dBehaviors PUBLIC dPhysics)
-target_include_directories(dBehaviors PUBLIC ".")
+target_include_directories(dBehaviors PUBLIC "."
+	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # via BehaviorContext.h
+	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # direct BuffComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # Preconditions.h via QuickBuildComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager.h, Spawner.h
+	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via CharacterComponent.h
+)
 target_precompile_headers(dBehaviors REUSE_FROM dGameBase)

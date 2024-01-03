@@ -15,6 +15,8 @@ include_directories(
 
 add_library(dGameBase ${DGAME_SOURCES})
 target_precompile_headers(dGameBase PRIVATE ${HEADERS_DGAME})
+target_include_directories(dGameBase PUBLIC "." "dEntity"
+	PRIVATE "dComponents" "dGameMessages" "dBehaviors" "dMission" "dUtilities" "dInventory")
 target_link_libraries(dGameBase
 	PUBLIC dDatabase dPhysics
 	INTERFACE dComponents dEntity)

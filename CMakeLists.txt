@@ -209,17 +209,6 @@ set(INCLUDED_DIRECTORIES
 
 	"dChatFilter"
 
-	"dGame"
-	"dGame/dBehaviors"
-	"dGame/dComponents"
-	"dGame/dGameMessages"
-	"dGame/dInventory"
-	"dGame/dMission"
-	"dGame/dEntity"
-	"dGame/dPropertyBehaviors"
-	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
-	"dGame/dUtilities"
-
 	"dPhysics"
 
 	"dNavigation"
