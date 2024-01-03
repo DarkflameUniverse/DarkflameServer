@@ -214,8 +214,6 @@ set(INCLUDED_DIRECTORIES
 	"dNavigation"
 	"dNavigation/dTerrain"
 
-	"dZoneManager"
-
 	"dDatabase"
 	"dDatabase/CDClientDatabase"
 	"dDatabase/CDClientDatabase/CDClientTables"

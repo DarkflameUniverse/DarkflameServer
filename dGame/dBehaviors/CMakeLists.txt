@@ -65,5 +65,6 @@ target_include_directories(dBehaviors PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # Preconditions.h via QuickBuildComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager.h, Spawner.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via CharacterComponent.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via BasicAttackBehavior.cpp
 )
 target_precompile_headers(dBehaviors REUSE_FROM dGameBase)

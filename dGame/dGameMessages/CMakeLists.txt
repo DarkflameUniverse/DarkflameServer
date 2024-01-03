@@ -18,5 +18,6 @@ target_include_directories(dGameMessages PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via GameMessages.cpp, GameMessageHandler.cpp
 )
 target_precompile_headers(dGameMessages REUSE_FROM dGameBase)

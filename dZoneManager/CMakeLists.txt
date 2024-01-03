@@ -7,7 +7,7 @@ add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES})
 target_link_libraries(dZoneManager
 	PUBLIC dPhysics
 	INTERFACE dWorldServer)
-target_include_directories(dZoneManager PUBLIC
+target_include_directories(dZoneManager PUBLIC "."
 	${PROJECT_SOURCE_DIR}/dGame # Entity.h
 	${PROJECT_SOURCE_DIR}/dGame/dEntity # EntityInfo.h
 	PRIVATE

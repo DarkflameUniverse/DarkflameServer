@@ -59,6 +59,7 @@ target_include_directories(dComponents PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct Loot.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via BouncerComponent.cpp, ActivityComponent.cpp
 )
 target_precompile_headers(dComponents REUSE_FROM dGameBase)
 target_link_libraries(dComponents

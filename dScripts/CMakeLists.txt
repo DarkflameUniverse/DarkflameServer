@@ -32,6 +32,7 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # viaInventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager"
 )
 link_libraries(dScriptsBase)
 # dComponents

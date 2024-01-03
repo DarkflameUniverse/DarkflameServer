@@ -13,5 +13,6 @@ target_include_directories(dMission PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # via LevelProgressionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via Mission.cpp, MissionTask.cpp
 )
 target_precompile_headers(dMission REUSE_FROM dGameBase)

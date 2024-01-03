@@ -18,6 +18,7 @@ target_include_directories(dUtilities PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # transitive via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # transitive via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # transitive via dZoneManager/Spawner.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # Mail.cpp
 )
 target_link_libraries(dUtilities
 	PUBLIC dDatabase dPhysics

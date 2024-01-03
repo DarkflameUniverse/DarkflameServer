@@ -14,6 +14,7 @@ target_include_directories(dInventory PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via Item.cpp
 )
 target_link_libraries(dInventory INTERFACE dNet)
 target_precompile_headers(dInventory REUSE_FROM dGameBase)
