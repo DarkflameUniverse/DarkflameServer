@@ -13,6 +13,7 @@ foreach(file ${DGAME_DPROPERTYBEHAVIORS_CONTROLBEHAVIORMESSAGES})
 endforeach()
 
 add_library(dPropertyBehaviors STATIC ${DGAME_DPROPERTYBEHAVIORS_SOURCES})
+target_link_libraries(dPropertyBehaviors PRIVATE dDatabaseCDClient)
 target_include_directories(dPropertyBehaviors PUBLIC "." "ControlBehaviorMessages"
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # GameMessages.h

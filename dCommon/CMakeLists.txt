@@ -26,11 +26,15 @@ foreach(file ${DCOMMON_DCLIENT_SOURCES})
 	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dClient/${file}")
 endforeach()
 
-include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
-
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
-
-target_link_libraries(dCommon bcrypt dDatabase tinyxml2)
+target_include_directories(dCommon
+	PUBLIC "." "dClient" "dEnums"
+	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
+	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase"
+	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
+)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)
@@ -61,4 +65,6 @@ else ()
 	)
 endif ()
 
-target_link_libraries(dCommon ZLIB::ZLIB)
+target_link_libraries(dCommon
+	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
+	INTERFACE dDatabase)

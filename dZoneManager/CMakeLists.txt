@@ -5,6 +5,7 @@ set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 
 add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES})
 target_link_libraries(dZoneManager
+	PRIVATE dDatabaseCDClient
 	PUBLIC dPhysics
 	INTERFACE dWorldServer)
 target_include_directories(dZoneManager PUBLIC "."

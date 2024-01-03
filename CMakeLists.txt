@@ -76,6 +76,7 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
+#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, serializes everything
 
 # TODO make this not have to override the build type directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
@@ -201,6 +202,14 @@ foreach(file ${SQL_FILES})
 	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
+# Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
+if (APPLE)
+	include_directories("/usr/local/include/")
+endif()
+
+# Load all of our third party directories
+add_subdirectory(thirdparty)
+
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
 	"dCommon"
@@ -213,14 +222,6 @@ set(INCLUDED_DIRECTORIES
 
 	"dNavigation"
 	"dNavigation/dTerrain"
-
-	"dDatabase"
-	"dDatabase/CDClientDatabase"
-	"dDatabase/CDClientDatabase/CDClientTables"
-	"dDatabase/GameDatabase"
-	"dDatabase/GameDatabase/ITables"
-	"dDatabase/GameDatabase/MySQL"
-	"dDatabase/GameDatabase/MySQL/Tables"
 
 	"dNet"
 
@@ -256,19 +257,6 @@ include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
-
-# Load all of our third party directories
-add_subdirectory(thirdparty)
-
-# Glob together all headers that need to be precompiled
-file(
-	GLOB HEADERS_DDATABASE
-	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables/*.h
-	${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
-)
 
 file(
 	GLOB HEADERS_DZONEMANAGER
@@ -323,12 +311,6 @@ add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the ot
 target_precompile_headers(
 	dZoneManager PRIVATE
 	${HEADERS_DZONEMANAGER}
-)
-
-# Need to specify to use the CXX compiler language here or else we get errors including <string>.
-target_precompile_headers(
-	dDatabase PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
 )
 
 target_precompile_headers(

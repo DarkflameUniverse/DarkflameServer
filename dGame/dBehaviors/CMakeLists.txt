@@ -57,7 +57,7 @@ set(DGAME_DBEHAVIORS_SOURCES "AirMovementBehavior.cpp"
 	"VerifyBehavior.cpp")
 
 add_library(dBehaviors STATIC ${DGAME_DBEHAVIORS_SOURCES})
-target_link_libraries(dBehaviors PUBLIC dPhysics)
+target_link_libraries(dBehaviors PUBLIC dDatabaseCDClient dPhysics)
 target_include_directories(dBehaviors PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # via BehaviorContext.h
 	PRIVATE
