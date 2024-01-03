@@ -1,5 +1,6 @@
 #include "PropertyBehavior.h"
 
+#include "Amf3.h"
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 

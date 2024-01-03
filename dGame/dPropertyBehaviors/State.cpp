@@ -1,5 +1,6 @@
 #include "State.h"
 
+#include "Amf3.h"
 #include "ControlBehaviorMsgs.h"
 
 template<>
