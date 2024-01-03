@@ -134,7 +134,7 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
-			if (!Game::shouldShutdown) RedirectPendingRequests(instance);
+			if (!Game::ShouldShutdown()) RedirectPendingRequests(instance);
 
 			delete m_Instances[i];
 

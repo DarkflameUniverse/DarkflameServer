@@ -95,10 +95,16 @@ void BuffComponent::Update(float deltaTime) {
 
 		if (buff.second.time <= 0.0f) {
 			RemoveBuff(buff.first);
-
-			break;
 		}
 	}
+
+	if (m_BuffsToRemove.empty()) return;
+
+	for (const auto& buff : m_BuffsToRemove) {
+		m_Buffs.erase(buff);
+	}
+
+	m_BuffsToRemove.clear();
 }
 
 const std::string& GetFxName(const std::string& buffname) {
@@ -216,7 +222,7 @@ void BuffComponent::RemoveBuff(int32_t id, bool fromUnEquip, bool removeImmunity
 
 	GameMessages::SendRemoveBuff(m_Parent, fromUnEquip, removeImmunity, id);
 
-	m_Buffs.erase(iter);
+	m_BuffsToRemove.push_back(id);
 
 	RemoveBuffEffect(id);
 }

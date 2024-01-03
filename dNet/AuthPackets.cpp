@@ -55,7 +55,9 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
 	uint32_t netVersion;
-	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), netVersion)) {
+	const std::string& expectedVersion = Game::config->GetValue("client_net_version");
+	LOG("Expected Version: '%s'", expectedVersion.c_str());
+	if (!GeneralUtils::TryParse(expectedVersion, netVersion)) {
 		LOG("Failed to parse client_net_version. Cannot authenticate to %s:%i", nextServerIP.c_str(), nextServerPort);
 		return;
 	}

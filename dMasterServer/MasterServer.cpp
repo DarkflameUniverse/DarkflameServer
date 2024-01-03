@@ -47,12 +47,13 @@ namespace Game {
 	InstanceManager* im = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
-	bool shouldShutdown = false;
+	Game::signal_t lastSignal = 0;
+	bool universeShutdownRequested = false;
 	std::mt19937 randomEngine;
 } //namespace Game
 
 bool shutdownSequenceStarted = false;
-void ShutdownSequence(int32_t signal = -1);
+int ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
 Logger* SetupLogger();
 void HandlePacket(Packet* packet);
@@ -73,8 +74,8 @@ int main(int argc, char** argv) {
 
 	//Triggers the shutdown sequence at application exit
 	std::atexit([]() { ShutdownSequence(); });
-	signal(SIGINT, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
-	signal(SIGTERM, [](int32_t signal) { ShutdownSequence(EXIT_FAILURE); });
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
 
 	//Create all the objects we need to run our service:
 	Game::logger = SetupLogger();
@@ -284,9 +285,9 @@ int main(int argc, char** argv) {
 	uint32_t maxClients = 999;
 	uint32_t ourPort = 1000;
 	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::stoi(Game::config->GetValue("port"));
+	if (Game::config->GetValue("master_server_port") != "") ourPort = std::stoi(Game::config->GetValue("master_server_port"));
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
 
 	//Query for the database for a server labeled "master"
 
@@ -321,7 +322,8 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceLastSQLPing = 0;
 	uint32_t framesSinceKillUniverseCommand = 0;
 
-	while (true) {
+	Game::logger->Flush();
+	while (!Game::ShouldShutdown()) {
 		//In world we'd update our other systems here.
 
 		//Check for packets here:
@@ -355,10 +357,10 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing++;
 
 		//10m shutdown for universe kill command
-		if (Game::shouldShutdown) {
+		if (Game::universeShutdownRequested) {
 			if (framesSinceKillUniverseCommand >= shutdownUniverseTime) {
 				//Break main loop and exit
-				break;
+				Game::lastSignal = -1;
 			} else
 				framesSinceKillUniverseCommand++;
 		}
@@ -402,7 +404,7 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
-	return FinalizeShutdown(EXIT_SUCCESS);
+	return ShutdownSequence(EXIT_SUCCESS);
 }
 
 Logger* SetupLogger() {
@@ -799,7 +801,7 @@ void HandlePacket(Packet* packet) {
 
 		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
 			LOG("Received shutdown universe command, shutting down in 10 minutes.");
-			Game::shouldShutdown = true;
+			Game::universeShutdownRequested = true;
 			break;
 		}
 
@@ -809,9 +811,12 @@ void HandlePacket(Packet* packet) {
 	}
 }
 
-void ShutdownSequence(int32_t signal) {
+int ShutdownSequence(int32_t signal) {
+	if (!Game::logger) return -1;
+	LOG("Recieved Signal %d", signal);
 	if (shutdownSequenceStarted) {
-		return;
+		LOG("Duplicate Shutdown Sequence");
+		return -1;
 	}
 
 	if (!Game::im) {
@@ -820,7 +825,7 @@ void ShutdownSequence(int32_t signal) {
 
 	Game::im->SetIsShuttingDown(true);
 	shutdownSequenceStarted = true;
-	Game::shouldShutdown = true;
+	Game::lastSignal = -1;
 
 	{
 		CBITSTREAM;
@@ -889,16 +894,20 @@ void ShutdownSequence(int32_t signal) {
 		}
 	}
 
-	FinalizeShutdown(signal);
+	return FinalizeShutdown(signal);
 }
 
 int32_t FinalizeShutdown(int32_t signal) {
 	//Delete our objects here:
 	Database::Destroy("MasterServer");
 	if (Game::config) delete Game::config;
+	Game::config = nullptr;
 	if (Game::im) delete Game::im;
+	Game::im = nullptr;
 	if (Game::server) delete Game::server;
+	Game::server = nullptr;
 	if (Game::logger) delete Game::logger;
+	Game::logger = nullptr;
 
 	if (signal != EXIT_SUCCESS) exit(signal);
 	return signal;

@@ -312,7 +312,7 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 			}
 
 			// Respawn the player in 2 seconds, as was done in live.  Not sure if this value is in a setting somewhere else...
-			vehicle->AddCallbackTimer(2.0f, [=]() {
+			vehicle->AddCallbackTimer(2.0f, [=, this]() {
 				if (!vehicle || !this->m_Parent) return;
 				GameMessages::SendRacingResetPlayerToLastReset(
 					m_Parent->GetObjectID(), racingPlayer.playerID,
