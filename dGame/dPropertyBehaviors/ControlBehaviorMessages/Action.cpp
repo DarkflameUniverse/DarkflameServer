@@ -1,4 +1,5 @@
 #include "Action.h"
+#include "Amf3.h"
 
 Action::Action() {	
 	type = "";
@@ -30,7 +31,7 @@ Action::Action(AMFArrayValue* arguments) {
 	}
 }
 
-void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	auto* actionArgs = args.PushArray();
 	actionArgs->Insert("Type", type);
 

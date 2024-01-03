@@ -1,7 +1,9 @@
 #ifndef __ACTION__H__
 #define __ACTION__H__
 
-#include "BehaviorMessageBase.h"
+#include <string>
+
+class AMFArrayValue;
 
 /**
  * @brief Sent if a ControlBehavior message has an Action associated with it
@@ -11,12 +13,12 @@ class Action {
 public:
 	Action();
 	Action(AMFArrayValue* arguments);
-	const std::string& GetType() { return type; };
-	const std::string& GetValueParameterName() { return valueParameterName; };
-	const std::string& GetValueParameterString() { return valueParameterString; };
-	const double GetValueParameterDouble() { return valueParameterDouble; };
+	const std::string& GetType() const { return type; };
+	const std::string& GetValueParameterName() const { return valueParameterName; };
+	const std::string& GetValueParameterString() const { return valueParameterString; };
+	const double GetValueParameterDouble() const { return valueParameterDouble; };
 
-	void SendBehaviorBlocksToClient(AMFArrayValue& args);
+	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 private:
 	std::string type;
 	std::string valueParameterName;

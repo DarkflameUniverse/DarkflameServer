@@ -58,7 +58,6 @@ private:
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);
 	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
 	void UpdateAction(AMFArrayValue* arguments);
-	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
 	std::map<BlockName, BlockDefinition> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.

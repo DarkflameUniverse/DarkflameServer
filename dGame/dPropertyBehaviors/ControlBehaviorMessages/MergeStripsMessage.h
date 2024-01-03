@@ -18,7 +18,7 @@ public:
 	ActionContext GetSourceActionContext() { return sourceActionContext; };
 	ActionContext GetDestinationActionContext() { return destinationActionContext; };
 	const std::vector<Action>& GetMigratedActions() { return migratedActions; };
-	void SetMigratedActions(const std::vector<Action>::iterator start, const std::vector<Action>::iterator end) { migratedActions.assign(start, end); };
+	void SetMigratedActions(std::vector<Action>::const_iterator start, std::vector<Action>::const_iterator end) { migratedActions.assign(start, end); };
 private:
 	std::vector<Action> migratedActions;
 	ActionContext sourceActionContext;

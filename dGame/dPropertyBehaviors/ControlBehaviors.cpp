@@ -64,6 +64,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& contex
 	if (!context) return;
 	BehaviorMessageBase behaviorMsg(context.arguments);
 
+	context.modelComponent->VerifyBehaviors();
 	AMFArrayValue behavior;
 	context.modelComponent->SendBehaviorBlocksToClient(behaviorMsg.GetBehaviorId(), behavior);
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorBlocks", behavior);
@@ -91,21 +92,6 @@ void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
 			return;
 		}
 	}
-}
-
-void ControlBehaviors::MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments) {
-	// This closes the UI menu should it be open while the player is removing behaviors
-	// Replace this with BehaviorRemoved with the single argument objectID
-	AMFArrayValue args;
-
-	// untested, should work.
-	args.Insert("objectID", std::to_string(modelComponent->GetParent()->GetObjectID()));
-
-	GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "BehaviorRemoved", args);
-
-	MoveToInventoryMessage moveToInventoryMessage(arguments);
-
-	// SendBehaviorListToClient(modelComponent->GetParent(), sysAddr, modelOwner);
 }
 
 void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
@@ -159,6 +145,11 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "moveToInventory") {
 		MoveToInventoryMessage msg(arguments);
 		context.modelComponent->MoveToInventory(msg);
+
+		AMFArrayValue args;
+		args.Insert("BehaviorID", std::to_string(msg.GetBehaviorId()));
+		GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "BehaviorRemoved", args);
+
 		SendBehaviorListToClient(context);
 	} else if (command == "updateAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<UpdateActionMessage>(arguments);
@@ -171,15 +162,15 @@ ControlBehaviors::ControlBehaviors() {
 	auto blocksBuffer = Game::assetManager->GetFile("ui\\ingame\\blocksdef.xml");
 	if (!blocksBuffer) {
 		LOG("Failed to open blocksdef.xml, property behaviors will be disabled for this zone! "
-		"(This is a necessary file for cheat detection and ensuring we do not send unexpected values to the client)");
+			"(This is a necessary file for cheat detection and ensuring we do not send unexpected values to the client)");
 		return;
 	}
 
 	tinyxml2::XMLDocument m_Doc;
 
-	std::string read{};
+	std::string read;
 
-	std::string buffer{};
+	std::string buffer;
 	bool commentBlockStart = false;
 	while (std::getline(blocksBuffer, read)) {
 		// tinyxml2 should handle comment blocks but the client has one that fails the processing.

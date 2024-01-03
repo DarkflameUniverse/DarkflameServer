@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Logger.h"
 
+#include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 
 ///////////////// Strip ///////////////////
@@ -11,10 +12,6 @@
 template<>
 void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
-	for (auto& action : m_Actions) {
-		LOG("%s %s %f %s", action.GetType().c_str(), action.GetValueParameterName().c_str(), (float)action.GetValueParameterDouble(), action.GetValueParameterString().c_str());
-	}
-
 	m_Position = msg.GetPosition();
 };
 
@@ -44,7 +41,7 @@ void Strip::HandleMsg(RemoveActionsMessage& msg) {
 template<>
 void Strip::HandleMsg(UpdateActionMessage& msg) {
 	if (msg.GetActionIndex() >= m_Actions.size()) return;
-	m_Actions[msg.GetActionIndex()] = msg.GetAction();
+	m_Actions.at(msg.GetActionIndex()) = msg.GetAction();
 };
 
 template<>
@@ -86,7 +83,7 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 	}
 };
 
-void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	m_Position.SendBehaviorBlocksToClient(args);
 
 	auto* actions = args.InsertArray("actions");
@@ -102,7 +99,7 @@ void State::HandleMsg(AddStripMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {
 		m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
 	}
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -111,7 +108,7 @@ void State::HandleMsg(AddActionMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -120,7 +117,7 @@ void State::HandleMsg(UpdateStripUiMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -129,7 +126,7 @@ void State::HandleMsg(RemoveActionsMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -138,7 +135,7 @@ void State::HandleMsg(RearrangeStripMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -147,7 +144,7 @@ void State::HandleMsg(UpdateActionMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -156,7 +153,7 @@ void State::HandleMsg(RemoveStripMessage& msg) {
 		return;
 	}
 
-	m_Strips[msg.GetActionContext().GetStripId()].HandleMsg(msg);
+	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
 };
 
 template<>
@@ -166,13 +163,13 @@ void State::HandleMsg(SplitStripMessage& msg) {
 			return;
 		}
 
-		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetSourceActionContext().GetStripId()).HandleMsg(msg);
 	} else {
 		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
 			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
 		}
 
-		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
 };
 
@@ -183,13 +180,13 @@ void State::HandleMsg(MergeStripsMessage& msg) {
 			return;
 		}
 
-		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetSourceActionContext().GetStripId()).HandleMsg(msg);
 	} else {
 		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
 			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
 		}
 
-		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
 };
 
@@ -200,24 +197,24 @@ void State::HandleMsg(MigrateActionsMessage& msg) {
 			return;
 		}
 
-		m_Strips[msg.GetSourceActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetSourceActionContext().GetStripId()).HandleMsg(msg);
 	} else {
 		if (m_Strips.size() <= msg.GetDestinationActionContext().GetStripId()) {
 			m_Strips.resize(msg.GetDestinationActionContext().GetStripId() + 1);
 		}
 
-		m_Strips[msg.GetDestinationActionContext().GetStripId()].HandleMsg(msg);
+		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
 };
 
-bool State::IsEmpty() {
+bool State::IsEmpty() const {
 	for (auto& strip : m_Strips) {
 		if (!strip.IsEmpty()) return false;
 	}
 	return true;
 }
 
-void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+void State::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	auto* strips = args.InsertArray("strips");
 	for (int32_t stripId = 0; stripId < m_Strips.size(); stripId++) {
 		auto& strip = m_Strips.at(stripId);
@@ -231,6 +228,10 @@ void State::SendBehaviorBlocksToClient(AMFArrayValue& args) {
 };
 
 ///////////////// PropertyBehavior ///////////////////
+
+PropertyBehavior::PropertyBehavior() {
+	m_LastEditedState = BehaviorState::HOME_STATE;
+}
 
 template<>
 void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
@@ -263,6 +264,18 @@ void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
 };
 
 template<>
+void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
+};
+
+template<>
+void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
+	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
+	m_LastEditedState = msg.GetActionContext().GetStateId();
+};
+
+template<>
 void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
@@ -284,20 +297,8 @@ void PropertyBehavior::HandleMsg(MergeStripsMessage& msg) {
 };
 
 template<>
-void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
-	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
-	m_LastEditedState = msg.GetActionContext().GetStateId();
-};
-
-template<>
 void PropertyBehavior::HandleMsg(RenameMessage& msg) {
 	m_Name = msg.GetName();
-};
-
-template<>
-void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
-	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
-	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
@@ -311,32 +312,40 @@ void PropertyBehavior::SetBehaviorId(int32_t behaviorId) {
 	m_BehaviorId = behaviorId;
 }
 
-void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) {
+void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) const {
 	args.Insert("id", std::to_string(m_BehaviorId));
 	args.Insert("name", m_Name);
 	args.Insert("isLocked", isLocked);
 	args.Insert("isLoot", isLoot);
 }
 
-void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) {
+void PropertyBehavior::VerifyLastEditedState() {
+	if (!m_States[m_LastEditedState].IsEmpty()) return;
+
+	for (const auto& [stateId, state] : m_States) {
+		if (state.IsEmpty()) continue;
+
+		LOG_DEBUG("Updating last edited state to %i because %i is empty.", stateId, m_LastEditedState);
+		m_LastEditedState = stateId;
+		return;
+	}
+
+	LOG_DEBUG("No states found, sending default state");
+
+	m_LastEditedState = BehaviorState::HOME_STATE;
+}
+
+void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	auto* stateArray = args.InsertArray("states");
 
 	auto lastState = BehaviorState::HOME_STATE;
 	for (auto& [stateId, state] : m_States) {
 		if (state.IsEmpty()) continue;
 
-		LOG("Serializing state %d", stateId);
+		LOG_DEBUG("Serializing state %i", stateId);
 		auto* stateArgs = stateArray->PushArray();
 		stateArgs->Insert("id", static_cast<double>(stateId));
 		state.SendBehaviorBlocksToClient(*stateArgs);
-		if (m_States[m_LastEditedState].IsEmpty()) {
-			m_LastEditedState = stateId;
-		}
-	}
-
-	if (stateArray->GetDense().empty()) {
-		LOG("No states found, sending default state");
-		m_LastEditedState = BehaviorState::HOME_STATE;
 	}
 
 	auto* executionState = args.InsertArray("executionState");
@@ -379,7 +388,7 @@ void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == -1) behavior.SetBehaviorId(newId);
 }
 
-void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
+void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) const {
 	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
 
 	auto* behaviorArray = args.InsertArray("behaviors");
@@ -389,7 +398,11 @@ void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) {
 	}
 }
 
-void ModelComponent::SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) {
+void ModelComponent::VerifyBehaviors() {
+	for (auto& behavior : m_Behaviors) behavior.VerifyLastEditedState();
+}
+
+void ModelComponent::SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const {
 	args.Insert("BehaviorID", std::to_string(behaviorToSend));
 	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == behaviorToSend) behavior.SendBehaviorBlocksToClient(args);
@@ -399,7 +412,7 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 	// Can only have 1 of the loot behaviors
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == msg.GetBehaviorId()) return;
 	m_Behaviors.insert(m_Behaviors.begin() + msg.GetBehaviorIndex(), PropertyBehavior());
-	m_Behaviors[msg.GetBehaviorIndex()].HandleMsg(msg);
+	m_Behaviors.at(msg.GetBehaviorIndex()).HandleMsg(msg);
 }
 
 void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
