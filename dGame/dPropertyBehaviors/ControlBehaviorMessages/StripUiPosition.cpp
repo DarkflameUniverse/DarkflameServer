@@ -20,3 +20,9 @@ StripUiPosition::StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName
 	yPosition = yPositionValue->GetValue();
 	xPosition = xPositionValue->GetValue();
 }
+
+void StripUiPosition::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
+	auto* uiArgs = args.InsertArray("ui");
+	uiArgs->Insert("x", xPosition);
+	uiArgs->Insert("y", yPosition);
+}

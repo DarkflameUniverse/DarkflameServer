@@ -1,4 +1,7 @@
 set(DGAME_DPROPERTYBEHAVIORS_SOURCES
+	"PropertyBehavior.cpp"
+	"State.cpp"
+	"Strip.cpp"
 	"BlockDefinition.cpp"
 	"ControlBehaviors.cpp"
 )

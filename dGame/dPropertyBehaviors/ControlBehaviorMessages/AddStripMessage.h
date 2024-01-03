@@ -19,9 +19,9 @@ class AMFArrayValue;
 class AddStripMessage : public BehaviorMessageBase {
 public:
 	AddStripMessage(AMFArrayValue* arguments);
-	StripUiPosition GetPosition() { return position; };
-	ActionContext GetActionContext() { return actionContext; };
-	std::vector<Action> GetActionsToAdd() { return actionsToAdd; };
+	StripUiPosition GetPosition() const { return position; };
+	ActionContext GetActionContext() const { return actionContext; };
+	std::vector<Action> GetActionsToAdd() const { return actionsToAdd; };
 private:
 	StripUiPosition position;
 	ActionContext actionContext;

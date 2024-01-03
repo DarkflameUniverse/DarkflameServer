@@ -14,11 +14,11 @@ class AMFArrayValue;
 class UpdateActionMessage : public BehaviorMessageBase {
 public:
 	UpdateActionMessage(AMFArrayValue* arguments);
-	const uint32_t GetActionIndex() { return actionIndex; };
-	ActionContext GetActionContext() { return actionContext; };
-	Action GetAction() { return action; };
+	int32_t GetActionIndex() const { return actionIndex; };
+	ActionContext GetActionContext() const { return actionContext; };
+	Action GetAction() const { return action; };
 private:
-	uint32_t actionIndex;
+	int32_t actionIndex;
 	ActionContext actionContext;
 	Action action;
 }; 

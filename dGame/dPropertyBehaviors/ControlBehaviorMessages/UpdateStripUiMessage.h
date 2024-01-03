@@ -14,8 +14,8 @@ class AMFArrayValue;
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
 	UpdateStripUiMessage(AMFArrayValue* arguments);
-	StripUiPosition GetPosition() { return position; };
-	ActionContext GetActionContext() { return actionContext; };
+	StripUiPosition GetPosition() const { return position; };
+	ActionContext GetActionContext() const { return actionContext; };
 private:
 	StripUiPosition position;
 	ActionContext actionContext;
