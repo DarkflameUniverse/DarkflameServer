@@ -5,7 +5,6 @@
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
-
 class AMFArrayValue;
 
 /**
