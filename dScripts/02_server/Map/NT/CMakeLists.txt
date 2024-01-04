@@ -27,6 +27,6 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NT
 	"NtBcSubmitServer.cpp"
 	"NtNaomiBreadcrumbServer.cpp")
 
-add_library(dScriptsServerMapNT ${DSCRIPTS_SOURCES_02_SERVER_MAP_NT})
+add_library(dScriptsServerMapNT OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_NT})
 target_include_directories(dScriptsServerMapNT PUBLIC ".")
 target_precompile_headers(dScriptsServerMapNT REUSE_FROM dScriptsBase)

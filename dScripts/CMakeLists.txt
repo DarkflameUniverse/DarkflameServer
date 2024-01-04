@@ -17,9 +17,8 @@ set(DSCRIPTS_SOURCES
 
 link_libraries(dDatabase dPhysics)
 
-add_library(dScriptsBase STATIC ${DSCRIPTS_SOURCES})
-target_include_directories(dScriptsBase PUBLIC .)
-target_link_libraries(dScriptsBase INTERFACE dGameBase)
+add_library(dScriptsBase OBJECT ${DSCRIPTS_SOURCES})
+target_link_libraries(dScriptsBase INTERFACE dGameBase dComponents)
 target_precompile_headers(dScriptsBase PRIVATE ${HEADERS_DGAME})
 
 include_directories(
@@ -34,8 +33,6 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dZoneManager"
 )
-link_libraries(dScriptsBase)
-# dComponents
 
 add_subdirectory(02_server)
 add_subdirectory(ai)
@@ -44,14 +41,22 @@ add_subdirectory(EquipmentScripts)
 add_subdirectory(EquipmentTriggers)
 add_subdirectory(zone)
 
-add_library(dScripts STATIC "CppScripts.cpp")
+add_library(dScripts STATIC
+	$<TARGET_OBJECTS:dScriptsBase>
+	$<TARGET_OBJECTS:dScriptsClient>
+	$<TARGET_OBJECTS:dScriptsEquipmentScripts>
+	$<TARGET_OBJECTS:dScriptsEquipmentTriggers>
+	$<TARGET_OBJECTS:dScriptsZone>
+	"CppScripts.cpp"
+)
+target_link_libraries(dScripts PRIVATE dScriptsAI dScriptsServer)
+target_include_directories(dScripts PRIVATE
+	$<TARGET_PROPERTY:dScriptsBase,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsServer,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsAI,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsClient,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsEquipmentScripts,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsEquipmentTriggers,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsZone,INTERFACE_INCLUDE_DIRECTORIES>
+)
 target_precompile_headers(dScripts REUSE_FROM dScriptsBase)
-target_include_directories(dScripts PUBLIC ".")
-target_link_libraries(dScripts
-	dScriptsBase
-	dScriptsServer
-	dScriptsAI
-	dScriptsClient
-	dScriptsEquipmentScripts
-	dScriptsEquipmentTriggers
-	dScriptsZone)

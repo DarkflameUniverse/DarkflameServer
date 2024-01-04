@@ -42,7 +42,7 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_ENEMY_WAVES})
 	set(DSCRIPTS_SOURCES_02_SERVER_ENEMY ${DSCRIPTS_SOURCES_02_SERVER_ENEMY} "Waves/${file}")
 endforeach()
 
-add_library(dScriptsServerEnemy STATIC ${DSCRIPTS_SOURCES_02_SERVER_ENEMY})
+add_library(dScriptsServerEnemy OBJECT ${DSCRIPTS_SOURCES_02_SERVER_ENEMY})
 target_link_libraries(dScriptsServerEnemy dScriptsBase)
 target_include_directories(dScriptsServerEnemy PUBLIC "."
 	"AG"

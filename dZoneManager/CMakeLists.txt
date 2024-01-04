@@ -3,11 +3,13 @@ set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Spawner.cpp"
 	"Zone.cpp")
 
-add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES})
+add_library(dZoneManager OBJECT ${DZONEMANAGER_SOURCES})
 target_link_libraries(dZoneManager
 	PRIVATE dDatabaseCDClient
-	PUBLIC dPhysics
-	INTERFACE dWorldServer)
+	PUBLIC dPhysics)
+
+#set_property(TARGET dZoneManager APPEND PROPERTY INTERFACE_LINK_LIBRARIES dWorldServer)
+
 target_include_directories(dZoneManager PUBLIC "."
 	${PROJECT_SOURCE_DIR}/dGame # Entity.h
 	${PROJECT_SOURCE_DIR}/dGame/dEntity # EntityInfo.h

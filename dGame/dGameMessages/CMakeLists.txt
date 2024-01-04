@@ -4,7 +4,7 @@ set(DGAME_DGAMEMESSAGES_SOURCES
 	"PropertyDataMessage.cpp"
 	"PropertySelectQueryProperty.cpp")
 
-add_library(dGameMessages STATIC ${DGAME_DGAMEMESSAGES_SOURCES})
+add_library(dGameMessages OBJECT ${DGAME_DGAMEMESSAGES_SOURCES})
 target_link_libraries(dGameMessages
 	PUBLIC dDatabase
 	INTERFACE dGameBase # TradingManager

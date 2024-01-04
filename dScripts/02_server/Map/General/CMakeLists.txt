@@ -27,6 +27,6 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL_NINJAGO})
 	set(DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL ${DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL} "Ninjago/${file}")
 endforeach()
 
-add_library(dScriptsServerMapGeneral ${DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL})
+add_library(dScriptsServerMapGeneral OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL})
 target_include_directories(dScriptsServerMapGeneral PUBLIC "." "Ninjago")
 target_precompile_headers(dScriptsServerMapGeneral REUSE_FROM dScriptsBase)

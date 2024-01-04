@@ -16,6 +16,6 @@ set(DSCRIPTS_SOURCES_AI_AG
 	"AgStagePlatforms.cpp"
 	"AgQbWall.cpp")
 
-add_library(dScriptsAiAG STATIC ${DSCRIPTS_SOURCES_AI_AG})
+add_library(dScriptsAiAG OBJECT ${DSCRIPTS_SOURCES_AI_AG})
 target_include_directories(dScriptsAiAG PUBLIC ".")
 target_precompile_headers(dScriptsAiAG REUSE_FROM dScriptsBase)

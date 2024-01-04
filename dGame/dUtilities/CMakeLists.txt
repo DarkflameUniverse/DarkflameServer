@@ -8,7 +8,7 @@ set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"SlashCommandHandler.cpp"
 	"VanityUtilities.cpp")
 
-add_library(dUtilities STATIC ${DGAME_DUTILITIES_SOURCES})
+add_library(dUtilities OBJECT ${DGAME_DUTILITIES_SOURCES})
 target_precompile_headers(dUtilities REUSE_FROM dGameBase)
 target_include_directories(dUtilities PUBLIC "."
 	PRIVATE

@@ -3,6 +3,6 @@ set(DSCRIPTS_SOURCES_AI_SPEC
 	"SpecialPowerupSpawner.cpp"
 	"SpecialSpeedBuffSpawner.cpp")
 
-add_library(dScriptsAiSpec STATIC ${DSCRIPTS_SOURCES_AI_SPEC})
+add_library(dScriptsAiSpec OBJECT ${DSCRIPTS_SOURCES_AI_SPEC})
 target_include_directories(dScriptsAiSpec PUBLIC ".")
 target_precompile_headers(dScriptsAiSpec REUSE_FROM dScriptsBase)

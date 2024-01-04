@@ -2,7 +2,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AG_SPIDER_QUEEN
 	"ZoneAgSpiderQueen.cpp"
 	"SpiderBossTreasureChestServer.cpp")
 
-add_library(dScriptsServerMapAGSpiderQueen ${DSCRIPTS_SOURCES_02_SERVER_MAP_AG_SPIDER_QUEEN})
+add_library(dScriptsServerMapAGSpiderQueen OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_AG_SPIDER_QUEEN})
 target_include_directories(dScriptsServerMapAGSpiderQueen PUBLIC ".")
 target_link_libraries(dScriptsServerMapAGSpiderQueen dScriptsServerMapProperty)
 target_precompile_headers(dScriptsServerMapAGSpiderQueen REUSE_FROM dScriptsBase)

@@ -19,7 +19,7 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_MAP_PROPERTY_NS_MED})
 	set(DSCRIPTS_SOURCES_02_SERVER_MAP_PROPERTY ${DSCRIPTS_SOURCES_02_SERVER_MAP_PROPERTY} "NS_Med/${file}")
 endforeach()
 
-add_library(dScriptsServerMapProperty ${DSCRIPTS_SOURCES_02_SERVER_MAP_PROPERTY})
+add_library(dScriptsServerMapProperty OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_PROPERTY})
 target_precompile_headers(dScriptsServerMapProperty REUSE_FROM dScriptsBase)
 target_include_directories(dScriptsServerMapProperty PUBLIC "."
 	"AG_Med"

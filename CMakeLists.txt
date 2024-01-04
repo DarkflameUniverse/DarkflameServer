@@ -252,7 +252,7 @@ endif()
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
 
 # Add linking directories:
-link_directories(${PROJECT_BINARY_DIR})
+# link_directories(${PROJECT_BINARY_DIR})
 
 file(
 	GLOB HEADERS_DZONEMANAGER

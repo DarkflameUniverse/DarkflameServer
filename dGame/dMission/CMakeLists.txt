@@ -3,7 +3,7 @@ set(DGAME_DMISSION_SOURCES
 	"MissionPrerequisites.cpp"
 	"MissionTask.cpp")
 
-add_library(dMission STATIC ${DGAME_DMISSION_SOURCES})
+add_library(dMission OBJECT ${DGAME_DMISSION_SOURCES})
 target_link_libraries(dMission PUBLIC dDatabase)
 target_include_directories(dMission PUBLIC "."
 	PRIVATE

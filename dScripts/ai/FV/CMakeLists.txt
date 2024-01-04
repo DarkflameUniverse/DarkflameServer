@@ -18,7 +18,7 @@ set(DSCRIPTS_SOURCES_AI_FV
 	"FvMaelstromGeyser.cpp"
 	"TriggerGas.cpp")
 
-add_library(dScriptsAiFV STATIC ${DSCRIPTS_SOURCES_AI_FV})
+add_library(dScriptsAiFV OBJECT ${DSCRIPTS_SOURCES_AI_FV})
 target_include_directories(dScriptsAiFV PUBLIC ".")
 target_precompile_headers(dScriptsAiFV REUSE_FROM dScriptsBase)
 

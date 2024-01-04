@@ -30,15 +30,29 @@ endforeach()
 
 add_subdirectory(Pets)
 
-add_library(dScriptsServer STATIC ${DSCRIPTS_SOURCES_02_SERVER})
-target_include_directories(dScriptsServer PUBLIC "."
+add_library(dScriptsServerBase OBJECT ${DSCRIPTS_SOURCES_02_SERVER})
+target_include_directories(dScriptsServerBase PUBLIC "."
 	"DLU"
 	"Equipment"
 	"Minigame"
 	"Minigame/General"
 	"Objects"
-	"Pets")
+)
+target_precompile_headers(dScriptsServerBase REUSE_FROM dScriptsBase)
+
+add_library(dScriptsServer INTERFACE)
+target_sources(dScriptsServer INTERFACE
+	$<TARGET_OBJECTS:dScriptsServerBase>
+	$<TARGET_OBJECTS:dScriptsServerEnemy>
+	$<TARGET_OBJECTS:dScriptsServerPets>
+)
 target_link_libraries(dScriptsServer INTERFACE
-	dScriptsServerEnemy
-	dScriptsServerMap)
-target_precompile_headers(dScriptsServer REUSE_FROM dScriptsBase)
+	dScriptsServerMap
+)
+target_include_directories(dScriptsServer INTERFACE
+	$<TARGET_PROPERTY:dScriptsServerBase,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsServerEnemy,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsServerMap,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dScriptsServerPets,INTERFACE_INCLUDE_DIRECTORIES>
+)
+

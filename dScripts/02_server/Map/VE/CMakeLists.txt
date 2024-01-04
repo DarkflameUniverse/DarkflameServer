@@ -3,6 +3,6 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_VE
 	"VeEpsilonServer.cpp"
 	"VeBricksampleServer.cpp")
 
-add_library(dScriptsServerMapVE ${DSCRIPTS_SOURCES_02_SERVER_MAP_VE})
+add_library(dScriptsServerMapVE OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_VE})
 target_include_directories(dScriptsServerMapVE PUBLIC ".")
 target_precompile_headers(dScriptsServerMapVE REUSE_FROM dScriptsBase)

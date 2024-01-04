@@ -13,7 +13,8 @@ file(COPY ${GAMEMESSAGE_TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
 
-target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dChatFilter dNavigation)
+target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
+	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation)
 
 # Discover the tests
 gtest_discover_tests(dGameTests)
