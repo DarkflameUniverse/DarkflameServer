@@ -150,31 +150,40 @@ int main(int argc, char** argv) {
 	}
 
 	MigrationRunner::RunMigrations();
-
-	const bool cdServerExists = std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
+	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
+	const bool resServerPathExists = std::filesystem::is_directory(resServerPath);
+
+	if (!resServerPathExists) {
+		LOG("%s does not exist, creating it.", (resServerPath).c_str());
+		if(!std::filesystem::create_directories(resServerPath)){
+			LOG("Failed to create %s", (resServerPath).string().c_str());
+			return EXIT_FAILURE;
+		}
+	}
 
 	if (!cdServerExists) {
 		if (oldCDServerExists) {
 			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
 			LOG("CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
-			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite");
+			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", resServerPath / "CDServer.sqlite");
 		} else {
 			LOG("%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
-				(BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").c_str(),
-				(Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+				(resServerPath / "CDServer.sqlite").string().c_str(),
+				(Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
 
 			auto cdclientStream = Game::assetManager->GetFile("cdclient.fdb");
 			if (!cdclientStream) {
-				LOG("Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+				LOG("Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
 				throw std::runtime_error("Aborting initialization due to missing cdclient.fdb.");
 			}
 
-			LOG("Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").c_str());
+			LOG("Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
 			Game::logger->Flush();
 
-			if (FdbToSqlite::Convert((BinaryPathFinder::GetBinaryDir() / "resServer").string()).ConvertDatabase(cdclientStream) == false) {
+			if (FdbToSqlite::Convert(resServerPath.string()).ConvertDatabase(cdclientStream) == false) {
 				LOG("Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
