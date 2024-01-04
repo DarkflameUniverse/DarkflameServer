@@ -8,6 +8,7 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"ZoneInstanceManager.cpp")
 
 add_library(dNet STATIC ${DNET_SOURCES})
+target_link_libraries(dNet PRIVATE bcrypt)
 target_include_directories(dNet PRIVATE
 	${PROJECT_SOURCE_DIR}/dCommon
 	${PROJECT_SOURCE_DIR}/dCommon/dEnums

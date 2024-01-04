@@ -11,7 +11,7 @@ target_include_directories(dMasterServer PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # InstanceManager.h uses dZMCommon.h
 )
 target_link_libraries(dMasterServer ${COMMON_LIBRARIES})
-target_link_libraries(MasterServer ${COMMON_LIBRARIES} dMasterServer)
+target_link_libraries(MasterServer ${COMMON_LIBRARIES} bcrypt dMasterServer)
 
 if(WIN32)
 	add_dependencies(MasterServer WorldServer AuthServer ChatServer)

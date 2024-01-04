@@ -19,7 +19,11 @@ add_library(bcrypt ${SOURCES_LIBBCRYPT})
 # Because we are not using the libbcrypt CMakeLists.txt, we need to include these headers for the library to use.
 # fortunately they are only needed for building the libbcrypt directory and nothing else, so these are marked private.
 
-target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
+if(NOT WIN32)
+	target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
+endif()
+
+target_include_directories(bcrypt INTERFACE "libbcrypt/include")
 target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
 # Source code for sqlite

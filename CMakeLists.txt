@@ -245,12 +245,6 @@ foreach(dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
 
-if(NOT WIN32)
-	include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt")
-endif()
-
-include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
-
 # Add linking directories:
 # link_directories(${PROJECT_BINARY_DIR})
 
