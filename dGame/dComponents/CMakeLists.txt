@@ -51,6 +51,8 @@ set(DGAME_DCOMPONENTS_SOURCES
 
 add_library(dComponents OBJECT ${DGAME_DCOMPONENTS_SOURCES})
 target_include_directories(dComponents PUBLIC "."
+	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors" # via ModelComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h

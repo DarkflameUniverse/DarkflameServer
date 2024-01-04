@@ -13,7 +13,7 @@ target_include_directories(dNet PRIVATE
 	${PROJECT_SOURCE_DIR}/dCommon/dEnums
 
 	${PROJECT_SOURCE_DIR}/dZoneManager
-	
+
 	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase
 	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables
 	${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase

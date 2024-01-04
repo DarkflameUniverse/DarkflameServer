@@ -17,6 +17,7 @@ add_library(dGameBase OBJECT ${DGAME_SOURCES})
 target_precompile_headers(dGameBase PRIVATE ${HEADERS_DGAME})
 target_include_directories(dGameBase PUBLIC "." "dEntity"
 	PRIVATE "dComponents" "dGameMessages" "dBehaviors" "dMission" "dUtilities" "dInventory"
+	$<TARGET_PROPERTY:dPropertyBehaviors,INTERFACE_INCLUDE_DIRECTORIES>
 	"${PROJECT_SOURCE_DIR}/dCommon"
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 	"${PROJECT_SOURCE_DIR}/dCommon/dClient"

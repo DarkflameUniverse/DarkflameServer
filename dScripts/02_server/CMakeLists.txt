@@ -55,4 +55,3 @@ target_include_directories(dScriptsServer INTERFACE
 	$<TARGET_PROPERTY:dScriptsServerMap,INTERFACE_INCLUDE_DIRECTORIES>
 	$<TARGET_PROPERTY:dScriptsServerPets,INTERFACE_INCLUDE_DIRECTORIES>
 )
-
