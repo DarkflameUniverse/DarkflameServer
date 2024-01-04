@@ -85,62 +85,38 @@ else() # Build from source
 			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
+	set(MARIADBCPP_INSTALL_DIR ${PROJECT_BINARY_DIR}/prefix)
+	set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
+	set(MARIADBCPP_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mariadb-connector-cpp)
 	ExternalProject_Add(mariadb_connector_cpp
-						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-						CMAKE_ARGS  -Wno-dev
-									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
-									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
-									-DINSTALL_PLUGINDIR=plugin
-									${MARIADB_EXTRA_CMAKE_ARGS}
-						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${MARIADB_CONNECTOR_COMPILE_JOBS}
-						INSTALL_COMMAND "")
-
-	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+		PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp-build"
+		SOURCE_DIR ${MARIADBCPP_SOURCE_DIR}
+		INSTALL_DIR ${MARIADBCPP_INSTALL_DIR}
+		CMAKE_ARGS  -Wno-dev
+					-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
+					-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+					-DINSTALL_LIBDIR=${MARIADBCPP_LIBRARY_DIR}
+					-DINSTALL_PLUGINDIR=${MARIADBCPP_LIBRARY_DIR}/plugin
+					${MARIADB_EXTRA_CMAKE_ARGS}
+		BUILD_ALWAYS true
+	)
 
 	if(WIN32)
 		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
 		set(MARIADB_PLUGIN_SUFFIX .dll)
-		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+		set(MARIADB_IMPLIB_LOCATION "${MARIADBCPP_INSTALL_DIR}/mariadbcpp.lib")
 
 		# When built from source windows only seems to check same folder as exe instead specified folder, so use
 		# environment variable to force it
 		add_link_options(/DELAYLOAD:mariadbcpp.dll)
-		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${PROJECT_BINARY_DIR}/mariadbcpp/plugin")
+		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADBCPP_LIBRARY_DIR}/plugin")
 	else()
 		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(MARIADB_PLUGIN_SUFFIX .so)
+		set(MARIADB_PLUGIN_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
 	endif()
 
-	get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-	if(isMultiConfig)
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
-	else()
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
-	endif()
-
-	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
-
-	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${BINARY_DIR}/mariadbcpp/plugin
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${MARIADB_SHARED_LIBRARY_LOCATION}
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/client_ed25519${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/mariadbcpp/plugin)
+	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+	set(MARIADB_INCLUDE_DIR "${MARIADBCPP_SOURCE_DIR}/include")
 endif()
 
 # Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
