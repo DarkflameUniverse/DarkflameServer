@@ -15,5 +15,8 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmSkullkinDrillStand.cpp"
 	"AmSkullkinTower.cpp"
 	"AmBlueX.cpp"
-	"AmTeapotServer.cpp"
-	PARENT_SCOPE)
+	"AmTeapotServer.cpp")
+
+add_library(dScriptsServerMapAM ${DSCRIPTS_SOURCES_02_SERVER_MAP_AM})
+target_include_directories(dScriptsServerMapAM PUBLIC ".")
+target_precompile_headers(dScriptsServerMapAM REUSE_FROM dScriptsBase)
