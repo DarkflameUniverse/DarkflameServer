@@ -25,7 +25,7 @@ public:
 	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PetComponent"; };
-	CDPetComponent* GetByID(unsigned int componentID);
+	CDPetComponent& GetByID(unsigned int componentID);
 	
 private:
 	std::map<unsigned int, CDPetComponent> m_entries;

@@ -35,9 +35,6 @@
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
 
-#define START_BITMASK_SWITCH(x) \
-    for (uint32_t bit = 1; x >= bit; bit *= 2) if (x & bit) switch (bit)
-
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
@@ -75,39 +72,6 @@ std::map<LOT, int32_t> PetComponent::petFlags = {
 		{ 16210, 836 },  // Ninjago Earth Dragon, see mission 1836
 		{ 13067, 838 }, // Skeleton dragon
 };
-
-PetComponent::PetComponent(Entity* parent, uint32_t componentId) : Component(parent) {
-	m_ComponentId = componentId;
-
-	m_Interaction = LWOOBJID_EMPTY;
-	m_InteractType = PetInteractType::none;
-	m_Owner = LWOOBJID_EMPTY;
-	m_ModerationStatus = 0;
-	m_Tamer = LWOOBJID_EMPTY;
-	m_ModelId = LWOOBJID_EMPTY;
-	m_Timer = 0;
-	m_TimerAway = 0;
-	m_TimerBounce = 0;
-	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Flags = PetFlag::SPAWNING; // Tameable
-	m_Ability = ePetAbilityType::Invalid;
-	m_StartPosition = m_Parent->GetPosition(); //NiPoint3::ZERO;
-	m_MovementAI = nullptr;
-	m_Preconditions = nullptr;
-
-	m_ReadyToInteract = false;
-	SetPetAiState(PetAiState::spawn);
-	SetIsHandlingInteraction(false);
-
-	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parent->GetVar<std::u16string>(u"CheckPrecondition"));
-
-	if (!checkPreconditions.empty()) {
-		SetPreconditions(checkPreconditions);
-	}
-
-	// Load database values
-	m_FollowRadius = Game::zoneManager->GetPetFollowRadius();
-}
 
 void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
@@ -760,17 +724,14 @@ void PetComponent::Wander() {
 		return;
 	}
 
-	m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed); //info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed); //info.wanderSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
-	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_PetInfo->sprintSpeed;
+	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_PetInfo.sprintSpeed;
 }
 
 void PetComponent::OnSpawn() {
-	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(m_ComponentId);
-	if (!m_PetInfo) LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
-
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
 
 	if (m_StartPosition == NiPoint3::ZERO) {
@@ -779,7 +740,7 @@ void PetComponent::OnSpawn() {
 
 	if (m_Owner != LWOOBJID_EMPTY) {
 		m_Parent->SetOwnerOverride(m_Owner);
-		m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed);
+		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
 		//SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
@@ -891,7 +852,7 @@ void PetComponent::StartInteract(const NiPoint3& position, const PetInteractType
 	SetInteractType(interactType);
 	SetAbility(ePetAbilityType::GoToObject);
 	SetPetAiState(PetAiState::goToObj);
-	m_MovementAI->SetMaxSpeed(m_PetInfo->runSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo.runSpeed);
 	m_MovementAI->SetHaltDistance(0.0f);
 	m_MovementAI->SetDestination(position);
 	LOG_DEBUG("Starting interaction!");
@@ -911,7 +872,7 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 	SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
-	m_MovementAI->SetMaxSpeed(m_PetInfo->sprintSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 	m_MovementAI->SetHaltDistance(m_FollowRadius);
 	LOG_DEBUG("Stopping interaction!");
 
@@ -991,7 +952,7 @@ void PetComponent::HandleInteractBouncer() {
 			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3::ZERO, NiPoint3::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
 			bouncerComp->SetPetBouncerEnabled(false);
 			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
-		});
+			});
 
 		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged"); //TODO: Check if the timing on this is right
 		// TODO: Need to freeze player movement until the bounce begins!
@@ -1078,9 +1039,6 @@ void PetComponent::HandleInteractTreasureDig() {
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // TODO: Offset spawn position so it's not on top of player char
-	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(m_ComponentId);
-	if (!m_PetInfo) LOG("Failed to load PetComponent (id: %d) information from CDClient!", m_ComponentId);
-
 	AddDrainImaginationTimer(item, fromTaming);
 
 	m_ItemId = item->GetId();
@@ -1162,7 +1120,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	if (!fromTaming) playerDestroyableComponent->Imagine(-1);
 
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
-	m_Parent->AddCallbackTimer(m_PetInfo->imaginationDrainRate, [playerDestroyableComponent, this, item]() {
+	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
 			LOG("No petComponent and/or no playerDestroyableComponent");
 			return;

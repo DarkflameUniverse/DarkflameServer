@@ -28,7 +28,8 @@ void CDPetComponentTable::LoadValuesFromDatabase() {
 
 }
 
-CDPetComponent* CDPetComponentTable::GetByID(unsigned int componentID) {
+CDPetComponent& CDPetComponentTable::GetByID(unsigned int componentID) {
 	auto itr = m_entries.find(componentID);
-	return itr != m_entries.end() ? &itr->second : nullptr;
+	if (itr == m_entries.end()) throw std::exception(); // TODO: Use a default set of values instead?
+	return itr->second;
 }
