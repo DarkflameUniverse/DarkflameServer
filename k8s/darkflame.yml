@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: master-server
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-creator
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create", "update", "patch", "get", "watch", "list", "delete"]
+- apiGroups: [""]
+  resources: ["podtemplates"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets", "deployments"]
+  verbs: ["create", "update", "patch", "get", "watch", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: master-server-pod-creator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-creator
+subjects:
+- kind: ServiceAccount
+  name: master-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: master-server-deployment
+  labels:
+    app: master-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: master-server
+  template:
+    metadata:
+      labels:
+        app: master-server
+    spec:
+      serviceAccountName: master-server
+      volumes:
+      - name: game-config
+        configMap:
+          name: game-config
+      - name: luclient
+        hostPath:
+          path: /luclient
+      - name: res-server
+        hostPath:
+          path: /resServer
+      containers:
+      - name: master-server
+        image: ghcr.io/darkflameuniverse/darkflameserver
+        imagePullPolicy: IfNotPresent
+        command: ["/app/MasterServerK8s"]
+        ports:
+        - containerPort: 2000
+          protocol: UDP
+          name: master
+        envFrom:
+        - configMapRef:
+            name: env-common
+        - secretRef:
+            name: db-secret
+          prefix: MYSQL_
+        volumeMounts:
+        - mountPath: "/app/res"
+          name: luclient
+        - mountPath: "/app/resServer"
+          name: res-server
+        - mountPath: "/app/config"
+          name: game-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: master-service
+spec:
+  selector:
+    app: master-server
+  ports:
+  - name: master
+    protocol: UDP
+    port: 2000
+    targetPort: master

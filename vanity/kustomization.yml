@@ -1,0 +1,7 @@
+configMapGenerator:
+- name: vanity
+  files:
+  - CREDITS.md
+  - INFO.md
+  - NPC.xml
+  - TESTAMENT.md

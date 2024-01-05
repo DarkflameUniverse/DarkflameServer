@@ -1,0 +1,8 @@
+configMapGenerator:
+- name: game-config
+  files:
+  - authconfig.ini
+  - chatconfig.ini
+  - masterconfig.ini
+  - sharedconfig.ini
+  - worldconfig.ini
