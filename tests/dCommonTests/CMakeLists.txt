@@ -22,15 +22,11 @@ add_dependencies(dCommonTests conncpp_tests)
 if(APPLE)
 add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -l dCommonTests
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -L dCommonTests
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND ls
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -D libmariadbcpp.dylib
+	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dCommonTests
+	COMMAND otool ARGS -L dCommonTests
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
