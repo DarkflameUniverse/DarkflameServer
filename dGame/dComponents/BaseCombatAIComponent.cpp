@@ -1,5 +1,5 @@
 #include "BaseCombatAIComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 
 #include "Entity.h"
 #include "EntityManager.h"

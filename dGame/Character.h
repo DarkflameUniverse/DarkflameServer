@@ -3,7 +3,7 @@
 
 #include "dCommonVars.h"
 #include <vector>
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 #include <unordered_map>
 #include <map>
 

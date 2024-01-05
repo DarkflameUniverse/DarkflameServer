@@ -14,6 +14,7 @@
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
+#include "StringifiedEnum.h"
 
 //! Replica Constructor class
 class ReplicaConstructor : public ReceiveConstructionInterface {
@@ -65,9 +66,9 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 
 	if (mIsOkay) {
 		if (zoneID == 0)
-			LOG("Server is listening on %s:%i with encryption: %i", ip.c_str(), port, int(useEncryption));
+			LOG("%s Server is listening on %s:%i with encryption: %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption));
 		else
-			LOG("Server is listening on %s:%i with encryption: %i, running zone %i / %i", ip.c_str(), port, int(useEncryption), zoneID, instanceID);
+			LOG("%s Server is listening on %s:%i with encryption: %i, running zone %i / %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption), zoneID, instanceID);
 	} else { LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
 
 	mLogger->SetLogToConsole(prevLogSetting);

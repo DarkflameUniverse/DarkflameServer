@@ -2,7 +2,7 @@
 #include "RakNetTypes.h"
 #include "Game.h"
 #include "User.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Character.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
@@ -89,7 +89,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 		// Entities with no ID already set, often spawned entities, we'll generate a new sequencial ID
 		if (info.id == 0) {
-			id = ObjectIDManager::Instance()->GenerateObjectID();
+			id = ObjectIDManager::GenerateObjectID();
 		}
 
 		// Entities with an ID already set, often level entities, we'll use that ID as a base

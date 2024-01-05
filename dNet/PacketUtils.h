@@ -1,8 +1,8 @@
 #ifndef PACKETUTILS_H
 #define PACKETUTILS_H
 
-#include <MessageIdentifiers.h>
-#include <BitStream.h>
+#include "MessageIdentifiers.h"
+#include "BitStream.h"
 #include <string>
 
 enum class eConnectionType : uint16_t;

@@ -16,7 +16,7 @@
 
 //RakNet includes:
 #include "RakNetDefines.h"
-#include <MessageIdentifiers.h>
+#include "MessageIdentifiers.h"
 
 //Auth includes:
 #include "AuthPackets.h"
@@ -83,12 +83,15 @@ int main(int argc, char** argv) {
 	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	uint32_t maxClients = 50;
+	uint32_t maxClients = 999;
 	uint32_t ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
-	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("auth_server_port") != "") ourPort = std::atoi(Game::config->GetValue("auth_server_port").c_str());
+	std::string ourIP = "localhost";
+	GeneralUtils::TryParse(Game::config->GetValue("max_clients"), maxClients);
+	GeneralUtils::TryParse(Game::config->GetValue("auth_server_port"), ourPort);
+	const auto externalIPString = Game::config->GetValue("external_ip");
+	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();

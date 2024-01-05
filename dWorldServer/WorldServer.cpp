@@ -208,9 +208,11 @@ int main(int argc, char** argv) {
 		masterPort = masterInfo->port;
 	}
 
-	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+
+	bool dontGenerateDCF = false;
+	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
 
@@ -733,7 +735,7 @@ void HandlePacket(Packet* packet) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
 			uint64_t requestID = PacketUtils::ReadU64(8, packet);
 			uint32_t objectID = PacketUtils::ReadU32(16, packet);
-			ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
+			ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
 			break;
 		}
 

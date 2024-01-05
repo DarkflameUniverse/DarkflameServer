@@ -1,6 +1,6 @@
 #include "ZCompression.h"
 
-#include <zlib.h>
+#include "zlib.h"
 
 namespace ZCompression {
 	int32_t GetMaxCompressedLength(int32_t nLenSrc) {

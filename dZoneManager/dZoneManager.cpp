@@ -15,7 +15,7 @@
 #include "CDZoneTableTable.h"
 #include "AssetManager.h"
 
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	LOG("Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
@@ -112,7 +112,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	auto objectId = info.spawnerID;
 
 	if (objectId == LWOOBJID_EMPTY) {
-		objectId = ObjectIDManager::Instance()->GenerateObjectID();
+		objectId = ObjectIDManager::GenerateObjectID();
 		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;

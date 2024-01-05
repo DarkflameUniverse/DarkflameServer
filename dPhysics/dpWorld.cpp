@@ -10,14 +10,17 @@
 #include "dConfig.h"
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
-	phys_sp_tilecount = std::atoi(Game::config->GetValue("phys_sp_tilecount").c_str());
-	phys_sp_tilesize = std::atoi(Game::config->GetValue("phys_sp_tilesize").c_str());
+	const auto physSpTilecount = Game::config->GetValue("phys_sp_tilecount");
+	if (!physSpTilecount.empty()) GeneralUtils::TryParse(physSpTilecount, phys_sp_tilecount);
+	const auto physSpTilesize = Game::config->GetValue("phys_sp_tilesize");
+	if (!physSpTilesize.empty()) GeneralUtils::TryParse(physSpTilesize, phys_sp_tilesize);
+	const auto physSpatialPartitioning = Game::config->GetValue("phys_spatial_partitioning");
+	if (!physSpatialPartitioning.empty()) phys_spatial_partitioning = physSpatialPartitioning == "1";
 
 	//If spatial partitioning is enabled, then we need to create the m_Grid.
 	//if m_Grid exists, then the old method will be used.
 	//SP will NOT be used unless it is added to ShouldUseSP();
-	if (std::atoi(Game::config->GetValue("phys_spatial_partitioning").c_str()) == 1
-		&& ShouldUseSP(zoneID)) {
+	if (ShouldUseSP(zoneID)) {
 		m_Grid = new dpGrid(phys_sp_tilecount, phys_sp_tilesize);
 	}
 
@@ -123,6 +126,8 @@ void dpWorld::RemoveEntity(dpEntity* entity) {
 }
 
 bool dpWorld::ShouldUseSP(unsigned int zoneID) {
+	if (!phys_spatial_partitioning) return false;
+
 	// TODO: Add to this list as needed.
 	// Only large maps should be added as tiling likely makes little difference on small maps.
 

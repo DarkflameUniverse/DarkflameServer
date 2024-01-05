@@ -13,7 +13,7 @@
 
 #include <bcrypt/BCrypt.hpp>
 
-#include <BitStream.h>
+#include "BitStream.h"
 #include <future>
 
 #include "Game.h"
@@ -54,14 +54,12 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
-	uint32_t netVersion;
-	const std::string& expectedVersion = Game::config->GetValue("client_net_version");
-	LOG("Expected Version: '%s'", expectedVersion.c_str());
-	if (!GeneralUtils::TryParse(expectedVersion, netVersion)) {
-		LOG("Failed to parse client_net_version. Cannot authenticate to %s:%i", nextServerIP.c_str(), nextServerPort);
-		return;
-	}
-	bitStream.Write<uint32_t>(netVersion);
+	
+	uint32_t clientNetVersion = 171022;
+	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
+	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
+
+	bitStream.Write<uint32_t>(clientNetVersion);
 	bitStream.Write<uint32_t>(0x93);
 
 	if (serverType == ServerType::Auth) bitStream.Write(uint32_t(1)); //Conn: auth
@@ -95,7 +93,6 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	}
 
 	if (Game::config->GetValue("dont_use_keys") != "1" && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
-		LOG("");
 		//Check to see if we have a play key:
 		if (accountInfo->playKeyId == 0) {
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
