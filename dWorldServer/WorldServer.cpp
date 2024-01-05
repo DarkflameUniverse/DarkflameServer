@@ -210,7 +210,10 @@ int main(int argc, char** argv) {
 
 	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+
+	bool dontGenerateDCF = false;
+	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
 

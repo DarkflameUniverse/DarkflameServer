@@ -36,7 +36,7 @@ public:
 
 private:
 	dpGrid* m_Grid;
-	bool phys_spatial_partitioning = 1;
+	bool phys_spatial_partitioning = true;
 	int phys_sp_tilesize = 205;
 	int phys_sp_tilecount = 12;
 
