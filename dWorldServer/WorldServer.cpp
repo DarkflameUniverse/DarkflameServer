@@ -208,7 +208,6 @@ int main(int argc, char** argv) {
 		masterPort = masterInfo->port;
 	}
 
-	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 
 	bool dontGenerateDCF = false;
@@ -736,7 +735,7 @@ void HandlePacket(Packet* packet) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
 			uint64_t requestID = PacketUtils::ReadU64(8, packet);
 			uint32_t objectID = PacketUtils::ReadU32(16, packet);
-			ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
+			ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
 			break;
 		}
 

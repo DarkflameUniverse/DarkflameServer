@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
 #include "Entity.h"
