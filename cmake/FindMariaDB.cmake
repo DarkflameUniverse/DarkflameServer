@@ -142,8 +142,7 @@ if(WIN32)
 		IMPORTED_IMPLIB "${MARIADB_IMPLIB_LOCATION}")
 elseif(APPLE)
 	set_target_properties(MariaDB::ConnCpp PROPERTIES
-		MACOSX_RPATH TRUE
-		INSTALL_NAME_DIR "@rpath")
+		IMPORTED_SONAME "libmariadbcpp")
 endif()
 
 # Add directories to include lists

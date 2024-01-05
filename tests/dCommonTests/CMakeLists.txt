@@ -29,6 +29,9 @@ add_custom_command(TARGET dCommonTests POST_BUILD
 add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND ls
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+add_custom_command(TARGET dCommonTests POST_BUILD
+	COMMAND otool ARGS -D libmariadbcpp.dylib
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 # Link needed libraries
