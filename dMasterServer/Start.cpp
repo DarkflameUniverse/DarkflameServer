@@ -5,7 +5,7 @@
 #include "BinaryPathFinder.h"
 
 void StartChatServer() {
-	if (Game::shouldShutdown) {
+	if (Game::ShouldShutdown()) {
 		LOG("Currently shutting down.  Chat will not be restarted.");
 		return;
 	}
@@ -24,7 +24,7 @@ void StartChatServer() {
 }
 
 void StartAuthServer() {
-	if (Game::shouldShutdown) {
+	if (Game::ShouldShutdown()) {
 		LOG("Currently shutting down.  Auth will not be restarted.");
 		return;
 	}

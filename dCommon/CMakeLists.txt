@@ -5,6 +5,7 @@ set(DCOMMON_SOURCES
 		"dConfig.cpp"
 		"Diagnostics.cpp"
 		"Logger.cpp"
+		"Game.cpp"
 		"GeneralUtils.cpp"
 		"LDFFormat.cpp"
 		"MD5.cpp"

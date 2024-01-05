@@ -294,21 +294,20 @@ void VanityUtilities::ParseXML(const std::string& file) {
 	auto* partyPhrases = npcs->FirstChildElement("partyphrases");
 
 	if (partyPhrases == nullptr) {
-		LOG("Failed to parse party phrases");
-		return;
-	}
-
-	for (auto* phrase = partyPhrases->FirstChildElement("phrase"); phrase != nullptr;
-		phrase = phrase->NextSiblingElement("phrase")) {
-		// Get the phrase
-		auto* text = phrase->GetText();
-
-		if (text == nullptr) {
-			LOG("Failed to parse party phrase");
-			continue;
+		LOG("No party phrases found");
+	} else {
+		for (auto* phrase = partyPhrases->FirstChildElement("phrase"); phrase != nullptr;
+			phrase = phrase->NextSiblingElement("phrase")) {
+			// Get the phrase
+			auto* text = phrase->GetText();
+	
+			if (text == nullptr) {
+				LOG("Failed to parse party phrase");
+				continue;
+			}
+	
+			m_PartyPhrases.push_back(text);
 		}
-
-		m_PartyPhrases.push_back(text);
 	}
 
 	for (auto* npc = npcs->FirstChildElement("npc"); npc != nullptr; npc = npc->NextSiblingElement("npc")) {

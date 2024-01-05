@@ -16,5 +16,9 @@ set(DSCRIPTS_SOURCES_AI_FV
 	"FvPassThroughWall.cpp"
 	"FvBounceOverWall.cpp"
 	"FvMaelstromGeyser.cpp"
-	"TriggerGas.cpp"
-	PARENT_SCOPE)
+	"TriggerGas.cpp")
+
+add_library(dScriptsAiFV STATIC ${DSCRIPTS_SOURCES_AI_FV})
+target_include_directories(dScriptsAiFV PUBLIC ".")
+target_precompile_headers(dScriptsAiFV REUSE_FROM dScriptsBase)
+

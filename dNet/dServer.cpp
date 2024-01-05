@@ -39,7 +39,7 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, Logger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, bool* shouldShutdown, unsigned int zoneID) {
+dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, Logger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, Game::signal_t* lastSignal, unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -55,7 +55,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mReplicaManager = nullptr;
 	mServerType = serverType;
 	mConfig = config;
-	mShouldShutdown = shouldShutdown;
+	mShouldShutdown = lastSignal;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
 
@@ -75,7 +75,9 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	//Connect to master if we are not master:
 	if (serverType != ServerType::Master) {
 		SetupForMasterConnection();
-		ConnectToMaster();
+		if (!ConnectToMaster()) {
+			LOG("Failed ConnectToMaster!");
+		}
 	}
 
 	//Set up Replica if we're a world server:
@@ -129,7 +131,7 @@ Packet* dServer::ReceiveFromMaster() {
 					break;
 				}
 				case eMasterMessageType::SHUTDOWN:
-					*mShouldShutdown = true;
+					*mShouldShutdown = -2;
 					break;
 
 				//When we handle these packets in World instead dServer, we just return the packet's pointer.
@@ -236,10 +238,12 @@ void dServer::Shutdown() {
 void dServer::SetupForMasterConnection() {
 	mMasterSocketDescriptor = SocketDescriptor(uint16_t(mPort + 1), 0);
 	mMasterPeer = RakNetworkFactory::GetRakPeerInterface();
-	mMasterPeer->Startup(1, 30, &mMasterSocketDescriptor, 1);
+	bool ret = mMasterPeer->Startup(1, 30, &mMasterSocketDescriptor, 1);
+	if (!ret) LOG("Failed MasterPeer Startup!");
 }
 
 bool dServer::ConnectToMaster() {
+	//LOG("Connection to Master %s:%d", mMasterIP.c_str(), mMasterPort);
 	return mMasterPeer->Connect(mMasterIP.c_str(), mMasterPort, "3.25 DARKFLAME1", 15);
 }
 
