@@ -134,10 +134,15 @@ message("libmariadb: ${MARIADBC_SHARED_LIBRARY_LOCATION}")
 message("libmariadbcpp: ${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
 add_library(MariaDB::ConnCpp SHARED IMPORTED GLOBAL)
 add_dependencies(MariaDB::ConnCpp mariadb_connector_cpp)
-set_property(TARGET MariaDB::ConnCpp PROPERTY IMPORTED_LOCATION ${MARIADBCPP_SHARED_LIBRARY_LOCATION})
+set_target_properties(MariaDB::ConnCpp PROPERTIES
+	IMPORTED_LOCATION "${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
 
 if(WIN32)
-	set_property(TARGET MariaDB::ConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+	set_target_properties(MariaDB::ConnCpp PROPERTIES
+		IMPORTED_IMPLIB "${MARIADB_IMPLIB_LOCATION}")
+elseif(APPLE)
+	set_target_properties(MariaDB::ConnCpp PROPERTIES
+		MACOSX_RPATH TRUE)
 endif()
 
 # Add directories to include lists

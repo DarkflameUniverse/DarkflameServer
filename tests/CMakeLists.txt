@@ -6,6 +6,10 @@ include(GoogleTest)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH True)
+set(CMAKE_INSTALL_RPATH "@executable_path")
+
 add_custom_target(conncpp_tests
 	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
