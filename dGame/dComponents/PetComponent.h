@@ -69,47 +69,12 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	/**
-	 * Pet information loaded from the CDClientDatabase
-	 */
-	CDPetComponent& m_PetInfo;
-
-	/**
 	 * PetComponent constructor
 	 * @param parentEntity The parent entity
 	 * @param componentId The component id
 	*/
-	explicit PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity },
-		m_PetInfo{ CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(componentId) } {
-		m_ComponentId = componentId;
-		m_Interaction = LWOOBJID_EMPTY;
-		m_InteractType = PetInteractType::none;
-		m_Owner = LWOOBJID_EMPTY;
-		m_ModerationStatus = 0;
-		m_Tamer = LWOOBJID_EMPTY;
-		m_ModelId = LWOOBJID_EMPTY;
-		m_Timer = 0;
-		m_TimerAway = 0;
-		m_TimerBounce = 0;
-		m_DatabaseId = LWOOBJID_EMPTY;
-		m_Flags = PetFlag::SPAWNING; // Tameable
-		m_Ability = ePetAbilityType::Invalid;
-		m_StartPosition = m_Parent->GetPosition();
-		m_MovementAI = nullptr;
-		m_Preconditions = nullptr;
-
-		m_ReadyToInteract = false;
-		SetPetAiState(PetAiState::spawn);
-		SetIsHandlingInteraction(false);
-
-		std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
-
-		if (!checkPreconditions.empty()) {
-			SetPreconditions(checkPreconditions);
-		}
-
-		m_FollowRadius = 8.0f; //Game::zoneManager->GetPetFollowRadius(); // TODO: FIX THIS TO LOAD DYNAMICALLY
-	}
-
+	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
+	
 	~PetComponent() override;
 
 	/**
@@ -615,6 +580,11 @@ private:
 	 * Preconditions that need to be met before an entity can tame this pet
 	 */
 	PreconditionExpression* m_Preconditions;
+
+	/**
+	 * Pet information loaded from the CDClientDatabase
+	 */
+	CDPetComponent& m_PetInfo;
 };
 
 #endif // PETCOMPONENT_H
