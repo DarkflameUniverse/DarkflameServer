@@ -1,7 +1,7 @@
 #ifndef QUICKBUILDCOMPONENT_H
 #define QUICKBUILDCOMPONENT_H
 
-#include <BitStream.h>
+#include "BitStream.h"
 #include <vector>
 #include <string>
 #include "dCommonVars.h"

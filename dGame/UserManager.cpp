@@ -8,9 +8,9 @@
 #include "Game.h"
 #include "Logger.h"
 #include "User.h"
-#include <WorldPackets.h>
+#include "WorldPackets.h"
 #include "Character.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "PacketUtils.h"
 #include "ObjectIDManager.h"
 #include "Logger.h"

@@ -1,5 +1,5 @@
 #include "BuffComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "CDClientDatabase.h"
 #include <stdexcept>
 #include "DestroyableComponent.h"

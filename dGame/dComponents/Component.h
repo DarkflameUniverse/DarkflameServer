@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 
 class Entity;
 

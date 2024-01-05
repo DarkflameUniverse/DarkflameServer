@@ -4,7 +4,7 @@
 #include "Game.h"
 #include "Logger.h"
 
-#include <zlib.h>
+#include "zlib.h"
 
 AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
