@@ -17,6 +17,7 @@ target_link_libraries(dPropertyBehaviors PRIVATE dDatabaseCDClient)
 target_include_directories(dPropertyBehaviors PUBLIC "." "ControlBehaviorMessages"
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dCommon/dClient" # ControlBehaviors.cpp uses AssetManager
+	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # ObjectIdManager.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # GameMessages.h
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # ModelComponent.h
 )

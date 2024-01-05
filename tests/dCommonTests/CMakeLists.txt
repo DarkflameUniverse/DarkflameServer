@@ -19,7 +19,7 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
 
 # Link needed libraries
-target_link_libraries(dCommonTests ${COMMON_LIBRARIES} dGame GTest::gtest_main)
+target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)
