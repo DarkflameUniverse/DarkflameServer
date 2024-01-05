@@ -25,7 +25,7 @@
 
 //RakNet includes:
 #include "RakNetDefines.h"
-#include <MessageIdentifiers.h>
+#include "MessageIdentifiers.h"
 
 namespace Game {
 	Logger* logger = nullptr;

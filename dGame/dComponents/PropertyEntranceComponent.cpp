@@ -1,6 +1,6 @@
 #include "PropertyEntranceComponent.h"
 
-#include <CDPropertyEntranceComponentTable.h>
+#include "CDPropertyEntranceComponentTable.h"
 
 #include "Character.h"
 #include "Database.h"

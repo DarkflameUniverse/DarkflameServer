@@ -13,7 +13,7 @@
 
 #include <bcrypt/BCrypt.hpp>
 
-#include <BitStream.h>
+#include "BitStream.h"
 #include <future>
 
 #include "Game.h"

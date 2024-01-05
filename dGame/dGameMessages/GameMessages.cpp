@@ -50,7 +50,7 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "../thirdparty/cpp-httplib/httplib.h" //sorry not sorry.
+#include "httplib.h" //sorry not sorry.
 
 //CDB includes:
 #include "CDClientManager.h"
