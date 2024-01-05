@@ -13,7 +13,7 @@
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
 #include "PetDigServer.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "eUnequippableActiveType.h"
 #include "eTerminateType.h"
 #include "ePetTamingNotifyType.h"
@@ -562,7 +562,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		return;
 	}
 
-	LWOOBJID petSubKey = ObjectIDManager::Instance()->GenerateRandomObjectID();
+	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
 
 	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
 	GeneralUtils::SetBit(petSubKey, eObjectBits::PERSISTENT);

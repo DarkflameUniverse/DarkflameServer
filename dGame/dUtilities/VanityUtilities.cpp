@@ -17,7 +17,7 @@
 #include "EntityInfo.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Level.h"
 
 #include <fstream>
@@ -182,7 +182,7 @@ LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const 
 	obj.lot = lot;
 	// guratantee we have no collisions
 	do {
-		obj.id = ObjectIDManager::Instance()->GenerateObjectID();
+		obj.id = ObjectIDManager::GenerateObjectID();
 	} while(Game::zoneManager->GetSpawner(obj.id));
 	obj.position = position;
 	obj.rotation = rotation;

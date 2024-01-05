@@ -1,5 +1,4 @@
 set(DWORLDSERVER_SOURCES
-	"ObjectIDManager.cpp"
 	"PerformanceManager.cpp"
 )
 

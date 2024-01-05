@@ -7,7 +7,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "CDClientManager.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
@@ -68,7 +68,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 			continue;
 		}
 
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
@@ -86,7 +86,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
 
 				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
-				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
+				const LWOOBJID proxyId = ObjectIDManager::GenerateObjectID();
 
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
 				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
@@ -1341,7 +1341,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item);
 
