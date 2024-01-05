@@ -21,6 +21,9 @@ add_dependencies(dCommonTests conncpp_tests)
 
 if(APPLE)
 add_custom_command(TARGET dCommonTests POST_BUILD
+	COMMAND otool ARGS -l dCommonTests
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -L dCommonTests
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 add_custom_command(TARGET dCommonTests POST_BUILD
