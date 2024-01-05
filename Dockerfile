@@ -24,7 +24,6 @@ RUN --mount=type=cache,id=build-apt-cache,target=/var/cache/apt \
 
 # Grab libraries and load them
 COPY --from=build /app/build/mariadbcpp/libmariadbcpp.so /usr/local/lib/
-COPY --from=build /app/build/mariadbcpp/libmariadb.so.3 /usr/local/lib/
 RUN ldconfig
 
 # Server bins
