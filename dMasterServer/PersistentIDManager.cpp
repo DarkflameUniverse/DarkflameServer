@@ -20,8 +20,6 @@ void PersistentIDManager::Initialize() {
 			CurrentPersistentID = lastObjectId.value();
 		}
 
-		LOG("Current persistent ID: %u", CurrentPersistentID);
-
 		if (CurrentPersistentID <= 0) {
 			LOG("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
 			throw std::runtime_error("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
