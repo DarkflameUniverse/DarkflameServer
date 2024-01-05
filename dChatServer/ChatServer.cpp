@@ -22,6 +22,7 @@
 #include "ChatIgnoreList.h"
 
 #include "Game.h"
+#include "Server.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -38,7 +39,6 @@ namespace Game {
 	PlayerContainer playerContainer;
 }
 
-Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -51,14 +51,13 @@ int main(int argc, char** argv) {
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
+	Game::config = new dConfig("chatconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("ChatServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
-	Game::config = new dConfig("chatconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	LOG("Starting Chat server...");
 	LOG("Version: %s", PROJECT_VERSION);
@@ -180,18 +179,6 @@ int main(int argc, char** argv) {
 	delete Game::config;
 
 	return EXIT_SUCCESS;
-}
-
-Logger* SetupLogger() {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

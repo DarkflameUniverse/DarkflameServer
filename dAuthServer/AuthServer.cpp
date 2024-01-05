@@ -25,6 +25,9 @@
 #include "eAuthMessageType.h"
 
 #include "Game.h"
+#include "Server.h"
+
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -33,7 +36,6 @@ namespace Game {
 	std::mt19937 randomEngine;
 }
 
-Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -46,14 +48,11 @@ int main(int argc, char** argv) {
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
-	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
-	if (!Game::logger) return EXIT_FAILURE;
-
-	//Read our config:
 	Game::config = new dConfig("authconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
+	//Create all the objects we need to run our service:
+	Server::SetupLogger("AuthServer");
+	if (!Game::logger) return EXIT_FAILURE;
 
 	LOG("Starting Auth server...");
 	LOG("Version: %s", PROJECT_VERSION);
@@ -160,18 +159,6 @@ int main(int argc, char** argv) {
 	delete Game::config;
 
 	return EXIT_SUCCESS;
-}
-
-Logger* SetupLogger() {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {
