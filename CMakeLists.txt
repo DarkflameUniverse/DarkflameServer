@@ -90,6 +90,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+find_package(MariaDB)
+
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
 
@@ -281,7 +283,7 @@ add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "MariaDB::ConnCpp" "magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)
