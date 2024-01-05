@@ -17,6 +17,7 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 
 # Set our executable
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
+add_dependencies(dCommonTests conncpp_tests)
 
 # Link needed libraries
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
