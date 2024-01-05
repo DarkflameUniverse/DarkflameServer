@@ -81,45 +81,21 @@ int main(int argc, char** argv) {
 	Game::logger = SetupLogger();
 	if (!Game::logger) return EXIT_FAILURE;
 
-	if (!dConfig::Exists("authconfig.ini")) {
-		LOG("Couldnt find authconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!dConfig::Exists("chatconfig.ini")) {
-		LOG("Couldnt find chatconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!dConfig::Exists("masterconfig.ini")) {
-		LOG("Couldnt find masterconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!dConfig::Exists("sharedconfig.ini")) {
-		LOG("Couldnt find sharedconfig.ini");
-		return EXIT_FAILURE;
-	}
-
-	if (!dConfig::Exists("worldconfig.ini")) {
-		LOG("Couldnt find worldconfig.ini");
-		return EXIT_FAILURE;
-	}
+	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
+	if (!dConfig::Exists("chatconfig.ini")) LOG("Could not find chatconfig.ini, using default settings");
+	if (!dConfig::Exists("masterconfig.ini")) LOG("Could not find masterconfig.ini, using default settings");
+	if (!dConfig::Exists("sharedconfig.ini")) LOG("Could not find sharedconfig.ini, using default settings");
+	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
 
 	Game::config = new dConfig("masterconfig.ini");
 	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
 	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
-	uint32_t clientNetVersion = 0;
-	if (!GeneralUtils::TryParse(Game::config->GetValue("client_net_version"), clientNetVersion)) {
-		LOG("Failed to parse (%s) as net version. Cannot start server as no clients could connect.",Game::config->GetValue("client_net_version").c_str());
-		LOG("As of version 1.1.1, client_net_version is required to be defined in sharedconfig.ini as opposed to in CMakeVariables.txt as NET_VERSION.");
-		LOG("Rerun cmake to ensure all config values exist. If client_net_version already exists in sharedconfig.ini, please ensure it is a valid number.");
-		LOG("like 171022");
-		return EXIT_FAILURE;
-	}
+	uint32_t clientNetVersion = 171022;
+	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
+	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
 
-	LOG("Using net version %s", Game::config->GetValue("client_net_version").c_str());
+	LOG("Using net version %i", clientNetVersion);
 
 	LOG("Starting Master server...");
 	LOG("Version: %s", PROJECT_VERSION);
@@ -292,19 +268,22 @@ int main(int argc, char** argv) {
 
 	Game::randomEngine = std::mt19937(time(0));
 	uint32_t maxClients = 999;
-	uint32_t ourPort = 1000;
-	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("master_server_port") != "") ourPort = std::stoi(Game::config->GetValue("master_server_port"));
+	uint32_t ourPort = 2000;
+	std::string ourIP = "localhost";
+	const auto maxClientsString = Game::config->GetValue("max_clients");
+	if (!maxClientsString.empty()) maxClients = std::stoi(maxClientsString);
+	const auto masterServerPortString = Game::config->GetValue("master_server_port");
+	if (!masterServerPortString.empty()) ourPort = std::atoi(masterServerPortString.c_str());
+	const auto externalIPString = Game::config->GetValue("external_ip");
+	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
 
-	//Query for the database for a server labeled "master"
+	std::string master_server_ip = "localhost";
+	const auto masterServerIPString = Game::config->GetValue("master_ip");
+	if (!masterServerIPString.empty()) master_server_ip = masterServerIPString;
 
-	auto master_server_ip = Game::config->GetValue("master_ip");
-
-	if (master_server_ip == "") {
-		master_server_ip = Game::server->GetIP();
-	}
+	if (master_server_ip == "") master_server_ip = Game::server->GetIP();
 
 	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
 
@@ -313,7 +292,7 @@ int main(int argc, char** argv) {
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
 	//Depending on the config, start up servers:
-	if (Game::config->GetValue("prestart_servers") != "" && Game::config->GetValue("prestart_servers") == "1") {
+	if (Game::config->GetValue("prestart_servers") != "0") {
 		StartChatServer();
 
 		Game::im->GetInstance(0, false, 0);
