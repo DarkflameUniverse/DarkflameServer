@@ -116,27 +116,30 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 	delete Game::logger;
 }
 
-#define ASSERT_EARRAY_SORTED(EARRAY_VAR)\
-	for (int i = 0; i < EARRAY_VAR->size(); i++) {\
-		const auto entryCurr = EARRAY_VAR->at(i).first;\
-		LOG_EARRAY(EARRAY_VAR, i, entryCurr);\
-		const auto entryNext = EARRAY_VAR->at(++i).first;\
-		LOG_EARRAY(EARRAY_VAR, i, entryNext);\
-		ASSERT_TRUE(entryCurr < entryNext);\
-	};\
+#define LOG_EARRAY(EARRAY_VAR, INDICE, ENTRY) LOG(#EARRAY_VAR"[%i] = %i, %s", INDICE, ENTRY, magic_enum::enum_name(ENTRY).data());
 
-#define LOG_EARRAY(EARRAY_VAR, INDICE, ENTRY)\
-	LOG(#EARRAY_VAR"[%i] = %i, %s", INDICE, ENTRY, magic_enum::enum_name(ENTRY).data());
+namespace {
+	template <typename T>
+	void AssertEnumArraySorted(const T& eArray) {
+		for (int i = 0; i < eArray->size(); ++i) {
+			const auto entryCurr = eArray->at(i).first;
+			LOG_EARRAY(eArray, i, entryCurr);
+			const auto entryNext = eArray->at(++i).first;
+			LOG_EARRAY(eArray, i, entryNext);
+			ASSERT_TRUE(entryCurr < entryNext);
+		}
+	}
+}
 
 // Test that the magic enum arrays are pre-sorted
 TEST(MagicEnumTest, ArraysAreSorted) {
 	Game::logger = new Logger("./MagicEnumTest_ArraysAreSorted.log", true, true);
 
 	constexpr auto wmArray = &magic_enum::enum_entries<eWorldMessageType>();
-	ASSERT_EARRAY_SORTED(wmArray);
+	AssertEnumArraySorted(wmArray);
 
 	constexpr auto gmArray = &magic_enum::enum_entries<eGameMessageType>();
-	ASSERT_EARRAY_SORTED(gmArray);
+	AssertEnumArraySorted(gmArray);
 
 	delete Game::logger;
 }
