@@ -367,6 +367,7 @@ at once. For that:
 - Download the [.env.example](.env.example) file and place it next to `client` with the name file name `.env`
   - Update the `ACCOUNT_MANAGER_SECRET` and `MARIADB_PASSWORD` with strong random passwords.
     - Use a password generator like <https://keygen.io>
+    - Avoid `:` and `@` characters
     - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
   - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions ("File name extensions" in the "View" tab on Windows).
   - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
