@@ -365,12 +365,11 @@ at once. For that:
   - Otherwise, create a new `client` folder and move the exe and everything else (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
 - Download the [docker-compose.yml](docker-compose.yml) file and place it next to `client`.
 - Download the [.env.example](.env.example) file and place it next to `client` with the file name `.env`
-  - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions 
+  - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions ("File name extensions" in the "View" tab on Windows).
   - Update the `ACCOUNT_MANAGER_SECRET` and `MARIADB_PASSWORD` with strong random passwords.
     - Use a password generator like <https://keygen.io>
     - Avoid `:` and `@` characters
     - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
-  ("File name extensions" in the "View" tab on Windows).
   - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
 - Open a terminal in the folder with the `docker-compose.yml` and `client`
 - Run `docker compose up -d`
