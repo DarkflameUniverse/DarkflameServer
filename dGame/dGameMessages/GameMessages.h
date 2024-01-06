@@ -10,6 +10,7 @@
 #include "eEndBehavior.h"
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
+#include "ePetAbilityType.h"
 #include "Brick.h"
 
 class AMFBaseValue;
@@ -386,7 +387,7 @@ namespace GameMessages {
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 
-	void SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr);
+	void SendShowPetActionButton(const LWOOBJID objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr);
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 

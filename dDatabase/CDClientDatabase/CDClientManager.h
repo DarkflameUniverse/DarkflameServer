@@ -11,6 +11,9 @@
  */
 class CDClientManager : public Singleton<CDClientManager> {
 public:
+	/**
+	 * Constructor for CDClientManager
+	*/
 	CDClientManager();
 
 	/**
