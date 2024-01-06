@@ -16,6 +16,14 @@ enum class ServerType : uint32_t {
 	World
 };
 
+enum class ServiceId : uint32_t{
+	General = 0,
+	Auth = 1,
+	Chat = 2,
+	World = 4,
+	Client = 5,
+};
+
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;
 }
