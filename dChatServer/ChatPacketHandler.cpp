@@ -106,8 +106,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		return;
 	};
 
-	// This is an intentional copy so we can modify it based on the request type and context.
-	auto requestee = Game::playerContainer.GetPlayerData(playerName);
+	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName);
 
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {

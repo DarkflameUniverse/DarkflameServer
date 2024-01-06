@@ -33,20 +33,19 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	}
 
 	if (!receiver.ignoredPlayers.empty()) {
-		LOG_DEBUG("Player %llu already has an ignore list", playerId);
-		return;
-	}
+		LOG_DEBUG("Player %llu already has an ignore list, but is requesting it again.", playerId);
+	} else {
+		auto ignoreList = Database::Get()->GetIgnoreList(static_cast<uint32_t>(playerId));
+		if (ignoreList.empty()) {
+			LOG_DEBUG("Player %llu has no ignores", playerId);
+			return;
+		}
 
-	auto ignoreList = Database::Get()->GetIgnoreList(static_cast<uint32_t>(playerId));
-	if (ignoreList.empty()) {
-		LOG_DEBUG("Player %llu has no ignores", playerId);
-		return;
-	}
-
-	for (auto& ignoredPlayer : ignoreList) {
-		receiver.ignoredPlayers.emplace_back(ignoredPlayer.name, ignoredPlayer.id);
-		GeneralUtils::SetBit(receiver.ignoredPlayers.back().playerId, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(receiver.ignoredPlayers.back().playerId, eObjectBits::PERSISTENT);
+		for (auto& ignoredPlayer : ignoreList) {
+			receiver.ignoredPlayers.emplace_back(ignoredPlayer.name, ignoredPlayer.id);
+			GeneralUtils::SetBit(receiver.ignoredPlayers.back().playerId, eObjectBits::CHARACTER);
+			GeneralUtils::SetBit(receiver.ignoredPlayers.back().playerId, eObjectBits::PERSISTENT);
+		}
 	}
 
 	CBITSTREAM;
