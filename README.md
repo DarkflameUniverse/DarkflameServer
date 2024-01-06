@@ -375,9 +375,11 @@ at once. For that:
 - Run `docker compose up -d`
   - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
 - Run `docker exec -it dlu-darkflameserver-1 /app/MasterServer -a` and follow the instructions to create the initial admin account
+- Open <http://localhost:8000> to access Nexus Dashboard with the admin account to create normal users
 - Set `AUTHSERVERIP=0:localhost` in `client/boot.cfg`
   - Replace `localhost` with the value of `EXTERNAL_IP` if you changed that earlier.
-- Open <http://localhost:8000> to access Nexus Dashboard
+  - Also make sure `UGCUSE3DSERVICES=7:` is set to `0`
+- Launch `legouniverse.exe`
 
 ## Standalone
 
