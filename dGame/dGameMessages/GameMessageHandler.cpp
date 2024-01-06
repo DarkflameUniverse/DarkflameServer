@@ -7,7 +7,7 @@
 #include "MissionComponent.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
-#include "../thirdparty/raknet/Source/RakNetworkFactory.h"
+#include "RakNetworkFactory.h"
 #include <future>
 #include "User.h"
 #include "UserManager.h"

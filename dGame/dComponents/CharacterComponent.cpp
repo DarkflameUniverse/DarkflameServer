@@ -1,5 +1,5 @@
 #include "CharacterComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "tinyxml2.h"
 #include "Game.h"
 #include "Logger.h"

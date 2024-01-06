@@ -13,7 +13,7 @@
 #include "Game.h"
 #include "Item.h"
 #include "Database.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
@@ -334,7 +334,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	node->position = position;
 	node->rotation = rotation;
 
-	ObjectIDManager::Instance()->RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId) {
+	ObjectIDManager::RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId) {
 		SpawnerInfo info{};
 
 		info.templateID = modelLOT;

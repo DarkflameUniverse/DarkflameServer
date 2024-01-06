@@ -206,7 +206,6 @@ int main(int argc, char** argv) {
 		masterPort = masterInfo->port;
 	}
 
-	ObjectIDManager::Instance()->Initialize();
 	UserManager::Instance()->Initialize();
 
 	bool dontGenerateDCF = false;

@@ -5,7 +5,7 @@
 #include "Game.h"
 #include "GameMessages.h"
 #include "ModelComponent.h"
-#include "../../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Logger.h"
 #include "BehaviorStates.h"
 #include "AssetManager.h"
@@ -31,7 +31,7 @@
 #include "UpdateStripUiMessage.h"
 
 void ControlBehaviors::RequestUpdatedID(ControlBehaviorContext& context) {
-	ObjectIDManager::Instance()->RequestPersistentID(
+	ObjectIDManager::RequestPersistentID(
 		[context](uint32_t persistentId) {
 			if (!context) {
 				LOG("Model to update behavior ID for is null. Cannot update ID.");

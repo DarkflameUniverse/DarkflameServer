@@ -347,17 +347,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			});
 	}
 
-	if (chatCommand == "resetmission") {
-		uint32_t missionId;
-		if (!GeneralUtils::TryParse(args[0], missionId)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission ID.");
-			return;
-		}
-		auto* missionComponent = entity->GetComponent<MissionComponent>();
-		if (!missionComponent) return;
-		missionComponent->ResetMission(missionId);
-	}
-
 	if (user->GetMaxGMLevel() == eGameMasterLevel::CIVILIAN || entity->GetGMLevel() >= eGameMasterLevel::CIVILIAN) {
 		if (chatCommand == "die") {
 			entity->Smash(entity->GetObjectID());
@@ -385,6 +374,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+	}
+
+	if (chatCommand == "resetmission" && args.size() >= 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		uint32_t missionId;
+		if (!GeneralUtils::TryParse(args[0], missionId)) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission ID.");
+			return;
+		}
+	
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
+		if (!missionComponent) return;
+		missionComponent->ResetMission(missionId);
 	}
 
 	// Log command to database
@@ -701,33 +702,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->SetPlayerFlag(flagId, false);
-	}
-
-	if (chatCommand == "resetmission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
-		if (args.size() == 0) return;
-
-		uint32_t missionID;
-
-		if (!GeneralUtils::TryParse(args[0], missionID)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission id.");
-			return;
-		}
-
-		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
-
-		if (comp == nullptr) {
-			return;
-		}
-
-		auto* mission = comp->GetMission(missionID);
-
-		if (mission == nullptr) {
-			return;
-		}
-
-		mission->SetMissionState(eMissionState::ACTIVE);
-
-		return;
 	}
 
 	if (chatCommand == "playeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {

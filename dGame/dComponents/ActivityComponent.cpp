@@ -7,7 +7,7 @@
 #include "ZoneInstanceManager.h"
 #include "Game.h"
 #include "Logger.h"
-#include <WorldPackets.h>
+#include "WorldPackets.h"
 #include "EntityManager.h"
 #include "ChatPackets.h"
 #include "Player.h"

@@ -4,8 +4,6 @@
 #include "Game.h"
 #include "Logger.h"
 #include "dServer.h"
-#include "EntityInfo.h"
-#include "EntityManager.h"
 #include "dConfig.h"
 #include <gtest/gtest.h>
 

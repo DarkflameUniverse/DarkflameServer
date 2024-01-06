@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "GameMessages.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "eTriggerEventType.h"
 
 BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {

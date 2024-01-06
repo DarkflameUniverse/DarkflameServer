@@ -35,7 +35,7 @@
 #include "Game.h"
 #include "InstanceManager.h"
 #include "MasterPackets.h"
-#include "ObjectIDManager.h"
+#include "PersistentIDManager.h"
 #include "PacketUtils.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
 
 	if (!resServerPathExists) {
 		LOG("%s does not exist, creating it.", (resServerPath).c_str());
-		if(!std::filesystem::create_directories(resServerPath)){
+		if (!std::filesystem::create_directories(resServerPath)) {
 			LOG("Failed to create %s", (resServerPath).string().c_str());
 			return EXIT_FAILURE;
 		}
@@ -256,8 +256,8 @@ int main(int argc, char** argv) {
 		//Create account
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
-		} catch(sql::SQLException& e) {
-			LOG("A SQL error occurred!:\n %s",  e.what());
+		} catch (sql::SQLException& e) {
+			LOG("A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}
 
@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
 	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
 
 	//Create additional objects here:
-	ObjectIDManager::Instance()->Initialize(Game::logger);
+	PersistentIDManager::Initialize();
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
 	//Depending on the config, start up servers:
@@ -450,7 +450,7 @@ void HandlePacket(Packet* packet) {
 			uint64_t requestID = 0;
 			inStream.Read(requestID);
 
-			uint32_t objID = ObjectIDManager::Instance()->GeneratePersistentID();
+			uint32_t objID = PersistentIDManager::GeneratePersistentID();
 			MasterPackets::SendPersistentIDResponse(Game::server, packet->systemAddress, requestID, objID);
 			break;
 		}
@@ -808,11 +808,8 @@ int ShutdownSequence(int32_t signal) {
 		LOG("Triggered master shutdown");
 	}
 
-	auto* objIdManager = ObjectIDManager::TryInstance();
-	if (objIdManager) {
-		objIdManager->SaveToDatabase();
-		LOG("Saved ObjectIDTracker to DB");
-	}
+	PersistentIDManager::SaveToDatabase();
+	LOG("Saved ObjectIDTracker to DB");
 
 	// A server might not be finished spinning up yet, remove all of those here.
 	for (auto* instance : Game::im->GetInstances()) {

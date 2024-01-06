@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "../thirdparty/raknet/Source/RakNetTypes.h"
+#include "RakNetTypes.h"
 #include "dCommonVars.h"
 
 #include <unordered_map>

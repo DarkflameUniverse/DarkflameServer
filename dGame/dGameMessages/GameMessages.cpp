@@ -14,7 +14,7 @@
 #include "EntityManager.h"
 #include "Database.h"
 #include "dServer.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "CppScripts.h"
 #include "UserManager.h"
 #include "ZoneInstanceManager.h"
@@ -50,7 +50,7 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "../thirdparty/cpp-httplib/httplib.h" //sorry not sorry.
+#include "httplib.h" //sorry not sorry.
 
 //CDB includes:
 #include "CDClientManager.h"
@@ -1045,7 +1045,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	LWOOBJID owner = entity->GetObjectID();
 
 	if (item != LOT_NULL && item != 0) {
-		lootID = ObjectIDManager::Instance()->GenerateObjectID();
+		lootID = ObjectIDManager::GenerateObjectID();
 
 		Loot::Info info;
 		info.id = lootID;
@@ -2565,12 +2565,12 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 	//But we don't want the server to go unresponsive, because then the client would disconnect.
 
 	//We need to get a new ID for our model first:
-	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {
+	ObjectIDManager::RequestPersistentID([=](uint32_t newID) {
 		LWOOBJID newIDL = newID;
 		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
 
-		uint32_t blueprintIDSmall = ObjectIDManager::Instance()->GenerateRandomObjectID();
+		uint32_t blueprintIDSmall = ObjectIDManager::GenerateRandomObjectID();
 		LWOOBJID blueprintID = blueprintIDSmall;
 		GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
@@ -5565,7 +5565,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			}
 		}
 
-		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newId) {
+		ObjectIDManager::RequestPersistentID([=](uint32_t newId) {
 			LOG("Build finished");
 			GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
 			GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
