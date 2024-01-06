@@ -373,6 +373,7 @@ at once. For that:
   - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
 - Open a terminal in the folder with the `docker-compose.yml` and `client`
 - Run `docker compose up -d`
+  - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
 - Run `docker exec -it dlu-darkflameserver-1 /app/MasterServer -a` and follow the instructions to create the initial admin account
 - Set `AUTHSERVERIP=0:localhost` in `client/boot.cfg`
   - Replace `localhost` with the value of `EXTERNAL_IP` if you changed that earlier.
