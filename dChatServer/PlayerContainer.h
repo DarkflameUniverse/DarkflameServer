@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 struct IgnoreData {
+	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName(name), playerId(id) {}
 	inline bool operator==(const std::string& other) const noexcept {
 		return playerName == other;
 	}
@@ -16,19 +17,31 @@ struct IgnoreData {
 		return playerId == other;
 	}
 
-	LWOOBJID playerId;
+	LWOOBJID playerId = LWOOBJID_EMPTY;
 	std::string playerName;
 };
 
 struct PlayerData {
-	LWOOBJID playerID;
+	operator bool() const noexcept {
+		return playerID != LWOOBJID_EMPTY;
+	}
+
+	bool operator==(const PlayerData& other) const noexcept {
+		return playerID == other.playerID;
+	}
+
+	bool GetIsMuted() const {
+		return muteExpire == 1 || muteExpire > time(NULL);
+	}
+
+	SystemAddress sysAddr{};
+	LWOZONEID zoneID{};
+	LWOOBJID playerID = LWOOBJID_EMPTY;
+	time_t muteExpire = 0;
+	uint8_t countOfBestFriends = 0;
 	std::string playerName;
-	SystemAddress sysAddr;
-	LWOZONEID zoneID;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
-	time_t muteExpire;
-	uint8_t countOfBestFriends = 0;
 };
 
 struct TeamData {
@@ -52,22 +65,10 @@ public:
 	void CreateTeamServer(Packet* packet);
 	void BroadcastMuteUpdate(LWOOBJID player, time_t time);
 
-	PlayerData* GetPlayerData(const LWOOBJID& playerID) {
-		auto it = m_Players.find(playerID);
-		if (it != m_Players.end()) return it->second;
-		return nullptr;
-	}
-
-	PlayerData* GetPlayerData(const std::string& playerName) {
-		for (auto player : m_Players) {
-			if (player.second) {
-				std::string pn = player.second->playerName.c_str();
-				if (pn == playerName) return player.second;
-			}
-		}
-
-		return nullptr;
-	}
+	const PlayerData& GetPlayerData(const LWOOBJID& playerID);
+	const PlayerData& GetPlayerData(const std::string& playerName);
+	PlayerData& GetPlayerDataMutable(const LWOOBJID& playerID);
+	PlayerData& GetPlayerDataMutable(const std::string& playerName);
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);
@@ -80,15 +81,12 @@ public:
 	void UpdateTeamsOnWorld(TeamData* team, bool deleteTeam);
 	std::u16string GetName(LWOOBJID playerID);
 	LWOOBJID GetId(const std::u16string& playerName);
-	bool GetIsMuted(PlayerData* data);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
 
-	std::map<LWOOBJID, PlayerData*>& GetAllPlayerData() { return m_Players; }
-
 private:
 	LWOOBJID m_TeamIDCounter = 0;
-	std::map<LWOOBJID, PlayerData*> m_Players;
+	std::map<LWOOBJID, PlayerData> m_Players;
 	std::vector<TeamData*> mTeams;
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
 	uint32_t m_MaxNumberOfBestFriends = 5;
