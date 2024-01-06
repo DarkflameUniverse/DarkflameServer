@@ -665,7 +665,7 @@ void HandleMasterPacket(Packet* packet) {
 	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
 		uint64_t requestID = PacketUtils::ReadU64(8, packet);
 		uint32_t objectID = PacketUtils::ReadU32(16, packet);
-		ObjectIDManager::Instance()->HandleRequestPersistentIDResponse(requestID, objectID);
+		ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
 		break;
 	}
 
