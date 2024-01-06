@@ -216,7 +216,52 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars.push_back(character);
 	}
 
-	WorldPackets::SendCharacterList(sysAddr, u);
+	RakNet::BitStream bitStream;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
+
+	std::vector<Character*> characters = u->GetCharacters();
+	bitStream.Write<uint8_t>(characters.size());
+	bitStream.Write<uint8_t>(0); //TODO: Pick the most recent played index.  character index in front, just picking 0
+
+	for (uint32_t i = 0; i < characters.size(); ++i) {
+		bitStream.Write(characters[i]->GetObjectID());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write(LUWString(characters[i]->GetName()));
+		bitStream.Write(LUWString(characters[i]->GetUnapprovedName()));
+
+		bitStream.Write<uint8_t>(characters[i]->GetNameRejected());
+		bitStream.Write<uint8_t>(false);
+
+		bitStream.Write(LUString("", 10));
+
+		bitStream.Write(characters[i]->GetShirtColor());
+		bitStream.Write(characters[i]->GetShirtStyle());
+		bitStream.Write(characters[i]->GetPantsColor());
+		bitStream.Write(characters[i]->GetHairStyle());
+		bitStream.Write(characters[i]->GetHairColor());
+		bitStream.Write(characters[i]->GetLeftHand());
+		bitStream.Write(characters[i]->GetRightHand());
+		bitStream.Write(characters[i]->GetEyebrows());
+		bitStream.Write(characters[i]->GetEyes());
+		bitStream.Write(characters[i]->GetMouth());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write<uint16_t>(characters[i]->GetZoneID());
+		bitStream.Write<uint16_t>(characters[i]->GetZoneInstance());
+		bitStream.Write(characters[i]->GetZoneClone());
+
+		bitStream.Write(characters[i]->GetLastLogin());
+
+		const auto& equippedItems = characters[i]->GetEquippedItems();
+		bitStream.Write<uint16_t>(equippedItems.size());
+
+		for (uint32_t j = 0; j < equippedItems.size(); ++j) {
+			bitStream.Write(equippedItems[j]);
+		}
+	}
+
+	SEND_PACKET;
 }
 
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
@@ -322,7 +367,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 		UserManager::RequestCharacterList(sysAddr);
-	});
+		});
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
