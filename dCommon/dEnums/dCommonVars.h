@@ -130,7 +130,7 @@ public:
 	LWOOBJID friendID;
 	std::string friendName;
 
-	void Serialize(RakNet::BitStream& bitStream) {
+	void Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write<uint8_t>(isOnline);
 		bitStream.Write<uint8_t>(isBestFriend);
 		bitStream.Write<uint8_t>(isFTP);

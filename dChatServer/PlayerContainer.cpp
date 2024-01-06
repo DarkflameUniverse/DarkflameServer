@@ -28,27 +28,32 @@ TeamData::TeamData() {
 
 void PlayerContainer::InsertPlayer(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	PlayerData* data = new PlayerData();
-	inStream.Read(data->playerID);
+	LWOOBJID playerId;
+	if (!inStream.Read(playerId)) {
+		LOG("Failed to read player ID");
+		return;
+	}
+
+	auto& data = m_Players[playerId];
+	data.playerID = playerId;
 
 	uint32_t len;
 	inStream.Read<uint32_t>(len);
 
 	for (int i = 0; i < len; i++) {
 		char character; inStream.Read<char>(character);
-		data->playerName += character;
+		data.playerName += character;
 	}
 
-	inStream.Read(data->zoneID);
-	inStream.Read(data->muteExpire);
-	data->sysAddr = packet->systemAddress;
+	inStream.Read(data.zoneID);
+	inStream.Read(data.muteExpire);
+	data.sysAddr = packet->systemAddress;
 
-	m_Names[data->playerID] = GeneralUtils::UTF8ToUTF16(data->playerName);
+	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
 
-	m_Players.insert(std::make_pair(data->playerID, data));
-	LOG("Added user: %s (%llu), zone: %i", data->playerName.c_str(), data->playerID, data->zoneID.GetMapID());
+	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 
-	Database::Get()->UpdateActivityLog(data->playerID, eActivityType::PlayerLoggedIn, data->zoneID.GetMapID());
+	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
 }
 
 void PlayerContainer::RemovePlayer(Packet* packet) {
@@ -57,26 +62,27 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	inStream.Read(playerID);
 
 	//Before they get kicked, we need to also send a message to their friends saying that they disconnected.
-	std::unique_ptr<PlayerData> player(this->GetPlayerData(playerID));
+	const auto& player = GetPlayerData(playerID);
 
-	if (player == nullptr) {
+	if (!player) {
+		LOG("Failed to find user: %llu", playerID);
 		return;
 	}
 
-	for (auto& fr : player->friends) {
-		auto fd = this->GetPlayerData(fr.friendID);
-		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player.get(), 0, fr.isBestFriend);
+	for (const auto& fr : player.friends) {
+		const auto& fd = this->GetPlayerData(fr.friendID);
+		if (fd) ChatPacketHandler::SendFriendUpdate(fd, player, 0, fr.isBestFriend);
 	}
 
 	auto* team = GetTeam(playerID);
 
 	if (team != nullptr) {
-		const auto memberName = GeneralUtils::UTF8ToUTF16(std::string(player->playerName.c_str()));
+		const auto memberName = GeneralUtils::UTF8ToUTF16(player.playerName);
 
 		for (const auto memberId : team->memberIDs) {
-			auto* otherMember = GetPlayerData(memberId);
+			const auto& otherMember = GetPlayerData(memberId);
 
-			if (otherMember == nullptr) continue;
+			if (!otherMember) continue;
 
 			ChatPacketHandler::SendTeamSetOffWorldFlag(otherMember, playerID, { 0, 0, 0 });
 		}
@@ -85,7 +91,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	LOG("Removed user: %llu", playerID);
 	m_Players.erase(playerID);
 
-	Database::Get()->UpdateActivityLog(playerID, eActivityType::PlayerLoggedOut, player->zoneID.GetMapID());
+	Database::Get()->UpdateActivityLog(playerID, eActivityType::PlayerLoggedOut, player.zoneID.GetMapID());
 }
 
 void PlayerContainer::MuteUpdate(Packet* packet) {
@@ -95,15 +101,15 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 	time_t expire = 0;
 	inStream.Read(expire);
 
-	auto* player = this->GetPlayerData(playerID);
+	auto& player = this->GetPlayerDataMutable(playerID);
 
-	if (player == nullptr) {
+	if (!player) {
 		LOG("Failed to find user: %llu", playerID);
 
 		return;
 	}
 
-	player->muteExpire = expire;
+	player.muteExpire = expire;
 
 	BroadcastMuteUpdate(playerID, expire);
 }
@@ -201,11 +207,11 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 }
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
-	if (team->memberIDs.size() >= 4){
+	if (team->memberIDs.size() >= 4) {
 		LOG("Tried to add player to team that already had 4 players");
-		auto* player = GetPlayerData(playerID);
+		const auto& player = GetPlayerData(playerID);
 		if (!player) return;
-		ChatPackets::SendSystemMessage(player->sysAddr, u"The teams is full! You have not been added to a team!");
+		ChatPackets::SendSystemMessage(player.sysAddr, u"The teams is full! You have not been added to a team!");
 		return;
 	}
 
@@ -215,18 +221,18 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 
 	team->memberIDs.push_back(playerID);
 
-	auto* leader = GetPlayerData(team->leaderID);
-	auto* member = GetPlayerData(playerID);
+	const auto& leader = GetPlayerData(team->leaderID);
+	const auto& member = GetPlayerData(playerID);
 
-	if (leader == nullptr || member == nullptr) return;
+	if (!leader || !member) return;
 
-	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader->playerName);
-	const auto memberName = GeneralUtils::UTF8ToUTF16(member->playerName);
+	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
+	const auto memberName = GeneralUtils::UTF8ToUTF16(member.playerName);
 
-	ChatPacketHandler::SendTeamInviteConfirm(member, false, leader->playerID, leader->zoneID, team->lootFlag, 0, 0, leaderName);
+	ChatPacketHandler::SendTeamInviteConfirm(member, false, leader.playerID, leader.zoneID, team->lootFlag, 0, 0, leaderName);
 
 	if (!team->local) {
-		ChatPacketHandler::SendTeamSetLeader(member, leader->playerID);
+		ChatPacketHandler::SendTeamSetLeader(member, leader.playerID);
 	} else {
 		ChatPacketHandler::SendTeamSetLeader(member, LWOOBJID_EMPTY);
 	}
@@ -234,16 +240,16 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 	UpdateTeamsOnWorld(team, false);
 
 	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = GetPlayerData(memberId);
+		const auto& otherMember = GetPlayerData(memberId);
 
 		if (otherMember == member) continue;
 
 		const auto otherMemberName = GetName(memberId);
 
-		ChatPacketHandler::SendTeamAddPlayer(member, false, team->local, false, memberId, otherMemberName, otherMember != nullptr ? otherMember->zoneID : LWOZONEID(0, 0, 0));
+		ChatPacketHandler::SendTeamAddPlayer(member, false, team->local, false, memberId, otherMemberName, otherMember ? otherMember.zoneID : LWOZONEID(0, 0, 0));
 
-		if (otherMember != nullptr) {
-			ChatPacketHandler::SendTeamAddPlayer(otherMember, false, team->local, false, member->playerID, memberName, member->zoneID);
+		if (otherMember) {
+			ChatPacketHandler::SendTeamAddPlayer(otherMember, false, team->local, false, member.playerID, memberName, member.zoneID);
 		}
 	}
 }
@@ -253,9 +259,9 @@ void PlayerContainer::RemoveMember(TeamData* team, LWOOBJID playerID, bool disba
 
 	if (index == team->memberIDs.end()) return;
 
-	auto* member = GetPlayerData(playerID);
+	const auto& member = GetPlayerData(playerID);
 
-	if (member != nullptr && !silent) {
+	if (member && !silent) {
 		ChatPacketHandler::SendTeamSetLeader(member, LWOOBJID_EMPTY);
 	}
 
@@ -266,9 +272,9 @@ void PlayerContainer::RemoveMember(TeamData* team, LWOOBJID playerID, bool disba
 			continue;
 		}
 
-		auto* otherMember = GetPlayerData(memberId);
+		const auto& otherMember = GetPlayerData(memberId);
 
-		if (otherMember == nullptr) continue;
+		if (!otherMember) continue;
 
 		ChatPacketHandler::SendTeamRemovePlayer(otherMember, disband, kicked, leaving, false, team->leaderID, playerID, memberName);
 	}
@@ -290,9 +296,9 @@ void PlayerContainer::PromoteMember(TeamData* team, LWOOBJID newLeader) {
 	team->leaderID = newLeader;
 
 	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = GetPlayerData(memberId);
+		const auto& otherMember = GetPlayerData(memberId);
 
-		if (otherMember == nullptr) continue;
+		if (!otherMember) continue;
 
 		ChatPacketHandler::SendTeamSetLeader(otherMember, newLeader);
 	}
@@ -304,14 +310,14 @@ void PlayerContainer::DisbandTeam(TeamData* team) {
 	if (index == mTeams.end()) return;
 
 	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = GetPlayerData(memberId);
+		const auto& otherMember = GetPlayerData(memberId);
 
-		if (otherMember == nullptr) continue;
+		if (!otherMember) continue;
 
-		const auto memberName = GeneralUtils::UTF8ToUTF16(otherMember->playerName);
+		const auto memberName = GeneralUtils::UTF8ToUTF16(otherMember.playerName);
 
 		ChatPacketHandler::SendTeamSetLeader(otherMember, LWOOBJID_EMPTY);
-		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, otherMember->playerID, memberName);
+		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, otherMember.playerID, memberName);
 	}
 
 	UpdateTeamsOnWorld(team, true);
@@ -326,19 +332,19 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 	if (index == mTeams.end()) return;
 
-	auto* leader = GetPlayerData(team->leaderID);
+	const auto& leader = GetPlayerData(team->leaderID);
 
-	if (leader == nullptr) return;
+	if (!leader) return;
 
-	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader->playerName);
+	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
 
 	for (const auto memberId : team->memberIDs) {
-		auto* otherMember = GetPlayerData(memberId);
+		const auto& otherMember = GetPlayerData(memberId);
 
-		if (otherMember == nullptr) continue;
+		if (!otherMember) continue;
 
 		if (!team->local) {
-			ChatPacketHandler::SendTeamStatus(otherMember, team->leaderID, leader->zoneID, team->lootFlag, 0, leaderName);
+			ChatPacketHandler::SendTeamStatus(otherMember, team->leaderID, leader.zoneID, team->lootFlag, 0, leaderName);
 		}
 	}
 
@@ -364,23 +370,42 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {
-	const auto& pair = m_Names.find(playerID);
+	const auto iter = m_Names.find(playerID);
 
-	if (pair == m_Names.end()) return u"";
+	if (iter == m_Names.end()) return u"";
 
-	return pair->second;
+	return iter->second;
 }
 
 LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
-	for (const auto& pair : m_Names) {
-		if (pair.second == playerName) {
-			return pair.first;
+	LWOOBJID toReturn = LWOOBJID_EMPTY;
+
+	for (const auto& [id, name] : m_Names) {
+		if (name == playerName) {
+			toReturn = id;
+			break;
 		}
 	}
 
-	return LWOOBJID_EMPTY;
+	return toReturn;
 }
 
-bool PlayerContainer::GetIsMuted(PlayerData* data) {
-	return data->muteExpire == 1 || data->muteExpire > time(NULL);
+PlayerData& PlayerContainer::GetPlayerDataMutable(const LWOOBJID& playerID) {
+	return m_Players[playerID];
+}
+
+PlayerData& PlayerContainer::GetPlayerDataMutable(const std::string& playerName) {
+	for (auto& [id, player] : m_Players) {
+		if (!player) continue;
+		if (player.playerName == playerName) return player;
+	}
+	return m_Players[LWOOBJID_EMPTY];
+}
+
+const PlayerData& PlayerContainer::GetPlayerData(const LWOOBJID& playerID) {
+	return GetPlayerDataMutable(playerID);
+}
+
+const PlayerData& PlayerContainer::GetPlayerData(const std::string& playerName) {
+	return GetPlayerDataMutable(playerName);
 }
