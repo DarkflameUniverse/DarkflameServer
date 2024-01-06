@@ -30,6 +30,12 @@
 #include "LeaderboardManager.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+	/*
+	* This is precisely what the client does functionally
+	* Use the component id as the default activity id and load its data from the database
+	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
+	*/
+
 	m_ActivityID = activityID;
 	LoadActivityData(activityID);
 	if (m_Parent->HasVar(u"activityID")) {
