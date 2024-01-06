@@ -40,6 +40,7 @@
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
 #include "Start.h"
+#include "Server.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -55,7 +56,6 @@ namespace Game {
 bool shutdownSequenceStarted = false;
 int ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
-Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
@@ -77,8 +77,10 @@ int main(int argc, char** argv) {
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
+	Game::config = new dConfig("masterconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
 	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
@@ -87,9 +89,6 @@ int main(int argc, char** argv) {
 	if (!dConfig::Exists("sharedconfig.ini")) LOG("Could not find sharedconfig.ini, using default settings");
 	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
 
-	Game::config = new dConfig("masterconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	uint32_t clientNetVersion = 171022;
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
@@ -393,19 +392,6 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 	return ShutdownSequence(EXIT_SUCCESS);
-}
-
-Logger* SetupLogger() {
-	std::string logPath =
-		(BinaryPathFinder::GetBinaryDir() / ("logs/MasterServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

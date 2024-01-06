@@ -77,6 +77,7 @@
 #include "CheatDetection.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
+#include "Server.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -102,8 +103,8 @@ void WorldShutdownProcess(uint32_t zoneId);
 void FinalizeShutdown();
 void SendShutdownMessageToMaster();
 
-Logger* SetupLogger(uint32_t zoneID, uint32_t instanceID);
 void HandlePacketChat(Packet* packet);
+void HandleMasterPacket(Packet* packet);
 void HandlePacket(Packet* packet);
 
 struct tempSessionInfo {
@@ -143,14 +144,11 @@ int main(int argc, char** argv) {
 		if (argument == "-port") ourPort = atoi(argv[i + 1]);
 	}
 
-	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger(zoneID, instanceID);
-	if (!Game::logger) return EXIT_FAILURE;
-
-	//Read our config:
 	Game::config = new dConfig("worldconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
+
+	//Create all the objects we need to run our service:
+	Server::SetupLogger("WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID));
+	if (!Game::logger) return EXIT_FAILURE;
 
 	LOG("Starting World server...");
 	LOG("Version: %s", Game::projectVersion.c_str());
@@ -412,7 +410,7 @@ int main(int argc, char** argv) {
 		//Check for packets here:
 		packet = Game::server->ReceiveFromMaster();
 		if (packet) { //We can get messages not handle-able by the dServer class, so handle them if we returned anything.
-			HandlePacket(packet);
+			HandleMasterPacket(packet);
 			Game::server->DeallocateMasterPacket(packet);
 		}
 
@@ -527,18 +525,6 @@ int main(int argc, char** argv) {
 	}
 	FinalizeShutdown();
 	return EXIT_SUCCESS;
-}
-
-Logger* SetupLogger(uint32_t zoneID, uint32_t instanceID) {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID) + "_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacketChat(Packet* packet) {
@@ -672,6 +658,138 @@ void HandlePacketChat(Packet* packet) {
 	}
 }
 
+void HandleMasterPacket(Packet* packet) {
+
+	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
+	switch (static_cast<eMasterMessageType>(packet->data[3])) {
+	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
+		uint64_t requestID = PacketUtils::ReadU64(8, packet);
+		uint32_t objectID = PacketUtils::ReadU32(16, packet);
+		ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
+		break;
+	}
+
+	case eMasterMessageType::SESSION_KEY_RESPONSE: {
+		//Read our session key and to which user it belongs:
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		uint64_t header = inStream.Read(header);
+		uint32_t sessionKey = 0;
+		std::string username;
+
+		inStream.Read(sessionKey);
+		username = PacketUtils::ReadString(12, packet, false);
+
+		//Find them:
+		auto it = m_PendingUsers.find(username);
+		if (it == m_PendingUsers.end()) return;
+
+		//Convert our key:
+		std::string userHash = std::to_string(sessionKey);
+		userHash = md5(userHash);
+
+		//Verify it:
+		if (userHash != it->second.hash) {
+			LOG("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
+			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
+			return;
+		} else {
+			LOG("User %s authenticated with correct key.", username.c_str());
+
+			UserManager::Instance()->DeleteUser(packet->systemAddress);
+
+			//Create our user and send them in:
+			UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
+
+			auto zone = Game::zoneManager->GetZone();
+			if (zone) {
+				float x = 0.0f;
+				float y = 0.0f;
+				float z = 0.0f;
+
+				if (zone->GetZoneID().GetMapID() == 1100) {
+					auto pos = zone->GetSpawnPos();
+					x = pos.x;
+					y = pos.y;
+					z = pos.z;
+				}
+
+				WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum());
+			}
+
+			if (Game::server->GetZoneID() == 0) {
+				//Since doing this reroute breaks the client's request, we have to call this manually.
+				UserManager::Instance()->RequestCharacterList(it->second.sysAddr);
+			}
+
+			m_PendingUsers.erase(username);
+
+			//Notify master:
+			{
+				CBITSTREAM;
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
+				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
+				bitStream.Write((LWOINSTANCEID)instanceID);
+				Game::server->SendToMaster(&bitStream);
+			}
+		}
+
+		break;
+	}
+	case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
+		const uint64_t requestID = PacketUtils::ReadU64(8, packet);
+
+		LOG("Got affirmation request of transfer %llu", requestID);
+
+		CBITSTREAM;
+
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
+		bitStream.Write(requestID);
+		Game::server->SendToMaster(&bitStream);
+
+		break;
+	}
+
+	case eMasterMessageType::SHUTDOWN: {
+		Game::lastSignal = -1;
+		LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+		break;
+	}
+
+	case eMasterMessageType::NEW_SESSION_ALERT: {
+		RakNet::BitStream inStream(packet->data, packet->length, false);
+		uint64_t header = inStream.Read(header);
+		uint32_t sessionKey = inStream.Read(sessionKey);
+
+		std::string username;
+
+		uint32_t len;
+		inStream.Read(len);
+
+		for (uint32_t i = 0; i < len; i++) {
+			char character; inStream.Read<char>(character);
+			username += character;
+		}
+
+		//Find them:
+		User* user = UserManager::Instance()->GetUser(username.c_str());
+		if (!user) {
+			LOG("Got new session alert for user %s, but they're not logged in.", username.c_str());
+			return;
+		}
+
+		//Check the key:
+		if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
+			LOG("Got new session alert for user %s, but the session key is invalid.", username.c_str());
+			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
+			return;
+		}
+		break;
+	}
+	default:
+		LOG("Unknown packet ID from master %i", int(packet->data[3]));
+	}
+}
+
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -728,145 +846,6 @@ void HandlePacket(Packet* packet) {
 		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);
 		}
-	}
-
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
-		switch (static_cast<eMasterMessageType>(packet->data[3])) {
-		case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
-			uint64_t requestID = PacketUtils::ReadU64(8, packet);
-			uint32_t objectID = PacketUtils::ReadU32(16, packet);
-			ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
-			break;
-		}
-
-		case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
-			uint64_t requestID = PacketUtils::ReadU64(8, packet);
-			ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
-			break;
-		}
-
-		case eMasterMessageType::SESSION_KEY_RESPONSE: {
-			//Read our session key and to which user it belongs:
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			uint32_t sessionKey = 0;
-			std::string username;
-
-			inStream.Read(sessionKey);
-			username = PacketUtils::ReadString(12, packet, false);
-
-			//Find them:
-			auto it = m_PendingUsers.find(username);
-			if (it == m_PendingUsers.end()) return;
-
-			//Convert our key:
-			std::string userHash = std::to_string(sessionKey);
-			userHash = md5(userHash);
-
-			//Verify it:
-			if (userHash != it->second.hash) {
-				LOG("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
-				Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
-				return;
-			} else {
-				LOG("User %s authenticated with correct key.", username.c_str());
-
-				UserManager::Instance()->DeleteUser(packet->systemAddress);
-
-				//Create our user and send them in:
-				UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
-
-				auto zone = Game::zoneManager->GetZone();
-				if (zone) {
-					float x = 0.0f;
-					float y = 0.0f;
-					float z = 0.0f;
-
-					if (zone->GetZoneID().GetMapID() == 1100) {
-						auto pos = zone->GetSpawnPos();
-						x = pos.x;
-						y = pos.y;
-						z = pos.z;
-					}
-
-					WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum());
-				}
-
-				if (Game::server->GetZoneID() == 0) {
-					//Since doing this reroute breaks the client's request, we have to call this manually.
-					UserManager::Instance()->RequestCharacterList(it->second.sysAddr);
-				}
-
-				m_PendingUsers.erase(username);
-
-				//Notify master:
-				{
-					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
-					bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-					bitStream.Write((LWOINSTANCEID)instanceID);
-					Game::server->SendToMaster(&bitStream);
-				}
-			}
-
-			break;
-		}
-		case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
-			const uint64_t requestID = PacketUtils::ReadU64(8, packet);
-
-			LOG("Got affirmation request of transfer %llu", requestID);
-
-			CBITSTREAM;
-
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
-			bitStream.Write(requestID);
-			Game::server->SendToMaster(&bitStream);
-
-			break;
-		}
-
-		case eMasterMessageType::SHUTDOWN: {
-			Game::lastSignal = -1;
-			LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
-			break;
-		}
-
-		case eMasterMessageType::NEW_SESSION_ALERT: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			uint32_t sessionKey = inStream.Read(sessionKey);
-
-			std::string username;
-
-			uint32_t len;
-			inStream.Read(len);
-
-			for (uint32_t i = 0; i < len; i++) {
-				char character; inStream.Read<char>(character);
-				username += character;
-			}
-
-			//Find them:
-			User* user = UserManager::Instance()->GetUser(username.c_str());
-			if (!user) {
-				LOG("Got new session alert for user %s, but they're not logged in.", username.c_str());
-				return;
-			}
-
-			//Check the key:
-			if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-				LOG("Got new session alert for user %s, but the session key is invalid.", username.c_str());
-				Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
-				return;
-			}
-			break;
-		}
-
-		default:
-			LOG("Unknown packet ID from master %i", int(packet->data[3]));
-		}
-
-		return;
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::WORLD) return;
