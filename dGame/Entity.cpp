@@ -1222,39 +1222,56 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 void Entity::Update(const float deltaTime) {
 	uint32_t timerPosition;
-	timerPosition = 0;
-	while (timerPosition < m_Timers.size()) {
-		m_Timers[timerPosition]->Update(deltaTime);
-		if (m_Timers[timerPosition]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerPosition]->GetName();
-
-			delete m_Timers[timerPosition];
+	for (timerPosition = 0; timerPosition < m_Timers.size();) {
+		auto& timer = m_Timers[timerPosition];
+		timer.Update(deltaTime);
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		if (timer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
+			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
-
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
+		} else {
+			// If the timer isnt expired, go to the next timer.
+			timerPosition++;
+		}
+	}
+
+	for (timerPosition = 0; timerPosition < m_CallbackTimers.size(); ) {
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		auto& callbackTimer = m_CallbackTimers[timerPosition];
+		callbackTimer.Update(deltaTime);
+		if (callbackTimer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that callbacks can remove timers without causing iterator invalidation
+			auto callback = callbackTimer.GetCallback();
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerPosition);
+			callback();
 		} else {
 			timerPosition++;
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
-		m_CallbackTimers[i]->Update(deltaTime);
-		if (m_CallbackTimers[i]->GetTime() <= 0) {
-			m_CallbackTimers[i]->GetCallback()();
-			delete m_CallbackTimers[i];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
-		}
+	// Add pending timers to the list of timers so they start next tick.
+	if (!m_PendingTimers.empty()) {
+		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
+		m_PendingTimers.clear();
 	}
 
-	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
-		}
-		m_PendingTimers.clear();
+	if (!m_PendingCallbackTimers.empty()) {
+		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
+		m_PendingCallbackTimers.clear();
 	}
 
 	if (IsSleeping()) {
@@ -1692,31 +1709,20 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(std::string name, float time) {
-	EntityTimer* timer = new EntityTimer(name, time);
-	m_PendingTimers.push_back(timer);
+	m_PendingTimers.emplace_back(name, time);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
-	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
-	m_CallbackTimers.push_back(timer);
+	m_PendingCallbackTimers.emplace_back(time, callback);
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	for (auto* timer : m_Timers) {
-		if (timer->GetName() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return std::find(m_Timers.begin(), m_Timers.end(), name) != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	for (auto* callback : m_CallbackTimers) {
-		delete callback;
-	}
-
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
@@ -1728,8 +1734,8 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 
 void Entity::CancelTimer(const std::string& name) {
 	for (int i = 0; i < m_Timers.size(); i++) {
-		if (m_Timers[i]->GetName() == name) {
-			delete m_Timers[i];
+		auto& timer = m_Timers[i];
+		if (timer == name) {
 			m_Timers.erase(m_Timers.begin() + i);
 			return;
 		}
@@ -1737,21 +1743,10 @@ void Entity::CancelTimer(const std::string& name) {
 }
 
 void Entity::CancelAllTimers() {
-	/*for (auto timer : m_Timers) {
-		if (timer) delete timer;
-	}*/
-
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
+	m_PendingTimers.clear();
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 bool Entity::IsPlayer() const {

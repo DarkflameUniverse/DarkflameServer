@@ -160,6 +160,8 @@ public:
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 	void RemoveParent();
+
+	// Adds a timer to start next frame with the given name and time.
 	void AddTimer(std::string name, float time);
 	void AddCallbackTimer(float time, std::function<void()> callback);
 	bool HasTimer(const std::string& name);
@@ -324,9 +326,10 @@ protected:
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, Component*> m_Components;
-	std::vector<EntityTimer*> m_Timers;
-	std::vector<EntityTimer*> m_PendingTimers;
-	std::vector<EntityCallbackTimer*> m_CallbackTimers;
+	std::vector<EntityTimer> m_Timers;
+	std::vector<EntityTimer> m_PendingTimers;
+	std::vector<EntityCallbackTimer> m_CallbackTimers;
+	std::vector<EntityCallbackTimer> m_PendingCallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;
 
