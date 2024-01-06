@@ -364,7 +364,7 @@ at once. For that:
   - If the `legouniverse.exe` is in a subfolder called `client`, you're good to go. There may also be a folder `versions`.
   - Otherwise, create a new `client` folder and move the exe and everything else (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
 - Download the [docker-compose.yml](docker-compose.yml) file and place it next to `client`.
-- Download the [.env.example](.env.example) file and place it next to `client` with the name file name `.env`
+- Download the [.env.example](.env.example) file and place it next to `client` with the file name `.env`
   - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions 
   - Update the `ACCOUNT_MANAGER_SECRET` and `MARIADB_PASSWORD` with strong random passwords.
     - Use a password generator like <https://keygen.io>
