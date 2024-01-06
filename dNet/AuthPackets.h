@@ -57,7 +57,7 @@ struct Stamp {
 	uint32_t value;
 	uint64_t timestamp;
 
-	Stamp(eStamps type, uint32_t value, uint64_t timestamp){
+	Stamp(eStamps type, uint32_t value, uint64_t timestamp = time(nullptr)){
 		this->type = type;
 		this->value = value;
 		this->timestamp = timestamp;
