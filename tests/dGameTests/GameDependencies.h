@@ -5,7 +5,6 @@
 #include "Logger.h"
 #include "dServer.h"
 #include "CDClientManager.h"
-#include "CDPetComponentTable.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dConfig.h"
