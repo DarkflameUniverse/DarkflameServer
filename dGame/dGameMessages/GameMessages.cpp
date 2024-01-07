@@ -1,7 +1,6 @@
 #include "GameMessages.h"
 #include "User.h"
 #include "Entity.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "BitStream.h"
 #include "Game.h"
@@ -1726,8 +1725,6 @@ void GameMessages::SendStartCelebrationEffect(Entity* entity, const SystemAddres
 	bitStream.Write<uint32_t>(0); //subtext
 
 	SEND_PACKET;
-
-	//PacketUtils::SavePacket("StartCelebrationEffect.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 
@@ -1950,7 +1947,6 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	//PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property

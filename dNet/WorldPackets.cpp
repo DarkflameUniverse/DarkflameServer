@@ -1,7 +1,6 @@
 #include "WorldPackets.h"
 #include "dCommonVars.h"
 #include "BitStream.h"
-#include "PacketUtils.h"
 #include "GeneralUtils.h"
 #include "Logger.h"
 #include "Game.h"

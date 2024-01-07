@@ -29,7 +29,6 @@
 #include <csignal>
 
 #include "AuthPackets.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "WorldPackets.h"
 #include "UserManager.h"
@@ -664,24 +663,25 @@ void HandleMasterPacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
 	switch (static_cast<eMasterMessageType>(packet->data[3])) {
 	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
-		uint64_t requestID = PacketUtils::ReadU64(8, packet);
-		uint32_t objectID = PacketUtils::ReadU32(16, packet);
+		CINSTREAM_SKIP_HEADER;
+		uint64_t requestID;
+		inStream.Read(requestID);
+		uint32_t objectID;
+		inStream.Read(objectID);
 		ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
 		break;
 	}
 
 	case eMasterMessageType::SESSION_KEY_RESPONSE: {
 		//Read our session key and to which user it belongs:
-		RakNet::BitStream inStream(packet->data, packet->length, false);
-		uint64_t header = inStream.Read(header);
+		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = 0;
-		std::string username;
-
 		inStream.Read(sessionKey);
-		username = PacketUtils::ReadString(12, packet, false);
+		LUWString username(33);
+		inStream.Read(username);
 
 		//Find them:
-		auto it = m_PendingUsers.find(username);
+		auto it = m_PendingUsers.find(username.GetAsString());
 		if (it == m_PendingUsers.end()) return;
 
 		//Convert our key:
@@ -694,12 +694,12 @@ void HandleMasterPacket(Packet* packet) {
 			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		} else {
-			LOG("User %s authenticated with correct key.", username.c_str());
+			LOG("User %s authenticated with correct key.", username.GetAsString().c_str());
 
 			UserManager::Instance()->DeleteUser(packet->systemAddress);
 
 			//Create our user and send them in:
-			UserManager::Instance()->CreateUser(it->second.sysAddr, username, userHash);
+			UserManager::Instance()->CreateUser(it->second.sysAddr, username.GetAsString(), userHash);
 
 			auto zone = Game::zoneManager->GetZone();
 			if (zone) {
@@ -722,7 +722,7 @@ void HandleMasterPacket(Packet* packet) {
 				UserManager::Instance()->RequestCharacterList(it->second.sysAddr);
 			}
 
-			m_PendingUsers.erase(username);
+			m_PendingUsers.erase(username.GetAsString());
 
 			//Notify master:
 			{
@@ -737,8 +737,9 @@ void HandleMasterPacket(Packet* packet) {
 		break;
 	}
 	case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
-		const uint64_t requestID = PacketUtils::ReadU64(8, packet);
-
+		CINSTREAM_SKIP_HEADER;
+		uint64_t requestID;
+		inStream.Read(requestID);
 		LOG("Got affirmation request of transfer %llu", requestID);
 
 		CBITSTREAM;
@@ -757,30 +758,22 @@ void HandleMasterPacket(Packet* packet) {
 	}
 
 	case eMasterMessageType::NEW_SESSION_ALERT: {
-		RakNet::BitStream inStream(packet->data, packet->length, false);
-		uint64_t header = inStream.Read(header);
+		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = inStream.Read(sessionKey);
 
-		std::string username;
-
-		uint32_t len;
-		inStream.Read(len);
-
-		for (uint32_t i = 0; i < len; i++) {
-			char character; inStream.Read<char>(character);
-			username += character;
-		}
-
+		LUString username(33);
+		inStream.Read(username);
+		LOG("Got new session alert for user %s", username.string.c_str());
 		//Find them:
-		User* user = UserManager::Instance()->GetUser(username.c_str());
+		User* user = UserManager::Instance()->GetUser(username.string.c_str());
 		if (!user) {
-			LOG("Got new session alert for user %s, but they're not logged in.", username.c_str());
+			LOG("But they're not logged in?");
 			return;
 		}
 
 		//Check the key:
 		if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-			LOG("Got new session alert for user %s, but the session key is invalid.", username.c_str());
+			LOG("But the session key is invalid!", username.string.c_str());
 			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		}
@@ -853,16 +846,19 @@ void HandlePacket(Packet* packet) {
 
 	switch (static_cast<eWorldMessageType>(packet->data[3])) {
 	case eWorldMessageType::VALIDATION: {
-		std::string username = PacketUtils::ReadString(0x08, packet, true);
-		std::string sessionKey = PacketUtils::ReadString(74, packet, true);
-		std::string clientDatabaseChecksum = PacketUtils::ReadString(packet->length - 33, packet, false);
+		CINSTREAM_SKIP_HEADER;
+		LUWString username(33);
+		inStream.Read(username);
 
+		LUWString sessionKey(33);
 		// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
-		clientDatabaseChecksum = clientDatabaseChecksum.substr(0, 32);
+		inStream.Read(sessionKey);
+		LUString clientDatabaseChecksum(32);
+		inStream.Read(clientDatabaseChecksum);
 
 		// If the check is turned on, validate the client's database checksum.
 		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
-			auto accountInfo = Database::Get()->GetAccountInfo(username);
+			auto accountInfo = Database::Get()->GetAccountInfo(username.GetAsString());
 			if (!accountInfo) {
 				LOG("Client's account does not exist in the database, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
@@ -870,7 +866,7 @@ void HandlePacket(Packet* packet) {
 			}
 
 			// Developers may skip this check
-			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum != databaseChecksum) {
+			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum.string != databaseChecksum) {
 				LOG("Client's database checksum does not match the server's, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
 				return;
@@ -880,14 +876,14 @@ void HandlePacket(Packet* packet) {
 		//Request the session info from Master:
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
-		bitStream.Write(LUString(username, 64));
+		bitStream.Write(username);
 		Game::server->SendToMaster(&bitStream);
 
 		//Insert info into our pending list
 		tempSessionInfo info;
 		info.sysAddr = SystemAddress(packet->systemAddress);
-		info.hash = sessionKey;
-		m_PendingUsers.insert(std::make_pair(username, info));
+		info.hash = sessionKey.GetAsString();
+		m_PendingUsers.insert(std::make_pair(username.GetAsString(), info));
 
 		break;
 	}
@@ -1098,7 +1094,6 @@ void HandlePacket(Packet* packet) {
 
 						SystemAddress sysAddr = packet->systemAddress;
 						SEND_PACKET;
-						// PacketUtils::SavePacket("lxfml packet " + std::to_string(bbbModel.id) + ".bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 					}
 				}
 
