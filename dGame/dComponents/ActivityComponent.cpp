@@ -72,9 +72,10 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });
 
+	bool soloRacing = Game::config->GetValue("solo_racing") == "1";
 	for (CDActivities activity : activities) {
 		m_ActivityInfo = activity;
-		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
+		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && soloRacing) {
 			m_ActivityInfo.minTeamSize = 1;
 			m_ActivityInfo.minTeams = 1;
 		}
