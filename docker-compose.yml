@@ -64,6 +64,7 @@ services:
       - CLIENT_LOCATION=/app/luclient/
       - CACHE_LOCATION=/app/cache/
       - CD_SQLITE_LOCATION=/app/cdclient/
+      - USER_ENABLE_REGISTER=1 # "0" is _not_ false, to disable, remove this line
     depends_on:
       - darkflamedb
       - darkflameserver
