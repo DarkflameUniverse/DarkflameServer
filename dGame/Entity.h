@@ -31,6 +31,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+class PositionUpdate;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
@@ -295,6 +296,8 @@ public:
 	std::vector<LWOOBJID>& GetTargetsInPhantom();
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
+
+	void ProcessPositionUpdate(PositionUpdate& update);
 
 protected:
 	LWOOBJID m_ObjectID;

@@ -25,6 +25,7 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "PositionUpdate.h"
 
 //Component includes:
 #include "Component.h"
@@ -2055,4 +2056,76 @@ void Entity::RetroactiveVaultSize() {
 uint8_t Entity::GetCollectibleID() const {
 	auto* collectible = GetComponent<CollectibleComponent>();
 	return collectible ? collectible->GetCollectibleId() : 0;
+}
+
+void Entity::ProcessPositionUpdate(PositionUpdate& update) {
+	if (!IsPlayer()) return;
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
+
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	bool updateChar = true;
+
+	if (possessorComponent) {
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+
+		if (possassableEntity) {
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+
+			// While possessing something, only update char if we are attached to the thing we are possessing
+			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
+
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent) {
+				havokVehiclePhysicsComponent->SetPosition(update.position);
+				havokVehiclePhysicsComponent->SetRotation(update.rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
+				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
+			} else {
+				// Need to get the mount's controllable physics
+				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!possessedControllablePhysicsComponent) return;
+				possessedControllablePhysicsComponent->SetPosition(update.position);
+				possessedControllablePhysicsComponent->SetRotation(update.rotation);
+				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
+				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
+				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+			}
+			Game::entityManager->SerializeEntity(possassableEntity);
+		}
+	}
+
+	if (!updateChar) {
+		update.velocity = NiPoint3::ZERO;
+		update.angularVelocity = NiPoint3::ZERO;
+	}
+
+	// Handle statistics
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) {
+		characterComponent->TrackPositionUpdate(update.position);
+	}
+
+	controllablePhysicsComponent->SetPosition(update.position);
+	controllablePhysicsComponent->SetRotation(update.rotation);
+	controllablePhysicsComponent->SetIsOnGround(update.onGround);
+	controllablePhysicsComponent->SetIsOnRail(update.onRail);
+	controllablePhysicsComponent->SetVelocity(update.velocity);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+
+	auto* player = static_cast<Player*>(this);
+	player->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
+
+	if (updateChar) Game::entityManager->SerializeEntity(this);
 }

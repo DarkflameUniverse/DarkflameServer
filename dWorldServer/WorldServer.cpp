@@ -78,6 +78,7 @@
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 #include "Server.h"
+#include "PositionUpdate.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -713,7 +714,7 @@ void HandleMasterPacket(Packet* packet) {
 					z = pos.z;
 				}
 
-				WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum());
+				WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum(), Game::zoneManager->GetZoneID());
 			}
 
 			if (Game::server->GetZoneID() == 0) {
@@ -1005,7 +1006,10 @@ void HandlePacket(Packet* packet) {
 				info.lot = 1;
 				Entity* player = Game::entityManager->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
 
-				WorldPackets::SendCreateCharacter(packet->systemAddress, player, c->GetXMLData(), username, c->GetGMLevel());
+				auto* characterComponent = player->GetComponent<CharacterComponent>();
+				if (!characterComponent) return;
+
+				WorldPackets::SendCreateCharacter(packet->systemAddress, player->GetComponent<CharacterComponent>()->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel());
 				WorldPackets::SendServerState(packet->systemAddress);
 
 				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
@@ -1018,8 +1022,6 @@ void HandlePacket(Packet* packet) {
 
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
 
-				auto* characterComponent = player->GetComponent<CharacterComponent>();
-				if (!characterComponent) return;
 				characterComponent->RocketUnEquip(player);
 
 				// Do charxml fixes here
@@ -1142,7 +1144,16 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case eWorldMessageType::POSITION_UPDATE: {
-		ClientPackets::HandleClientPositionUpdate(packet->systemAddress, packet);
+		auto positionUpdate = ClientPackets::HandleClientPositionUpdate(packet);
+
+		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (!user) {
+			LOG("Unable to get user to parse position update");
+			return;
+		}
+
+		Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
+		if (entity) entity->ProcessPositionUpdate(positionUpdate);
 		break;
 	}
 
@@ -1190,7 +1201,74 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case eWorldMessageType::STRING_CHECK: {
-		ClientPackets::HandleChatModerationRequest(packet->systemAddress, packet);
+		auto request = ClientPackets::HandleChatModerationRequest(packet);
+
+		// TODO: Find a good home for the logic in this case.
+		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (!user) {
+			LOG("Unable to get user to parse chat moderation request");
+			return;
+		}
+
+		auto* entity = Player::GetPlayer(packet->systemAddress);
+
+		if (entity == nullptr) {
+			LOG("Unable to get player to parse chat moderation request");
+			return;
+		}
+
+		// Check if the player has restricted chat access
+		auto* character = entity->GetCharacter();
+
+		if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
+			// Send a message to the player
+			ChatPackets::SendSystemMessage(
+				packet->systemAddress,
+				u"This character has restricted chat access."
+			);
+
+			return;
+		}
+
+		bool isBestFriend = false;
+
+		if (request.chatLevel == 1) {
+			// Private chat
+			LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
+
+			{
+				auto characterIdFetch = Database::Get()->GetCharacterInfo(request.receiver);
+
+				if (characterIdFetch) {
+					idOfReceiver = characterIdFetch->id;
+				}
+			}
+			const auto& bffMap = user->GetIsBestFriendMap();
+			if (bffMap.find(request.receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
+				auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
+
+				if (bffInfo) {
+					isBestFriend = bffInfo->bestFriendStatus == 3;
+				}
+
+				if (isBestFriend) {
+					user->UpdateBestFriendValue(request.receiver, true);
+				}
+			} else if (bffMap.find(request.receiver) != bffMap.end()) {
+				isBestFriend = true;
+			}
+		}
+
+		std::vector<std::pair<uint8_t, uint8_t>> segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
+
+		bool bAllClean = segments.empty();
+
+		if (user->GetIsMuted()) {
+			bAllClean = false;
+		}
+
+		user->SetLastChatMessageApproved(bAllClean);
+		WorldPackets::SendChatModerationResponse(packet->systemAddress, bAllClean, request.requestID, request.receiver, segments);
 		break;
 	}
 
@@ -1198,7 +1276,29 @@ void HandlePacket(Packet* packet) {
 		if (chatDisabled) {
 			ChatPackets::SendMessageFail(packet->systemAddress);
 		} else {
-			ClientPackets::HandleChatMessage(packet->systemAddress, packet);
+			auto chatMessage = ClientPackets::HandleChatMessage(packet);
+
+			// TODO: Find a good home for the logic in this case.
+			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
+			if (!user) {
+				LOG("Unable to get user to parse chat message");
+				return;
+			}
+
+			if (user->GetIsMuted()) {
+				user->GetLastUsedChar()->SendMuteNotice();
+				return;
+			}
+			std::string playerName = user->GetLastUsedChar()->GetName();
+			bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastUsedChar()->GetGMLevel()).empty();
+			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
+			if (!isOk) return;
+			if (!isOk && !isMythran) return;
+
+			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
+			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
+			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
 		}
 
 		break;
@@ -1224,7 +1324,37 @@ void HandlePacket(Packet* packet) {
 
 
 	case eWorldMessageType::UI_HELP_TOP_5: {
-		ClientPackets::SendTop5HelpIssues(packet);
+		auto language = ClientPackets::SendTop5HelpIssues(packet);
+		// TODO: Handle different languages in a nice way
+		// 0: en_US
+		// 1: pl_US
+		// 2: de_DE
+		// 3: en_GB
+
+		// TODO: Find a good home for the logic in this case.
+		auto* user = UserManager::Instance()->GetUser(packet->systemAddress);
+		if (!user) return;
+		auto* character = user->GetLastUsedChar();
+		if (!character) return;
+		auto* entity = character->GetEntity();
+		if (!entity) return;
+
+		AMFArrayValue data;
+		// Summaries
+		data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
+		data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
+		data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
+		data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
+		data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
+
+		// Descriptions
+		data.Insert("Description0", Game::config->GetValue("help_0_description"));
+		data.Insert("Description1", Game::config->GetValue("help_1_description"));
+		data.Insert("Description2", Game::config->GetValue("help_2_description"));
+		data.Insert("Description3", Game::config->GetValue("help_3_description"));
+		data.Insert("Description4", Game::config->GetValue("help_4_description"));
+
+		GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "UIHelpTop5", data);
 		break;
 	}
 
