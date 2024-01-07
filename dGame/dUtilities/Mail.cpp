@@ -12,7 +12,6 @@
 #include "dServer.h"
 #include "Entity.h"
 #include "Character.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "Logger.h"
 #include "EntityManager.h"
@@ -305,7 +304,6 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	}
 
 	Game::server->Send(&bitStream, sysAddr, false);
-	// PacketUtils::SavePacket("Max_Mail_Data.bin", (const char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {

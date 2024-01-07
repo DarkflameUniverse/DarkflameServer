@@ -1,7 +1,6 @@
 #include "dCommonVars.h"
 #include "WorldPackets.h"
 #include "BitStream.h"
-#include "PacketUtils.h"
 #include "GeneralUtils.h"
 #include "User.h"
 #include "Character.h"
@@ -191,7 +190,6 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, Entity* ent
 		bitStream.Write(compressedData[i]);
 #pragma warning(default:6385)
 
-	// PacketUtils::SavePacket("chardata.bin", (const char*)bitStream.GetData(), static_cast<uint32_t>(bitStream.GetNumberOfBytesUsed()));
 	SEND_PACKET;
 	delete[] compressedData;
 	LOG("Sent CreateCharacter for ID: %llu", entity->GetObjectID());

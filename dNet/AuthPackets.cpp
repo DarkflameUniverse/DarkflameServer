@@ -1,5 +1,4 @@
 #include "AuthPackets.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 
 #include "dNetCommon.h"
@@ -297,13 +296,12 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	for (auto& stamp : stamps) stamp.Serialize(&loginResponse);
 
 	server->Send(&loginResponse, sysAddr, false);
-
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
-		bitStream.Write(LUString(username, 66));
+		bitStream.Write(LUString(username));
 		server->SendToMaster(&bitStream);
 
 		LOG("Set sessionKey: %i for user %s", sessionKey, username.c_str());

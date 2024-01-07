@@ -2,7 +2,6 @@
 #include "PlayerContainer.h"
 #include "eChatInternalMessageType.h"
 #include "BitStreamUtils.h"
-#include "PacketUtils.h"
 #include "Game.h"
 #include "Logger.h"
 #include "eObjectBits.h"
