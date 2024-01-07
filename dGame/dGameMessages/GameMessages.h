@@ -10,7 +10,6 @@
 #include "eEndBehavior.h"
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
-#include "ePetAbilityType.h"
 #include "Brick.h"
 
 class AMFBaseValue;
@@ -33,6 +32,7 @@ enum class eObjectWorldState : uint32_t;
 enum class eTerminateType : uint32_t;
 enum class eControlScheme : uint32_t;
 enum class eStateChangeType : uint32_t;
+enum class ePetAbilityType : uint32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;

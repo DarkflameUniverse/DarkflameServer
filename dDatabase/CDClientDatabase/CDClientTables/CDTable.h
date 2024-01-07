@@ -23,8 +23,8 @@
 // Enable this to skip some unused columns in some tables
 #define UNUSED_COLUMN(v)
 
-// Use this to skip unused defaults for unused columns in some tables
-#define UNUSED_DEFAULT(v, x)
+// Use this to skip unused defaults for unused entries in some tables
+#define UNUSED_ENTRY(v, x)
 
 #pragma warning (disable : 4244) //Disable double to float conversion warnings
 #pragma warning (disable : 4715) //Disable "not all control paths return a value"
