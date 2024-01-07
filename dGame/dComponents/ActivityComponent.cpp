@@ -30,23 +30,17 @@
 #include "LeaderboardManager.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
-	if (activityID > 0) m_ActivityID = activityID;
-	else m_ActivityID = parent->GetVar<int32_t>(u"activityID");
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	/*
+	* This is precisely what the client does functionally
+	* Use the component id as the default activity id and load its data from the database
+	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
+	*/
 
-	for (CDActivities activity : activities) {
-		m_ActivityInfo = activity;
-		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
-			m_ActivityInfo.minTeamSize = 1;
-			m_ActivityInfo.minTeams = 1;
-		}
-		if (m_ActivityInfo.instanceMapID == -1) {
-			const auto& transferOverride = parent->GetVarAsString(u"transferZoneID");
-			if (!transferOverride.empty()) {
-				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
-			}
-		}
+	m_ActivityID = activityID;
+	LoadActivityData(activityID);
+	if (m_Parent->HasVar(u"activityID")) {
+		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+		LoadActivityData(m_ActivityID);
 	}
 
 	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
@@ -70,6 +64,25 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 				if (item.activityRating > 0 && item.activityRating < 5) {
 					m_ActivityLootMatrices.insert({ item.activityRating, item.LootMatrixIndex });
 				}
+			}
+		}
+	}
+}
+void ActivityComponent::LoadActivityData(const int32_t activityId) {
+	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });
+
+	bool soloRacing = Game::config->GetValue("solo_racing") == "1";
+	for (CDActivities activity : activities) {
+		m_ActivityInfo = activity;
+		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && soloRacing) {
+			m_ActivityInfo.minTeamSize = 1;
+			m_ActivityInfo.minTeams = 1;
+		}
+		if (m_ActivityInfo.instanceMapID == -1) {
+			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
+			if (!transferOverride.empty()) {
+				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
 			}
 		}
 	}
