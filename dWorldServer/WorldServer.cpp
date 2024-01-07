@@ -872,7 +872,7 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 		}
-		LOG("PASSED");
+
 		//Request the session info from Master:
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);

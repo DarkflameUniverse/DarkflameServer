@@ -266,41 +266,41 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
+	
+	LUWString LUWStringName(33);
+	uint32_t firstNameIndex;
+	uint32_t middleNameIndex;
+	uint32_t lastNameIndex;
+	uint32_t shirtColor;
+	uint32_t shirtStyle;
+	uint32_t pantsColor;
+	uint32_t hairStyle;
+	uint32_t hairColor;
+	uint32_t lh;
+	uint32_t rh;
+	uint32_t eyebrows;
+	uint32_t eyes;
+	uint32_t mouth;
 
 	CINSTREAM_SKIP_HEADER;
-	LUWString LUWStringName(33);
 	inStream.Read(LUWStringName);
-	const auto name = LUWStringName.GetAsString();
-
-	uint32_t firstNameIndex;
 	inStream.Read(firstNameIndex);
-	uint32_t middleNameIndex;
 	inStream.Read(middleNameIndex);
-	uint32_t lastNameIndex;
 	inStream.Read(lastNameIndex);
-	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
-
 	inStream.IgnoreBytes(9);
-	uint32_t shirtColor;
 	inStream.Read(shirtColor);
-	uint32_t shirtStyle;
 	inStream.Read(shirtStyle);
-	uint32_t pantsColor;
 	inStream.Read(pantsColor);
-	uint32_t hairStyle;
 	inStream.Read(hairStyle);
-	uint32_t hairColor;
 	inStream.Read(hairColor);
-	uint32_t lh;
 	inStream.Read(lh);
-	uint32_t rh;
 	inStream.Read(rh);
-	uint32_t eyebrows;
 	inStream.Read(eyebrows);
-	uint32_t eyes;
 	inStream.Read(eyes);
-	uint32_t mouth;
 	inStream.Read(mouth);
+
+	const auto name = LUWStringName.GetAsString();
+	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
