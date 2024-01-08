@@ -1,19 +1,20 @@
 #pragma once
 #include "CDTable.h"
+#include <cstdint>
 #include <string>
 
 struct CDPhysicsComponent {
-	int id;
+	uint32_t id;
 	bool bStatic;
 	std::string physicsAsset;
 	UNUSED(bool jump);
-	UNUSED(bool doublejump);
+	UNUSED(bool doubleJump);
 	float speed;
 	UNUSED(float rotSpeed);
 	float playerHeight;
 	float playerRadius;
-	int pcShapeType;
-	int collisionGroup;
+	int32_t pcShapeType;
+	int32_t collisionGroup;
 	UNUSED(float airSpeed);
 	UNUSED(std::string boundaryAsset);
 	UNUSED(float jumpAirSpeed);
@@ -25,9 +26,8 @@ class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
 public:
 	void LoadValuesFromDatabase();
 
-	static const std::string GetTableName() { return "PhysicsComponent"; };
-	CDPhysicsComponent* GetByID(unsigned int componentID);
+	CDPhysicsComponent* GetByID(const uint32_t componentID);
 
 private:
-	std::map<unsigned int, CDPhysicsComponent> m_entries;
+	std::map<uint32_t, CDPhysicsComponent> m_Entries;
 };

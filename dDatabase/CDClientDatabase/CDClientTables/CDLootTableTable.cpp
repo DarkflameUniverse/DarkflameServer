@@ -40,7 +40,7 @@ CDLootTable CDLootTableTable::ReadRow(CppSQLite3Query& tableData) const {
 void CDLootTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM LootTable");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -49,7 +49,7 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 	}
 
 	// Reserve the size
-	this->entries.reserve(size);
+	m_Entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootTable");
@@ -57,17 +57,17 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 		CDLootTable entry;
 		uint32_t lootTableIndex = tableData.getIntField("LootTableIndex", -1);
 
-		this->entries[lootTableIndex].push_back(ReadRow(tableData));
+		m_Entries[lootTableIndex].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
-	for (auto& [id, table] : this->entries) {
+	for (auto& [id, table] : m_Entries) {
 		SortTable(table);
 	}
 }
 
-const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
-	auto itr = this->entries.find(tableId);
-	if (itr != this->entries.end()) {
+const LootTableEntries& CDLootTableTable::GetTable(const uint32_t tableId) {
+	auto itr = m_Entries.find(tableId);
+	if (itr != m_Entries.end()) {
 		return itr->second;
 	}
 
@@ -77,10 +77,10 @@ const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
 
 	while (!tableData.eof()) {
 		CDLootTable entry;
-		this->entries[tableId].push_back(ReadRow(tableData));
+		m_Entries[tableId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
-	SortTable(this->entries[tableId]);
+	SortTable(m_Entries[tableId]);
 
-	return this->entries[tableId];
+	return m_Entries[tableId];
 }

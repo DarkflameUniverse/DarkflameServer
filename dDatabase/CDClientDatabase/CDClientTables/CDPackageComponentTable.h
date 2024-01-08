@@ -3,15 +3,17 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDPackageComponent {
-	unsigned int id;
-	unsigned int LootMatrixIndex;
-	unsigned int packageType;
+	uint32_t id;
+	uint32_t LootMatrixIndex;
+	uint32_t packageType;
 };
 
 class CDPackageComponentTable : public CDTable<CDPackageComponentTable> {
 private:
-	std::vector<CDPackageComponent> entries;
+	std::vector<CDPackageComponent> m_Entries;
 
 public:
 	void LoadValuesFromDatabase();

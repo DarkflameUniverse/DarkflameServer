@@ -1,22 +1,13 @@
 #include "CDObjectsTable.h"
 
 void CDObjectsTable::LoadValuesFromDatabase() {
-	// First, get the size of the table
-	unsigned int size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Objects");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
-
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Objects");
 	while (!tableData.eof()) {
-		CDObjects entry;
-		entry.id = tableData.getIntField("id", -1);
+		const uint32_t LOT = tableData.getIntField("id", 0);
+
+		auto& entry = m_Entries[LOT];
+		entry.id = LOT;
 		entry.name = tableData.getStringField("name", "");
 		UNUSED_COLUMN(entry.placeable = tableData.getIntField("placeable", -1);)
 		entry.type = tableData.getStringField("type", "");
@@ -31,18 +22,15 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", "");)
 		UNUSED_COLUMN(entry.HQ_valid = tableData.getIntField("HQ_valid", -1);)
 
-		this->entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
-	tableData.finalize();
-
-	m_default.id = 0;
+	m_Default.id = 0;
 }
 
-const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
-	const auto& it = this->entries.find(LOT);
-	if (it != this->entries.end()) {
+const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
+	const auto& it = m_Entries.find(LOT);
+	if (it != m_Entries.end()) {
 		return it->second;
 	}
 
@@ -51,14 +39,16 @@ const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
 
 	auto tableData = query.execQuery();
 	if (tableData.eof()) {
-		this->entries.insert(std::make_pair(LOT, m_default));
-		return m_default;
+		m_Entries.insert(std::make_pair(LOT, m_Default));
+		return m_Default;
 	}
 
 	// Now get the data
 	while (!tableData.eof()) {
-		CDObjects entry;
-		entry.id = tableData.getIntField("id", -1);
+		const uint32_t LOT = tableData.getIntField("id", 0);
+
+		auto& entry = m_Entries[LOT];
+		entry.id = LOT;
 		entry.name = tableData.getStringField("name", "");
 		UNUSED(entry.placeable = tableData.getIntField("placeable", -1));
 		entry.type = tableData.getStringField("type", "");
@@ -73,17 +63,15 @@ const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 		UNUSED(entry.HQ_valid = tableData.getIntField("HQ_valid", -1));
 
-		this->entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
 
-	const auto& it2 = entries.find(LOT);
-	if (it2 != entries.end()) {
+	const auto& it2 = m_Entries.find(LOT);
+	if (it2 != m_Entries.end()) {
 		return it2->second;
 	}
 
-	return m_default;
+	return m_Default;
 }
-

@@ -3,9 +3,11 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMissionNPCComponent {
-	unsigned int id;                //!< The ID
-	unsigned int missionID;         //!< The Mission ID
+	uint32_t id;                //!< The ID
+	uint32_t missionID;         //!< The Mission ID
 	bool offersMission;     //!< Whether or not this NPC offers a mission
 	bool acceptsMission;    //!< Whether or not this NPC accepts a mission
 	std::string gate_version;  //!< The gate version
@@ -13,7 +15,7 @@ struct CDMissionNPCComponent {
 
 class CDMissionNPCComponentTable : public CDTable<CDMissionNPCComponentTable> {
 private:
-	std::vector<CDMissionNPCComponent> entries;
+	std::vector<CDMissionNPCComponent> m_Entries;
 
 public:
 	void LoadValuesFromDatabase();
@@ -24,4 +26,3 @@ public:
 	const std::vector<CDMissionNPCComponent>& GetEntries() const;
 
 };
-

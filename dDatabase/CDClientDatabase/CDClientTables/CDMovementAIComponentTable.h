@@ -3,8 +3,10 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMovementAIComponent {
-	unsigned int id;
+	uint32_t id;
 	std::string MovementType;
 	float WanderChance;
 	float WanderDelayMin;
@@ -16,7 +18,7 @@ struct CDMovementAIComponent {
 
 class CDMovementAIComponentTable : public CDTable<CDMovementAIComponentTable> {
 private:
-	std::vector<CDMovementAIComponent> entries;
+	std::vector<CDMovementAIComponent> m_Entries;
 
 public:
 	void LoadValuesFromDatabase();
