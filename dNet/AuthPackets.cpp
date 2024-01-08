@@ -1,5 +1,4 @@
 #include "AuthPackets.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 
 #include "dNetCommon.h"
@@ -24,10 +23,16 @@
 #include "eServerMessageType.h"
 #include "eMasterMessageType.h"
 #include "eGameMasterLevel.h"
-
+#include "StringifiedEnum.h"
 namespace {
 	std::vector<uint32_t> claimCodes;
 }
+
+void Stamp::Serialize(RakNet::BitStream* outBitStream){
+	outBitStream->Write(type);
+	outBitStream->Write(value);
+	outBitStream->Write(timestamp);
+};
 
 void AuthPackets::LoadClaimCodes() {
 	if(!claimCodes.empty()) return;
@@ -42,12 +47,26 @@ void AuthPackets::LoadClaimCodes() {
 }
 
 void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
-	RakNet::BitStream inStream(packet->data, packet->length, false);
-	uint64_t header = inStream.Read(header);
+	CINSTREAM_SKIP_HEADER
 	uint32_t clientVersion = 0;
 	inStream.Read(clientVersion);
+	inStream.IgnoreBytes(4);
 
-	LOG("Received client version: %i", clientVersion);
+	ServiceId serviceId;
+	inStream.Read(serviceId);
+	if (serviceId != ServiceId::Client) LOG("WARNING: Service ID is not a Client!");
+
+	uint32_t processID;
+	inStream.Read(processID);
+
+	uint16_t port;
+	inStream.Read(port);
+	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over!");
+
+	inStream.IgnoreBytes(33);
+	
+	LOG_DEBUG("Client Data [Version: %i, Service: %s, Process: %u, Port: %u, Sysaddr Port: %u]", clientVersion, StringifiedEnum::ToString(serviceId).data(), processID, port, packet->systemAddress.port);
+
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
 }
 
@@ -60,42 +79,93 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
 
 	bitStream.Write<uint32_t>(clientNetVersion);
-	bitStream.Write<uint32_t>(0x93);
+	bitStream.Write<uint32_t>(861228100);
 
-	if (serverType == ServerType::Auth) bitStream.Write(uint32_t(1)); //Conn: auth
-	else bitStream.Write<uint32_t>(4); //Conn: world
-
-	bitStream.Write<uint32_t>(0); //Server process ID
-	bitStream.Write(nextServerPort);
+	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
+	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
+	else bitStream.Write(ServiceId::General);
+	bitStream.Write<uint32_t>(774909490);
 
 	server->Send(&bitStream, sysAddr, false);
 }
 
 void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
-	std::string username = PacketUtils::ReadString(8, packet, true);
-	std::string password = PacketUtils::ReadString(0x4A, packet, true);
-	const char* szUsername = username.c_str();
+	CINSTREAM_SKIP_HEADER;
+
+	std::vector<Stamp> stamps;
+	stamps.emplace_back(eStamps::PASSPORT_AUTH_START, 0);
+
+	LUWString usernameLUString(33);
+	inStream.Read(usernameLUString);
+	const auto username = usernameLUString.GetAsString();
+
+	LUWString password(41);
+	inStream.Read(password);
+
+	LanguageCodeID locale_id;
+	inStream.Read(locale_id);
+	LOG_DEBUG("Locale ID: %s", StringifiedEnum::ToString(locale_id).data());
+
+	ClientOS clientOS;
+	inStream.Read(clientOS);
+	LOG_DEBUG("Operating System: %s", StringifiedEnum::ToString(clientOS).data());
+	stamps.emplace_back(eStamps::PASSPORT_AUTH_CLIENT_OS, 0);
+
+	LUWString memoryStats(256);
+	inStream.Read(memoryStats);
+	LOG_DEBUG("Memory Stats [%s]", memoryStats.GetAsString().c_str());
+
+	LUWString videoCard(128);
+	inStream.Read(videoCard);
+	LOG_DEBUG("VideoCard Info: [%s]", videoCard.GetAsString().c_str());
+
+	// Processor/CPU info
+	uint32_t numOfProcessors;
+	inStream.Read(numOfProcessors);
+	uint32_t processorType;
+	inStream.Read(processorType);
+	uint16_t processorLevel;
+	inStream.Read(processorLevel);
+	uint16_t processorRevision;
+	inStream.Read(processorRevision);
+	LOG_DEBUG("CPU Info: [#Processors: %i, Processor Type: %i, Processor Level: %i, Processor Revision: %i]", numOfProcessors, processorType, processorLevel, processorRevision);
+
+	// OS Info
+	uint32_t osVersionInfoSize;
+	inStream.Read(osVersionInfoSize);
+	uint32_t majorVersion;
+	inStream.Read(majorVersion);
+	uint32_t minorVersion;
+	inStream.Read(minorVersion);
+	uint32_t buildNumber;
+	inStream.Read(buildNumber);
+	uint32_t platformID;
+	inStream.Read(platformID);
+	LOG_DEBUG("OS Info: [Size: %i, Major: %i, Minor %i, Buid#: %i, platformID: %i]", osVersionInfoSize, majorVersion, minorVersion, buildNumber, platformID);
 
 	// Fetch account details
 	auto accountInfo = Database::Get()->GetAccountInfo(username);
 
 	if (!accountInfo) {
 		LOG("No user by name %s found!", username.c_str());
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username);
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username, stamps);
 		return;
 	}
 
 	//If we aren't running in live mode, then only GMs are allowed to enter:
 	const auto& closedToNonDevs = Game::config->GetValue("closed_to_non_devs");
 	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username);
+		stamps.emplace_back(eStamps::GM_REQUIRED, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username, stamps);
 		return;
 	}
 
 	if (Game::config->GetValue("dont_use_keys") != "1" && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 		//Check to see if we have a play key:
 		if (accountInfo->playKeyId == 0) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username);
+			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username, stamps);
 			LOG("User %s tried to log in, but they don't have a play key.", username.c_str());
 			return;
 		}
@@ -104,40 +174,50 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		auto playKeyStatus = Database::Get()->IsPlaykeyActive(accountInfo->playKeyId);
 
 		if (!playKeyStatus) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a valid play key associated with it!", "", 2001, username);
+			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a valid play key associated with it!", "", 2001, username, stamps);
 			return;
 		}
 
 		if (!playKeyStatus.value()) {
-			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username);
+			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username, stamps);
 			LOG("User %s tried to log in, but their play key was disabled", username.c_str());
 			return;
 		}
+	} else if (Game::config->GetValue("dont_use_keys") == "1" || accountInfo->maxGmLevel > eGameMasterLevel::CIVILIAN){
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_BYPASS, 1);
 	}
 
 	if (accountInfo->banned) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username); return;
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::BANNED, "", "", 2001, username, stamps);
+		return;
 	}
 
 	if (accountInfo->locked) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username); return;
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::ACCOUNT_LOCKED, "", "", 2001, username, stamps);
+		return;
 	}
 
-	bool loginSuccess = ::bcrypt_checkpw(password.c_str(), accountInfo->bcryptPassword.c_str()) == 0;
+	bool loginSuccess = ::bcrypt_checkpw(password.GetAsString().c_str(), accountInfo->bcryptPassword.c_str()) == 0;
 
 	if (!loginSuccess) {
-		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username);
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
+		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username, stamps);
 		LOG("Wrong password used");
 	} else {
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
 
 		if (!server->GetIsConnectedToMaster()) {
-			AuthPackets::SendLoginResponse(server, system, eLoginResponse::GENERAL_FAILED, "", "", 0, username);
+			stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_DISCONNECT, 1);
+			AuthPackets::SendLoginResponse(server, system, eLoginResponse::GENERAL_FAILED, "", "", 0, username, stamps);
 			return;
 		}
-
-		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) {
-			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username);
+		stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH, 1);
+		ZoneInstanceManager::Instance()->RequestZoneTransfer(server, 0, 0, false, [system, server, username, stamps](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string zoneIP, uint16_t zonePort) mutable {
+			AuthPackets::SendLoginResponse(server, system, eLoginResponse::SUCCESS, "", zoneIP, zonePort, username, stamps);
 			});
 	}
 
@@ -146,21 +226,22 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	}
 }
 
-void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username) {
-	RakNet::BitStream packet;
-	BitStreamUtils::WriteHeader(packet, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
+void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps) {
+	stamps.emplace_back(eStamps::PASSPORT_AUTH_IM_LOGIN_START, 1);
+	RakNet::BitStream loginResponse;
+	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
 
-	packet.Write<uint8_t>(GeneralUtils::CastUnderlyingType(responseCode));
+	loginResponse.Write<uint8_t>(GeneralUtils::CastUnderlyingType(responseCode));
 
 	// Event Gating
-	packet.Write(LUString(Game::config->GetValue("event_1")));
-	packet.Write(LUString(Game::config->GetValue("event_2")));
-	packet.Write(LUString(Game::config->GetValue("event_3")));
-	packet.Write(LUString(Game::config->GetValue("event_4")));
-	packet.Write(LUString(Game::config->GetValue("event_5")));
-	packet.Write(LUString(Game::config->GetValue("event_6")));
-	packet.Write(LUString(Game::config->GetValue("event_7")));
-	packet.Write(LUString(Game::config->GetValue("event_8")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_1")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_2")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_3")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_4")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_5")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_6")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_7")));
+	loginResponse.Write(LUString(Game::config->GetValue("event_8")));
 
 	uint16_t version_major = 1;
 	uint16_t version_current = 10;
@@ -169,60 +250,58 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current"), version_current);
 	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor"), version_minor);
 
-	packet.Write(version_major);
-	packet.Write(version_current);
-	packet.Write(version_minor);
+	loginResponse.Write(version_major);
+	loginResponse.Write(version_current);
+	loginResponse.Write(version_minor);
 
 	// Writes the user key
 	uint32_t sessionKey = GeneralUtils::GenerateRandomNumber<uint32_t>();
 	std::string userHash = std::to_string(sessionKey);
 	userHash = md5(userHash);
-	packet.Write(LUWString(userHash));
+	loginResponse.Write(LUWString(userHash));
 
-	// Write the Character and Chat IPs
-	packet.Write(LUString(wServerIP));
-	packet.Write(LUString(""));
+	// World Server IP
+	loginResponse.Write(LUString(wServerIP));
+	// Chat Server IP (unused)
+	loginResponse.Write(LUString(""));
 
-	// Write the Character and Chat Ports
-	packet.Write<uint16_t>(wServerPort);
-	packet.Write<uint16_t>(0);
+	// World Server Redirect port
+	loginResponse.Write(wServerPort);
+	// Char Server Redirect port (unused)
+	loginResponse.Write(static_cast<uint16_t>(0));
 
 	// CDN Key
-	packet.Write(LUString(""));
+	loginResponse.Write(LUString(""));
 
 	// CDN Ticket
-	packet.Write(LUString("00000000-0000-0000-0000-000000000000", 37));
+	loginResponse.Write(LUString("00000000-0000-0000-0000-000000000000", 37));
 
-	packet.Write<uint32_t>(0); // Language
+	// Language
+	loginResponse.Write(Language::en_US);
 
 	// Write the localization
-	packet.Write(LUString("US", 3));
+	loginResponse.Write(LUString("US", 3));
 
-	packet.Write<uint8_t>(false); // Just upgraded from F2P
-	packet.Write<uint8_t>(false); // User is F2P
-	packet.Write<uint64_t>(0); // Time Remaining in F2P
+	loginResponse.Write<uint8_t>(false); // Just upgraded from F2P
+	loginResponse.Write<uint8_t>(false); // User is F2P
+	loginResponse.Write<uint64_t>(0); // Time Remaining in F2P
 
 	// Write custom error message
-	packet.Write<uint16_t>(errorMsg.length());
-	packet.Write(LUWString(errorMsg, static_cast<uint32_t>(errorMsg.length())));
+	loginResponse.Write<uint16_t>(errorMsg.length());
+	loginResponse.Write(LUWString(errorMsg, static_cast<uint32_t>(errorMsg.length())));
 
-	// Here write auth logs
-	packet.Write<uint32_t>(20);
-	for (uint32_t i = 0; i < 20; ++i) {
-		packet.Write<uint32_t>(8);
-		packet.Write<uint32_t>(44);
-		packet.Write<uint32_t>(14000);
-		packet.Write<uint32_t>(0);
-	}
+	stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, 1);
 
-	server->Send(&packet, sysAddr, false);
+	loginResponse.Write<uint32_t>((sizeof(Stamp) * stamps.size()) + sizeof(uint32_t));
+	for (auto& stamp : stamps) stamp.Serialize(&loginResponse);
 
+	server->Send(&loginResponse, sysAddr, false);
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
-		bitStream.Write(LUString(username, 66));
+		bitStream.Write(LUString(username));
 		server->SendToMaster(&bitStream);
 
 		LOG("Set sessionKey: %i for user %s", sessionKey, username.c_str());

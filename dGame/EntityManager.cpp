@@ -11,7 +11,6 @@
 #include "SkillComponent.h"
 #include "SwitchComponent.h"
 #include "UserManager.h"
-#include "PacketUtils.h"
 #include "Metrics.hpp"
 #include "dZoneManager.h"
 #include "MissionComponent.h"
@@ -389,8 +388,6 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		Game::server->Send(&stream, sysAddr, false);
 	}
 
-	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
-
 	if (entity->IsPlayer()) {
 		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 			GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, sysAddr);
@@ -434,8 +431,6 @@ void EntityManager::SerializeEntity(Entity* entity) {
 	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
 		m_EntitiesToSerialize.push_back(entity->GetObjectID());
 	}
-
-	//PacketUtils::SavePacket(std::to_string(m_SerializationCounter) + "_[27]_"+std::to_string(entity->GetObjectID()) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 }
 
 void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {

@@ -4,31 +4,7 @@
 #include "Entity.h"
 #include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
-
-struct RemoteInputInfo {
-	RemoteInputInfo() {
-		m_RemoteInputX = 0;
-		m_RemoteInputY = 0;
-		m_IsPowersliding = false;
-		m_IsModified = false;
-	}
-
-	void operator=(const RemoteInputInfo& other) {
-		m_RemoteInputX = other.m_RemoteInputX;
-		m_RemoteInputY = other.m_RemoteInputY;
-		m_IsPowersliding = other.m_IsPowersliding;
-		m_IsModified = other.m_IsModified;
-	}
-
-	bool operator==(const RemoteInputInfo& other) {
-		return m_RemoteInputX == other.m_RemoteInputX && m_RemoteInputY == other.m_RemoteInputY && m_IsPowersliding == other.m_IsPowersliding && m_IsModified == other.m_IsModified;
-	}
-
-	float m_RemoteInputX;
-	float m_RemoteInputY;
-	bool m_IsPowersliding;
-	bool m_IsModified;
-};
+#include "PositionUpdate.h"
 
 /**
  * Physics component for vehicles.

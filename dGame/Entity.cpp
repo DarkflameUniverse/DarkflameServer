@@ -3,7 +3,6 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "Logger.h"
-#include "PacketUtils.h"
 #include <functional>
 #include "CDDestructibleComponentTable.h"
 #include "CDClientDatabase.h"
@@ -25,6 +24,7 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "PositionUpdate.h"
 
 //Component includes:
 #include "Component.h"
@@ -1222,39 +1222,56 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 void Entity::Update(const float deltaTime) {
 	uint32_t timerPosition;
-	timerPosition = 0;
-	while (timerPosition < m_Timers.size()) {
-		m_Timers[timerPosition]->Update(deltaTime);
-		if (m_Timers[timerPosition]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerPosition]->GetName();
-
-			delete m_Timers[timerPosition];
+	for (timerPosition = 0; timerPosition < m_Timers.size();) {
+		auto& timer = m_Timers[timerPosition];
+		timer.Update(deltaTime);
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		if (timer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
+			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
-
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
+		} else {
+			// If the timer isnt expired, go to the next timer.
+			timerPosition++;
+		}
+	}
+
+	for (timerPosition = 0; timerPosition < m_CallbackTimers.size(); ) {
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		auto& callbackTimer = m_CallbackTimers[timerPosition];
+		callbackTimer.Update(deltaTime);
+		if (callbackTimer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that callbacks can remove timers without causing iterator invalidation
+			auto callback = callbackTimer.GetCallback();
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerPosition);
+			callback();
 		} else {
 			timerPosition++;
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
-		m_CallbackTimers[i]->Update(deltaTime);
-		if (m_CallbackTimers[i]->GetTime() <= 0) {
-			m_CallbackTimers[i]->GetCallback()();
-			delete m_CallbackTimers[i];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
-		}
+	// Add pending timers to the list of timers so they start next tick.
+	if (!m_PendingTimers.empty()) {
+		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
+		m_PendingTimers.clear();
 	}
 
-	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
-		}
-		m_PendingTimers.clear();
+	if (!m_PendingCallbackTimers.empty()) {
+		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
+		m_PendingCallbackTimers.clear();
 	}
 
 	if (IsSleeping()) {
@@ -1692,31 +1709,20 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(std::string name, float time) {
-	EntityTimer* timer = new EntityTimer(name, time);
-	m_PendingTimers.push_back(timer);
+	m_PendingTimers.emplace_back(name, time);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
-	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
-	m_CallbackTimers.push_back(timer);
+	m_PendingCallbackTimers.emplace_back(time, callback);
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	for (auto* timer : m_Timers) {
-		if (timer->GetName() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return std::find(m_Timers.begin(), m_Timers.end(), name) != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	for (auto* callback : m_CallbackTimers) {
-		delete callback;
-	}
-
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
@@ -1728,8 +1734,8 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 
 void Entity::CancelTimer(const std::string& name) {
 	for (int i = 0; i < m_Timers.size(); i++) {
-		if (m_Timers[i]->GetName() == name) {
-			delete m_Timers[i];
+		auto& timer = m_Timers[i];
+		if (timer == name) {
 			m_Timers.erase(m_Timers.begin() + i);
 			return;
 		}
@@ -1737,21 +1743,10 @@ void Entity::CancelTimer(const std::string& name) {
 }
 
 void Entity::CancelAllTimers() {
-	/*for (auto timer : m_Timers) {
-		if (timer) delete timer;
-	}*/
-
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
+	m_PendingTimers.clear();
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 bool Entity::IsPlayer() const {
@@ -2060,4 +2055,76 @@ void Entity::RetroactiveVaultSize() {
 uint8_t Entity::GetCollectibleID() const {
 	auto* collectible = GetComponent<CollectibleComponent>();
 	return collectible ? collectible->GetCollectibleId() : 0;
+}
+
+void Entity::ProcessPositionUpdate(PositionUpdate& update) {
+	if (!IsPlayer()) return;
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
+
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	bool updateChar = true;
+
+	if (possessorComponent) {
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+
+		if (possassableEntity) {
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+
+			// While possessing something, only update char if we are attached to the thing we are possessing
+			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
+
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent) {
+				havokVehiclePhysicsComponent->SetPosition(update.position);
+				havokVehiclePhysicsComponent->SetRotation(update.rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
+				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
+			} else {
+				// Need to get the mount's controllable physics
+				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!possessedControllablePhysicsComponent) return;
+				possessedControllablePhysicsComponent->SetPosition(update.position);
+				possessedControllablePhysicsComponent->SetRotation(update.rotation);
+				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
+				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
+				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+			}
+			Game::entityManager->SerializeEntity(possassableEntity);
+		}
+	}
+
+	if (!updateChar) {
+		update.velocity = NiPoint3::ZERO;
+		update.angularVelocity = NiPoint3::ZERO;
+	}
+
+	// Handle statistics
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) {
+		characterComponent->TrackPositionUpdate(update.position);
+	}
+
+	controllablePhysicsComponent->SetPosition(update.position);
+	controllablePhysicsComponent->SetRotation(update.rotation);
+	controllablePhysicsComponent->SetIsOnGround(update.onGround);
+	controllablePhysicsComponent->SetIsOnRail(update.onRail);
+	controllablePhysicsComponent->SetVelocity(update.velocity);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+
+	auto* player = static_cast<Player*>(this);
+	player->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
+
+	if (updateChar) Game::entityManager->SerializeEntity(this);
 }

@@ -10,7 +10,6 @@
 #include "eServerMessageType.h"
 #include "eMasterMessageType.h"
 
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
@@ -127,8 +126,7 @@ Packet* dServer::ReceiveFromMaster() {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 				switch (static_cast<eMasterMessageType>(packet->data[3])) {
 				case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
-					uint64_t requestID = PacketUtils::ReadU64(8, packet);
-					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(packet);
 					break;
 				}
 				case eMasterMessageType::SHUTDOWN:
