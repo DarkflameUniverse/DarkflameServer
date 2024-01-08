@@ -26,24 +26,22 @@ void CDPetComponentTable::LoadValuesFromDatabase() {
 	while (!tableData.eof()) {
 		const uint32_t componentID = tableData.getIntField("id", defaultEntry.id);
 
-		m_Entries.try_emplace(
-			componentID,
-			componentID,
-			UNUSED_ENTRY(tableData.getFloatField("minTameUpdateTime", defaultEntry.minTameUpdateTime),)
-			UNUSED_ENTRY(tableData.getFloatField("maxTameUpdateTime", defaultEntry.maxTameUpdateTime),)
-			UNUSED_ENTRY(tableData.getFloatField("percentTameChance", defaultEntry.percentTameChance),)
-			UNUSED_ENTRY(tableData.getFloatField("tamability", defaultEntry.tameability),) // Mispelled as "tamability" in CDClient
-			UNUSED_ENTRY(tableData.getIntField("elementType", defaultEntry.elementType),)
-			static_cast<float>(tableData.getFloatField("walkSpeed", defaultEntry.walkSpeed)),
-			static_cast<float>(tableData.getFloatField("runSpeed", defaultEntry.runSpeed)),
-			static_cast<float>(tableData.getFloatField("sprintSpeed", defaultEntry.sprintSpeed)),
-			UNUSED_ENTRY(tableData.getFloatField("idleTimeMin", defaultEntry.idleTimeMin),)
-			UNUSED_ENTRY(tableData.getFloatField("idleTimeMax", defaultEntry.idleTimeMax),)
-			UNUSED_ENTRY(tableData.getIntField("petForm", 0),)
-			static_cast<float>(tableData.getFloatField("imaginationDrainRate", defaultEntry.imaginationDrainRate))
-			UNUSED_ENTRY(tableData.getStringField("AudioMetaEventSet", defaultEntry.AudioMetaEventSet),)
-			UNUSED_ENTRY(tableData.getStringField("buffIDs", defaultEntry.buffIDs),)
-		);
+		auto& entry = m_Entries[componentID];
+		entry.id = componentID;
+		UNUSED_COLUMN(entry.minTameUpdateTime = tableData.getFloatField("minTameUpdateTime", defaultEntry.minTameUpdateTime));
+		UNUSED_COLUMN(entry.maxTameUpdateTime = tableData.getFloatField("maxTameUpdateTime", defaultEntry.maxTameUpdateTime));
+		UNUSED_COLUMN(entry.percentTameChance = tableData.getFloatField("percentTameChance", defaultEntry.percentTameChance));
+		UNUSED_COLUMN(entry.tameability = tableData.getFloatField("tamability", defaultEntry.tameability)); // Mispelled as "tamability" in CDClient
+		UNUSED_COLUMN(entry.elementType = tableData.getIntField("elementType", defaultEntry.elementType));
+		entry.walkSpeed = static_cast<float>(tableData.getFloatField("walkSpeed", defaultEntry.walkSpeed));
+		entry.runSpeed = static_cast<float>(tableData.getFloatField("runSpeed", defaultEntry.runSpeed));
+		entry.sprintSpeed = static_cast<float>(tableData.getFloatField("sprintSpeed", defaultEntry.sprintSpeed));
+		UNUSED_COLUMN(entry.idleTimeMin = tableData.getFloatField("idleTimeMin", defaultEntry.idleTimeMin));
+		UNUSED_COLUMN(entry.idleTimeMax = tableData.getFloatField("idleTimeMax", defaultEntry.idleTimeMax));
+		UNUSED_COLUMN(entry.petForm = tableData.getIntField("petForm", defaultEntry.petForm));
+		entry.imaginationDrainRate = static_cast<float>(tableData.getFloatField("imaginationDrainRate", defaultEntry.imaginationDrainRate));
+		UNUSED_COLUMN(entry.AudioMetaEventSet = tableData.getStringField("AudioMetaEventSet", defaultEntry.AudioMetaEventSet));
+		UNUSED_COLUMN(entry.buffIDs = tableData.getStringField("buffIDs", defaultEntry.buffIDs));
 
 		tableData.nextRow();
 	}

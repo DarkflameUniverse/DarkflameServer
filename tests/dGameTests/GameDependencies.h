@@ -35,8 +35,8 @@ protected:
 		Game::config = new dConfig("worldconfig.ini");
 		Game::entityManager = new EntityManager();
 
-		// Create a CDClientManager instance
-		CDClientManager::Instance();
+		// Create a CDClientManager instance and load from defaults
+		CDClientManager::Instance().LoadValuesFromDefaults();
 	}
 
 	void TearDownDependencies() {
