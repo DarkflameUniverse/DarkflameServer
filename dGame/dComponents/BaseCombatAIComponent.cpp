@@ -34,7 +34,6 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_MovementAI = nullptr;
 	m_Disabled = false;
 	m_SkillEntries = {};
-	m_MovementAI = nullptr;
 	m_SoftTimer = 5.0f;
 
 	//Grab the aggro information from BaseCombatAI:

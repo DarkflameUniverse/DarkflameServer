@@ -1,18 +1,13 @@
-#pragma once
+#ifndef PETCOMPONENT_H
+#define PETCOMPONENT_H
 
 #include "Entity.h"
 #include "MovementAIComponent.h"
 #include "Component.h"
 #include "Preconditions.h"
+#include "ePetAbilityType.h"
 #include "eReplicaComponentType.h"
-
-enum class PetAbilityType : uint32_t
-{
-	Invalid,
-	GoToObject,
-	JumpOnObject,
-	DigAtPosition
-};
+#include "CDPetComponentTable.h"
 
 /**
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
@@ -103,7 +98,7 @@ public:
 	 * @param typeId extra information about the command, e.g. the emote to play
 	 * @param overrideObey unused
 	 */
-	void Command(NiPoint3 position, LWOOBJID source, int32_t commandType, int32_t typeId, bool overrideObey);
+	void Command(const NiPoint3& position, const LWOOBJID source, const int32_t commandType, const int32_t typeId, const bool overrideObey);
 
 	/**
 	 * Returns the ID of the owner of this pet (if any)
@@ -158,13 +153,13 @@ public:
 	 * Returns an ability the pet may perform, currently unused
 	 * @return an ability the pet may perform
 	 */
-	PetAbilityType GetAbility() const;
+	ePetAbilityType GetAbility() const;
 
 	/**
 	 * Sets the ability of the pet, currently unused
 	 * @param value the ability to set
 	 */
-	void SetAbility(PetAbilityType value);
+	void SetAbility(ePetAbilityType value);
 
 	/**
 	 * Sets preconditions for the pet that need  to be met before it can be tamed
@@ -323,7 +318,7 @@ private:
 	/**
 	 * A currently active ability, mostly unused
 	 */
-	PetAbilityType m_Ability;
+	ePetAbilityType m_Ability;
 
 	/**
 	 * The time an entity has left to complete the minigame
@@ -357,7 +352,10 @@ private:
 	PreconditionExpression* m_Preconditions;
 
 	/**
-	 * The rate at which imagination is drained from the user for having the pet out.
+	 * Pet information loaded from the CDClientDatabase
+	 * TODO: Switch to a reference when safe to do so
 	 */
-	float imaginationDrainRate;
+	CDPetComponent m_PetInfo;
 };
+
+#endif // !PETCOMPONENT_H

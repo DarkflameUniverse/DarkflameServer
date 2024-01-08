@@ -4,9 +4,13 @@
 // Static Variables
 static CppSQLite3DB* conn = new CppSQLite3DB();
 
+// Status Variables
+bool CDClientDatabase::isConnected = false;
+
 //! Opens a connection with the CDClient
 void CDClientDatabase::Connect(const std::string& filename) {
 	conn->open(filename.c_str());
+	isConnected = true;
 }
 
 //! Queries the CDClient

@@ -3,6 +3,7 @@
 #include "CDAnimationsTable.h"
 #include "CDBehaviorParameterTable.h"
 #include "CDBehaviorTemplateTable.h"
+#include "CDClientDatabase.h"
 #include "CDComponentsRegistryTable.h"
 #include "CDCurrencyTableTable.h"
 #include "CDDestructibleComponentTable.h"
@@ -39,6 +40,8 @@
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
 
+#include <exception>
+
 #ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
 // A vanilla CDClient takes about 46MB of memory + the regular world data.
@@ -51,7 +54,16 @@
 	#define CDCLIENT_DONT_CACHE_TABLE(x)
 #endif
 
-CDClientManager::CDClientManager() {
+class CDClientConnectionException : public std::exception {
+public:
+	virtual const char* what() const throw() {
+		return "CDClientDatabase is not connected!";
+	}
+};
+
+void CDClientManager::LoadValuesFromDatabase() {
+	if (!CDClientDatabase::isConnected) throw CDClientConnectionException();
+
 	CDActivityRewardsTable::Instance().LoadValuesFromDatabase();
 	CDActivitiesTable::Instance().LoadValuesFromDatabase();
 	CDCLIENT_DONT_CACHE_TABLE(CDAnimationsTable::Instance().LoadValuesFromDatabase());
@@ -79,6 +91,7 @@ CDClientManager::CDClientManager() {
 	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
 	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
 	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
+	CDPetComponentTable::Instance().LoadValuesFromDatabase();
 	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyTemplateTable::Instance().LoadValuesFromDatabase();
@@ -91,4 +104,10 @@ CDClientManager::CDClientManager() {
 	CDSkillBehaviorTable::Instance().LoadValuesFromDatabase();
 	CDVendorComponentTable::Instance().LoadValuesFromDatabase();
 	CDZoneTableTable::Instance().LoadValuesFromDatabase();
+}
+
+void CDClientManager::LoadValuesFromDefaults() {
+	LOG("Loading default CDClient tables!");
+
+	CDPetComponentTable::Instance().LoadValuesFromDefaults();
 }

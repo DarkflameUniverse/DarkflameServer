@@ -94,6 +94,7 @@
 #include "eReplicaComponentType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
+#include "ePetAbilityType.h"
 #include "ActivityManager.h"
 
 #include "CDComponentsRegistryTable.h"
@@ -3516,14 +3517,14 @@ void GameMessages::SendClientExitTamingMinigame(LWOOBJID objectId, bool bVolunta
 	SEND_PACKET;
 }
 
-void GameMessages::SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr) {
+void GameMessages::SendShowPetActionButton(const LWOOBJID objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::SHOW_PET_ACTION_BUTTON);
 
-	bitStream.Write(buttonLabel);
+	bitStream.Write(petAbility);
 	bitStream.Write(bShow);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
