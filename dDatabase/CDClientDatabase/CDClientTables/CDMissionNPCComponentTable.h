@@ -4,8 +4,8 @@
 #include "CDTable.h"
 
 struct CDMissionNPCComponent {
-	unsigned int id;                //!< The ID
-	unsigned int missionID;         //!< The Mission ID
+	uint32_t id;                //!< The ID
+	uint32_t missionID;         //!< The Mission ID
 	bool offersMission;     //!< Whether or not this NPC offers a mission
 	bool acceptsMission;    //!< Whether or not this NPC accepts a mission
 	std::string gate_version;  //!< The gate version

@@ -3,7 +3,7 @@
 void CDItemSetSkillsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ItemSetSkills");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -44,7 +44,7 @@ const std::vector<CDItemSetSkills>& CDItemSetSkillsTable::GetEntries() const {
 	return this->entries;
 }
 
-std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetBySkillID(unsigned int SkillSetID) {
+std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetBySkillID(uint32_t SkillSetID) {
 	std::vector<CDItemSetSkills> toReturn;
 
 	for (CDItemSetSkills entry : this->entries) {

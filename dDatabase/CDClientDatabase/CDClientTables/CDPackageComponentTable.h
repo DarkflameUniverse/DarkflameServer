@@ -4,9 +4,9 @@
 #include "CDTable.h"
 
 struct CDPackageComponent {
-	unsigned int id;
-	unsigned int LootMatrixIndex;
-	unsigned int packageType;
+	uint32_t id;
+	uint32_t LootMatrixIndex;
+	uint32_t packageType;
 };
 
 class CDPackageComponentTable : public CDTable<CDPackageComponentTable> {
