@@ -4,7 +4,7 @@
 #include "CDTable.h"
 
 struct CDProximityMonitorComponent {
-	unsigned int id;
+	uint32_t id;
 	std::string Proximities;
 	bool LoadOnClient;
 	bool LoadOnServer;

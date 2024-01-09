@@ -2,7 +2,7 @@
 
 void CDObjectsTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Objects");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -40,7 +40,7 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 	m_default.id = 0;
 }
 
-const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
+const CDObjects& CDObjectsTable::GetByID(uint32_t LOT) {
 	const auto& it = this->entries.find(LOT);
 	if (it != this->entries.end()) {
 		return it->second;

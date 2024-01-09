@@ -10,11 +10,11 @@
 
  //! CurrencyTable Struct
 struct CDCurrencyTable {
-	unsigned int currencyIndex;         //!< The Currency Index
-	unsigned int npcminlevel;           //!< The minimum level of the npc
-	unsigned int minvalue;              //!< The minimum currency
-	unsigned int maxvalue;              //!< The maximum currency
-	unsigned int id;                    //!< The ID of the currency index
+	uint32_t currencyIndex;         //!< The Currency Index
+	uint32_t npcminlevel;           //!< The minimum level of the npc
+	uint32_t minvalue;              //!< The minimum currency
+	uint32_t maxvalue;              //!< The maximum currency
+	uint32_t id;                    //!< The ID of the currency index
 };
 
 //! CurrencyTable table
