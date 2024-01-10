@@ -519,7 +519,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->SetCount(item->GetCount() - 1);
 
-		LOG("BODGE TIME, YES IT GOES HERE");
+		LOG("DLU currently does not support breaking apart brick by brick models.");
 
 		break;
 	}
