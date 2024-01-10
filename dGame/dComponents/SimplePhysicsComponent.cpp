@@ -14,10 +14,12 @@
 #include "Entity.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componentID) : PhysicsComponent(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	
+	m_Position = parentEntity->GetDefaultPosition();
+	m_Rotation = parentEntity->GetDefaultRotation();
 
-	const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
+	const auto& climbable_type = parentEntity->GetVar<std::u16string>(u"climbable");
 	if (climbable_type == u"wall") {
 		SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
 	} else if (climbable_type == u"ladder") {

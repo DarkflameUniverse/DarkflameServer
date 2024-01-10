@@ -51,7 +51,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_IsGMImmune = false;
 	m_IsShielded = false;
 	m_DamageToAbsorb = 0;
-	m_IsModuleAssembly = m_Parent->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
+	m_IsModuleAssembly = Game::entityManager->GetEntity(m_Parent)->HasComponent(eReplicaComponentType::MODULE_ASSEMBLY);
 	m_DirtyThreatList = false;
 	m_HasThreats = false;
 	m_ExplodeFactor = 1.0f;
@@ -192,7 +192,7 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
+	auto* buffComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
 		buffComponent->LoadFromXml(doc);
@@ -214,7 +214,8 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		return;
 	}
 
-	auto* buffComponent = m_Parent->GetComponent<BuffComponent>();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	auto* const buffComponent = parentEntity->GetComponent<BuffComponent>();
 
 	if (buffComponent != nullptr) {
 		buffComponent->UpdateXml(doc);
@@ -231,7 +232,7 @@ void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 void DestroyableComponent::SetHealth(int32_t value) {
 	m_DirtyHealth = true;
 
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	auto* characterComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackHealthDelta(value - m_iHealth);
 	}
@@ -251,13 +252,14 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* const parentUser = Game::entityManager->GetEntity(m_Parent)->GetParentUser();
+		if (!parentUser) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "health");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, parentUser->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -269,16 +271,18 @@ void DestroyableComponent::SetArmor(int32_t value) {
 	// If Destroyable Component already has zero armor do not trigger the passive ability again.
 	bool hadArmor = m_iArmor > 0;
 
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	auto* const characterComponent = parentEntity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackArmorDelta(value - m_iArmor);
 	}
 
 	m_iArmor = value;
 
-	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iArmor == 0 && inventroyComponent != nullptr && hadArmor) {
-		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
+	auto* const inventoryComponent = parentEntity->GetComponent<InventoryComponent>();
+	if (m_iArmor == 0 && inventoryComponent != nullptr && hadArmor) {
+		inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::SentinelArmor);
 	}
 }
 
@@ -292,13 +296,14 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* const parentUser = Game::entityManager->GetEntity(m_Parent)->GetParentUser();
+		if (!parentUser) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(value));
 		args.Insert("type", "armor");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, parentUser->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -307,16 +312,18 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 void DestroyableComponent::SetImagination(int32_t value) {
 	m_DirtyHealth = true;
 
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	auto* const characterComponent = parentEntity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->TrackImaginationDelta(value - m_iImagination);
 	}
 
 	m_iImagination = value;
 
-	auto* inventroyComponent = m_Parent->GetComponent<InventoryComponent>();
-	if (m_iImagination == 0 && inventroyComponent != nullptr) {
-		inventroyComponent->TriggerPassiveAbility(PassiveAbilityTrigger::AssemblyImagination);
+	auto* const inventoryComponent = parentEntity->GetComponent<InventoryComponent>();
+	if (m_iImagination == 0 && inventoryComponent != nullptr) {
+		inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::AssemblyImagination);
 	}
 }
 
@@ -332,13 +339,14 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* const parentUser = Game::entityManager->GetEntity(m_Parent)->GetParentUser();
+		if (!parentUser) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "imagination");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, parentUser->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -415,8 +423,9 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
-	if (m_Parent->IsPlayer() && other->IsPlayer()) {
-		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	if (parentEntity->IsPlayer() && other->IsPlayer()) {
+		auto* thisCharacterComponent = parentEntity->GetComponent<CharacterComponent>();
 		if (!thisCharacterComponent) return false;
 		auto* otherCharacterComponent = other->GetComponent<CharacterComponent>();
 		if (!otherCharacterComponent) return false;
@@ -475,8 +484,9 @@ bool DestroyableComponent::IsCooldownImmune() const {
 }
 
 bool DestroyableComponent::IsKnockbackImmune() const {
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	auto* const characterComponent = parentEntity->GetComponent<CharacterComponent>();
+	auto* const inventoryComponent = parentEntity->GetComponent<InventoryComponent>();
 
 	if (characterComponent != nullptr && inventoryComponent != nullptr && characterComponent->GetCurrentActivity() == eGameActivity::QUICKBUILDING) {
 		const auto hasPassive = inventoryComponent->HasAnyPassive({
@@ -557,7 +567,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	if (IsImmune() || IsCooldownImmune()) {
-		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID());
+		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent);
 		return;
 	}
 
@@ -599,25 +609,27 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	SetHealth(health);
 	SetIsShielded(absorb > 0);
 
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 	// Dismount on the possessable hit
-	auto possessable = m_Parent->GetComponent<PossessableComponent>();
+	auto possessable = parentEntity->GetComponent<PossessableComponent>();
 	if (possessable && possessable->GetDepossessOnHit()) {
 		possessable->Dismount();
 	}
 
 	// Dismount on the possessor hit
-	auto possessor = m_Parent->GetComponent<PossessorComponent>();
+	auto possessor = parentEntity->GetComponent<PossessorComponent>();
 	if (possessor) {
 		auto possessableId = possessor->GetPossessable();
 		if (possessableId != LWOOBJID_EMPTY) {
-			auto possessable = Game::entityManager->GetEntity(possessableId);
+			auto* possessable = Game::entityManager->GetEntity(possessableId);
 			if (possessable) {
 				possessor->Dismount(possessable);
 			}
 		}
 	}
 
-	if (m_Parent->GetLOT() != 1) {
+	if (parentEntity->GetLOT() != 1) {
 		echo = true;
 	}
 
@@ -626,8 +638,8 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	auto* attacker = Game::entityManager->GetEntity(source);
-	m_Parent->OnHit(attacker);
-	m_Parent->OnHitOrHealResult(attacker, sourceDamage);
+	parentEntity->OnHit(attacker);
+	parentEntity->OnHitOrHealResult(attacker, sourceDamage);
 	NotifySubscribers(attacker, sourceDamage);
 
 	for (const auto& cb : m_OnHitCallbacks) {
@@ -635,10 +647,10 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	if (health != 0) {
-		auto* combatComponent = m_Parent->GetComponent<BaseCombatAIComponent>();
+		auto* combatComponent = parentEntity->GetComponent<BaseCombatAIComponent>();
 
 		if (combatComponent != nullptr) {
-			combatComponent->Taunt(source, sourceDamage * 10); // * 10 is arbatrary
+			combatComponent->Taunt(source, sourceDamage * 10); // * 10 is arbitrary
 		}
 
 		return;
@@ -654,7 +666,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 void DestroyableComponent::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd) {
 	m_SubscribedScripts.insert(std::make_pair(scriptObjId, scriptToAdd));
-	LOG_DEBUG("Added script %llu to entity %llu", scriptObjId, m_Parent->GetObjectID());
+	LOG_DEBUG("Added script %llu to entity %llu", scriptObjId, m_Parent);
 	LOG_DEBUG("Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
@@ -662,16 +674,16 @@ void DestroyableComponent::Unsubscribe(LWOOBJID scriptObjId) {
 	auto foundScript = m_SubscribedScripts.find(scriptObjId);
 	if (foundScript != m_SubscribedScripts.end()) {
 		m_SubscribedScripts.erase(foundScript);
-		LOG_DEBUG("Removed script %llu from entity %llu", scriptObjId, m_Parent->GetObjectID());
+		LOG_DEBUG("Removed script %llu from entity %llu", scriptObjId, m_Parent);
 	} else {
-		LOG_DEBUG("Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent->GetObjectID(), scriptObjId);
+		LOG_DEBUG("Tried to remove a script for Entity %llu but script %llu didnt exist", m_Parent, scriptObjId);
 	}
 	LOG_DEBUG("Number of subscribed scripts %i", m_SubscribedScripts.size());
 }
 
 void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) {
 	for (auto script : m_SubscribedScripts) {
-		script.second->NotifyHitOrHealResult(m_Parent, attacker, damage);
+		script.second->NotifyHitOrHealResult(Game::entityManager->GetEntity(m_Parent), attacker, damage);
 	}
 }
 
@@ -685,56 +697,53 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	m_KillerID = source;
 
-	auto* owner = Game::entityManager->GetEntity(source);
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
+	auto* owner = Game::entityManager->GetEntity(source);
 	if (owner != nullptr) {
 		owner = owner->GetOwner(); // If the owner is overwritten, we collect that here
 
-		auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
+		const auto isEnemy = parentEntity->GetComponent<BaseCombatAIComponent>() != nullptr;
 
-		const auto isEnemy = m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr;
-
-		auto* inventoryComponent = owner->GetComponent<InventoryComponent>();
-
+		auto* const inventoryComponent = owner->GetComponent<InventoryComponent>();
 		if (inventoryComponent != nullptr && isEnemy) {
-			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, m_Parent);
+			inventoryComponent->TriggerPassiveAbility(PassiveAbilityTrigger::EnemySmashed, parentEntity);
 		}
 
 		auto* missions = owner->GetComponent<MissionComponent>();
 
 		if (missions != nullptr) {
+			auto* const team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
 			if (team != nullptr) {
 				for (const auto memberId : team->members) {
 					auto* member = Game::entityManager->GetEntity(memberId);
-
-					if (member == nullptr) continue;
+					if (!member) continue;
 
 					auto* memberMissions = member->GetComponent<MissionComponent>();
+					if (!memberMissions) continue;
 
-					if (memberMissions == nullptr) continue;
-
-					memberMissions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
-					memberMissions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
+					memberMissions->Progress(eMissionTaskType::SMASH, parentEntity->GetLOT());
+					memberMissions->Progress(eMissionTaskType::USE_SKILL, parentEntity->GetLOT(), skillID);
 				}
 			} else {
-				missions->Progress(eMissionTaskType::SMASH, m_Parent->GetLOT());
-				missions->Progress(eMissionTaskType::USE_SKILL, m_Parent->GetLOT(), skillID);
+				missions->Progress(eMissionTaskType::SMASH, parentEntity->GetLOT());
+				missions->Progress(eMissionTaskType::USE_SKILL, parentEntity->GetLOT(), skillID);
 			}
 		}
 	}
 
-	const auto isPlayer = m_Parent->IsPlayer();
+	const auto isPlayer = parentEntity->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
+	GameMessages::SendDie(parentEntity, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
 
 	//NANI?!
 	if (!isPlayer) {
 		if (owner != nullptr) {
 			auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
 
-			if (team != nullptr && m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr) {
+			if (team != nullptr && parentEntity->GetComponent<BaseCombatAIComponent>() != nullptr) {
 				LWOOBJID specificOwner = LWOOBJID_EMPTY;
-				auto* scriptedActivityComponent = m_Parent->GetComponent<ScriptedActivityComponent>();
+				auto* scriptedActivityComponent = parentEntity->GetComponent<ScriptedActivityComponent>();
 				uint32_t teamSize = team->members.size();
 				uint32_t lootMatrixId = GetLootMatrixID();
 
@@ -747,24 +756,24 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					auto* member = Game::entityManager->GetEntity(specificOwner);
 
-					if (member) Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+					if (member) Loot::DropLoot(member, parentEntity, lootMatrixId, GetMinCoins(), GetMaxCoins());
 				} else {
 					for (const auto memberId : team->members) { // Free for all
 						auto* member = Game::entityManager->GetEntity(memberId);
 
 						if (member == nullptr) continue;
 
-						Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+						Loot::DropLoot(member, parentEntity, lootMatrixId, GetMinCoins(), GetMaxCoins());
 					}
 				}
 			} else { // drop loot for non team user
-				Loot::DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+				Loot::DropLoot(owner, parentEntity, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 			}
 		}
 	} else {
 		//Check if this zone allows coin drops
 		if (Game::zoneManager->GetPlayerLoseCoinOnDeath()) {
-			auto* character = m_Parent->GetCharacter();
+			auto* character = parentEntity->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
 			const uint64_t minCoinsToLose = Game::zoneManager->GetWorldConfig()->coinsLostOnDeathMin;
 			if (coinsTotal >= minCoinsToLose) {
@@ -776,27 +785,27 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
+				Loot::DropLoot(parentEntity, parentEntity, -1, coinsToLose, coinsToLose);
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerDied(zoneControl, m_Parent);
+			script->OnPlayerDied(zoneControl, parentEntity);
 		}
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerDied(scriptEntity, m_Parent);
+					script->OnPlayerDied(scriptEntity, parentEntity);
 				}
 			}
 		}
 	}
 
-	m_Parent->Kill(owner, killType);
+	parentEntity->Kill(owner, killType);
 }
 
 void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {
@@ -842,7 +851,7 @@ void DestroyableComponent::SetStatusImmunity(
 	}
 
 	GameMessages::SendSetStatusImmunity(
-		m_Parent->GetObjectID(), state, m_Parent->GetSystemAddress(),
+		m_Parent, state, Game::entityManager->GetEntity(m_Parent)->GetSystemAddress(),
 		bImmuneToBasicAttack,
 		bImmuneToDamageOverTime,
 		bImmuneToKnockback,
@@ -958,19 +967,20 @@ void DestroyableComponent::AddOnHitCallback(const std::function<void(Entity*)>& 
 
 void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	//check if this is a player:
-	if (m_Parent->IsPlayer()) {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	if (parentEntity->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
-		auto* character = m_Parent->GetComponent<CharacterComponent>();
+		auto* character = parentEntity->GetComponent<CharacterComponent>();
 		auto uscore = character->GetUScore();
 
 		auto uscoreToLose = uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100);
 		character->SetUScore(uscore - uscoreToLose);
 
-		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
+		GameMessages::SendModifyLEGOScore(parentEntity, parentEntity->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
 
 		if (Game::entityManager->GetHardcoreDropinventoryOnDeath()) {
 			//drop all items from inventory:
-			auto* inventory = m_Parent->GetComponent<InventoryComponent>();
+			auto* inventory = parentEntity->GetComponent<InventoryComponent>();
 			if (inventory) {
 				//get the items inventory:
 				auto items = inventory->GetInventory(eInventoryType::ITEMS);
@@ -982,7 +992,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 							if (!item.second) continue;
 							// don't drop the thinkng cap
 							if (item.second->GetLot() == 6086) continue;
-							GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
+							GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, parentEntity->GetPosition(), item.second->GetCount(), parentEntity->GetSystemAddress());
 							item.second->SetCount(0, false, false);
 						}
 						Game::entityManager->SerializeEntity(m_Parent);
@@ -992,7 +1002,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 		}
 
 		//get character:
-		auto* chars = m_Parent->GetCharacter();
+		auto* chars = parentEntity->GetCharacter();
 		if (chars) {
 			auto coins = chars->GetCoins();
 
@@ -1000,13 +1010,13 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 			chars->SetCoins(0, eLootSourceType::NONE);
 
 			//drop all coins:
-			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, m_Parent->GetPosition());
+			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, parentEntity->GetPosition(), 1, parentEntity->GetSystemAddress());
 		}
 
 		// Reload the player since we can't normally reduce uscore from the server and we want the UI to update
 		// do this last so we don't get killed.... again
-		Game::entityManager->DestructEntity(m_Parent);
-		Game::entityManager->ConstructEntity(m_Parent);
+		Game::entityManager->DestructEntity(parentEntity);
+		Game::entityManager->ConstructEntity(parentEntity);
 		return;
 	}
 

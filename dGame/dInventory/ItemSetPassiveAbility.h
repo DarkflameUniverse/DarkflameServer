@@ -57,7 +57,7 @@ private:
 	/**
 	 * The owner of this ability
 	 */
-	Entity* m_Parent;
+	LWOOBJID m_Parent;
 
 	/**
 	 * The item set this ability belongs to

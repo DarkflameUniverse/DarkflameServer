@@ -94,6 +94,8 @@
 #include "CDZoneTableTable.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
+	Game::entityManager->AddEntity(objectID, this);
+
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -175,7 +177,7 @@ void Entity::Initialize() {
 	 * Set ourselves as a child of our parent
 	 */
 
-	if (m_ParentEntity != nullptr) {
+	if (m_ParentEntity) {
 		m_ParentEntity->AddChild(this);
 	}
 
@@ -2059,6 +2061,7 @@ uint8_t Entity::GetCollectibleID() const {
 
 void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	if (!IsPlayer()) return;
+	
 	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
@@ -2066,15 +2069,16 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	bool updateChar = true;
 
 	if (possessorComponent) {
-		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+		const LWOOBJID possessableId = possessorComponent->GetPossessable();
+		auto* possessableEntity = Game::entityManager->GetEntity(possessableId);
 
-		if (possassableEntity) {
-			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+		if (possessableEntity) {
+			auto* possessableComponent = possessableEntity->GetComponent<PossessableComponent>();
 
 			// While possessing something, only update char if we are attached to the thing we are possessing
 			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
 
-			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			auto* havokVehiclePhysicsComponent = possessableEntity->GetComponent<HavokVehiclePhysicsComponent>();
 			if (havokVehiclePhysicsComponent) {
 				havokVehiclePhysicsComponent->SetPosition(update.position);
 				havokVehiclePhysicsComponent->SetRotation(update.rotation);
@@ -2087,7 +2091,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
-				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				auto* possessedControllablePhysicsComponent = possessableEntity->GetComponent<ControllablePhysicsComponent>();
 				if (!possessedControllablePhysicsComponent) return;
 				possessedControllablePhysicsComponent->SetPosition(update.position);
 				possessedControllablePhysicsComponent->SetRotation(update.rotation);
@@ -2098,7 +2102,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
 				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
 			}
-			Game::entityManager->SerializeEntity(possassableEntity);
+			Game::entityManager->SerializeEntity(possessableId);
 		}
 	}
 
@@ -2126,5 +2130,5 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	player->SetGhostReferencePoint(update.position);
 	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
 
-	if (updateChar) Game::entityManager->SerializeEntity(this);
+	if (updateChar) Game::entityManager->SerializeEntity(m_ObjectID);
 }

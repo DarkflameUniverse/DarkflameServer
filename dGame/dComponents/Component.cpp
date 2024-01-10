@@ -2,7 +2,7 @@
 
 
 Component::Component(Entity* parent) {
-	m_Parent = parent;
+	m_Parent = parent->GetObjectID(); //TEMP
 }
 
 Component::~Component() {
@@ -10,7 +10,7 @@ Component::~Component() {
 }
 
 Entity* Component::GetParent() const {
-	return m_Parent;
+	return Game::entityManager->GetEntity(m_Parent); //TEMP
 }
 
 void Component::Update(float deltaTime) {

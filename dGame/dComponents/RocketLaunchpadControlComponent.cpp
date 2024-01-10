@@ -77,7 +77,7 @@ void RocketLaunchpadControlComponent::Launch(Entity* originator, LWOMAPID mapId,
 
 	SetSelectedMapId(originator->GetObjectID(), zone);
 
-	GameMessages::SendFireEventClientSide(m_Parent->GetObjectID(), originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
+	GameMessages::SendFireEventClientSide(m_Parent, originator->GetSystemAddress(), u"RocketEquipped", rocket->GetId(), cloneId, -1, originator->GetObjectID());
 
 	GameMessages::SendChangeObjectWorldState(rocket->GetId(), eObjectWorldState::ATTACHED, UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -89,21 +89,18 @@ void RocketLaunchpadControlComponent::OnUse(Entity* originator) {
 	// instead we let their OnUse handlers do their things
 	// which components of an Object have their OnUse called when using them
 	// so we don't need to call it here
-	auto* propertyEntrance = m_Parent->GetComponent<PropertyEntranceComponent>();
-	if (propertyEntrance) {
-		return;
-	}
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
-	auto* rocketLaunchLUP = m_Parent->GetComponent<MultiZoneEntranceComponent>();
-	if (rocketLaunchLUP) {
-		return;
-	}
+	auto* const propertyEntrance = parentEntity->GetComponent<PropertyEntranceComponent>();
+	if (propertyEntrance) return;
+
+	auto* rocketLaunchLUP = Game::entityManager->GetEntity(m_Parent)->GetComponent<MultiZoneEntranceComponent>();
+	if (rocketLaunchLUP) return;
 
 	// No rocket no launch
 	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
-	if (!rocket) {
-		return;
-	}
+	if (!rocket) return;
+
 	Launch(originator);
 }
 

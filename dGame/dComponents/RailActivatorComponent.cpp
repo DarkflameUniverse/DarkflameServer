@@ -43,11 +43,11 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
-	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
+	auto* quickBuildComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
 		return;
 
-	if (quickBuildComponent != nullptr) {
+	if (quickBuildComponent) {
 		// Don't want it to be destroyed while a player is using it
 		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 10.0f);
 	}
@@ -67,7 +67,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 	const auto originatorID = originator->GetObjectID();
 
-	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
+	Game::entityManager->GetEntity(m_Parent)->AddCallbackTimer(animationLength, [originatorID, this]() {
 		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
@@ -78,7 +78,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 			m_loopSound, m_StopSound, originator->GetSystemAddress(),
 			m_PathStart, m_PathDirection, m_DamageImmune, m_NoAggro, m_NotifyArrived,
 			m_ShowNameBillboard, m_CameraLocked, m_CollisionEnabled, m_UseDB, m_ComponentID,
-			m_Parent->GetObjectID());
+			m_Parent);
 		});
 }
 
@@ -106,7 +106,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
 			originator->GetSystemAddress(), m_ComponentID,
-			m_Parent->GetObjectID());
+			m_Parent);
 	}
 }
 
@@ -116,7 +116,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
+	auto* quickBuildComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<QuickBuildComponent>();
 
 	if (quickBuildComponent != nullptr) {
 		// Set back reset time

@@ -91,13 +91,20 @@ namespace GameMessages {
 	void NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sysAddr, int level, bool sending_rewards);
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
+
+	void SendUIMessageServerToSingleClient(const LWOOBJID entityId, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
+
 	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
+
 	void SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority = 1, float scale = 1, bool serialize = true);
-	void SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary = LWOOBJID_EMPTY, float priority = 1, float scale = 1, bool serialize = true);
+	void SendPlayFXEffect(const LWOOBJID entityId, const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary = LWOOBJID_EMPTY, const float priority = 1, const float scale = 1, const bool serialize = true);
+
 	void SendStopFXEffect(Entity* entity, bool killImmediate, std::string name);
+	void SendStopFXEffect(const LWOOBJID entityId, const bool killImmediate, const std::string& name);
+
 	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
 	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
@@ -119,7 +126,9 @@ namespace GameMessages {
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
-	void SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3::ZERO, int count = 1);
+
+	void SendDropClientLoot(Entity* entity, const LWOOBJID sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3::ZERO, int count = 1);
+	void SendDropClientLoot(const LWOOBJID entityId, const LWOOBJID sourceId, const LOT item, const int currency, const NiPoint3 spawnPos, const int count, const SystemAddress& sysAddr);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
@@ -641,6 +650,7 @@ namespace GameMessages {
 
 	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
 
+	void SendRemoveBuff(const LWOOBJID& entity, const bool fromUnEquip, const bool removeImmunity, const uint32_t buffId);
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
 
 	// bubble

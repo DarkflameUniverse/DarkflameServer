@@ -32,9 +32,9 @@ ProjectileSyncEntry::ProjectileSyncEntry() {
 std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
-	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
+	auto* context = new BehaviorContext(m_Parent);
 
-	context->caster = m_Parent->GetObjectID();
+	context->caster = m_Parent;
 
 	context->skillID = skillID;
 
@@ -130,11 +130,13 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 }
 
 void SkillComponent::Update(const float deltaTime) {
-	if (!m_Parent->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && m_Parent->GetLOT() != 1) {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	if (!parentEntity->HasComponent(eReplicaComponentType::BASE_COMBAT_AI) && Game::entityManager->GetEntity(m_Parent)->GetLOT() != 1) {
 		CalculateUpdate(deltaTime);
 	}
 
-	if (m_Parent->IsPlayer()) {
+	if (parentEntity->IsPlayer()) {
 		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
@@ -142,10 +144,7 @@ void SkillComponent::Update(const float deltaTime) {
 
 	for (const auto& pair : this->m_managedBehaviors) {
 		auto* context = pair.second;
-
-		if (context == nullptr) {
-			continue;
-		}
+		if (!context) continue;
 
 		if (context->clientInitalized) {
 			context->CalculateUpdate(deltaTime);
@@ -193,18 +192,18 @@ void SkillComponent::Reset() {
 
 void SkillComponent::Interrupt() {
 	// TODO: need to check immunities on the destroyable component, but they aren't implemented
-	auto* combat = m_Parent->GetComponent<BaseCombatAIComponent>();
-	if (combat != nullptr && combat->GetStunImmune()) return;
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	auto* const combat = parentEntity->GetComponent<BaseCombatAIComponent>();
+	if (combat && combat->GetStunImmune()) return;
 
 	for (const auto& behavior : this->m_managedBehaviors) {
 		for (const auto& behaviorEndEntry : behavior.second->endEntries) {
 			behaviorEndEntry.behavior->End(behavior.second, behaviorEndEntry.branchContext, behaviorEndEntry.second);
 		}
 		behavior.second->endEntries.clear();
-		if (m_Parent->IsPlayer()) continue;
+		if (parentEntity->IsPlayer()) continue;
 		behavior.second->Interrupt();
 	}
-
 }
 
 void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot, const float maxTime,
@@ -256,9 +255,9 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : this->m_Parent->GetObjectID(), true);
+	auto* context = new BehaviorContext(originatorOverride != LWOOBJID_EMPTY ? originatorOverride : m_Parent, true);
 
-	context->caster = m_Parent->GetObjectID();
+	context->caster = m_Parent;
 
 	context->skillID = skillId;
 
@@ -268,8 +267,9 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	behavior->Calculate(context, bitStream, { target, 0 });
 
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnSkillCast(m_Parent, skillId);
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+		script->OnSkillCast(parentEntity, skillId);
 	}
 
 	if (!context->foundTarget) {
@@ -305,7 +305,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		RakNet::BitStream message;
 
 		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
-		message.Write(this->m_Parent->GetObjectID());
+		message.Write(m_Parent);
 		start.Serialize(&message);
 
 		Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
@@ -431,14 +431,14 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	DoClientProjectileImpact projectileImpact;
 
 	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
-	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
+	projectileImpact.i64OwnerID = m_Parent;
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
 
 	RakNet::BitStream message;
 
 	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
-	message.Write(this->m_Parent->GetObjectID());
+	message.Write(m_Parent);
 	projectileImpact.Serialize(&message);
 
 	Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
@@ -477,7 +477,7 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 	delete context;
 }
 
-SkillComponent::SkillComponent(Entity* parent): Component(parent) {
+SkillComponent::SkillComponent(Entity* parent) : Component(parent) {
 	this->m_skillUid = 0;
 }
 

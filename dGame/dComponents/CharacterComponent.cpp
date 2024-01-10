@@ -512,7 +512,7 @@ void CharacterComponent::TrackRaceCompleted(bool won) {
 }
 
 void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
-	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
+	const auto distance = NiPoint3::Distance(newPosition, Game::entityManager->GetEntity(m_Parent)->GetPosition());
 
 	if (m_IsRacing) {
 		UpdatePlayerStatistic(DistanceDriven, static_cast<uint64_t>(distance));
@@ -753,15 +753,13 @@ void CharacterComponent::RemoveVentureVisionEffect(std::string ventureVisionType
 }
 
 void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const {
-	if (!m_Parent) return;
 	AMFArrayValue arrayToSend;
 	arrayToSend.Insert(ventureVisionType, showFaction);
-	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
+	GameMessages::SendUIMessageServerToSingleClient(m_Parent, Game::entityManager->GetEntity(m_Parent)->GetSystemAddress(), "SetFactionVisibility", arrayToSend);
 }
 
 void CharacterComponent::AwardClaimCodes() {
-	if (!m_Parent) return;
-	auto* user = m_Parent->GetParentUser();
+	auto* user = Game::entityManager->GetEntity(m_Parent)->GetParentUser();
 	if (!user) return;
 	
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
@@ -783,6 +781,6 @@ void CharacterComponent::AwardClaimCodes() {
 		subject << "%[RewardCodes_" << rewardCode << "_subjectText]";
 		std::ostringstream body;
 		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
-		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
+		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", Game::entityManager->GetEntity(m_Parent), subject.str(), body.str(), attachmentLOT, 1);
 	}
 }

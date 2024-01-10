@@ -14,7 +14,7 @@
   */
 class ActivityInstance {
 public:
-	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
+	ActivityInstance(LWOOBJID parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
 	//~ActivityInstance();
 
 	/**
@@ -80,7 +80,7 @@ private:
 	/**
 	 * The entity that owns this activity (the entity that has the ScriptedActivityComponent)
 	 */
-	Entity* m_Parent;
+	LWOOBJID m_Parent;
 
 	/**
 	 * All the participants of this activity

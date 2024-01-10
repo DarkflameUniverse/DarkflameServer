@@ -54,7 +54,7 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 			auto* team = TeamManager::Instance()->GetTeam(buff.source);
 			bool addedByTeammate = false;
 			if (team) {
-				addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent->GetObjectID()) > 0;
+				addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent) > 0;
 			}
 
 			outBitStream->Write(addedByTeammate); // Added by teammate. If source is in the same team as the target, this is true. Otherwise, false.
@@ -82,7 +82,7 @@ void BuffComponent::Update(float deltaTime) {
 				buff.second.tickTime = buff.second.tick;
 				buff.second.stacks--;
 
-				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_Parent->GetObjectID(), buff.second.source);
+				SkillComponent::HandleUnmanaged(buff.second.behaviorID, m_Parent, buff.second.source);
 			}
 		}
 
@@ -123,7 +123,7 @@ void BuffComponent::ApplyBuffFx(uint32_t buffId, const BuffParameter& buff) {
 
 	fxToPlay += std::to_string(buffId);
 	LOG_DEBUG("Playing %s %i", fxToPlay.c_str(), buff.effectId);
-	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), buff.effectId, u"cast", fxToPlay, LWOOBJID_EMPTY, 1.07f, 1.0f, false);
+	GameMessages::SendPlayFXEffect(m_Parent, buff.effectId, u"cast", fxToPlay, LWOOBJID_EMPTY, 1.07f, 1.0f, false);
 }
 
 void BuffComponent::RemoveBuffFx(uint32_t buffId, const BuffParameter& buff) {
@@ -150,10 +150,10 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	auto* team = TeamManager::Instance()->GetTeam(source);
 	bool addedByTeammate = false;
 	if (team) {
-		addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent->GetObjectID()) > 0;
+		addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent) > 0;
 	}
 
-	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent->GetObjectID()), source, static_cast<uint32_t>(id),
+	GameMessages::SendAddBuff(const_cast<LWOOBJID&>(m_Parent), source, static_cast<uint32_t>(id),
 		static_cast<uint32_t>(duration) * 1000, addImmunity, cancelOnDamaged, cancelOnDeath,
 		cancelOnLogout, cancelOnRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, addedByTeammate, applyOnTeammates);
 
@@ -197,7 +197,7 @@ void BuffComponent::ApplyBuff(const int32_t id, const float duration, const LWOO
 	auto* parent = GetParent();
 	if (!cancelOnDeath) return;
 
-	m_Parent->AddDieCallback([parent, id]() {
+	Game::entityManager->GetEntity(m_Parent)->AddDieCallback([parent, id]() {
 		LOG_DEBUG("Removing buff %i because parent died", id);
 		if (!parent) return;
 		auto* buffComponent = parent->GetComponent<BuffComponent>();
@@ -324,7 +324,7 @@ void BuffComponent::ReApplyBuffs() {
 }
 
 Entity* BuffComponent::GetParent() const {
-	return m_Parent;
+	return Game::entityManager->GetEntity(m_Parent);
 }
 
 void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {

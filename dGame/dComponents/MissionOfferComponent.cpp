@@ -87,21 +87,21 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 		}
 
 		// First, check if we already have the mission
+		auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 		const auto missionId = offeredMission.GetMissionId();
-
 		auto* mission = missionComponent->GetMission(missionId);
-
 		if (mission != nullptr) {
 			if (specifiedMissionId <= 0) {
 				// Handles the odd case where the offer object should not display the mission again
-				if (!mission->IsComplete() && mission->GetClientInfo().offer_objectID == m_Parent->GetLOT() && mission->GetClientInfo().target_objectID != m_Parent->GetLOT() && mission->IsFetchMission()) {
+				if (!mission->IsComplete() && mission->GetClientInfo().offer_objectID == parentEntity->GetLOT() && mission->GetClientInfo().target_objectID != parentEntity->GetLOT() && mission->IsFetchMission()) {
 					continue;
 				}
 			}
 
 			// We have the mission, if it is not complete, offer it
 			if (mission->IsActive() || mission->IsReadyToComplete()) {
-				GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
+				GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent);
 
 				continue;
 			}
@@ -138,7 +138,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 				const auto& iter = std::find(randomMissionPool.begin(), randomMissionPool.end(), specifiedMissionId);
 
 				if (iter != randomMissionPool.end() && MissionPrerequisites::CanAccept(specifiedMissionId, missionComponent->GetMissions())) {
-					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), specifiedMissionId, m_Parent->GetObjectID());
+					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), specifiedMissionId, m_Parent);
 
 					return;
 				}
@@ -158,7 +158,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 					if (mission == nullptr || mission->IsAchievement()) continue;
 
-					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), sample, m_Parent->GetObjectID());
+					GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), sample, m_Parent);
 
 					canAcceptPool.clear();
 
@@ -175,9 +175,9 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 
 			const auto selected = canAcceptPool[GeneralUtils::GenerateRandomNumber<int>(0, canAcceptPool.size() - 1)];
 
-			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), selected, m_Parent->GetObjectID());
+			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), selected, m_Parent);
 		} else if (offeredMission.GetOffersMission()) {
-			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent->GetObjectID());
+			GameMessages::SendOfferMission(entity->GetObjectID(), entity->GetSystemAddress(), missionId, m_Parent);
 		}
 	}
 }

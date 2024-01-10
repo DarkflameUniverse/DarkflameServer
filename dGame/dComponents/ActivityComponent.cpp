@@ -38,12 +38,14 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 
 	m_ActivityID = activityID;
 	LoadActivityData(activityID);
-	if (m_Parent->HasVar(u"activityID")) {
+
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	if (parentEntity->HasVar(u"activityID")) {
 		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);
 	}
 
-	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+	auto* destroyableComponent = parentEntity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent) {
 		// check for LMIs and set the loot LMIs
@@ -80,7 +82,7 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 			m_ActivityInfo.minTeams = 1;
 		}
 		if (m_ActivityInfo.instanceMapID == -1) {
-			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
+			const auto& transferOverride = Game::entityManager->GetEntity(m_Parent)->GetVarAsString(u"transferZoneID");
 			if (!transferOverride.empty()) {
 				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
 			}
@@ -139,7 +141,7 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
+	if (!Game::entityManager->GetEntity(m_Parent)->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -559,7 +561,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 			maxCoins = currencyTable[0].maxvalue;
 		}
 
-		Loot::DropLoot(participant, m_Parent, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
+		Loot::DropLoot(participant, Game::entityManager->GetEntity(m_Parent), activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
 	}
 }
 

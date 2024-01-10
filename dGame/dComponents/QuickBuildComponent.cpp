@@ -30,16 +30,18 @@ QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
 	}
 
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
 	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)
-	auto positionAsVector = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rebuild_activators"), 0x1F);
+	auto positionAsVector = GeneralUtils::SplitString(parentEntity->GetVarAsString(u"rebuild_activators"), 0x1F);
 	if (positionAsVector.size() == 3 &&
 		GeneralUtils::TryParse(positionAsVector[0], m_ActivatorPosition.x) &&
 		GeneralUtils::TryParse(positionAsVector[1], m_ActivatorPosition.y) &&
 		GeneralUtils::TryParse(positionAsVector[2], m_ActivatorPosition.z)) {
 	} else {
-		LOG("Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
-		m_ActivatorPosition = m_Parent->GetPosition();
+		LOG("Failed to find activator position for lot %i.  Defaulting to parents position.", Game::entityManager->GetEntity(m_Parent)->GetLOT());
+		m_ActivatorPosition = parentEntity->GetPosition();
 	}
 
 	SpawnActivator();
@@ -57,7 +59,7 @@ QuickBuildComponent::~QuickBuildComponent() {
 }
 
 void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	if (m_Parent->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
+	if (Game::entityManager->GetEntity(m_Parent)->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
 		if (bIsInitialUpdate) {
 			outBitStream->Write(false);
 		}
@@ -127,7 +129,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 		SpawnActivator();
 		m_TimeBeforeDrain = 0;
 
-		auto* spawner = m_Parent->GetSpawner();
+		auto* spawner = Game::entityManager->GetEntity(m_Parent)->GetSpawner();
 		const bool isSmashGroup = spawner != nullptr ? spawner->GetIsSpawnSmashGroup() : false;
 
 		if (isSmashGroup) {
@@ -144,7 +146,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 				if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 					m_Builder = LWOOBJID_EMPTY;
 
-					GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+					GameMessages::SendDieNoImplCode(Game::entityManager->GetEntity(m_Parent), LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 					ResetQuickBuild(false);
 				}
@@ -168,7 +170,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 			if (m_Timer >= m_ResetTime) {
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::SendDieNoImplCode(Game::entityManager->GetEntity(m_Parent), LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 				ResetQuickBuild(false);
 			}
@@ -229,7 +231,7 @@ void QuickBuildComponent::Update(float deltaTime) {
 			if (m_TimerIncomplete >= m_TimeBeforeSmash) {
 				m_Builder = LWOOBJID_EMPTY;
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::SendDieNoImplCode(Game::entityManager->GetEntity(m_Parent), LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
 
 				ResetQuickBuild(false);
 			}
@@ -258,10 +260,10 @@ void QuickBuildComponent::SpawnActivator() {
 			EntityInfo info;
 
 			info.lot = 6604;
-			info.spawnerID = m_Parent->GetObjectID();
-			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
+			info.spawnerID = m_Parent;
+			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? Game::entityManager->GetEntity(m_Parent)->GetPosition() : m_ActivatorPosition;
 
-			m_Activator = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
+			m_Activator = Game::entityManager->CreateEntity(info, nullptr, Game::entityManager->GetEntity(m_Parent));
 			if (m_Activator) {
 				m_ActivatorId = m_Activator->GetObjectID();
 				Game::entityManager->ConstructEntity(m_Activator);
@@ -403,37 +405,39 @@ void QuickBuildComponent::StartQuickBuild(Entity* user) {
 
 		Game::entityManager->SerializeEntity(user);
 
-		GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::BUILDING, user->GetObjectID());
-		GameMessages::SendEnableQuickBuild(m_Parent, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
+		auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+		GameMessages::SendQuickBuildNotifyState(parentEntity, m_State, eQuickBuildState::BUILDING, user->GetObjectID());
+		GameMessages::SendEnableQuickBuild(parentEntity, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
 
 		m_State = eQuickBuildState::BUILDING;
 		m_StateDirty = true;
 		Game::entityManager->SerializeEntity(m_Parent);
 
-		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
-		if (movingPlatform != nullptr) {
+		auto* movingPlatform = parentEntity->GetComponent<MovingPlatformComponent>();
+		if (movingPlatform) {
 			movingPlatform->OnQuickBuildInitilized();
 		}
 
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnQuickBuildStart(m_Parent, user);
+		for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+			script->OnQuickBuildStart(parentEntity, user);
 		}
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-			script->OnQuickBuildNotifyState(m_Parent, m_State);
-		for (const auto& cb : m_QuickBuildStateCallbacks)
+		for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+			script->OnQuickBuildNotifyState(parentEntity, m_State);
+		}
+		for (const auto& cb : m_QuickBuildStateCallbacks) {
 			cb(m_State);
+		}
 	}
 }
 
 void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
-	if (user == nullptr) {
-		return;
-	}
+	if (!user) return;
 
 	auto* characterComponent = user->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
+	if (characterComponent) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackQuickBuildComplete();
 	} else {
@@ -443,10 +447,12 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 
 	Game::entityManager->SerializeEntity(user);
 
-	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::COMPLETED, user->GetObjectID());
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	GameMessages::SendQuickBuildNotifyState(parentEntity, m_State, eQuickBuildState::COMPLETED, user->GetObjectID());
 	GameMessages::SendPlayFXEffect(m_Parent, 507, u"create", "BrickFadeUpVisCompleteEffect", LWOOBJID_EMPTY, 0.4f, 1.0f, true);
-	GameMessages::SendEnableQuickBuild(m_Parent, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
-	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+	GameMessages::SendEnableQuickBuild(parentEntity, false, false, true, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, user->GetObjectID());
+	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent);
 
 
 	m_State = eQuickBuildState::COMPLETED;
@@ -466,7 +472,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 	DespawnActivator();
 
 	// Set owner override so that entities smashed by this quickbuild will result in the builder getting rewards.
-	m_Parent->SetOwnerOverride(user->GetObjectID());
+	parentEntity->SetOwnerOverride(user->GetObjectID());
 
 	auto* builder = GetBuilder();
 
@@ -484,33 +490,34 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 			auto* missionComponent = builder->GetComponent<MissionComponent>();
 			if (missionComponent) missionComponent->Progress(eMissionTaskType::ACTIVITY, m_ActivityId);
 		}
-		Loot::DropActivityLoot(builder, m_Parent, m_ActivityId, 1);
+		Loot::DropActivityLoot(builder, parentEntity, m_ActivityId, 1);
 	}
 
 	// Notify scripts
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnQuickBuildComplete(m_Parent, user);
-		script->OnQuickBuildNotifyState(m_Parent, m_State);
+	for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+		script->OnQuickBuildComplete(parentEntity, user);
+		script->OnQuickBuildNotifyState(parentEntity, m_State);
 	}
 
 	// Notify subscribers
-	for (const auto& callback : m_QuickBuildStateCallbacks)
+	for (const auto& callback : m_QuickBuildStateCallbacks) {
 		callback(m_State);
-	for (const auto& callback : m_QuickBuildCompleteCallbacks)
+	}
+	for (const auto& callback : m_QuickBuildCompleteCallbacks) {
 		callback(user);
+	}
 
-	m_Parent->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
+	parentEntity->TriggerEvent(eTriggerEventType::REBUILD_COMPLETE, user);
 
-	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
-	if (movingPlatform != nullptr) {
+	auto* movingPlatform = parentEntity->GetComponent<MovingPlatformComponent>();
+	if (movingPlatform) {
 		movingPlatform->OnCompleteQuickBuild();
 	}
 
 	// Set flag
 	auto* character = user->GetCharacter();
-
-	if (character != nullptr) {
-		const auto flagNumber = m_Parent->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
+	if (character) {
+		const auto flagNumber = parentEntity->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
 
 		if (flagNumber != 0) {
 			character->SetPlayerFlag(flagNumber, true);
@@ -520,17 +527,19 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 }
 
 void QuickBuildComponent::ResetQuickBuild(bool failed) {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 	Entity* builder = GetBuilder();
 
 	if (m_State == eQuickBuildState::BUILDING && builder) {
-		GameMessages::SendEnableQuickBuild(m_Parent, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
+		GameMessages::SendEnableQuickBuild(parentEntity, false, false, failed, eQuickBuildFailReason::NOT_GIVEN, m_ResetTime, builder->GetObjectID());
 
 		if (failed) {
 			RenderComponent::PlayAnimation(builder, u"rebuild-fail");
 		}
 	}
 
-	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::RESETTING, LWOOBJID_EMPTY);
+	GameMessages::SendQuickBuildNotifyState(parentEntity, m_State, eQuickBuildState::RESETTING, LWOOBJID_EMPTY);
 
 	m_State = eQuickBuildState::RESETTING;
 	m_StateDirty = true;
@@ -542,12 +551,14 @@ void QuickBuildComponent::ResetQuickBuild(bool failed) {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify scripts and possible subscribers
-	for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-		script->OnQuickBuildNotifyState(m_Parent, m_State);
-	for (const auto& cb : m_QuickBuildStateCallbacks)
+	for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+		script->OnQuickBuildNotifyState(parentEntity, m_State);
+	}
+	for (const auto& cb : m_QuickBuildStateCallbacks) {
 		cb(m_State);
+	}
 
-	m_Parent->ScheduleKillAfterUpdate();
+	parentEntity->ScheduleKillAfterUpdate();
 
 	if (m_Activator) {
 		m_Activator->ScheduleKillAfterUpdate();
@@ -561,30 +572,32 @@ void QuickBuildComponent::CancelQuickBuild(Entity* entity, eQuickBuildFailReason
 
 		const auto entityID = entity != nullptr ? entity->GetObjectID() : LWOOBJID_EMPTY;
 
+		auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 		// Notify the client that a state has changed
-		GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::INCOMPLETE, entityID);
-		GameMessages::SendEnableQuickBuild(m_Parent, false, true, false, failReason, m_Timer, entityID);
+		GameMessages::SendQuickBuildNotifyState(parentEntity, m_State, eQuickBuildState::INCOMPLETE, entityID);
+		GameMessages::SendEnableQuickBuild(parentEntity, false, true, false, failReason, m_Timer, entityID);
 
 		// Now terminate any interaction with the rebuild
-		GameMessages::SendTerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
-		GameMessages::SendTerminateInteraction(m_Parent->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
+		GameMessages::SendTerminateInteraction(entityID, eTerminateType::FROM_INTERACTION, m_Parent);
+		GameMessages::SendTerminateInteraction(m_Parent, eTerminateType::FROM_INTERACTION, m_Parent);
 
 		// Now update the component itself
 		m_State = eQuickBuildState::INCOMPLETE;
 		m_StateDirty = true;
 
 		// Notify scripts and possible subscribers
-		for (auto* script : CppScripts::GetEntityScripts(m_Parent))
-			script->OnQuickBuildNotifyState(m_Parent, m_State);
-		for (const auto& cb : m_QuickBuildStateCallbacks)
+		for (auto* script : CppScripts::GetEntityScripts(parentEntity)) {
+			script->OnQuickBuildNotifyState(parentEntity, m_State);
+		}
+		for (const auto& cb : m_QuickBuildStateCallbacks) {
 			cb(m_State);
+		}
 
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
-	if (entity == nullptr) {
-		return;
-	}
+	if (!entity) return;
 
 	CharacterComponent* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent) {

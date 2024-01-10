@@ -103,9 +103,9 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 	if (missionId == 1728) {
 		//Needs to send a mail
 
-		auto address = m_Parent->GetSystemAddress();
+		auto address = Game::entityManager->GetEntity(m_Parent)->GetSystemAddress();
 
-		Mail::HandleNotificationRequest(address, m_Parent->GetObjectID());
+		Mail::HandleNotificationRequest(address, m_Parent);
 	}
 }
 
@@ -624,9 +624,10 @@ bool MissionComponent::HasMission(uint32_t missionId) {
 
 void MissionComponent::ResetMission(const int32_t missionId) {
 	auto* mission = GetMission(missionId);
-
 	if (!mission) return;
 
 	m_Missions.erase(missionId);
-	GameMessages::SendResetMissions(m_Parent, m_Parent->GetSystemAddress(), missionId);
+
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	GameMessages::SendResetMissions(parentEntity, parentEntity->GetSystemAddress(), missionId);
 }

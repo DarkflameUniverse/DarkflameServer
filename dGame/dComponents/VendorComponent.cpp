@@ -26,8 +26,10 @@ void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 }
 
 void VendorComponent::OnUse(Entity* originator) {
-	GameMessages::SendVendorOpenWindow(m_Parent, originator->GetSystemAddress());
-	GameMessages::SendVendorStatusUpdate(m_Parent, originator->GetSystemAddress());
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	GameMessages::SendVendorOpenWindow(parentEntity, originator->GetSystemAddress());
+	GameMessages::SendVendorStatusUpdate(parentEntity, originator->GetSystemAddress());
 }
 
 void VendorComponent::RefreshInventory(bool isCreation) {
@@ -35,8 +37,10 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	SetHasMultiCostItems(false);
 	m_Inventory.clear();
 
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 	// Custom code for Max vanity NPC and Mr.Ree cameras
-	if(isCreation && m_Parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
+	if (isCreation && parentEntity->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
 		SetupMaxCustomVendor();
 		return;
 	}
@@ -57,7 +61,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, Game::entityManager->GetEntity(m_Parent)->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
@@ -77,7 +81,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(randomItem.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, Game::entityManager->GetEntity(m_Parent)->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
@@ -92,17 +96,17 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 
 	// Callback timer to refresh this inventory.
 	if (m_RefreshTimeSeconds > 0.0) {
-		m_Parent->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
+		parentEntity->AddCallbackTimer(m_RefreshTimeSeconds, [this]() {
 			RefreshInventory();
-		});
+			});
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
-	GameMessages::SendVendorStatusUpdate(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendVendorStatusUpdate(parentEntity, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void VendorComponent::SetupConstants() {
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
+	int componentID = compRegistryTable->GetByIDAndType(Game::entityManager->GetEntity(m_Parent)->GetLOT(), eReplicaComponentType::VENDOR);
 
 	auto* vendorComponentTable = CDClientManager::Instance().GetTable<CDVendorComponentTable>();
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });
@@ -122,7 +126,7 @@ bool VendorComponent::SellsItem(const LOT item) const {
 }
 
 
-void VendorComponent::SetupMaxCustomVendor(){
+void VendorComponent::SetupMaxCustomVendor() {
 	SetHasStandardCostItems(true);
 	m_Inventory.push_back(SoldItem(11909, 0)); // Top hat w frog
 	m_Inventory.push_back(SoldItem(7785, 0));  // Flash bulb
@@ -130,8 +134,8 @@ void VendorComponent::SetupMaxCustomVendor(){
 	m_Inventory.push_back(SoldItem(12241, 0)); // Hot cocoa (from fb)
 }
 
-void VendorComponent::HandleMrReeCameras(){
-	if (m_Parent->GetLOT() == 13569) {
+void VendorComponent::HandleMrReeCameras() {
+	if (Game::entityManager->GetEntity(m_Parent)->GetLOT() == 13569) {
 		SetHasStandardCostItems(true);
 		auto randomCamera = GeneralUtils::GenerateRandomNumber<int32_t>(0, 2);
 

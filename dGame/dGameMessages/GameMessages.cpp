@@ -605,11 +605,11 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
+void GameMessages::SendUIMessageServerToSingleClient(const LWOOBJID entityId, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
 
 	bitStream.Write<AMFBaseValue&>(args);
@@ -621,6 +621,11 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	}
 
 	SEND_PACKET;
+}
+
+// Compatibility shim
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
+	GameMessages::SendUIMessageServerToSingleClient(entity->GetObjectID(), entity->GetSystemAddress(), message, args);
 }
 
 void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args) {
@@ -659,19 +664,20 @@ void GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, 
 	SEND_PACKET_BROADCAST;
 }
 
+// Compatibility shim
 void GameMessages::SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority, float scale, bool serialize) {
 	SendPlayFXEffect(entity->GetObjectID(), effectID, effectType, name, secondary, priority, scale, serialize);
 }
 
-void GameMessages::SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority, float scale, bool serialize) {
+void GameMessages::SendPlayFXEffect(const LWOOBJID entityId, const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary, const float priority, const float scale, const bool serialize) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity);
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::PLAY_FX_EFFECT);
 
-	bitStream.Write(effectID != -1);
-	if (effectID != -1) bitStream.Write(effectID);
+	bitStream.Write(effectId != -1);
+	if (effectId != -1) bitStream.Write(effectId);
 
 	bitStream.Write<uint32_t>(effectType.size());
 	for (const auto& k : effectType) {
@@ -693,6 +699,20 @@ void GameMessages::SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, co
 	if (secondary != LWOOBJID_EMPTY) bitStream.Write(secondary);
 
 	bitStream.Write(serialize);
+
+	SEND_PACKET_BROADCAST;
+}
+
+void GameMessages::SendStopFXEffect(const LWOOBJID entityId, const bool killImmediate, const std::string& name) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entityId);
+	bitStream.Write(eGameMessageType::STOP_FX_EFFECT);
+
+	bitStream.Write(killImmediate);
+	bitStream.Write<uint32_t>(name.size());
+	bitStream.Write(name.c_str(), name.size());
 
 	SEND_PACKET_BROADCAST;
 }
@@ -1034,21 +1054,29 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 	SEND_PACKET;
 }
 
-void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (Game::config->GetValue("disable_drops") == "1" || !entity) {
-		return;
-	}
+// Compatibility shim
+void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
+	if (!entity) return;
+
+	const auto entityID = entity->GetObjectID();
+	const auto sysAddr = entity->GetSystemAddress();
+
+	GameMessages::SendDropClientLoot(entityID, sourceID, item, currency, spawnPos, count, sysAddr);
+}
+
+void GameMessages::SendDropClientLoot(const LWOOBJID entityId, const LWOOBJID sourceId, const LOT item, const int currency, const NiPoint3 spawnPos, const int count, const SystemAddress& sysAddr) {
+	if (Game::config->GetValue("disable_drops") == "1") return;
 
 	bool bUsePosition = false;
 	NiPoint3 finalPosition;
-	LWOOBJID lootID = LWOOBJID_EMPTY;
-	LWOOBJID owner = entity->GetObjectID();
+	LWOOBJID lootId = LWOOBJID_EMPTY;
+	auto* const entity = Game::entityManager->GetEntity(entityId);
 
 	if (item != LOT_NULL && item != 0) {
-		lootID = ObjectIDManager::GenerateObjectID();
+		lootId = ObjectIDManager::GenerateObjectID();
 
 		Loot::Info info;
-		info.id = lootID;
+		info.id = lootId;
 		info.count = count;
 		info.lot = item;
 		entity->AddLootItem(info);
@@ -1062,11 +1090,11 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 		bUsePosition = true;
 
 		//Calculate where the loot will go:
-		uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
+		const uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
 
-		double rad = degree * 3.14 / 180;
-		double sin_v = sin(rad) * 4.2;
-		double cos_v = cos(rad) * 4.2;
+		const double rad = degree * 3.14 / 180;
+		const double sin_v = sin(rad) * 4.2;
+		const double cos_v = cos(rad) * 4.2;
 
 		finalPosition = NiPoint3(static_cast<float>(spawnPos.GetX() + sin_v), spawnPos.GetY(), static_cast<float>(spawnPos.GetZ() + cos_v));
 	}
@@ -1075,7 +1103,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::DROP_CLIENT_LOOT);
 
 	bitStream.Write(bUsePosition);
@@ -1085,14 +1113,14 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 	bitStream.Write(currency);
 	bitStream.Write(item);
-	bitStream.Write(lootID);
-	bitStream.Write(owner);
-	bitStream.Write(sourceID);
+	bitStream.Write(lootId);
+	bitStream.Write(entityId);
+	bitStream.Write(sourceId);
 
 	bitStream.Write(spawnPos != NiPoint3::ZERO);
 	if (spawnPos != NiPoint3::ZERO) bitStream.Write(spawnPos);
 
-	auto* team = TeamManager::Instance()->GetTeam(owner);
+	auto* team = TeamManager::Instance()->GetTeam(entityId);
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
@@ -1102,9 +1130,9 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 		if (object.type != "Powerup") {
 			for (const auto memberId : team->members) {
-				auto* member = Game::entityManager->GetEntity(memberId);
+				auto* const member = Game::entityManager->GetEntity(memberId);
 
-				if (member == nullptr) continue;
+				if (!member) continue;
 
 				SystemAddress sysAddr = member->GetSystemAddress();
 				SEND_PACKET;
@@ -1114,7 +1142,6 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 		}
 	}
 
-	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
 }
 
@@ -3545,11 +3572,11 @@ void GameMessages::SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID ta
 	SEND_PACKET;
 }
 
-void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+void GameMessages::SendRemoveBuff(const LWOOBJID& entity, const bool fromUnEquip, const bool removeImmunity, const uint32_t buffId) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entity);
 	bitStream.Write(eGameMessageType::REMOVE_BUFF);
 
 	bitStream.Write(false); // bFromRemoveBehavior but setting this to true makes the GM not do anything on the client?
@@ -3558,6 +3585,11 @@ void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeI
 	bitStream.Write(buffId);
 
 	SEND_PACKET_BROADCAST;
+}
+
+// Compatibility shim
+void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+	GameMessages::SendRemoveBuff(entity->GetObjectID(), fromUnEquip, removeImmunity, buffId);
 }
 
 void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr) {

@@ -425,12 +425,16 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	}
 }
 
+void EntityManager::SerializeEntity(const LWOOBJID entityId) {
+	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entityId) == m_EntitiesToSerialize.end()) {
+		m_EntitiesToSerialize.push_back(entityId);
+	}
+}
+
 void EntityManager::SerializeEntity(Entity* entity) {
 	if (!entity || entity->GetNetworkId() == 0) return;
 
-	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
-		m_EntitiesToSerialize.push_back(entity->GetObjectID());
-	}
+	EntityManager::SerializeEntity(entity->GetObjectID());
 }
 
 void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {

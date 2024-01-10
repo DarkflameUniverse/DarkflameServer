@@ -194,9 +194,9 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	std::string name = zone->GetZoneName();
 	std::string description = "";
 
-	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
+	auto prop_path = zone->GetPath(Game::entityManager->GetEntity(m_Parent)->GetVarAsString(u"propertyName"));
 
-	if (prop_path){
+	if (prop_path) {
 		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
 		description = prop_path->property.displayDesc;
 	}
@@ -369,7 +369,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent->GetObjectID(), 14, originalRotation);
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), position, m_Parent, 14, originalRotation);
 
 		GameMessages::SendUGCEquipPreCreateBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), 0, spawnerId);
 
@@ -411,7 +411,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
 
 		// Need this to pop the user out of their current state
-		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent->GetObjectID(), 14, entity->GetRotation());
+		GameMessages::SendPlaceModelResponse(entity->GetObjectID(), entity->GetSystemAddress(), entity->GetPosition(), m_Parent, 14, entity->GetRotation());
 
 		return;
 	}
@@ -680,7 +680,7 @@ PropertyManagementComponent* PropertyManagementComponent::Instance() {
 
 void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const SystemAddress& sysAddr, LWOOBJID author) {
 	if (author == LWOOBJID_EMPTY) {
-		author = m_Parent->GetObjectID();
+		author = m_Parent;
 	}
 
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
@@ -739,7 +739,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 
 void PropertyManagementComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, UNASSIGNED_SYSTEM_ADDRESS);
-	GameMessages::SendOpenPropertyManagment(m_Parent->GetObjectID(), originator->GetSystemAddress());
+	GameMessages::SendOpenPropertyManagment(m_Parent, originator->GetSystemAddress());
 }
 
 void PropertyManagementComponent::SetOwnerId(const LWOOBJID value) {

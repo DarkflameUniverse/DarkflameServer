@@ -50,5 +50,5 @@ protected:
 	/**
 	 * The entity that owns this component
 	 */
-	Entity* m_Parent;
+	LWOOBJID m_Parent;
 };
