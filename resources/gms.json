@@ -1,0 +1,5708 @@
+{
+  "enums": {
+	"eObjectWorldState": [
+	  "WORLDSTATE_INWORLD",
+	  "WORLDSTATE_ATTACHED",
+	  "WORLDSTATE_INVENTORY"
+	],
+	"EBuildType": [
+	  "BUILD_NOWHERE",
+	  "BUILD_IN_WORLD",
+	  "BUILD_ON_PROPERTY"
+	]
+  },
+  "messages": {
+	"19": {
+	  "name": "Teleport",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bIgnoreY",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bSetRotation",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bSkipAllChecks",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "pos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "useNavmesh",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "w",
+		  "type": "float",
+		  "default": "1.0f"
+		},
+		{
+		  "name": "x",
+		  "type": "float"
+		},
+		{
+		  "name": "y",
+		  "type": "float"
+		},
+		{
+		  "name": "z",
+		  "type": "float"
+		}
+	  ]
+	},
+	"30": {
+	  "name": "DropClientLoot",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bUsePosition",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "finalPosition",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		},
+		{
+		  "name": "iCurrency",
+		  "type": "int"
+		},
+		{
+		  "name": "itemTemplate",
+		  "type": "LOT"
+		},
+		{
+		  "name": "lootID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "owner",
+		  "type": "objectid"
+		},
+		{
+		  "name": "sourceObj",
+		  "type": "objectid"
+		},
+		{
+		  "name": "spawnPosition",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"37": {
+	  "name": "Die",
+	  "network": "dupclient",
+	  "enums": {
+		"eKillType": [
+		  "VIOLENT",
+		  "SILENT"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "bClientDeath",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bSpawnLoot",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "deathType",
+		  "type": "wstr"
+		},
+		{
+		  "name": "directionRelative_AngleXZ",
+		  "type": "float"
+		},
+		{
+		  "name": "directionRelative_AngleY",
+		  "type": "float"
+		},
+		{
+		  "name": "directionRelative_Force",
+		  "type": "float"
+		},
+		{
+		  "name": "killType",
+		  "type": "eKillType",
+		  "default": "VIOLENT"
+		},
+		{
+		  "name": "killerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "lootOwnerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"38": {
+	  "name": "RequestDie",
+	  "network": "server",
+	  "enums": {
+		"eKillType": [
+		  "VIOLENT",
+		  "SILENT"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "bUnknownBoolean",
+		  "type": "bool"
+		},
+		{
+		  "name": "deathType",
+		  "type": "wstr"
+		},
+		{
+		  "name": "directionRelative_AngleXZ",
+		  "type": "float"
+		},
+		{
+		  "name": "directionRelative_AngleY",
+		  "type": "float"
+		},
+		{
+		  "name": "directionRelative_Force",
+		  "type": "float"
+		},
+		{
+		  "name": "killType",
+		  "type": "eKillType",
+		  "default": "VIOLENT"
+		},
+		{
+		  "name": "killerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "lootOwnerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"41": {
+	  "name": "PlayEmote",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "emoteID",
+		  "type": "int"
+		},
+		{
+		  "name": "targetID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"42": {
+	  "name": "PreloadAnimation",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "animationID",
+		  "type": "wstr"
+		},
+		{
+		  "name": "handled",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "respondObjID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "userData",
+		  "type": "LDF"
+		}
+	  ]
+	},
+	"43": {
+	  "name": "PlayAnimation",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "animationID",
+		  "type": "wstr"
+		},
+		{
+		  "name": "bExpectAnimToExist",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bPlayImmediate",
+		  "type": "bool"
+		},
+		{
+		  "name": "bTriggerOnCompleteMsg",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "fPriority",
+		  "type": "float",
+		  "default": "SECONDARY_PRIORITY"
+		},
+		{
+		  "name": "fScale",
+		  "type": "float",
+		  "default": "1.0f"
+		}
+	  ]
+	},
+	"48": {
+	  "name": "ControlBehaviors",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "args",
+		  "type": "AMF3"
+		},
+		{
+		  "name": "command",
+		  "type": "str"
+		}
+	  ]
+	},
+	"72": {
+	  "name": "SetName",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "name",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"118": {
+	  "name": "EchoStartSkill",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bUsedMouse",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "fCasterLatency",
+		  "type": "float",
+		  "default": "0.0f"
+		},
+		{
+		  "name": "iCastType",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "lastClickedPosit",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		},
+		{
+		  "name": "optionalOriginatorID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "optionalTargetID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "originatorRot",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		},
+		{
+		  "name": "skillID",
+		  "type": "TSkillID"
+		},
+		{
+		  "name": "uiSkillHandle",
+		  "type": "unsigned int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"119": {
+	  "name": "StartSkill",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bUsedMouse",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "consumableItemID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "fCasterLatency",
+		  "type": "float",
+		  "default": "0.0f"
+		},
+		{
+		  "name": "iCastType",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "lastClickedPosit",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		},
+		{
+		  "name": "optionalOriginatorID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "optionalTargetID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "originatorRot",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		},
+		{
+		  "name": "skillID",
+		  "type": "TSkillID"
+		},
+		{
+		  "name": "uiSkillHandle",
+		  "type": "unsigned int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"120": {
+	  "name": "CasterDead",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "i64Caster",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "uiSkillHandle",
+		  "type": "unsigned int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"121": {
+	  "name": "VerifyAck",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bDifferent",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		},
+		{
+		  "name": "uiHandle",
+		  "type": "unsigned int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"124": {
+	  "name": "SelectSkill",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bFromSkillSet",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "skillID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"127": {
+	  "name": "AddSkill",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "AICombatWeight",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "bFromSkillSet",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "castType",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "fTimeSecs",
+		  "type": "float",
+		  "default": "-1.0f"
+		},
+		{
+		  "name": "iTimesCanCast",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "skillID",
+		  "type": "TSkillID"
+		},
+		{
+		  "name": "slotID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "temporary",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"128": {
+	  "name": "RemoveSkill",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bFromSkillSet",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "skillID",
+		  "type": "TSkillID"
+		}
+	  ]
+	},
+	"133": {
+	  "name": "SetCurrency",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "currency",
+		  "type": "__int64"
+		},
+		{
+		  "name": "lootType",
+		  "type": "int",
+		  "default": "LOOTTYPE_NONE"
+		},
+		{
+		  "name": "position",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "sourceLOT",
+		  "type": "LOT",
+		  "default": "LOT_NULL"
+		},
+		{
+		  "name": "sourceObject",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "sourceTradeID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "sourceType",
+		  "type": "int",
+		  "default": "LOOTTYPE_NONE"
+		}
+	  ]
+	},
+	"137": {
+	  "name": "PickupCurrency",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "currency",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "position",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"139": {
+	  "name": "PickupItem",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "lootObjectID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"140": {
+	  "name": "TeamPickupItem",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "lootID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "lootOwnerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"154": {
+	  "name": "PlayFXEffect",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "effectID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "effectType",
+		  "type": "wstr"
+		},
+		{
+		  "name": "fScale",
+		  "type": "float",
+		  "default": "1.0f"
+		},
+		{
+		  "name": "name",
+		  "type": "str"
+		},
+		{
+		  "name": "priority",
+		  "type": "float",
+		  "default": "1.0"
+		},
+		{
+		  "name": "secondary",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "serialize",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"155": {
+	  "name": "StopFXEffect",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bKillImmediate",
+		  "type": "bool"
+		},
+		{
+		  "name": "name",
+		  "type": "str"
+		}
+	  ]
+	},
+	"159": {
+	  "name": "RequestResurrect",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"160": {
+	  "name": "Resurrect",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bRezImmediately",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"192": {
+	  "name": "PopEquippedItemsState",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"198": {
+	  "name": "SetStunned",
+	  "network": "dupclient",
+	  "enums": {
+		"EStunState": [
+		  "PUSH",
+		  "POP"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "Originator",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "StateChangeType",
+		  "type": "EStunState"
+		},
+		{
+		  "name": "bCantAttack",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantAttackOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantEquip",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantEquipOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantInteract",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantInteractOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantJump",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantJumpOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantMove",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantMoveOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantTurn",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCantTurnOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantUseItem",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bCantUseItemOutChangeWasApplied",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bDontTerminateInteract",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bIgnoreImmunity",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"200": {
+	  "name": "SetStunImmunity",
+	  "network": "dupclient",
+	  "enums": {
+		"EImmunityState": [
+		  "PUSH",
+		  "POP"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "Caster",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "StateChangeType",
+		  "type": "EImmunityState"
+		},
+		{
+		  "name": "bImmuneToStunAttack",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunEquip",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunInteract",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunJump",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunMove",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunTurn",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToStunUseItem",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"202": {
+	  "name": "Knockback",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "Caster",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "Originator",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "iKnockBackTimeMS",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "vector",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"209": {
+	  "name": "RebuildCancel",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bEarlyRelease",
+		  "type": "bool"
+		},
+		{
+		  "name": "userID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"213": {
+	  "name": "EnableRebuild",
+	  "network": "client",
+	  "enums": {
+		"FailReason": [
+		  "REASON_NOT_GIVEN",
+		  "REASON_OUT_OF_IMAGINATION",
+		  "REASON_CANCELED_EARLY",
+		  "REASON_BUILD_ENDED"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "bEnable",
+		  "type": "bool"
+		},
+		{
+		  "name": "bFail",
+		  "type": "bool"
+		},
+		{
+		  "name": "bSuccess",
+		  "type": "bool"
+		},
+		{
+		  "name": "eFailReason",
+		  "type": "FailReason",
+		  "default": "REASON_NOT_GIVEN"
+		},
+		{
+		  "name": "fDuration",
+		  "type": "float"
+		},
+		{
+		  "name": "user",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"224": {
+	  "name": "MoveItemInInventory",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "destInvType",
+		  "type": "int",
+		  "default": "INVENTORY_INVALID"
+		},
+		{
+		  "name": "iObjID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "inventoryType",
+		  "type": "int"
+		},
+		{
+		  "name": "responseCode",
+		  "type": "int"
+		},
+		{
+		  "name": "slot",
+		  "type": "int"
+		}
+	  ]
+	},
+	"227": {
+	  "name": "AddItemToInventoryClientSync",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bBound",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIsBOE",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIsBOP",
+		  "type": "bool"
+		},
+		{
+		  "name": "eLootTypeSource",
+		  "type": "int",
+		  "default": "LOOTTYPE_NONE"
+		},
+		{
+		  "name": "extraInfo",
+		  "type": "LDF"
+		},
+		{
+		  "name": "iObjTemplate",
+		  "type": "LOT"
+		},
+		{
+		  "name": "iSubkey",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "invType",
+		  "type": "int",
+		  "default": "INVENTORY_DEFAULT"
+		},
+		{
+		  "name": "itemCount",
+		  "type": "unsigned int",
+		  "default": "1"
+		},
+		{
+		  "name": "itemsTotal",
+		  "type": "unsigned int",
+		  "default": "0"
+		},
+		{
+		  "name": "newObjID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "ni3FlyingLootPosit",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "showFlyingLoot",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "slotID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"230": {
+	  "name": "RemoveItemFromInventory",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bConfirmed",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bDeleteItem",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bOutSuccess",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "eInvType",
+		  "type": "int",
+		  "default": "INVENTORY_MAX"
+		},
+		{
+		  "name": "eLootTypeSource",
+		  "type": "int",
+		  "default": "LOOTTYPE_NONE"
+		},
+		{
+		  "name": "extraInfo",
+		  "type": "LDF"
+		},
+		{
+		  "name": "forceDeletion",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "iLootTypeSourceID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "iObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "iObjTemplate",
+		  "type": "LOT",
+		  "default": "LOT_NULL"
+		},
+		{
+		  "name": "iRequestingObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "iStackCount",
+		  "type": "unsigned int",
+		  "default": "1"
+		},
+		{
+		  "name": "iStackRemaining",
+		  "type": "unsigned int",
+		  "default": "0"
+		},
+		{
+		  "name": "iSubkey",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "iTradeID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"231": {
+	  "name": "EquipInventory",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bIgnoreCooldown",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bOutSuccess",
+		  "type": "bool"
+		},
+		{
+		  "name": "itemtoequip",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"233": {
+	  "name": "UnEquipInventory",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bEvenIfDead",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bIgnoreCooldown",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bOutSuccess",
+		  "type": "bool"
+		},
+		{
+		  "name": "itemtounequip",
+		  "type": "objectid"
+		},
+		{
+		  "name": "replacementObjectID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"248": {
+	  "name": "OfferMission",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "offerer",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"249": {
+	  "name": "RespondToMission",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "receiver",
+		  "type": "objectid"
+		},
+		{
+		  "name": "rewardItem",
+		  "type": "LOT",
+		  "default": "LOT_NULL"
+		}
+	  ]
+	},
+	"254": {
+	  "name": "NotifyMission",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "missionState",
+		  "type": "int"
+		},
+		{
+		  "name": "sendingRewards",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"255": {
+	  "name": "NotifyMissionTask",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"336": {
+	  "name": "RebuildNotifyState",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "iPrevState",
+		  "type": "int"
+		},
+		{
+		  "name": "iState",
+		  "type": "int"
+		},
+		{
+		  "name": "player",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"356": {
+	  "name": "ToggleInteractionUpdates",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bEnable",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"357": {
+	  "name": "TerminateInteraction",
+	  "network": "dupclient",
+	  "enums": {
+		"ETerminateType": [
+		  "range",
+		  "user",
+		  "fromInteraction"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "ObjIDTerminator",
+		  "type": "objectid"
+		},
+		{
+		  "name": "type",
+		  "type": "ETerminateType"
+		}
+	  ]
+	},
+	"358": {
+	  "name": "ServerTerminateInteraction",
+	  "network": "server",
+	  "enums": {
+		"ETerminateType": [
+		  "range",
+		  "user",
+		  "fromInteraction"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "ObjIDTerminator",
+		  "type": "objectid"
+		},
+		{
+		  "name": "type",
+		  "type": "ETerminateType"
+		}
+	  ]
+	},
+	"364": {
+	  "name": "RequestUse",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bIsMultiInteractUse",
+		  "type": "bool"
+		},
+		{
+		  "name": "multiInteractID",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "multiInteractType",
+		  "type": "int"
+		},
+		{
+		  "name": "object",
+		  "type": "objectid"
+		},
+		{
+		  "name": "secondary",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"369": {
+	  "name": "VendorOpenWindow",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"371": {
+	  "name": "EmotePlayed",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "emoteID",
+		  "type": "int"
+		},
+		{
+		  "name": "targetID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"373": {
+	  "name": "BuyFromVendor",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "confirmed",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "count",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "item",
+		  "type": "LOT"
+		}
+	  ]
+	},
+	"374": {
+	  "name": "SellToVendor",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "count",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "itemObjID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"379": {
+	  "name": "CancelDonationOnPlayer",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"383": {
+	  "name": "TeamSetOffWorldFlag",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "i64PlayerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "zoneID",
+		  "type": "zoneid"
+		}
+	  ]
+	},
+	"389": {
+	  "name": "SetInventorySize",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "inventoryType",
+		  "type": "int"
+		},
+		{
+		  "name": "size",
+		  "type": "int"
+		}
+	  ]
+	},
+	"391": {
+	  "name": "AcknowledgePossession",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "possessedObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"404": {
+	  "name": "RequestActivityExit",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bUserCancel",
+		  "type": "bool"
+		},
+		{
+		  "name": "userID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"405": {
+	  "name": "ActivityEnter",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"406": {
+	  "name": "ActivityExit",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"407": {
+	  "name": "ActivityStart",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"408": {
+	  "name": "ActivityStop",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bExit",
+		  "type": "bool"
+		},
+		{
+		  "name": "bUserCancel",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"411": {
+	  "name": "ShootingGalleryFire",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "targetPos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "w",
+		  "type": "float"
+		},
+		{
+		  "name": "x",
+		  "type": "float"
+		},
+		{
+		  "name": "y",
+		  "type": "float"
+		},
+		{
+		  "name": "z",
+		  "type": "float"
+		}
+	  ]
+	},
+	"416": {
+	  "name": "RequestVendorStatusUpdate",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"417": {
+	  "name": "VendorStatusUpdate",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"418": {
+	  "name": "CancelMission",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "resetCompleted",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"419": {
+	  "name": "ResetMissions",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "missionID",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"425": {
+	  "name": "NotifyClientShootingGalleryScore",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "addTime",
+		  "type": "float"
+		},
+		{
+		  "name": "score",
+		  "type": "int"
+		},
+		{
+		  "name": "target",
+		  "type": "objectid"
+		},
+		{
+		  "name": "targetPos",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"428": {
+	  "name": "ClientItemConsumed",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "item",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"448": {
+	  "name": "UpdateShootingGalleryRotation",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "angle",
+		  "type": "float"
+		},
+		{
+		  "name": "facing",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "muzzlePos",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"466": {
+	  "name": "SetUserCtrlCompPause",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bPaused",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"469": {
+	  "name": "SetTooltipFlag",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bFlag",
+		  "type": "bool"
+		},
+		{
+		  "name": "iToolTip",
+		  "type": "int"
+		}
+	  ]
+	},
+	"471": {
+	  "name": "SetFlag",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bFlag",
+		  "type": "bool"
+		},
+		{
+		  "name": "iFlagID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"472": {
+	  "name": "NotifyClientFlagChange",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bFlag",
+		  "type": "bool"
+		},
+		{
+		  "name": "iFlagID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"475": {
+	  "name": "Help",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "iHelpID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"476": {
+	  "name": "VendorTransactionResult",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "iResult",
+		  "type": "int"
+		}
+	  ]
+	},
+	"486": {
+	  "name": "HasBeenCollected",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"487": {
+	  "name": "HasBeenCollectedByClient",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"499": {
+	  "name": "DespawnPet",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bDeletePet",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"505": {
+	  "name": "PlayerLoaded",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"509": {
+	  "name": "PlayerReady",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"515": {
+	  "name": "RequestLinkedMission",
+	  "network": "dupserver",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"516": {
+	  "name": "TransferToZone",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bCheckTransferAllowed",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "cloneID",
+		  "type": "cloneid",
+		  "default": "CLONEID_INVALID"
+		},
+		{
+		  "name": "pos_x",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_y",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_z",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "rot_w",
+		  "type": "float",
+		  "default": "1"
+		},
+		{
+		  "name": "rot_x",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_y",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_z",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "spawnPoint",
+		  "type": "wstr"
+		},
+		{
+		  "name": "ucInstanceType",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "zoneID",
+		  "type": "mapid",
+		  "default": "MAPID_INVALID"
+		}
+	  ]
+	},
+	"517": {
+	  "name": "TransferToZoneCheckedIM",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bIsThereaQueue",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "cloneID",
+		  "type": "cloneid",
+		  "default": "CLONEID_INVALID"
+		},
+		{
+		  "name": "pos_x",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_y",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_z",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "rot_w",
+		  "type": "float",
+		  "default": "1"
+		},
+		{
+		  "name": "rot_x",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_y",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_z",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "spawnPoint",
+		  "type": "wstr"
+		},
+		{
+		  "name": "ucInstanceType",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "zoneID",
+		  "type": "mapid",
+		  "default": "MAPID_INVALID"
+		}
+	  ]
+	},
+	"519": {
+	  "name": "InvalidZoneTransferList",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "CustomerFeedbackURL",
+		  "type": "wstr"
+		},
+		{
+		  "name": "InvalidMapTransferList",
+		  "type": "wstr"
+		},
+		{
+		  "name": "bCustomerFeedbackOnExit",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCustomerFeedbackOnInvalidMapTransfer",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"520": {
+	  "name": "MissionDialogueOK",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bIsComplete",
+		  "type": "bool"
+		},
+		{
+		  "name": "iMissionState",
+		  "type": "int"
+		},
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "responder",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"527": {
+	  "name": "TransferToLastNonInstance",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bUseLastPosition",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "pos_x",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_y",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "pos_z",
+		  "type": "float",
+		  "default": "FLT_MAX"
+		},
+		{
+		  "name": "rot_w",
+		  "type": "float",
+		  "default": "1"
+		},
+		{
+		  "name": "rot_x",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_y",
+		  "type": "float",
+		  "default": "0"
+		},
+		{
+		  "name": "rot_z",
+		  "type": "float",
+		  "default": "0"
+		}
+	  ]
+	},
+	"529": {
+	  "name": "DisplayMessageBox",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bShow",
+		  "type": "bool"
+		},
+		{
+		  "name": "callbackClient",
+		  "type": "objectid"
+		},
+		{
+		  "name": "identifier",
+		  "type": "wstr"
+		},
+		{
+		  "name": "imageID",
+		  "type": "int"
+		},
+		{
+		  "name": "text",
+		  "type": "wstr"
+		},
+		{
+		  "name": "userData",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"530": {
+	  "name": "MessageBoxRespond",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "iButton",
+		  "type": "int"
+		},
+		{
+		  "name": "identifier",
+		  "type": "wstr"
+		},
+		{
+		  "name": "userData",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"531": {
+	  "name": "ChoiceBoxRespond",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "buttonIdentifier",
+		  "type": "wstr"
+		},
+		{
+		  "name": "iButton",
+		  "type": "int"
+		},
+		{
+		  "name": "identifier",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"537": {
+	  "name": "Smash",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bIgnoreObjectVisibility",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "force",
+		  "type": "float"
+		},
+		{
+		  "name": "ghostOpacity",
+		  "type": "float"
+		},
+		{
+		  "name": "killerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"538": {
+	  "name": "UnSmash",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "builderID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "duration",
+		  "type": "float",
+		  "default": "3.0f"
+		}
+	  ]
+	},
+	"541": {
+	  "name": "SetGravityScale",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "scale",
+		  "type": "float"
+		}
+	  ]
+	},
+	"547": {
+	  "name": "PlaceModelResponse",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "position",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		},
+		{
+		  "name": "propertyPlaqueID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "response",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "rotation",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		}
+	  ]
+	},
+	"561": {
+	  "name": "SetJetPackMode",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bBypassChecks",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bDoHover",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bUse",
+		  "type": "bool"
+		},
+		{
+		  "name": "effectID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "fAirspeed",
+		  "type": "float",
+		  "default": "10"
+		},
+		{
+		  "name": "fMaxAirspeed",
+		  "type": "float",
+		  "default": "15"
+		},
+		{
+		  "name": "fVertVel",
+		  "type": "float",
+		  "default": "1"
+		},
+		{
+		  "name": "iWarningEffectID",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"565": {
+	  "name": "RegisterPetID",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "objID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"566": {
+	  "name": "RegisterPetDBID",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "petDBID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"568": {
+	  "name": "ShowActivityCountdown",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bPlayAdditionalSound",
+		  "type": "bool"
+		},
+		{
+		  "name": "bPlayCountdownSound",
+		  "type": "bool"
+		},
+		{
+		  "name": "sndName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "stateToPlaySoundOn",
+		  "type": "int"
+		}
+	  ]
+	},
+	"569": {
+	  "name": "DisplayTooltip",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "DoOrDie",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "NoRepeat",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "NoRevive",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bIsPropertyTooltip",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bShow",
+		  "type": "bool"
+		},
+		{
+		  "name": "bTranslate",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "iTime",
+		  "type": "int"
+		},
+		{
+		  "name": "id",
+		  "type": "wstr"
+		},
+		{
+		  "name": "localizeParams",
+		  "type": "LDF"
+		},
+		{
+		  "name": "strImageName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "strText",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"576": {
+	  "name": "StartActivityTime",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "startTime",
+		  "type": "float"
+		}
+	  ]
+	},
+	"602": {
+	  "name": "ActivityPause",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bPause",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"603": {
+	  "name": "UseNonEquipmentItem",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "itemToUse",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"607": {
+	  "name": "UseItemResult",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "m_ItemTemplateID",
+		  "type": "LOT"
+		},
+		{
+		  "name": "m_UseItemResult",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"638": {
+	  "name": "FetchModelMetadataRequest",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "context",
+		  "type": "int"
+		},
+		{
+		  "name": "objectID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "requestorID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "ugID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"639": {
+	  "name": "FetchModelMetadataResponse",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"640": {
+	  "name": "CommandPet",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "GenericPosInfo",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "ObjIDSource",
+		  "type": "objectid"
+		},
+		{
+		  "name": "iPetCommandType",
+		  "type": "int"
+		},
+		{
+		  "name": "iTypeID",
+		  "type": "int"
+		},
+		{
+		  "name": "overrideObey",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"641": {
+	  "name": "PetResponse",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "ObjIDPet",
+		  "type": "objectid"
+		},
+		{
+		  "name": "iPetCommandType",
+		  "type": "int"
+		},
+		{
+		  "name": "iResponse",
+		  "type": "int"
+		},
+		{
+		  "name": "iTypeID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"648": {
+	  "name": "RequestActivitySummaryLeaderboardData",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "gameID",
+		  "type": "int",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "queryType",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "resultsEnd",
+		  "type": "int",
+		  "default": "10"
+		},
+		{
+		  "name": "resultsStart",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "target",
+		  "type": "objectid"
+		},
+		{
+		  "name": "weekly",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"649": {
+	  "name": "SendActivitySummaryLeaderboardData",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "gameID",
+		  "type": "int"
+		},
+		{
+		  "name": "infoType",
+		  "type": "int"
+		},
+		{
+		  "name": "leaderboardData",
+		  "type": "LDF"
+		},
+		{
+		  "name": "throttled",
+		  "type": "bool"
+		},
+		{
+		  "name": "weekly",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"659": {
+	  "name": "ClientNotifyPet",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "ObjIDSource",
+		  "type": "objectid"
+		},
+		{
+		  "name": "iPetNotificationType",
+		  "type": "int"
+		}
+	  ]
+	},
+	"660": {
+	  "name": "NotifyPet",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "ObjIDSource",
+		  "type": "objectid"
+		},
+		{
+		  "name": "ObjToNotifyPetAbout",
+		  "type": "objectid"
+		},
+		{
+		  "name": "iPetNotificationType",
+		  "type": "int"
+		}
+	  ]
+	},
+	"661": {
+	  "name": "NotifyPetTamingMinigame",
+	  "network": "dupclient",
+	  "enums": {
+		"eNotifyType": [
+		  "SUCCESS",
+		  "QUIT",
+		  "FAILED",
+		  "BEGIN",
+		  "READY",
+		  "NAMINGPET"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "PetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "PlayerTamingID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "bForceTeleport",
+		  "type": "bool"
+		},
+		{
+		  "name": "notifyType",
+		  "type": "eNotifyType"
+		},
+		{
+		  "name": "petsDestPos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "telePos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "teleRot",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		}
+	  ]
+	},
+	"662": {
+	  "name": "StartServerPetMinigameTimer",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"663": {
+	  "name": "ClientExitTamingMinigame",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bVoluntaryExit",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"667": {
+	  "name": "PetTamingMinigameResult",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bSuccess",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"668": {
+	  "name": "PetTamingTryBuildResult",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bSuccess",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "iNumCorrect",
+		  "type": "int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"673": {
+	  "name": "NotifyTamingBuildSuccess",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "BuildPosition",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"674": {
+	  "name": "NotifyTamingModelLoadedOnServer",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"675": {
+	  "name": "NotifyPetTamingPuzzleSelected",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"681": {
+	  "name": "AddPetToPlayer",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "iElementalType",
+		  "type": "int"
+		},
+		{
+		  "name": "name",
+		  "type": "wstr"
+		},
+		{
+		  "name": "petDBID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "petLOT",
+		  "type": "LOT"
+		}
+	  ]
+	},
+	"683": {
+	  "name": "RequestSetPetName",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "name",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"684": {
+	  "name": "SetPetName",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "name",
+		  "type": "wstr"
+		},
+		{
+		  "name": "petDBID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"686": {
+	  "name": "PetNameChanged",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "moderationStatus",
+		  "type": "int"
+		},
+		{
+		  "name": "name",
+		  "type": "wstr"
+		},
+		{
+		  "name": "ownerName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"692": {
+	  "name": "ShowPetActionButton",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "ButtonLabel",
+		  "type": "int"
+		},
+		{
+		  "name": "bShow",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"693": {
+	  "name": "SetEmoteLockState",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bLock",
+		  "type": "bool"
+		},
+		{
+		  "name": "emoteID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"703": {
+	  "name": "UseItemRequirementsResponse",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "eUseResponse",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"713": {
+	  "name": "PlayEmbeddedEffectOnAllClientsNearObject",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "effectName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "fromObjectID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "radius",
+		  "type": "float"
+		}
+	  ]
+	},
+	"716": {
+	  "name": "DownloadPropertyData",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"717": {
+	  "name": "QueryPropertyData",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"724": {
+	  "name": "PropertyEditorBegin",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "distanceType",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "propertyObjectID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "startMode",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "startPaused",
+		  "type": "bool",
+		  "default": "0"
+		}
+	  ]
+	},
+	"725": {
+	  "name": "PropertyEditorEnd",
+	  "network": "dupserver",
+	  "params": [
+	  ]
+	},
+	"737": {
+	  "name": "NotifyClientZoneObject",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "name",
+		  "type": "wstr"
+		},
+		{
+		  "name": "param1",
+		  "type": "int"
+		},
+		{
+		  "name": "param2",
+		  "type": "int"
+		},
+		{
+		  "name": "paramObj",
+		  "type": "objectid"
+		},
+		{
+		  "name": "paramStr",
+		  "type": "str"
+		}
+	  ]
+	},
+	"746": {
+	  "name": "UpdateReputation",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "iReputation",
+		  "type": "__int64"
+		}
+	  ]
+	},
+	"750": {
+	  "name": "PropertyRentalResponse",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "cloneid",
+		  "type": "cloneid"
+		},
+		{
+		  "name": "code",
+		  "type": "int"
+		},
+		{
+		  "name": "propertyID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "rentdue",
+		  "type": "__int64"
+		}
+	  ]
+	},
+	"760": {
+	  "name": "RequestPlatformResync",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"761": {
+	  "name": "PlatformResync",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bReverse",
+		  "type": "bool"
+		},
+		{
+		  "name": "bStopAtDesiredWaypoint",
+		  "type": "bool"
+		},
+		{
+		  "name": "eCommand",
+		  "type": "int"
+		},
+		{
+		  "name": "eState",
+		  "type": "int"
+		},
+		{
+		  "name": "eUnexpectedCommand",
+		  "type": "int"
+		},
+		{
+		  "name": "fIdleTimeElapsed",
+		  "type": "float"
+		},
+		{
+		  "name": "fMoveTimeElapsed",
+		  "type": "float"
+		},
+		{
+		  "name": "fPercentBetweenPoints",
+		  "type": "float"
+		},
+		{
+		  "name": "iDesiredWaypointIndex",
+		  "type": "int"
+		},
+		{
+		  "name": "iIndex",
+		  "type": "int"
+		},
+		{
+		  "name": "iNextIndex",
+		  "type": "int"
+		},
+		{
+		  "name": "ptUnexpectedLocation",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "qUnexpectedRotation",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		}
+	  ]
+	},
+	"762": {
+	  "name": "PlayCinematic",
+	  "network": "client",
+	  "enums": {
+		"EndBehavior": [
+		  "RETURN",
+		  "WAIT"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "allowGhostUpdates",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bCloseMultiInteract",
+		  "type": "bool"
+		},
+		{
+		  "name": "bSendServerNotify",
+		  "type": "bool"
+		},
+		{
+		  "name": "bUseControlledObjectForAudioListener",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "endBehavior",
+		  "type": "EndBehavior",
+		  "default": "RETURN"
+		},
+		{
+		  "name": "hidePlayerDuringCine",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "leadIn",
+		  "type": "float",
+		  "default": "-1.0f"
+		},
+		{
+		  "name": "leavePlayerLockedWhenFinished",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "lockPlayer",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "result",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "skipIfSamePath",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "startTimeAdvance",
+		  "type": "float"
+		}
+	  ]
+	},
+	"763": {
+	  "name": "EndCinematic",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "leadOut",
+		  "type": "float",
+		  "default": "-1.0f"
+		},
+		{
+		  "name": "leavePlayerLocked",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"764": {
+	  "name": "CinematicUpdate",
+	  "network": "dupserver",
+	  "enums": {
+		"CinematicEvent": [
+		  "STARTED",
+		  "WAYPOINT",
+		  "ENDED"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "event",
+		  "type": "CinematicEvent",
+		  "default": "STARTED"
+		},
+		{
+		  "name": "overallTime",
+		  "type": "float",
+		  "default": "-1.0f"
+		},
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "pathTime",
+		  "type": "float",
+		  "default": "-1.0f"
+		},
+		{
+		  "name": "waypoint",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"767": {
+	  "name": "ToggleGhostReferenceOverride",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "override",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"768": {
+	  "name": "SetGhostReferencePosition",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "pos",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"770": {
+	  "name": "FireEventServerSide",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "args",
+		  "type": "wstr"
+		},
+		{
+		  "name": "param1",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "param2",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "param3",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "senderID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"781": {
+	  "name": "ScriptNetworkVarUpdate",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "tableOfVars",
+		  "type": "LDF"
+		}
+	  ]
+	},
+	"793": {
+	  "name": "UpdateModelFromClient",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "modelID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "position",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "rotation",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		}
+	  ]
+	},
+	"794": {
+	  "name": "DeleteModelFromClient",
+	  "network": "dupserver",
+	  "enums": {
+		"DeleteReason": [
+		  "PICKING_MODEL_UP",
+		  "RETURNING_MODEL_TO_INVENTORY",
+		  "BREAKING_MODEL_APART"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "modelID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "reason",
+		  "type": "DeleteReason",
+		  "default": "PICKING_MODEL_UP"
+		}
+	  ]
+	},
+	"821": {
+	  "name": "PlayNDAudioEmitter",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "m_NDAudioCallbackMessageData",
+		  "type": "__int64",
+		  "default": "0"
+		},
+		{
+		  "name": "m_NDAudioEmitterID",
+		  "type": "NDAudio::TNDAudioID",
+		  "default": "NDAudio::g_NDAudioIDNone"
+		},
+		{
+		  "name": "m_NDAudioEventGUID",
+		  "type": "str"
+		},
+		{
+		  "name": "m_NDAudioMetaEventName",
+		  "type": "str"
+		},
+		{
+		  "name": "m_Result",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "m_TargetObjectIDForNDAudioCallbackMessages",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"822": {
+	  "name": "StopNDAudioEmitter",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "m_AllowNativeFadeOut",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "m_NDAudioEmitterID",
+		  "type": "NDAudio::TNDAudioID",
+		  "default": "NDAudio::g_NDAudioIDNone"
+		},
+		{
+		  "name": "m_NDAudioEventGUID",
+		  "type": "str"
+		},
+		{
+		  "name": "m_NDAudioMetaEventName",
+		  "type": "str"
+		},
+		{
+		  "name": "m_Result",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"840": {
+	  "name": "EnterProperty1",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "index",
+		  "type": "int"
+		},
+		{
+		  "name": "returnToZone",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"842": {
+	  "name": "PropertyEntranceSync",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bIncludeNullAddress",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIncludeNullDescription",
+		  "type": "bool"
+		},
+		{
+		  "name": "bPlayersOwn",
+		  "type": "bool"
+		},
+		{
+		  "name": "bUpdateUI",
+		  "type": "bool"
+		},
+		{
+		  "name": "lNumResults",
+		  "type": "int"
+		},
+		{
+		  "name": "lReputationTime",
+		  "type": "int"
+		},
+		{
+		  "name": "lSortMethod",
+		  "type": "int"
+		},
+		{
+		  "name": "lStartIndex",
+		  "type": "int"
+		},
+		{
+		  "name": "sfilterText",
+		  "type": "str"
+		}
+	  ]
+	},
+	"845": {
+	  "name": "PropertySelectQuery",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"850": {
+	  "name": "ParseChatMessage",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "iClientState",
+		  "type": "int"
+		},
+		{
+		  "name": "wsString",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"851": {
+	  "name": "SetMissionTypeState",
+	  "network": "dup",
+	  "enums": {
+		"EMissionLockState": [
+		  "LOCKED",
+		  "NEW",
+		  "UNLOCKED"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "state",
+		  "type": "EMissionLockState",
+		  "default": "NEW"
+		},
+		{
+		  "name": "subtype",
+		  "type": "str"
+		},
+		{
+		  "name": "type",
+		  "type": "str"
+		}
+	  ]
+	},
+	"858": {
+	  "name": "BroadcastTextToChatbox",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "attrs",
+		  "type": "LDF"
+		},
+		{
+		  "name": "wsText",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"861": {
+	  "name": "OpenPropertyVendor",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"868": {
+	  "name": "ClientTradeRequest",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bNeedInvitePopUp",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "i64Invitee",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"870": {
+	  "name": "ServerTradeInvite",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bNeedInvitePopUp",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "i64Requestor",
+		  "type": "objectid"
+		},
+		{
+		  "name": "wsName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"873": {
+	  "name": "ServerTradeInitialReply",
+	  "network": "client",
+	  "enums": {
+		"eResultType": [
+		  "NOTFOUND",
+		  "INVITESENT",
+		  "OUTOFRANGE",
+		  "ALREADYTRADING",
+		  "GENERALERROR"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "i64Invitee",
+		  "type": "objectid"
+		},
+		{
+		  "name": "resultType",
+		  "type": "eResultType"
+		},
+		{
+		  "name": "wsName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"874": {
+	  "name": "ServerTradeFinalReply",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bResult",
+		  "type": "bool"
+		},
+		{
+		  "name": "i64Invitee",
+		  "type": "objectid"
+		},
+		{
+		  "name": "wsName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"875": {
+	  "name": "ClientTradeUpdate",
+	  "network": "server",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"877": {
+	  "name": "ServerTradeUpdate",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"878": {
+	  "name": "ClientTradeCancel",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"880": {
+	  "name": "ClientTradeAccept",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bFirst",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"884": {
+	  "name": "ServerTradeAccept",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bFirst",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"888": {
+	  "name": "ReadyForUpdates",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "objectID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"890": {
+	  "name": "SetLastCustomBuild",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "tokenizedLOTList",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"891": {
+	  "name": "GetLastCustomBuild",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "tokenizedLOTList",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"903": {
+	  "name": "SetIgnoreProjectileCollision",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bShouldIgnore",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"905": {
+	  "name": "OrientToObject",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "objID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"906": {
+	  "name": "OrientToPosition",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "ni3Posit",
+		  "type": "Vector3"
+		}
+	  ]
+	},
+	"907": {
+	  "name": "OrientToAngle",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bRelativeToCurrent",
+		  "type": "bool"
+		},
+		{
+		  "name": "fAngle",
+		  "type": "float"
+		}
+	  ]
+	},
+	"913": {
+	  "name": "PropertyBuildModeUpdate",
+	  "network": "dupclient",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"915": {
+	  "name": "PropertyModerationAction",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "characterID",
+		  "type": "objectid",
+		  "default": "0"
+		},
+		{
+		  "name": "info",
+		  "type": "wstr"
+		},
+		{
+		  "name": "newModerationStatus",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"917": {
+	  "name": "PropertyModerationStatusUpdate",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "newModerationStatus",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "rejectionReason",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"932": {
+	  "name": "BounceNotification",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "ObjIDBounced",
+		  "type": "objectid"
+		},
+		{
+		  "name": "ObjIDBouncer",
+		  "type": "objectid"
+		},
+		{
+		  "name": "bSuccess",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"934": {
+	  "name": "RequestClientBounce",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "BounceTargetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "BounceTargetPosOnServer",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "BouncedObjLinVel",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "RequestSourceID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "bAllBounced",
+		  "type": "bool"
+		},
+		{
+		  "name": "bAllowClientOverride",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"942": {
+	  "name": "BouncerActiveStatus",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bActive",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"957": {
+	  "name": "MoveInventoryBatch",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bAllowPartial",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bOutSuccess",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "count",
+		  "type": "unsigned int",
+		  "default": "1"
+		},
+		{
+		  "name": "dstBag",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "moveLOT",
+		  "type": "LOT",
+		  "default": "LOT_NULL"
+		},
+		{
+		  "name": "moveSubkey",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "showFlyingLoot",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "srcBag",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "startObjectID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"980": {
+	  "name": "ObjectActivatedClient",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "activatorID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "objectActivatedID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"996": {
+	  "name": "SetBBBAutosave",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "lxfmlDataCompressed",
+		  "type": "BinaryBuffer"
+		}
+	  ]
+	},
+	"1000": {
+	  "name": "BBBLoadItemRequest",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "itemID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1001": {
+	  "name": "BBBSaveRequest",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "localID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "lxfmlDataCompressed",
+		  "type": "BinaryBuffer"
+		},
+		{
+		  "name": "timeTakenInMS",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1004": {
+	  "name": "BBBResetMetadataSourceItem",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1042": {
+	  "name": "NotifyClientObject",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "name",
+		  "type": "wstr"
+		},
+		{
+		  "name": "param1",
+		  "type": "int"
+		},
+		{
+		  "name": "param2",
+		  "type": "int"
+		},
+		{
+		  "name": "paramObj",
+		  "type": "objectid"
+		},
+		{
+		  "name": "paramStr",
+		  "type": "str"
+		}
+	  ]
+	},
+	"1043": {
+	  "name": "DisplayZoneSummary",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "isPropertyMap",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "isZoneStart",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "sender",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1044": {
+	  "name": "ZoneSummaryDismissed",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1046": {
+	  "name": "ModifyPlayerZoneStatistic",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bSet",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "statName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "statValue",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "zoneID",
+		  "type": "mapid",
+		  "default": "MAPID_INVALID"
+		}
+	  ]
+	},
+	"1053": {
+	  "name": "ActivityStateChangeRequest",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "i64ObjID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "iNumValue1",
+		  "type": "int"
+		},
+		{
+		  "name": "iNumValue2",
+		  "type": "int"
+		},
+		{
+		  "name": "wsStringValue",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1057": {
+	  "name": "StartBuildingWithItem",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bFirstTime",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bSuccess",
+		  "type": "bool"
+		},
+		{
+		  "name": "sourceBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "sourceID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "sourceLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "sourceTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "targetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "targetLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "targetPOS",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "targetTYPE",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1061": {
+	  "name": "StartArrangingWithItem",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bFirstTime",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "buildAreaID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "buildStartPOS",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "sourceBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "sourceID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "sourceLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "sourceTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "targetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "targetLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "targetPOS",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "targetTYPE",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1062": {
+	  "name": "FinishArrangingWithItem",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "buildAreaID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "newSourceBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "newSourceID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "newSourceLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "newSourceTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "newTargetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "newTargetLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "newTargetTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "newtargetPOS",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "oldItemBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "oldItemID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "oldItemLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "oldItemTYPE",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1063": {
+	  "name": "DoneArrangingWithItem",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "newSourceBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "newSourceID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "newSourceLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "newSourceTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "newTargetID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "newTargetLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "newTargetTYPE",
+		  "type": "int"
+		},
+		{
+		  "name": "newtargetPOS",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "oldItemBAG",
+		  "type": "int"
+		},
+		{
+		  "name": "oldItemID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "oldItemLOT",
+		  "type": "LOT"
+		},
+		{
+		  "name": "oldItemTYPE",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1068": {
+	  "name": "SetBuildMode",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bStart",
+		  "type": "bool"
+		},
+		{
+		  "name": "distanceType",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "modePaused",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "modeValue",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "startPos",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"1069": {
+	  "name": "BuildModeSet",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bStart",
+		  "type": "bool"
+		},
+		{
+		  "name": "distanceType",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "modePaused",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "modeValue",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "startPos",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"1072": {
+	  "name": "BuildExitConfirmation",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1073": {
+	  "name": "SetBuildModeConfirmed",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bStart",
+		  "type": "bool"
+		},
+		{
+		  "name": "bWarnVisitors",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "modePaused",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "modeValue",
+		  "type": "int",
+		  "default": "1"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "startPos",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"1075": {
+	  "name": "BuildModeNotificationReport",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bStart",
+		  "type": "bool"
+		},
+		{
+		  "name": "numSent",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1077": {
+	  "name": "SetModelToBuild",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "templateID",
+		  "type": "LOT",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"1078": {
+	  "name": "SpawnModelBricks",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "amount",
+		  "type": "float",
+		  "default": "0.0f"
+		},
+		{
+		  "name": "pos",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"1081": {
+	  "name": "NotifyClientFailedPrecondition",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "FailedReason",
+		  "type": "wstr"
+		},
+		{
+		  "name": "PreconditionID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1093": {
+	  "name": "MoveItemBetweenInventoryTypes",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "inventoryTypeA",
+		  "type": "int"
+		},
+		{
+		  "name": "inventoryTypeB",
+		  "type": "int"
+		},
+		{
+		  "name": "objectID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "showFlyingLoot",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "stackCount",
+		  "type": "unsigned int",
+		  "default": "1"
+		},
+		{
+		  "name": "templateID",
+		  "type": "LOT",
+		  "default": "LOT_NULL"
+		}
+	  ]
+	},
+	"1097": {
+	  "name": "ModularBuildFinish",
+	  "network": "dupserver",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1129": {
+	  "name": "MissionDialogueCancelled",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bIsComplete",
+		  "type": "bool"
+		},
+		{
+		  "name": "iMissionState",
+		  "type": "int"
+		},
+		{
+		  "name": "missionID",
+		  "type": "int"
+		},
+		{
+		  "name": "responder",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1131": {
+	  "name": "ModuleAssemblyDBDataForClient",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "assemblyID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "blob",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1132": {
+	  "name": "ModuleAssemblyQueryData",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1144": {
+	  "name": "EchoSyncSkill",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bDone",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		},
+		{
+		  "name": "uiBehaviorHandle",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "uiSkillHandle",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1145": {
+	  "name": "SyncSkill",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bDone",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		},
+		{
+		  "name": "uiBehaviorHandle",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "uiSkillHandle",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1148": {
+	  "name": "RequestServerProjectileImpact",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "i64LocalID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "i64TargetID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		}
+	  ]
+	},
+	"1151": {
+	  "name": "DoClientProjectileImpact",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "i64OrgID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "i64OwnerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "i64TargetID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "sBitStream",
+		  "type": "str"
+		}
+	  ]
+	},
+	"1165": {
+	  "name": "SetPlayerAllowedRespawn",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "dontPromptForRespawn",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"1166": {
+	  "name": "ToggleSendingPositionUpdates",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bSendUpdates",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1170": {
+	  "name": "PlacePropertyModel",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "modelID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1184": {
+	  "name": "UIMessageServerToSingleClient",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "args",
+		  "type": "AMF3"
+		},
+		{
+		  "name": "strMessageName",
+		  "type": "str"
+		}
+	  ]
+	},
+	"1197": {
+	  "name": "PetTamingTryBuild",
+	  "network": "server",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1206": {
+	  "name": "UncastSkill",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "skillID",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1213": {
+	  "name": "FireEventClientSide",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "args",
+		  "type": "wstr"
+		},
+		{
+		  "name": "object",
+		  "type": "objectid"
+		},
+		{
+		  "name": "param1",
+		  "type": "__int64",
+		  "default": "0"
+		},
+		{
+		  "name": "param2",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "senderID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1223": {
+	  "name": "ChangeObjectWorldState",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "newState",
+		  "type": "eObjectWorldState",
+		  "default": "WORLDSTATE_INWORLD"
+		}
+	  ]
+	},
+	"1230": {
+	  "name": "VehicleLockInput",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bLockWheels",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bLockedPowerslide",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "fLockedX",
+		  "type": "float",
+		  "default": "0.0f"
+		},
+		{
+		  "name": "fLockedY",
+		  "type": "float",
+		  "default": "0.0f"
+		}
+	  ]
+	},
+	"1231": {
+	  "name": "VehicleUnlockInput",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bLockWheels",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1238": {
+	  "name": "ResyncEquipment",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1252": {
+	  "name": "RacingResetPlayerToLastReset",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1254": {
+	  "name": "RacingSetPlayerResetInfo",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "currentLap",
+		  "type": "int"
+		},
+		{
+		  "name": "furthestResetPlane",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "respawnPos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "upcomingPlane",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1255": {
+	  "name": "RacingPlayerInfoResetFinished",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1260": {
+	  "name": "LockNodeRotation",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "nodeName",
+		  "type": "str"
+		}
+	  ]
+	},
+	"1273": {
+	  "name": "VehicleSetWheelLockState",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "bExtraFriction",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bLocked",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1276": {
+	  "name": "NotifyVehicleOfRacingObject",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "racingObjectID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1296": {
+	  "name": "PlayerReachedRespawnCheckpoint",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "pos",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "rot",
+		  "type": "Quaternion",
+		  "default": "Quaternion::IDENTITY"
+		}
+	  ]
+	},
+	"1300": {
+	  "name": "HandleUGCEquipPostDeleteBasedOnEditMode",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "invItem",
+		  "type": "objectid"
+		},
+		{
+		  "name": "itemsTotal",
+		  "type": "int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"1301": {
+	  "name": "HandleUGCEquipPreCreateBasedOnEditMode",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "modelCount",
+		  "type": "int"
+		},
+		{
+		  "name": "modelID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1305": {
+	  "name": "PropertyContentsFromClient",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "queryDB",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1306": {
+	  "name": "GetModelsOnProperty",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1308": {
+	  "name": "MatchRequest",
+	  "network": "server",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1309": {
+	  "name": "MatchResponse",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "response",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1310": {
+	  "name": "MatchUpdate",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "data",
+		  "type": "LDF"
+		},
+		{
+		  "name": "type",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1338": {
+	  "name": "ChangeIdleFlags",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "off",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "on",
+		  "type": "int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"1340": {
+	  "name": "VehicleAddPassiveBoostAction",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"1341": {
+	  "name": "VehicleRemovePassiveBoostAction",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"1342": {
+	  "name": "VehicleNotifyServerAddPassiveBoostAction",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1343": {
+	  "name": "VehicleNotifyServerRemovePassiveBoostAction",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1370": {
+	  "name": "ZonePropertyModelRotated",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "propertyID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1371": {
+	  "name": "ZonePropertyModelRemovedWhileEquipped",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "propertyID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1372": {
+	  "name": "ZonePropertyModelEquipped",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "propertyID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1390": {
+	  "name": "NotifyRacingClient",
+	  "network": "client",
+	  "enums": {
+		"eRacingClientNotificationType": [
+		  "INVALID",
+		  "ACTIVITY_START",
+		  "REWARD_PLAYER",
+		  "EXIT",
+		  "REPLAY",
+		  "REMOVE_PLAYER",
+		  "LEADERBOARD_UPDATED"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "EventType",
+		  "type": "eRacingClientNotificationType",
+		  "default": "INVALID"
+		},
+		{
+		  "name": "param1",
+		  "type": "int"
+		},
+		{
+		  "name": "paramObj",
+		  "type": "objectid"
+		},
+		{
+		  "name": "paramStr",
+		  "type": "wstr"
+		},
+		{
+		  "name": "singleClient",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1392": {
+	  "name": "RacingPlayerLoaded",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "vehicleID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1393": {
+	  "name": "RacingClientReady",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "playerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1406": {
+	  "name": "ResetPropertyBehaviors",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bForce",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bPause",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1409": {
+	  "name": "SetConsumableItem",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "itemTemplateID",
+		  "type": "LOT"
+		}
+	  ]
+	},
+	"1419": {
+	  "name": "UsedInformationPlaque",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "i64Plaque",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1435": {
+	  "name": "SetStatusImmunity",
+	  "network": "dupclient",
+	  "enums": {
+		"EImmunityState": [
+		  "PUSH",
+		  "POP"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "StateChangeType",
+		  "type": "EImmunityState"
+		},
+		{
+		  "name": "bImmuneToBasicAttack",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToDOT",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToImaginationGain",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToImaginationLoss",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToInterrupt",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToKnockback",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToPullToPoint",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToQuickbuildInterrupt",
+		  "type": "bool"
+		},
+		{
+		  "name": "bImmuneToSpeed",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"1438": {
+	  "name": "ActivateBrickMode",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "buildObjectID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "buildType",
+		  "type": "EBuildType",
+		  "default": "BUILD_ON_PROPERTY"
+		},
+		{
+		  "name": "enterBuildFromWorld",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "enterFlag",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1448": {
+	  "name": "SetPetNameModerated",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "PetDBID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "nModerationStatus",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1451": {
+	  "name": "CancelSkillCast",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"1459": {
+	  "name": "ModifyLegoScore",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "score",
+		  "type": "__int64"
+		},
+		{
+		  "name": "sourceType",
+		  "type": "int",
+		  "default": "LOOTTYPE_NONE"
+		}
+	  ]
+	},
+	"1468": {
+	  "name": "RestoreToPostLoadStats",
+	  "network": "dupclient",
+	  "params": [
+	  ]
+	},
+	"1471": {
+	  "name": "SetRailMovement",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "pathGoForward",
+		  "type": "bool"
+		},
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "pathStart",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "railActivatorComponentID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "railActivatorObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1472": {
+	  "name": "StartRailMovement",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bDamageImmune",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bNoAggro",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bNotifyActivator",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bShowNameBillboard",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "cameraLocked",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "collisionEnabled",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "loopSound",
+		  "type": "wstr"
+		},
+		{
+		  "name": "pathGoForward",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "pathStart",
+		  "type": "unsigned int",
+		  "default": "0"
+		},
+		{
+		  "name": "railActivatorComponentID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "railActivatorObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "startSound",
+		  "type": "wstr"
+		},
+		{
+		  "name": "stopSound",
+		  "type": "wstr"
+		},
+		{
+		  "name": "useDB",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1474": {
+	  "name": "CancelRailMovement",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bImmediate",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1476": {
+	  "name": "ClientRailMovementReady",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1477": {
+	  "name": "PlayerRailArrivedNotification",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "pathName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "waypointNumber",
+		  "type": "int"
+		}
+	  ]
+	},
+	"1478": {
+	  "name": "NotifyRailActivatorStateChange",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "bActive",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1479": {
+	  "name": "RequestRailActivatorState",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1480": {
+	  "name": "NotifyRewardMailed",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "objectID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "startPoint",
+		  "type": "Vector3"
+		},
+		{
+		  "name": "subkey",
+		  "type": "objectid"
+		},
+		{
+		  "name": "templateID",
+		  "type": "LOT"
+		}
+	  ]
+	},
+	"1481": {
+	  "name": "UpdatePlayerStatistic",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "updateID",
+		  "type": "int"
+		},
+		{
+		  "name": "updateValue",
+		  "type": "__int64",
+		  "default": "1"
+		}
+	  ]
+	},
+	"1485": {
+	  "name": "ModifyGhostingDistance",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "fDistanceScalar",
+		  "type": "float",
+		  "default": "1.0f"
+		}
+	  ]
+	},
+	"1491": {
+	  "name": "RequeryPropertyModels",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"1498": {
+	  "name": "ModularAssemblyNIFCompleted",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "objectID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1510": {
+	  "name": "NewsSendHotPropertiesinfoToClient",
+	  "network": "client",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1511": {
+	  "name": "GetHotPropertyData",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1516": {
+	  "name": "NotifyNotEnoughInvSpace",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "freeSlotsNeeded",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "inventoryType",
+		  "type": "unsigned int",
+		  "default": "INVENTORY_DEFAULT"
+		}
+	  ]
+	},
+	"1546": {
+	  "name": "NotifyPropertyOfEditMode",
+	  "network": "dup",
+	  "params": [
+		{
+		  "name": "bEditingActive",
+		  "type": "bool"
+		}
+	  ]
+	},
+	"1547": {
+	  "name": "UpdatePropertyPerformanceCost",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "performanceCost",
+		  "type": "float",
+		  "default": "0.0f"
+		}
+	  ]
+	},
+	"1553": {
+	  "name": "PropertyEntranceBegin",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"1557": {
+	  "name": "TeamSetLeader",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "i64PlayerID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1558": {
+	  "name": "TeamInviteConfirm",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bLeaderIsFreeTrial",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "i64LeaderID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "i64LeaderZoneID",
+		  "type": "zoneid"
+		},
+		{
+		  "name": "sTeamBuffer",
+		  "type": "BinaryBuffer"
+		},
+		{
+		  "name": "ucLootFlag",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "ucNumOfOtherPlayers",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "ucResponseCode",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "wsLeaderName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1559": {
+	  "name": "TeamGetStatusResponse",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "i64LeaderID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "i64LeaderZoneID",
+		  "type": "zoneid"
+		},
+		{
+		  "name": "sTeamBuffer",
+		  "type": "BinaryBuffer"
+		},
+		{
+		  "name": "ucLootFlag",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "ucNumOfOtherPlayers",
+		  "type": "unsigned char"
+		},
+		{
+		  "name": "wsLeaderName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1562": {
+	  "name": "TeamAddPlayer",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bIsFreeTrial",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bLocal",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "bNoLootOnDeath",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "i64PlayerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "wsPlayerName",
+		  "type": "wstr"
+		},
+		{
+		  "name": "zoneID",
+		  "type": "zoneid",
+		  "default": "ZONEID_INVALID"
+		}
+	  ]
+	},
+	"1563": {
+	  "name": "TeamRemovePlayer",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bDisband",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIsKicked",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIsLeaving",
+		  "type": "bool"
+		},
+		{
+		  "name": "bLocal",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "i64LeaderID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "i64PlayerID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "wsName",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1564": {
+	  "name": "TeamCreateLocal",
+	  "network": "dupclient",
+	  "custom": "",
+	  "params": [
+	  ]
+	},
+	"1577": {
+	  "name": "SetEmotesEnabled",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "bEnableEmotes",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1591": {
+	  "name": "SetResurrectRestoreValues",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "iArmorRestore",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "iHealthRestore",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "iImaginationRestore",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"1594": {
+	  "name": "SetPropertyModerationStatus",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "moderationStatus",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"1595": {
+	  "name": "UpdatePropertyModelCount",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "modelCount",
+		  "type": "unsigned int",
+		  "default": "0"
+		}
+	  ]
+	},
+	"1606": {
+	  "name": "VehicleNotifyHitImaginationServer",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "pickupObjID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "pickupSpawnerID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		},
+		{
+		  "name": "pickupSpawnerIndex",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "vehiclePosition",
+		  "type": "Vector3",
+		  "default": "Vector3::ZERO"
+		}
+	  ]
+	},
+	"1617": {
+	  "name": "VehicleStopBoost",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bAffectPassive",
+		  "type": "bool",
+		  "default": "true"
+		}
+	  ]
+	},
+	"1618": {
+	  "name": "StartCelebrationEffect",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "animation",
+		  "type": "wstr"
+		},
+		{
+		  "name": "backgroundObject",
+		  "type": "LOT",
+		  "default": "11164"
+		},
+		{
+		  "name": "cameraPathLOT",
+		  "type": "LOT",
+		  "default": "12458"
+		},
+		{
+		  "name": "celeLeadIn",
+		  "type": "float",
+		  "default": "1.0f"
+		},
+		{
+		  "name": "celeLeadOut",
+		  "type": "float",
+		  "default": "0.8f"
+		},
+		{
+		  "name": "celebrationID",
+		  "type": "int",
+		  "default": "-1"
+		},
+		{
+		  "name": "duration",
+		  "type": "float"
+		},
+		{
+		  "name": "iconID",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "mainText",
+		  "type": "wstr"
+		},
+		{
+		  "name": "mixerProgram",
+		  "type": "str"
+		},
+		{
+		  "name": "musicCue",
+		  "type": "str"
+		},
+		{
+		  "name": "pathNodeName",
+		  "type": "str"
+		},
+		{
+		  "name": "soundGUID",
+		  "type": "str"
+		},
+		{
+		  "name": "subText",
+		  "type": "wstr"
+		}
+	  ]
+	},
+	"1632": {
+	  "name": "CelebrationCompleted",
+	  "network": "dupserver",
+	  "params": [
+		{
+		  "name": "animation",
+		  "type": "wstr"
+		},
+		{
+		  "name": "celebrationID",
+		  "type": "int",
+		  "default": "-1"
+		}
+	  ]
+	},
+	"1636": {
+	  "name": "SetLocalTeam",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bIsLocal",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1642": {
+	  "name": "ServerDoneLoadingAllObjects",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"1647": {
+	  "name": "AddBuff",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bAddedByTeammate",
+		  "type": "bool"
+		},
+		{
+		  "name": "bApplyOnTeammates",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnDamageAbsorbRanOut",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnDamaged",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnDeath",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bCancelOnLogOut",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnMove",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnRemoveBuff",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "bCancelOnUI",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnUnEquip",
+		  "type": "bool"
+		},
+		{
+		  "name": "bCancelOnZone",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIgnoreImmunities",
+		  "type": "bool"
+		},
+		{
+		  "name": "bIsImmunity",
+		  "type": "bool"
+		},
+		{
+		  "name": "bUseRefCount",
+		  "type": "bool"
+		},
+		{
+		  "name": "casterID",
+		  "type": "objectid"
+		},
+		{
+		  "name": "i64AddedBy",
+		  "type": "objectid"
+		},
+		{
+		  "name": "uiBuffID",
+		  "type": "unsigned int"
+		},
+		{
+		  "name": "uiDurationMS",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1648": {
+	  "name": "RemoveBuff",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bFromRemoveBehavior",
+		  "type": "bool"
+		},
+		{
+		  "name": "bFromUnEquip",
+		  "type": "bool"
+		},
+		{
+		  "name": "bRemoveImmunity",
+		  "type": "bool"
+		},
+		{
+		  "name": "uiBuffID",
+		  "type": "unsigned int"
+		}
+	  ]
+	},
+	"1676": {
+	  "name": "PlayerSetCameraCyclingMode",
+	  "network": "client",
+	  "enums": {
+		"eCyclingMode": [
+		  "ALLOW_CYCLE_TEAMMATES",
+		  "DISALLOW_CYCLING"
+		]
+	  },
+	  "params": [
+		{
+		  "name": "bAllowCyclingWhileDeadOnly",
+		  "type": "bool",
+		  "default": "true"
+		},
+		{
+		  "name": "cyclingMode",
+		  "type": "eCyclingMode",
+		  "default": "ALLOW_CYCLE_TEAMMATES"
+		}
+	  ]
+	},
+	"1726": {
+	  "name": "SetMountInventoryID",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "inventoryMountID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	},
+	"1734": {
+	  "name": "NotifyServerLevelProcessingComplete",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1735": {
+	  "name": "NotifyLevelRewards",
+	  "network": "client",
+	  "params": [
+		{
+		  "name": "level",
+		  "type": "int"
+		},
+		{
+		  "name": "sendingRewards",
+		  "type": "bool",
+		  "default": "false"
+		}
+	  ]
+	},
+	"1746": {
+	  "name": "ServerCancelMoveSkill",
+	  "network": "server",
+	  "params": [
+	  ]
+	},
+	"1747": {
+	  "name": "ClientCancelMoveSkill",
+	  "network": "client",
+	  "params": [
+	  ]
+	},
+	"1756": {
+	  "name": "DismountComplete",
+	  "network": "server",
+	  "params": [
+		{
+		  "name": "mountID",
+		  "type": "objectid"
+		}
+	  ]
+	},
+	"1767": {
+	  "name": "MarkInventoryItemAsActive",
+	  "network": "dupclient",
+	  "params": [
+		{
+		  "name": "bActive",
+		  "type": "bool",
+		  "default": "false"
+		},
+		{
+		  "name": "iType",
+		  "type": "int",
+		  "default": "0"
+		},
+		{
+		  "name": "itemID",
+		  "type": "objectid",
+		  "default": "OBJECTID_EMPTY"
+		}
+	  ]
+	}
+  }
+}

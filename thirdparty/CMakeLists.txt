@@ -34,6 +34,9 @@ include(CMakeMariaDBLists.txt)
 # Create our third party library objects
 add_subdirectory(raknet)
 
+# Add nlohmann JSON library
+add_subdirectory(json)
+
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
 	include(FetchContent)

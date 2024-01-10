@@ -96,7 +96,7 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf" "gms.json")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
@@ -244,6 +244,7 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
+	"thirdparty/json/include"
 
 	"tests"
 	"tests/dCommonTests"
@@ -317,7 +318,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum" "nlohmann_json")
 
 # Add platform specific common libraries
 if(UNIX)

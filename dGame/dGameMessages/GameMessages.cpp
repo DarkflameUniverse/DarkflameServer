@@ -100,6 +100,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
 
+#include "GameMessage.h"
+
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -127,30 +129,15 @@ void GameMessages::SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, c
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
-	bitStream.Write(eGameMessageType::TELEPORT);
 
-	bool bIgnoreY = (pos.y == 0.0f);
-	bool bUseNavmesh = false;
-	bool bSkipAllChecks = false;
-	//float w = 1.0f;
-	//float x = 0.0f;
-	//float y = 0.0f;
-	//float z = 0.0f;
+	GameMessage msg = GameMessage(eGameMessageType::TELEPORT);
 
-	bitStream.Write(bIgnoreY);
-	bitStream.Write(bSetRotation);
-	bitStream.Write(bSkipAllChecks);
-	bitStream.Write(pos.x);
-	bitStream.Write(pos.y);
-	bitStream.Write(pos.z);
-	bitStream.Write(bUseNavmesh);
+	msg.Set("pos", pos);
+	msg.Set("x", rot.x);
+	msg.Set("y", rot.y);
+	msg.Set("z", rot.z);
 
-	bitStream.Write(rot.w != 1.0f);
-	if (rot.w != 1.0f) bitStream.Write(rot.w);
-
-	bitStream.Write(rot.x);
-	bitStream.Write(rot.y);
-	bitStream.Write(rot.z);
+	msg.Serialize(&bitStream);
 
 	SEND_PACKET;
 }
