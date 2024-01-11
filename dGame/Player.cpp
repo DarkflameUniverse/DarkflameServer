@@ -18,7 +18,38 @@
 #include "Loot.h"
 #include "eReplicaComponentType.h"
 
-std::vector<Player*> Player::m_Players = {};
+namespace {
+	std::vector<Player*> m_Players;
+};
+
+const std::vector<Player*>& Player::GetAllPlayers() {
+	return m_Players;
+}
+
+void Player::SetGhostReferencePoint(const NiPoint3& value) {
+	m_GhostReferencePoint = value;
+}
+
+void Player::SetGhostOverridePoint(const NiPoint3& value) {
+	m_GhostOverridePoint = value;
+}
+
+void Player::SetRespawnPos(const NiPoint3& position) {
+	if (!m_Character) return;
+
+	m_respawnPos = position;
+
+	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
+
+}
+
+void Player::SetRespawnRot(const NiQuaternion& rotation) {
+	m_respawnRot = rotation;
+}
+
+void Player::SetSystemAddress(const SystemAddress& value) {
+	m_SystemAddress = value;
+}
 
 Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Entity* parentEntity) : Entity(objectID, info, parentEntity) {
 	m_ParentUser = user;
@@ -32,116 +63,37 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
 	m_GhostOverride = false;
-	m_ObservedEntitiesLength = 256;
-	m_ObservedEntitiesUsed = 0;
-	m_ObservedEntities.resize(m_ObservedEntitiesLength);
+
+	int32_t initialObservedEntitiesCapacity = 256;
+	m_ObservedEntities.resize(initialObservedEntitiesCapacity);
 
 	m_Character->SetEntity(this);
 
 	const auto& iter = std::find(m_Players.begin(), m_Players.end(), this);
 
-	if (iter != m_Players.end()) {
-		return;
+	if (iter == m_Players.end()) {
+		m_Players.push_back(this);
 	}
-
-	m_Players.push_back(this);
-}
-
-User* Player::GetParentUser() const {
-	return m_ParentUser;
-}
-
-SystemAddress Player::GetSystemAddress() const {
-	return m_SystemAddress;
-}
-
-void Player::SetSystemAddress(const SystemAddress& value) {
-	m_SystemAddress = value;
-}
-
-void Player::SetRespawnPos(const NiPoint3 position) {
-	if (!m_Character) return;
-
-	m_respawnPos = position;
-
-	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
-}
-
-void Player::SetRespawnRot(const NiQuaternion rotation) {
-	m_respawnRot = rotation;
-}
-
-NiPoint3 Player::GetRespawnPosition() const {
-	return m_respawnPos;
-}
-
-NiQuaternion Player::GetRespawnRotation() const {
-	return m_respawnRot;
-}
-
-void Player::SendMail(const LWOOBJID sender, const std::string& senderName, const std::string& subject, const std::string& body, LOT attachment, uint16_t attachmentCount) const {
-	Mail::SendMail(sender, senderName, this, subject, body, attachment, attachmentCount);
-}
-
-void Player::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) {
-	const auto objid = GetObjectID();
-
-	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-		auto* entity = Game::entityManager->GetEntity(objid);
-
-		if (entity == nullptr) {
-			return;
-		}
-
-		const auto sysAddr = entity->GetSystemAddress();
-
-		auto* character = entity->GetCharacter();
-		auto* characterComponent = entity->GetComponent<CharacterComponent>();
-
-		if (character != nullptr && characterComponent != nullptr) {
-			character->SetZoneID(zoneID);
-			character->SetZoneInstance(zoneInstance);
-			character->SetZoneClone(zoneClone);
-
-			characterComponent->SetLastRocketConfig(u"");
-
-			character->SaveXMLToDatabase();
-		}
-
-		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
-
-		Game::entityManager->DestructEntity(entity);
-		return;
-		});
 }
 
 void Player::AddLimboConstruction(LWOOBJID objectId) {
-	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-
-	if (iter != m_LimboConstructions.end()) {
-		return;
+	const auto iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
+	if (iter == m_LimboConstructions.end()) {
+		m_LimboConstructions.push_back(objectId);
 	}
-
-	m_LimboConstructions.push_back(objectId);
 }
 
 void Player::RemoveLimboConstruction(LWOOBJID objectId) {
-	const auto& iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-
-	if (iter == m_LimboConstructions.end()) {
-		return;
-	}
-
-	m_LimboConstructions.erase(iter);
+	const auto iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
+	if (iter != m_LimboConstructions.end()) {
+		m_LimboConstructions.erase(iter);
+	}	
 }
 
 void Player::ConstructLimboEntities() {
-	for (const auto objectId : m_LimboConstructions) {
+	for (const auto& objectId : m_LimboConstructions) {
 		auto* entity = Game::entityManager->GetEntity(objectId);
-
-		if (entity == nullptr) {
-			continue;
-		}
+		if (!entity) continue;
 
 		Game::entityManager->ConstructEntity(entity, m_SystemAddress);
 	}
@@ -149,72 +101,28 @@ void Player::ConstructLimboEntities() {
 	m_LimboConstructions.clear();
 }
 
-std::map<LWOOBJID, Loot::Info>& Player::GetDroppedLoot() {
-	return m_DroppedLoot;
-}
-
-const NiPoint3& Player::GetGhostReferencePoint() const {
-	return m_GhostOverride ? m_GhostOverridePoint : m_GhostReferencePoint;
-}
-
-const NiPoint3& Player::GetOriginGhostReferencePoint() const {
-	return m_GhostReferencePoint;
-}
-
-void Player::SetGhostReferencePoint(const NiPoint3& value) {
-	m_GhostReferencePoint = value;
-}
-
-void Player::SetGhostOverridePoint(const NiPoint3& value) {
-	m_GhostOverridePoint = value;
-}
-
-const NiPoint3& Player::GetGhostOverridePoint() const {
-	return m_GhostOverridePoint;
-}
-
-void Player::SetGhostOverride(bool value) {
-	m_GhostOverride = value;
-}
-
-bool Player::GetGhostOverride() const {
-	return m_GhostOverride;
-}
-
 void Player::ObserveEntity(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == 0 || m_ObservedEntities[i] == id) {
-			m_ObservedEntities[i] = id;
+	for (auto& observedEntity : m_ObservedEntities) {
+		if (observedEntity == 0 || observedEntity == id) {
+			observedEntity = id;
 
 			return;
 		}
 	}
 
-	const auto index = m_ObservedEntitiesUsed++;
+	m_ObservedEntities.reserve(m_ObservedEntities.size() + 1);
 
-	if (m_ObservedEntitiesUsed > m_ObservedEntitiesLength) {
-		m_ObservedEntities.resize(m_ObservedEntitiesLength + m_ObservedEntitiesLength);
-
-		m_ObservedEntitiesLength = m_ObservedEntitiesLength + m_ObservedEntitiesLength;
-	}
-
-	m_ObservedEntities[index] = id;
+	m_ObservedEntities.push_back(id);
 }
 
 bool Player::IsObserved(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == id) {
-			return true;
-		}
-	}
-
-	return false;
+	return std::find(m_ObservedEntities.begin(), m_ObservedEntities.end(), id) != m_ObservedEntities.end();
 }
 
 void Player::GhostEntity(int32_t id) {
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		if (m_ObservedEntities[i] == id) {
-			m_ObservedEntities[i] = 0;
+	for (auto& observedEntity : m_ObservedEntities) {
+		if (observedEntity == id) {
+			observedEntity = 0;
 		}
 	}
 }
@@ -228,59 +136,44 @@ Player* Player::GetPlayer(const SystemAddress& sysAddr) {
 Player* Player::GetPlayer(const std::string& name) {
 	const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
+	Player* player = nullptr;
 	for (auto* character : characters) {
 		if (!character->IsPlayer()) continue;
 		
 		if (GeneralUtils::CaseInsensitiveStringCompare(name, character->GetCharacter()->GetName())) {
-			return dynamic_cast<Player*>(character);
+			player = dynamic_cast<Player*>(character);
 		}
 	}
 
-	return nullptr;
+	return player;
 }
 
 Player* Player::GetPlayer(LWOOBJID playerID) {
+	Player* playerToReturn = nullptr;
 	for (auto* player : m_Players) {
 		if (player->GetObjectID() == playerID) {
-			return player;
+			playerToReturn = player;
 		}
 	}
 
-	return nullptr;
-}
-
-const std::vector<Player*>& Player::GetAllPlayers() {
-	return m_Players;
-}
-
-uint64_t Player::GetDroppedCoins() {
-	return m_DroppedCoins;
-}
-
-void Player::SetDroppedCoins(uint64_t value) {
-	m_DroppedCoins = value;
+	return playerToReturn;
 }
 
 Player::~Player() {
 	LOG("Deleted player");
 
-	for (int32_t i = 0; i < m_ObservedEntitiesUsed; i++) {
-		const auto id = m_ObservedEntities[i];
+	for (auto& observedEntity : m_ObservedEntities) {
+		if (observedEntity == 0) continue;
 
-		if (id == 0) {
-			continue;
-		}
-
-		auto* entity = Game::entityManager->GetGhostCandidate(id);
-
-		if (entity != nullptr) {
-			entity->SetObservers(entity->GetObservers() - 1);
-		}
+		auto* entity = Game::entityManager->GetGhostCandidate(observedEntity);
+		if (!entity) continue;
+		
+		entity->SetObservers(entity->GetObservers() - 1);
 	}
 
 	m_LimboConstructions.clear();
 
-	const auto& iter = std::find(m_Players.begin(), m_Players.end(), this);
+	const auto iter = std::find(m_Players.begin(), m_Players.end(), this);
 
 	if (iter == m_Players.end()) {
 		return;

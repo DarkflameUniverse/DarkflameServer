@@ -1879,7 +1879,7 @@ const NiQuaternion& Entity::GetRotation() const {
 	return NiQuaternion::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position) {
+void Entity::SetPosition(const NiPoint3& position) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1907,7 +1907,7 @@ void Entity::SetPosition(NiPoint3 position) {
 	Game::entityManager->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation) {
+void Entity::SetRotation(const NiQuaternion& rotation) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
