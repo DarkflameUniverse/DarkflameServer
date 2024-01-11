@@ -461,8 +461,9 @@ void SGCannon::RemovePlayer(LWOOBJID playerID) {
 		return;
 
 	auto* character = playerObject->GetCharacter();
-	if (character != nullptr) {
-		playerObject->SendToZone(character->GetLastNonInstanceZoneID());
+	auto* characterComponent = playerObject->GetComponent<CharacterComponent>();
+	if (characterComponent && character) {
+		characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 	}
 }
 

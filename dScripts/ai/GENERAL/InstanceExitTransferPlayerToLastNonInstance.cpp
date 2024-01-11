@@ -1,6 +1,6 @@
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "GameMessages.h"
-#include "Player.h"
+#include "CharacterComponent.h"
 #include "Character.h"
 #include "dServer.h"
 #include "eTerminateType.h"
@@ -23,10 +23,8 @@ void InstanceExitTransferPlayerToLastNonInstance::OnUse(Entity* self, Entity* us
 }
 
 void InstanceExitTransferPlayerToLastNonInstance::OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	auto* player = dynamic_cast<Player*>(sender);
-	if (player == nullptr)
-		return;
-
+	if (!sender->IsPlayer()) return;
+	
 	auto* character = sender->GetCharacter();
 	if (character != nullptr) {
 		if (identifier == u"Instance_Exit" && button == 1) {
@@ -47,7 +45,8 @@ void InstanceExitTransferPlayerToLastNonInstance::OnMessageBoxResponse(Entity* s
 				}
 			}
 
-			player->SendToZone(lastInstance);
+			auto* characterComponent = sender->GetComponent<CharacterComponent>();
+			if (characterComponent) characterComponent->SendToZone(lastInstance);
 		}
 	}
 
