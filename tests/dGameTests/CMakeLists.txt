@@ -5,6 +5,9 @@ set(DGAMETEST_SOURCES
 add_subdirectory(dComponentsTests)
 list(APPEND DGAMETEST_SOURCES ${DCOMPONENTS_TESTS})
 
+add_subdirectory(dEntitiesTests)
+list(APPEND DGAMETEST_SOURCES ${DENTITIES_TESTS})
+
 add_subdirectory(dGameMessagesTests)
 list(APPEND DGAMETEST_SOURCES ${DGAMEMESSAGES_TESTS})
 

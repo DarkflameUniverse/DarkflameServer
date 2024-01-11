@@ -543,3 +543,5 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	// To allow a static cast here instead of a dynamic one.
 	return dynamic_cast<ComponentType*>(componentToReturn);
 }
+
+// TODO: Add a cast operator to convert to LWOOBJID: https://en.cppreference.com/w/cpp/language/cast_operator
