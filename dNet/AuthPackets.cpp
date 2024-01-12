@@ -95,7 +95,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	std::vector<Stamp> stamps;
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_START, 0);
 
-	LUWString usernameLUString(33);
+	LUWString usernameLUString;
 	inStream.Read(usernameLUString);
 	const auto username = usernameLUString.GetAsString();
 

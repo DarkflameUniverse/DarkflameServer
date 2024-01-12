@@ -267,7 +267,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	User* u = GetUser(sysAddr);
 	if (!u) return;
 	
-	LUWString LUWStringName(33);
+	LUWString LUWStringName;
 	uint32_t firstNameIndex;
 	uint32_t middleNameIndex;
 	uint32_t lastNameIndex;
@@ -437,7 +437,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	uint32_t charID = static_cast<uint32_t>(objectID);
 	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
 
-	LUWString LUWStringName(33);
+	LUWString LUWStringName;
 	inStream.Read(LUWStringName);
 	const auto newName = LUWStringName.GetAsString();
 
