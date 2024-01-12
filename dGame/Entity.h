@@ -106,7 +106,7 @@ public:
 
 	virtual User* GetParentUser() const;
 
-	virtual SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	virtual const SystemAddress& GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
 
 	/**
 	 * Setters
@@ -124,13 +124,13 @@ public:
 
 	void SetNetworkId(uint16_t id);
 
-	void SetPosition(NiPoint3 position);
+	void SetPosition(const NiPoint3& position);
 
-	void SetRotation(NiQuaternion rotation);
+	void SetRotation(const NiQuaternion& rotation);
 
-	virtual void SetRespawnPos(NiPoint3 position) {}
+	virtual void SetRespawnPos(const NiPoint3& position) {}
 
-	virtual void SetRespawnRot(NiQuaternion rotation) {}
+	virtual void SetRespawnRot(const NiQuaternion& rotation) {}
 
 	virtual void SetSystemAddress(const SystemAddress& value) {};
 
@@ -229,8 +229,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3::ZERO; }
+	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
 
 	void Sleep();
 	void Wake();

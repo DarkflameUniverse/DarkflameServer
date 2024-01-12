@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
-#include "Player.h"
+#include "CharacterComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
 #include "MissionComponent.h"
@@ -23,7 +23,8 @@ void BaseSurvivalServer::BasePlayerLoaded(Entity* self, Entity* player) {
 	const auto& playersIter = std::find(state.players.begin(), state.players.end(), player->GetObjectID());
 
 	if (waitingIter != state.waitingPlayers.end() || playersIter != state.players.end()) {
-		static_cast<Player*>(player)->SendToZone(player->GetCharacter()->GetLastNonInstanceZoneID());
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SendToZone(player->GetCharacter()->GetLastNonInstanceZoneID());
 
 		return;
 	}
@@ -161,8 +162,8 @@ void BaseSurvivalServer::BaseMessageBoxResponse(Entity* self, Entity* sender, in
 		if (sender->IsPlayer()) {
 			auto* character = sender->GetCharacter();
 			if (character != nullptr) {
-				auto* player = dynamic_cast<Player*>(sender);
-				player->SendToZone(character->GetLastNonInstanceZoneID());
+				auto* characterComponent = sender->GetComponent<CharacterComponent>();
+				if (characterComponent) characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 			}
 		}
 	}
