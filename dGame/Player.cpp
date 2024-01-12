@@ -3,16 +3,11 @@
 #include <ctime>
 
 #include "Character.h"
-#include "Database.h"
-#include "MissionComponent.h"
 #include "UserManager.h"
 #include "EntityManager.h"
+#include "Game.h"
 #include "Logger.h"
-#include "ZoneInstanceManager.h"
-#include "WorldPackets.h"
 #include "dZoneManager.h"
-#include "CharacterComponent.h"
-#include "Mail.h"
 #include "User.h"
 #include "CppScripts.h"
 #include "Loot.h"
@@ -57,7 +52,6 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_ParentUser->SetLoggedInChar(objectID);
 	m_GMLevel = m_Character->GetGMLevel();
 	m_SystemAddress = m_ParentUser->GetSystemAddress();
-	m_DroppedLoot = {};
 	m_DroppedCoins = 0;
 
 	m_GhostReferencePoint = NiPoint3::ZERO;
