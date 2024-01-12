@@ -20,6 +20,7 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eObjectBits.h"
+#include "CharacterComponent.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -247,7 +248,8 @@ void PropertyManagementComponent::OnStartBuilding() {
 	for (auto* player : players) {
 		if (player == ownerEntity) continue;
 
-		player->SendToZone(zoneId);
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SendToZone(zoneId);
 	}
 	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
 

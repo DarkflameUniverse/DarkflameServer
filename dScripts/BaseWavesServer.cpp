@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
-#include "Player.h"
+#include "CharacterComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
 #include "MissionComponent.h"
@@ -162,8 +162,8 @@ void BaseWavesServer::BaseMessageBoxResponse(Entity* self, Entity* sender, int32
 		if (sender->IsPlayer()) {
 			auto* character = sender->GetCharacter();
 			if (character != nullptr) {
-				auto* player = dynamic_cast<Player*>(sender);
-				player->SendToZone(character->GetLastNonInstanceZoneID());
+				auto* characterComponent = sender->GetComponent<CharacterComponent>();
+				if (characterComponent) characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 			}
 		}
 	}
