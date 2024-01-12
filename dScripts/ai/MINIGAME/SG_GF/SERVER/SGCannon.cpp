@@ -453,15 +453,10 @@ void SGCannon::SpawnNewModel(Entity* self) {
 
 void SGCannon::RemovePlayer(LWOOBJID playerID) {
 	auto* player = Game::entityManager->GetEntity(playerID);
-	if (player == nullptr)
-		return;
+	if (!player) return;
 
-	auto* playerObject = dynamic_cast<Player*>(player);
-	if (playerObject == nullptr)
-		return;
-
-	auto* character = playerObject->GetCharacter();
-	auto* characterComponent = playerObject->GetComponent<CharacterComponent>();
+	auto* character = player->GetCharacter();
+	auto* characterComponent = player->GetComponent<CharacterComponent>();
 	if (characterComponent && character) {
 		characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 	}
