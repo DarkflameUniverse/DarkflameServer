@@ -82,6 +82,7 @@
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
 #include "eMasterMessageType.h"
+#include "PlayerManager.h"
 
 #include "CDRewardCodesTable.h"
 #include "CDObjectsTable.h"
@@ -214,10 +215,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "who") {
 		ChatPackets::SendSystemMessage(
 			sysAddr,
-			u"Players in this instance: (" + GeneralUtils::to_u16string(Player::GetAllPlayers().size()) + u")"
+			u"Players in this instance: (" + GeneralUtils::to_u16string(PlayerManager::GetAllPlayers().size()) + u")"
 		);
 
-		for (auto* player : Player::GetAllPlayers()) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
 			const auto& name = player->GetCharacter()->GetName();
 
 			ChatPackets::SendSystemMessage(
@@ -473,7 +474,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "kill" && args.size() == 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Brutally murdering that player, if online on this server.");
 
-		auto* player = Player::GetPlayer(args[0]);
+		auto* player = PlayerManager::GetPlayer(args[0]);
 		if (player) {
 			player->Smash(entity->GetObjectID());
 			ChatPackets::SendSystemMessage(sysAddr, u"It has been done, do you feel good about yourself now?");
@@ -993,7 +994,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "mute" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_DEVELOPER) {
 		if (args.size() >= 1) {
-			auto* player = Player::GetPlayer(args[0]);
+			auto* player = PlayerManager::GetPlayer(args[0]);
 
 			uint32_t accountId = 0;
 			LWOOBJID characterId = 0;
@@ -1072,7 +1073,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "kick" && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {
 		if (args.size() == 1) {
-			auto* player = Player::GetPlayer(args[0]);
+			auto* player = PlayerManager::GetPlayer(args[0]);
 
 			std::u16string username = GeneralUtils::UTF8ToUTF16(args[0]);
 			if (player == nullptr) {
@@ -1090,7 +1091,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "ban" && entity->GetGMLevel() >= eGameMasterLevel::SENIOR_MODERATOR) {
 		if (args.size() == 1) {
-			auto* player = Player::GetPlayer(args[0]);
+			auto* player = PlayerManager::GetPlayer(args[0]);
 
 			uint32_t accountId = 0;
 
@@ -1303,7 +1304,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (args.size() > 1) {
 			requestedPlayerToSetLevelOf = args[1];
 
-			auto requestedPlayer = Player::GetPlayer(requestedPlayerToSetLevelOf);
+			auto requestedPlayer = PlayerManager::GetPlayer(requestedPlayerToSetLevelOf);
 
 			if (!requestedPlayer) {
 				ChatPackets::SendSystemMessage(sysAddr, u"No player found with username: (" + GeneralUtils::UTF8ToUTF16(requestedPlayerToSetLevelOf) + u").");

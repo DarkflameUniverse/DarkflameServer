@@ -13,6 +13,7 @@
 #include "QuickBuildComponent.h"
 #include "SkillComponent.h"
 #include "eEndBehavior.h"
+#include "PlayerManager.h"
 
 
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
@@ -175,7 +176,7 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 		}
 	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
 	else if (command->target == "allPlayers") {
-		for (auto* player : Player::GetAllPlayers()) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
 			entities.push_back(player);
 		}
 	} else if (command->target == "allNPCs") { /*UNUSED*/ }

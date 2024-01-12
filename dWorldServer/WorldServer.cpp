@@ -78,6 +78,7 @@
 #include "StringifiedEnum.h"
 #include "Server.h"
 #include "PositionUpdate.h"
+#include "PlayerManager.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -798,7 +799,7 @@ void HandlePacket(Packet* packet) {
 		auto* entity = Game::entityManager->GetEntity(c->GetObjectID());
 
 		if (!entity) {
-			entity = Player::GetPlayer(packet->systemAddress);
+			entity = PlayerManager::GetPlayer(packet->systemAddress);
 		}
 
 		if (entity) {
@@ -1205,7 +1206,7 @@ void HandlePacket(Packet* packet) {
 			return;
 		}
 
-		auto* entity = Player::GetPlayer(packet->systemAddress);
+		auto* entity = PlayerManager::GetPlayer(packet->systemAddress);
 
 		if (entity == nullptr) {
 			LOG("Unable to get player to parse chat moderation request");
@@ -1365,7 +1366,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 	for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
 
-		auto* entity = Player::GetPlayer(player);
+		auto* entity = PlayerManager::GetPlayer(player);
 		LOG("Saving data!");
 		if (entity != nullptr && entity->GetCharacter() != nullptr) {
 			auto* skillComponent = entity->GetComponent<SkillComponent>();

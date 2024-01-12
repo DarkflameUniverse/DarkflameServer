@@ -10,6 +10,7 @@
 #include "UserManager.h"
 #include "dConfig.h"
 #include <optional>
+#include "PlayerManager.h"
 
 Entity* GetPossessedEntity(const LWOOBJID& objId) {
 	auto* entity = Game::entityManager->GetEntity(objId);
@@ -49,7 +50,7 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 	User* toReport = nullptr;
 	switch (checkType) {
 	case CheckType::Entity: {
-		auto* player = Player::GetPlayer(sysAddr);
+		auto* player = PlayerManager::GetPlayer(sysAddr);
 		auto* entity = GetPossessedEntity(id);
 		
 		// If player exists and entity exists in world, use both for logging info.

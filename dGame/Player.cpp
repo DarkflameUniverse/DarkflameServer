@@ -12,14 +12,7 @@
 #include "CppScripts.h"
 #include "Loot.h"
 #include "eReplicaComponentType.h"
-
-namespace {
-	std::vector<Player*> m_Players;
-};
-
-const std::vector<Player*>& Player::GetAllPlayers() {
-	return m_Players;
-}
+#include "PlayerManager.h"
 
 void Player::SetGhostReferencePoint(const NiPoint3& value) {
 	m_GhostReferencePoint = value;
@@ -63,11 +56,7 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 
 	m_Character->SetEntity(this);
 
-	const auto& iter = std::find(m_Players.begin(), m_Players.end(), this);
-
-	if (iter == m_Players.end()) {
-		m_Players.push_back(this);
-	}
+	PlayerManager::AddPlayer(this);
 }
 
 void Player::AddLimboConstruction(LWOOBJID objectId) {
@@ -121,38 +110,6 @@ void Player::GhostEntity(int32_t id) {
 	}
 }
 
-Player* Player::GetPlayer(const SystemAddress& sysAddr) {
-	auto* entity = UserManager::Instance()->GetUser(sysAddr)->GetLastUsedChar()->GetEntity();
-
-	return static_cast<Player*>(entity);
-}
-
-Player* Player::GetPlayer(const std::string& name) {
-	const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
-
-	Player* player = nullptr;
-	for (auto* character : characters) {
-		if (!character->IsPlayer()) continue;
-		
-		if (GeneralUtils::CaseInsensitiveStringCompare(name, character->GetCharacter()->GetName())) {
-			player = dynamic_cast<Player*>(character);
-		}
-	}
-
-	return player;
-}
-
-Player* Player::GetPlayer(LWOOBJID playerID) {
-	Player* playerToReturn = nullptr;
-	for (auto* player : m_Players) {
-		if (player->GetObjectID() == playerID) {
-			playerToReturn = player;
-		}
-	}
-
-	return playerToReturn;
-}
-
 Player::~Player() {
 	LOG("Deleted player");
 
@@ -166,10 +123,10 @@ Player::~Player() {
 	}
 
 	m_LimboConstructions.clear();
-
-	const auto iter = std::find(m_Players.begin(), m_Players.end(), this);
-
-	if (iter == m_Players.end()) {
+	
+	// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
+	if (!PlayerManager::GetPlayer(GetObjectID())) {
+		LOG("Unable to find player to remove from manager.");
 		return;
 	}
 
@@ -189,5 +146,5 @@ Player::~Player() {
 		}
 	}
 
-	m_Players.erase(iter);
+	PlayerManager::RemovePlayer(this);
 }
