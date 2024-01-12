@@ -80,6 +80,7 @@
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
+#include "GhostComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -436,6 +437,8 @@ void Entity::Initialize() {
 		AddComponent<PlayerForcedMovementComponent>();
 
 		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+
+		AddComponent<GhostComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
