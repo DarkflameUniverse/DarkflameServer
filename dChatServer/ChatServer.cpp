@@ -20,6 +20,7 @@
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
 #include "ChatIgnoreList.h"
+#include "StringifiedEnum.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -223,7 +224,8 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
-		switch (static_cast<eChatMessageType>(packet->data[3])) {
+		eChatMessageType chat_message_type = static_cast<eChatMessageType>(packet->data[3]);
+		switch (chat_message_type) {
 		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
@@ -295,7 +297,7 @@ void HandlePacket(Packet* packet) {
 			break;
 
 		default:
-			LOG("Unknown CHAT id: %i", int(packet->data[3]));
+			LOG("Unknown/Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
 		}
 	}
 

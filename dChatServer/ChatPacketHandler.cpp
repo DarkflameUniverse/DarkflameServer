@@ -2,7 +2,6 @@
 #include "PlayerContainer.h"
 #include "Database.h"
 #include <vector>
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "Game.h"
 #include "dServer.h"
@@ -18,6 +17,7 @@
 #include "eChatInternalMessageType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
+#include "StringifiedEnum.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -78,40 +78,33 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
+
 	LWOOBJID requestorPlayerID;
-	inStream.Read(requestorPlayerID);
-	uint32_t spacing{};
-	inStream.Read(spacing);
-	std::string playerName = "";
-	uint16_t character;
-	bool noMoreLettersInName = false;
-
-	for (uint32_t j = 0; j < 33; j++) {
-		inStream.Read(character);
-		if (character == '\0') noMoreLettersInName = true;
-		if (!noMoreLettersInName) playerName.push_back(static_cast<char>(character));
-	}
-
+	LUWString playerName;
 	char isBestFriendRequest{};
+
+	inStream.Read(requestorPlayerID);
+	inStream.IgnoreBytes(4);
+	inStream.Read(playerName);
 	inStream.Read(isBestFriendRequest);
 
 	auto& requestor = Game::playerContainer.GetPlayerDataMutable(requestorPlayerID);
 	if (!requestor) {
-		LOG("No requestor player %llu sent to %s found.", requestorPlayerID, playerName.c_str());
+		LOG("No requestor player %llu sent to %s found.", requestorPlayerID, playerName.GetAsString().c_str());
 		return;
 	}
 
-	if (requestor.playerName == playerName) {
+	if (requestor.playerName == playerName.GetAsString()) {
 		SendFriendResponse(requestor, requestor, eAddFriendResponseType::MYTHRAN);
 		return;
 	};
 
-	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName);
+	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName.GetAsString());
 
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {
 		for (auto& friendDataCandidate : requestor.friends) {
-			if (friendDataCandidate.friendName != playerName) continue;
+			if (friendDataCandidate.friendName != playerName.GetAsString()) continue;
 			// Setup the needed info since you can add a best friend offline.
 			requestee.playerID = friendDataCandidate.friendID;
 			requestee.playerName = friendDataCandidate.friendName;
@@ -132,8 +125,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 	// If at this point we dont have a target, then they arent online and we cant send the request.
 	// Send the response code that corresponds to what the error is.
 	if (!requestee) {
-		requestee.playerName = playerName;
-		auto responseType = Database::Get()->GetCharacterInfo(playerName)
+		requestee.playerName = playerName.GetAsString();
+		auto responseType = Database::Get()->GetCharacterInfo(playerName.GetAsString())
 			? eAddFriendResponseType::NOTONLINE
 			: eAddFriendResponseType::INVALIDCHARACTER;
 
@@ -218,15 +211,19 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
 
-	eAddFriendResponseCode clientResponseCode = static_cast<eAddFriendResponseCode>(packet->data[0x14]);
-	std::string friendName = PacketUtils::ReadString(0x15, packet, true);
+	LWOOBJID playerID;
+	eAddFriendResponseCode clientResponseCode;
+	LUWString friendName;
+
+	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
+	inStream.Read(clientResponseCode);
+	inStream.Read(friendName);
 
 	//Now to try and find both of these:
 	auto& requestor = Game::playerContainer.GetPlayerDataMutable(playerID);
-	auto& requestee = Game::playerContainer.GetPlayerDataMutable(friendName);
+	auto& requestee = Game::playerContainer.GetPlayerDataMutable(friendName.GetAsString());
 	if (!requestor || !requestee) return;
 
 	eAddFriendResponseType serverResponseCode{};
@@ -288,13 +285,15 @@ void ChatPacketHandler::HandleFriendResponse(Packet* packet) {
 void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
+	LUWString friendName;
 	inStream.Read(playerID);
-	std::string friendName = PacketUtils::ReadString(0x14, packet, true);
+	inStream.IgnoreBytes(4);
+	inStream.Read(friendName);
 
 	//we'll have to query the db here to find the user, since you can delete them while they're offline.
 	//First, we need to find their ID:
 	LWOOBJID friendID = 0;
-	auto friendIdResult = Database::Get()->GetCharacterInfo(friendName);
+	auto friendIdResult = Database::Get()->GetCharacterInfo(friendName.GetAsString());
 	if (friendIdResult) {
 		friendID = friendIdResult->id;
 	}
@@ -316,7 +315,8 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 				break;
 			}
 		}
-		SendRemoveFriend(goonA, friendName, true);
+		auto name = friendName.GetAsString();
+		SendRemoveFriend(goonA, name, true);
 	}
 
 	auto& goonB = Game::playerContainer.GetPlayerDataMutable(friendID);
@@ -337,89 +337,106 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
+	LWOOBJID playerID;
 	inStream.Read(playerID);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	if (!sender || sender.GetIsMuted()) return;
 
-	if (!sender) return;
-
-	if (sender.GetIsMuted()) return;
-
-	inStream.SetReadOffset(0x14 * 8);
-
-	uint8_t channel = 0;
+	eChatChannel channel;
+	uint32_t size;
+	
+	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
+	inStream.Read(size);
+	inStream.IgnoreBytes(77);
 
-	std::string message = PacketUtils::ReadString(0x66, packet, true, 512);
+	LUWString message(size);
+	inStream.Read(message);
+	
+	LOG("Got a message from (%s) via [%s]: %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
 
-	LOG("Got a message from (%s) [%d]: %s", sender.playerName.c_str(), channel, message.c_str());
+	if (channel == eChatChannel::TEAM) {
+		auto* team = Game::playerContainer.GetTeam(playerID);
+		if (team == nullptr) return;
 
-	if (channel != 8) return;
+		for (const auto memberId : team->memberIDs) {
+			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
 
-	auto* team = Game::playerContainer.GetTeam(playerID);
+			if (!otherMember) return;
 
-	if (team == nullptr) return;
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+			bitStream.Write(otherMember.playerID);
 
-	for (const auto memberId : team->memberIDs) {
-		const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
+			bitStream.Write(otherMember.playerID);
+			bitStream.Write(eChatChannel::TEAM);
+			bitStream.Write<uint32_t>(0); // not used
+			bitStream.Write(LUWString(sender.playerName));
+			bitStream.Write(sender.playerID);
+			bitStream.Write<uint16_t>(0); // sourceID
+			bitStream.Write(sender.GMLevel);
+			bitStream.Write(LUWString(otherMember.playerName));
+			bitStream.Write(otherMember.GMLevel);
+			bitStream.Write(eChatMessageResponseCode::Sent);
+			bitStream.Write(message);
 
-		if (!otherMember) return;
-
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-		bitStream.Write(otherMember.playerID);
-
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
-		bitStream.Write(otherMember.playerID);
-		bitStream.Write<uint8_t>(8);
-		bitStream.Write<unsigned int>(69);
-		bitStream.Write(LUWString(sender.playerName));
-		bitStream.Write(sender.playerID);
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<uint8_t>(0); //not mythran nametag
-		bitStream.Write(LUWString(otherMember.playerName));
-		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(0); //teams?
-		bitStream.Write(LUWString(message, 512));
-
-		SystemAddress sysAddr = otherMember.sysAddr;
-		SEND_PACKET;
+			SystemAddress sysAddr = otherMember.sysAddr;
+			SEND_PACKET;
+		}
 	}
 }
 
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
-	LWOOBJID senderID = PacketUtils::ReadS64(0x08, packet);
-	std::string receiverName = PacketUtils::ReadString(0x66, packet, true);
-	std::string message = PacketUtils::ReadString(0xAA, packet, true, 512);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerID;
+	inStream.Read(playerID);
 
-	//Get the bois:
-	const auto& goonA = Game::playerContainer.GetPlayerData(senderID);
-	const auto& goonB = Game::playerContainer.GetPlayerData(receiverName);
-	if (!goonA || !goonB) return;
+	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	if (!sender || sender.GetIsMuted()) return;
 
-	if (goonA.GetIsMuted()) return;
+	eChatChannel channel;
+	uint32_t size;
+	LUWString receiverName;
+
+	inStream.IgnoreBytes(4);
+	inStream.Read(channel);
+	inStream.Read(size);
+	inStream.IgnoreBytes(77);
+	inStream.Read(receiverName);
+	inStream.IgnoreBytes(2);
+
+	LUWString message(size);
+	inStream.Read(message);
+	
+	LOG("Got a message from (%s) via [%s]: %s to %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str(), receiverName.GetAsString().c_str());
+
+	const auto& receiver = Game::playerContainer.GetPlayerData(receiverName.GetAsString());
+	if (!receiver) return; // TODO: respond with not online or error
+
+	// TODO: check if they are friends, only friends should be able to whisper/private chat
 
 	//To the sender:
 	{
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-		bitStream.Write(goonA.playerID);
+		bitStream.Write(sender.playerID);
 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
-		bitStream.Write(goonA.playerID);
-		bitStream.Write<uint8_t>(7);
-		bitStream.Write<unsigned int>(69);
-		bitStream.Write(LUWString(goonA.playerName));
-		bitStream.Write(goonA.playerID);
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<uint8_t>(0); //not mythran nametag
-		bitStream.Write(LUWString(goonB.playerName));
-		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(0); //success
-		bitStream.Write(LUWString(message, 512));
+		bitStream.Write(sender.playerID);
+		bitStream.Write(eChatChannel::PRIVATE_CHAT);
+		bitStream.Write<uint32_t>(0); // not used
+		bitStream.Write(LUWString(sender.playerName));
+		bitStream.Write(sender.playerID);
+		bitStream.Write<uint16_t>(0); // sourceID
+		bitStream.Write(sender.GMLevel);
+		bitStream.Write(LUWString(receiver.playerName));
+		bitStream.Write(receiver.GMLevel);
+		bitStream.Write(eChatMessageResponseCode::Sent);
+		bitStream.Write(message);
 
-		SystemAddress sysAddr = goonA.sysAddr;
+		SystemAddress sysAddr = sender.sysAddr;
 		SEND_PACKET;
 	}
 
@@ -427,31 +444,34 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	{
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
-		bitStream.Write(goonB.playerID);
+		bitStream.Write(receiver.playerID);
 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
-		bitStream.Write(goonA.playerID);
-		bitStream.Write<uint8_t>(7);
-		bitStream.Write<unsigned int>(69);
-		bitStream.Write(LUWString(goonA.playerName));
-		bitStream.Write(goonA.playerID);
-		bitStream.Write<uint16_t>(0);
-		bitStream.Write<uint8_t>(0); //not mythran nametag
-		bitStream.Write(LUWString(goonB.playerName));
-		bitStream.Write<uint8_t>(0); //not mythran for receiver
-		bitStream.Write<uint8_t>(3); //new whisper
-		bitStream.Write(LUWString(message, 512));
+		bitStream.Write(sender.playerID);
+		bitStream.Write(eChatChannel::PRIVATE_CHAT);
+		bitStream.Write<uint32_t>(0); // not used
+		bitStream.Write(LUWString(sender.playerName));
+		bitStream.Write(sender.playerID);
+		bitStream.Write<uint16_t>(0); // sourceID
+		bitStream.Write(sender.GMLevel);
+		bitStream.Write(LUWString(receiver.playerName));
+		bitStream.Write(receiver.GMLevel);
+		bitStream.Write(eChatMessageResponseCode::ReceivedNewWhisper);
+		bitStream.Write(message);
 
-		SystemAddress sysAddr = goonB.sysAddr;
+		SystemAddress sysAddr = receiver.sysAddr;
 		SEND_PACKET;
 	}
 }
 
 void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
+
 	LWOOBJID playerID;
+	LUWString invitedPlayer;
+
 	inStream.Read(playerID);
-	std::string invitedPlayer = PacketUtils::ReadString(0x14, packet, true);
+	inStream.Read(invitedPlayer);
 
 	const auto& player = Game::playerContainer.GetPlayerData(playerID);
 
@@ -463,7 +483,7 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 		team = Game::playerContainer.CreateTeam(playerID);
 	}
 
-	const auto& other = Game::playerContainer.GetPlayerData(invitedPlayer);
+	const auto& other = Game::playerContainer.GetPlayerData(invitedPlayer.GetAsString());
 
 	if (!other) return;
 
@@ -480,7 +500,7 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 
 	SendTeamInvite(other, player);
 
-	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.c_str());
+	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.GetAsString().c_str());
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -534,21 +554,24 @@ void ChatPacketHandler::HandleTeamLeave(Packet* packet) {
 
 void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
+
 	LWOOBJID playerID = LWOOBJID_EMPTY;
+	LUWString kickedPlayer;
+
 	inStream.Read(playerID);
+	inStream.Read(kickedPlayer);
 
-	std::string kickedPlayer = PacketUtils::ReadString(0x14, packet, true);
 
-	LOG("(%llu) kicking (%s) from team", playerID, kickedPlayer.c_str());
+	LOG("(%llu) kicking (%s) from team", playerID, kickedPlayer.GetAsString().c_str());
 
-	const auto& kicked = Game::playerContainer.GetPlayerData(kickedPlayer);
+	const auto& kicked = Game::playerContainer.GetPlayerData(kickedPlayer.GetAsString());
 
 	LWOOBJID kickedId = LWOOBJID_EMPTY;
 
 	if (kicked) {
 		kickedId = kicked.playerID;
 	} else {
-		kickedId = Game::playerContainer.GetId(GeneralUtils::UTF8ToUTF16(kickedPlayer));
+		kickedId = Game::playerContainer.GetId(kickedPlayer.string);
 	}
 
 	if (kickedId == LWOOBJID_EMPTY) return;
@@ -564,14 +587,16 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 
 void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
+
 	LWOOBJID playerID = LWOOBJID_EMPTY;
+	LUWString promotedPlayer;
+
 	inStream.Read(playerID);
+	inStream.Read(promotedPlayer);
 
-	std::string promotedPlayer = PacketUtils::ReadString(0x14, packet, true);
+	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.GetAsString().c_str());
 
-	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.c_str());
-
-	const auto& promoted = Game::playerContainer.GetPlayerData(promotedPlayer);
+	const auto& promoted = Game::playerContainer.GetPlayerData(promotedPlayer.GetAsString());
 
 	if (!promoted) return;
 

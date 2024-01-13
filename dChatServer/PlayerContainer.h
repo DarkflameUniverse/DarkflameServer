@@ -42,6 +42,8 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
+	uint8_t GMLevel = 0;
+	bool isFTP = false;
 };
 
 struct TeamData {
