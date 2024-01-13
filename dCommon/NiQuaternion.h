@@ -2,7 +2,7 @@
 #define __NIQUATERNION_H__
 
 // Custom Classes
-//#include "NiPoint3.h"
+#include "NiPoint3.h"
 
 /*!
   \file NiQuaternion.hpp
