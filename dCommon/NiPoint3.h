@@ -173,7 +173,7 @@ public:
 	}
 
 	//! Operator for subscripting
-	constexpr const float& operator[](const int i) const noexcept { // TODO: Is this redundant?
+	constexpr const float& operator[](const int i) const noexcept {
 		const float* base = &x;
 		return base[i];
 	}
