@@ -471,6 +471,7 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	LUWString invitedPlayer;
 
 	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
 	inStream.Read(invitedPlayer);
 
 	const auto& player = Game::playerContainer.GetPlayerData(playerID);
@@ -559,6 +560,7 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 	LUWString kickedPlayer;
 
 	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
 	inStream.Read(kickedPlayer);
 
 
@@ -592,6 +594,7 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
 	LUWString promotedPlayer;
 
 	inStream.Read(playerID);
+	inStream.IgnoreBytes(4);
 	inStream.Read(promotedPlayer);
 
 	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.GetAsString().c_str());
