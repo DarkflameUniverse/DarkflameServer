@@ -72,18 +72,6 @@ public:
 
 	void GhostEntity(const int32_t id);
 
-	/**
-	 * Static methods
-	 */
-
-	static Player* GetPlayer(const SystemAddress& sysAddr);
-
-	static Player* GetPlayer(const std::string& name);
-
-	static Player* GetPlayer(LWOOBJID playerID);
-
-	static const std::vector<Player*>& GetAllPlayers();
-
 	~Player() override;
 private:
 	SystemAddress m_SystemAddress;

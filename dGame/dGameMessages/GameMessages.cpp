@@ -96,6 +96,7 @@
 #include "eGameMessageType.h"
 #include "ePetAbilityType.h"
 #include "ActivityManager.h"
+#include "PlayerManager.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -2693,7 +2694,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 		filterText.push_back(c);
 	}
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 
@@ -2720,7 +2721,7 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 	inStream->Read(index);
 	inStream->Read(returnToZone);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 	if (entranceComponent != nullptr) {
@@ -4601,7 +4602,7 @@ void GameMessages::HandleToggleGhostReferenceOverride(RakNet::BitStream* inStrea
 
 	inStream->Read(bOverride);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
 		player->SetGhostOverride(bOverride);
@@ -4616,7 +4617,7 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 
 	inStream->Read(position);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
 		player->SetGhostOverridePoint(position);
@@ -4880,7 +4881,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 	inStream->Read(senderID);
 
 	auto* sender = Game::entityManager->GetEntity(senderID);
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (!player) {
 		return;

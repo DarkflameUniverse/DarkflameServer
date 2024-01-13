@@ -23,6 +23,7 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "PlayerManager.h"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -187,7 +188,7 @@ void EntityManager::SerializeEntities() {
 		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
-			for (auto* player : Player::GetAllPlayers()) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
@@ -376,7 +377,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		if (skipChecks) {
 			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		} else {
-			for (auto* player : Player::GetAllPlayers()) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->GetPlayerReadyForUpdates()) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				} else {
@@ -405,7 +406,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 		}
 	}
 
-	UpdateGhosting(Player::GetPlayer(sysAddr));
+	UpdateGhosting(PlayerManager::GetPlayer(sysAddr));
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
@@ -418,7 +419,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
-	for (auto* player : Player::GetAllPlayers()) {
+	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {
 			player->RemoveLimboConstruction(entity->GetObjectID());
 		}
@@ -465,7 +466,7 @@ void EntityManager::QueueGhostUpdate(LWOOBJID playerID) {
 
 void EntityManager::UpdateGhosting() {
 	for (const auto playerID : m_PlayersToUpdateGhosting) {
-		auto* player = Player::GetPlayer(playerID);
+		auto* player = PlayerManager::GetPlayer(playerID);
 
 		if (player == nullptr) {
 			continue;
@@ -548,7 +549,7 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 	const auto isAudioEmitter = entity->GetLOT() == 6368;
 
-	for (auto* player : Player::GetAllPlayers()) {
+	for (auto* player : PlayerManager::GetAllPlayers()) {
 		const auto& entityPoint = player->GetGhostReferencePoint();
 
 		const int32_t id = entity->GetObjectID();
