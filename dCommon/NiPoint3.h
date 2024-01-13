@@ -22,10 +22,10 @@ public:
 
 
 	//! Initializer
-	constexpr NiPoint3() noexcept {
-		this->x = 0;
-		this->y = 0;
-		this->z = 0;
+	constexpr NiPoint3() noexcept
+		: x{ 0 }
+		, y{ 0 }
+		, z{ 0 } {
 	}
 
 	//! Initializer
@@ -34,20 +34,20 @@ public:
 	  \param y The y coordinate
 	  \param z The z coordinate
 	 */
-	constexpr NiPoint3(const float x, const float y, const float z) noexcept {
-		this->x = x;
-		this->y = y;
-		this->z = z;
+	constexpr NiPoint3(const float x, const float y, const float z) noexcept
+		: x{ x }
+		, y{ y }
+		, z{ z } {
 	}
 
 	//! Copy Constructor
 	/*!
 	  \param point The point to copy
 	 */
-	constexpr NiPoint3(const NiPoint3& point) noexcept {
-		this->x = point.x;
-		this->y = point.y;
-		this->z = point.z;
+	constexpr NiPoint3(const NiPoint3& point) noexcept
+		: x{ point.x }
+		, y{ point.y }
+		, z{ point.z } {
 	}
 
 	// MARK: Constants
