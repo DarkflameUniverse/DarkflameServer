@@ -3,6 +3,7 @@
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include <unordered_set>
 
 class NiPoint3;
 
@@ -43,9 +44,9 @@ private:
 
 	NiPoint3 m_GhostOverridePoint;
 
-	std::vector<int32_t> m_ObservedEntities;
+	std::unordered_set<int32_t> m_ObservedEntities;
 
-	std::vector<LWOOBJID> m_LimboConstructions;
+	std::unordered_set<LWOOBJID> m_LimboConstructions;
 
 	bool m_GhostOverride;
 };

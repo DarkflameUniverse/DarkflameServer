@@ -1,12 +1,9 @@
 #include "GhostComponent.h"
 
-// TODO Move ghosting related code from Player to here
 GhostComponent::GhostComponent(Entity* parent) : Component(parent) {
 	m_GhostReferencePoint = NiPoint3::ZERO;
 	m_GhostOverridePoint = NiPoint3::ZERO;
 	m_GhostOverride = false;
-
-	m_ObservedEntities.resize(256);
 }
 
 GhostComponent::~GhostComponent() {
@@ -29,17 +26,11 @@ void GhostComponent::SetGhostOverridePoint(const NiPoint3& value) {
 }
 
 void GhostComponent::AddLimboConstruction(LWOOBJID objectId) {
-	const auto iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-	if (iter == m_LimboConstructions.end()) {
-		m_LimboConstructions.push_back(objectId);
-	}
+	m_LimboConstructions.insert(objectId);
 }
 
 void GhostComponent::RemoveLimboConstruction(LWOOBJID objectId) {
-	const auto iter = std::find(m_LimboConstructions.begin(), m_LimboConstructions.end(), objectId);
-	if (iter != m_LimboConstructions.end()) {
-		m_LimboConstructions.erase(iter);
-	}
+	m_LimboConstructions.erase(objectId);
 }
 
 void GhostComponent::ConstructLimboEntities() {
@@ -54,27 +45,13 @@ void GhostComponent::ConstructLimboEntities() {
 }
 
 void GhostComponent::ObserveEntity(int32_t id) {
-	for (auto& observedEntity : m_ObservedEntities) {
-		if (observedEntity == 0 || observedEntity == id) {
-			observedEntity = id;
-
-			return;
-		}
-	}
-
-	m_ObservedEntities.reserve(m_ObservedEntities.size() + 1);
-
-	m_ObservedEntities.push_back(id);
+	m_ObservedEntities.insert(id);
 }
 
 bool GhostComponent::IsObserved(int32_t id) {
-	return std::find(m_ObservedEntities.begin(), m_ObservedEntities.end(), id) != m_ObservedEntities.end();
+	return m_ObservedEntities.contains(id);
 }
 
 void GhostComponent::GhostEntity(int32_t id) {
-	for (auto& observedEntity : m_ObservedEntities) {
-		if (observedEntity == id) {
-			observedEntity = 0;
-		}
-	}
+	m_ObservedEntities.erase(id);
 }
