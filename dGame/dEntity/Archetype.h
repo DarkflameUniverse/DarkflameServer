@@ -22,9 +22,7 @@ concept IntegralType = std::is_integral_v<T>;
 template <ComponentType... CTypes>
 class Archetype final {
 public:
-	explicit Archetype(uint32_t id) noexcept {
-		m_archetypeId = id; // Set archetype ID
-
+	explicit Archetype(uint32_t id) noexcept : m_archetypeId{ id } {
 		// Reserve 16 KB of memory for the sum of all vectors ahead of time
 		constexpr size_t compBytes = (sizeof(CTypes) + ...);
 		constexpr size_t reservedBytes = 16000;

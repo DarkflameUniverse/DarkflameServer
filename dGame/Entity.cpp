@@ -95,7 +95,7 @@
 #include "CDZoneTableTable.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
-	Game::entityManager->AddEntity(objectID, this);
+	Game::entityManager->AddEntity(objectID, this); // TODO: FIX TEST CASES SO THIS CAN BE REMOVED
 
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;

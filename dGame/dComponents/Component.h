@@ -46,6 +46,14 @@ public:
 	virtual void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
 
 protected:
+	/**
+	 * Explicitly define default move and move-assignment constructors as
+	 * definition of virtual destructor prevents their implicit generation
+	*/
+	Component(const Component&) = default;
+	Component(Component&&) = default;
+	Component& operator=(const Component&) = default;
+	Component& operator=(Component&&) = default;
 
 	/**
 	 * The entity that owns this component
