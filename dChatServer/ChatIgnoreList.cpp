@@ -81,7 +81,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
-	LUWString toIgnoreName(33);
+	LUWString toIgnoreName;
 	inStream.Read(toIgnoreName);
 	std::string toIgnoreStr = toIgnoreName.GetAsString();
 
@@ -147,7 +147,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
-	LUWString removedIgnoreName(33);
+	LUWString removedIgnoreName;
 	inStream.Read(removedIgnoreName);
 	std::string removedIgnoreStr = removedIgnoreName.GetAsString();
 

@@ -4,8 +4,8 @@
 #include "CDTable.h"
 
 struct CDLevelProgressionLookup {
-	unsigned int id;                    //!< The Level ID
-	unsigned int requiredUScore;        //!< The required LEGO Score
+	uint32_t id;                    //!< The Level ID
+	uint32_t requiredUScore;        //!< The required LEGO Score
 	std::string BehaviorEffect;    //!< The behavior effect attached to this
 };
 

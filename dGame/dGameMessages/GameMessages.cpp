@@ -4659,7 +4659,7 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 
 
 void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bConfirmed{}; // this doesnt even do anything, thanks ND!
+	bool bConfirmed{}; // This doesn't appear to do anything.  Further research is needed.
 	bool countIsDefault{};
 	int count = 1;
 	LOT item;

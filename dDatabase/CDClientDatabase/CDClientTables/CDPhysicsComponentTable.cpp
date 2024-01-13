@@ -28,7 +28,7 @@ void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-CDPhysicsComponent* CDPhysicsComponentTable::GetByID(unsigned int componentID) {
+CDPhysicsComponent* CDPhysicsComponentTable::GetByID(uint32_t componentID) {
 	auto itr = m_entries.find(componentID);
 	return itr != m_entries.end() ? &itr->second : nullptr;
 }

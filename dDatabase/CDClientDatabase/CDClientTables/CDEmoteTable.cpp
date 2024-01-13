@@ -20,7 +20,7 @@ void CDEmoteTableTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-CDEmoteTable* CDEmoteTableTable::GetEmote(int id) {
+CDEmoteTable* CDEmoteTableTable::GetEmote(int32_t id) {
 	auto itr = entries.find(id);
 	return itr != entries.end() ? &itr->second : nullptr;
 }

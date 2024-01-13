@@ -4,7 +4,7 @@
 #include "CDTable.h"
 
 struct CDMovementAIComponent {
-	unsigned int id;
+	uint32_t id;
 	std::string MovementType;
 	float WanderChance;
 	float WanderDelayMin;

@@ -5,7 +5,7 @@ CDItemComponent CDItemComponentTable::Default = {};
 
 void CDItemComponentTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ItemComponent");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -69,7 +69,7 @@ void CDItemComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-const CDItemComponent& CDItemComponentTable::GetItemComponentByID(unsigned int skillID) {
+const CDItemComponent& CDItemComponentTable::GetItemComponentByID(uint32_t skillID) {
 	const auto& it = this->entries.find(skillID);
 	if (it != this->entries.end()) {
 		return it->second;

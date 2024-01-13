@@ -282,6 +282,14 @@ public:
 	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
 
 	/**
+	 * Sends a player to another zone with an optional clone ID
+	 *
+	 * @param zoneId zoneID for the new instance.
+	 * @param cloneId cloneID for the new instance.
+	 */
+	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0) const;
+
+	/**
 	 * Character info regarding this character, including clothing styles, etc.
 	 */
 	Character* m_Character;

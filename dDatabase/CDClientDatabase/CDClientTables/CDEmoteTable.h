@@ -16,11 +16,11 @@ struct CDEmoteTable {
 		gateVersion = "";
 	}
 
-	int ID;
+	int32_t ID;
 	std::string animationName;
 	std::string iconFilename;
-	int locState;
-	int channel;
+	int32_t locState;
+	int32_t channel;
 	bool locked;
 	bool localize;
 	std::string gateVersion;
@@ -33,5 +33,5 @@ private:
 public:
 	void LoadValuesFromDatabase();
 	// Returns an emote by ID
-	CDEmoteTable* GetEmote(int id);
+	CDEmoteTable* GetEmote(int32_t id);
 };

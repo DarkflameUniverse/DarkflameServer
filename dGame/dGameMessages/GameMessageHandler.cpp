@@ -196,8 +196,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 	}
 
 	case eGameMessageType::MISSION_DIALOGUE_CANCELLED: {
-		//This message is pointless for our implementation, as the client just carries on after
-		//rejecting a mission offer. We dont need to do anything. This is just here to remove a warning in our logs :)
+		// This message is pointless for our implementation, as the client just carries on after
+		// rejecting a mission offer. We dont need to do anything. This is just here to remove a warning in our logs :)
 		break;
 	}
 

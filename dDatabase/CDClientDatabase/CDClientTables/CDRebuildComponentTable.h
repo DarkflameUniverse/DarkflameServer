@@ -4,15 +4,15 @@
 #include "CDTable.h"
 
 struct CDRebuildComponent {
-	unsigned int id;                        //!< The component Id
+	uint32_t id;                        //!< The component Id
 	float reset_time;               //!< The reset time
 	float complete_time;            //!< The complete time
-	unsigned int take_imagination;          //!< The amount of imagination it costs
+	uint32_t take_imagination;          //!< The amount of imagination it costs
 	bool interruptible;             //!< Whether or not the rebuild is interruptible
 	bool self_activator;            //!< Whether or not the rebuild is a rebuild activator itself
 	std::string custom_modules;        //!< The custom modules
-	unsigned int activityID;                //!< The activity ID
-	unsigned int post_imagination_cost;     //!< The post imagination cost
+	uint32_t activityID;                //!< The activity ID
+	uint32_t post_imagination_cost;     //!< The post imagination cost
 	float time_before_smash;        //!< The time before smash
 };
 

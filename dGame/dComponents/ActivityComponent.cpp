@@ -48,18 +48,20 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 	auto* destroyableComponent = parentEntity->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent) {
-		// check for LMIs and set the loot LMIs
+		// First lookup the loot matrix id for this component id.
 		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
 
+		// If we have one, set the starting loot matrix id to that.
 		if (activityRewards.size() > 0) {
 			startingLMI = activityRewards[0].LootMatrixIndex;
 		}
 
 		if (startingLMI > 0) {
-			// now time for bodge :)
+			// We may have more than 1 loot matrix index to use depending ont the size of the team that is looting the activity.
+			// So this logic will get the rest of the loot matrix indices for this activity.
 
 			std::vector<CDActivityRewards> objectTemplateActivities = activityRewardsTable->Query([=](CDActivityRewards entry) {return (activityRewards[0].objectTemplate == entry.objectTemplate); });
 			for (const auto& item : objectTemplateActivities) {

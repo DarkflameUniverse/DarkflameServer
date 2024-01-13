@@ -10,8 +10,8 @@
 
  //! BrickIDTable Entry Struct
 struct CDBrickIDTable {
-	unsigned int NDObjectID;
-	unsigned int LEGOBrickID;
+	uint32_t NDObjectID;
+	uint32_t LEGOBrickID;
 };
 
 

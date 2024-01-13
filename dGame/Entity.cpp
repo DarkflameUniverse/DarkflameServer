@@ -80,6 +80,7 @@
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
+#include "GhostComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -438,6 +439,8 @@ void Entity::Initialize() {
 		AddComponent<PlayerForcedMovementComponent>();
 
 		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+
+		AddComponent<GhostComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
@@ -1881,7 +1884,7 @@ const NiQuaternion& Entity::GetRotation() const {
 	return NiQuaternion::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position) {
+void Entity::SetPosition(const NiPoint3& position) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1909,7 +1912,7 @@ void Entity::SetPosition(NiPoint3 position) {
 	Game::entityManager->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation) {
+void Entity::SetRotation(const NiQuaternion& rotation) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
