@@ -788,7 +788,7 @@ void CharacterComponent::AwardClaimCodes() {
 }
 
 void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
-	const auto objid = m_Parent->GetObjectID();
+	const auto objid = Game::entityManager->GetEntity(m_Parent)->GetObjectID();
 
 	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 		auto* entity = Game::entityManager->GetEntity(objid);
