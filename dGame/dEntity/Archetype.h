@@ -26,11 +26,11 @@ public:
 		m_archetypeId = id; // Set archetype ID
 
 		// Reserve 16 KB of memory for the sum of all vectors ahead of time
-		constexpr size_t averageCompBytes = (sizeof(CTypes), ...); // TODO: CHECK IF THIS IS RIGHT
+		constexpr size_t compBytes = (sizeof(CTypes) + ...);
 		constexpr size_t reservedBytes = 16000;
-		constexpr size_t reserveNumEntries = reservedBytes / averageCompBytes;
+		constexpr size_t reserveNumEntries = reservedBytes / compBytes;
 		(ComponentContainer<CTypes>().reserve(reserveNumEntries), ...);
-	};
+	}
 
 	/**
 	 * Get a reference to the component container of an archetype.
@@ -47,7 +47,7 @@ public:
 	*/
 	void CreateComponents(CTypes&&... componentArgs) {
 		(ComponentContainer<CTypes>().emplace_back(std::forward<CTypes>(componentArgs)), ...);
-	};
+	}
 
 	/**
 	 * Delete's the archetype's components at a specified container index, then moves the last element in the container to it.
@@ -57,7 +57,7 @@ public:
 	void DeleteComponents(IType index) {
 		((GetComponent<CTypes>(index) = std::move(ComponentContainer<CTypes>().back())), ...);
 		(ComponentContainer<CTypes>().pop_back(), ...);
-	};
+	}
 
 	/**
 	 * Gets a single archetype component at a specified container index.
@@ -67,7 +67,7 @@ public:
 	template <ComponentType CType, IntegralType IType>
 	CType& GetComponent(IType index) {
 		return ComponentContainer<CType>()[index];
-	};
+	}
 
 private:
 	uint32_t m_archetypeId; // The ID of the archetype
@@ -80,3 +80,4 @@ private:
 
 // TODO: IMPLEMENT COMPILE-TIME TYPE ORDERING BY eReplicaType ENUM VALUE
 // TODO: SEE WHICH FUNCTIONS CAN BE SAFELY MADE NOEXCEPT
+// TODO: CREATE CUSTOM ITERATOR

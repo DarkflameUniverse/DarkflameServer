@@ -21,11 +21,11 @@ public:
 
 
 	//! The initializer
-	constexpr NiQuaternion() noexcept {
-		this->w = 1;
-		this->x = 0;
-		this->y = 0;
-		this->z = 0;
+	constexpr NiQuaternion() noexcept
+		: w{ 1 }
+		, x{ 0 }
+		, y{ 0 }
+		, z{ 0 } {
 	}
 
 	//! The initializer
@@ -35,11 +35,11 @@ public:
 	  \param y The y coordinate
 	  \param z The z coordinate
 	 */
-	constexpr NiQuaternion(const float w, const float x, const float y, const float z) noexcept {
-		this->w = w;
-		this->x = x;
-		this->y = y;
-		this->z = z;
+	constexpr NiQuaternion(const float w, const float x, const float y, const float z) noexcept
+		: w{ w }
+		, x{ x }
+		, y{ y }
+		, z{ z } {
 	}
 
 	// MARK: Constants
