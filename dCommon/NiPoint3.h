@@ -173,7 +173,7 @@ public:
 	}
 
 	//! Operator for subscripting
-	constexpr const float& operator[](const int i) const noexcept { // TODO: Is this redundant?
+	constexpr const float& operator[](const int i) const noexcept {
 		const float* base = &x;
 		return base[i];
 	}
@@ -320,5 +320,8 @@ public:
 	}
 
 	//This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
-	NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
+	constexpr NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
 };
+
+// .inl file needed to circumvent circular dependency issues
+#include "NiPoint3.inl"

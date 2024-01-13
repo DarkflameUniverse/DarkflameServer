@@ -1,4 +1,6 @@
-#include "NiPoint3.h"
+#pragma once
+
+// This code is here to get around circular dependency issues
 #include "NiQuaternion.h"
 
 // Static Variables
@@ -8,12 +10,8 @@ constexpr const NiPoint3 NiPoint3::UNIT_Y(0.0f, 1.0f, 0.0f);
 constexpr const NiPoint3 NiPoint3::UNIT_Z(0.0f, 0.0f, 1.0f);
 constexpr const NiPoint3 NiPoint3::UNIT_ALL(1.0f, 1.0f, 1.0f);
 
-
-// MARK: Helper Functions
-
 //This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
-//This had to be moved from the header file because otherwise it causes a nasty circular dependency
-NiPoint3 NiPoint3::RotateByQuaternion(const NiQuaternion& rotation) noexcept {
+constexpr NiPoint3 NiPoint3::RotateByQuaternion(const NiQuaternion& rotation) noexcept {
 	Vector3 vector;
 	float num12 = rotation.x + rotation.x;
 	float num2 = rotation.y + rotation.y;
