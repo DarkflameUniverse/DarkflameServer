@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __NIPOINT3_H__
+#define __NIPOINT3_H__
 
 // C++
 #include <cmath>
@@ -325,3 +326,5 @@ public:
 
 // .inl file needed to circumvent circular dependency issues
 #include "NiPoint3.inl"
+
+#endif // !__NIPOINT3_H__

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __NIPOINT3_H__
+#error "This should only be included inline in NiPoint3.h: Do not include directly!"
+#endif
 
 // This code is here to get around circular dependency issues
 #include "NiQuaternion.h"
