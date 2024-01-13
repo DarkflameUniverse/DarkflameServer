@@ -2125,9 +2125,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
 	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
 
-	auto* player = static_cast<Player*>(this);
-	player->SetGhostReferencePoint(update.position);
-	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
+	auto* ghostComponent = GetComponent<GhostComponent>();
+	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
 }
