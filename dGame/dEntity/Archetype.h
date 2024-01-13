@@ -1,64 +1,82 @@
-#pragma once
+#ifndef __ARCHETYPE_H__
+#define __ARCHETYPE_H__
 
 #include <cstdint>
-
 #include "Component.h"
-#include "eReplicaComponentType.h"
-#include "DestroyableComponent.h"
-#include "SimplePhysicsComponent.h"
 
-/*template <typename... Types>
-struct ArchetypeEdge {
-	Archetype<Types...>& add;
-	Archetype<Types...>& remove;
-};*/
+// Create an alias for the archetype component container type
+template <typename T>
+using ComponentContainerType = std::vector<T>;
 
 // Require the template type to be of component base class
 template <typename T>
 concept ComponentType = std::is_base_of_v<Component, T>;
 
-// Creat an alias for the container type
+// Require the index type to be integral
 template <typename T>
-using TypeContainer = std::vector<T>;
+concept IntegralType = std::is_integral_v<T>;
 
+/**
+ * The archetype class stores a variable number of entity component types TODO: EXPAND ON
+*/
 template <ComponentType... CTypes>
 class Archetype final {
 public:
-	explicit Archetype(uint32_t id) noexcept { m_archetypeId = id; };
-	~Archetype() = default;
+	explicit Archetype(uint32_t id) noexcept {
+		m_archetypeId = id; // Set archetype ID
 
-	void CreateComponents(CTypes&&... args) {
-		//m_Components.emplace_back(std::make_tuple(std::forward<CTypes>(args)...));
-		(std::get<TypeContainer<CTypes>>(m_Components).emplace_back(std::forward<CTypes>(args)), ...);
+		// Reserve 16 KB of memory for the sum of all vectors ahead of time
+		constexpr size_t averageCompBytes = (sizeof(CTypes), ...); // TODO: CHECK IF THIS IS RIGHT
+		constexpr size_t reservedBytes = 16000;
+		constexpr size_t reserveNumEntries = reservedBytes / averageCompBytes;
+		(ComponentContainer<CTypes>().reserve(reserveNumEntries), ...);
 	};
 
-	template <std::integral IType>
+	/**
+	 * Get a reference to the component container of an archetype.
+	 * @returns A reference to the archetype's container of components
+	*/
+	template <ComponentType CType>
+	ComponentContainerType<CType>& ComponentContainer() {
+		return std::get<ComponentContainerType<CType>>(m_Components);
+	}
+
+	/**
+	 * Creates the archetype's components at the end of the container.
+	 * @param componentArgs Arguments to be forwarded to the component constructors
+	*/
+	void CreateComponents(CTypes&&... componentArgs) {
+		(ComponentContainer<CTypes>().emplace_back(std::forward<CTypes>(componentArgs)), ...);
+	};
+
+	/**
+	 * Delete's the archetype's components at a specified container index, then moves the last element in the container to it.
+	 * @param index The archetype container index to delete
+	*/
+	template <IntegralType IType>
 	void DeleteComponents(IType index) {
-		//m_Components[index] = std::move(m_Components.back());
-		//m_Components.pop_back();
-		((std::get<TypeContainer<CTypes>>(m_Components)[index] = std::move(std::get<TypeContainer<CTypes>>(m_Components).back())), ...); // Make this nicer to look at? :(
-		(std::get<TypeContainer<CTypes>>(m_Components).pop_back(), ...);
+		((GetComponent<CTypes>(index) = std::move(ComponentContainer<CTypes>().back())), ...);
+		(ComponentContainer<CTypes>().pop_back(), ...);
 	};
 
-	template <ComponentType CType, std::integral IType>
+	/**
+	 * Gets a single archetype component at a specified container index.
+	 * @param index The archetype container index to get
+	 * @returns A reference to the component type specified as a template argument
+	*/
+	template <ComponentType CType, IntegralType IType>
 	CType& GetComponent(IType index) {
-		//return std::get<CType>(m_Components[index]);
-		return std::get<TypeContainer<CType>>(m_Components)[index];
+		return ComponentContainer<CType>()[index];
 	};
-
-	// Operator overloads (Should I even keep this?)
-	/*template <std::integral IType>
-	constexpr std::tuple<CTypes...>& operator[] (IType index) noexcept {
-		return m_Components[index];
-	}*/
 
 private:
-	uint32_t m_archetypeId;
+	uint32_t m_archetypeId; // The ID of the archetype
 	//std::vector<eReplicaComponentType> m_Types; // Maybe unneeded?
-	//std::vector<std::tuple<CTypes...>> m_Components; // Maybe make it a tuple of vectors instead?
-	std::tuple<TypeContainer<CTypes>...> m_Components; // Made it a tuple of vectors (may God help us all)
+	std::tuple<ComponentContainerType<CTypes>...> m_Components; // Made it a tuple of vectors (may God help us all)
 	//std::unordered_map<eReplicaComponentType, ArchetypeEdge<Types...>> edges;
 };
 
+#endif // !__ARCHETYPE_H__
+
 // TODO: IMPLEMENT COMPILE-TIME TYPE ORDERING BY eReplicaType ENUM VALUE
-// TODO: IMPLEMENT COMPONENT MOVING TO ANOTHER ARCHETYPE
+// TODO: SEE WHICH FUNCTIONS CAN BE SAFELY MADE NOEXCEPT

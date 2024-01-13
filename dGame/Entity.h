@@ -59,7 +59,7 @@ public:
 	 * Getters
 	 */
 
-	const LWOOBJID& GetObjectID() const { return m_ObjectID; }
+	const LWOOBJID& GetObjectID() const noexcept { return m_ObjectID; }
 
 	const LOT GetLOT() const { return m_TemplateID; }
 

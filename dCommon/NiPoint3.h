@@ -1,5 +1,8 @@
 #pragma once
 
+// C++
+#include <cmath>
+
 /*!
   \file NiPoint3.hpp
   \brief Defines a point in space in XYZ coordinates
@@ -18,7 +21,11 @@ public:
 
 
 	//! Initializer
-	NiPoint3(void);
+	constexpr NiPoint3() noexcept {
+		this->x = 0;
+		this->y = 0;
+		this->z = 0;
+	}
 
 	//! Initializer
 	/*!
@@ -26,16 +33,21 @@ public:
 	  \param y The y coordinate
 	  \param z The z coordinate
 	 */
-	NiPoint3(float x, float y, float z);
+	constexpr NiPoint3(const float x, const float y, const float z) noexcept {
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
 
 	//! Copy Constructor
 	/*!
 	  \param point The point to copy
 	 */
-	NiPoint3(const NiPoint3& point);
-
-	//! Destructor
-	~NiPoint3(void);
+	constexpr NiPoint3(const NiPoint3& point) noexcept {
+		this->x = point.x;
+		this->y = point.y;
+		this->z = point.z;
+	}
 
 	// MARK: Constants
 	static const NiPoint3 ZERO;         //!< Point(0, 0, 0)
@@ -50,38 +62,49 @@ public:
 	/*!
 	  \return The x coordinate
 	 */
-	float GetX(void) const;
+	constexpr float GetX() const noexcept {
+		return this->x;
+	}
 
 	//! Sets the X coordinate
 	/*!
 	  \param x The x coordinate
 	 */
-	void SetX(float x);
+	constexpr void SetX(const float x) noexcept {
+		this->x = x;
+	}
 
 	//! Gets the Y coordinate
 	/*!
 	  \return The y coordinate
 	 */
-	float GetY(void) const;
+	constexpr float GetY() const noexcept {
+		return this->y;
+	}
 
 	//! Sets the Y coordinate
 	/*!
 	  \param y The y coordinate
 	 */
-	void SetY(float y);
+	constexpr void SetY(const float y) noexcept {
+		this->y = y;
+	}
 
 	//! Gets the Z coordinate
 	/*!
 	  \return The z coordinate
 	 */
-	float GetZ(void) const;
+	constexpr float GetZ() const noexcept {
+		return this->z;
+	}
 
 	//! Sets the Z coordinate
 	/*!
 	  \param z The z coordinate
 	 */
-	void SetZ(float z);
-
+	constexpr void SetZ(const float z) noexcept {
+		this->z = z;
+	}
 
 	// MARK: Member Functions
 
@@ -89,72 +112,119 @@ public:
 	/*!
 	  \return The scalar length of the vector
 	 */
-	float Length(void) const;
+	constexpr float Length() const {
+		return std::sqrt(x * x + y * y + z * z);
+	}
 
 	//! Gets the squared length of a vector
 	/*!
 	  \return The squared length of a vector
 	 */
-	float SquaredLength(void) const;
+	constexpr float SquaredLength() const noexcept {
+		return (x * x + y * y + z * z);
+	}
 
 	//! Returns the dot product of the vector dotted with another vector
 	/*!
 	  \param vec The second vector
 	  \return The dot product of the two vectors
 	 */
-	float DotProduct(const Vector3& vec) const;
+	constexpr float DotProduct(const Vector3& vec) const noexcept {
+		return ((this->x * vec.x) + (this->y * vec.y) + (this->z * vec.z));
+	}
 
 	//! Returns the cross product of the vector crossed with another vector
 	/*!
 	  \param vec The second vector
 	  \return The cross product of the two vectors
 	 */
-	Vector3 CrossProduct(const Vector3& vec) const;
+	constexpr Vector3 CrossProduct(const Vector3& vec) const noexcept {
+		return Vector3(((this->y * vec.z) - (this->z * vec.y)),
+			((this->z * vec.x) - (this->x * vec.z)),
+			((this->x * vec.y) - (this->y * vec.x)));
+	}
 
 	//! Unitize the vector
 	/*!
 	  \returns The current vector
 	 */
-	NiPoint3 Unitize(void) const;
+	constexpr NiPoint3 Unitize() const {
+		float length = this->Length();
 
+		return length != 0 ? *this / length : NiPoint3::ZERO;
+	}
 
 	// MARK: Operators
 
 	//! Operator to check for equality
-	bool operator==(const NiPoint3& point) const;
+	constexpr bool operator==(const NiPoint3& point) const noexcept {
+		return point.x == this->x && point.y == this->y && point.z == this->z;
+	}
 
 	//! Operator to check for inequality
-	bool operator!=(const NiPoint3& point) const;
+	constexpr bool operator!=(const NiPoint3& point) const noexcept {
+		return !(*this == point);
+	}
 
 	//! Operator for subscripting
-	float& operator[](int i);
+	constexpr float& operator[](const int i) noexcept {
+		float* base = &x;
+		return base[i];
+	}
 
 	//! Operator for subscripting
-	const float& operator[](int i) const;
+	constexpr const float& operator[](const int i) const noexcept { // TODO: Is this redundant?
+		const float* base = &x;
+		return base[i];
+	}
 
 	//! Operator for addition of vectors
-	NiPoint3 operator+(const NiPoint3& point) const;
+	constexpr NiPoint3 operator+(const NiPoint3& point) const noexcept {
+		return NiPoint3(this->x + point.x, this->y + point.y, this->z + point.z);
+	}
 
 	//! Operator for addition of vectors
-	NiPoint3& operator+=(const NiPoint3& point);
+	constexpr NiPoint3& operator+=(const NiPoint3& point) noexcept {
+		this->x += point.x;
+		this->y += point.y;
+		this->z += point.z;
+		return *this;
+	}
 
-	NiPoint3& operator*=(const float scalar);
+	constexpr NiPoint3& operator*=(const float scalar) noexcept {
+		this->x *= scalar;
+		this->y *= scalar;
+		this->z *= scalar;
+		return *this;
+	}
 
 	//! Operator for subtraction of vectors
-	NiPoint3 operator-(const NiPoint3& point) const;
+	constexpr NiPoint3 operator-(const NiPoint3& point) const noexcept {
+		return NiPoint3(this->x - point.x, this->y - point.y, this->z - point.z);
+	}
 
 	//! Operator for addition of a scalar on all vector components
-	NiPoint3 operator+(float fScalar) const;
+	constexpr NiPoint3 operator+(const float fScalar) const noexcept {
+		return NiPoint3(this->x + fScalar, this->y + fScalar, this->z + fScalar);
+	}
 
 	//! Operator for subtraction of a scalar on all vector components
-	NiPoint3 operator-(float fScalar) const;
+	constexpr NiPoint3 operator-(const float fScalar) const noexcept {
+		return NiPoint3(this->x - fScalar, this->y - fScalar, this->z - fScalar);
+	}
 
 	//! Operator for scalar multiplication of a vector
-	NiPoint3 operator*(float fScalar) const;
+	constexpr NiPoint3 operator*(const float fScalar) const noexcept {
+		return NiPoint3(this->x * fScalar, this->y * fScalar, this->z * fScalar);
+	}
 
 	//! Operator for scalar division of a vector
-	NiPoint3 operator/(float fScalar) const;
-
+	constexpr NiPoint3 operator/(const float fScalar) const noexcept {
+		float retX = this->x != 0 ? this->x / fScalar : 0;
+		float retY = this->y != 0 ? this->y / fScalar : 0;
+		float retZ = this->z != 0 ? this->z / fScalar : 0;
+		return NiPoint3(retX, retY, retZ);
+	}
 
 	// MARK: Helper Functions
 
@@ -164,14 +234,24 @@ public:
 	  \param maxPoint The maximum point of the bounding box
 	  \return Whether or not this point lies within the box
 	 */
-	bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint);
+	constexpr bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint) noexcept {
+		if (this->x < minPoint.x) return false;
+		if (this->x > maxPoint.x) return false;
+		if (this->y < minPoint.y) return false;
+		if (this->y > maxPoint.y) return false;
+
+		return (this->z < maxPoint.z && this->z > minPoint.z);
+	}
 
 	//! Checks to see if the point (or vector) is within a sphere
 	/*!
 	  \param sphereCenter The sphere center
 	  \param radius The radius
 	 */
-	bool IsWithinSpehere(const NiPoint3& sphereCenter, float radius);
+	constexpr bool IsWithinSphere(const NiPoint3& sphereCenter, const float radius) noexcept {
+		Vector3 diffVec = Vector3(x - sphereCenter.GetX(), y - sphereCenter.GetY(), z - sphereCenter.GetZ());
+		return (diffVec.SquaredLength() <= (radius * radius));
+	}
 
 	/*!
 	  \param a Start of line
@@ -179,15 +259,66 @@ public:
 	  \param p Refrence point
 	  \return The point of line AB which is closest to P
 	*/
-	static NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p);
+	static constexpr NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p) noexcept {
+		if (a == b) return a;
 
-	static float Angle(const NiPoint3& a, const NiPoint3& b);
+		const auto pa = p - a;
+		const auto ab = b - a;
 
-	static float Distance(const NiPoint3& a, const NiPoint3& b);
+		const auto t = pa.DotProduct(ab) / ab.SquaredLength();
 
-	static float DistanceSquared(const NiPoint3& a, const NiPoint3& b);
+		if (t <= 0.0f) return a;
 
-	static NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, float maxDistanceDelta);
+		if (t >= 1.0f) return b;
 
-	NiPoint3 RotateByQuaternion(const NiQuaternion& rotation);
+		return a + ab * t;
+	}
+
+	static constexpr float Angle(const NiPoint3& a, const NiPoint3& b) {
+		const auto dot = a.DotProduct(b);
+		const auto lenA = a.SquaredLength();
+		const auto lenB = a.SquaredLength();
+		return acos(dot / sqrt(lenA * lenB));
+	}
+
+	static constexpr float Distance(const NiPoint3& a, const NiPoint3& b) {
+		const auto dx = a.x - b.x;
+		const auto dy = a.y - b.y;
+		const auto dz = a.z - b.z;
+
+		return std::sqrt(dx * dx + dy * dy + dz * dz);
+	}
+
+	static constexpr float DistanceSquared(const NiPoint3& a, const NiPoint3& b) noexcept {
+		const auto dx = a.x - b.x;
+		const auto dy = a.y - b.y;
+		const auto dz = a.z - b.z;
+
+		return dx * dx + dy * dy + dz * dz;
+	}
+
+	static constexpr NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, const float maxDistanceDelta) {
+		float dx = target.x - current.x;
+		float dy = target.y - current.y;
+		float dz = target.z - current.z;
+
+		float lengthSquared = static_cast<float>(
+			static_cast<double>(dx) * static_cast<double>(dx) +
+			static_cast<double>(dy) * static_cast<double>(dy) +
+			static_cast<double>(dz) * static_cast<double>(dz)
+			);
+
+		if (static_cast<double>(lengthSquared) == 0.0
+			|| static_cast<double>(maxDistanceDelta) >= 0.0
+			&& static_cast<double>(lengthSquared)
+			<= static_cast<double>(maxDistanceDelta) * static_cast<double>(maxDistanceDelta)) {
+			return target;
+		}
+
+		float length = std::sqrt(lengthSquared);
+		return NiPoint3(current.x + dx / length * maxDistanceDelta, current.y + dy / length * maxDistanceDelta, current.z + dz / length * maxDistanceDelta);
+	}
+
+	//This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
+	NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
 };

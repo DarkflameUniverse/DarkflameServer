@@ -10,8 +10,8 @@ class Entity;
 class Component
 {
 public:
-	Component(Entity* parent);
-	virtual ~Component();
+	Component(Entity* parent) noexcept;
+	virtual ~Component() = 0;
 
 	/**
 	 * Gets the owner of this component
