@@ -99,7 +99,7 @@ void MasterPackets::HandleServerInfo(Packet* packet) {
 	uint32_t theirPort = 0;
 	uint32_t theirZoneID = 0;
 	uint32_t theirInstanceID = 0;
-	LUString theirIP(33);
+	LUString theirIP;
 
 	inStream.Read(theirPort);
 	inStream.Read(theirZoneID);

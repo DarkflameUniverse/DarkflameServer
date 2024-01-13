@@ -503,7 +503,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
 			ServerType theirServerType;
-			LUString theirIP(33);
+			LUString theirIP;
 
 			inStream.Read(theirPort);
 			inStream.Read(theirZoneID);
@@ -555,7 +555,7 @@ void HandlePacket(Packet* packet) {
 			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
 			inStream.Read(sessionKey);
-			LUString username(33);
+			LUString username;
 			inStream.Read(username);
 	
 			for (auto it : activeSessions) {
@@ -579,7 +579,7 @@ void HandlePacket(Packet* packet) {
 
 		case eMasterMessageType::REQUEST_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
-			LUWString username(33);
+			LUWString username;
 			inStream.Read(username);
 			LOG("Requesting session key for %s", username.GetAsString().c_str());
 			for (auto key : activeSessions) {

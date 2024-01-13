@@ -678,7 +678,7 @@ void HandleMasterPacket(Packet* packet) {
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = 0;
 		inStream.Read(sessionKey);
-		LUWString username(33);
+		LUWString username;
 		inStream.Read(username);
 
 		//Find them:
@@ -762,7 +762,7 @@ void HandleMasterPacket(Packet* packet) {
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = inStream.Read(sessionKey);
 
-		LUString username(33);
+		LUString username;
 		inStream.Read(username);
 		LOG("Got new session alert for user %s", username.string.c_str());
 		//Find them:
@@ -848,10 +848,10 @@ void HandlePacket(Packet* packet) {
 	switch (static_cast<eWorldMessageType>(packet->data[3])) {
 	case eWorldMessageType::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
-		LUWString username(33);
+		LUWString username;
 		inStream.Read(username);
 
-		LUWString sessionKey(33);
+		LUWString sessionKey;
 		// sometimes client puts a null terminator at the end of the checksum and sometimes doesn't, weird
 		inStream.Read(sessionKey);
 		LUString clientDatabaseChecksum(32);
