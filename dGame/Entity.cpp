@@ -1266,17 +1266,6 @@ void Entity::Update(const float deltaTime) {
 		}
 	}
 
-	// Add pending timers to the list of timers so they start next tick.
-	if (!m_PendingTimers.empty()) {
-		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
-		m_PendingTimers.clear();
-	}
-
-	if (!m_PendingCallbackTimers.empty()) {
-		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
-		m_PendingCallbackTimers.clear();
-	}
-
 	if (IsSleeping()) {
 		Sleep();
 
@@ -1712,11 +1701,11 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(std::string name, float time) {
-	m_PendingTimers.emplace_back(name, time);
+	m_Timers.emplace_back(name, time);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
-	m_PendingCallbackTimers.emplace_back(time, callback);
+	m_CallbackTimers.emplace_back(time, callback);
 }
 
 bool Entity::HasTimer(const std::string& name) {
@@ -1725,7 +1714,6 @@ bool Entity::HasTimer(const std::string& name) {
 
 void Entity::CancelCallbackTimers() {
 	m_CallbackTimers.clear();
-	m_PendingCallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
@@ -1747,9 +1735,7 @@ void Entity::CancelTimer(const std::string& name) {
 
 void Entity::CancelAllTimers() {
 	m_Timers.clear();
-	m_PendingTimers.clear();
 	m_CallbackTimers.clear();
-	m_PendingCallbackTimers.clear();
 }
 
 bool Entity::IsPlayer() const {
