@@ -47,6 +47,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 
 	inStream.Read(data.zoneID);
 	inStream.Read(data.muteExpire);
+	inStream.Read(data.GMLevel);
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);

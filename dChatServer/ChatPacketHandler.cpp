@@ -18,6 +18,7 @@
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
 #include "StringifiedEnum.h"
+#include "eGameMasterLevel.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -96,8 +97,9 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		return;
 	}
 
+	// you cannot friend yourself
 	if (requestor.playerName == playerName) {
-		SendFriendResponse(requestor, requestor, eAddFriendResponseType::MYTHRAN);
+		SendFriendResponse(requestor, requestor, eAddFriendResponseType::GENERALERROR);
 		return;
 	};
 
@@ -133,6 +135,13 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			: eAddFriendResponseType::INVALIDCHARACTER;
 
 		SendFriendResponse(requestor, requestee, responseType);
+		return;
+	}
+
+	// Prevent GM friend spam
+	// If the player we are trying to be friends with is not a civilian and we are a civilian, abort the process
+	if (requestee.GMLevel > eGameMasterLevel::CIVILIAN && requestor.GMLevel == eGameMasterLevel::CIVILIAN ) {
+		SendFriendResponse(requestor, requestee, eAddFriendResponseType::MYTHRAN);
 		return;
 	}
 
@@ -337,6 +346,17 @@ void ChatPacketHandler::HandleRemoveFriend(Packet* packet) {
 	SendRemoveFriend(goonB, goonAName, true);
 }
 
+void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerID;
+	inStream.Read(playerID);
+	auto& player = Game::playerContainer.GetPlayerData(playerID);
+	if (!player) return;
+	inStream.Read(player.GMLevel);
+}
+
+// the structure the client uses to send this packet is shared in many chat messages 
+// that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
@@ -348,10 +368,10 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	eChatChannel channel;
 	uint32_t size;
 	
-	inStream.IgnoreBytes(4); // padding/garbage
+	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
 	inStream.Read(size);
-	inStream.IgnoreBytes(77); // padding/garbage
+	inStream.IgnoreBytes(77);
 
 	LUWString message(size);
 	inStream.Read(message);
@@ -366,7 +386,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 		for (const auto memberId : team->memberIDs) {
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
 			if (!otherMember) return;
-			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatMessageResponseCode::SENT);
+			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
 		}
 		break;
 	}
@@ -376,6 +396,8 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	}
 }
 
+// the structure the client uses to send this packet is shared in many chat messages 
+// that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
@@ -388,16 +410,16 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	uint32_t size;
 	LUWString LUReceiverName;
 
-	inStream.IgnoreBytes(4); // padding/garbage
+	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
 	if (channel != eChatChannel::PRIVATE_CHAT) LOG("WARNING: Received Private chat with the wrong channel!");
 
 	inStream.Read(size);
-	inStream.IgnoreBytes(77); // padding/garbage
+	inStream.IgnoreBytes(77);
 
 	inStream.Read(LUReceiverName);
 	auto receiverName = LUReceiverName.GetAsString();
-	inStream.IgnoreBytes(2); // padding/garbage
+	inStream.IgnoreBytes(2);
 
 	LUWString message(size);
 	inStream.Read(message);
@@ -412,17 +434,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 			? eChatMessageResponseCode::NOTONLINE
 			: eChatMessageResponseCode::GENERALERROR;
 
-		SendPrivateChatMessage(sender, otherPlayer, sender, message, responseType);
-		return;
-	}
-
-	if (sender.isFTP) {
-		SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::SENDERFREETRIAL);
-		return;
-	}
-
-	if (receiver.isFTP) {
-		SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::RECEIVERFREETRIAL);
+		SendPrivateChatMessage(sender, otherPlayer, sender, message, eChatChannel::GENERAL, responseType);
 		return;
 	}
 
@@ -431,23 +443,23 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	for (const auto& fr : receiver.friends) {
 		if (fr.friendID == sender.playerID) {
 			//To the sender:
-			SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::SENT);
+			SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::SENT);
 			//To the receiver:
-			SendPrivateChatMessage(sender, receiver, receiver, message, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
+			SendPrivateChatMessage(sender, receiver, receiver, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
 			return;
 		}
 	}
-	SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::NOTFRIENDS);
+	SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::GENERAL, eChatMessageResponseCode::NOTFRIENDS);
 }
 
-void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, eChatMessageResponseCode responseCode) {
+void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
 	bitStream.Write(routeTo.playerID);
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
 	bitStream.Write(sender.playerID);
-	bitStream.Write(eChatChannel::TEAM);
+	bitStream.Write(channel);
 	bitStream.Write<uint32_t>(0); // not used
 	bitStream.Write(LUWString(sender.playerName));
 	bitStream.Write(sender.playerID);

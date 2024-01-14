@@ -49,10 +49,11 @@ namespace ChatPacketHandler {
 	void HandleFriendRequest(Packet* packet);
 	void HandleFriendResponse(Packet* packet);
 	void HandleRemoveFriend(Packet* packet);
+	void HandleGMLevelUpdate(Packet* packet);
 
 	void HandleChatMessage(Packet* packet);
 	void HandlePrivateChatMessage(Packet* packet);
-	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, eChatMessageResponseCode responseCode);
+	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode);
 
 	void HandleTeamInvite(Packet* packet);
 	void HandleTeamInviteResponse(Packet* packet);

@@ -295,6 +295,9 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
+		case eChatMessageType::GMLEVEL_UPDATE:
+			ChatPacketHandler::HandleGMLevelUpdate(packet);
+			break;
 		case eChatMessageType::LOGIN_SESSION_NOTIFY:
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
 		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
@@ -319,7 +322,6 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::WORLD_INSTANCE_LOCATION_REQUEST:
 		case eChatMessageType::REPUTATION_UPDATE:
 		case eChatMessageType::SEND_CANNED_TEXT:
-		case eChatMessageType::GMLEVEL_UPDATE:
 		case eChatMessageType::CHARACTER_NAME_CHANGE_REQUEST:
 		case eChatMessageType::CSR_REQUEST:
 		case eChatMessageType::CSR_REPLY:
