@@ -11,7 +11,7 @@ struct SystemAddress;
 namespace PlayerManager {
 	void AddPlayer(Player* player);
 
-	void RemovePlayer(Player* player);
+	bool RemovePlayer(Player* player);
 
 	Player* GetPlayer(const SystemAddress& sysAddr);
 

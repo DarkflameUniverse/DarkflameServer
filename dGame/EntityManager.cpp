@@ -24,6 +24,7 @@
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
 #include "PlayerManager.h"
+#include "GhostComponent.h"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -189,7 +190,8 @@ void EntityManager::SerializeEntities() {
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
-				if (player->IsObserved(toSerialize)) {
+				auto* ghostComponent = player->GetComponent<GhostComponent>();
+				if (ghostComponent && ghostComponent->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -381,7 +383,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 				if (player->GetPlayerReadyForUpdates()) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				} else {
-					player->AddLimboConstruction(entity->GetObjectID());
+					auto* ghostComponent = player->GetComponent<GhostComponent>();
+					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
 				}
 			}
 		}
@@ -421,7 +424,8 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {
-			player->RemoveLimboConstruction(entity->GetObjectID());
+			auto* ghostComponent = player->GetComponent<GhostComponent>();
+			if (ghostComponent) ghostComponent->RemoveLimboConstruction(entity->GetObjectID());
 		}
 	}
 }
@@ -484,13 +488,14 @@ void EntityManager::UpdateGhosting(Player* player) {
 	}
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto* ghostComponent = player->GetComponent<GhostComponent>();
 
-	if (missionComponent == nullptr) {
+	if (missionComponent == nullptr || !ghostComponent) {
 		return;
 	}
 
-	const auto& referencePoint = player->GetGhostReferencePoint();
-	const auto isOverride = player->GetGhostOverride();
+	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
+	const auto isOverride = ghostComponent->GetGhostOverride();
 
 	for (auto* entity : m_EntitiesToGhost) {
 		const auto isAudioEmitter = entity->GetLOT() == 6368;
@@ -499,7 +504,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
@@ -511,7 +516,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 		}
 
 		if (observed && distance > ghostingDistanceMax && !isOverride) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
@@ -528,7 +533,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 				}
 			}
 
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 
@@ -550,22 +555,25 @@ void EntityManager::CheckGhosting(Entity* entity) {
 	const auto isAudioEmitter = entity->GetLOT() == 6368;
 
 	for (auto* player : PlayerManager::GetAllPlayers()) {
-		const auto& entityPoint = player->GetGhostReferencePoint();
+		auto* ghostComponent = player->GetComponent<GhostComponent>();
+		if (!ghostComponent) continue;
+
+		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
 		if (observed && distance > ghostingDistanceMax) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
 		} else if (!observed && ghostingDistanceMin > distance) {
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 

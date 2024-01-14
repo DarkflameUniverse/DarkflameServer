@@ -22,12 +22,15 @@ void PlayerManager::AddPlayer(Player* player) {
 	}
 }
 
-void PlayerManager::RemovePlayer(Player* player) {
+bool PlayerManager::RemovePlayer(Player* player) {
 	const auto iter = std::find(m_Players.begin(), m_Players.end(), player);
 
-	if (iter != m_Players.end()) {
+	const bool toReturn = iter != m_Players.end();
+	if (toReturn) {
 		m_Players.erase(iter);
 	}
+
+	return toReturn;
 }
 
 Player* PlayerManager::GetPlayer(const SystemAddress& sysAddr) {

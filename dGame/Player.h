@@ -26,14 +26,6 @@ public:
 
 	const NiQuaternion& GetRespawnRotation() const override { return m_respawnRot; };
 
-	const NiPoint3& GetGhostReferencePoint() const { return m_GhostOverride ? m_GhostOverridePoint : m_GhostReferencePoint; };
-
-	const NiPoint3& GetOriginGhostReferencePoint() const { return m_GhostReferencePoint; };
-
-	const NiPoint3& GetGhostOverridePoint() const { return m_GhostOverridePoint; };
-
-	bool GetGhostOverride() const { return m_GhostOverride; };
-
 	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot() { return m_DroppedLoot; };
 
 	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
@@ -41,8 +33,6 @@ public:
 	/**
 	 * Setters
 	 */
-
-	void SetGhostOverride(bool value) { m_GhostOverride = value; };
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
 
@@ -52,25 +42,9 @@ public:
 
 	void SetRespawnRot(const NiQuaternion& rotation) override;
 
-	void SetGhostReferencePoint(const NiPoint3& value);
-
-	void SetGhostOverridePoint(const NiPoint3& value);
-
 	/**
 	 * Ghosting
 	 */
-
-	void AddLimboConstruction(LWOOBJID objectId);
-
-	void RemoveLimboConstruction(LWOOBJID objectId);
-
-	void ConstructLimboEntities();
-
-	void ObserveEntity(const int32_t id);
-
-	bool IsObserved(const int32_t id);
-
-	void GhostEntity(const int32_t id);
 
 	~Player() override;
 private:
@@ -81,16 +55,6 @@ private:
 	NiQuaternion m_respawnRot;
 
 	User* m_ParentUser;
-
-	NiPoint3 m_GhostReferencePoint;
-
-	NiPoint3 m_GhostOverridePoint;
-
-	bool m_GhostOverride;
-
-	std::vector<int32_t> m_ObservedEntities;
-
-	std::vector<LWOOBJID> m_LimboConstructions;
 
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
 
