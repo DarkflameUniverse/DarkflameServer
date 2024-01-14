@@ -140,7 +140,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	// Prevent GM friend spam
 	// If the player we are trying to be friends with is not a civilian and we are a civilian, abort the process
-	if (requestee.GMLevel > eGameMasterLevel::CIVILIAN && requestor.GMLevel == eGameMasterLevel::CIVILIAN ) {
+	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN ) {
 		SendFriendResponse(requestor, requestee, eAddFriendResponseType::MYTHRAN);
 		return;
 	}
@@ -352,7 +352,7 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 	inStream.Read(playerID);
 	auto& player = Game::playerContainer.GetPlayerData(playerID);
 	if (!player) return;
-	inStream.Read(player.GMLevel);
+	inStream.Read(player.gmLevel);
 }
 
 // the structure the client uses to send this packet is shared in many chat messages 
@@ -464,9 +464,9 @@ void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const P
 	bitStream.Write(LUWString(sender.playerName));
 	bitStream.Write(sender.playerID);
 	bitStream.Write<uint16_t>(0); // sourceID
-	bitStream.Write(sender.GMLevel);
+	bitStream.Write(sender.gmLevel);
 	bitStream.Write(LUWString(receiver.playerName));
-	bitStream.Write(receiver.GMLevel);
+	bitStream.Write(receiver.gmLevel);
 	bitStream.Write(responseCode);
 	bitStream.Write(message);
 

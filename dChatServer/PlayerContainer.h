@@ -24,6 +24,7 @@ struct IgnoreData {
 };
 
 struct PlayerData {
+	PlayerData();
 	operator bool() const noexcept {
 		return playerID != LWOOBJID_EMPTY;
 	}
@@ -44,7 +45,7 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
-	eGameMasterLevel GMLevel;
+	eGameMasterLevel gmLevel;
 	bool isFTP = false;
 };
 
