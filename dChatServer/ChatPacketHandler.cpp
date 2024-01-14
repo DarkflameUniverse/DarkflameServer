@@ -427,13 +427,14 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	}
 
 	// Check to see if they are friends
+	// only freinds can whispr each other
 	for (const auto& fr : receiver.friends) {
 		if (fr.friendID == sender.playerID) {
 			//To the sender:
 			SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::SENT);
 			//To the receiver:
 			SendPrivateChatMessage(sender, receiver, receiver, message, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
-			return; //we have this player as a friend, yeet this function so it doesn't send another request.
+			return;
 		}
 	}
 	SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::NOTFRIENDS);
