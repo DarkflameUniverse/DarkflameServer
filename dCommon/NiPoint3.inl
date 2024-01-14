@@ -5,16 +5,6 @@
 
 #include "NiQuaternion.h"
 
-// C++
-#include <cmath>
-
-// Static Variables
-constexpr const NiPoint3 NiPoint3::ZERO(0.0f, 0.0f, 0.0f);
-constexpr const NiPoint3 NiPoint3::UNIT_X(1.0f, 0.0f, 0.0f);
-constexpr const NiPoint3 NiPoint3::UNIT_Y(0.0f, 1.0f, 0.0f);
-constexpr const NiPoint3 NiPoint3::UNIT_Z(0.0f, 0.0f, 1.0f);
-constexpr const NiPoint3 NiPoint3::UNIT_ALL(1.0f, 1.0f, 1.0f);
-
 // MARK: Getters / Setters
 
 //! Gets the X coordinate
@@ -49,11 +39,6 @@ constexpr void NiPoint3::SetZ(const float z) noexcept {
 
 // MARK: Member Functions
 
-//! Gets the length of the vector
-inline float NiPoint3::Length() const {
-	return std::sqrt(x * x + y * y + z * z);
-}
-
 //! Gets the squared length of a vector
 constexpr float NiPoint3::SquaredLength() const noexcept {
 	return (x * x + y * y + z * z);
@@ -69,13 +54,6 @@ constexpr Vector3 NiPoint3::CrossProduct(const Vector3& vec) const noexcept {
 	return Vector3(((this->y * vec.z) - (this->z * vec.y)),
 		((this->z * vec.x) - (this->x * vec.z)),
 		((this->x * vec.y) - (this->y * vec.x)));
-}
-
-//! Unitize the vector
-inline NiPoint3 NiPoint3::Unitize() const {
-	float length = this->Length();
-
-	return length != 0 ? *this / length : NiPoint3::ZERO;
 }
 
 // MARK: Operators
@@ -183,49 +161,12 @@ constexpr NiPoint3 NiPoint3::ClosestPointOnLine(const NiPoint3& a, const NiPoint
 	return a + ab * t;
 }
 
-inline float NiPoint3::Angle(const NiPoint3& a, const NiPoint3& b) {
-	const auto dot = a.DotProduct(b);
-	const auto lenA = a.SquaredLength();
-	const auto lenB = a.SquaredLength();
-	return acos(dot / sqrt(lenA * lenB));
-}
-
-inline float NiPoint3::Distance(const NiPoint3& a, const NiPoint3& b) {
-	const auto dx = a.x - b.x;
-	const auto dy = a.y - b.y;
-	const auto dz = a.z - b.z;
-
-	return std::sqrt(dx * dx + dy * dy + dz * dz);
-}
-
 constexpr float NiPoint3::DistanceSquared(const NiPoint3& a, const NiPoint3& b) noexcept {
 	const auto dx = a.x - b.x;
 	const auto dy = a.y - b.y;
 	const auto dz = a.z - b.z;
 
 	return dx * dx + dy * dy + dz * dz;
-}
-
-inline NiPoint3 NiPoint3::MoveTowards(const NiPoint3& current, const NiPoint3& target, const float maxDistanceDelta) {
-	float dx = target.x - current.x;
-	float dy = target.y - current.y;
-	float dz = target.z - current.z;
-
-	float lengthSquared = static_cast<float>(
-		static_cast<double>(dx) * static_cast<double>(dx) +
-		static_cast<double>(dy) * static_cast<double>(dy) +
-		static_cast<double>(dz) * static_cast<double>(dz)
-		);
-
-	if (static_cast<double>(lengthSquared) == 0.0
-		|| static_cast<double>(maxDistanceDelta) >= 0.0
-		&& static_cast<double>(lengthSquared)
-		<= static_cast<double>(maxDistanceDelta) * static_cast<double>(maxDistanceDelta)) {
-		return target;
-	}
-
-	float length = std::sqrt(lengthSquared);
-	return NiPoint3(current.x + dx / length * maxDistanceDelta, current.y + dy / length * maxDistanceDelta, current.z + dz / length * maxDistanceDelta);
 }
 
 //This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.

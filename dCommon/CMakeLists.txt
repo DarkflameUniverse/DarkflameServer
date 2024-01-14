@@ -10,6 +10,8 @@ set(DCOMMON_SOURCES
 		"LDFFormat.cpp"
 		"MD5.cpp"
 		"Metrics.cpp"
+		"NiPoint3.cpp"
+		"NiQuaternion.cpp"
 		"SHA512.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
