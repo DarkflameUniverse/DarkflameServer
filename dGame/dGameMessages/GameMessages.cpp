@@ -78,6 +78,7 @@
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
 #include "DonationVendorComponent.h"
+#include "GhostComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -4605,7 +4606,8 @@ void GameMessages::HandleToggleGhostReferenceOverride(RakNet::BitStream* inStrea
 	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverride(bOverride);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverride(bOverride);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
@@ -4620,7 +4622,8 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverridePoint(position);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverridePoint(position);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
