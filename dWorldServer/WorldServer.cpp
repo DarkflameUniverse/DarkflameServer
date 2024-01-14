@@ -1126,6 +1126,7 @@ void HandlePacket(Packet* packet) {
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
 					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+					bitStream.Write(player->GetGMLevel());
 
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 				}

@@ -10,6 +10,7 @@
 #include "Database.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
 
@@ -20,6 +21,10 @@ void PlayerContainer::Initialize() {
 
 PlayerContainer::~PlayerContainer() {
 	m_Players.clear();
+}
+
+PlayerData::PlayerData() {
+	gmLevel == eGameMasterLevel::CIVILIAN;
 }
 
 TeamData::TeamData() {
@@ -47,6 +52,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 
 	inStream.Read(data.zoneID);
 	inStream.Read(data.muteExpire);
+	inStream.Read(data.gmLevel);
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
