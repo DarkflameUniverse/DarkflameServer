@@ -1231,12 +1231,18 @@ void Entity::Update(const float deltaTime) {
 		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
 		// Before: [0, 1, 2, 3, ..., n]
 		// timerPosition  ^
-		// After:  [0, 1, 3, ..., n]
+		// After:  [0, 1, n, ..., n - 1] 2 is expired and removed now
 		// timerPosition  ^
 		if (timer.GetTime() <= 0) {
 			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
 			auto timerName = timer.GetName();
-			m_Timers.erase(m_Timers.begin() + timerPosition);
+			// We don't need to copy the element if there is only 1 element nor do we need to copy if we are on the last element.
+			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
+			// element with the last element in the vector and then removes the last element.
+			if (m_Timers.size() > 1 && timerPosition < m_Timers.size() - 1) {
+				m_Timers[timerPosition] = m_Timers[m_Timers.size() - 1];
+			}
+			m_Timers.erase(m_Timers.end() - 1);
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
@@ -1252,14 +1258,20 @@ void Entity::Update(const float deltaTime) {
 		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
 		// Before: [0, 1, 2, 3, ..., n]
 		// timerPosition  ^
-		// After:  [0, 1, 3, ..., n]
+		// After:  [0, 1, n, ..., n - 1] 2 is expired and removed now
 		// timerPosition  ^
 		auto& callbackTimer = m_CallbackTimers[timerPosition];
 		callbackTimer.Update(deltaTime);
 		if (callbackTimer.GetTime() <= 0) {
 			// Remove the timer from the list of timers first so that callbacks can remove timers without causing iterator invalidation
 			auto callback = callbackTimer.GetCallback();
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerPosition);
+			// We don't need to copy the element if there is only 1 element nor do we need to copy if we are on the last element.
+			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
+			// element with the last element in the vector and then removes the last element.
+			if (m_CallbackTimers.size() > 1 && timerPosition < m_CallbackTimers.size() - 1) {
+				m_CallbackTimers[timerPosition] = m_CallbackTimers[m_CallbackTimers.size() - 1];
+			}
+			m_CallbackTimers.erase(m_CallbackTimers.end() - 1);
 			callback();
 		} else {
 			timerPosition++;
