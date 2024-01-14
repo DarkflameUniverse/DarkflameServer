@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
+#include "eGameMasterLevel.h"
 
 struct IgnoreData {
 	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName(name), playerId(id) {}
@@ -42,7 +43,8 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
-	uint8_t GMLevel = 0;
+	// Unused TODO: make use of this
+	eGameMasterLevel GMLevel = eGameMasterLevel::CIVILIAN;
 	bool isFTP = false;
 };
 

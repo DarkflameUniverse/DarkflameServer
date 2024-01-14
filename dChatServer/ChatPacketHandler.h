@@ -35,13 +35,13 @@ enum class eChatChannel : uint8_t {
 
 
 enum class eChatMessageResponseCode : uint8_t {
-    Sent = 0,
-    NotOnline,
-    GeneralError,
-    ReceivedNewWhisper,
-    NotFriends,
-    SenderFreeTrial,
-    ReceiverFreeTrial,
+    SENT = 0,
+    NOTONLINE,
+    GENERALERROR,
+    RECEIVEDNEWWHISPER,
+    NOTFRIENDS,
+    SENDERFREETRIAL,
+    RECEIVERFREETRIAL,
 };
 
 namespace ChatPacketHandler {
@@ -52,6 +52,7 @@ namespace ChatPacketHandler {
 
 	void HandleChatMessage(Packet* packet);
 	void HandlePrivateChatMessage(Packet* packet);
+	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, eChatMessageResponseCode responseCode);
 
 	void HandleTeamInvite(Packet* packet);
 	void HandleTeamInviteResponse(Packet* packet);

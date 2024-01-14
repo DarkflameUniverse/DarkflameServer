@@ -295,9 +295,59 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
-
+		case eChatMessageType::LOGIN_SESSION_NOTIFY:
+		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
+		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
+		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:
+		case eChatMessageType::WORLD_PARCEL_RESPONSE:
+		case eChatMessageType::TEAM_MISSED_INVITE_CHECK:
+		case eChatMessageType::GUILD_CREATE:
+		case eChatMessageType::GUILD_INVITE:
+		case eChatMessageType::GUILD_INVITE_RESPONSE:
+		case eChatMessageType::GUILD_LEAVE:
+		case eChatMessageType::GUILD_KICK:
+		case eChatMessageType::GUILD_GET_STATUS:
+		case eChatMessageType::GUILD_GET_ALL:
+		case eChatMessageType::SHOW_ALL:
+		case eChatMessageType::BLUEPRINT_MODERATED:
+		case eChatMessageType::BLUEPRINT_MODEL_READY:
+		case eChatMessageType::PROPERTY_READY_FOR_APPROVAL:
+		case eChatMessageType::PROPERTY_MODERATION_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED_REPORT:
+		case eChatMessageType::MAIL:
+		case eChatMessageType::WORLD_INSTANCE_LOCATION_REQUEST:
+		case eChatMessageType::REPUTATION_UPDATE:
+		case eChatMessageType::SEND_CANNED_TEXT:
+		case eChatMessageType::GMLEVEL_UPDATE:
+		case eChatMessageType::CHARACTER_NAME_CHANGE_REQUEST:
+		case eChatMessageType::CSR_REQUEST:
+		case eChatMessageType::CSR_REPLY:
+		case eChatMessageType::GM_KICK:
+		case eChatMessageType::GM_ANNOUNCE:
+		case eChatMessageType::WORLD_ROUTE_PACKET:
+		case eChatMessageType::GET_ZONE_POPULATIONS:
+		case eChatMessageType::REQUEST_MINIMUM_CHAT_MODE:
+		case eChatMessageType::MATCH_REQUEST:
+		case eChatMessageType::UGCMANIFEST_REPORT_MISSING_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
+		case eChatMessageType::UGCC_REQUEST:
+		case eChatMessageType::WHO:
+		case eChatMessageType::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
+		case eChatMessageType::ACHIEVEMENT_NOTIFY:
+		case eChatMessageType::GM_CLOSE_PRIVATE_CHAT_WINDOW:
+		case eChatMessageType::UNEXPECTED_DISCONNECT:
+		case eChatMessageType::PLAYER_READY:
+		case eChatMessageType::GET_DONATION_TOTAL:
+		case eChatMessageType::UPDATE_DONATION:
+		case eChatMessageType::PRG_CSR_COMMAND:
+		case eChatMessageType::HEARTBEAT_REQUEST_FROM_WORLD:
+		case eChatMessageType::UPDATE_FREE_TRIAL_STATUS:
+			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			break;
 		default:
-			LOG("Unknown/Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			LOG("Unknown CHAT Message id: %i", chat_message_type);
 		}
 	}
 
