@@ -19,9 +19,9 @@ enum class eStateChangeType : uint32_t;
  */
 class DestroyableComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity);
+	DestroyableComponent(const LWOOBJID& parentEntityId);
 	~DestroyableComponent() override;
 
 	void Update(float deltaTime) override;

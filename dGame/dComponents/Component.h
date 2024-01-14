@@ -10,7 +10,7 @@ class Entity;
 class Component
 {
 public:
-	Component(Entity* parent) noexcept;
+	Component(const LWOOBJID& parentEntityId) noexcept;
 	virtual ~Component() = 0;
 
 	/**
@@ -47,13 +47,18 @@ public:
 
 protected:
 	/**
+	 * Define default constructor
+	*/
+	//Component() = default;
+
+	/**
 	 * Explicitly define default move and move-assignment constructors as
 	 * definition of virtual destructor prevents their implicit generation
 	*/
-	Component(const Component&) = default;
-	Component(Component&&) = default;
-	Component& operator=(const Component&) = default;
-	Component& operator=(Component&&) = default;
+	//Component(const Component& other) = delete; 			// Copy constructor (deleted)
+	//Component(Component&& other) = default; 				// Move constructor
+	//Component& operator=(const Component& other) = delete; 	// Copy assignment constructor (deleted)
+	//Component& operator=(Component&& other) = default; 		// Move assignment constructor
 
 	/**
 	 * The entity that owns this component

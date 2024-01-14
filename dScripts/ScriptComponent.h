@@ -19,10 +19,9 @@ class Entity;
  */
 class ScriptComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
-	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
-	~ScriptComponent() override;
+	ScriptComponent(const LWOOBJID& parent, const std::string& scriptName, const bool serialized, const bool client = false) noexcept;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

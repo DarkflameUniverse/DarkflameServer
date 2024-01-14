@@ -10,14 +10,13 @@
  */
 class PlayerForcedMovementComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
 
 	/**
 	 * Constructor for this component
 	 * @param parent parent that contains this component
 	 */
-	PlayerForcedMovementComponent(Entity* parent);
-	~PlayerForcedMovementComponent() override;
+	PlayerForcedMovementComponent(const LWOOBJID& parentEntityId) noexcept;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

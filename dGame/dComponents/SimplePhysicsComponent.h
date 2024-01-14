@@ -28,10 +28,9 @@ enum class eClimbableType : int32_t {
  */
 class SimplePhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
-	SimplePhysicsComponent(Entity* parent, uint32_t componentID);
-	~SimplePhysicsComponent() override;
+	SimplePhysicsComponent(const LWOOBJID& parentEntityId, const uint32_t componentID);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

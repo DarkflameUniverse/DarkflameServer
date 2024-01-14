@@ -18,9 +18,9 @@ enum class ePossessionType : uint8_t {
  */
 class PossessorComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
 
-	PossessorComponent(Entity* parent);
+	PossessorComponent(const LWOOBJID& parentEntityId);
 	~PossessorComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

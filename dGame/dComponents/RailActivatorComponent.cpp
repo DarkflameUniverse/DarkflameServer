@@ -11,13 +11,15 @@
 #include "EntityManager.h"
 #include "eStateChangeType.h"
 
-RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
+RailActivatorComponent::RailActivatorComponent(const LWOOBJID& parentEntityId, int32_t componentID) : Component{ parentEntityId } {
 	m_ComponentID = componentID;
 	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
-	m_Path = parent->GetVar<std::u16string>(u"rail_path");
-	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
-	m_PathStart = parent->GetVar<uint32_t>(u"rail_path_start");
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	m_Path = parentEntity->GetVar<std::u16string>(u"rail_path");
+	m_PathDirection = parentEntity->GetVar<bool>(u"rail_path_direction");
+	m_PathStart = parentEntity->GetVar<uint32_t>(u"rail_path_start");
 
 	m_StartSound = tableData.startSound;
 	m_loopSound = tableData.loopSound;
@@ -31,16 +33,14 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 	m_LoopEffect = tableData.loopEffectID;
 	m_StopEffect = tableData.stopEffectID;
 
-	m_DamageImmune = parent->GetVar<bool>(u"rail_activator_damage_immune");
-	m_NoAggro = parent->GetVar<bool>(u"rail_no_aggro");
-	m_NotifyArrived = parent->GetVar<bool>(u"rail_notify_activator_arrived");
-	m_ShowNameBillboard = parent->GetVar<bool>(u"rail_show_name_billboard");
-	m_UseDB = parent->GetVar<bool>(u"rail_use_db");
+	m_DamageImmune = parentEntity->GetVar<bool>(u"rail_activator_damage_immune");
+	m_NoAggro = parentEntity->GetVar<bool>(u"rail_no_aggro");
+	m_NotifyArrived = parentEntity->GetVar<bool>(u"rail_notify_activator_arrived");
+	m_ShowNameBillboard = parentEntity->GetVar<bool>(u"rail_show_name_billboard");
+	m_UseDB = parentEntity->GetVar<bool>(u"rail_use_db");
 	m_CameraLocked = tableData.cameraLocked;
 	m_CollisionEnabled = tableData.playerCollision;
 }
-
-RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
 	auto* quickBuildComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<QuickBuildComponent>();

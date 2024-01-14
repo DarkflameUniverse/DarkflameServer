@@ -26,11 +26,9 @@ namespace {
 	};
 }
 
-BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
-}
+BuffComponent::BuffComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
-BuffComponent::~BuffComponent() {
-}
+BuffComponent::~BuffComponent() {}
 
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;

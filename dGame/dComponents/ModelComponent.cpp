@@ -7,7 +7,7 @@
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 
-ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
+ModelComponent::ModelComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
 	m_OriginalPosition = parentEntity->GetDefaultPosition();

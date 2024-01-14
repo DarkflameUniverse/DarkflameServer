@@ -69,7 +69,7 @@ std::map<LOT, int32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
+PetComponent::PetComponent(const LWOOBJID& parentEntityId, uint32_t componentId) : Component{ parentEntityId } {
 	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
 	m_ComponentId = componentId;
 
@@ -88,7 +88,7 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	m_TresureTime = 0;
 	m_Preconditions = nullptr;
 
-	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
+	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(Game::entityManager->GetEntity(m_Parent)->GetVar<std::u16string>(u"CheckPrecondition"));
 
 	if (!checkPreconditions.empty()) {
 		SetPreconditions(checkPreconditions);

@@ -11,7 +11,7 @@ namespace Raknet {
 
 class PhysicsComponent : public Component {
 public:
-	PhysicsComponent(Entity* parent);
+	PhysicsComponent(const LWOOBJID& parentEntityId);
 	virtual ~PhysicsComponent() = default;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

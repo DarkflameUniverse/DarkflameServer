@@ -11,9 +11,9 @@
  */
 class HavokVehiclePhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::HAVOK_VEHICLE_PHYSICS;
 
-	HavokVehiclePhysicsComponent(Entity* parentEntity);
+	HavokVehiclePhysicsComponent(const LWOOBJID& parentEntityId);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

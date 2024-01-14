@@ -13,13 +13,13 @@
 
 class LevelProgressionComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
 
 	/**
 	 * Constructor for this component
 	 * @param parent parent that contains this component
 	 */
-	LevelProgressionComponent(Entity* parent);
+	LevelProgressionComponent(const LWOOBJID& parentEntityId);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

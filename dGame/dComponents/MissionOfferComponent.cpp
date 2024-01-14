@@ -39,7 +39,7 @@ bool OfferedMission::GetAcceptsMission() const {
 
 //------------------------ MissionOfferComponent below ------------------------
 
-MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
+MissionOfferComponent::MissionOfferComponent(const LWOOBJID& parentEntityId, const LOT parentLot) : Component{ parentEntityId } {
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	auto value = compRegistryTable->GetByIDAndType(parentLot, eReplicaComponentType::MISSION_OFFER, -1);

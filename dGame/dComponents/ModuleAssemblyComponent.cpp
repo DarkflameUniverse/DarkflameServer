@@ -1,6 +1,6 @@
 #include "ModuleAssemblyComponent.h"
 
-ModuleAssemblyComponent::ModuleAssemblyComponent(Entity* parent) : Component(parent) {
+ModuleAssemblyComponent::ModuleAssemblyComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	m_SubKey = LWOOBJID_EMPTY;
 	m_UseOptionalParts = false;
 	m_AssemblyPartsLOTs = u"";

@@ -29,7 +29,7 @@
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
 
-ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+ActivityComponent::ActivityComponent(const LWOOBJID& parentEntityId, int32_t activityID) : Component{ parentEntityId } {
 	/*
 	* This is precisely what the client does functionally
 	* Use the component id as the default activity id and load its data from the database
@@ -41,12 +41,11 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 	if (parentEntity->HasVar(u"activityID")) {
-		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+		m_ActivityID = parentEntity->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);
 	}
 
 	auto* destroyableComponent = parentEntity->GetComponent<DestroyableComponent>();
-
 	if (destroyableComponent) {
 		// First lookup the loot matrix id for this component id.
 		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
@@ -72,6 +71,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 		}
 	}
 }
+
 void ActivityComponent::LoadActivityData(const int32_t activityId) {
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });

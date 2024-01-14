@@ -38,7 +38,7 @@
 
 #include "CDComponentsRegistryTable.h"
 
-DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
+DestroyableComponent::DestroyableComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
 	m_iImagination = 0;

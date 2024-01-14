@@ -27,7 +27,7 @@
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
-PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Component(parent) {
+PropertyManagementComponent::PropertyManagementComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	this->owner = LWOOBJID_EMPTY;
 	this->templateId = 0;
 	this->propertyId = LWOOBJID_EMPTY;

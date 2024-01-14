@@ -6,9 +6,9 @@
 
 class MiniGameControlComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MINI_GAME_CONTROL;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MINI_GAME_CONTROL;
 
-	MiniGameControlComponent(Entity* parent) : Component(parent) {}
+	MiniGameControlComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {}
 	void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
 };
 

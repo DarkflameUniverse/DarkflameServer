@@ -1,7 +1,7 @@
 #include "DonationVendorComponent.h"
 #include "Database.h"
 
-DonationVendorComponent::DonationVendorComponent(Entity* parent) : VendorComponent(parent) {
+DonationVendorComponent::DonationVendorComponent(const LWOOBJID& parentEntityId) : VendorComponent{ parentEntityId } {
 	//LoadConfigData
 	m_PercentComplete = 0.0;
 	m_TotalDonated = 0;

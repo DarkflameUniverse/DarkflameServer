@@ -24,7 +24,7 @@
 #include "WorldPackets.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
+CharacterComponent::CharacterComponent(const LWOOBJID& parentEntityId, Character* character) : Component{ parentEntityId } {
 	m_Character = character;
 
 	m_IsRacing = false;
@@ -72,9 +72,6 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 	}
 
 	return false;
-}
-
-CharacterComponent::~CharacterComponent() {
 }
 
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {

@@ -20,7 +20,7 @@
 #include "eConnectionType.h"
 #include "eMasterMessageType.h"
 
-RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
+RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(const LWOOBJID& parentEntityId, int rocketId) : Component{ parentEntityId } {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
 	query.bind(1, rocketId);

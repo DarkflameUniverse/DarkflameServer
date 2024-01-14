@@ -9,11 +9,9 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 
-BuildBorderComponent::BuildBorderComponent(Entity* parent) : Component(parent) {
-}
+BuildBorderComponent::BuildBorderComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
-BuildBorderComponent::~BuildBorderComponent() {
-}
+BuildBorderComponent::~BuildBorderComponent() {}
 
 void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {

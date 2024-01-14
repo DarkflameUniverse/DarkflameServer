@@ -22,10 +22,14 @@ enum class eQuickBuildFailReason : uint32_t;
  */
 class QuickBuildComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	QuickBuildComponent(Entity* entity);
+	QuickBuildComponent(const LWOOBJID& parentEntityId);
 	~QuickBuildComponent() override;
+
+	/**
+	 * TODO: Need to define move and move-assign constructors
+	*/
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;

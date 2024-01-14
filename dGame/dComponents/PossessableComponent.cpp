@@ -4,7 +4,7 @@
 #include "Inventory.h"
 #include "Item.h"
 
-PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent) {
+PossessableComponent::PossessableComponent(const LWOOBJID& parentEntityId, uint32_t componentId) : Component{ parentEntityId } {
 	m_Possessor = LWOOBJID_EMPTY;
 	CDItemComponent item = Inventory::FindItemComponent(Game::entityManager->GetEntity(m_Parent)->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);

@@ -9,18 +9,19 @@
 #include "BitStream.h"
 #include "eTriggerEventType.h"
 
-BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
+BouncerComponent::BouncerComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;
 
-	if (parent->GetLOT() == 7625) {
+	if (parentEntity->GetLOT() == 7625) {
 		LookupPetSwitch();
 	}
 }
 
-BouncerComponent::~BouncerComponent() {
-}
+BouncerComponent::~BouncerComponent() {}
 
 void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PetEnabled);

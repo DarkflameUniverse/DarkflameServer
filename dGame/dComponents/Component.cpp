@@ -1,6 +1,6 @@
 #include "Component.h"
 
-Component::Component(Entity* parent) noexcept : m_Parent{ parent->GetObjectID() } {} //TEMP
+Component::Component(const LWOOBJID& parentEntityId) noexcept : m_Parent{ parentEntityId } {}
 
 Component::~Component() {}
 

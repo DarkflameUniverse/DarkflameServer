@@ -23,7 +23,7 @@ namespace {
 	std::map<LOT, float> m_PhysicsSpeedCache;
 }
 
-MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : Component(parent) {
+MovementAIComponent::MovementAIComponent(const LWOOBJID& parentEntityId, MovementAIInfo info) : Component{ parentEntityId } {
 	m_Info = info;
 	m_AtFinalWaypoint = true;
 

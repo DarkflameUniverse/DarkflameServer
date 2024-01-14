@@ -1,6 +1,6 @@
 #include "PhysicsComponent.h"
 
-PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
+PhysicsComponent::PhysicsComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	m_Position = NiPoint3::ZERO;
 	m_Rotation = NiQuaternion::IDENTITY;
 	m_DirtyPosition = false;

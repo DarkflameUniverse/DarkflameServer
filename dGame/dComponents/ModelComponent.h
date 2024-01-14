@@ -24,9 +24,9 @@ class MoveToInventoryMessage;
  */
 class ModelComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
-	ModelComponent(Entity* parent);
+	ModelComponent(const LWOOBJID& parentEntityId);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

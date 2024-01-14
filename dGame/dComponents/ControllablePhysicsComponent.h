@@ -21,10 +21,16 @@ enum class eStateChangeType : uint32_t;
  */
 class ControllablePhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::CONTROLLABLE_PHYSICS;
 
-	ControllablePhysicsComponent(Entity* entity);
+	ControllablePhysicsComponent(const LWOOBJID& parentEntityId);
 	~ControllablePhysicsComponent() override;
+
+	/**
+	 * TODO: Defining move and move-assignment constructors as default as custom destructor
+	 * disables implicit generation
+	*/
+	//ControllablePhysicsComponent(const ControllablePhysicsComponent&) = 
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

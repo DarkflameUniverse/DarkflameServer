@@ -1,7 +1,7 @@
 #include "HavokVehiclePhysicsComponent.h"
 #include "EntityManager.h"
 
-HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
+HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(const LWOOBJID& parentEntityId) : PhysicsComponent{ parentEntityId } {
 	m_Velocity = NiPoint3::ZERO;
 	m_AngularVelocity = NiPoint3::ZERO;
 	m_IsOnGround = true;

@@ -12,10 +12,9 @@
  */
 class RailActivatorComponent final : public Component {
 public:
-	explicit RailActivatorComponent(Entity* parent, int32_t componentID);
-	~RailActivatorComponent() override;
+	explicit RailActivatorComponent(const LWOOBJID& parentEntityId, int32_t componentID);
 
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
 
 	/**
 	 * Handles the OnUse event from some entity, initiates the rail movement

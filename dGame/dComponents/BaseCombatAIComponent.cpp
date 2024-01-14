@@ -26,11 +26,13 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
+BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id): Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
 	m_Target = LWOOBJID_EMPTY;
 	SetAiState(AiState::spawn);
 	m_Timer = 1.0f;
-	m_StartPosition = parent->GetPosition();
+	m_StartPosition = parentEntity->GetPosition();
 	m_MovementAI = nullptr;
 	m_Disabled = false;
 	m_SkillEntries = {};
@@ -64,7 +66,6 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
 	// radii if it is greater than the one in the database.
-	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 	auto aggroRadius = parentEntity->GetVar<float>(u"aggroRadius");
 	m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
 	auto tetherRadius = parentEntity->GetVar<float>(u"tetherRadius");
@@ -75,7 +76,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	 */
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
+	skillQuery.bind(1, static_cast<int>(parentEntity->GetLOT()));
 
 	auto result = skillQuery.execQuery();
 
@@ -106,7 +107,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
 	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	auto componentID = componentRegistryTable->GetByIDAndType(parentEntity->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
 

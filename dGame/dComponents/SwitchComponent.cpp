@@ -5,7 +5,7 @@
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
-SwitchComponent::SwitchComponent(Entity* parent) : Component(parent) {
+SwitchComponent::SwitchComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	m_Active = false;
 
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);

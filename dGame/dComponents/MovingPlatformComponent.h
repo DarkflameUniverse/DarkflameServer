@@ -106,9 +106,9 @@ public:
  */
 class MovingPlatformComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
-	MovingPlatformComponent(Entity* parent, const std::string& pathName);
+	MovingPlatformComponent(const LWOOBJID& parentEntityId, const std::string& pathName);
 	~MovingPlatformComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

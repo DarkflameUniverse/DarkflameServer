@@ -1,10 +1,6 @@
 #include "PlayerForcedMovementComponent.h"
 
-PlayerForcedMovementComponent::PlayerForcedMovementComponent(Entity* parent) : Component(parent) {
-	m_Parent = parent->GetObjectID(); //TEMP
-}
-
-PlayerForcedMovementComponent::~PlayerForcedMovementComponent() {}
+PlayerForcedMovementComponent::PlayerForcedMovementComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
 void PlayerForcedMovementComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyInfo || bIsInitialUpdate);

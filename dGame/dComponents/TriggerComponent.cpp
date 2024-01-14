@@ -15,8 +15,7 @@
 #include "eEndBehavior.h"
 
 
-TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo) : Component(parent) {
-	m_Parent = parent->GetObjectID();
+TriggerComponent::TriggerComponent(const LWOOBJID& parentEntityId, const std::string triggerInfo) : Component{ parentEntityId } {
 	m_Trigger = nullptr;
 
 	std::vector<std::string> tokens = GeneralUtils::SplitString(triggerInfo, ':');

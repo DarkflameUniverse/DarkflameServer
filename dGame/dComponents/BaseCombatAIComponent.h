@@ -47,9 +47,9 @@ struct AiSkillEntry
  */
 class BaseCombatAIComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
-	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
+	BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id);
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;

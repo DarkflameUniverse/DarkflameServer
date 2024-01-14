@@ -6,7 +6,7 @@
 #include "RigidbodyPhantomPhysicsComponent.h"
 #include "Entity.h"
 
-RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
+RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(const LWOOBJID& parentEntityId) : PhysicsComponent{ parentEntityId } {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 	
 	m_Position = parentEntity->GetDefaultPosition();

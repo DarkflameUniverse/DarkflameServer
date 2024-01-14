@@ -6,9 +6,9 @@
 
 class ItemComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
 
-	ItemComponent(Entity* entity) : Component(entity) {}
+	ItemComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
 	void Serialize(RakNet::BitStream* bitStream, bool isConstruction) override;
 };

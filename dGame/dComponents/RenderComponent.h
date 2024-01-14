@@ -56,10 +56,10 @@ struct Effect {
  */
 class RenderComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* entity, int32_t componentId = -1);
-	~RenderComponent() override;
+	RenderComponent(const LWOOBJID& parentEntityId, const int32_t componentId = -1);
+	//~RenderComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
@@ -103,7 +103,7 @@ public:
 	 * Returns the list of currently active effects
 	 * @return
 	 */
-	std::vector<Effect*>& GetEffects();
+	std::vector<std::unique_ptr<Effect>>& GetEffects();
 
 	/**
 	 * Verifies that an animation can be played on this entity by checking
@@ -136,7 +136,7 @@ private:
 	/**
 	 * List of currently active effects
 	 */
-	std::vector<Effect*> m_Effects;
+	std::vector<std::unique_ptr<Effect>> m_Effects;
 
 	std::vector<int32_t> m_animationGroupIds;
 

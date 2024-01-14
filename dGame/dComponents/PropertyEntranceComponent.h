@@ -13,8 +13,8 @@
  */
 class PropertyEntranceComponent : public Component {
 public:
-	explicit PropertyEntranceComponent(Entity* parent, uint32_t componentID);
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
+	explicit PropertyEntranceComponent(const LWOOBJID& parentEntityId, uint32_t componentID);
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 
 	/**
 	 * Handles an OnUse request for some other entity, rendering the property browse menu

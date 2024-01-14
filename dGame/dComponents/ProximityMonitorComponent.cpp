@@ -7,7 +7,7 @@
 
 const std::map<LWOOBJID, dpEntity*> ProximityMonitorComponent::m_EmptyObjectMap = {};
 
-ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
+ProximityMonitorComponent::ProximityMonitorComponent(const LWOOBJID& parentEntityId, int radiusSmall, int radiusLarge) : Component{ parentEntityId } {
 	if (radiusSmall != -1 && radiusLarge != -1) {
 		SetProximityRadius(radiusSmall, "rocketSmall");
 		SetProximityRadius(radiusLarge, "rocketLarge");

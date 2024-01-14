@@ -49,11 +49,11 @@ struct Buff {
  */
 class BuffComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
-	explicit BuffComponent(Entity* parent);
+	explicit BuffComponent(const LWOOBJID& parentEntityId) noexcept;
 
-	~BuffComponent();
+	~BuffComponent() override;
 
 	Entity* GetParent() const;
 

@@ -6,15 +6,10 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
-	m_Serialized = serialized;
-	m_Client = client;
-
+ScriptComponent::ScriptComponent(const LWOOBJID& parentEntityId, const std::string& scriptName, const bool serialized, const bool client) noexcept : Component{ parentEntityId }
+	, m_Serialized{ serialized }
+	, m_Client{ client } {
 	SetScript(scriptName);
-}
-
-ScriptComponent::~ScriptComponent() {
-
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {

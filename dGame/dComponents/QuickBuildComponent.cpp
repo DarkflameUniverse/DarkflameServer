@@ -23,14 +23,13 @@
 
 #include "CppScripts.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
-	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
+QuickBuildComponent::QuickBuildComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	std::u16string checkPreconditions = parentEntity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
 		m_Precondition = new PreconditionExpression(GeneralUtils::UTF16ToWTF8(checkPreconditions));
 	}
-
-	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
 	// Should a setting that has the build activator position exist, fetch that setting here and parse it for position.
 	// It is assumed that the user who sets this setting uses the correct character delimiter (character 31 or in hex 0x1F)

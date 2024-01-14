@@ -19,9 +19,9 @@
   */
 class RigidbodyPhantomPhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
 
-	RigidbodyPhantomPhysicsComponent(Entity* parent);
+	RigidbodyPhantomPhysicsComponent(const LWOOBJID& parentEntityId);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 };

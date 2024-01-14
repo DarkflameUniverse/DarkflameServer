@@ -105,9 +105,9 @@ struct RacingPlayerInfo {
  */
 class RacingControlComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
-	RacingControlComponent(Entity* parentEntity);
+	RacingControlComponent(const LWOOBJID& parentEntityId);
 	~RacingControlComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

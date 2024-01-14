@@ -3,8 +3,7 @@
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
 
-MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent) : Component(parent) {
-	m_Parent = parent->GetObjectID(); //TEMP
+MultiZoneEntranceComponent::MultiZoneEntranceComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	std::string zoneString = GeneralUtils::UTF16ToWTF8(Game::entityManager->GetEntity(m_Parent)->GetVar<std::u16string>(u"MultiZoneIDs"));
 	std::stringstream ss(zoneString);
 	for (int i; ss >> i;) {

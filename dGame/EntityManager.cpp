@@ -118,16 +118,15 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 	Entity* entity;
 
-
-	// Add the entity to the entity map
-	m_Entities.insert_or_assign(id, entity);
-
-	// Check if the entity if a player, in case use the extended player entity class
-	if (!user) {
+	// Check if the entitty if a player, in case use the extended player entity class
+	if (user) {
 		entity = new Player(id, info, user, parentEntity);
 	} else {
 		entity = new Entity(id, info, parentEntity);
 	}
+
+	// Add the entity to the entity map
+	m_Entities.insert_or_assign(id, entity);
 
 	// Initialize the entity
 	entity->Initialize();

@@ -528,14 +528,14 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 
 	// If it doesn't exist, create it and forward the arguments to the constructor
 	if (!componentToReturn) {
-		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+		componentToReturn = new ComponentType(m_ObjectID, std::forward<VaArgs>(args)...);
 	} else {
 		// In this case the block is already allocated and ready for use
 		// so we use a placement new to construct the component again as was requested by the caller.
 		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
 		// This is useful for when we want to create a new object in the same memory location as an old one.
 		componentToReturn->~Component();
-		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
+		new(componentToReturn) ComponentType(m_ObjectID, std::forward<VaArgs>(args)...);
 	}
 
 	// Finally return the created or already existing component.

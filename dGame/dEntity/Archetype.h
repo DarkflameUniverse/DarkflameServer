@@ -53,7 +53,7 @@ public:
 	*/
 	template <IntegralType IType>
 	void DeleteComponents(IType index) {
-		((GetComponent<CTypes>(index) = std::move(ComponentContainer<CTypes>().back())), ...);
+		((ComponentContainer<CTypes>()[index] = std::move(ComponentContainer<CTypes>().back())), ...);
 		(ComponentContainer<CTypes>().pop_back(), ...);
 	}
 

@@ -39,14 +39,16 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
-InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
+InventoryComponent::InventoryComponent(const LWOOBJID& parentEntityId, tinyxml2::XMLDocument* document) : Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
 	this->m_Consumable = LOT_NULL;
 	this->m_Pets = {};
 
-	const auto lot = parent->GetLOT();
+	const auto lot = parentEntity->GetLOT();
 
 	if (lot == 1) {
 		LoadXml(document);

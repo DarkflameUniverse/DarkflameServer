@@ -9,7 +9,7 @@
 #include "CDLootTableTable.h"
 #include "CDItemComponentTable.h"
 
-VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
+VendorComponent::VendorComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
 	m_HasStandardCostItems = false;
 	m_HasMultiCostItems = false;
 	SetupConstants();

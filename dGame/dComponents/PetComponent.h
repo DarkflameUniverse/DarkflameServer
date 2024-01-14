@@ -16,9 +16,9 @@
 class PetComponent : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
-	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
+	explicit PetComponent(const LWOOBJID& parentEntityId, uint32_t componentId);
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

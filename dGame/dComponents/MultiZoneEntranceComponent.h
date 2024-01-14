@@ -10,13 +10,13 @@
  */
 class MultiZoneEntranceComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
 
 	/**
 	 * Constructor for this component, builds the m_LUPWorlds vector
 	 * @param parent parent that contains this component
 	 */
-	MultiZoneEntranceComponent(Entity* parent);
+	MultiZoneEntranceComponent(const LWOOBJID& parentEntityId);
 	~MultiZoneEntranceComponent() override;
 
 	/**

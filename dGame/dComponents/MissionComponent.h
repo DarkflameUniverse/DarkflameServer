@@ -27,9 +27,9 @@ class AchievementCacheKey;
 class MissionComponent : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
 
-	explicit MissionComponent(Entity* parent);
+	explicit MissionComponent(const LWOOBJID& parentEntityId);
 	~MissionComponent() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;

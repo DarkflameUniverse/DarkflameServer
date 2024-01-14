@@ -27,9 +27,7 @@
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
 
-PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
-	m_Parent = parent->GetObjectID();
-
+PhantomPhysicsComponent::PhantomPhysicsComponent(const LWOOBJID& parentEntityId) : PhysicsComponent{ parentEntityId } {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
 	m_Position = parentEntity->GetDefaultPosition();

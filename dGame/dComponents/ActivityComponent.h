@@ -15,7 +15,6 @@
 class ActivityInstance {
 public:
 	ActivityInstance(LWOOBJID parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
-	//~ActivityInstance();
 
 	/**
 	 * Adds an entity to this activity
@@ -150,7 +149,7 @@ struct ActivityPlayer {
  */
 class ActivityComponent : public Component {
 public:
-	ActivityComponent(Entity* parent, int32_t activityID);
+	ActivityComponent(const LWOOBJID& parentEntityId, int32_t activityID);
 
 	void LoadActivityData(const int32_t activityId);
 

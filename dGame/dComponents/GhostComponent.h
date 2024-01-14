@@ -7,7 +7,7 @@
 class GhostComponent : public Component {
 public:
 	static inline const eReplicaComponentType ComponentType = eReplicaComponentType::GHOST;
-	GhostComponent(Entity* parent);
+	GhostComponent(const LWOOBJID& parentEntityId);
 };
 
 #endif  //!__GHOSTCOMPONENT__H__
