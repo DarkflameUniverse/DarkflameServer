@@ -330,7 +330,9 @@ protected:
 
 	std::unordered_map<eReplicaComponentType, Component*> m_Components;
 	std::vector<EntityTimer> m_Timers;
+	std::vector<EntityTimer> m_PendingTimers;
 	std::vector<EntityCallbackTimer> m_CallbackTimers;
+	std::vector<EntityCallbackTimer> m_PendingCallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;
 
