@@ -427,13 +427,16 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	}
 
 	// Check to see if they are friends
-	if (std::find(sender.friends.begin(), sender.friends.end(), receiver.playerID) != sender.friends.end()) {
-		//To the sender:
-		SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::SENT);
-		//To the receiver:
-		SendPrivateChatMessage(sender, receiver, receiver, message, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
-		return; //we have this player as a friend, yeet this function so it doesn't send another request.
-	} else SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::NOTFRIENDS);
+	for (const auto& fr : receiver.friends) {
+		if (fr.friendID == sender.playerID) {
+			//To the sender:
+			SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::SENT);
+			//To the receiver:
+			SendPrivateChatMessage(sender, receiver, receiver, message, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
+			return; //we have this player as a friend, yeet this function so it doesn't send another request.
+		}
+	}
+	SendPrivateChatMessage(sender, receiver, sender, message, eChatMessageResponseCode::NOTFRIENDS);
 }
 
 void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, eChatMessageResponseCode responseCode) {
