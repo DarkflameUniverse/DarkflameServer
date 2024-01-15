@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
-#include "Player.h"
+#include "CharacterComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
 #include "MissionComponent.h"
@@ -23,7 +23,8 @@ void BaseSurvivalServer::BasePlayerLoaded(Entity* self, Entity* player) {
 	const auto& playersIter = std::find(state.players.begin(), state.players.end(), player->GetObjectID());
 
 	if (waitingIter != state.waitingPlayers.end() || playersIter != state.players.end()) {
-		static_cast<Player*>(player)->SendToZone(player->GetCharacter()->GetLastNonInstanceZoneID());
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SendToZone(player->GetCharacter()->GetLastNonInstanceZoneID());
 
 		return;
 	}
@@ -115,7 +116,7 @@ void BaseSurvivalServer::BasePlayerExit(Entity* self, Entity* player) {
 
 	SetActivityValue(self, player->GetObjectID(), 1, 0);
 	self->SetNetworkVar<uint32_t>(NumberOfPlayersVariable,
-		std::min((uint32_t)0, self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
+		std::min(static_cast<uint32_t>(0), self->GetNetworkVar<uint32_t>(NumberOfPlayersVariable) - 1));
 }
 
 void BaseSurvivalServer::BaseFireEvent(Entity* self, Entity* sender, const std::string& args, int32_t param1, int32_t param2,
@@ -161,8 +162,8 @@ void BaseSurvivalServer::BaseMessageBoxResponse(Entity* self, Entity* sender, in
 		if (sender->IsPlayer()) {
 			auto* character = sender->GetCharacter();
 			if (character != nullptr) {
-				auto* player = dynamic_cast<Player*>(sender);
-				player->SendToZone(character->GetLastNonInstanceZoneID());
+				auto* characterComponent = sender->GetComponent<CharacterComponent>();
+				if (characterComponent) characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 			}
 		}
 	}
@@ -370,7 +371,7 @@ void BaseSurvivalServer::GameOver(Entity* self) {
 
 			for (const auto& survivalMission : missionsToUpdate) {
 				auto* mission = missionComponent->GetMission(survivalMission.first);
-				if (mission != nullptr && (uint32_t)time >= survivalMission.second
+				if (mission != nullptr && static_cast<uint32_t>(time) >= survivalMission.second
 					&& (mission->GetMissionState() == eMissionState::ACTIVE
 						|| mission->GetMissionState() == eMissionState::COMPLETE_ACTIVE)) {
 
@@ -421,7 +422,7 @@ void BaseSurvivalServer::SpawnerReset(SpawnerNetworkCollection& spawnerNetworkCo
 		}
 	}
 
-	state.totalSpawned = std::max((uint32_t)totalSpawned, state.totalSpawned);
+	state.totalSpawned = std::max(static_cast<uint32_t>(totalSpawned), state.totalSpawned);
 }
 
 void BaseSurvivalServer::SpawnerUpdate(Entity* self, SpawnerNetworkCollection& spawnerNetworkCollection, uint32_t amount) {

@@ -3,13 +3,14 @@
 #include "RawFile.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dPlatforms.h"
 #include "NiPoint3.h"
 #include "BinaryIO.h"
 #include "BinaryPathFinder.h"
 
 #include "dZoneManager.h"
+#include "DluAssert.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -20,9 +21,9 @@ dNavMesh::dNavMesh(uint32_t zoneId) {
 		m_NavQuery = dtAllocNavMeshQuery();
 		m_NavQuery->init(m_NavMesh, 2048);
 
-		Game::logger->Log("dNavMesh", "Navmesh loaded successfully!");
+		LOG("Navmesh loaded successfully!");
 	} else {
-		Game::logger->Log("dNavMesh", "Navmesh loading failed (This may be intended).");
+		LOG("Navmesh loading failed (This may be intended).");
 	}
 }
 
@@ -104,7 +105,7 @@ void dNavMesh::LoadNavmesh() {
 		if (!tileHeader.tileRef || !tileHeader.dataSize)
 			break;
 
-		unsigned char* data = (unsigned char*)dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM);
+		unsigned char* data = static_cast<unsigned char*>(dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM));
 		if (!data) break;
 		memset(data, 0, tileHeader.dataSize);
 		readLen = fread(data, tileHeader.dataSize, 1, fp);
@@ -118,7 +119,7 @@ void dNavMesh::LoadNavmesh() {
 	m_NavMesh = mesh;
 }
 
-float dNavMesh::GetHeightAtPoint(const NiPoint3& location) {
+float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExtentsHeight) const {
 	if (m_NavMesh == nullptr) {
 		return location.y;
 	}
@@ -130,15 +131,27 @@ float dNavMesh::GetHeightAtPoint(const NiPoint3& location) {
 	pos[2] = location.z;
 
 	dtPolyRef nearestRef = 0;
-	float polyPickExt[3] = { 32.0f, 32.0f, 32.0f };
+	float polyPickExt[3] = { 32.0f, halfExtentsHeight, 32.0f };
+	float nearestPoint[3] = { 0.0f, 0.0f, 0.0f };
 	dtQueryFilter filter{};
 
-	m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, 0);
+	auto hasPoly = m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, nearestPoint);
 	m_NavQuery->getPolyHeight(nearestRef, pos, &toReturn);
-
-	if (toReturn == 0.0f) {
-		toReturn = location.y;
+#ifdef _DEBUG
+	if (toReturn != 0.0f) {
+		DluAssert(toReturn == nearestPoint[1]);
 	}
+#endif
+	if (toReturn == 0.0f) {
+		// If we were unable to get the poly height, but the query returned a success, just use the height of the nearest point.
+		// This is what seems to happen anyways and it is better than returning zero.
+		if (hasPoly == DT_SUCCESS) {
+			toReturn = nearestPoint[1];
+		} else {
+			toReturn = location.y;
+		}
+	}
+	// If we failed to even find a poly, do not change the height since we have no idea what it should be.
 
 	return toReturn;
 }

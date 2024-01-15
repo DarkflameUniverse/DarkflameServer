@@ -6,7 +6,7 @@
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
@@ -19,28 +19,28 @@
 #include "eChatMessageType.h"
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
+#include "ChatIgnoreList.h"
+#include "StringifiedEnum.h"
 
 #include "Game.h"
+#include "Server.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
-#include <MessageIdentifiers.h>
+#include "MessageIdentifiers.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	AssetManager* assetManager = nullptr;
-	bool shouldShutdown = false;
+	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
+	PlayerContainer playerContainer;
 }
 
-
-dLogger* SetupLogger();
 void HandlePacket(Packet* packet);
-
-PlayerContainer playerContainer;
 
 int main(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
@@ -49,18 +49,20 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
+
+	Game::config = new dConfig("chatconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("ChatServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "chatconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
-	Game::logger->Log("ChatServer", "Starting Chat server...");
-	Game::logger->Log("ChatServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("ChatServer", "Compiled on: %s", __TIMESTAMP__);
+	LOG("Starting Chat server...");
+	LOG("Version: %s", PROJECT_VERSION);
+	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	try {
 		std::string clientPathStr = Game::config->GetValue("client_location");
@@ -72,21 +74,16 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		Game::logger->Log("ChatServer", "Got an error while setting up assets: %s", ex.what());
+		LOG("Got an error while setting up assets: %s", ex.what());
 
 		return EXIT_FAILURE;
 	}
 
 	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
-
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("ChatServer", "Got an error while connecting to the database: %s", ex.what());
+		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
@@ -96,27 +93,29 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1000;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
+	auto masterInfo = Database::Get()->GetMasterInfo();
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
 	}
-
-	delete res;
-	delete stmt;
-
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	uint32_t maxClients = 50;
+	uint32_t maxClients = 999;
 	uint32_t ourPort = 1501;
-	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
+	std::string ourIP = "localhost";
+	GeneralUtils::TryParse(Game::config->GetValue("max_clients"), maxClients);
+	GeneralUtils::TryParse(Game::config->GetValue("chat_server_port"), ourPort);
+	const auto externalIPString = Game::config->GetValue("external_ip");
+	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
 
-	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", bool(std::stoi(Game::config->GetValue("dont_generate_dcf"))));
+	bool dontGenerateDCF = false;
+	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 	
 	Game::randomEngine = std::mt19937(time(0));
+
+	Game::playerContainer.Initialize();
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -127,7 +126,8 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
-	while (!Game::shouldShutdown) {
+	Game::logger->Flush(); // once immediately before main loop
+	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
@@ -158,15 +158,12 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
-			}
 
-			delete res;
-			delete stmt;
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
+			}
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -185,25 +182,13 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-dLogger* SetupLogger() {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new dLogger(logPath, logToConsole, logDebugStatements);
-}
-
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		Game::logger->Log("ChatServer", "A server has disconnected, erasing their connected players from the list.");
+		LOG("A server has disconnected, erasing their connected players from the list.");
 	}
 
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
-		Game::logger->Log("ChatServer", "A server is connecting, awaiting user list.");
+		LOG("A server is connecting, awaiting user list.");
 	}
 
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
@@ -211,19 +196,19 @@ void HandlePacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
 		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
-			playerContainer.InsertPlayer(packet);
+			Game::playerContainer.InsertPlayer(packet);
 			break;
 
 		case eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION:
-			playerContainer.RemovePlayer(packet);
+			Game::playerContainer.RemovePlayer(packet);
 			break;
 
 		case eChatInternalMessageType::MUTE_UPDATE:
-			playerContainer.MuteUpdate(packet);
+			Game::playerContainer.MuteUpdate(packet);
 			break;
 
 		case eChatInternalMessageType::CREATE_TEAM:
-			playerContainer.CreateTeamServer(packet);
+			Game::playerContainer.CreateTeamServer(packet);
 			break;
 
 		case eChatInternalMessageType::ANNOUNCEMENT: {
@@ -234,18 +219,27 @@ void HandlePacket(Packet* packet) {
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
+			LOG("Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
-		switch (static_cast<eChatMessageType>(packet->data[3])) {
+		eChatMessageType chat_message_type = static_cast<eChatMessageType>(packet->data[3]);
+		switch (chat_message_type) {
 		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
 
 		case eChatMessageType::GET_IGNORE_LIST:
-			Game::logger->Log("ChatServer", "Asked for ignore list, but is unimplemented right now.");
+			ChatIgnoreList::GetIgnoreList(packet);
+			break;
+
+		case eChatMessageType::ADD_IGNORE:
+			ChatIgnoreList::AddIgnore(packet);
+			break;
+
+		case eChatMessageType::REMOVE_IGNORE:
+			ChatIgnoreList::RemoveIgnore(packet);
 			break;
 
 		case eChatMessageType::TEAM_GET_STATUS:
@@ -301,21 +295,73 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
-
+		case eChatMessageType::GMLEVEL_UPDATE:
+			ChatPacketHandler::HandleGMLevelUpdate(packet);
+			break;
+		case eChatMessageType::LOGIN_SESSION_NOTIFY:
+		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
+		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
+		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:
+		case eChatMessageType::WORLD_PARCEL_RESPONSE:
+		case eChatMessageType::TEAM_MISSED_INVITE_CHECK:
+		case eChatMessageType::GUILD_CREATE:
+		case eChatMessageType::GUILD_INVITE:
+		case eChatMessageType::GUILD_INVITE_RESPONSE:
+		case eChatMessageType::GUILD_LEAVE:
+		case eChatMessageType::GUILD_KICK:
+		case eChatMessageType::GUILD_GET_STATUS:
+		case eChatMessageType::GUILD_GET_ALL:
+		case eChatMessageType::SHOW_ALL:
+		case eChatMessageType::BLUEPRINT_MODERATED:
+		case eChatMessageType::BLUEPRINT_MODEL_READY:
+		case eChatMessageType::PROPERTY_READY_FOR_APPROVAL:
+		case eChatMessageType::PROPERTY_MODERATION_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED_REPORT:
+		case eChatMessageType::MAIL:
+		case eChatMessageType::WORLD_INSTANCE_LOCATION_REQUEST:
+		case eChatMessageType::REPUTATION_UPDATE:
+		case eChatMessageType::SEND_CANNED_TEXT:
+		case eChatMessageType::CHARACTER_NAME_CHANGE_REQUEST:
+		case eChatMessageType::CSR_REQUEST:
+		case eChatMessageType::CSR_REPLY:
+		case eChatMessageType::GM_KICK:
+		case eChatMessageType::GM_ANNOUNCE:
+		case eChatMessageType::WORLD_ROUTE_PACKET:
+		case eChatMessageType::GET_ZONE_POPULATIONS:
+		case eChatMessageType::REQUEST_MINIMUM_CHAT_MODE:
+		case eChatMessageType::MATCH_REQUEST:
+		case eChatMessageType::UGCMANIFEST_REPORT_MISSING_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
+		case eChatMessageType::UGCC_REQUEST:
+		case eChatMessageType::WHO:
+		case eChatMessageType::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
+		case eChatMessageType::ACHIEVEMENT_NOTIFY:
+		case eChatMessageType::GM_CLOSE_PRIVATE_CHAT_WINDOW:
+		case eChatMessageType::UNEXPECTED_DISCONNECT:
+		case eChatMessageType::PLAYER_READY:
+		case eChatMessageType::GET_DONATION_TOTAL:
+		case eChatMessageType::UPDATE_DONATION:
+		case eChatMessageType::PRG_CSR_COMMAND:
+		case eChatMessageType::HEARTBEAT_REQUEST_FROM_WORLD:
+		case eChatMessageType::UPDATE_FREE_TRIAL_STATUS:
+			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			break;
 		default:
-			Game::logger->Log("ChatServer", "Unknown CHAT id: %i", int(packet->data[3]));
+			LOG("Unknown CHAT Message id: %i", chat_message_type);
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
 		switch (static_cast<eWorldMessageType>(packet->data[3])) {
 		case eWorldMessageType::ROUTE_PACKET: {
-			Game::logger->Log("ChatServer", "Routing packet from world");
+			LOG("Routing packet from world");
 			break;
 		}
 
 		default:
-			Game::logger->Log("ChatServer", "Unknown World id: %i", int(packet->data[3]));
+			LOG("Unknown World id: %i", int(packet->data[3]));
 		}
 	}
 }

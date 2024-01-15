@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.18)
 project(Darkflame)
 include(CTest)
 
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
@@ -14,22 +15,18 @@ string(REPLACE "\n" ";" variables ${variables})
 foreach(variable ${variables})
 	# If the string contains a #, skip it
 	if(NOT "${variable}" MATCHES "#")
-
 		# Split the variable into name and value
 		string(REPLACE "=" ";" variable ${variable})
 
 		# Check that the length of the variable is 2 (name and value)
 		list(LENGTH variable length)
-		if(${length} EQUAL 2)
 
+		if(${length} EQUAL 2)
 			list(GET variable 0 variable_name)
 			list(GET variable 1 variable_value)
 
 			# Set the variable
 			set(${variable_name} ${variable_value})
-
-			# Add compiler definition
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${variable_name}=${variable_value}")
 
 			message(STATUS "Variable: ${variable_name} = ${variable_value}")
 		endif()
@@ -37,7 +34,7 @@ foreach(variable ${variables})
 endforeach()
 
 # Set the version
-set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+set(PROJECT_VERSION "\"${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}\"")
 
 # Echo the version
 message(STATUS "Version: ${PROJECT_VERSION}")
@@ -53,19 +50,22 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled misleading indentation as DL_LinkedList from RakNet has a weird indent.
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJECT_VERSION=${PROJECT_VERSION}")
 if(UNIX)
-	if(APPLE)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -fPIC")
-	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -D_GLIBCXX_USE_CXX11_ABI=0 -D_GLIBCXX_USE_CXX17_ABI=0 -static-libgcc -fPIC -lstdc++fs")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC")
+	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
+
+	if(NOT APPLE)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
 	endif()
-	if (__dynamic AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 	endif()
-	if (__ggdb)
+
+	if(${GGDB})
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
 	endif()
+
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
@@ -98,47 +98,64 @@ make_directory(${CMAKE_BINARY_DIR}/logs)
 # Copy resource files on first build
 set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
 message(STATUS "Checking resource file integrity")
-foreach (resource_file ${RESOURCE_FILES})
+
+include(Utils)
+UpdateConfigOption(${PROJECT_BINARY_DIR}/authconfig.ini "port" "auth_server_port")
+UpdateConfigOption(${PROJECT_BINARY_DIR}/chatconfig.ini "port" "chat_server_port")
+UpdateConfigOption(${PROJECT_BINARY_DIR}/masterconfig.ini "port" "master_server_port")
+
+foreach(resource_file ${RESOURCE_FILES})
 	set(file_size 0)
-	if (EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
+
+	if(EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
 		file(SIZE ${PROJECT_BINARY_DIR}/${resource_file} file_size)
 	endif()
-	if (${file_size} EQUAL 0)
+
+	if(${file_size} EQUAL 0)
 		configure_file(
 			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
 			COPYONLY
 		)
 		message(STATUS "Moved " ${resource_file} " to project binary directory")
-	elseif (resource_file MATCHES ".ini")
+	elseif(resource_file MATCHES ".ini")
 		message(STATUS "Checking " ${resource_file} " for missing config options")
 		file(READ ${PROJECT_BINARY_DIR}/${resource_file} current_file_contents)
 		string(REPLACE "\\\n" "" current_file_contents ${current_file_contents})
 		string(REPLACE "\n" ";" current_file_contents ${current_file_contents})
 		set(parsed_current_file_contents "")
+
 		# Remove comment lines so they do not interfere with the variable parsing
-		foreach (line ${current_file_contents})
+		foreach(line ${current_file_contents})
 			string(FIND ${line} "#" is_comment)
-			if (NOT ${is_comment} EQUAL 0)
+
+			if(NOT ${is_comment} EQUAL 0)
 				string(APPEND parsed_current_file_contents ${line})
 			endif()
 		endforeach()
+
 		file(READ ${CMAKE_SOURCE_DIR}/resources/${resource_file} depot_file_contents)
 		string(REPLACE "\\\n" "" depot_file_contents ${depot_file_contents})
 		string(REPLACE "\n" ";" depot_file_contents ${depot_file_contents})
 		set(line_to_add "")
-		foreach (line ${depot_file_contents})
+
+		foreach(line ${depot_file_contents})
 			string(FIND ${line} "#" is_comment)
-			if (NOT ${is_comment} EQUAL 0)
+
+			if(NOT ${is_comment} EQUAL 0)
 				string(REPLACE "=" ";" line_split ${line})
 				list(GET line_split 0 variable_name)
-				if (NOT ${parsed_current_file_contents} MATCHES ${variable_name})
+
+				if(NOT ${parsed_current_file_contents} MATCHES ${variable_name})
 					message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
 					set(line_to_add ${line_to_add} ${line})
-					foreach (line_to_append ${line_to_add})
+
+					foreach(line_to_append ${line_to_add})
 						file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n" ${line_to_append})
 					endforeach()
+
 					file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n")
 				endif()
+
 				set(line_to_add "")
 			else()
 				set(line_to_add ${line_to_add} ${line})
@@ -146,21 +163,23 @@ foreach (resource_file ${RESOURCE_FILES})
 		endforeach()
 	endif()
 endforeach()
+
 message(STATUS "Resource file integrity check complete")
 
-# Copy navmesh data on first build and extract it
-if (NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes/)
-	configure_file(
-		${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip
-		COPYONLY
-	)
-
-	file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip)
-	file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+# if navmeshes directory does not exist, create it
+if(NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/navmeshes)
 endif()
+
+# Copy navmesh data on first build and extract it
+configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip COPYONLY)
+
+file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
+file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "NPC.xml")
+
 foreach(file ${VANITY_FILES})
 	configure_file("${CMAKE_SOURCE_DIR}/vanity/${file}" "${CMAKE_BINARY_DIR}/vanity/${file}" COPYONLY)
 endforeach()
@@ -168,26 +187,18 @@ endforeach()
 # Move our migrations for MasterServer to run
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
+
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
-		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file}
-			COPYONLY
-		)
-	endif()
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
 endforeach()
 
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
+
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	if (NOT EXISTS ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
-		configure_file(
-			${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file}
-			COPYONLY
-		)
-	endif()
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
 # Create our list of include directories
@@ -195,7 +206,9 @@ set(INCLUDED_DIRECTORIES
 	"dCommon"
 	"dCommon/dClient"
 	"dCommon/dEnums"
+
 	"dChatFilter"
+
 	"dGame"
 	"dGame/dBehaviors"
 	"dGame/dComponents"
@@ -206,115 +219,53 @@ set(INCLUDED_DIRECTORIES
 	"dGame/dPropertyBehaviors"
 	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"dGame/dUtilities"
+
 	"dPhysics"
+
 	"dNavigation"
 	"dNavigation/dTerrain"
-	"dZoneManager"
-	"dDatabase"
-	"dDatabase/Tables"
-	"dNet"
-	"dScripts"
-	"dScripts/02_server"
-	"dScripts/ai"
-	"dScripts/client"
-	"dScripts/EquipmentScripts"
-	"dScripts/EquipmentTriggers"
-	"dScripts/zone"
-	"dScripts/02_server/DLU"
-	"dScripts/02_server/Enemy"
-	"dScripts/02_server/Equipment"
-	"dScripts/02_server/Map"
-	"dScripts/02_server/Minigame"
-	"dScripts/02_server/Objects"
-	"dScripts/02_server/Pets"
-	"dScripts/02_server/Enemy/AG"
-	"dScripts/02_server/Enemy/AM"
-	"dScripts/02_server/Enemy/FV"
-	"dScripts/02_server/Enemy/General"
-	"dScripts/02_server/Enemy/Survival"
-	"dScripts/02_server/Enemy/VE"
-	"dScripts/02_server/Enemy/Waves"
-	"dScripts/02_server/Map/AG"
-	"dScripts/02_server/Map/AG_Spider_Queen"
-	"dScripts/02_server/Map/AM"
-	"dScripts/02_server/Map/FV"
-	"dScripts/02_server/Map/General"
-	"dScripts/02_server/Map/GF"
-	"dScripts/02_server/Map/njhub"
-	"dScripts/02_server/Map/NS"
-	"dScripts/02_server/Map/NT"
-	"dScripts/02_server/Map/PR"
-	"dScripts/02_server/Map/Property"
-	"dScripts/02_server/Map/SS"
-	"dScripts/02_server/Map/VE"
-	"dScripts/02_server/Map/FV/Racing"
-	"dScripts/02_server/Map/General/Ninjago"
-	"dScripts/02_server/Map/njhub/boss_instance"
-	"dScripts/02_server/Map/NS/Waves"
-	"dScripts/02_server/Map/Property/AG_Med"
-	"dScripts/02_server/Map/Property/AG_Small"
-	"dScripts/02_server/Map/Property/NS_Med"
-	"dScripts/02_server/Minigame/General"
-	"dScripts/ai/ACT"
-	"dScripts/ai/AG"
-	"dScripts/ai/FV"
-	"dScripts/ai/GENERAL"
-	"dScripts/ai/GF"
-	"dScripts/ai/MINIGAME"
-	"dScripts/ai/NP"
-	"dScripts/ai/NS"
-	"dScripts/ai/PETS"
-	"dScripts/ai/PROPERTY"
-	"dScripts/ai/RACING"
-	"dScripts/ai/SPEC"
-	"dScripts/ai/WILD"
-	"dScripts/ai/ACT/FootRace"
-	"dScripts/ai/MINIGAME/SG_GF"
-	"dScripts/ai/MINIGAME/SG_GF/SERVER"
-	"dScripts/ai/NS/NS_PP_01"
-	"dScripts/ai/NS/WH"
-	"dScripts/ai/PROPERTY/AG"
-	"dScripts/ai/RACING/OBJECTS"
-	"dScripts/client/ai"
-	"dScripts/client/ai/PR"
-	"dScripts/zone/AG"
-	"dScripts/zone/LUPs"
-	"dScripts/zone/PROPERTY"
-	"dScripts/zone/PROPERTY/FV"
-	"dScripts/zone/PROPERTY/GF"
-	"dScripts/zone/PROPERTY/NS"
 
+	"dZoneManager"
+
+	"dDatabase"
+	"dDatabase/CDClientDatabase"
+	"dDatabase/CDClientDatabase/CDClientTables"
+	"dDatabase/GameDatabase"
+	"dDatabase/GameDatabase/ITables"
+	"dDatabase/GameDatabase/MySQL"
+	"dDatabase/GameDatabase/MySQL/Tables"
+
+	"dNet"
+
+	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
+	"thirdparty/cpp-httplib"
 
 	"tests"
 	"tests/dCommonTests"
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
-	)
+)
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
-if (APPLE)
+if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-if (WIN32)
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include")
-elseif (UNIX)
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt")
-	set(INCLUDED_DIRECTORIES ${INCLUDED_DIRECTORIES} "thirdparty/libbcrypt/include/bcrypt")
-endif()
-
-# Add binary directory as an include directory
-include_directories(${PROJECT_BINARY_DIR})
-
 # Actually include the directories from our list
-foreach (dir ${INCLUDED_DIRECTORIES})
+foreach(dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
+
+if(NOT WIN32)
+	include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt")
+endif()
+
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
 
 # Add linking directories:
 link_directories(${PROJECT_BINARY_DIR})
@@ -326,8 +277,9 @@ add_subdirectory(thirdparty)
 file(
 	GLOB HEADERS_DDATABASE
 	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dDatabase/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/Tables/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables/*.h
+	${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables/*.h
 	${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
 )
 
@@ -362,15 +314,16 @@ add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
+add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
 
 # Add platform specific common libraries
-if (UNIX)
+if(UNIX)
 	set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "dl" "pthread")
 
-	if (NOT APPLE AND __include_backtrace__)
+	if(NOT APPLE AND ${INCLUDE_BACKTRACE})
 		set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "backtrace")
 	endif()
 endif()
@@ -380,12 +333,6 @@ add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
 add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
-
-# Add our precompiled headers
-target_precompile_headers(
-	dGame PRIVATE
-	${HEADERS_DGAME}
-)
 
 target_precompile_headers(
 	dZoneManager PRIVATE
@@ -408,6 +355,6 @@ target_precompile_headers(
 	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
 )
 
-if (${__enable_testing__} MATCHES "1")
+if(${ENABLE_TESTING})
 	add_subdirectory(tests)
 endif()

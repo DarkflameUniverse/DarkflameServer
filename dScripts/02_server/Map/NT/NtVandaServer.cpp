@@ -11,4 +11,5 @@ void NtVandaServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 			inventoryComponent->RemoveItem(alienPartLot, 1);
 		}
 	}
+	NtBcSubmitServer::OnMissionDialogueOK(self, target, missionID, missionState);
 }

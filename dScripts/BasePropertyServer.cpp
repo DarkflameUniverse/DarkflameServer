@@ -101,7 +101,7 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 				missionComponent->Progress(
 					eMissionTaskType::VISIT_PROPERTY,
 					mapID.GetMapID(),
-					mapID.GetCloneID()
+					PropertyManagementComponent::Instance()->GetId()
 				);
 			}
 		}

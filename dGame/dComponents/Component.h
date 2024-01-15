@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 
 class Entity;
 
@@ -42,6 +42,8 @@ public:
 	 * @param doc the document to read data from
 	 */
 	virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
+
+	virtual void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
 
 protected:
 

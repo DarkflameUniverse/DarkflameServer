@@ -9,6 +9,7 @@
 #include "BitStream.h"
 #include "eConnectionType.h"
 #include "eClientMessageType.h"
+#include "BitStreamUtils.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
@@ -32,7 +33,7 @@ constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 #define CBITSTREAM RakNet::BitStream bitStream;
 #define CINSTREAM RakNet::BitStream inStream(packet->data, packet->length, false);
 #define CINSTREAM_SKIP_HEADER CINSTREAM if (inStream.GetNumberOfUnreadBits() >= BYTES_TO_BITS(HEADER_SIZE)) inStream.IgnoreBytes(HEADER_SIZE); else inStream.IgnoreBits(inStream.GetNumberOfUnreadBits());
-#define CMSGHEADER PacketUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+#define CMSGHEADER BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 #define SEND_PACKET Game::server->Send(&bitStream, sysAddr, false);
 #define SEND_PACKET_BROADCAST Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 
@@ -129,7 +130,7 @@ public:
 	LWOOBJID friendID;
 	std::string friendName;
 
-	void Serialize(RakNet::BitStream& bitStream) {
+	void Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write<uint8_t>(isOnline);
 		bitStream.Write<uint8_t>(isBestFriend);
 		bitStream.Write<uint8_t>(isFTP);
@@ -147,11 +148,11 @@ public:
 		if (size > maxSize) size = maxSize;
 
 		for (uint32_t i = 0; i < size; ++i) {
-			bitStream.Write(static_cast<uint16_t>(friendName[i]));
+			bitStream.Write<uint16_t>(friendName[i]);
 		}
 
 		for (uint32_t j = 0; j < remSize; ++j) {
-			bitStream.Write(static_cast<uint16_t>(0));
+			bitStream.Write<uint16_t>(0);
 		}
 
 		bitStream.Write<uint32_t>(0); //???

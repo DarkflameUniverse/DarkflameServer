@@ -1,7 +1,7 @@
 #include "Game.h"
 
-class dLogger;
+class Logger;
 namespace Game
 {
-	dLogger* logger;
+	Logger* logger;
 } // namespace Game

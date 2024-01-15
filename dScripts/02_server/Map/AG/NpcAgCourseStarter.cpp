@@ -52,7 +52,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		time_t startTime = std::time(0) + 4; // Offset for starting timer
 
-		data->values[1] = *(float*)&startTime;
+		data->values[1] = *reinterpret_cast<float*>(&startTime);
 
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
@@ -81,9 +81,9 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
 		time_t endTime = std::time(0);
-		time_t finish = (endTime - *(time_t*)&data->values[1]);
+		time_t finish = (endTime - *reinterpret_cast<time_t*>(&data->values[1]));
 
-		data->values[2] = *(float*)&finish;
+		data->values[2] = *reinterpret_cast<float*>(&finish);
 
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {

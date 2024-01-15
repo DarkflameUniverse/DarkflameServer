@@ -16,7 +16,7 @@ VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 	RefreshInventory(true);
 }
 
-void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void VendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(bIsInitialUpdate || m_DirtyVendor);
 	if (bIsInitialUpdate || m_DirtyVendor) {
 		outBitStream->Write(m_HasStandardCostItems);
@@ -42,7 +42,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	}
 
 	auto* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	const auto lootMatrices = lootMatrixTable->Query([=](CDLootMatrix entry) { return (entry.LootMatrixIndex == m_LootMatrixID); });
+	const auto& lootMatrices = lootMatrixTable->GetMatrix(m_LootMatrixID);
 
 	if (lootMatrices.empty()) return;
 
@@ -51,14 +51,13 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
-		int lootTableID = lootMatrix.LootTableIndex;
-		auto vendorItems = lootTableTable->Query([=](CDLootTable entry) { return (entry.LootTableIndex == lootTableID); });
+		auto vendorItems = lootTableTable->GetTable(lootMatrix.LootTableIndex);
 		if (lootMatrix.maxToDrop == 0 || lootMatrix.minToDrop == 0) {
 			for (const auto& item : vendorItems) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(item.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
@@ -78,7 +77,7 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
 					auto itemComponentID = compRegistryTable->GetByIDAndType(randomItem.itemid, eReplicaComponentType::ITEM, -1);
 					if (itemComponentID == -1) {
-						Game::logger->Log("VendorComponent", "Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+						LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 						continue;
 					}
 					auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);

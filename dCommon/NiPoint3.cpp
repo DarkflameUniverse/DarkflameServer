@@ -114,13 +114,13 @@ bool NiPoint3::operator!=(const NiPoint3& point) const {
 //! Operator for subscripting
 float& NiPoint3::operator[](int i) {
 	float* base = &x;
-	return (float&)base[i];
+	return base[i];
 }
 
 //! Operator for subscripting
 const float& NiPoint3::operator[](int i) const {
 	const float* base = &x;
-	return (float&)base[i];
+	return base[i];
 }
 
 //! Operator for addition of vectors
@@ -133,6 +133,13 @@ NiPoint3& NiPoint3::operator+=(const NiPoint3& point) {
 	this->x += point.x;
 	this->y += point.y;
 	this->z += point.z;
+	return *this;
+}
+
+NiPoint3& NiPoint3::operator*=(const float scalar) {
+	this->x *= scalar;
+	this->y *= scalar;
+	this->z *= scalar;
 	return *this;
 }
 
@@ -174,7 +181,7 @@ bool NiPoint3::IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& 
 	if (this->y < minPoint.y) return false;
 	if (this->y > maxPoint.y) return false;
 
-	return (this->z < maxPoint.z&& this->z > minPoint.z);
+	return (this->z < maxPoint.z && this->z > minPoint.z);
 }
 
 //! Checks to see if the point (or vector) is within a sphere
@@ -225,10 +232,21 @@ NiPoint3 NiPoint3::MoveTowards(const NiPoint3& current, const NiPoint3& target, 
 	float dx = target.x - current.x;
 	float dy = target.y - current.y;
 	float dz = target.z - current.z;
-	float lengthSquared = (float)((double)dx * (double)dx + (double)dy * (double)dy + (double)dz * (double)dz);
-	if ((double)lengthSquared == 0.0 || (double)maxDistanceDelta >= 0.0 && (double)lengthSquared <= (double)maxDistanceDelta * (double)maxDistanceDelta)
+
+	float lengthSquared = static_cast<float>(
+		static_cast<double>(dx) * static_cast<double>(dx) +
+		static_cast<double>(dy) * static_cast<double>(dy) +
+		static_cast<double>(dz) * static_cast<double>(dz)
+		);
+
+	if (static_cast<double>(lengthSquared) == 0.0
+		|| static_cast<double>(maxDistanceDelta) >= 0.0
+		&& static_cast<double>(lengthSquared)
+		<= static_cast<double>(maxDistanceDelta) * static_cast<double>(maxDistanceDelta)) {
 		return target;
-	float length = (float)std::sqrt((double)lengthSquared);
+	}
+
+	float length = std::sqrt(lengthSquared);
 	return NiPoint3(current.x + dx / length * maxDistanceDelta, current.y + dy / length * maxDistanceDelta, current.z + dz / length * maxDistanceDelta);
 }
 

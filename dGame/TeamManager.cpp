@@ -1,7 +1,13 @@
 #include "TeamManager.h"
 #include "EntityManager.h"
+#include "Game.h"
+#include "dConfig.h"
 
 TeamManager* TeamManager::m_Address = nullptr; //For singleton method
+
+Team::Team() {
+	lootOption = Game::config->GetValue("default_team_loot") == "0" ? 0 : 1;
+}
 
 TeamManager::TeamManager() {
 }

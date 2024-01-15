@@ -32,10 +32,12 @@ enum class eObjectWorldState : uint32_t;
 enum class eTerminateType : uint32_t;
 enum class eControlScheme : uint32_t;
 enum class eStateChangeType : uint32_t;
+enum class ePetAbilityType : uint32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
-enum class eRebuildState : uint32_t;
+enum class eQuickBuildState : uint32_t;
+enum class BehaviorSlot : int32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -73,6 +75,7 @@ namespace GameMessages {
 		eMovementPlatformState movementState, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1);
 
+	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
 	void SendServerDoneLoadingAllObjects(Entity* entity, const SystemAddress& sysAddr);
 	void SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLevel level);
@@ -98,8 +101,8 @@ namespace GameMessages {
 	void SendBroadcastTextToChatbox(Entity* entity, const SystemAddress& sysAddr, const std::u16string& attrs, const std::u16string& wsText);
 	void SendSetCurrency(Entity* entity, int64_t currency, int lootType, const LWOOBJID& sourceID, const LOT& sourceLOT, int sourceTradeID, bool overrideCurrent, eLootSourceType sourceType);
 
-	void SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID);
-	void SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
+	void SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID);
+	void SendEnableQuickBuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID);
 	void AddActivityOwner(Entity* entity, LWOOBJID& ownerID);
 	void SendTerminateInteraction(const LWOOBJID& objectID, eTerminateType type, const LWOOBJID& terminator);
 
@@ -107,6 +110,8 @@ namespace GameMessages {
 	void SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOBJID& lootOwnerID, bool bDieAccepted, eKillType killType, std::u16string deathType, float directionRelative_AngleY, float directionRelative_AngleXZ, float directionRelative_Force, bool bClientDeath, bool bSpawnLoot, float coinSpawnTime);
 
 	void SendSetInventorySize(Entity* entity, int invType, int size);
+
+	void SendSetGravityScale(const LWOOBJID& target, const float effectScale, const SystemAddress& sysAddr);
 
 	void SendSetEmoteLockState(Entity* entity, bool bLock, int emoteID);
 	void SendSetJetPackMode(Entity* entity, bool use, bool bypassChecks = false, bool doHover = false, int effectID = -1, float airspeed = 10, float maxAirspeed = 15, float verticalVelocity = 1, int warningEffectID = -1);
@@ -119,7 +124,7 @@ namespace GameMessages {
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
 
-	void SendAddSkill(Entity* entity, TSkillID skillID, int slotID);
+	void SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot slotID);
 	void SendRemoveSkill(Entity* entity, TSkillID skillID);
 
 	void SendFinishArrangingWithItem(Entity* entity, const LWOOBJID& buildAreaID);
@@ -203,7 +208,7 @@ namespace GameMessages {
 	void SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 		bool addImmunity = false, bool cancelOnDamaged = false, bool cancelOnDeath = true,
 		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
-		bool cancelOnUnequip = false, bool cancelOnZone = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+		bool cancelOnUnequip = false, bool cancelOnZone = false, bool addedByTeammate = false, bool applyOnTeammates = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
 	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
 
@@ -382,7 +387,7 @@ namespace GameMessages {
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 
-	void SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr);
+	void SendShowPetActionButton(const LWOOBJID objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr);
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 
@@ -598,7 +603,7 @@ namespace GameMessages {
 	void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity);
+	void HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity);
 	void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);

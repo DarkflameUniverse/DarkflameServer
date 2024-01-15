@@ -27,34 +27,20 @@ public:
 		uint32_t particleChunkStart;
 	};
 
-	struct SceneObjectDataChunk {
-		std::map<LWOOBJID, SceneObject> objects;
-
-		const void PrintAllObjects() {
-			for (std::map<LWOOBJID, SceneObject>::iterator it = objects.begin(); it != objects.end(); ++it) {
-				std::cout << "\t ID: " << it->first << " LOT: " << it->second.lot << std::endl;
-			}
-		}
-
-		uint32_t GetObjectCount() { return objects.size(); }
-	};
-
 	struct Header {
 		uint32_t id;
 		uint16_t chunkVersion;
 		ChunkTypeID chunkType;
 		uint32_t size;
 		uint32_t startPosition;
-		FileInfoChunk* fileInfo;
-		SceneObjectDataChunk* sceneObjects;
+		FileInfoChunk fileInfo;
 		LWOSCENEID lwoSceneID;
 	};
 
 public:
 	Level(Zone* parentZone, const std::string& filepath);
-	~Level();
-
-	const void PrintAllObjects();
+	
+	static void MakeSpawner(SceneObject obj);
 
 	std::map<uint32_t, Header> m_ChunkHeaders;
 private:

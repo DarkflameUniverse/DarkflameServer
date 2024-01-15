@@ -20,7 +20,7 @@ RawFile::RawFile(std::string fileName) {
 
 
 	if (m_Version < 0x20) {
-		return; // Version too crusty to handle
+		return; // Version is too old to be supported
 	}
 
 	// Read in chunks
@@ -32,13 +32,15 @@ RawFile::RawFile(std::string fileName) {
 		m_Chunks.push_back(chunk);
 	}
 
+	m_FinalMesh = new RawMesh();
+
 	this->GenerateFinalMeshFromChunks();
 }
 
 RawFile::~RawFile() {
-	delete m_FinalMesh;
+	if (m_FinalMesh) delete m_FinalMesh;
 	for (const auto* item : m_Chunks) {
-		delete item;
+		if (item) delete item;
 	}
 }
 
@@ -49,10 +51,14 @@ void RawFile::GenerateFinalMeshFromChunks() {
 		for (const auto& vert : chunk->m_Mesh->m_Vertices) {
 			auto tempVert = vert;
 
-			tempVert.SetX(tempVert.GetX() + (chunk->m_X / 4));
-			tempVert.SetZ(tempVert.GetZ() + (chunk->m_Z / 4));
+			// Scale X and Z by the chunk's position in the world
+			// Scale Y by the chunk's heightmap scale factor
+			tempVert.SetX(tempVert.GetX() + (chunk->m_X / chunk->m_HeightMap->m_ScaleFactor));
+			tempVert.SetY(tempVert.GetY() / chunk->m_HeightMap->m_ScaleFactor);
+			tempVert.SetZ(tempVert.GetZ() + (chunk->m_Z / chunk->m_HeightMap->m_ScaleFactor));
 
-			tempVert* chunk->m_HeightMap->m_ScaleFactor;
+			// Then scale it again for some reason
+			tempVert *= chunk->m_HeightMap->m_ScaleFactor;
 
 			m_FinalMesh->m_Vertices.push_back(tempVert);
 		}
@@ -67,16 +73,12 @@ void RawFile::GenerateFinalMeshFromChunks() {
 
 void RawFile::WriteFinalMeshToOBJ(std::string path) {
 	std::ofstream file(path);
-	std::string vertData;
 
 	for (const auto& v : m_FinalMesh->m_Vertices) {
-		vertData += "v " + std::to_string(v.x) + " " + std::to_string(v.y) + " " + std::to_string(v.z) + "\n";
+		file << "v " << v.x << ' ' << v.y << ' ' << v.z << '\n';
 	}
 
 	for (int i = 0; i < m_FinalMesh->m_Triangles.size(); i += 3) {
-		vertData += "f " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i) + 1) + " " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i + 1) + 1) + " " + std::to_string(*std::next(m_FinalMesh->m_Triangles.begin(), i + 2) + 1) + "\n";
+		file << "f " << *std::next(m_FinalMesh->m_Triangles.begin(), i) + 1 << ' ' << *std::next(m_FinalMesh->m_Triangles.begin(), i + 1) + 1 << ' ' << *std::next(m_FinalMesh->m_Triangles.begin(), i + 2) + 1 << '\n';
 	}
-
-	file.write(vertData.c_str(), vertData.size());
-	file.close();
 }

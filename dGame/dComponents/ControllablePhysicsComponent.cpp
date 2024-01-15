@@ -1,7 +1,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "Entity.h"
 #include "BitStream.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 
 #include "dpWorld.h"
@@ -15,15 +15,12 @@
 #include "LevelProgressionComponent.h"
 #include "eStateChangeType.h"
 
-ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Component(entity) {
-	m_Position = {};
-	m_Rotation = NiQuaternion::IDENTITY;
+ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : PhysicsComponent(entity) {
 	m_Velocity = {};
 	m_AngularVelocity = {};
 	m_InJetpackMode = false;
 	m_IsOnGround = true;
 	m_IsOnRail = false;
-	m_DirtyPosition = true;
 	m_DirtyVelocity = true;
 	m_DirtyAngularVelocity = true;
 	m_dpEntity = nullptr;
@@ -55,7 +52,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Com
 		return;
 
 	if (entity->GetLOT() == 1) {
-		Game::logger->Log("ControllablePhysicsComponent", "Using patch to load minifig physics");
+		LOG("Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -74,7 +71,7 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 
 }
 
-void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	//If this is a creation, then we assume the position is dirty, even when it isn't.
 	//This is because new clients will still need to receive the position.
 	//if (bIsInitialUpdate) m_DirtyPosition = true;
@@ -164,7 +161,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag!");
+		LOG("Failed to find char tag!");
 		return;
 	}
 
@@ -181,22 +178,16 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_DirtyPosition = true;
 }
 
-void ControllablePhysicsComponent::ResetFlags() {
-	m_DirtyAngularVelocity = false;
-	m_DirtyPosition = false;
-	m_DirtyVelocity = false;
-}
-
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		Game::logger->Log("ControllablePhysicsComponent", "Failed to find char tag while updating XML!");
+		LOG("Failed to find char tag while updating XML!");
 		return;
 	}
 
 	auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 
-	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0) {
+	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
 		character->SetAttribute("lzx", m_Position.x);
 		character->SetAttribute("lzy", m_Position.y);
 		character->SetAttribute("lzz", m_Position.z);
@@ -208,26 +199,14 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
-	if (m_Static) {
-		return;
-	}
-
-	m_Position.x = pos.x;
-	m_Position.y = pos.y;
-	m_Position.z = pos.z;
-	m_DirtyPosition = true;
-
+	if (m_Static) return;
+	PhysicsComponent::SetPosition(pos);
 	if (m_dpEntity) m_dpEntity->SetPosition(pos);
 }
 
 void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
-	if (m_Static) {
-		return;
-	}
-
-	m_Rotation = rot;
-	m_DirtyPosition = true;
-
+	if (m_Static) return;
+	PhysicsComponent::SetRotation(rot);
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
 }
 
@@ -289,7 +268,7 @@ void ControllablePhysicsComponent::RemovePickupRadiusScale(float value) {
 	if (pos != m_ActivePickupRadiusScales.end()) {
 		m_ActivePickupRadiusScales.erase(pos);
 	} else {
-		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
+		LOG_DEBUG("Warning: Could not find pickup radius %f in list of active radii.  List has %i active radii.", value, m_ActivePickupRadiusScales.size());
 		return;
 	}
 
@@ -314,7 +293,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	if (pos != m_ActiveSpeedBoosts.end()) {
 		m_ActiveSpeedBoosts.erase(pos);
 	} else {
-		Game::logger->LogDebug("ControllablePhysicsComponent", "Warning: Could not find speedboost %f in list of active speedboosts.  List has %i active speedboosts.", value, m_ActiveSpeedBoosts.size());
+		LOG_DEBUG("Warning: Could not find speedboost %f in list of active speedboosts.  List has %i active speedboosts.", value, m_ActiveSpeedBoosts.size());
 		return;
 	}
 
@@ -332,7 +311,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
 	if (m_IsInBubble) {
-		Game::logger->Log("ControllablePhysicsComponent", "Already in bubble");
+		LOG("Already in bubble");
 		return;
 	}
 	m_BubbleType = bubbleType;

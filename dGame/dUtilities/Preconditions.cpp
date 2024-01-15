@@ -1,7 +1,7 @@
 #include "Preconditions.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 #include <sstream>
 
@@ -19,7 +19,7 @@ std::map<uint32_t, Precondition*> Preconditions::cache = {};
 Precondition::Precondition(const uint32_t condition) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT type, targetLOT, targetCount FROM Preconditions WHERE id = ?;");
-	query.bind(1, (int)condition);
+	query.bind(1, static_cast<int>(condition));
 
 	auto result = query.execQuery();
 
@@ -28,7 +28,7 @@ Precondition::Precondition(const uint32_t condition) {
 		this->count = 1;
 		this->values = { 0 };
 
-		Game::logger->Log("Precondition", "Failed to find precondition of id (%i)!", condition);
+		LOG("Failed to find precondition of id (%i)!", condition);
 
 		return;
 	}

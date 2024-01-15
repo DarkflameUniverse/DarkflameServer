@@ -19,7 +19,7 @@ class Entity;
 /**
  * The current state of the AI
  */
-enum class AiState : int {
+enum class AiState : uint32_t {
 	idle = 0,   // Doing nothing
 	aggro,      // Waiting for an enemy to cross / running back to spawn
 	tether,     // Chasing an enemy
@@ -47,13 +47,13 @@ struct AiSkillEntry
  */
 class BaseCombatAIComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
 	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Get the current behavioral state of the enemy

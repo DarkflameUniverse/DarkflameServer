@@ -5,12 +5,11 @@
 #include <iomanip>
 
 #include "Entity.h"
-#include "PacketUtils.h"
 
 #include "CDClientManager.h"
 #include "GameMessages.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDAnimationsTable.h"
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
@@ -32,7 +31,7 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 			for (auto& groupId : groupIdsSplit) {
 				int32_t groupIdInt;
 				if (!GeneralUtils::TryParse(groupId, groupIdInt)) {
-					Game::logger->Log("RenderComponent", "bad animation group Id %s", groupId.c_str());
+					LOG("bad animation group Id %s", groupId.c_str());
 					continue;
 				}
 				m_animationGroupIds.push_back(groupIdInt);
@@ -54,39 +53,41 @@ RenderComponent::~RenderComponent() {
 	m_Effects.clear();
 }
 
-void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 
 	outBitStream->Write<uint32_t>(m_Effects.size());
 
 	for (Effect* eff : m_Effects) {
-		// Check that the effect is non-null
-		assert(eff);
+		// we still need to write 0 as the size for name if it is a nullptr
+		if (!eff) {
+			outBitStream->Write<uint8_t>(0);
+			continue;
+		}
 
 		outBitStream->Write<uint8_t>(eff->name.size());
-		for (const auto& value : eff->name)
-			outBitStream->Write<uint8_t>(value);
+		// if there is no name, then we don't write anything else
+		if (eff->name.empty()) continue;
+
+		for (const auto& value : eff->name) outBitStream->Write<uint8_t>(value);
 
 		outBitStream->Write(eff->effectID);
 
 		outBitStream->Write<uint8_t>(eff->type.size());
-		for (const auto& value : eff->type)
-			outBitStream->Write<uint16_t>(value);
+		for (const auto& value : eff->type) outBitStream->Write<uint16_t>(value);
 
-		outBitStream->Write<float_t>(eff->scale);
+		outBitStream->Write<float_t>(eff->priority);
 		outBitStream->Write<int64_t>(eff->secondary);
 	}
 }
 
-Effect* RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type) {
+Effect* RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority) {
 	auto* eff = new Effect();
 
 	eff->effectID = effectId;
-
 	eff->name = name;
-
 	eff->type = type;
-
+	eff->priority = priority;
 	m_Effects.push_back(eff);
 
 	return eff;
@@ -143,7 +144,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 
 	GameMessages::SendPlayFXEffect(m_Parent, effectId, effectType, name, secondary, priority, scale, serialize);
 
-	auto* effect = AddEffect(effectId, name, effectType);
+	auto* effect = AddEffect(effectId, name, effectType, priority);
 
 	const auto& pair = m_DurationCache.find(effectId);
 
@@ -227,6 +228,6 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 		}
 	}
 	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
-	if (returnlength == 0.0f) Game::logger->Log("RenderComponent", "WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
+	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
 	return returnlength;
 }

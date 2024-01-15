@@ -4,7 +4,7 @@
 class PropertyPlatform : public CppScripts::Script {
 public:
 	void OnUse(Entity* self, Entity* user) override;
-	void OnRebuildComplete(Entity* self, Entity* target) override;
+	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 private:
 	float_t movementDelay = 10.0f;
 	float_t effectDelay = 5.0f;

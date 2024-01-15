@@ -27,7 +27,7 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 	result.finalize();
 }
 
-void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyPossessable || bIsInitialUpdate);
 	if (m_DirtyPossessable || bIsInitialUpdate) {
 		m_DirtyPossessable = false; // reset flag

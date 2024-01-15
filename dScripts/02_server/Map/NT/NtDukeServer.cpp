@@ -37,4 +37,5 @@ void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 			inventoryComponent->RemoveItem(m_SwordLot, lotCount);
 		}
 	}
+	NtBcSubmitServer::OnMissionDialogueOK(self, target, missionID, missionState);
 }

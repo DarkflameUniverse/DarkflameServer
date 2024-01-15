@@ -1,17 +1,17 @@
 #include "PropertyPlatform.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "GameMessages.h"
 #include "MovingPlatformComponent.h"
 
-void PropertyPlatform::OnRebuildComplete(Entity* self, Entity* target) {
+void PropertyPlatform::OnQuickBuildComplete(Entity* self, Entity* target) {
 	GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS
 	, static_cast<eMovementPlatformState>(eMovementPlatformState::Waiting | eMovementPlatformState::ReachedDesiredWaypoint | eMovementPlatformState::ReachedFinalWaypoint),
 	true, 0, 0, 0);
 }
 
 void PropertyPlatform::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() == eRebuildState::COMPLETED) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
 		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling, true, 0,
 			1, 1);
 

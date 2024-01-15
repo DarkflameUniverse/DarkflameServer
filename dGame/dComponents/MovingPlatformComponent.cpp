@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
@@ -366,7 +366,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	outBitStream->Write0(); // No more platforms to write
 }
 
-void MovingPlatformComponent::OnRebuildInitilized() {
+void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
 }
 

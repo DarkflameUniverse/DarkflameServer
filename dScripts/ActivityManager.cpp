@@ -4,7 +4,7 @@
 #include "LeaderboardManager.h"
 #include "GameMessages.h"
 #include <algorithm>
-#include "dLogger.h"
+#include "Logger.h"
 #include "Loot.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
@@ -71,7 +71,7 @@ void ActivityManager::StopActivity(Entity* self, const LWOOBJID playerID, const 
 		SetActivityValue(self, playerID, 1, value1);
 		SetActivityValue(self, playerID, 2, value2);
 
-		LootGenerator::Instance().GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
+		Loot::GiveActivityLoot(player, self, gameID, CalculateActivityRating(self, playerID));
 
 		if (sac != nullptr) {
 			sac->PlayerRemove(player->GetObjectID());
@@ -129,7 +129,7 @@ void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerN
 	auto* timer = new ActivityTimer{ timerName, updateInterval, stopTime };
 	activeTimers.push_back(timer);
 
-	Game::logger->LogDebug("ActivityManager", "Starting timer '%s', %f, %f", timerName.c_str(), updateInterval, stopTime);
+	LOG_DEBUG("Starting timer '%s', %f, %f", timerName.c_str(), updateInterval, stopTime);
 
 	self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 }
@@ -210,10 +210,10 @@ void ActivityManager::OnTimerDone(Entity* self, std::string timerName) {
 				activeTimers.erase(std::remove(activeTimers.begin(), activeTimers.end(), timer),
 					activeTimers.end());
 				delete timer;
-				Game::logger->LogDebug("ActivityManager", "Executing timer '%s'", activityTimerName.c_str());
+				LOG_DEBUG("Executing timer '%s'", activityTimerName.c_str());
 				OnActivityTimerDone(self, activityTimerName);
 			} else {
-				Game::logger->LogDebug("ActivityManager", "Updating timer '%s'", activityTimerName.c_str());
+				LOG_DEBUG("Updating timer '%s'", activityTimerName.c_str());
 				OnActivityTimerUpdate(self, timer->name, timer->stopTime - timer->runTime, timer->runTime);
 				self->AddTimer(GetPrefixedName(timer->name), timer->updateInterval);
 			}

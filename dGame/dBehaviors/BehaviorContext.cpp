@@ -4,17 +4,18 @@
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 
 #include <sstream>
 
 #include "DestroyableComponent.h"
 #include "EchoSyncSkill.h"
 #include "PhantomPhysicsComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "eReplicaComponentType.h"
+#include "TeamManager.h"
 #include "eConnectionType.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
@@ -30,7 +31,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 	auto* entity = Game::entityManager->GetEntity(this->originator);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
+		LOG("Invalid entity for (%llu)!", this->originator);
 
 		return 0;
 	}
@@ -38,7 +39,7 @@ uint32_t BehaviorContext::GetUniqueSkillId() const {
 	auto* component = entity->GetComponent<SkillComponent>();
 
 	if (component == nullptr) {
-		Game::logger->Log("BehaviorContext", "No skill component attached to (%llu)!", this->originator);;
+		LOG("No skill component attached to (%llu)!", this->originator);;
 
 		return 0;
 	}
@@ -125,7 +126,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	}
 
 	if (!found) {
-		Game::logger->Log("BehaviorContext", "Failed to find behavior sync entry with sync id (%i)!", syncId);
+		LOG("Failed to find behavior sync entry with sync id (%i)!", syncId);
 
 		return;
 	}
@@ -134,7 +135,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bit
 	const auto branch = entry.branchContext;
 
 	if (behavior == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid behavior for sync id (%i)!", syncId);
+		LOG("Invalid behavior for sync id (%i)!", syncId);
 
 		return;
 	}
@@ -248,12 +249,12 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
 
 		if (!clientInitalized) {
-			echo.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
+			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
 
 			// Write message
 			RakNet::BitStream message;
 
-			PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(&message);
 
@@ -307,46 +308,123 @@ void BehaviorContext::Reset() {
 	this->scheduledUpdates.clear();
 }
 
-std::vector<LWOOBJID> BehaviorContext::GetValidTargets(int32_t ignoreFaction, int32_t includeFaction, bool targetSelf, bool targetEnemy, bool targetFriend) const {
-	auto* entity = Game::entityManager->GetEntity(this->caster);
+void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_list<int32_t>& ignoreFactionList, std::forward_list<int32_t>& includeFactionList, bool targetSelf, bool targetEnemy, bool targetFriend, bool targetTeam) const {
 
-	std::vector<LWOOBJID> targets;
-
-	if (entity == nullptr) {
-		Game::logger->Log("BehaviorContext", "Invalid entity for (%llu)!", this->originator);
-
-		return targets;
+	// if we aren't targeting anything, then clear the targets vector
+	if (!targetSelf && !targetEnemy && !targetFriend && !targetTeam && ignoreFactionList.empty() && includeFactionList.empty()) {
+		targets.clear();
+		return;
 	}
 
-	if (!ignoreFaction && !includeFaction) {
-		for (auto entry : entity->GetTargetsInPhantom()) {
-			auto* instance = Game::entityManager->GetEntity(entry);
+	// if the caster is not there, return empty targets list
+	auto* caster = Game::entityManager->GetEntity(this->caster);
+	if (!caster) {
+		LOG_DEBUG("Invalid caster for (%llu)!", this->originator);
+		targets.clear();
+		return;
+	}
 
-			if (instance == nullptr) {
-				continue;
+	auto index = targets.begin();
+	while (index != targets.end()) {
+		auto candidate = *index;
+
+		// make sure we don't have a nullptr
+		if (!candidate) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		// handle targeting the caster
+		if (candidate == caster){
+			// if we aren't targeting self, erase, otherise increment and continue
+			if (!targetSelf) index = targets.erase(index);
+			else index++;
+			continue;
+		}
+
+		// make sure that the entity is targetable
+		if (!CheckTargetingRequirements(candidate)) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		// get factions to check against
+		// CheckTargetingRequirements checks for a destroyable component
+		// but we check again because bounds check are necessary
+		auto candidateDestroyableComponent = candidate->GetComponent<DestroyableComponent>();
+		if (!candidateDestroyableComponent) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		// if they are dead, then earse and continue
+		if (candidateDestroyableComponent->GetIsDead()){
+			index = targets.erase(index);
+			continue;
+		}
+
+		// if their faction is explicitly included, increment and continue
+		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
+		if (CheckFactionList(includeFactionList, candidateFactions)){
+			index++;
+			continue;
+		}
+
+		// check if they are a team member
+		if (targetTeam){
+			auto* team = TeamManager::Instance()->GetTeam(this->caster);
+			if (team){
+				// if we find a team member keep it and continue to skip enemy checks
+				if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
+					index++;
+					continue;
+				}
 			}
-
-			targets.push_back(entry);
 		}
+
+		// if the caster doesn't have a destroyable component, return an empty targets list
+		auto* casterDestroyableComponent = caster->GetComponent<DestroyableComponent>();
+		if (!casterDestroyableComponent) {
+			targets.clear();
+			return;
+		}
+
+		// if we arent targeting a friend, and they are a friend OR
+		// if we are not targeting enemies and they are an enemy OR.
+		// if we are ignoring their faction is explicitly ignored
+		// erase and continue
+		auto isEnemy = casterDestroyableComponent->IsEnemy(candidate);
+		if ((!targetFriend && !isEnemy) ||
+			(!targetEnemy && isEnemy) ||
+			CheckFactionList(ignoreFactionList, candidateFactions)) {
+			index = targets.erase(index);
+			continue;
+		}
+
+		index++;
 	}
+	return;
+}
 
-	if (ignoreFaction || includeFaction || (!entity->HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) && targets.empty())) {
-		DestroyableComponent* destroyableComponent;
-		if (!entity->TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent)) {
-			return targets;
-		}
+// some basic checks as well as the check that matters for this: if the quickbuild is complete
+bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
+	// if the target is a nullptr, then it's not valid
+	if (!target) return false;
 
-		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS);
-		for (auto* candidate : entities) {
-			const auto id = candidate->GetObjectID();
+	// ignore quickbuilds that aren't completed
+	auto* targetQuickbuildComponent = target->GetComponent<QuickBuildComponent>();
+	if (targetQuickbuildComponent && targetQuickbuildComponent->GetState() != eQuickBuildState::COMPLETED) return false;
 
-			if ((id != entity->GetObjectID() || targetSelf) && destroyableComponent->CheckValidity(id, ignoreFaction || includeFaction, targetEnemy, targetFriend)) {
-				targets.push_back(id);
-			}
-		}
+	return true;
+}
+
+// returns true if any of the object factions are in the faction list
+bool BehaviorContext::CheckFactionList(std::forward_list<int32_t>& factionList, std::vector<int32_t>& objectsFactions) const {
+	if (factionList.empty() || objectsFactions.empty()) return false;
+	for (auto faction : factionList){
+		if(std::find(objectsFactions.begin(), objectsFactions.end(), faction) != objectsFactions.end()) return true;
 	}
-
-	return targets;
+	return false;
 }
 
 

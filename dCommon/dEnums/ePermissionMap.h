@@ -27,20 +27,6 @@ enum class ePermissionMap : uint64_t {
 	 * The character has restricted chat access, bit 6.
 	 */
 	RestrictedChatAccess = 0x1 << 6,
-
-	//
-	// Combined permissions
-	//
-
-	/**
-	 * The character is marked as 'old', restricted from trade and mail.
-	 */
-	Old = RestrictedTradeAccess | RestrictedMailAccess,
-
-	/**
-	* The character is soft banned, restricted from trade, mail, and chat.
-	*/
-	SoftBanned = RestrictedTradeAccess | RestrictedMailAccess | RestrictedChatAccess,
 };
 
 #endif  //!__EPERMISSIONMAP__H__

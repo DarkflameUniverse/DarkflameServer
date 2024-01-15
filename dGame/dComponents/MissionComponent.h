@@ -27,7 +27,7 @@ class AchievementCacheKey;
 class MissionComponent : public Component
 {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
 
 	explicit MissionComponent(Entity* parent);
 	~MissionComponent() override;
@@ -141,7 +141,7 @@ public:
 	 * @param count the number of values to progress by (differs by task type)
 	 * @return true if a achievement was accepted, false otherwise
 	 */
-	bool LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
+	const std::vector<uint32_t> LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
 
 	/**
 	 * Checks if there's a mission active that requires the collection of the specified LOT
@@ -170,6 +170,7 @@ public:
 	 */
 	bool HasMission(uint32_t missionId);
 
+	void ResetMission(const int32_t missionId);
 private:
 	/**
 	 * All the missions owned by this entity, mapped by mission ID

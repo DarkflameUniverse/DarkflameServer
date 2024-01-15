@@ -5,9 +5,9 @@
 #include "Entity.h"
 #include "Item.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
@@ -19,7 +19,7 @@
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
@@ -31,6 +31,7 @@
 #include "eMissionTaskType.h"
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
+#include "Mail.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -68,7 +69,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 			continue;
 		}
 
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
@@ -86,7 +87,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
 
 				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
-				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
+				const LWOOBJID proxyId = ObjectIDManager::GenerateObjectID();
 
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
 				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
@@ -175,14 +176,14 @@ void InventoryComponent::AddItem(
 	const bool bound,
 	int32_t preferredSlot) {
 	if (count == 0) {
-		Game::logger->Log("InventoryComponent", "Attempted to add 0 of item (%i) to the inventory!", lot);
+		LOG("Attempted to add 0 of item (%i) to the inventory!", lot);
 
 		return;
 	}
 
 	if (!Inventory::IsValidItem(lot)) {
 		if (lot > 0) {
-			Game::logger->Log("InventoryComponent", "Attempted to add invalid item (%i) to the inventory!", lot);
+			LOG("Attempted to add invalid item (%i) to the inventory!", lot);
 		}
 
 		return;
@@ -200,7 +201,7 @@ void InventoryComponent::AddItem(
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
-			Game::logger->Log("InventoryComponent", "Failed to find empty slot for inventory (%i)!", inventoryType);
+			LOG("Failed to find empty slot for inventory (%i)!", inventoryType);
 
 			return;
 		}
@@ -264,17 +265,11 @@ void InventoryComponent::AddItem(
 		}
 
 		if (slot == -1) {
-			auto* player = dynamic_cast<Player*>(GetParent());
-
-			if (player == nullptr) {
-				return;
-			}
-
 			outOfSpace += size;
 
 			switch (sourceType) {
 			case 0:
-				player->SendMail(LWOOBJID_EMPTY, "Darkflame Universe", "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
 				break;
 
 			case 1:
@@ -300,38 +295,26 @@ void InventoryComponent::AddItem(
 	}
 }
 
-void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
+bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
 	if (count == 0) {
-		Game::logger->Log("InventoryComponent", "Attempted to remove 0 of item (%i) from the inventory!", lot);
-
-		return;
+		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
+		return false;
 	}
-
-	if (inventoryType == INVALID) {
-		inventoryType = Inventory::FindInventoryTypeForLot(lot);
-	}
-
+	if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	auto* inventory = GetInventory(inventoryType);
-
-	if (inventory == nullptr) {
-		return;
-	}
+	if (!inventory) return false;
 
 	auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
+	if (left != count) return false;
 
 	while (left > 0) {
 		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
-
-		if (item == nullptr) {
-			break;
-		}
-
+		if (!item) break;
 		const auto delta = std::min<uint32_t>(left, item->GetCount());
-
-		item->SetCount(item->GetCount() - delta);
-
+		item->SetCount(item->GetCount() - delta, silent);
 		left -= delta;
 	}
+	return true;
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
@@ -496,7 +479,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
+		LOG("Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -504,7 +487,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* bags = inventoryElement->FirstChildElement("bag");
 
 	if (bags == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
+		LOG("Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -530,7 +513,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
+		LOG("Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -545,7 +528,7 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 		auto* inventory = GetInventory(static_cast<eInventoryType>(type));
 
 		if (inventory == nullptr) {
-			Game::logger->Log("InventoryComponent", "Failed to find inventory (%i)!", type);
+			LOG("Failed to find inventory (%i)!", type);
 
 			return;
 		}
@@ -618,7 +601,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'inv' xml element!");
+		LOG("Failed to find 'inv' xml element!");
 
 		return;
 	}
@@ -641,7 +624,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* bags = inventoryElement->FirstChildElement("bag");
 
 	if (bags == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'bags' xml element!");
+		LOG("Failed to find 'bags' xml element!");
 
 		return;
 	}
@@ -660,7 +643,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr) {
-		Game::logger->Log("InventoryComponent", "Failed to find 'items' xml element!");
+		LOG("Failed to find 'items' xml element!");
 
 		return;
 	}
@@ -712,7 +695,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate, unsigned& flags) {
+void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate) {
 	if (bIsInitialUpdate || m_Dirty) {
 		outBitStream->Write(true);
 
@@ -768,10 +751,6 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 	}
 
 	outBitStream->Write(false);
-}
-
-void InventoryComponent::ResetFlags() {
-	m_Dirty = false;
 }
 
 void InventoryComponent::Update(float deltaTime) {
@@ -939,7 +918,7 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
-			Game::logger->Log("InventoryComponent", "null script?");
+			LOG("null script?");
 		}
 		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
 	}
@@ -954,7 +933,7 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
-			Game::logger->Log("InventoryComponent", "null script?");
+			LOG("null script?");
 		}
 		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
@@ -997,7 +976,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
+	auto* vehicleComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
 	if (vehicleComponent) characterComponent->SetIsRacing(true);
 
 	// Setup the destroyable stats
@@ -1162,19 +1141,7 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 
 	const auto skill = FindSkill(lot);
 
-	if (skill == 0) {
-		return;
-	}
-
-	if (index != m_Skills.end()) {
-		const auto old = index->second;
-
-		GameMessages::SendRemoveSkill(m_Parent, old);
-	}
-
-	GameMessages::SendAddSkill(m_Parent, skill, static_cast<int>(slot));
-
-	m_Skills.insert_or_assign(slot, skill);
+	SetSkill(slot, skill);
 }
 
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
@@ -1201,7 +1168,7 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
 
-		GameMessages::SendAddSkill(m_Parent, 1, static_cast<int>(BehaviorSlot::Primary));
+		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
 }
 
@@ -1346,7 +1313,7 @@ std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip
 			const auto entry = behaviors->GetSkillByID(result.skillID);
 
 			if (entry.skillID == 0) {
-				Game::logger->Log("InventoryComponent", "Failed to find buff behavior for skill (%i)!", result.skillID);
+				LOG("Failed to find buff behavior for skill (%i)!", result.skillID);
 
 				continue;
 			}
@@ -1369,7 +1336,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item);
 
@@ -1413,7 +1380,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent) {
 		try {
 			lots.push_back(std::stoi(segment));
 		} catch (std::invalid_argument& exception) {
-			Game::logger->Log("InventoryComponent", "Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
+			LOG("Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
 		}
 	}
 
@@ -1631,3 +1598,29 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) {
 		petInventoryElement->LinkEndChild(petElement);
 	}
 }
+
+
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
+	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	else return false;
+	return SetSkill(behaviorSlot, skillId);
+}
+
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+	if (skillId == 0) return false;
+	const auto index = m_Skills.find(slot);
+	if (index != m_Skills.end()) {
+		const auto old = index->second;
+		GameMessages::SendRemoveSkill(m_Parent, old);
+	}
+
+	GameMessages::SendAddSkill(m_Parent, skillId, slot);
+	m_Skills.insert_or_assign(slot, skillId);
+	return true;
+}
+

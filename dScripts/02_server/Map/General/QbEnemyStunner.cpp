@@ -6,7 +6,7 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
-void QbEnemyStunner::OnRebuildComplete(Entity* self, Entity* target) {
+void QbEnemyStunner::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto* destroyable = self->GetComponent<DestroyableComponent>();
 
 	if (destroyable != nullptr) {

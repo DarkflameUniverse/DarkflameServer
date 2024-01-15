@@ -5,5 +5,5 @@ MoveToInventoryMessage::MoveToInventoryMessage(AMFArrayValue* arguments) : Behav
 	if (!behaviorIndexValue) return;
 
 	behaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	Game::logger->LogDebug("MoveToInventoryMessage", "behaviorId %i behaviorIndex %i", behaviorId, behaviorIndex);
+	LOG_DEBUG("behaviorId %i behaviorIndex %i", behaviorId, behaviorIndex);
 }

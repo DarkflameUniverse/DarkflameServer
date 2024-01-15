@@ -5,7 +5,7 @@ class CavePrisonCage : public CppScripts::Script {
 public:
 	void OnStartup(Entity* self) override;
 	void Setup(Entity* self, Spawner* spawner);
-	void OnRebuildNotifyState(Entity* self, eRebuildState state) override;
+	void OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) override;
 	void SpawnCounterweight(Entity* self, Spawner* spawner);
 	void GetButton(Entity* self);
 	void OnTimerDone(Entity* self, std::string timerName) override;

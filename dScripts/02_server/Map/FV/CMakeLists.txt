@@ -11,4 +11,6 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_MAP_FV_RACING})
 	set(DSCRIPTS_SOURCES_02_SERVER_MAP_FV ${DSCRIPTS_SOURCES_02_SERVER_MAP_FV} "Racing/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_02_SERVER_MAP_FV ${DSCRIPTS_SOURCES_02_SERVER_MAP_FV} PARENT_SCOPE)
+add_library(dScriptsServerMapFV ${DSCRIPTS_SOURCES_02_SERVER_MAP_FV})
+target_include_directories(dScriptsServerMapFV PUBLIC "." "Racing")
+target_precompile_headers(dScriptsServerMapFV REUSE_FROM dScriptsBase)

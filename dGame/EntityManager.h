@@ -28,6 +28,7 @@ public:
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
 	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
+	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;
 	Entity* GetZoneControlEntity() const;
 
 	// Get spawn point entity by spawn name
@@ -58,8 +59,6 @@ public:
 	void CheckGhosting(Entity* entity);
 	Entity* GetGhostCandidate(int32_t id);
 	bool GetGhostingEnabled() const;
-
-	void ResetFlags();
 
 	void ScheduleForKill(Entity* entity);
 

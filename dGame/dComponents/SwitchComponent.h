@@ -5,7 +5,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BouncerComponent.h"
 #include <algorithm>
 #include "Component.h"
@@ -16,7 +16,7 @@
  */
 class SwitchComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;
@@ -25,7 +25,7 @@ public:
 
 	Entity* GetParentEntity() const;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Sets whether the switch is on or off.
@@ -75,7 +75,7 @@ private:
 	/**
 	 * Attached rebuild component.
 	 */
-	RebuildComponent* m_Rebuild;
+	QuickBuildComponent* m_QuickBuild;
 
 	/**
 	 * If the switch is on or off.

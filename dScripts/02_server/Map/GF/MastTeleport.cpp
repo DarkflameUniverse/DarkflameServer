@@ -16,7 +16,7 @@ void MastTeleport::OnStartup(Entity* self) {
 	self->SetNetworkVar<std::string>(u"hookPreconditions", "154;44", UNASSIGNED_SYSTEM_ADDRESS);
 }
 
-void MastTeleport::OnRebuildComplete(Entity* self, Entity* target) {
+void MastTeleport::OnQuickBuildComplete(Entity* self, Entity* target) {
 	if (Preconditions::Check(target, 154) && Preconditions::Check(target, 44)) {
 		self->SetVar<LWOOBJID>(u"userID", target->GetObjectID());
 

@@ -4,7 +4,7 @@
 #include "Inventory.h"
 #include "LDFFormat.h"
 #include "CDClientManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Preconditions.h"
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
@@ -207,7 +207,7 @@ public:
 	/**
 	 * Disassembles this item into bricks
 	 */
-	void DisassembleModel();
+	void DisassembleModel(uint32_t numToDismantle);
 
 	/**
 	 * Removes the item from the linked inventory

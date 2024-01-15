@@ -1,6 +1,6 @@
 #include "Spawner.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Game.h"
 #include <sstream>
 #include <functional>
@@ -51,20 +51,20 @@ Spawner::Spawner(const SpawnerInfo info) {
 		std::vector<Spawner*> spawnSmashSpawnersN = Game::zoneManager->GetSpawnersByName(m_Info.spawnOnSmashGroupName);
 		for (Entity* ssEntity : spawnSmashEntities) {
 			m_SpawnSmashFoundGroup = true;
-			ssEntity->AddDieCallback([=]() {
+			ssEntity->AddDieCallback([=, this]() {
 				Spawn();
 				});
 		}
 		for (Spawner* ssSpawner : spawnSmashSpawners) {
 			m_SpawnSmashFoundGroup = true;
-			ssSpawner->AddSpawnedEntityDieCallback([=]() {
+			ssSpawner->AddSpawnedEntityDieCallback([=, this]() {
 				Spawn();
 				});
 		}
 		for (Spawner* ssSpawner : spawnSmashSpawnersN) {
 			m_SpawnSmashFoundGroup = true;
 			m_SpawnOnSmash = ssSpawner;
-			ssSpawner->AddSpawnedEntityDieCallback([=]() {
+			ssSpawner->AddSpawnedEntityDieCallback([=, this]() {
 				Spawn();
 				});
 		}
@@ -203,6 +203,15 @@ void Spawner::Update(const float deltaTime) {
 			Spawn();
 		}
 	}
+}
+
+std::vector<LWOOBJID> Spawner::GetSpawnedObjectIDs() const {
+	std::vector<LWOOBJID> ids;
+	ids.reserve(m_Entities.size());
+	for (const auto& [objId, spawnerNode] : m_Entities) {
+		ids.push_back(objId);
+	}
+	return ids;
 }
 
 void Spawner::NotifyOfEntityDeath(const LWOOBJID& objectID) {

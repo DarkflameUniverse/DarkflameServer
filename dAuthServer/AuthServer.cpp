@@ -1,13 +1,14 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <csignal>
 #include <chrono>
 #include <thread>
 
 //DLU Includes:
 #include "dCommonVars.h"
 #include "dServer.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Database.h"
 #include "dConfig.h"
 #include "Diagnostics.h"
@@ -15,7 +16,7 @@
 
 //RakNet includes:
 #include "RakNetDefines.h"
-#include <MessageIdentifiers.h>
+#include "MessageIdentifiers.h"
 
 //Auth includes:
 #include "AuthPackets.h"
@@ -24,15 +25,17 @@
 #include "eAuthMessageType.h"
 
 #include "Game.h"
+#include "Server.h"
+
+
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dConfig* config = nullptr;
-	bool shouldShutdown = false;
+	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 }
 
-dLogger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -42,29 +45,23 @@ int main(int argc, char** argv) {
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
 
+	std::signal(SIGINT, Game::OnSignal);
+	std::signal(SIGTERM, Game::OnSignal);
+
+	Game::config = new dConfig("authconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("AuthServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
-	//Read our config:
-	Game::config = new dConfig((BinaryPathFinder::GetBinaryDir() / "authconfig.ini").string());
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
-
-	Game::logger->Log("AuthServer", "Starting Auth server...");
-	Game::logger->Log("AuthServer", "Version: %i.%i", PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR);
-	Game::logger->Log("AuthServer", "Compiled on: %s", __TIMESTAMP__);
-
-	//Connect to the MySQL Database
-	std::string mysql_host = Game::config->GetValue("mysql_host");
-	std::string mysql_database = Game::config->GetValue("mysql_database");
-	std::string mysql_username = Game::config->GetValue("mysql_username");
-	std::string mysql_password = Game::config->GetValue("mysql_password");
+	LOG("Starting Auth server...");
+	LOG("Version: %s", PROJECT_VERSION);
+	LOG("Compiled on: %s", __TIMESTAMP__);
 
 	try {
-		Database::Connect(mysql_host, mysql_database, mysql_username, mysql_password);
+		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		Game::logger->Log("AuthServer", "Got an error while connecting to the database: %s", ex.what());
+		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
@@ -74,25 +71,26 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1500;
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		masterIP = res->getString(1).c_str();
-		masterPort = res->getInt(2);
-	}
 
-	delete res;
-	delete stmt;
+	auto masterInfo = Database::Get()->GetMasterInfo();
+	if (masterInfo) {
+		masterIP = masterInfo->ip;
+		masterPort = masterInfo->port;
+	}
+	LOG("Master is at %s:%d", masterIP.c_str(), masterPort);
 
 	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	uint32_t maxClients = 50;
+	uint32_t maxClients = 999;
 	uint32_t ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
-	if (Game::config->GetValue("max_clients") != "") maxClients = std::stoi(Game::config->GetValue("max_clients"));
-	if (Game::config->GetValue("port") != "") ourPort = std::atoi(Game::config->GetValue("port").c_str());
+	std::string ourIP = "localhost";
+	GeneralUtils::TryParse(Game::config->GetValue("max_clients"), maxClients);
+	GeneralUtils::TryParse(Game::config->GetValue("auth_server_port"), ourPort);
+	const auto externalIPString = Game::config->GetValue("external_ip");
+	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(Game::config->GetValue("external_ip"), ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::shouldShutdown);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -103,13 +101,18 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
-	while (!Game::shouldShutdown) {
+	AuthPackets::LoadClaimCodes();
+	
+	Game::logger->Flush(); // once immediately before main loop
+	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
-			if (framesSinceMasterDisconnect >= authFramerate)
+			if (framesSinceMasterDisconnect >= authFramerate) {
+				LOG("No connection to master!");
 				break; //Exit our loop, shut down.
+			}
 		} else framesSinceMasterDisconnect = 0;
 
 		//In world we'd update our other systems here.
@@ -134,15 +137,11 @@ int main(int argc, char** argv) {
 			//Find out the master's IP for absolutely no reason:
 			std::string masterIP;
 			uint32_t masterPort;
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT ip, port FROM servers WHERE name='master';");
-			auto res = stmt->executeQuery();
-			while (res->next()) {
-				masterIP = res->getString(1).c_str();
-				masterPort = res->getInt(2);
+			auto masterInfo = Database::Get()->GetMasterInfo();
+			if (masterInfo) {
+				masterIP = masterInfo->ip;
+				masterPort = masterInfo->port;
 			}
-
-			delete res;
-			delete stmt;
 
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
@@ -152,6 +151,7 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 
+	LOG("Exited Main Loop! (signal %d)", Game::lastSignal);
 	//Delete our objects here:
 	Database::Destroy("AuthServer");
 	delete Game::server;
@@ -159,18 +159,6 @@ int main(int argc, char** argv) {
 	delete Game::config;
 
 	return EXIT_SUCCESS;
-}
-
-dLogger* SetupLogger() {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/AuthServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new dLogger(logPath, logToConsole, logDebugStatements);
 }
 
 void HandlePacket(Packet* packet) {

@@ -8,8 +8,6 @@ dpGrid::dpGrid(int numCells, int cellSize) {
 	CELL_SIZE = cellSize;
 	m_DeleteGrid = true;
 
-	//dumb method but i can't be bothered
-
 	//fill x
 	for (int i = 0; i < NUM_CELLS; i++) {
 		m_Cells.push_back(std::vector<std::forward_list<dpEntity*>>());

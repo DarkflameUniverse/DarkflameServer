@@ -8,7 +8,7 @@
 #include "Character.h"
 #include "Game.h"
 #include "GameMessages.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "CDClientManager.h"
 #include "GeneralUtils.h"
@@ -193,7 +193,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking
 		WHERE leaderboardsRanked.ranking
 		BETWEEN
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), lowestRanking.lowestRank - 9)
+		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), CAST(lowestRanking.lowestRank AS SIGNED) - 9)
 		AND
 		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank)
 		ORDER BY ranking ASC;
@@ -236,8 +236,8 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 		baseLookup += std::to_string(static_cast<uint32_t>(this->relatedPlayer));
 	}
 	baseLookup += " LIMIT 1";
-	Game::logger->LogDebug("LeaderboardManager", "query is %s", baseLookup.c_str());
-	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::CreatePreppedStmt(baseLookup));
+	LOG_DEBUG("query is %s", baseLookup.c_str());
+	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::Get()->CreatePreppedStmt(baseLookup));
 	baseQuery->setInt(1, this->gameID);
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
 
@@ -250,8 +250,8 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
 	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt(lookupBuffer.get()));
-	Game::logger->LogDebug("LeaderboardManager", "Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
+	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt(lookupBuffer.get()));
+	LOG_DEBUG("Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
 	query->setInt(1, this->gameID);
 	if (this->infoType == InfoType::Friends) {
 		query->setInt(2, this->relatedPlayer);
@@ -301,7 +301,7 @@ std::string FormatInsert(const Leaderboard::Type& type, const Score& score, cons
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
+	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
 	query->setInt(1, playerID);
 	query->setInt(2, activityId);
 	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
@@ -358,7 +358,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		}
 		case Leaderboard::Type::None:
 		default:
-			Game::logger->Log("LeaderboardManager", "Unknown leaderboard type %i for game %i. Cannot save score!", leaderboardType, activityId);
+			LOG("Unknown leaderboard type %i for game %i. Cannot save score!", leaderboardType, activityId);
 			return;
 		}
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
@@ -377,15 +377,15 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 	} else {
 		saveQuery = FormatInsert(leaderboardType, newScore, false);
 	}
-	Game::logger->Log("LeaderboardManager", "save query %s %i %i", saveQuery.c_str(), playerID, activityId);
-	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::CreatePreppedStmt(saveQuery));
+	LOG("save query %s %i %i", saveQuery.c_str(), playerID, activityId);
+	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::Get()->CreatePreppedStmt(saveQuery));
 	saveStatement->setInt(1, playerID);
 	saveStatement->setInt(2, activityId);
 	saveStatement->execute();
 
 	// track wins separately
 	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
-		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
+		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::Get()->CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
 		winUpdate->setInt(1, playerID);
 		winUpdate->setInt(2, activityId);
 		winUpdate->execute();

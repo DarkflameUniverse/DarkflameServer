@@ -11,7 +11,7 @@
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
 	RemoveStripMessage(AMFArrayValue* arguments);
-	ActionContext GetActionContext() { return actionContext; };
+	ActionContext GetActionContext() const { return actionContext; };
 private:
 	ActionContext actionContext;
 };

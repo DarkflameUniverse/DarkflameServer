@@ -3,7 +3,7 @@
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include "dZMCommon.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 struct Player {
 	LWOOBJID id;
@@ -101,7 +101,7 @@ private:
 
 class InstanceManager {
 public:
-	InstanceManager(dLogger* logger, const std::string& externalIP);
+	InstanceManager(Logger* logger, const std::string& externalIP);
 	~InstanceManager();
 
 	Instance* GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID); //Creates an instance if none found
@@ -131,10 +131,10 @@ public:
 	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 
 private:
-	dLogger* mLogger;
+	Logger* mLogger;
 	std::string mExternalIP;
 	std::vector<Instance*> m_Instances;
-	unsigned short m_LastPort;
+	unsigned short m_LastPort = 3000;
 	LWOINSTANCEID m_LastInstanceID;
 
 	/**

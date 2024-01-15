@@ -3,7 +3,7 @@
 #include "GeneralUtils.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "CDClientManager.h"
 
 #include "CDPropertyTemplateTable.h"
@@ -17,21 +17,21 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint32_t>(cloneId); // clone id
 
 	const auto& name = GeneralUtils::UTF8ToUTF16(Name);
-	stream.Write(uint32_t(name.size()));
+	stream.Write<uint32_t>(name.size());
 	for (uint32_t i = 0; i < name.size(); ++i) {
-		stream.Write(uint16_t(name[i]));
+		stream.Write<uint16_t>(name[i]);
 	}
 
 	const auto& description = GeneralUtils::UTF8ToUTF16(Description);
-	stream.Write(uint32_t(description.size()));
+	stream.Write<uint32_t>(description.size());
 	for (uint32_t i = 0; i < description.size(); ++i) {
-		stream.Write(uint16_t(description[i]));
+		stream.Write<uint16_t>(description[i]);
 	}
 
 	const auto& owner = GeneralUtils::UTF8ToUTF16(OwnerName);
-	stream.Write(uint32_t(owner.size()));
+	stream.Write<uint32_t>(owner.size());
 	for (uint32_t i = 0; i < owner.size(); ++i) {
-		stream.Write(uint16_t(owner[i]));
+		stream.Write<uint16_t>(owner[i]);
 	}
 
 	stream.Write<LWOOBJID>(OwnerId);
@@ -49,9 +49,9 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 	stream.Write<uint32_t>(0);
 
 	const auto& spawn = GeneralUtils::ASCIIToUTF16(SpawnName);
-	stream.Write(uint32_t(spawn.size()));
+	stream.Write<uint32_t>(spawn.size());
 	for (uint32_t i = 0; i < spawn.size(); ++i) {
-		stream.Write(uint16_t(spawn[i]));
+		stream.Write<uint16_t>(spawn[i]);
 	}
 
 	stream.Write<uint32_t>(0); // String length
@@ -71,9 +71,9 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 
 	// Does this go here???
 	// const auto& rejectionReasonConverted = GeneralUtils::UTF8ToUTF16(rejectionReason);
-	// stream.Write(uint32_t(rejectionReasonConverted.size()));
+	// stream.Write<uint32_t>(rejectionReasonConverted.size());
 	// for (uint32_t i = 0; i < rejectionReasonConverted.size(); ++i) {
-	// 	stream.Write(uint16_t(rejectionReasonConverted[i]));
+	// 	stream.Write<uint16_t>(rejectionReasonConverted[i]);
 	// }
 
 	stream.Write<uint32_t>(0);
@@ -93,7 +93,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 
 	stream.Write<char>(PrivacyOption);
 
-	stream.Write(uint32_t(Paths.size()));
+	stream.Write<uint32_t>(Paths.size());
 
 	for (const auto& path : Paths) {
 		stream.Write(path.x);

@@ -10,6 +10,7 @@
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
+#include <array>
 
 enum class eGameActivity : uint32_t;
 
@@ -62,7 +63,7 @@ enum StatisticID {
  */
 class CharacterComponent : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
 	~CharacterComponent() override;
@@ -70,7 +71,7 @@ public:
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Updates the rocket configuration using a LOT string separated by commas
@@ -232,7 +233,7 @@ public:
 	/**
 	 * Handles completing a rebuild by updating the statistics
 	 */
-	void TrackRebuildComplete();
+	void TrackQuickBuildComplete();
 
 	/**
 	 * Tracks a player completing the race, also updates stats
@@ -279,6 +280,14 @@ public:
 	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
 
 	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+
+	/**
+	 * Sends a player to another zone with an optional clone ID
+	 *
+	 * @param zoneId zoneID for the new instance.
+	 * @param cloneId cloneID for the new instance.
+	 */
+	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0) const;
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -566,6 +575,10 @@ private:
 	LWOOBJID m_LastRocketItemID = LWOOBJID_EMPTY;
 
 	LWOOBJID m_CurrentInteracting = LWOOBJID_EMPTY;
+
+	std::array<uint64_t, 4> m_ClaimCodes{};
+
+	void AwardClaimCodes();
 };
 
 #endif // CHARACTERCOMPONENT_H

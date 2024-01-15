@@ -80,7 +80,7 @@ void NsConcertQuickBuild::OnDie(Entity* self, Entity* killer) {
 		finishedQuickBuilds.erase(position);
 }
 
-void NsConcertQuickBuild::OnRebuildComplete(Entity* self, Entity* target) {
+void NsConcertQuickBuild::OnQuickBuildComplete(Entity* self, Entity* target) {
 	const auto groupNumber = self->GetVar<int32_t>(u"groupNumber");
 	finishedQuickBuilds.push_back(self->GetObjectID());
 	self->SetNetworkVar<float>(u"startEffect", -1.0f);

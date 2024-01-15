@@ -1,6 +1,6 @@
 #include "BaseConsoleTeleportServer.h"
 #include "GameMessages.h"
-#include "Player.h"
+#include "CharacterComponent.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
 #include "eTerminateType.h"
@@ -94,7 +94,9 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 
 	const auto& teleportZone = self->GetVar<std::u16string>(u"transferZoneID");
 
-	static_cast<Player*>(player)->SendToZone(std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
+	auto* characterComponent = player->GetComponent<CharacterComponent>();
+
+	if (characterComponent) characterComponent->SendToZone(std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
 
 	UpdatePlayerTable(self, player, false);
 }
