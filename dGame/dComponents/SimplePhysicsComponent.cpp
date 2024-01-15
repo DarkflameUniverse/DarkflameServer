@@ -14,6 +14,8 @@
 #include "Entity.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(const LWOOBJID& parentEntityId, const uint32_t componentID) : PhysicsComponent{ parentEntityId } {
+	CheckComponentAssertions<SimplePhysicsComponent>(); // Check static assertions
+
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
 	const auto& climbable_type = parentEntity->GetVar<std::u16string>(u"climbable");

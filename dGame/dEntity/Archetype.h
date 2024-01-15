@@ -12,17 +12,20 @@ using ComponentContainerType = std::vector<T>;
 template <typename T>
 concept ComponentType = std::is_base_of_v<Component, T>;
 
-// Require the index type to be integral
-template <typename T>
-concept IntegralType = std::is_integral_v<T>;
+// Base struct to allow pointer/reference resolution
+struct ArchetypeBase {
+	ArchetypeBase(uint32_t id) noexcept : id{ id } {}
+
+	uint32_t id; // The ID of the archetype
+};
 
 /**
  * The archetype class stores a variable number of entity component types TODO: EXPAND ON
 */
 template <ComponentType... CTypes>
-class Archetype final {
+class Archetype final : public ArchetypeBase {
 public:
-	explicit Archetype(uint32_t id) noexcept : m_archetypeId{ id } {
+	explicit Archetype(uint32_t id) noexcept : ArchetypeBase{ id } {
 		// Reserve 16 KB of memory for the sum of all vectors ahead of time
 		constexpr size_t compBytes = (sizeof(CTypes) + ...);
 		constexpr size_t reservedBytes = 16000;
@@ -34,7 +37,7 @@ public:
 	 * Get a reference to the component container of an archetype.
 	 * @returns A reference to the archetype's container of components
 	*/
-	template <ComponentType CType>
+	template <typename CType>
 	ComponentContainerType<CType>& ComponentContainer() {
 		return std::get<ComponentContainerType<CType>>(m_Components);
 	}
@@ -51,8 +54,7 @@ public:
 	 * Delete's the archetype's components at a specified container index, then moves the last element in the container to it.
 	 * @param index The archetype container index to delete
 	*/
-	template <IntegralType IType>
-	void DeleteComponents(IType index) {
+	void DeleteComponents(size_t index) {
 		((ComponentContainer<CTypes>()[index] = std::move(ComponentContainer<CTypes>().back())), ...);
 		(ComponentContainer<CTypes>().pop_back(), ...);
 	}
@@ -62,14 +64,20 @@ public:
 	 * @param index The archetype container index to get
 	 * @returns A reference to the component type specified as a template argument
 	*/
-	template <ComponentType CType, IntegralType IType>
-	CType& GetComponent(IType index) {
+	template <ComponentType CType>
+	CType& GetComponent(size_t index) {
 		return ComponentContainer<CType>()[index];
 	}
 
+	/**
+	 * Returns if an archetype contains a component
+	*/
+	template <ComponentType CType>
+	constexpr bool HasComponent() {
+		return (std::is_same_v<CType, CTypes> || ...);
+	}
+
 private:
-	uint32_t m_archetypeId; // The ID of the archetype
-	//std::vector<eReplicaComponentType> m_Types; // Maybe unneeded?
 	std::tuple<ComponentContainerType<CTypes>...> m_Components; // Made it a tuple of vectors (may God help us all)
 	//std::unordered_map<eReplicaComponentType, ArchetypeEdge<Types...>> edges;
 };

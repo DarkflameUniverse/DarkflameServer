@@ -43,25 +43,35 @@ public:
 	 */
 	virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
 
+	/**
+	 * Serialize component
+	 * @param outBitStream Raknet output bitstream
+	 * @param isConstruction Boolean representing construction state
+	*/
 	virtual void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
 
 protected:
 	/**
-	 * Define default constructor
-	*/
-	//Component() = default;
-
-	/**
 	 * Explicitly define default move and move-assignment constructors as
 	 * definition of virtual destructor prevents their implicit generation
 	*/
-	//Component(const Component& other) = delete; 			// Copy constructor (deleted)
-	//Component(Component&& other) = default; 				// Move constructor
-	//Component& operator=(const Component& other) = delete; 	// Copy assignment constructor (deleted)
-	//Component& operator=(Component&& other) = default; 		// Move assignment constructor
+	Component(const Component& other) = delete; 					// Copy constructor (deleted)
+	Component(Component&& other) = default; 						// Move constructor
+	virtual Component& operator=(const Component& other) = delete; 	// Copy assignment constructor (deleted)
+	virtual Component& operator=(Component&& other) = default; 		// Move assignment constructor
 
 	/**
 	 * The entity that owns this component
 	 */
 	LWOOBJID m_Parent;
+
+	/**
+	 * Helper function to check static assertions for derived classes
+	*/
+	template <typename CType>
+	consteval static void CheckComponentAssertions() {
+		//constexpr auto componentName = 
+		static_assert(std::is_move_constructible<CType>(), "Component is not move-constructible!");
+		static_assert(std::is_move_assignable<CType>(), "Component is not move-assignable!");
+	}
 };

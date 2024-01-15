@@ -14,6 +14,9 @@ public:
 	PhysicsComponent(const LWOOBJID& parentEntityId);
 	virtual ~PhysicsComponent() = default;
 
+	PhysicsComponent(PhysicsComponent&& other) = default; 				// Move constructor
+	PhysicsComponent& operator=(PhysicsComponent&& other) = default; 	// Move-assignment operator
+
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	const NiPoint3& GetPosition() const { return m_Position; }

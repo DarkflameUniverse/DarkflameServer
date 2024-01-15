@@ -38,7 +38,11 @@
 
 #include "CDComponentsRegistryTable.h"
 
+//DestroyableComponent::CheckComponentAssertions(); // Check static assertions
+
 DestroyableComponent::DestroyableComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+	CheckComponentAssertions<DestroyableComponent>();
+
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
 	m_iImagination = 0;
@@ -75,9 +79,6 @@ DestroyableComponent::DestroyableComponent(const LWOOBJID& parentEntityId) : Com
 	m_DeathBehavior = -1;
 
 	m_DamageCooldownTimer = 0.0f;
-}
-
-DestroyableComponent::~DestroyableComponent() {
 }
 
 void DestroyableComponent::Reinitialize(LOT templateID) {

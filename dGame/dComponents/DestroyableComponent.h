@@ -22,7 +22,9 @@ public:
 	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(const LWOOBJID& parentEntityId);
-	~DestroyableComponent() override;
+	~DestroyableComponent() override = default;
+	DestroyableComponent(DestroyableComponent&& other) = default;
+	DestroyableComponent& operator=(DestroyableComponent&& other) = default;
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
