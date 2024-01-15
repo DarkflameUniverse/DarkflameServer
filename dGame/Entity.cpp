@@ -1225,24 +1225,28 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 void Entity::Update(const float deltaTime) {
 	uint32_t timerPosition;
-	for (timerPosition = 0; timerPosition < m_Timers.size();) {
+	size_t currentSize = m_Timers.size();
+	for (timerPosition = 0; timerPosition < currentSize;) {
 		auto& timer = m_Timers[timerPosition];
 		timer.Update(deltaTime);
 		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
-		// Before: [0, 1, 2, 3, ..., n]
+		// Before: [0, 1, 2, 3, ..., sizeBeforeLoop, newTimers]
 		// timerPosition  ^
-		// After:  [0, 1, n, ..., n - 1] 2 is expired and removed now
+		// currentSize               ^^^^^^^^^^^^^^
+		// After:  [0, 1, n, ..., sizeBeforeLoop - 1, newTimers] 2 is expired and removed now and currentSize still points at the end of the vector before the loop started
 		// timerPosition  ^
+		// currentSize            ^^^^^^^^^^^^^^^^^^
 		if (timer.GetTime() <= 0) {
 			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
 			auto timerName = timer.GetName();
 			// We don't need to copy the element if there is only 1 element nor do we need to copy if we are on the last element.
 			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
 			// element with the last element in the vector and then removes the last element.
-			if (m_Timers.size() > 1 && timerPosition < m_Timers.size() - 1) {
-				m_Timers[timerPosition] = m_Timers[m_Timers.size() - 1];
+			currentSize--;
+			if (currentSize > 1 && timerPosition < currentSize) {
+				m_Timers.at(timerPosition) = m_Timers.at(currentSize);
 			}
-			m_Timers.erase(m_Timers.end() - 1);
+			m_Timers.erase(m_Timers.begin() + currentSize);
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
@@ -1254,12 +1258,15 @@ void Entity::Update(const float deltaTime) {
 		}
 	}
 
-	for (timerPosition = 0; timerPosition < m_CallbackTimers.size(); ) {
+	currentSize = m_CallbackTimers.size();
+	for (timerPosition = 0; timerPosition < currentSize; ) {
 		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
-		// Before: [0, 1, 2, 3, ..., n]
+		// Before: [0, 1, 2, 3, ..., sizeBeforeLoop, newTimers]
 		// timerPosition  ^
-		// After:  [0, 1, n, ..., n - 1] 2 is expired and removed now
+		// currentSize               ^^^^^^^^^^^^^^
+		// After:  [0, 1, n, ..., sizeBeforeLoop - 1, newTimers] 2 is expired and removed now and currentSize still points at the end of the vector before the loop started
 		// timerPosition  ^
+		// currentSize            ^^^^^^^^^^^^^^^^^^
 		auto& callbackTimer = m_CallbackTimers[timerPosition];
 		callbackTimer.Update(deltaTime);
 		if (callbackTimer.GetTime() <= 0) {
@@ -1268,10 +1275,11 @@ void Entity::Update(const float deltaTime) {
 			// We don't need to copy the element if there is only 1 element nor do we need to copy if we are on the last element.
 			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
 			// element with the last element in the vector and then removes the last element.
-			if (m_CallbackTimers.size() > 1 && timerPosition < m_CallbackTimers.size() - 1) {
-				m_CallbackTimers[timerPosition] = m_CallbackTimers[m_CallbackTimers.size() - 1];
+			currentSize--;
+			if (currentSize > 1 && timerPosition < currentSize) {
+				m_CallbackTimers.at(timerPosition) = m_CallbackTimers.at(currentSize);
 			}
-			m_CallbackTimers.erase(m_CallbackTimers.end() - 1);
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + currentSize);
 			callback();
 		} else {
 			timerPosition++;
