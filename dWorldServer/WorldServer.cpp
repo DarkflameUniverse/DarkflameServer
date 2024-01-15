@@ -68,6 +68,7 @@
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
 #include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "eWorldMessageType.h"
 #include "eMasterMessageType.h"
 #include "eGameMessageType.h"
@@ -545,27 +546,6 @@ void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
 			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
-
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
-
-				auto sysAddr = player->GetSystemAddress();
-
-				//Write our stream outwards:
-				CBITSTREAM;
-				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
-				}
-
-				SEND_PACKET; //send routed packet to player
-
-				break;
-			}
-
 			case eChatInternalMessageType::ANNOUNCEMENT: {
 				CINSTREAM_SKIP_HEADER;
 
@@ -654,6 +634,30 @@ void HandlePacketChat(Packet* packet) {
 
 			default:
 				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
+			}
+		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+			switch (static_cast<eChatMessageType>(packet->data[3])) {
+				case eChatMessageType::WORLD_ROUTE_PACKET: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerID;
+					inStream.Read(playerID);
+
+					auto player = Game::entityManager->GetEntity(playerID);
+					if (!player) return;
+
+					auto sysAddr = player->GetSystemAddress();
+
+					//Write our stream outwards:
+					CBITSTREAM;
+					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					}
+
+					SEND_PACKET; //send routed packet to player
+					break;
+				}
+				default:
+					LOG("Received an unknown chat message type: %i", int(packet->data[3]));
 			}
 		}
 	}

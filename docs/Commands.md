@@ -34,6 +34,7 @@
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.|8|
+|whowhere|`/whowhere <playerName> (ShowZoneData) (ListIndividualPlayers)`| Find the world server a player is conneceted to if they are online. If specifying `all` for the playername, it will display all players connected to the servers. ShowZoneData and ListIndividual players defualt to "1". Set ShowZoneData to "0" to just get a list of player. Set ListIndividualPlayers to "0" to just get summary of zone populations. Set both to zero to just get the total connected players. |2|
 
 ## Server Operation Commands
 

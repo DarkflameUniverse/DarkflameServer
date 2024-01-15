@@ -81,6 +81,7 @@
 #include "eControlScheme.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "eMasterMessageType.h"
 #include "PlayerManager.h"
 
@@ -375,6 +376,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+	}
+	if (chatCommand == "whowhere" && args.size() > 0 && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {
+		if (args.at(0) == "all"){	
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::SHOW_ALL);
+			bitStream.Write(entity->GetObjectID());
+			if (args.size() > 1) bitStream.Write(LUString(args.at(1), 1));
+			else bitStream.Write(LUString("1", 1));
+			if (args.size() > 2) bitStream.Write(LUString(args.at(2), 1));
+			else bitStream.Write(LUString("1", 1));
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		} else {
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WHO);
+			bitStream.Write(entity->GetObjectID());
+			bitStream.Write(LUWString(args.at(0)));
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		}
 	}
 
 	if (chatCommand == "resetmission" && args.size() >= 1 && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
@@ -1899,6 +1918,21 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		auto id = cdrewardCodes->GetCodeID(args[0]);
 		if (id != -1) Database::Get()->InsertRewardCode(user->GetAccountID(), id);
+	}
+
+	if (chatCommand == "gethttpmoninfo" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		WorldPackets::SendDebugOuput(sysAddr, "HTTP Monitor is not implemented.");
+		HTTPMonitorInfo info;
+		info.port = Game::server->GetPort();
+		WorldPackets::SendHTTPMonitorInfo(sysAddr, info);
+	}
+
+	if (chatCommand == "openhttpmoninfo" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		WorldPackets::SendDebugOuput(sysAddr, "HTTP Monitor is not implemented.");
+		HTTPMonitorInfo info;
+		info.port = Game::server->GetPort();
+		info.openWeb = true;
+		WorldPackets::SendHTTPMonitorInfo(sysAddr, info);
 	}
 
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {

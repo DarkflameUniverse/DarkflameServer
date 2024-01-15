@@ -74,6 +74,9 @@ public:
 	const PlayerData& GetPlayerData(const std::string& playerName);
 	PlayerData& GetPlayerDataMutable(const LWOOBJID& playerID);
 	PlayerData& GetPlayerDataMutable(const std::string& playerName);
+	uint32_t GetPlayerCount() { return m_PlayerCount; };
+	uint32_t GetSimCount() { return m_SimCount; };
+	std::map<LWOOBJID, PlayerData> GetAllPlayers() { return m_Players; };
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);
@@ -96,5 +99,7 @@ private:
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
 	uint32_t m_MaxNumberOfBestFriends = 5;
 	uint32_t m_MaxNumberOfFriends = 50;
+	uint32_t m_PlayerCount = 0;
+	uint32_t m_SimCount = 0;
 };
 

@@ -298,6 +298,12 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::GMLEVEL_UPDATE:
 			ChatPacketHandler::HandleGMLevelUpdate(packet);
 			break;
+		case eChatMessageType::WHO:
+			ChatPacketHandler::HandleWho(packet);
+			break;
+		case eChatMessageType::SHOW_ALL:
+			ChatPacketHandler::HandleShowAll(packet);
+			break;
 		case eChatMessageType::LOGIN_SESSION_NOTIFY:
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
 		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
@@ -311,7 +317,6 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::GUILD_KICK:
 		case eChatMessageType::GUILD_GET_STATUS:
 		case eChatMessageType::GUILD_GET_ALL:
-		case eChatMessageType::SHOW_ALL:
 		case eChatMessageType::BLUEPRINT_MODERATED:
 		case eChatMessageType::BLUEPRINT_MODEL_READY:
 		case eChatMessageType::PROPERTY_READY_FOR_APPROVAL:
@@ -335,7 +340,6 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::UGCMANIFEST_REPORT_DONE_FILE:
 		case eChatMessageType::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
 		case eChatMessageType::UGCC_REQUEST:
-		case eChatMessageType::WHO:
 		case eChatMessageType::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
 		case eChatMessageType::ACHIEVEMENT_NOTIFY:
 		case eChatMessageType::GM_CLOSE_PRIVATE_CHAT_WINDOW:

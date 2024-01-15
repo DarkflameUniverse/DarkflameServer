@@ -56,6 +56,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
+	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 
@@ -93,7 +94,8 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 			ChatPacketHandler::SendTeamSetOffWorldFlag(otherMember, playerID, { 0, 0, 0 });
 		}
 	}
-
+	
+	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);
 	m_Players.erase(playerID);
 
