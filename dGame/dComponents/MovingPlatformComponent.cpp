@@ -339,7 +339,7 @@ void MovingPlatformComponent::Update(float deltaTime) {
 	std::for_each(m_Platforms.begin(), m_Platforms.end(), [deltaTime](const std::unique_ptr<PlatformSubComponent>& platform) { platform->Update(deltaTime); });
 }
 
-void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	// For some reason we need to write this here instead of later on.
 	outBitStream->Write(!m_Platforms.empty());
 
@@ -368,12 +368,6 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
-}
-
-void MovingPlatformComponent::OnCompleteRebuild() {
-	if (m_NoAutoStart) return;
-
-	StartPathing();
 }
 
 void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
