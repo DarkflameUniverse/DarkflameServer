@@ -524,7 +524,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new PetDigBuild(); // Technically also used once in AG
 	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_SPAWN_LION_SERVER.lua")
 		script = new SpawnLionServer();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_APE.lua")
+	if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_APE.lua")
 		script = new BaseEnemyApe();
 	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_GF_APE_SMASHING_QB.lua")
 		script = new GfApeSmashingQB();
@@ -747,7 +747,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new AmShieldGenerator();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SHIELD_GENERATOR_QUICKBUILD.lua")
 		script = new AmShieldGeneratorQuickbuild();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_DROPSHIP_COMPUTER.lua")
+	if (scriptName == "scripts\\02_server\\Map\\AM\\L_DROPSHIP_COMPUTER.lua")
 		script = new AmDropshipComputer();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SCROLL_READER_SERVER.lua")
 		script = new AmScrollReaderServer();
