@@ -19,7 +19,7 @@ class Entity;
 /**
  * The current state of the AI
  */
-enum class AiState : int {
+enum class AiState : uint32_t {
 	idle = 0,   // Doing nothing
 	aggro,      // Waiting for an enemy to cross / running back to spawn
 	tether,     // Chasing an enemy

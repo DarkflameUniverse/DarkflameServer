@@ -1,5 +1,5 @@
 #include "NjMonastryBossInstance.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -53,9 +53,9 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity* self, Entity* player) {
 	// Buff the player
 	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
-		destroyableComponent->SetHealth((int32_t)destroyableComponent->GetMaxHealth());
-		destroyableComponent->SetArmor((int32_t)destroyableComponent->GetMaxArmor());
-		destroyableComponent->SetImagination((int32_t)destroyableComponent->GetMaxImagination());
+		destroyableComponent->SetHealth(static_cast<int32_t>(destroyableComponent->GetMaxHealth()));
+		destroyableComponent->SetArmor(static_cast<int32_t>(destroyableComponent->GetMaxArmor()));
+		destroyableComponent->SetImagination(static_cast<int32_t>(destroyableComponent->GetMaxImagination()));
 	}
 
 	// Add player ID to instance
@@ -117,7 +117,7 @@ void NjMonastryBossInstance::OnPlayerExit(Entity* self, Entity* player) {
 void NjMonastryBossInstance::OnActivityTimerDone(Entity* self, const std::string& name) {
 	auto split = GeneralUtils::SplitString(name, TimerSplitChar);
 	auto timerName = split[0];
-	auto objectID = split.size() > 1 ? (LWOOBJID)std::stoull(split[1]) : LWOOBJID_EMPTY;
+	auto objectID = split.size() > 1 ? static_cast<LWOOBJID>(std::stoull(split[1])) : LWOOBJID_EMPTY;
 
 	if (timerName == WaitingForPlayersTimer) {
 		StartFight(self);
@@ -221,26 +221,26 @@ void NjMonastryBossInstance::HandleLedgedFrakjawSpawned(Entity* self, Entity* le
 }
 
 void NjMonastryBossInstance::HandleCounterWeightSpawned(Entity* self, Entity* counterWeight) {
-	auto* rebuildComponent = counterWeight->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildStateCallback([this, self, counterWeight](eRebuildState state) {
+	auto* quickBuildComponent = counterWeight->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddQuickBuildStateCallback([this, self, counterWeight](eQuickBuildState state) {
 
 			switch (state) {
-			case eRebuildState::BUILDING:
+			case eQuickBuildState::BUILDING:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), PlayCinematicNotification,
 					0, 0, counterWeight->GetObjectID(),
 					BaseCounterweightQB + std::to_string(self->GetVar<uint32_t>(WaveNumberVariable)),
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case eRebuildState::INCOMPLETE:
+			case eQuickBuildState::INCOMPLETE:
 				GameMessages::SendNotifyClientObject(self->GetObjectID(), EndCinematicNotification,
 					0, 0, LWOOBJID_EMPTY, "",
 					UNASSIGNED_SYSTEM_ADDRESS);
 				return;
-			case eRebuildState::RESETTING:
+			case eQuickBuildState::RESETTING:
 				ActivityTimerStart(self, SpawnCounterWeightTimer, 0.0f, 0.0f);
 				return;
-			case eRebuildState::COMPLETED: {
+			case eQuickBuildState::COMPLETED: {
 				// TODO: Move the platform?
 
 				// The counterweight is actually a moving platform and we should listen to the last waypoint event here
@@ -309,7 +309,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawSpawned(Entity* self, Entity* low
 		if (destroyableComponent != nullptr) {
 			const auto doubleHealth = destroyableComponent->GetHealth() * 2;
 			destroyableComponent->SetHealth(doubleHealth);
-			destroyableComponent->SetMaxHealth((float_t)doubleHealth);
+			destroyableComponent->SetMaxHealth(static_cast<float_t>(doubleHealth));
 		}
 
 		ActivityTimerStart(self, FrakjawSpawnInTimer + std::to_string(lowerFrakjaw->GetObjectID()),
@@ -328,7 +328,7 @@ void NjMonastryBossInstance::HandleLowerFrakjawHit(Entity* self, Entity* lowerFr
 		return;
 
 	// Progress the fight to the last wave if frakjaw has less than 50% of his health left
-	if (destroyableComponent->GetHealth() <= (uint32_t)destroyableComponent->GetMaxHealth() / 2 && !self->GetVar<bool>(OnLastWaveVarbiale)) {
+	if (destroyableComponent->GetHealth() <= static_cast<uint32_t>(destroyableComponent->GetMaxHealth()) / 2 && !self->GetVar<bool>(OnLastWaveVarbiale)) {
 		self->SetVar<bool>(OnLastWaveVarbiale, true);
 
 		// Stun frakjaw during the cinematic

@@ -3,7 +3,7 @@
 #include "Item.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "SoundTriggerComponent.h"
 #include "InventoryComponent.h"
 #include "MissionComponent.h"
@@ -20,13 +20,13 @@ void NsConcertInstrument::OnStartup(Entity* self) {
 	self->SetVar<LWOOBJID>(u"oldItemRight", LWOOBJID_EMPTY);
 }
 
-void NsConcertInstrument::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::RESETTING || state == eRebuildState::OPEN) {
+void NsConcertInstrument::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state == eQuickBuildState::RESETTING || state == eQuickBuildState::OPEN) {
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);
 	}
 }
 
-void NsConcertInstrument::OnRebuildComplete(Entity* self, Entity* target) {
+void NsConcertInstrument::OnQuickBuildComplete(Entity* self, Entity* target) {
 	if (!target->GetIsDead()) {
 		self->SetVar<LWOOBJID>(u"activePlayer", target->GetObjectID());
 
@@ -93,9 +93,9 @@ void NsConcertInstrument::OnTimerDone(Entity* self, std::string name) {
 				activePlayer->GetObjectID(), "", UNASSIGNED_SYSTEM_ADDRESS);
 		}
 
-		auto* rebuildComponent = self->GetComponent<RebuildComponent>();
-		if (rebuildComponent != nullptr)
-			rebuildComponent->ResetRebuild(false);
+		auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+		if (quickBuildComponent != nullptr)
+			quickBuildComponent->ResetQuickBuild(false);
 
 		self->Smash(self->GetObjectID(), eKillType::VIOLENT);
 		self->SetVar<LWOOBJID>(u"activePlayer", LWOOBJID_EMPTY);

@@ -1,5 +1,5 @@
 #include "CharacterComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "tinyxml2.h"
 #include "Game.h"
 #include "Logger.h"
@@ -10,12 +10,18 @@
 #include "InventoryComponent.h"
 #include "ControllablePhysicsComponent.h"
 #include "EntityManager.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "GameMessages.h"
 #include "Item.h"
 #include "Amf3.h"
 #include "eGameMasterLevel.h"
 #include "eGameActivity.h"
+#include "User.h"
+#include "Database.h"
+#include "CDRewardCodesTable.h"
+#include "Mail.h"
+#include "ZoneInstanceManager.h"
+#include "WorldPackets.h"
 #include <ctime>
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
@@ -74,10 +80,14 @@ CharacterComponent::~CharacterComponent() {
 void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write0();
-		outBitStream->Write0();
-		outBitStream->Write0();
-		outBitStream->Write0();
+		outBitStream->Write(m_ClaimCodes[0] != 0);
+		if (m_ClaimCodes[0] != 0) outBitStream->Write(m_ClaimCodes[0]);
+		outBitStream->Write(m_ClaimCodes[1] != 0);
+		if (m_ClaimCodes[1] != 0) outBitStream->Write(m_ClaimCodes[1]);
+		outBitStream->Write(m_ClaimCodes[2] != 0);
+		if (m_ClaimCodes[2] != 0) outBitStream->Write(m_ClaimCodes[2]);
+		outBitStream->Write(m_ClaimCodes[3] != 0);
+		if (m_ClaimCodes[3] != 0) outBitStream->Write(m_ClaimCodes[3]);
 
 		outBitStream->Write(m_Character->GetHairColor());
 		outBitStream->Write(m_Character->GetHairStyle());
@@ -127,7 +137,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 		outBitStream->Write0();
 		outBitStream->Write(m_IsLanding);
 		if (m_IsLanding) {
-			outBitStream->Write(uint16_t(m_LastRocketConfig.size()));
+			outBitStream->Write<uint16_t>(m_LastRocketConfig.size());
 			for (uint16_t character : m_LastRocketConfig) {
 				outBitStream->Write(character);
 			}
@@ -149,7 +159,7 @@ void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInit
 	outBitStream->Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
 		outBitStream->Write(m_GuildID);
-		outBitStream->Write<unsigned char>(static_cast<unsigned char>(m_GuildName.size()));
+		outBitStream->Write<unsigned char>(m_GuildName.size());
 		if (!m_GuildName.empty())
 			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
 
@@ -186,6 +196,13 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 		SetReputation(0);
 	}
 
+	character->QueryUnsigned64Attribute("co", &m_ClaimCodes[0]);
+	character->QueryUnsigned64Attribute("co1", &m_ClaimCodes[1]);
+	character->QueryUnsigned64Attribute("co2", &m_ClaimCodes[2]);
+	character->QueryUnsigned64Attribute("co3", &m_ClaimCodes[3]);
+
+	AwardClaimCodes();
+
 	character->QueryInt64Attribute("ls", &m_Uscore);
 
 	// Load the statistics
@@ -214,7 +231,7 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 			uint32_t mapID;
 			child->QueryAttribute("map", &mapID);
 
-			m_ZoneStatistics.insert({ (LWOMAPID)mapID, statistics });
+			m_ZoneStatistics.insert({ static_cast<LWOMAPID>(mapID), statistics });
 
 			child = child->NextSiblingElement();
 		}
@@ -307,6 +324,11 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		LOG("Failed to find char tag while updating XML!");
 		return;
 	}
+
+	if (m_ClaimCodes[0] != 0) character->SetAttribute("co", m_ClaimCodes[0]);
+	if (m_ClaimCodes[1] != 0) character->SetAttribute("co1", m_ClaimCodes[1]);
+	if (m_ClaimCodes[2] != 0) character->SetAttribute("co2", m_ClaimCodes[2]);
+	if (m_ClaimCodes[3] != 0) character->SetAttribute("co3", m_ClaimCodes[3]);
 
 	character->SetAttribute("ls", m_Uscore);
 	// Custom attribute to keep track of reputation.
@@ -478,7 +500,7 @@ void CharacterComponent::TrackArmorDelta(int32_t armor) {
 	}
 }
 
-void CharacterComponent::TrackRebuildComplete() {
+void CharacterComponent::TrackQuickBuildComplete() {
 	UpdatePlayerStatistic(QuickBuildsCompleted);
 
 	const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
@@ -495,9 +517,9 @@ void CharacterComponent::TrackPositionUpdate(const NiPoint3& newPosition) {
 	const auto distance = NiPoint3::Distance(newPosition, m_Parent->GetPosition());
 
 	if (m_IsRacing) {
-		UpdatePlayerStatistic(DistanceDriven, (uint64_t)distance);
+		UpdatePlayerStatistic(DistanceDriven, static_cast<uint64_t>(distance));
 	} else {
-		UpdatePlayerStatistic(MetersTraveled, (uint64_t)distance);
+		UpdatePlayerStatistic(MetersTraveled, static_cast<uint64_t>(distance));
 	}
 }
 
@@ -700,7 +722,7 @@ std::string CharacterComponent::StatisticsToString() const {
 }
 
 uint64_t CharacterComponent::GetStatisticFromSplit(std::vector<std::string> split, uint32_t index) {
-	return split.size() > index ? std::stoul(split.at(index)) : 0;
+	return split.size() > index ? std::stoull(split.at(index)) : 0;
 }
 
 ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {
@@ -737,4 +759,61 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 	AMFArrayValue arrayToSend;
 	arrayToSend.Insert(ventureVisionType, showFaction);
 	GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent ? m_Parent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS, "SetFactionVisibility", arrayToSend);
+}
+
+void CharacterComponent::AwardClaimCodes() {
+	if (!m_Parent) return;
+	auto* user = m_Parent->GetParentUser();
+	if (!user) return;
+
+	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
+	if (rewardCodes.empty()) return;
+
+	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+	for (auto const rewardCode : rewardCodes) {
+		LOG_DEBUG("Processing RewardCode %i", rewardCode);
+		const uint32_t rewardCodeIndex = rewardCode >> 6;
+		const uint32_t bitIndex = rewardCode % 64;
+		if (GeneralUtils::CheckBit(m_ClaimCodes[rewardCodeIndex], bitIndex)) continue;
+		m_ClaimCodes[rewardCodeIndex] = GeneralUtils::SetBit(m_ClaimCodes[rewardCodeIndex], bitIndex);
+
+		// Don't send it on this one since it's default and the mail doesn't make sense
+		if (rewardCode == 30) continue;
+
+		auto attachmentLOT = cdrewardCodes->GetAttachmentLOT(rewardCode);
+		std::ostringstream subject;
+		subject << "%[RewardCodes_" << rewardCode << "_subjectText]";
+		std::ostringstream body;
+		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
+		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
+	}
+}
+
+void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
+	const auto objid = m_Parent->GetObjectID();
+
+	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+		auto* entity = Game::entityManager->GetEntity(objid);
+
+		if (!entity) return;
+
+		const auto sysAddr = entity->GetSystemAddress();
+
+		auto* character = entity->GetCharacter();
+		auto* characterComponent = entity->GetComponent<CharacterComponent>();
+
+		if (character && characterComponent) {
+			character->SetZoneID(zoneID);
+			character->SetZoneInstance(zoneInstance);
+			character->SetZoneClone(zoneClone);
+
+			characterComponent->SetLastRocketConfig(u"");
+
+			character->SaveXMLToDatabase();
+		}
+
+		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+
+		Game::entityManager->DestructEntity(entity);
+		});
 }

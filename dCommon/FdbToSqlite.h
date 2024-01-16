@@ -7,7 +7,7 @@
 #include <iosfwd>
 #include <map>
 
-class AssetMemoryBuffer;
+#include "AssetManager.h"
 
 enum class eSqliteDataType : int32_t;
 
@@ -27,7 +27,7 @@ namespace FdbToSqlite {
 		 * 
 		 * @return true if the database was converted properly, false otherwise. 
 		 */
-		bool ConvertDatabase(AssetMemoryBuffer& buffer);
+		bool ConvertDatabase(AssetStream& buffer);
 
 		/**
 		 * @brief Reads a 32 bit int from the fdb file.

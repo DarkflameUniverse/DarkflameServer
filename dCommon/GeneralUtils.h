@@ -9,7 +9,7 @@
 #include <functional>
 #include <type_traits>
 #include <stdexcept>
-#include <BitStream.h>
+#include "BitStream.h"
 #include "NiPoint3.h"
 
 #include "Game.h"
@@ -152,6 +152,11 @@ namespace GeneralUtils {
 	}
 
 	template <>
+	inline uint16_t Parse(const char* value) {
+		return std::stoul(value);
+	}
+
+	template <>
 	inline uint32_t Parse(const char* value) {
 		return std::stoul(value);
 	}
@@ -229,18 +234,30 @@ namespace GeneralUtils {
 		return T();
 	}
 
-// on Windows we need to undef these or else they conflict with our numeric limits calls
-// DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS
-#ifdef _WIN32
-#undef min
-#undef max
-#endif
+	/**
+	 * Casts the value of an enum entry to its underlying type
+	 * @param entry Enum entry to cast
+	 * @returns The enum entry's value in its underlying type
+	*/
+	template <typename eType>
+	inline constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) {
+		static_assert(std::is_enum_v<eType>, "Not an enum");
+
+		return static_cast<typename std::underlying_type_t<eType>>(entry);
+	}
+
+	// on Windows we need to undef these or else they conflict with our numeric limits calls
+	// DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS
+	#ifdef _WIN32
+	#undef min
+	#undef max
+	#endif
 
 	template <typename T>
 	inline T GenerateRandomNumber() {
 		// Make sure it is a numeric type
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-		
+
 		return GenerateRandomNumber<T>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 }

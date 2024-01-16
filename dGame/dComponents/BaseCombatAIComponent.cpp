@@ -1,5 +1,5 @@
 #include "BaseCombatAIComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 
 #include "Entity.h"
 #include "EntityManager.h"
@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "SkillComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
@@ -34,13 +34,12 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_MovementAI = nullptr;
 	m_Disabled = false;
 	m_SkillEntries = {};
-	m_MovementAI = nullptr;
 	m_SoftTimer = 5.0f;
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, (int)id);
+	componentQuery.bind(1, static_cast<int>(id));
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -77,7 +76,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	 */
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, (int)parent->GetLOT());
+	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
 
 	auto result = skillQuery.execQuery();
 
@@ -243,12 +242,12 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hadRemainingDowntime = m_SkillTime > 0.0f;
 	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
 
-	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
+	auto* rebuild = m_Parent->GetComponent<QuickBuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return;
 		}
 	}
@@ -523,7 +522,7 @@ bool BaseCombatAIComponent::IsMech() {
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
-		outBitStream->Write(uint32_t(m_State));
+		outBitStream->Write(m_State);
 		outBitStream->Write(m_Target);
 		m_DirtyStateOrTarget = false;
 	}
@@ -559,12 +558,12 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* quickbuild = entity->GetComponent<QuickBuildComponent>();
 
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return false;
 		}
 	}

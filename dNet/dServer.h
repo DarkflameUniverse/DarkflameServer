@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <csignal>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
@@ -14,6 +15,18 @@ enum class ServerType : uint32_t {
 	Chat,
 	World
 };
+
+enum class ServiceId : uint32_t{
+	General = 0,
+	Auth = 1,
+	Chat = 2,
+	World = 4,
+	Client = 5,
+};
+
+namespace Game {
+	using signal_t = volatile std::sig_atomic_t;
+}
 
 class dServer {
 public:
@@ -31,7 +44,7 @@ public:
 		int masterPort,
 		ServerType serverType,
 		dConfig* config,
-		bool* shouldShutdown,
+		Game::signal_t* shouldShutdown,
 		unsigned int zoneID = 0);
 	~dServer();
 
@@ -81,9 +94,9 @@ private:
 	NetworkIDManager* mNetIDManager = nullptr;
 
 	/**
-	 * Whether or not to shut down the server.  Pointer to Game::shouldShutdown.
+	 * Whether or not to shut down the server.  Pointer to Game::lastSignal.
 	 */
-	bool* mShouldShutdown = nullptr;
+	Game::signal_t* mShouldShutdown = nullptr;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
 	int mPort;

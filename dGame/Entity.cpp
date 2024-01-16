@@ -3,7 +3,6 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "Logger.h"
-#include <PacketUtils.h>
 #include <functional>
 #include "CDDestructibleComponentTable.h"
 #include "CDClientDatabase.h"
@@ -25,6 +24,8 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "PositionUpdate.h"
+#include "eChatMessageType.h"
 
 //Component includes:
 #include "Component.h"
@@ -47,7 +48,7 @@
 #include "MovingPlatformComponent.h"
 #include "MissionComponent.h"
 #include "MissionOfferComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BuildBorderComponent.h"
 #include "MovementAIComponent.h"
 #include "VendorComponent.h"
@@ -62,7 +63,7 @@
 #include "ModelComponent.h"
 #include "ZCompression.h"
 #include "PetComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "ModuleAssemblyComponent.h"
@@ -76,10 +77,11 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
-#include "ZoneControlComponent.h"
+#include "MiniGameControlComponent.h"
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
+#include "GhostComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -166,7 +168,9 @@ void Entity::Initialize() {
 
 	if (!groupIDs.empty()) {
 		m_Groups = GeneralUtils::SplitString(groupIDs, ';');
-		m_Groups.erase(m_Groups.end() - 1);
+		if (!m_Groups.empty()) {
+			if (m_Groups.back().empty()) m_Groups.erase(m_Groups.end() - 1);
+		}
 	}
 
 	/**
@@ -217,8 +221,8 @@ void Entity::Initialize() {
 		AddComponent<PetComponent>(petComponentId);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ZONE_CONTROL) > 0) {
-		AddComponent<ZoneControlComponent>();
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL) > 0) {
+		AddComponent<MiniGameControlComponent>();
 	}
 
 	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
@@ -299,10 +303,10 @@ void Entity::Initialize() {
 		AddComponent<PhantomPhysicsComponent>()->SetPhysicsEffectActive(false);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::VEHICLE_PHYSICS) > 0) {
-		auto* vehiclePhysicsComponent = AddComponent<VehiclePhysicsComponent>();
-		vehiclePhysicsComponent->SetPosition(m_DefaultPosition);
-		vehiclePhysicsComponent->SetRotation(m_DefaultRotation);
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) > 0) {
+		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+		havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
+		havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SOUND_TRIGGER, -1) != -1) {
@@ -325,16 +329,16 @@ void Entity::Initialize() {
 	 * Multiple components require the destructible component.
 	 */
 	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	int rebuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+	int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
 	int componentID = -1;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (rebuildComponentID > 0) componentID = rebuildComponentID;
+	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-  
+
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
 	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
 		DestroyableComponent* comp = AddComponent<DestroyableComponent>();
@@ -434,6 +438,8 @@ void Entity::Initialize() {
 		AddComponent<PlayerForcedMovementComponent>();
 
 		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+
+		AddComponent<GhostComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
@@ -519,45 +525,50 @@ void Entity::Initialize() {
 	}
 
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		auto* rebuildComponent = AddComponent<RebuildComponent>();
+		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
 
 		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == rebuildComponentID); });
+		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
-			rebuildComponent->SetResetTime(rebCompData[0].reset_time);
-			rebuildComponent->SetCompleteTime(rebCompData[0].complete_time);
-			rebuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
-			rebuildComponent->SetInterruptible(rebCompData[0].interruptible);
-			rebuildComponent->SetSelfActivator(rebCompData[0].self_activator);
-			rebuildComponent->SetActivityId(rebCompData[0].activityID);
-			rebuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
-			rebuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
+			quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
+			quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
+			quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
+			quickBuildComponent->SetInterruptible(rebCompData[0].interruptible);
+			quickBuildComponent->SetSelfActivator(rebCompData[0].self_activator);
+			quickBuildComponent->SetActivityId(rebCompData[0].activityID);
+			quickBuildComponent->SetPostImaginationCost(rebCompData[0].post_imagination_cost);
+			quickBuildComponent->SetTimeBeforeSmash(rebCompData[0].time_before_smash);
 
 			const auto rebuildResetTime = GetVar<float>(u"rebuild_reset_time");
 
 			if (rebuildResetTime != 0.0f) {
-				rebuildComponent->SetResetTime(rebuildResetTime);
+				quickBuildComponent->SetResetTime(rebuildResetTime);
 
 				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
 				// This extends the smash time so players can ride up the lift.
-				if (m_TemplateID == 9483)
-				{
-					rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() + 25);
+				if (m_TemplateID == 9483) {
+					quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 25);
 				}
 			}
 
 			const auto activityID = GetVar<int32_t>(u"activityID");
 
 			if (activityID > 0) {
-				rebuildComponent->SetActivityId(activityID);
+				quickBuildComponent->SetActivityId(activityID);
 				Loot::CacheMatrix(activityID);
+			}
+
+			const auto timeBeforeSmash = GetVar<float>(u"tmeSmsh");
+
+			if (timeBeforeSmash > 0) {
+				quickBuildComponent->SetTimeBeforeSmash(timeBeforeSmash);
 			}
 
 			const auto compTime = GetVar<float>(u"compTime");
 
 			if (compTime > 0) {
-				rebuildComponent->SetCompleteTime(compTime);
+				quickBuildComponent->SetCompleteTime(compTime);
 			}
 		}
 	}
@@ -598,8 +609,8 @@ void Entity::Initialize() {
 	}
 
 	// Scripted activity component
-	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY);
-	if ((scriptedActivityID > 0)) {
+	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+	if ((scriptedActivityID != -1)) {
 		AddComponent<ScriptedActivityComponent>(scriptedActivityID);
 	}
 
@@ -738,7 +749,7 @@ void Entity::Initialize() {
 			!HasComponent(eReplicaComponentType::PHANTOM_PHYSICS) &&
 			!HasComponent(eReplicaComponentType::PROPERTY) &&
 			!HasComponent(eReplicaComponentType::RACING_CONTROL) &&
-			!HasComponent(eReplicaComponentType::VEHICLE_PHYSICS)
+			!HasComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS)
 			)
 			//if (HasComponent(eReplicaComponentType::BASE_COMBAT_AI))
 		{
@@ -848,9 +859,20 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 
 	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (character) character->SetGMLevel(value);
+	if (!character) return;
+	character->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
+
+	// Update the chat server of our GM Level
+	{
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		bitStream.Write(m_ObjectID);
+		bitStream.Write(m_GMLevel);
+
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
 }
 
 void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
@@ -975,9 +997,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 		}
 		outBitStream->Write(m_ChildEntities.size() > 0);
 		if (m_ChildEntities.size() > 0) {
-			outBitStream->Write((uint16_t)m_ChildEntities.size());
+			outBitStream->Write<uint16_t>(m_ChildEntities.size());
 			for (Entity* child : m_ChildEntities) {
-				outBitStream->Write((uint64_t)child->GetObjectID());
+				outBitStream->Write<uint64_t>(child->GetObjectID());
 			}
 		}
 	}
@@ -1017,9 +1039,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		rigidbodyPhantomPhysics->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	VehiclePhysicsComponent* vehiclePhysicsComponent;
-	if (TryGetComponent(eReplicaComponentType::VEHICLE_PHYSICS, vehiclePhysicsComponent)) {
-		vehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
+	HavokVehiclePhysicsComponent* havokVehiclePhysicsComponent;
+	if (TryGetComponent(eReplicaComponentType::HAVOK_VEHICLE_PHYSICS, havokVehiclePhysicsComponent)) {
+		havokVehiclePhysicsComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	PhantomPhysicsComponent* phantomPhysicsComponent;
@@ -1118,14 +1140,14 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		baseCombatAiComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
-	RebuildComponent* rebuildComponent;
-	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, rebuildComponent)) {
+	QuickBuildComponent* quickBuildComponent;
+	if (TryGetComponent(eReplicaComponentType::QUICK_BUILD, quickBuildComponent)) {
 		DestroyableComponent* destroyableComponent;
 		if (TryGetComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent) && !destroyableSerialized) {
 			destroyableComponent->Serialize(outBitStream, bIsInitialUpdate);
 		}
 		destroyableSerialized = true;
-		rebuildComponent->Serialize(outBitStream, bIsInitialUpdate);
+		quickBuildComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	MovingPlatformComponent* movingPlatformComponent;
@@ -1191,9 +1213,9 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		}
 	}
 
-	ZoneControlComponent* zoneControlComponent;
-	if (TryGetComponent(eReplicaComponentType::ZONE_CONTROL, zoneControlComponent)) {
-		zoneControlComponent->Serialize(outBitStream, bIsInitialUpdate);
+	MiniGameControlComponent* miniGameControlComponent;
+	if (TryGetComponent(eReplicaComponentType::MINI_GAME_CONTROL, miniGameControlComponent)) {
+		miniGameControlComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	// BBB Component, unused currently
@@ -1215,39 +1237,56 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 void Entity::Update(const float deltaTime) {
 	uint32_t timerPosition;
-	timerPosition = 0;
-	while (timerPosition < m_Timers.size()) {
-		m_Timers[timerPosition]->Update(deltaTime);
-		if (m_Timers[timerPosition]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerPosition]->GetName();
-
-			delete m_Timers[timerPosition];
+	for (timerPosition = 0; timerPosition < m_Timers.size();) {
+		auto& timer = m_Timers[timerPosition];
+		timer.Update(deltaTime);
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		if (timer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
+			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
-
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
+		} else {
+			// If the timer isnt expired, go to the next timer.
+			timerPosition++;
+		}
+	}
+
+	for (timerPosition = 0; timerPosition < m_CallbackTimers.size(); ) {
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		auto& callbackTimer = m_CallbackTimers[timerPosition];
+		callbackTimer.Update(deltaTime);
+		if (callbackTimer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that callbacks can remove timers without causing iterator invalidation
+			auto callback = callbackTimer.GetCallback();
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerPosition);
+			callback();
 		} else {
 			timerPosition++;
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
-		m_CallbackTimers[i]->Update(deltaTime);
-		if (m_CallbackTimers[i]->GetTime() <= 0) {
-			m_CallbackTimers[i]->GetCallback()();
-			delete m_CallbackTimers[i];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
-		}
+	// Add pending timers to the list of timers so they start next tick.
+	if (!m_PendingTimers.empty()) {
+		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
+		m_PendingTimers.clear();
 	}
 
-	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
-		}
-		m_PendingTimers.clear();
+	if (!m_PendingCallbackTimers.empty()) {
+		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
+		m_PendingCallbackTimers.clear();
 	}
 
 	if (IsSleeping()) {
@@ -1503,7 +1542,7 @@ void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u
 	destroyableComponent->Smash(source, killType, deathType);
 }
 
-void Entity::Kill(Entity* murderer) {
+void Entity::Kill(Entity* murderer, const eKillType killType) {
 	if (!m_PlayerIsReadyForUpdates) return;
 
 	for (const auto& cb : m_DieCallbacks) {
@@ -1527,7 +1566,7 @@ void Entity::Kill(Entity* murderer) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0;
+			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
@@ -1581,10 +1620,10 @@ void Entity::AddCollisionPhantomCallback(const std::function<void(Entity* target
 	m_PhantomCollisionCallbacks.push_back(callback);
 }
 
-void Entity::AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
-	auto* rebuildComponent = GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr) {
-		rebuildComponent->AddRebuildCompleteCallback(callback);
+void Entity::AddQuickBuildCompleteCallback(const std::function<void(Entity* user)>& callback) const {
+	auto* quickBuildComponent = GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr) {
+		quickBuildComponent->AddQuickBuildCompleteCallback(callback);
 	}
 }
 
@@ -1685,31 +1724,20 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(std::string name, float time) {
-	EntityTimer* timer = new EntityTimer(name, time);
-	m_PendingTimers.push_back(timer);
+	m_PendingTimers.emplace_back(name, time);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
-	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
-	m_CallbackTimers.push_back(timer);
+	m_PendingCallbackTimers.emplace_back(time, callback);
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	for (auto* timer : m_Timers) {
-		if (timer->GetName() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return std::find(m_Timers.begin(), m_Timers.end(), name) != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	for (auto* callback : m_CallbackTimers) {
-		delete callback;
-	}
-
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
@@ -1721,8 +1749,8 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 
 void Entity::CancelTimer(const std::string& name) {
 	for (int i = 0; i < m_Timers.size(); i++) {
-		if (m_Timers[i]->GetName() == name) {
-			delete m_Timers[i];
+		auto& timer = m_Timers[i];
+		if (timer == name) {
 			m_Timers.erase(m_Timers.begin() + i);
 			return;
 		}
@@ -1730,21 +1758,10 @@ void Entity::CancelTimer(const std::string& name) {
 }
 
 void Entity::CancelAllTimers() {
-	/*for (auto timer : m_Timers) {
-		if (timer) delete timer;
-	}*/
-
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
+	m_PendingTimers.clear();
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 bool Entity::IsPlayer() const {
@@ -1840,7 +1857,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return simple->GetPosition();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetPosition();
@@ -1868,7 +1885,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return simple->GetRotation();
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
@@ -1877,7 +1894,7 @@ const NiQuaternion& Entity::GetRotation() const {
 	return NiQuaternion::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position) {
+void Entity::SetPosition(const NiPoint3& position) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1896,7 +1913,7 @@ void Entity::SetPosition(NiPoint3 position) {
 		simple->SetPosition(position);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetPosition(position);
@@ -1905,7 +1922,7 @@ void Entity::SetPosition(NiPoint3 position) {
 	Game::entityManager->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation) {
+void Entity::SetRotation(const NiQuaternion& rotation) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1924,7 +1941,7 @@ void Entity::SetRotation(NiQuaternion rotation) {
 		simple->SetRotation(rotation);
 	}
 
-	auto* vehicel = GetComponent<VehiclePhysicsComponent>();
+	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
@@ -2053,4 +2070,76 @@ void Entity::RetroactiveVaultSize() {
 uint8_t Entity::GetCollectibleID() const {
 	auto* collectible = GetComponent<CollectibleComponent>();
 	return collectible ? collectible->GetCollectibleId() : 0;
+}
+
+void Entity::ProcessPositionUpdate(PositionUpdate& update) {
+	if (!IsPlayer()) return;
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
+
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	bool updateChar = true;
+
+	if (possessorComponent) {
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+
+		if (possassableEntity) {
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+
+			// While possessing something, only update char if we are attached to the thing we are possessing
+			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
+
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent) {
+				havokVehiclePhysicsComponent->SetPosition(update.position);
+				havokVehiclePhysicsComponent->SetRotation(update.rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
+				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
+			} else {
+				// Need to get the mount's controllable physics
+				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!possessedControllablePhysicsComponent) return;
+				possessedControllablePhysicsComponent->SetPosition(update.position);
+				possessedControllablePhysicsComponent->SetRotation(update.rotation);
+				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
+				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
+				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+			}
+			Game::entityManager->SerializeEntity(possassableEntity);
+		}
+	}
+
+	if (!updateChar) {
+		update.velocity = NiPoint3::ZERO;
+		update.angularVelocity = NiPoint3::ZERO;
+	}
+
+	// Handle statistics
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) {
+		characterComponent->TrackPositionUpdate(update.position);
+	}
+
+	controllablePhysicsComponent->SetPosition(update.position);
+	controllablePhysicsComponent->SetRotation(update.rotation);
+	controllablePhysicsComponent->SetIsOnGround(update.onGround);
+	controllablePhysicsComponent->SetIsOnRail(update.onRail);
+	controllablePhysicsComponent->SetVelocity(update.velocity);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+
+	auto* ghostComponent = GetComponent<GhostComponent>();
+	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(GetObjectID());
+
+	if (updateChar) Game::entityManager->SerializeEntity(this);
 }

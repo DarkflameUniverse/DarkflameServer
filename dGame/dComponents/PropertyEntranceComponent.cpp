@@ -1,6 +1,6 @@
 #include "PropertyEntranceComponent.h"
 
-#include <CDPropertyEntranceComponentTable.h>
+#include "CDPropertyEntranceComponentTable.h"
 
 #include "Character.h"
 #include "Database.h"
@@ -103,7 +103,7 @@ std::string PropertyEntranceComponent::BuildQuery(Entity* entity, int32_t sortMe
 	if (sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS) {
 		std::string friendsList = " AND p.owner_id IN (";
 
-		auto friendsListQuery = Database::CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
+		auto friendsListQuery = Database::Get()->CreatePreppedStmt("SELECT * FROM (SELECT CASE WHEN player_id = ? THEN friend_id WHEN friend_id = ? THEN player_id END AS requested_player FROM friends ) AS fr WHERE requested_player IS NOT NULL ORDER BY requested_player DESC;");
 
 		friendsListQuery->setUInt(1, character->GetID());
 		friendsListQuery->setUInt(2, character->GetID());
@@ -147,7 +147,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	if (!character) return;
 
 	// Player property goes in index 1 of the vector.  This is how the client expects it.
-	auto playerPropertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE owner_id = ? AND zone_id = ?");
+	auto playerPropertyLookup = Database::Get()->CreatePreppedStmt("SELECT * FROM properties WHERE owner_id = ? AND zone_id = ?");
 
 	playerPropertyLookup->setInt(1, character->GetID());
 	playerPropertyLookup->setInt(2, this->m_MapID);
@@ -163,7 +163,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto modApproved = playerPropertyLookupResults->getBoolean(10);
 		const auto dateLastUpdated = playerPropertyLookupResults->getInt64(11);
 		const auto reputation = playerPropertyLookupResults->getUInt(14);
-		const auto performanceCost = (float)playerPropertyLookupResults->getDouble(16);
+		const auto performanceCost = playerPropertyLookupResults->getFloat(16);
 
 		playerEntry = SetPropertyValues(playerEntry, cloneId, character->GetName(), propertyName, propertyDescription, reputation, true, true, modApproved, true, true, privacyOption, dateLastUpdated, performanceCost);
 	} else {
@@ -180,14 +180,14 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	const auto query = BuildQuery(entity, sortMethod, character);
 
-	auto propertyLookup = Database::CreatePreppedStmt(query);
+	auto propertyLookup = Database::Get()->CreatePreppedStmt(query);
 
 	const auto searchString = "%" + filterText + "%";
 	propertyLookup->setUInt(1, this->m_MapID);
 	propertyLookup->setString(2, searchString.c_str());
 	propertyLookup->setString(3, searchString.c_str());
 	propertyLookup->setString(4, searchString.c_str());
-	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? (uint32_t)PropertyPrivacyOption::Friends : (uint32_t)PropertyPrivacyOption::Public);
+	propertyLookup->setInt(5, sortMethod == SORT_TYPE_FEATURED || sortMethod == SORT_TYPE_FRIENDS ? static_cast<uint32_t>(PropertyPrivacyOption::Friends) : static_cast<uint32_t>(PropertyPrivacyOption::Public));
 	propertyLookup->setInt(6, numResults);
 	propertyLookup->setInt(7, startIndex);
 
@@ -203,13 +203,13 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto modApproved = propertyEntry->getBoolean(10);
 		const auto dateLastUpdated = propertyEntry->getInt(11);
 		const float reputation = propertyEntry->getInt(14);
-		const auto performanceCost = (float)propertyEntry->getDouble(16);
+		const auto performanceCost = propertyEntry->getFloat(16);
 
 		PropertySelectQueryProperty entry{};
 
 		std::string ownerName = "";
 		bool isOwned = true;
-		auto nameLookup = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
+		auto nameLookup = Database::Get()->CreatePreppedStmt("SELECT name FROM charinfo WHERE prop_clone_id = ?;");
 
 		nameLookup->setUInt64(1, cloneId);
 
@@ -245,7 +245,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		GeneralUtils::SetBit(ownerObjId, eObjectBits::PERSISTENT);
 
 		// Query to get friend and best friend fields
-		auto friendCheck = Database::CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
+		auto friendCheck = Database::Get()->CreatePreppedStmt("SELECT best_friend FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)");
 
 		friendCheck->setUInt(1, character->GetID());
 		friendCheck->setUInt(2, ownerObjId);
@@ -278,7 +278,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 		bool isAlt = false;
 		// Query to determine whether this property is an alt character of the entity.
-		auto isAltQuery = Database::CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
+		auto isAltQuery = Database::Get()->CreatePreppedStmt("SELECT id FROM charinfo where account_id in (SELECT account_id from charinfo WHERE id = ?) AND id = ?;");
 
 		isAltQuery->setInt(1, character->GetID());
 		isAltQuery->setInt(2, owner);
@@ -312,7 +312,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	int32_t numberOfProperties = 0;
 
 	auto buttonQuery = BuildQuery(entity, sortMethod, character, "SELECT COUNT(*) FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ", false);
-	auto propertiesLeft = Database::CreatePreppedStmt(buttonQuery);
+	auto propertiesLeft = Database::Get()->CreatePreppedStmt(buttonQuery);
 
 	propertiesLeft->setUInt(1, this->m_MapID);
 	propertiesLeft->setString(2, searchString.c_str());

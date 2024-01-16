@@ -71,7 +71,7 @@ LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e) {
 #include <cstring>
 #include <exception>
 
-#if defined(__include_backtrace__)
+#if defined(INCLUDE_BACKTRACE)
 #include <backtrace.h>
 
 #include <backtrace-supported.h>
@@ -115,7 +115,14 @@ void GenerateDump() {
 }
 
 void CatchUnhandled(int sig) {
-#ifndef __include_backtrace__
+	std::exception_ptr eptr = std::current_exception();
+	try {
+		if (eptr) std::rethrow_exception(eptr);
+	} catch(const std::exception& e) {
+		LOG("Caught exception: '%s'", e.what());
+	}
+
+#ifndef INCLUDE_BACKTRACE
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	LOG("Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
@@ -167,7 +174,7 @@ void CatchUnhandled(int sig) {
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
 #  endif // defined(__GNUG__)
 
-#else // __include_backtrace__
+#else // INCLUDE_BACKTRACE
 
 	struct backtrace_state* state = backtrace_create_state(
 		Diagnostics::GetProcessFileName().c_str(),
@@ -178,7 +185,7 @@ void CatchUnhandled(int sig) {
 	struct bt_ctx ctx = { state, 0 };
 	Bt(state);
 
-#endif // __include_backtrace__
+#endif // INCLUDE_BACKTRACE
 
 	exit(EXIT_FAILURE);
 }
@@ -197,10 +204,10 @@ void MakeBacktrace() {
 	sigact.sa_sigaction = CritErrHdlr;
 	sigact.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	if (sigaction(SIGSEGV, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGFPE, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGABRT, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGILL, &sigact, (struct sigaction*)nullptr) != 0) {
+	if (sigaction(SIGSEGV, &sigact, nullptr) != 0 ||
+		sigaction(SIGFPE, &sigact, nullptr) != 0 ||
+		sigaction(SIGABRT, &sigact, nullptr) != 0 ||
+		sigaction(SIGILL, &sigact, nullptr) != 0) {
 		fprintf(stderr, "error setting signal handler for %d (%s)\n",
 			SIGSEGV,
 			strsignal(SIGSEGV));

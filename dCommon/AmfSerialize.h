@@ -4,7 +4,7 @@
 #include "Amf3.h"
 
 // RakNet
-#include <BitStream.h>
+#include "BitStream.h"
 
 /*!
  \file AmfSerialize.h

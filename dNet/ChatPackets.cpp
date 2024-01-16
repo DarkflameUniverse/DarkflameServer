@@ -7,7 +7,6 @@
 #include "RakNetTypes.h"
 #include "BitStream.h"
 #include "Game.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "eConnectionType.h"
@@ -17,20 +16,20 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GENERAL_CHAT_MESSAGE);
 
-	bitStream.Write(static_cast<uint64_t>(0));
+	bitStream.Write<uint64_t>(0);
 	bitStream.Write(chatChannel);
 
-	bitStream.Write(static_cast<uint32_t>(message.size()));
+	bitStream.Write<uint32_t>(message.size());
 	bitStream.Write(LUWString(senderName));
 
 	bitStream.Write(playerObjectID);
-	bitStream.Write(static_cast<uint16_t>(0));
-	bitStream.Write(static_cast<char>(0));
+	bitStream.Write<uint16_t>(0);
+	bitStream.Write<char>(0);
 
 	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write(static_cast<uint16_t>(message[i]));
+		bitStream.Write<uint16_t>(message[i]);
 	}
-	bitStream.Write(static_cast<uint16_t>(0));
+	bitStream.Write<uint16_t>(0);
 
 	SEND_PACKET_BROADCAST;
 }
@@ -39,21 +38,21 @@ void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GENERAL_CHAT_MESSAGE);
 
-	bitStream.Write(static_cast<uint64_t>(0));
-	bitStream.Write(static_cast<char>(4));
+	bitStream.Write<uint64_t>(0);
+	bitStream.Write<char>(4);
 
-	bitStream.Write(static_cast<uint32_t>(message.size()));
+	bitStream.Write<uint32_t>(message.size());
 	bitStream.Write(LUWString("", 33));
 
-	bitStream.Write(static_cast<uint64_t>(0));
-	bitStream.Write(static_cast<uint16_t>(0));
-	bitStream.Write(static_cast<char>(0));
+	bitStream.Write<uint64_t>(0);
+	bitStream.Write<uint16_t>(0);
+	bitStream.Write<char>(0);
 
 	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write(static_cast<uint16_t>(message[i]));
+		bitStream.Write<uint16_t>(message[i]);
 	}
 
-	bitStream.Write(static_cast<uint16_t>(0));
+	bitStream.Write<uint16_t>(0);
 
 	//This is so Wincent's announcement works:
 	if (sysAddr != UNASSIGNED_SYSTEM_ADDRESS) {

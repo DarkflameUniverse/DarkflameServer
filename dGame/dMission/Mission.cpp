@@ -257,7 +257,7 @@ bool Mission::IsComplete() const {
 }
 
 bool Mission::IsActive() const {
-	return m_State == eMissionState::ACTIVE || m_State == eMissionState::COMPLETE_AVAILABLE;
+	return m_State == eMissionState::ACTIVE || m_State == eMissionState::COMPLETE_ACTIVE;
 }
 
 void Mission::MakeActive() {
@@ -329,9 +329,9 @@ void Mission::Complete(const bool yieldRewards) {
 
 	missionComponent->Progress(eMissionTaskType::META, info.id);
 
-	missionComponent->Progress(eMissionTaskType::RACING, info.id, (LWOOBJID)eRacingTaskParam::COMPLETE_ANY_RACING_TASK);
+	missionComponent->Progress(eMissionTaskType::RACING, info.id, static_cast<LWOOBJID>(eRacingTaskParam::COMPLETE_ANY_RACING_TASK));
 
-	missionComponent->Progress(eMissionTaskType::RACING, info.id, (LWOOBJID)eRacingTaskParam::COMPLETE_TRACK_TASKS);
+	missionComponent->Progress(eMissionTaskType::RACING, info.id, static_cast<LWOOBJID>(eRacingTaskParam::COMPLETE_TRACK_TASKS));
 
 	auto* missionEmailTable = CDClientManager::Instance().GetTable<CDMissionEmailTable>();
 

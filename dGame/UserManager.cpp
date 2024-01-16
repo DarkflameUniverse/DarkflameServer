@@ -8,11 +8,10 @@
 #include "Game.h"
 #include "Logger.h"
 #include "User.h"
-#include <WorldPackets.h>
+#include "WorldPackets.h"
 #include "Character.h"
-#include <BitStream.h>
-#include "PacketUtils.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "BitStream.h"
+#include "ObjectIDManager.h"
 #include "Logger.h"
 #include "GeneralUtils.h"
 #include "ZoneInstanceManager.h"
@@ -44,57 +43,53 @@ inline void StripCR(std::string& str) {
 void UserManager::Initialize() {
 	std::string line;
 
-	AssetMemoryBuffer fnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_first.txt");
-	if (!fnBuff.m_Success) {
+	auto fnStream = Game::assetManager->GetFile("names/minifigname_first.txt");
+	if (!fnStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
-	std::istream fnStream = std::istream(&fnBuff);
+
 	while (std::getline(fnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_FirstNames.push_back(name);
 	}
-	fnBuff.close();
 
-	AssetMemoryBuffer mnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_middle.txt");
-	if (!mnBuff.m_Success) {
+	auto mnStream = Game::assetManager->GetFile("names/minifigname_middle.txt");
+	if (!mnStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
-	std::istream mnStream = std::istream(&mnBuff);
+
 	while (std::getline(mnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_MiddleNames.push_back(name);
 	}
-	mnBuff.close();
 
-	AssetMemoryBuffer lnBuff = Game::assetManager->GetFileAsBuffer("names/minifigname_last.txt");
-	if (!lnBuff.m_Success) {
+	auto lnStream = Game::assetManager->GetFile("names/minifigname_last.txt");
+	if (!lnStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
-	std::istream lnStream = std::istream(&lnBuff);
+
 	while (std::getline(lnStream, line, '\n')) {
 		std::string name = line;
 		StripCR(name);
 		m_LastNames.push_back(name);
 	}
-	lnBuff.close();
 
-	//Load our pre-approved names:
-	AssetMemoryBuffer chatListBuff = Game::assetManager->GetFileAsBuffer("chatplus_en_us.txt");
-	if (!chatListBuff.m_Success) {
+	// Load our pre-approved names:
+	auto chatListStream = Game::assetManager->GetFile("chatplus_en_us.txt");
+	if (!chatListStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
 		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
 	}
-	std::istream chatListStream = std::istream(&chatListBuff);
+
 	while (std::getline(chatListStream, line, '\n')) {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
-	chatListBuff.close();
 }
 
 UserManager::~UserManager() {
@@ -125,7 +120,7 @@ User* UserManager::GetUser(const SystemAddress& sysAddr) {
 User* UserManager::GetUser(const std::string& username) {
 	for (auto p : m_Users) {
 		if (p.second) {
-			if (p.second->GetUsername() == username) return p.second;
+			if (GeneralUtils::CaseInsensitiveStringCompare(p.second->GetUsername(), username)) return p.second;
 		}
 	}
 
@@ -158,20 +153,6 @@ void UserManager::DeletePendingRemovals() {
 	m_UsersToDelete.clear();
 }
 
-bool UserManager::IsNameAvailable(const std::string& requestedName) {
-	bool toReturn = false; //To allow for a clean exit
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE name=? OR pending_name=? LIMIT 1;");
-	stmt->setString(1, requestedName.c_str());
-	stmt->setString(2, requestedName.c_str());
-
-	sql::ResultSet* res = stmt->executeQuery();
-	if (res->rowsCount() == 0) toReturn = true;
-
-	delete stmt;
-	delete res;
-	return toReturn;
-}
-
 std::string UserManager::GetPredefinedName(uint32_t firstNameIndex, uint32_t middleNameIndex, uint32_t lastNameIndex) {
 	if (firstNameIndex > m_FirstNames.size() || middleNameIndex > m_MiddleNames.size() || lastNameIndex > m_LastNames.size()) return std::string("INVALID");
 	return std::string(m_FirstNames[firstNameIndex] + m_MiddleNames[middleNameIndex] + m_LastNames[lastNameIndex]);
@@ -200,11 +181,6 @@ bool UserManager::IsNamePreapproved(const std::string& requestedName) {
 void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
-
-	sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE account_id=? ORDER BY last_login DESC LIMIT 4;");
-	stmt->setUInt(1, u->GetAccountID());
-
-	sql::ResultSet* res = stmt->executeQuery();
 	std::vector<Character*>& chars = u->GetCharacters();
 
 	for (size_t i = 0; i < chars.size(); ++i) {
@@ -226,157 +202,186 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars[i]->SaveXMLToDatabase();
 
 		chars[i]->GetEntity()->SetCharacter(nullptr);
-		
+
 		delete chars[i];
 	}
 
 	chars.clear();
 
-	while (res->next()) {
-		LWOOBJID objID = res->getUInt64(1);
-		Character* character = new Character(uint32_t(objID), u);
+	for (const auto& characterId : Database::Get()->GetAccountCharacterIds(u->GetAccountID())) {
+		Character* character = new Character(characterId, u);
+		character->UpdateFromDatabase();
 		character->SetIsNewLogin();
 		chars.push_back(character);
 	}
 
-	delete res;
-	delete stmt;
+	RakNet::BitStream bitStream;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
 
-	WorldPackets::SendCharacterList(sysAddr, u);
+	std::vector<Character*> characters = u->GetCharacters();
+	bitStream.Write<uint8_t>(characters.size());
+	bitStream.Write<uint8_t>(0); //TODO: Pick the most recent played index.  character index in front, just picking 0
+
+	for (uint32_t i = 0; i < characters.size(); ++i) {
+		bitStream.Write(characters[i]->GetObjectID());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write(LUWString(characters[i]->GetName()));
+		bitStream.Write(LUWString(characters[i]->GetUnapprovedName()));
+
+		bitStream.Write<uint8_t>(characters[i]->GetNameRejected());
+		bitStream.Write<uint8_t>(false);
+
+		bitStream.Write(LUString("", 10));
+
+		bitStream.Write(characters[i]->GetShirtColor());
+		bitStream.Write(characters[i]->GetShirtStyle());
+		bitStream.Write(characters[i]->GetPantsColor());
+		bitStream.Write(characters[i]->GetHairStyle());
+		bitStream.Write(characters[i]->GetHairColor());
+		bitStream.Write(characters[i]->GetLeftHand());
+		bitStream.Write(characters[i]->GetRightHand());
+		bitStream.Write(characters[i]->GetEyebrows());
+		bitStream.Write(characters[i]->GetEyes());
+		bitStream.Write(characters[i]->GetMouth());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write<uint16_t>(characters[i]->GetZoneID());
+		bitStream.Write<uint16_t>(characters[i]->GetZoneInstance());
+		bitStream.Write(characters[i]->GetZoneClone());
+
+		bitStream.Write(characters[i]->GetLastLogin());
+
+		const auto& equippedItems = characters[i]->GetEquippedItems();
+		bitStream.Write<uint16_t>(equippedItems.size());
+
+		for (uint32_t j = 0; j < equippedItems.size(); ++j) {
+			bitStream.Write(equippedItems[j]);
+		}
+	}
+
+	SEND_PACKET;
 }
 
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
+	
+	LUWString LUWStringName;
+	uint32_t firstNameIndex;
+	uint32_t middleNameIndex;
+	uint32_t lastNameIndex;
+	uint32_t shirtColor;
+	uint32_t shirtStyle;
+	uint32_t pantsColor;
+	uint32_t hairStyle;
+	uint32_t hairColor;
+	uint32_t lh;
+	uint32_t rh;
+	uint32_t eyebrows;
+	uint32_t eyes;
+	uint32_t mouth;
 
-	std::string name = PacketUtils::ReadString(8, packet, true);
+	CINSTREAM_SKIP_HEADER;
+	inStream.Read(LUWStringName);
+	inStream.Read(firstNameIndex);
+	inStream.Read(middleNameIndex);
+	inStream.Read(lastNameIndex);
+	inStream.IgnoreBytes(9);
+	inStream.Read(shirtColor);
+	inStream.Read(shirtStyle);
+	inStream.Read(pantsColor);
+	inStream.Read(hairStyle);
+	inStream.Read(hairColor);
+	inStream.Read(lh);
+	inStream.Read(rh);
+	inStream.Read(eyebrows);
+	inStream.Read(eyes);
+	inStream.Read(mouth);
 
-	uint32_t firstNameIndex = PacketUtils::ReadU32(74, packet);
-	uint32_t middleNameIndex = PacketUtils::ReadU32(78, packet);
-	uint32_t lastNameIndex = PacketUtils::ReadU32(82, packet);
+	const auto name = LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
-
-	uint32_t shirtColor = PacketUtils::ReadU32(95, packet);
-	uint32_t shirtStyle = PacketUtils::ReadU32(99, packet);
-	uint32_t pantsColor = PacketUtils::ReadU32(103, packet);
-	uint32_t hairStyle = PacketUtils::ReadU32(107, packet);
-	uint32_t hairColor = PacketUtils::ReadU32(111, packet);
-	uint32_t lh = PacketUtils::ReadU32(115, packet);
-	uint32_t rh = PacketUtils::ReadU32(119, packet);
-	uint32_t eyebrows = PacketUtils::ReadU32(123, packet);
-	uint32_t eyes = PacketUtils::ReadU32(127, packet);
-	uint32_t mouth = PacketUtils::ReadU32(131, packet);
-
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
-	if (name != "" && !UserManager::IsNameAvailable(name)) {
+	if (!name.empty() && Database::Get()->GetCharacterInfo(name)) {
 		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
-	if (!IsNameAvailable(predefinedName)) {
+	if (Database::Get()->GetCharacterInfo(predefinedName)) {
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
 	}
 
-	if (name == "") {
+	if (name.empty()) {
 		LOG("AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 	} else {
 		LOG("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t objectID) {
-		sql::PreparedStatement* overlapStmt = Database::CreatePreppedStmt("SELECT id FROM charinfo WHERE id = ?");
-		overlapStmt->setUInt(1, objectID);
-
-		auto* overlapResult = overlapStmt->executeQuery();
-
-		if (overlapResult->next()) {
-			LOG("Character object id unavailable, check objectidtracker!");
+	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
+		if (Database::Get()->GetCharacterInfo(objectID)) {
+			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
 
 		std::stringstream xml;
-		xml << "<obj v=\"1\"><mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
+		xml << "<obj v=\"1\">";
+
+		xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
 		xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
 		xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
 
 		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
 		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
 		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
+
 		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
+
 		xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
-		std::string xmlSave1 = xml.str();
 
-		ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforshirt) {
-			std::stringstream xml2;
+		LWOOBJID lwoidforshirt = ObjectIDManager::GenerateRandomObjectID();
+		LWOOBJID lwoidforpants;
 
-			LWOOBJID lwoidforshirt = idforshirt;
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
-			xml2 << xmlSave1 << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		do {
+			lwoidforpants = ObjectIDManager::GenerateRandomObjectID();
+		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
 
-			std::string xmlSave2 = xml2.str();
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+		GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
-			ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t idforpants) {
-				LWOOBJID lwoidforpants = idforpants;
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
-				GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
+		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
-				std::stringstream xml3;
-				xml3 << xmlSave2 << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
+		xml << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
 
-				xml3 << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
+		//Check to see if our name was pre-approved:
+		bool nameOk = IsNamePreapproved(name);
+		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-				//Check to see if our name was pre-approved:
-				bool nameOk = IsNamePreapproved(name);
-				if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
+		std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-				if (name != "") {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, name.c_str());
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
+		ICharInfo::Info info;
+		info.name = nameToAssign;
+		info.pendingName = pendingName;
+		info.id = objectID;
+		info.accountId = u->GetAccountID();
 
-					if (nameOk) {
-						stmt->setString(3, name.c_str());
-						stmt->setString(4, "");
-					}
+		Database::Get()->InsertNewCharacter(info);
 
-					stmt->execute();
-					delete stmt;
-				} else {
-					sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)");
-					stmt->setUInt(1, objectID);
-					stmt->setUInt(2, u->GetAccountID());
-					stmt->setString(3, predefinedName.c_str());
-					stmt->setString(4, "");
-					stmt->setBoolean(5, false);
-					stmt->setUInt64(6, time(NULL));
+		//Now finally insert our character xml:
+		Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-					stmt->execute();
-					delete stmt;
-				}
-
-				//Now finally insert our character xml:
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("INSERT INTO `charxml`(`id`, `xml_data`) VALUES (?,?)");
-				stmt->setUInt(1, objectID);
-				stmt->setString(2, xml3.str().c_str());
-				stmt->execute();
-				delete stmt;
-
-				WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-				UserManager::RequestCharacterList(sysAddr);
-				});
-			});
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+		UserManager::RequestCharacterList(sysAddr);
 		});
 }
 
@@ -387,7 +392,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
 	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
@@ -403,73 +410,12 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
 		LOG("Deleting character %i", charID);
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charxml WHERE id=? LIMIT 1;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM command_log WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM friends WHERE player_id=? OR friend_id=?;");
-			stmt->setUInt(1, charID);
-			stmt->setUInt(2, charID);
-			stmt->execute();
-			delete stmt;
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
-			bitStream.Write(objectID);
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM leaderboard WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt(
-				"DELETE FROM properties_contents WHERE property_id IN (SELECT id FROM properties WHERE owner_id=?);"
-			);
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM properties WHERE owner_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM ugc WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM activity_log WHERE character_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM mail WHERE receiver_id=?;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("DELETE FROM charinfo WHERE id=? LIMIT 1;");
-			stmt->setUInt64(1, charID);
-			stmt->execute();
-			delete stmt;
-		}
+		Database::Get()->DeleteCharacter(charID);
+
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+		bitStream.Write(objectID);
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, true);
 	}
@@ -482,14 +428,18 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);	
 	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
 	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
 
-	std::string newName = PacketUtils::ReadString(16, packet, true);
+	LUWString LUWStringName;
+	inStream.Read(LUWStringName);
+	const auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
 
@@ -517,26 +467,14 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			return;
 		}
 
-		if (IsNameAvailable(newName)) {
+		if (!Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET name=?, pending_name='', needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
-				stmt->setUInt64(2, time(NULL));
-				stmt->setUInt(3, character->GetID());
-				stmt->execute();
-				delete stmt;
-
+				Database::Get()->SetCharacterName(charID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
-				sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET pending_name=?, needs_rename=0, last_login=? WHERE id=? LIMIT 1");
-				stmt->setString(1, newName);
-				stmt->setUInt64(2, time(NULL));
-				stmt->setUInt(3, character->GetID());
-				stmt->execute();
-				delete stmt;
-
+				Database::Get()->SetPendingCharacterName(charID, newName);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
@@ -566,11 +504,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 	}
 
 	if (hasCharacter && character) {
-		sql::PreparedStatement* stmt = Database::CreatePreppedStmt("UPDATE charinfo SET last_login=? WHERE id=? LIMIT 1");
-		stmt->setUInt64(1, time(NULL));
-		stmt->setUInt(2, playerID);
-		stmt->execute();
-		delete stmt;
+		Database::Get()->UpdateLastLoggedInCharacter(playerID);
 
 		uint32_t zoneID = character->GetZoneID();
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
@@ -592,16 +526,18 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	try {
-		std::string shirtQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"character create shirt\" AND icc.color1 == ";
-		shirtQuery += std::to_string(shirtColor);
-		shirtQuery += " AND icc.decal == ";
-		shirtQuery = shirtQuery + std::to_string(shirtStyle);
-		auto tableData = CDClientDatabase::ExecuteQuery(shirtQuery);
-		auto shirtLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ? AND icc.decal == ?"
+		);
+		stmt.bind(1, "character create shirt");
+		stmt.bind(2, static_cast<int>(shirtColor));
+		stmt.bind(3, static_cast<int>(shirtStyle));
+		auto tableData = stmt.execQuery();
+		auto shirtLOT = tableData.getIntField(0, 4069);
 		tableData.finalize();
 		return shirtLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up shirt %i %i: %s", shirtColor, shirtStyle, ex.what());
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -609,14 +545,17 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 
 uint32_t FindCharPantsID(uint32_t pantsColor) {
 	try {
-		std::string pantsQuery = "select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == \"cc pants\" AND icc.color1 == ";
-		pantsQuery += std::to_string(pantsColor);
-		auto tableData = CDClientDatabase::ExecuteQuery(pantsQuery);
-		auto pantsLOT = tableData.getIntField(0, -1);
+		auto stmt = CDClientDatabase::CreatePreppedStmt(
+			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ?"
+		);
+		stmt.bind(1, "cc pants");
+		stmt.bind(2, static_cast<int>(pantsColor));
+		auto tableData = stmt.execQuery();
+		auto pantsLOT = tableData.getIntField(0, 2508);
 		tableData.finalize();
 		return pantsLOT;
-	} catch (const std::exception&) {
-		LOG("Failed to execute query! Using backup...");
+	} catch (const std::exception& ex) {
+		LOG("Could not look up pants %i: %s", pantsColor, ex.what());
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}

@@ -3,69 +3,34 @@ set(DGAME_SOURCES "Character.cpp"
 		"EntityManager.cpp"
 		"LeaderboardManager.cpp"
 		"Player.cpp"
+		"PlayerManager.cpp"
 		"TeamManager.cpp"
 		"TradingManager.cpp"
 		"User.cpp"
 		"UserManager.cpp")
 
+include_directories(
+	${PROJECT_SOURCE_DIR}/dScripts
+	${PROJECT_SOURCE_DIR}/dGame
+)
+
+add_library(dGameBase ${DGAME_SOURCES})
+target_precompile_headers(dGameBase PRIVATE ${HEADERS_DGAME})
+target_link_libraries(dGameBase
+	PUBLIC dDatabase dPhysics
+	INTERFACE dComponents dEntity)
+
 add_subdirectory(dBehaviors)
-
-foreach(file ${DGAME_DBEHAVIORS_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dBehaviors/${file}")
-endforeach()
-
 add_subdirectory(dComponents)
-
-foreach(file ${DGAME_DCOMPONENTS_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dComponents/${file}")
-endforeach()
-
 add_subdirectory(dEntity)
-
-foreach(file ${DGAME_DENTITY_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dEntity/${file}")
-endforeach()
-
 add_subdirectory(dGameMessages)
-
-foreach(file ${DGAME_DGAMEMESSAGES_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dGameMessages/${file}")
-endforeach()
-
 add_subdirectory(dInventory)
-
-foreach(file ${DGAME_DINVENTORY_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dInventory/${file}")
-endforeach()
-
 add_subdirectory(dMission)
-
-foreach(file ${DGAME_DMISSION_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dMission/${file}")
-endforeach()
-
 add_subdirectory(dPropertyBehaviors)
-
-foreach(file ${DGAME_DPROPERTYBEHAVIORS_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dPropertyBehaviors/${file}")
-endforeach()
-
 add_subdirectory(dUtilities)
-
-foreach(file ${DGAME_DUTILITIES_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dUtilities/${file}")
-endforeach()
-
 add_subdirectory(dCinema)
 
-foreach(file ${DGAME_DCINEMA_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "dCinema/${file}")
-endforeach()
-
-foreach(file ${DSCRIPTS_SOURCES})
-	set(DGAME_SOURCES ${DGAME_SOURCES} "${PROJECT_SOURCE_DIR}/dScripts/${file}")
-endforeach()
-
-add_library(dGame STATIC ${DGAME_SOURCES})
-
-target_link_libraries(dGame dDatabase Recast Detour)
+add_library(dGame INTERFACE)
+target_link_libraries(dGame INTERFACE
+	dGameBase dBehaviors dComponents dEntity dGameMessages dInventory dMission dPropertyBehaviors dUtilities dScripts dCinema
+)

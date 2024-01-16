@@ -3,5 +3,5 @@
 
 class NTImagimeterVisibility : public CppScripts::Script {
 public:
-	void OnRebuildComplete(Entity* self, Entity* target) override;
+	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 };

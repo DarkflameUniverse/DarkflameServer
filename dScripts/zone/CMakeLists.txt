@@ -18,4 +18,12 @@ foreach(file ${DSCRIPTS_SOURCES_ZONE_PROPERTY})
 	set(DSCRIPTS_SOURCES_ZONE ${DSCRIPTS_SOURCES_ZONE} "PROPERTY/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_ZONE ${DSCRIPTS_SOURCES_ZONE} PARENT_SCOPE)
+add_library(dScriptsZone STATIC ${DSCRIPTS_SOURCES_ZONE})
+target_include_directories(dScriptsZone PUBLIC "."
+	"AG"
+	"LUPs"
+	"PROPERTY"
+	"PROPERTY/FV"
+	"PROPERTY/GF"
+	"PROPERTY/NS")
+target_precompile_headers(dScriptsZone REUSE_FROM dScriptsBase)

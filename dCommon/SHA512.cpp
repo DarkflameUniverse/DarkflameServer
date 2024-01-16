@@ -1,3 +1,5 @@
+// Source: http://www.zedwood.com/article/cpp-sha512-function
+
 #include "SHA512.h"
 
 #include <cstring>

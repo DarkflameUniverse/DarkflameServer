@@ -10,9 +10,10 @@
 #include "MissionComponent.h"
 #include "PhantomPhysicsComponent.h"
 #include "Player.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "SkillComponent.h"
 #include "eEndBehavior.h"
+#include "PlayerManager.h"
 
 
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
@@ -175,7 +176,7 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 		}
 	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
 	else if (command->target == "allPlayers") {
-		for (auto* player : Player::GetAllPlayers()) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
 			entities.push_back(player);
 		}
 	} else if (command->target == "allNPCs") { /*UNUSED*/ }
@@ -205,12 +206,12 @@ void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string arg
 }
 
 void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
-	auto* rebuildComponent = targetEntity->GetComponent<RebuildComponent>();
-	if (!rebuildComponent) {
+	auto* quickBuildComponent = targetEntity->GetComponent<QuickBuildComponent>();
+	if (!quickBuildComponent) {
 		LOG_DEBUG("Rebuild component not found!");
 		return;
 	}
-	rebuildComponent->ResetRebuild(args == "1");
+	quickBuildComponent->ResetQuickBuild(args == "1");
 }
 
 void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray){

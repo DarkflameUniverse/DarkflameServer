@@ -14,8 +14,7 @@ class Entity;
 /**
  * Extra information on effects to apply after applying a buff, for example whether to buff armor, imag or health and by how much
  */
-struct BuffParameter
-{
+struct BuffParameter {
 	int32_t buffId;
 	std::string name;
 	float value;
@@ -26,8 +25,7 @@ struct BuffParameter
 /**
  * Meta information about a buff that can be applied, e.g. how long it's applied, who applied it, etc.
  */
-struct Buff
-{
+struct Buff {
 	int32_t id = 0;
 	float time = 0;
 	float tick = 0;
@@ -35,6 +33,15 @@ struct Buff
 	int32_t stacks = 0;
 	LWOOBJID source = 0;
 	int32_t behaviorID = 0;
+	bool cancelOnDamaged = false;
+	bool cancelOnDeath = false;
+	bool cancelOnLogout = false;
+	bool cancelOnRemoveBuff = false;
+	bool cancelOnUi = false;
+	bool cancelOnUnequip = false;
+	bool cancelOnZone = false;
+	bool applyOnTeammates = false;
+	uint32_t refCount = 0;
 };
 
 /**
@@ -74,14 +81,17 @@ public:
 	 */
 	void ApplyBuff(int32_t id, float duration, LWOOBJID source, bool addImmunity = false, bool cancelOnDamaged = false,
 		bool cancelOnDeath = true, bool cancelOnLogout = false, bool cancelOnRemoveBuff = true,
-		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false);
+		bool cancelOnUi = false, bool cancelOnUnequip = false, bool cancelOnZone = false, bool applyOnTeammates = false);
+
+	void ApplyBuffFx(uint32_t buffId, const BuffParameter& buffName);
+	void RemoveBuffFx(uint32_t buffId, const BuffParameter& buffName);
 
 	/**
 	 * Removes a buff from the parent entity, reversing its effects
 	 * @param id the id of the buff to remove
 	 * @param removeImmunity whether or not to remove immunity on removing the buff
 	 */
-	void RemoveBuff(int32_t id, bool fromUnEquip = false, bool removeImmunity = false);
+	void RemoveBuff(int32_t id, bool fromUnEquip = false, bool removeImmunity = false, bool ignoreRefCount = false);
 
 	/**
 	 * Returns whether or not the entity has a buff identified by `id`
@@ -129,6 +139,9 @@ private:
 	 * The currently active buffs
 	 */
 	std::map<int32_t, Buff> m_Buffs;
+
+	// Buffs to remove at the end of the update frame.
+	std::vector<int32_t> m_BuffsToRemove;
 
 	/**
 	 * Parameters (=effects) for each buff

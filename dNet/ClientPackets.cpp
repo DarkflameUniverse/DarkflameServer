@@ -4,17 +4,6 @@
  */
 
 #include "ClientPackets.h"
-#include "UserManager.h"
-#include "User.h"
-#include "Character.h"
-#include "EntityManager.h"
-#include "Entity.h"
-#include "ControllablePhysicsComponent.h"
-#include "Game.h"
-#include "Logger.h"
-#include "WorldPackets.h"
-#include "NiPoint3.h"
-#include "NiQuaternion.h"
 #include "dCommonVars.h"
 #include "BitStream.h"
 #include "dChatFilter.h"
@@ -35,50 +24,23 @@
 #include "eReplicaComponentType.h"
 #include "CheatDetection.h"
 #include "Recorder.h"
+#include "PositionUpdate.h"
 
-void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* packet) {
-	User* user = UserManager::Instance()->GetUser(sysAddr);
-	if (!user) {
-		LOG("Unable to get user to parse chat message");
-		return;
-	}
-
-	if (user->GetIsMuted()) {
-		user->GetLastUsedChar()->SendMuteNotice();
-		return;
-	}
-
+ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 
-	char chatChannel;
-	uint16_t unknown;
+	ChatMessage message;
 	uint32_t messageLength;
-	std::u16string message;
 
-	inStream.Read(chatChannel);
-	inStream.Read(unknown);
+	inStream.Read(message.chatChannel);
+	inStream.Read(message.unknown);
 	inStream.Read(messageLength);
 
 	for (uint32_t i = 0; i < (messageLength - 1); ++i) {
 		uint16_t character;
 		inStream.Read(character);
-		message.push_back(character);
+		message.message.push_back(character);
 	}
-
-	std::string playerName = user->GetLastUsedChar()->GetName();
-	bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-	bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
-	LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
-	if (!isOk) {
-		// Add a limit to the string converted by general utils because it is a user received string and may be a bad actor.
-		CheatDetection::ReportCheat(
-			user,
-			sysAddr,
-			"Player %s attempted to bypass chat filter with message: %s",
-			playerName.c_str(),
-			GeneralUtils::UTF16ToWTF8(message, 512).c_str());
-	}
-	if (!isOk && !isMythran) return;
 
 	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
 	LOG("%s: %s", playerName.c_str(), sMessage.c_str());
@@ -89,96 +51,63 @@ void ClientPackets::HandleChatMessage(const SystemAddress& sysAddr, Packet* pack
 	if (recorder != nullptr) {
 		recorder->AddRecord(new Cinema::Recording::SpeakRecord(sMessage));
 	}
+	
+	return message;
 }
 
-void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Packet* packet) {
-	User* user = UserManager::Instance()->GetUser(sysAddr);
-	if (!user) {
-		LOG("Unable to get user to parse position update");
-		return;
-	}
-
+PositionUpdate ClientPackets::HandleClientPositionUpdate(Packet* packet) {
+	PositionUpdate update;
 	CINSTREAM_SKIP_HEADER;
 
-	Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
-	if (!entity) return;
+	inStream.Read(update.position.x);
+	inStream.Read(update.position.y);
+	inStream.Read(update.position.z);
 
-	ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (!comp) return;
+	inStream.Read(update.rotation.x);
+	inStream.Read(update.rotation.y);
+	inStream.Read(update.rotation.z);
+	inStream.Read(update.rotation.w);
 
-	/*
-	//If we didn't move, this will match and stop our velocity
-	if (packet->length == 37) {
-		NiPoint3 zeroVel(0.0f, 0.0f, 0.0f);
-		comp->SetVelocity(zeroVel);
-		comp->SetAngularVelocity(zeroVel);
-		comp->SetIsOnGround(true); //probably8
-		Game::entityManager->SerializeEntity(entity);
-		return;
-	}
-	*/
-
-	auto* possessorComponent = entity->GetComponent<PossessorComponent>();
-
-	NiPoint3 position;
-	inStream.Read(position.x);
-	inStream.Read(position.y);
-	inStream.Read(position.z);
-
-	NiQuaternion rotation;
-	inStream.Read(rotation.x);
-	inStream.Read(rotation.y);
-	inStream.Read(rotation.z);
-	inStream.Read(rotation.w);
-
-	bool onGround = false;
-	bool onRail = false;
-	inStream.Read(onGround);
-	inStream.Read(onRail);
+	inStream.Read(update.onGround);
+	inStream.Read(update.onRail);
 
 	bool velocityFlag = false;
 	inStream.Read(velocityFlag);
-	NiPoint3 velocity{};
 	if (velocityFlag) {
-		inStream.Read(velocity.x);
-		inStream.Read(velocity.y);
-		inStream.Read(velocity.z);
+		inStream.Read(update.velocity.x);
+		inStream.Read(update.velocity.y);
+		inStream.Read(update.velocity.z);
 	}
 
 	bool angVelocityFlag = false;
 	inStream.Read(angVelocityFlag);
-	NiPoint3 angVelocity{};
 	if (angVelocityFlag) {
-		inStream.Read(angVelocity.x);
-		inStream.Read(angVelocity.y);
-		inStream.Read(angVelocity.z);
+		inStream.Read(update.angularVelocity.x);
+		inStream.Read(update.angularVelocity.y);
+		inStream.Read(update.angularVelocity.z);
 	}
 
 	// TODO figure out how to use these. Ignoring for now, but reading in if they exist.
 	bool hasLocalSpaceInfo{};
-	LWOOBJID objectId{};
-	NiPoint3 localSpacePosition{};
-	bool hasLinearVelocity{};
-	NiPoint3 linearVelocity{};
 	if (inStream.Read(hasLocalSpaceInfo) && hasLocalSpaceInfo) {
-		inStream.Read(objectId);
-		inStream.Read(localSpacePosition.x);
-		inStream.Read(localSpacePosition.y);
-		inStream.Read(localSpacePosition.z);
+		inStream.Read(update.localSpaceInfo.objectId);
+		inStream.Read(update.localSpaceInfo.position.x);
+		inStream.Read(update.localSpaceInfo.position.y);
+		inStream.Read(update.localSpaceInfo.position.z);
+		bool hasLinearVelocity = false;
 		if (inStream.Read(hasLinearVelocity) && hasLinearVelocity) {
-			inStream.Read(linearVelocity.x);
-			inStream.Read(linearVelocity.y);
-			inStream.Read(linearVelocity.z);
+			inStream.Read(update.localSpaceInfo.linearVelocity.x);
+			inStream.Read(update.localSpaceInfo.linearVelocity.y);
+			inStream.Read(update.localSpaceInfo.linearVelocity.z);
 		}
 	}
-	bool hasRemoteInputInfo{};
-	RemoteInputInfo remoteInput{};
 
+	bool hasRemoteInputInfo{};
 	if (inStream.Read(hasRemoteInputInfo) && hasRemoteInputInfo) {
-		inStream.Read(remoteInput.m_RemoteInputX);
-		inStream.Read(remoteInput.m_RemoteInputY);
-		inStream.Read(remoteInput.m_IsPowersliding);
-		inStream.Read(remoteInput.m_IsModified);
+		inStream.Read(update.remoteInputInfo.m_RemoteInputX);
+		inStream.Read(update.remoteInputInfo.m_RemoteInputY);
+		inStream.Read(update.remoteInputInfo.m_IsPowersliding);
+		inStream.Read(update.remoteInputInfo.m_IsModified);
 	}
 
 	bool updateChar = true;
@@ -302,124 +231,43 @@ void ClientPackets::HandleClientPositionUpdate(const SystemAddress& sysAddr, Pac
 		Game::entityManager->SerializeEntity(entity, player);
 	}
 	*/
+	return update;
 }
 
-void ClientPackets::HandleChatModerationRequest(const SystemAddress& sysAddr, Packet* packet) {
-	User* user = UserManager::Instance()->GetUser(sysAddr);
-	if (!user) {
-		LOG("Unable to get user to parse chat moderation request");
-		return;
-	}
+ChatModerationRequest ClientPackets::HandleChatModerationRequest(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	
+	ChatModerationRequest request;
 
-	auto* entity = Player::GetPlayer(sysAddr);
-
-	if (entity == nullptr) {
-		LOG("Unable to get player to parse chat moderation request");
-		return;
-	}
-
-	// Check if the player has restricted chat access
-	auto* character = entity->GetCharacter();
-
-	if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
-		// Send a message to the player
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"This character has restricted chat access."
-		);
-
-		return;
-	}
-
-	RakNet::BitStream stream(packet->data, packet->length, false);
-
-	uint64_t header;
-	stream.Read(header);
-
-	// Data
-	uint8_t chatLevel;
-	uint8_t requestID;
-	uint16_t messageLength;
-
-	std::string receiver = "";
-	std::string message = "";
-
-	stream.Read(chatLevel);
-	stream.Read(requestID);
+	inStream.Read(request.chatLevel);
+	inStream.Read(request.requestID);
 
 	for (uint32_t i = 0; i < 42; ++i) {
 		uint16_t character;
-		stream.Read(character);
-		receiver.push_back(static_cast<uint8_t>(character));
+		inStream.Read(character);
+		request.receiver.push_back(static_cast<uint8_t>(character));
 	}
 
-	if (!receiver.empty()) {
-		if (std::string(receiver.c_str(), 4) == "[GM]") { // Shift the string forward if we are speaking to a GM as the client appends "[GM]" if they are
-			receiver = std::string(receiver.c_str() + 4, receiver.size() - 4);
+	if (!request.receiver.empty()) {
+		if (std::string(request.receiver.c_str(), 4) == "[GM]") { // Shift the string forward if we are speaking to a GM as the client appends "[GM]" if they are
+			request.receiver = std::string(request.receiver.c_str() + 4, request.receiver.size() - 4);
 		}
 	}
 
-	stream.Read(messageLength);
+	uint16_t messageLength;
+	inStream.Read(messageLength);
 	for (uint32_t i = 0; i < messageLength; ++i) {
 		uint16_t character;
-		stream.Read(character);
-		message.push_back(static_cast<uint8_t>(character));
+		inStream.Read(character);
+		request.message.push_back(static_cast<uint8_t>(character));
 	}
 
-	bool isBestFriend = false;
+	return request;
+}
 
-	if (chatLevel == 1) {
-		// Private chat
-		LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
-
-		{
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT name FROM charinfo WHERE name = ?");
-			stmt->setString(1, receiver);
-
-			sql::ResultSet* res = stmt->executeQuery();
-
-			if (res->next()) {
-				idOfReceiver = res->getInt("id");
-			}
-
-			delete stmt;
-			delete res;
-		}
-
-		if (user->GetIsBestFriendMap().find(receiver) == user->GetIsBestFriendMap().end() && idOfReceiver != LWOOBJID_EMPTY) {
-			sql::PreparedStatement* stmt = Database::CreatePreppedStmt("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;");
-			stmt->setInt(1, entity->GetObjectID());
-			stmt->setInt(2, idOfReceiver);
-			stmt->setInt(3, idOfReceiver);
-			stmt->setInt(4, entity->GetObjectID());
-
-			sql::ResultSet* res = stmt->executeQuery();
-
-			if (res->next()) {
-				isBestFriend = res->getInt("best_friend") == 3;
-			}
-
-			if (isBestFriend) {
-				auto tmpBestFriendMap = user->GetIsBestFriendMap();
-				tmpBestFriendMap[receiver] = true;
-				user->SetIsBestFriendMap(tmpBestFriendMap);
-			}
-
-			delete res;
-			delete stmt;
-		} else if (user->GetIsBestFriendMap().find(receiver) != user->GetIsBestFriendMap().end()) {
-			isBestFriend = true;
-		}
-	}
-
-	std::vector<std::pair<uint8_t, uint8_t>> segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatLevel == 1));
-
-	bool bAllClean = segments.empty();
-
-	if (user->GetIsMuted()) {
-		bAllClean = false;
-	}
-
-	user->SetLastChatMessageApproved(bAllClean);
-	WorldPackets::SendChatModerationResponse(sysAddr, bAllClean, requestID, receiver, segments);
+int32_t ClientPackets::SendTop5HelpIssues(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	int32_t language = 0;
+	inStream.Read(language);
+	return language;
 }

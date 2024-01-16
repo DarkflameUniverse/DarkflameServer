@@ -11,13 +11,22 @@ file(
 	GLOB SOURCES_LIBBCRYPT
 	LIST_DIRECTORIES false
 	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/*.c
 	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
 )
+
 add_library(bcrypt ${SOURCES_LIBBCRYPT})
+
+# Because we are not using the libbcrypt CMakeLists.txt, we need to include these headers for the library to use.
+# fortunately they are only needed for building the libbcrypt directory and nothing else, so these are marked private.
+
+target_include_directories(bcrypt PRIVATE "libbcrypt/include")
+target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
 # Source code for sqlite
 add_subdirectory(SQLite)
+
+# Source code for magic_enum
+add_subdirectory(magic_enum)
 
 # MariaDB C++ Connector
 include(CMakeMariaDBLists.txt)
@@ -28,7 +37,7 @@ add_subdirectory(raknet)
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
 	include(FetchContent)
-	if (__include_backtrace__ AND __compile_backtrace__)
+	if (${INCLUDE_BACKTRACE} AND ${COMPILE_BACKTRACE})
 		FetchContent_Declare(
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git

@@ -17,7 +17,7 @@
 #include "EntityInfo.h"
 #include "Spawner.h"
 #include "dZoneManager.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Level.h"
 
 #include <fstream>
@@ -182,7 +182,7 @@ LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const 
 	obj.lot = lot;
 	// guratantee we have no collisions
 	do {
-		obj.id = ObjectIDManager::Instance()->GenerateObjectID();
+		obj.id = ObjectIDManager::GenerateObjectID();
 	} while(Game::zoneManager->GetSpawner(obj.id));
 	obj.position = position;
 	obj.rotation = rotation;
@@ -294,21 +294,20 @@ void VanityUtilities::ParseXML(const std::string& file) {
 	auto* partyPhrases = npcs->FirstChildElement("partyphrases");
 
 	if (partyPhrases == nullptr) {
-		LOG("Failed to parse party phrases");
-		return;
-	}
-
-	for (auto* phrase = partyPhrases->FirstChildElement("phrase"); phrase != nullptr;
-		phrase = phrase->NextSiblingElement("phrase")) {
-		// Get the phrase
-		auto* text = phrase->GetText();
-
-		if (text == nullptr) {
-			LOG("Failed to parse party phrase");
-			continue;
+		LOG("No party phrases found");
+	} else {
+		for (auto* phrase = partyPhrases->FirstChildElement("phrase"); phrase != nullptr;
+			phrase = phrase->NextSiblingElement("phrase")) {
+			// Get the phrase
+			auto* text = phrase->GetText();
+	
+			if (text == nullptr) {
+				LOG("Failed to parse party phrase");
+				continue;
+			}
+	
+			m_PartyPhrases.push_back(text);
 		}
-
-		m_PartyPhrases.push_back(text);
 	}
 
 	for (auto* npc = npcs->FirstChildElement("npc"); npc != nullptr; npc = npc->NextSiblingElement("npc")) {
@@ -525,12 +524,12 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 #endif
 		// Replace "__TIMESTAMP__" with the __TIMESTAMP__
 		GeneralUtils::ReplaceInString(line, "__TIMESTAMP__", __TIMESTAMP__);
-		// Replace "__VERSION__" wit'h the PROJECT_VERSION
-		GeneralUtils::ReplaceInString(line, "__VERSION__", STRINGIFY(PROJECT_VERSION));
+		// Replace "__VERSION__" with the PROJECT_VERSION
+		GeneralUtils::ReplaceInString(line, "__VERSION__", Game::projectVersion);
 		// Replace "__SOURCE__" with SOURCE
 		GeneralUtils::ReplaceInString(line, "__SOURCE__", Game::config->GetValue("source"));
 		// Replace "__LICENSE__" with LICENSE
-		GeneralUtils::ReplaceInString(line, "__LICENSE__", STRINGIFY(LICENSE));
+		GeneralUtils::ReplaceInString(line, "__LICENSE__", "AGPL-3.0");
 
 		if (line.find("##") != std::string::npos) {
 			// Add "&lt;font size=&apos;18&apos; color=&apos;#000000&apos;&gt;" before the header

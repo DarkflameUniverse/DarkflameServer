@@ -1,4 +1,8 @@
 set(DSCRIPTS_SOURCES_AI_GENERAL 
 	"InstanceExitTransferPlayerToLastNonInstance.cpp"
-	"LegoDieRoll.cpp"
-	PARENT_SCOPE)
+	"LegoDieRoll.cpp")
+
+add_library(dScriptsAiGeneral STATIC ${DSCRIPTS_SOURCES_AI_GENERAL})
+target_include_directories(dScriptsAiGeneral PUBLIC ".")
+target_precompile_headers(dScriptsAiGeneral REUSE_FROM dScriptsBase)
+

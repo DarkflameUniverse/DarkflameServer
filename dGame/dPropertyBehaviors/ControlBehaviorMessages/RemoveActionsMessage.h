@@ -13,11 +13,11 @@ class AMFArrayValue;
 class RemoveActionsMessage : public BehaviorMessageBase {
 public:
 	RemoveActionsMessage(AMFArrayValue* arguments);
-	const uint32_t GetActionIndex() { return actionIndex; };
-	ActionContext GetActionContext() { return actionContext; };
+	int32_t GetActionIndex() const { return actionIndex; };
+	ActionContext GetActionContext() const { return actionContext; };
 private:
 	ActionContext actionContext;
-	uint32_t actionIndex;
+	int32_t actionIndex;
 };
 
 #endif  //!__REMOVEACTIONSMESSAGE__H__

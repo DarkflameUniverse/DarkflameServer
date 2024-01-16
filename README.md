@@ -23,6 +23,9 @@ We do not recommend hosting public servers. Darkflame Universe is intended for s
 ### Supply of resource files
 Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#verifying-your-client-files) to see if a client will work.
 
+## Step by step walkthrough for a single-player server
+If you would like a setup for a single player server only on a Windows machine, use the [Native Windows Setup Guide by HailStorm](https://gist.github.com/HailStorm32/169df65a47a104199b5cc57d10fa57de) and skip this README.
+
 ## Steps to setup server
 * [Clone this repository](#clone-the-repository)
 * [Install dependencies](#install-dependencies)
@@ -34,6 +37,7 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * [Verify your setup](#verify-your-setup)
 * [Running the server](#running-the-server)
 * [User Guide](#user-guide)
+* [Docker](#docker)
 
 ## Clone the repository
 If you are on Windows, you will need to download and install git from [here](https://git-scm.com/download/win)
@@ -343,6 +347,62 @@ certutil -hashfile <file> SHA1
 
 Known good *SHA1* checksum of the Darkflame Universe client:
 - `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
+
+
+# Docker
+
+The Darkflame Server is automatically built and published as a Docker Container / [OCI](https://opencontainers.org/) Image to the GitHub Container Registry at:
+[`ghcr.io/darkflameuniverse/darkflameserver`](https://github.com/DarkflameUniverse/DarkflameServer/pkgs/container/darkflameserver).
+
+## Compose
+
+You can use the `docker-compose` tool to [setup a MariaDB database](#database-setup), run the Darkflame Server and manage it with [Nexus Dashboard](https://github.com/DarkflameUniverse/NexusDashboard) all
+at once. For that:
+
+- [Install Docker Desktop](https://docs.docker.com/get-docker/)
+- Open the directory that contains your LU Client
+  - If the `legouniverse.exe` is in a subfolder called `client`, you're good to go. There may also be a folder `versions`.
+  - Otherwise, create a new `client` folder and move the exe and everything else (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
+- Download the [docker-compose.yml](docker-compose.yml) file and place it next to `client`.
+- Download the [.env.example](.env.example) file and place it next to `client` with the file name `.env`
+  - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions ("File name extensions" in the "View" tab on Windows).
+  - Update the `ACCOUNT_MANAGER_SECRET` and `MARIADB_PASSWORD` with strong random passwords.
+    - Use a password generator like <https://keygen.io>
+    - Avoid `:` and `@` characters
+    - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
+  - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
+- Open a terminal in the folder with the `docker-compose.yml` and `client`
+- Run `docker compose up -d`
+  - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
+- Run `docker exec -it dlu-darkflameserver-1 /app/MasterServer -a` and follow the instructions to create the initial admin account
+- Open <http://localhost:8000> to access Nexus Dashboard with the admin account to create normal users
+- Set `AUTHSERVERIP=0:localhost` in `client/boot.cfg`
+  - Replace `localhost` with the value of `EXTERNAL_IP` if you changed that earlier.
+  - Also make sure `UGCUSE3DSERVICES=7:` is set to `0`
+- Launch `legouniverse.exe`
+
+## Standalone
+
+This assumes that you have a database deployed to your host or in another docker container.
+
+A basic deployment of this contianer would look like:
+```sh
+# example docker contianer deployment
+docker run -it \
+    -v /path/to/configs/:/app/configs \
+    -v /path/to/logs/:/app/logs \
+    -v /path/to/dumps/:/app/dumps \
+    -v /path/to/res:/app/res:ro \
+    -v /path/to/resServer:/app/resServer \
+    -e DUMP_FOLDER=/app/dumps \
+    -p 1001:1001/udp \
+    -p 2005:2005/udp \
+    -p 3000-3300:3000-3300/udp \
+ghcr.io/darkflameuniverse/darkflameserver:latest
+```
+You will need to replace the `/path/to/`'s to reflect the paths on your host.
+
+Any config option in the `.ini`'s can be overridden with environmental variables: Ex: `log_to_console=1` from `shared_config.ini` would be overidden like  `-e LOG_TO_CONSOLE=0`
 
 # Development Documentation
 This is a Work in Progress, but below are some quick links to documentaion for systems and structs in the server

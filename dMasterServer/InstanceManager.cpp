@@ -9,14 +9,15 @@
 #include "CDZoneTableTable.h"
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
-#include "BinaryPathFinder.h"
 #include "eConnectionType.h"
 #include "eMasterMessageType.h"
+
+#include "Start.h"
 
 InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
-	m_LastPort = std::atoi(Game::config->GetValue("world_port_start").c_str());
+	GeneralUtils::TryParse(Game::config->GetValue("world_port_start"), m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
 }
 
@@ -57,33 +58,7 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
 
 	//Start the actual process:
-#ifdef _WIN32
-	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
-#else
-	std::string cmd;
-	if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {
-		cmd = "sudo " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
-	} else {
-		cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
-	}
-#endif
-
-	cmd.append(std::to_string(mapID));
-	cmd.append(" -port ");
-	cmd.append(std::to_string(port));
-	cmd.append(" -instance ");
-	cmd.append(std::to_string(m_LastInstanceID));
-	cmd.append(" -maxclients ");
-	cmd.append(std::to_string(maxPlayers));
-
-	cmd.append(" -clone ");
-	cmd.append(std::to_string(cloneID));
-
-#ifndef _WIN32
-	cmd.append("&"); //Sends our next process to the background on Linux
-#endif
-
-	auto ret = system(cmd.c_str());
+	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
 	m_Instances.push_back(instance);
 
@@ -159,7 +134,7 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
-			if (!Game::shouldShutdown) RedirectPendingRequests(instance);
+			if (!Game::ShouldShutdown()) RedirectPendingRequests(instance);
 
 			delete m_Instances[i];
 
@@ -318,28 +293,7 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
 	//Start the actual process:
-	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
-
-#ifndef _WIN32
-	cmd = (BinaryPathFinder::GetBinaryDir() / "WorldServer").string() + " -zone ";
-#endif
-
-	cmd.append(std::to_string(mapID));
-	cmd.append(" -port ");
-	cmd.append(std::to_string(port));
-	cmd.append(" -instance ");
-	cmd.append(std::to_string(m_LastInstanceID));
-	cmd.append(" -maxclients ");
-	cmd.append(std::to_string(maxPlayers));
-
-	cmd.append(" -clone ");
-	cmd.append(std::to_string(cloneID));
-
-#ifndef WIN32
-	cmd.append("&"); //Sends our next process to the background on Linux
-#endif
-
-	auto ret = system(cmd.c_str());
+	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
 	m_Instances.push_back(instance);
 

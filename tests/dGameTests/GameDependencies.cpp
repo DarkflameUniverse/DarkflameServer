@@ -11,4 +11,5 @@ namespace Game {
 	AssetManager* assetManager = nullptr;
 	SystemAddress chatSysAddr;
 	EntityManager* entityManager = nullptr;
+	std::string projectVersion;
 }

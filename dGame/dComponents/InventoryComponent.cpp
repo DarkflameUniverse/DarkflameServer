@@ -7,7 +7,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "CDClientManager.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "GameMessages.h"
 #include "SkillComponent.h"
@@ -19,7 +19,7 @@
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "CharacterComponent.h"
 #include "dZoneManager.h"
 #include "PropertyManagementComponent.h"
@@ -31,6 +31,7 @@
 #include "eMissionTaskType.h"
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
+#include "Mail.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -68,7 +69,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 			continue;
 		}
 
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item.itemid);
 
@@ -86,7 +87,7 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 				const auto proxyLOT = static_cast<LOT>(std::stoi(proxyLotAsString));
 
 				const auto& proxyInfo = Inventory::FindItemComponent(proxyLOT);
-				const LWOOBJID proxyId = ObjectIDManager::Instance()->GenerateObjectID();
+				const LWOOBJID proxyId = ObjectIDManager::GenerateObjectID();
 
 				// Use item.count since we equip item.count number of the item this is a requested proxy of
 				UpdateSlot(proxyInfo.equipLocation, { proxyId, proxyLOT, item.count, slot++ });
@@ -264,17 +265,11 @@ void InventoryComponent::AddItem(
 		}
 
 		if (slot == -1) {
-			auto* player = dynamic_cast<Player*>(GetParent());
-
-			if (player == nullptr) {
-				return;
-			}
-
 			outOfSpace += size;
 
 			switch (sourceType) {
 			case 0:
-				player->SendMail(LWOOBJID_EMPTY, "Darkflame Universe", "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
 				break;
 
 			case 1:
@@ -300,38 +295,26 @@ void InventoryComponent::AddItem(
 	}
 }
 
-void InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound) {
+bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
 	if (count == 0) {
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
-
-		return;
+		return false;
 	}
-
-	if (inventoryType == INVALID) {
-		inventoryType = Inventory::FindInventoryTypeForLot(lot);
-	}
-
+	if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
 	auto* inventory = GetInventory(inventoryType);
-
-	if (inventory == nullptr) {
-		return;
-	}
+	if (!inventory) return false;
 
 	auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
+	if (left != count) return false;
 
 	while (left > 0) {
 		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
-
-		if (item == nullptr) {
-			break;
-		}
-
+		if (!item) break;
 		const auto delta = std::min<uint32_t>(left, item->GetCount());
-
-		item->SetCount(item->GetCount() - delta);
-
+		item->SetCount(item->GetCount() - delta, silent);
 		left -= delta;
 	}
+	return true;
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
@@ -993,7 +976,7 @@ void InventoryComponent::HandlePossession(Item* item) {
 	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
 	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<VehiclePhysicsComponent>();
+	auto* vehicleComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
 	if (vehicleComponent) characterComponent->SetIsRacing(true);
 
 	// Setup the destroyable stats
@@ -1353,7 +1336,7 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 		const auto& info = Inventory::FindItemComponent(item);
 

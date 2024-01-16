@@ -5,7 +5,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "SkillComponent.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "eObjectBits.h"
 
 void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
@@ -106,7 +106,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	const auto maxTime = this->m_maxDistance / this->m_projectileSpeed;
 
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
-		auto id = static_cast<LWOOBJID>(ObjectIDManager::Instance()->GenerateObjectID());
+		auto id = static_cast<LWOOBJID>(ObjectIDManager::GenerateObjectID());
 
 		GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 

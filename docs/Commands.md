@@ -1,3 +1,4 @@
+
 # In-game commands
 * All commands are prefixed by `/` and typed in the in-game chat window. Some commands require elevated gmlevel privileges. Operands within `<>` are required, operands within `()` are not.
 
@@ -5,32 +6,34 @@
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
-|credits|`/credits`|Displays the names of the people behind Darkflame Universe.||
-|die|`/die`|Smashes the player.||
-|info|`/info`|Displays server info to the user, including where to find the server's source code.||
-|instanceinfo|`/instanceinfo`|Displays in the chat the current zone, clone, and instance id.||
+|credits|`/credits`|Displays the names of the people behind Darkflame Universe.|0|
+|die|`/die`|Smashes the player.|0|
+|info|`/info`|Displays server info to the user, including where to find the server's source code.|0|
+|instanceinfo|`/instanceinfo`|Displays in the chat the current zone, clone, and instance id.|0|
 |ping|`/ping (-l)`|Displays in chat your average ping. If the `-l` flag is used, the latest ping is displayed.||
-|pvp|`/pvp`|Toggle your PVP flag.||
-|resurrect|`/resurrect`|Resurrects the player.||
-|requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.||
-|who|`/who`|Displays in chat all players on the instance.||
+|pvp|`/pvp`|Toggle your PVP flag.|0|
+|resurrect|`/resurrect`|Resurrects the player.|0|
+|requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox.|0|
+|who|`/who`|Displays in chat all players on the instance.|0|
+|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 unless `allow_nameplate_off` is set to exactly `1` in the settings then admin level requirement is 0|
+|toggleskipcinematics|`/toggleskipcinematics`|Skips mission and world load related cinematics.|8 unless `allow_players_to_skip_cinematics` is set to exactly `1` in the settings then admin level requirement is 0|
 
 ## Moderation Commands
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
-|gmlevel|`/gmlevel <level>`|Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands. Aliases: `/setgmlevel`, `/makegm`.||
+|gmlevel|`/gmlevel <level>`|Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands. Aliases: `/setgmlevel`, `/makegm`.|Account GM level greater than 0|
 |kick|`/kick <username>`|Kicks the player off the server.|2|
 |mailitem|`/mailitem <player name> <item id>`|Mails an item to the given player. The mailed item has predetermined content. The sender name is set to "Darkflame Universe." The title of the message is "Lost item." The body of the message is "This is a replacement item for one you lost."|3|
 |ban|`/ban <username>`|Bans a user from the server.|4|
 |approveproperty|`/approveproperty`|Approves the property the player is currently visiting.|5|
 |mute|`/mute <username> (days) (hours)`|Mute player for the given amount of time. If no time is given, the mute is indefinite.|6|
+|fly|`/fly <speed>`|This toggles your flying state with an optional parameter for the speed scale.|6|
 |attackimmune|`/attackimmune <value>`|Sets the character's immunity to basic attacks state, where value can be one of "1", to make yourself immune to basic attack damage, or "0" to undo.|8|
 |gmimmune|`/gmimmunve <value>`|Sets the character's GMImmune state, where value can be one of "1", to make yourself immune to damage, or "0" to undo.|8|
 |gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out.|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out.|8|
-|fly|`/fly <speed>`|This toggles your flying state with an optional parameter for the speed scale.|4|
 
 ## Server Operation Commands
 
@@ -49,15 +52,14 @@ These commands are primarily for development and testing. The usage of many of t
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
-|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on.|8 or if `allow_nameplate_off` is set to exactly `1` in the settings|
-|fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.||
-|join|`/join <password>`|Joins a private zone with given password.||
-|leave-zone|`/leave-zone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.||
+|fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.|0|
+|join|`/join <password>`|Joins a private zone with given password.|0|
+|leave-zone|`/leave-zone` or <br> `/leavezone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.|0|
 |setminifig|`/setminifig <body part> <minifig item id>`|Alters your player's minifig. Body part can be one of "Eyebrows", "Eyes", "HairColor", "HairStyle", "Pants", "LeftHand", "Mouth", "RightHand", "Shirt", or "Hands". Changing minifig parts could break the character so this command is limited to GMs.|1|
 |testmap|`/testmap <zone> (force) (clone-id)`|Transfers you to the given zone by id and clone id. Add "force" to skip checking if the zone is accessible (this can softlock your character, though, if you e.g. try to teleport to Frostburgh).|1|
 |reportproxphys|`/reportproxphys`|Prints to console the position and radius of proximity sensors.|6|
 |spawnphysicsverts|`/spawnphysicsverts`|Spawns a 1x1 brick at all vertices of phantom physics objects.|6|
-|teleport|`/teleport <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
+|teleport|`/teleport <x> (y) <z>` or <br> `/tele <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
 |activatespawner|`/activatespawner <spawner name>`|Activates spawner by name.|8|
 |addmission|`/addmission <mission id>`|Accepts the mission, adding it to your journal.|8|
 |boost|`/boost (time)`|Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time|8|
@@ -94,9 +96,10 @@ These commands are primarily for development and testing. The usage of many of t
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag (value) <flag id>`|Sets the given inventory or health flag to the given value, where value can be one of "on" or "off". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`).|8|
-|setinventorysize|`/setinventorysize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
+|setinventorysize|`/setinventorysize <size> (inventory)` or <br> `/setinvsize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
 |spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
+|spawngroup|`/spawngroup <id> <amount> <radius>`|Spawns `<amount>` of object `<id>` within the given `<radius>` from your location|8|
 |speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.|8|
 |startcelebration|`/startcelebration <id>`|Starts a celebration effect on your character.|8|
 |stopeffect|`/stopeffect <effect id>`|Stops the given effect.|8|
@@ -105,13 +108,15 @@ These commands are primarily for development and testing. The usage of many of t
 |triggerspawner|`/triggerspawner <spawner name>`|Triggers spawner by name.|8|
 |unlock-emote|`/unlock-emote <emote id>`|Unlocks for your character the emote of the given id.|8|
 |Set Level|`/setlevel <requested_level> (username)`|Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of.|8|
-|crash|`/crash`|Crashes the server.|9|
-|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
-|castskill|`/castskill <skill id>`|Casts the skill as the player|9|
 |setskillslot|`/setskillslot <slot> <skill id>`||8|
 |setfaction|`/setfaction <faction id>`|Clears the users current factions and sets it|8|
 |addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
 |getfactions|`/getfactions`|Shows the player's factions|8|
+|setrewardcode|`/setrewardcode <code>`|Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`|8|
+|crash|`/crash`|Crashes the server.|9|
+|rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
+|castskill|`/castskill <skill id>`|Casts the skill as the player|9|
+
 ## Detailed `/inspect` Usage
 
 `/inspect <component> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`

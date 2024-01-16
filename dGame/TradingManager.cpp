@@ -2,7 +2,7 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "InventoryComponent.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Game.h"
 #include "Logger.h"
 #include "Item.h"
@@ -273,7 +273,7 @@ void TradingManager::CancelTrade(LWOOBJID tradeId) {
 }
 
 Trade* TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
-	const LWOOBJID tradeId = ObjectIDManager::Instance()->GenerateObjectID();
+	const LWOOBJID tradeId = ObjectIDManager::GenerateObjectID();
 
 	auto* trade = new Trade(tradeId, participantA, participantB);
 

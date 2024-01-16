@@ -1,7 +1,6 @@
 #include "GameMessages.h"
 #include "User.h"
 #include "Entity.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "BitStream.h"
 #include "Game.h"
@@ -14,7 +13,7 @@
 #include "EntityManager.h"
 #include "Database.h"
 #include "dServer.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "CppScripts.h"
 #include "UserManager.h"
 #include "ZoneInstanceManager.h"
@@ -43,13 +42,14 @@
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
 #include "eConnectionType.h"
+#include "ePlayerFlag.h"
 
 #include <sstream>
 #include <future>
 #include <chrono>
 #include "RakString.h"
 
-#include "../thirdparty/cpp-httplib/httplib.h" //sorry not sorry.
+#include "httplib.h" //sorry not sorry.
 
 //CDB includes:
 #include "CDClientManager.h"
@@ -62,7 +62,7 @@
 #include "MissionComponent.h"
 #include "DestroyableComponent.h"
 #include "ScriptComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "VendorComponent.h"
 #include "InventoryComponent.h"
 #include "RocketLaunchpadControlComponent.h"
@@ -70,7 +70,7 @@
 #include "MovingPlatformComponent.h"
 #include "PetComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "VehiclePhysicsComponent.h"
+#include "HavokVehiclePhysicsComponent.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
@@ -78,6 +78,7 @@
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
 #include "DonationVendorComponent.h"
+#include "GhostComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -94,7 +95,9 @@
 #include "eReplicaComponentType.h"
 #include "eClientMessageType.h"
 #include "eGameMessageType.h"
+#include "ePetAbilityType.h"
 #include "ActivityManager.h"
+#include "PlayerManager.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -112,7 +115,7 @@ void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const Syste
 	uint32_t argSize = args.size();
 	bitStream.Write(argSize);
 	for (uint32_t k = 0; k < argSize; k++) {
-		bitStream.Write(static_cast<uint16_t>(args[k]));
+		bitStream.Write<uint16_t>(args[k]);
 	}
 	bitStream.Write(object);
 	bitStream.Write0();
@@ -228,13 +231,13 @@ void GameMessages::SendInvalidZoneTransferList(Entity* entity, const SystemAddre
 	uint32_t CustomerFeedbackURLLength = feedbackURL.size();
 	bitStream.Write(CustomerFeedbackURLLength);
 	for (uint32_t k = 0; k < CustomerFeedbackURLLength; k++) {
-		bitStream.Write(static_cast<uint16_t>(feedbackURL[k]));
+		bitStream.Write<uint16_t>(feedbackURL[k]);
 	}
 
 	uint32_t InvalidMapTransferListLength = invalidMapTransferList.size();
 	bitStream.Write(InvalidMapTransferListLength);
 	for (uint32_t k = 0; k < InvalidMapTransferListLength; k++) {
-		bitStream.Write(static_cast<uint16_t>(invalidMapTransferList[k]));
+		bitStream.Write<uint16_t>(invalidMapTransferList[k]);
 	}
 
 	bitStream.Write(feedbackOnExit);
@@ -325,17 +328,17 @@ void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& s
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAY_ND_AUDIO_EMITTER);
+	bitStream.Write(eGameMessageType::PLAY_ND_AUDIO_EMITTER);
 	bitStream.Write0();
 	bitStream.Write0();
 
 	uint32_t length = audioGUID.size();
 	bitStream.Write(length);
 	for (uint32_t k = 0; k < length; k++) {
-		bitStream.Write(static_cast<char>(audioGUID[k]));
+		bitStream.Write<char>(audioGUID[k]);
 	}
 
-	bitStream.Write(uint32_t(0));
+	bitStream.Write<uint32_t>(0);
 	bitStream.Write0();
 	bitStream.Write0();
 
@@ -350,6 +353,19 @@ void GameMessages::SendStartPathing(Entity* entity) {
 	bitStream.Write(eGameMessageType::START_PATHING);
 
 	SEND_PACKET_BROADCAST;
+}
+
+void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::RESET_MISSIONS);
+
+	bitStream.Write(missionid != -1);
+	if (missionid != -1) bitStream.Write(missionid);
+
+	SEND_PACKET;
 }
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
@@ -369,7 +385,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	}
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLATFORM_RESYNC);
+	bitStream.Write(eGameMessageType::PLATFORM_RESYNC);
 
 	bool bReverse = false;
 	int eCommand = 0;
@@ -383,7 +399,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
 	bitStream.Write(eCommand);
-	bitStream.Write<int32_t>(static_cast<int32_t>(movementState));
+	bitStream.Write(static_cast<int32_t>(movementState));
 	bitStream.Write(eUnexpectedCommand);
 	bitStream.Write(fIdleTimeElapsed);
 	bitStream.Write(fMoveTimeElapsed);
@@ -426,7 +442,7 @@ void GameMessages::SendChatModeUpdate(const LWOOBJID& objectID, eGameMasterLevel
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::UPDATE_CHAT_MODE);
+	bitStream.Write(eGameMessageType::UPDATE_CHAT_MODE);
 	bitStream.Write(level);
 	SEND_PACKET_BROADCAST;
 }
@@ -435,7 +451,7 @@ void GameMessages::SendGMLevelBroadcast(const LWOOBJID& objectID, eGameMasterLev
 	CBITSTREAM;
 	CMSGHEADER;
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::SET_GM_LEVEL);
+	bitStream.Write(eGameMessageType::SET_GM_LEVEL);
 	bitStream.Write1();
 	bitStream.Write(level);
 	SEND_PACKET_BROADCAST;
@@ -466,9 +482,9 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	bitStream.Write<uint32_t>(extraInfo.name.size());
 	if (extraInfo.name.size() > 0) {
 		for (uint32_t i = 0; i < extraInfo.name.size(); ++i) {
-			bitStream.Write(static_cast<uint16_t>(extraInfo.name[i]));
+			bitStream.Write<uint16_t>(extraInfo.name[i]);
 		}
-		bitStream.Write(static_cast<uint16_t>(0x00));
+		bitStream.Write<uint16_t>(0x00);
 	}
 
 	bitStream.Write(item->GetLot());
@@ -505,7 +521,7 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t
 	CMSGHEADER;
 
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::NOTIFY_CLIENT_FLAG_CHANGE);
+	bitStream.Write(eGameMessageType::NOTIFY_CLIENT_FLAG_CHANGE);
 	bitStream.Write(bFlag);
 	bitStream.Write(iFlagID);
 
@@ -517,7 +533,7 @@ void GameMessages::SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectW
 	CMSGHEADER;
 
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::CHANGE_OBJECT_WORLD_STATE);
+	bitStream.Write(eGameMessageType::CHANGE_OBJECT_WORLD_STATE);
 	bitStream.Write(state);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST
@@ -572,11 +588,11 @@ void GameMessages::SendNotifyMissionTask(Entity* entity, const SystemAddress& sy
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::NOTIFY_MISSION_TASK);
+	bitStream.Write(eGameMessageType::NOTIFY_MISSION_TASK);
 
 	bitStream.Write(missionID);
 	bitStream.Write(taskMask);
-	bitStream.Write((unsigned char)updates.size());
+	bitStream.Write<unsigned char>(updates.size());
 
 	for (uint32_t i = 0; i < updates.size(); ++i) {
 		bitStream.Write(updates[i]);
@@ -590,7 +606,7 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::MODIFY_LEGO_SCORE);
+	bitStream.Write(eGameMessageType::MODIFY_LEGO_SCORE);
 	bitStream.Write(score);
 
 	bitStream.Write(sourceType != eLootSourceType::NONE);
@@ -604,14 +620,14 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
+	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
 
 	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 
 	for (uint32_t k = 0; k < strMessageNameLength; k++) {
-		bitStream.Write(static_cast<char>(message[k]));
+		bitStream.Write<char>(message[k]);
 	}
 
 	SEND_PACKET;
@@ -623,14 +639,14 @@ void GameMessages::SendUIMessageServerToAllClients(const std::string& message, A
 
 	LWOOBJID empty = 0;
 	bitStream.Write(empty);
-	bitStream.Write((uint16_t)eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS);
+	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS);
 
 	bitStream.Write<AMFBaseValue&>(args);
 	uint32_t strMessageNameLength = message.size();
 	bitStream.Write(strMessageNameLength);
 
 	for (uint32_t k = 0; k < strMessageNameLength; k++) {
-		bitStream.Write(static_cast<char>(message[k]));
+		bitStream.Write<char>(message[k]);
 	}
 
 	SEND_PACKET_BROADCAST;
@@ -641,11 +657,11 @@ void GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, 
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAY_EMBEDDED_EFFECT_ON_ALL_CLIENTS_NEAR_OBJECT);
+	bitStream.Write(eGameMessageType::PLAY_EMBEDDED_EFFECT_ON_ALL_CLIENTS_NEAR_OBJECT);
 
-	bitStream.Write(static_cast<uint32_t>(effectName.length()));
+	bitStream.Write<uint32_t>(effectName.length());
 	for (uint32_t k = 0; k < effectName.length(); k++) {
-		bitStream.Write(static_cast<uint16_t>(effectName[k]));
+		bitStream.Write<uint16_t>(effectName[k]);
 	}
 	bitStream.Write(fromObjectID);
 	bitStream.Write(radius);
@@ -662,7 +678,7 @@ void GameMessages::SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, co
 	CMSGHEADER;
 
 	bitStream.Write(entity);
-	bitStream.Write((uint16_t)eGameMessageType::PLAY_FX_EFFECT);
+	bitStream.Write(eGameMessageType::PLAY_FX_EFFECT);
 
 	bitStream.Write(effectID != -1);
 	if (effectID != -1) bitStream.Write(effectID);
@@ -710,22 +726,22 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::BROADCAST_TEXT_TO_CHATBOX);
+	bitStream.Write(eGameMessageType::BROADCAST_TEXT_TO_CHATBOX);
 
 	LWONameValue attribs;
 	attribs.name = attrs;
 	attribs.length = attrs.size();
 
-	bitStream.Write(static_cast<uint32_t>(attribs.length));
+	bitStream.Write<uint32_t>(attribs.length);
 	for (uint32_t i = 0; i < attribs.length; ++i) {
-		bitStream.Write(static_cast<uint16_t>(attribs.name[i]));
+		bitStream.Write<uint16_t>(attribs.name[i]);
 	}
-	bitStream.Write(static_cast<uint16_t>(0x00)); // Null Terminator
+	bitStream.Write<uint16_t>(0x00); // Null Terminator
 
 	uint32_t wsTextLength = wsText.size();
 	bitStream.Write(wsTextLength);
 	for (uint32_t k = 0; k < wsTextLength; k++) {
-		bitStream.Write(static_cast<uint16_t>(wsText[k]));
+		bitStream.Write<uint16_t>(wsText[k]);
 	}
 
 	SEND_PACKET_BROADCAST;
@@ -761,12 +777,12 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	SEND_PACKET;
 }
 
-void GameMessages::SendRebuildNotifyState(Entity* entity, eRebuildState prevState, eRebuildState state, const LWOOBJID& playerID) {
+void GameMessages::SendQuickBuildNotifyState(Entity* entity, eQuickBuildState prevState, eQuickBuildState state, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::REBUILD_NOTIFY_STATE);
+	bitStream.Write(eGameMessageType::REBUILD_NOTIFY_STATE);
 
 	bitStream.Write(prevState);
 	bitStream.Write(state);
@@ -775,12 +791,12 @@ void GameMessages::SendRebuildNotifyState(Entity* entity, eRebuildState prevStat
 	SEND_PACKET_BROADCAST;
 }
 
-void GameMessages::SendEnableRebuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID) {
+void GameMessages::SendEnableQuickBuild(Entity* entity, bool enable, bool fail, bool success, eQuickBuildFailReason failReason, float duration, const LWOOBJID& playerID) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::ENABLE_REBUILD);
+	bitStream.Write(eGameMessageType::ENABLE_REBUILD);
 
 	bitStream.Write(enable);
 	bitStream.Write(fail);
@@ -800,7 +816,7 @@ void GameMessages::SendTerminateInteraction(const LWOOBJID& objectID, eTerminate
 	CMSGHEADER;
 
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::TERMINATE_INTERACTION);
+	bitStream.Write(eGameMessageType::TERMINATE_INTERACTION);
 
 	bitStream.Write(terminator);
 	bitStream.Write(type);
@@ -836,7 +852,7 @@ void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOB
 
 	bitStream.Write(entity->GetObjectID());
 
-	bitStream.Write((uint16_t)eGameMessageType::DIE);
+	bitStream.Write(eGameMessageType::DIE);
 
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
@@ -847,7 +863,7 @@ void GameMessages::SendDie(Entity* entity, const LWOOBJID& killerID, const LWOOB
 	uint32_t deathTypeLength = deathType.size();
 	bitStream.Write(deathTypeLength);
 	for (uint32_t k = 0; k < deathTypeLength; k++) {
-		bitStream.Write(static_cast<uint16_t>(deathType[k]));
+		bitStream.Write<uint16_t>(deathType[k]);
 	}
 
 	bitStream.Write(directionRelative_AngleXZ);
@@ -951,14 +967,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-		});
-
-
-	auto cont = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (cont && entity->GetLOT() == 1) {
-		cont->SetPosition(entity->GetRespawnPosition());
-		cont->SetRotation(entity->GetRespawnRotation());
-	}
+	});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -977,7 +986,7 @@ void GameMessages::SendStop2DAmbientSound(Entity* entity, bool force, std::strin
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::STOP2_D_AMBIENT_SOUND);
+	bitStream.Write(eGameMessageType::STOP2_D_AMBIENT_SOUND);
 
 	uint32_t audioGUIDSize = audioGUID.size();
 
@@ -985,7 +994,7 @@ void GameMessages::SendStop2DAmbientSound(Entity* entity, bool force, std::strin
 	bitStream.Write(audioGUIDSize);
 
 	for (uint32_t k = 0; k < audioGUIDSize; k++) {
-		bitStream.Write(static_cast<char>(audioGUID[k]));
+		bitStream.Write<char>(audioGUID[k]);
 	}
 
 	bitStream.Write(result);
@@ -1000,13 +1009,12 @@ void GameMessages::SendPlay2DAmbientSound(Entity* entity, std::string audioGUID,
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAY2_D_AMBIENT_SOUND);
-
+	bitStream.Write(eGameMessageType::PLAY2_D_AMBIENT_SOUND);
 	uint32_t audioGUIDSize = audioGUID.size();
 
 	bitStream.Write(audioGUIDSize);
 	for (uint32_t k = 0; k < audioGUIDSize; k++) {
-		bitStream.Write(static_cast<char>(audioGUID[k]));
+		bitStream.Write<char>(audioGUID[k]);
 	}
 	bitStream.Write(result);
 
@@ -1019,7 +1027,7 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::SCRIPT_NETWORK_VAR_UPDATE);
+	bitStream.Write(eGameMessageType::SCRIPT_NETWORK_VAR_UPDATE);
 
 	// FIXME: this is a bad place to need to do a conversion because we have no clue whether data is utf8 or plain ascii
 	// an this has performance implications
@@ -1028,9 +1036,9 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 
 	bitStream.Write(dataSize);
 	for (auto value : u16Data) {
-		bitStream.Write(uint16_t(value));
+		bitStream.Write<uint16_t>(value);
 	}
-	if (dataSize > 0) bitStream.Write(uint16_t(0));
+	if (dataSize > 0) bitStream.Write<uint16_t>(0);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -1047,7 +1055,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	LWOOBJID owner = entity->GetObjectID();
 
 	if (item != LOT_NULL && item != 0) {
-		lootID = ObjectIDManager::Instance()->GenerateObjectID();
+		lootID = ObjectIDManager::GenerateObjectID();
 
 		Loot::Info info;
 		info.id = lootID;
@@ -1145,23 +1153,21 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::PLAYER_REACHED_RESPAWN_CHECKPOINT);
+	bitStream.Write(eGameMessageType::PLAYER_REACHED_RESPAWN_CHECKPOINT);
 
 	bitStream.Write(position.x);
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	auto con = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
-	if (con) {
-		auto rot = con->GetRotation();
-		bitStream.Write(rot.x);
-		bitStream.Write(rot.y);
-		bitStream.Write(rot.z);
-		bitStream.Write(rot.w);
-	}
+	const bool bIsNotIdentity = rotation != NiQuaternion::IDENTITY;
+	bitStream.Write(bIsNotIdentity);
 
-	//bitStream.Write(position);
-	//bitStream.Write(rotation);
+	if (bIsNotIdentity) {
+		bitStream.Write(rotation.w);
+		bitStream.Write(rotation.x);
+		bitStream.Write(rotation.y);
+		bitStream.Write(rotation.z);
+	}
 
 	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
@@ -1179,7 +1185,7 @@ void GameMessages::SendAddSkill(Entity* entity, TSkillID skillID, BehaviorSlot s
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write((uint16_t)eGameMessageType::ADD_SKILL);
+	bitStream.Write(eGameMessageType::ADD_SKILL);
 
 	bitStream.Write(AICombatWeight != 0);
 	if (AICombatWeight != 0) bitStream.Write(AICombatWeight);
@@ -1348,8 +1354,8 @@ void GameMessages::SendRemoveItemFromInventory(Entity* entity, const SystemAddre
 	bitStream.Write(eInvType);
 	bitStream.Write1();
 	bitStream.Write(eLootTypeSource);
-	bitStream.Write(static_cast<uint32_t>(0)); //extra info
-	//bitStream.Write(static_cast<uint16_t>(0)); //extra info
+	bitStream.Write<uint32_t>(0); //extra info
+	//bitStream.Write<uint16_t>(0); //extra info
 	bitStream.Write(forceDeletion);
 	bitStream.Write0();
 	bitStream.Write1();
@@ -1472,11 +1478,11 @@ void GameMessages::SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr,
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::MATCH_UPDATE);
-	bitStream.Write(uint32_t(data.size()));
+	bitStream.Write<uint32_t>(data.size());
 	for (char character : data) {
-		bitStream.Write(uint16_t(character));
+		bitStream.Write<uint16_t>(character);
 	}
-	if (data.size() > 0) bitStream.Write(uint16_t(0));
+	if (data.size() > 0) bitStream.Write<uint16_t>(0);
 	bitStream.Write(type);
 
 	SEND_PACKET;
@@ -1560,7 +1566,7 @@ void GameMessages::NotifyLevelRewards(LWOOBJID objectID, const SystemAddress& sy
 	CMSGHEADER;
 
 	bitStream.Write(objectID);
-	bitStream.Write((uint16_t)eGameMessageType::NOTIFY_LEVEL_REWARDS);
+	bitStream.Write(eGameMessageType::NOTIFY_LEVEL_REWARDS);
 
 	bitStream.Write(level);
 	bitStream.Write(sending_rewards);
@@ -1730,8 +1736,6 @@ void GameMessages::SendStartCelebrationEffect(Entity* entity, const SystemAddres
 	bitStream.Write<uint32_t>(0); //subtext
 
 	SEND_PACKET;
-
-	//PacketUtils::SavePacket("StartCelebrationEffect.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 
@@ -1746,7 +1750,7 @@ void GameMessages::SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForw
 
 	bitStream.Write(pathGoForward);
 
-	bitStream.Write(uint32_t(pathName.size()));
+	bitStream.Write<uint32_t>(pathName.size());
 	for (auto character : pathName) {
 		bitStream.Write<uint16_t>(character);
 	}
@@ -1785,14 +1789,14 @@ void GameMessages::SendStartRailMovement(const LWOOBJID& objectID, std::u16strin
 	bitStream.Write(cameraLocked);
 	bitStream.Write(collisionEnabled);
 
-	bitStream.Write(uint32_t(loopSound.size()));
+	bitStream.Write<uint32_t>(loopSound.size());
 	for (auto character : loopSound) {
 		bitStream.Write<uint16_t>(character);
 	}
 
 	bitStream.Write(goForward);
 
-	bitStream.Write(uint32_t(pathName.size()));
+	bitStream.Write<uint32_t>(pathName.size());
 	for (auto character : pathName) {
 		bitStream.Write<uint16_t>(character);
 	}
@@ -1815,12 +1819,12 @@ void GameMessages::SendStartRailMovement(const LWOOBJID& objectID, std::u16strin
 		bitStream.Write<LWOOBJID>(railActivatorObjectID);
 	}
 
-	bitStream.Write(uint32_t(startSound.size()));
+	bitStream.Write<uint32_t>(startSound.size());
 	for (auto character : startSound) {
 		bitStream.Write<uint16_t>(character);
 	}
 
-	bitStream.Write(uint32_t(stopSound.size()));
+	bitStream.Write<uint32_t>(stopSound.size());
 	for (auto character : stopSound) {
 		bitStream.Write<uint16_t>(character);
 	}
@@ -1838,7 +1842,7 @@ void GameMessages::SendNotifyClientObject(const LWOOBJID& objectID, std::u16stri
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::NOTIFY_CLIENT_OBJECT);
 
-	bitStream.Write(uint32_t(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (auto character : name) {
 		bitStream.Write<uint16_t>(character);
 	}
@@ -1849,7 +1853,7 @@ void GameMessages::SendNotifyClientObject(const LWOOBJID& objectID, std::u16stri
 
 	bitStream.Write(paramObj);
 
-	bitStream.Write(uint32_t(paramStr.size()));
+	bitStream.Write<uint32_t>(paramStr.size());
 	for (auto character : paramStr) {
 		bitStream.Write(character);
 	}
@@ -1867,7 +1871,7 @@ void GameMessages::SendNotifyClientZoneObject(const LWOOBJID& objectID, const st
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::NOTIFY_CLIENT_ZONE_OBJECT);
 
-	bitStream.Write(uint32_t(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (const auto& character : name) {
 		bitStream.Write<uint16_t>(character);
 	}
@@ -1876,7 +1880,7 @@ void GameMessages::SendNotifyClientZoneObject(const LWOOBJID& objectID, const st
 	bitStream.Write(param2);
 	bitStream.Write(paramObj);
 
-	bitStream.Write(uint32_t(paramStr.size()));
+	bitStream.Write<uint32_t>(paramStr.size());
 	for (const auto& character : paramStr) {
 		bitStream.Write(character);
 	}
@@ -1893,9 +1897,9 @@ void GameMessages::SendNotifyClientFailedPrecondition(LWOOBJID objectId, const S
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::NOTIFY_CLIENT_FAILED_PRECONDITION);
 
-	bitStream.Write(uint32_t(failedReason.size()));
+	bitStream.Write<uint32_t>(failedReason.size());
 	for (uint16_t character : failedReason) {
-		bitStream.Write(uint16_t(character));
+		bitStream.Write<uint16_t>(character);
 	}
 
 	bitStream.Write(preconditionID);
@@ -1954,7 +1958,6 @@ void GameMessages::SendBBBSaveResponse(const LWOOBJID& objectId, const LWOOBJID&
 		bitStream.Write(buffer[i]);
 
 	SEND_PACKET;
-	PacketUtils::SavePacket("eGameMessageType::BBB_SAVE_RESPONSE.bin", (char*)bitStream.GetData(), bitStream.GetNumberOfBytesUsed());
 }
 
 // Property
@@ -2019,7 +2022,7 @@ void GameMessages::SendLockNodeRotation(Entity* entity, std::string nodeName) {
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::LOCK_NODE_ROTATION);
 
-	bitStream.Write(uint32_t(nodeName.size()));
+	bitStream.Write<uint32_t>(nodeName.size());
 	for (char character : nodeName) {
 		bitStream.Write(character);
 	}
@@ -2054,7 +2057,7 @@ void GameMessages::SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID,
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::GET_MODELS_ON_PROPERTY);
 
-	bitStream.Write(static_cast<uint32_t>(models.size()));
+	bitStream.Write<uint32_t>(models.size());
 
 	for (const auto& pair : models) {
 		bitStream.Write(pair.first);
@@ -2436,7 +2439,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity*
 void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_LOAD_RESPONSE_ITEMID);
-	bitStream.Write(static_cast<uint8_t>(success));
+	bitStream.Write<uint8_t>(success);
 	bitStream.Write<LWOOBJID>(oldItemId);
 	bitStream.Write<LWOOBJID>(newItemId);
 	SEND_PACKET;
@@ -2569,12 +2572,12 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 	//But we don't want the server to go unresponsive, because then the client would disconnect.
 
 	//We need to get a new ID for our model first:
-	ObjectIDManager::Instance()->RequestPersistentID([=](uint32_t newID) {
+	ObjectIDManager::RequestPersistentID([=](uint32_t newID) {
 		LWOOBJID newIDL = newID;
 		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
 
-		uint32_t blueprintIDSmall = ObjectIDManager::Instance()->GenerateRandomObjectID();
+		uint32_t blueprintIDSmall = ObjectIDManager::GenerateRandomObjectID();
 		LWOOBJID blueprintID = blueprintIDSmall;
 		GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
@@ -2585,70 +2588,23 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		const auto zoneId = worldId.GetMapID();
 		const auto cloneId = worldId.GetCloneID();
 
-		auto query = CDClientDatabase::CreatePreppedStmt(
-			"SELECT id FROM PropertyTemplate WHERE mapID = ?;");
-		query.bind(1, (int)zoneId);
-
-		auto result = query.execQuery();
-
-		if (result.eof() || result.fieldIsNull(0)) return;
-
-		int templateId = result.getIntField(0);
-
-		auto* propertyLookup = Database::CreatePreppedStmt("SELECT * FROM properties WHERE template_id = ? AND clone_id = ?;");
-
-		propertyLookup->setInt(1, templateId);
-		propertyLookup->setInt64(2, cloneId);
-
-		auto* propertyEntry = propertyLookup->executeQuery();
-		uint64_t propertyId = 0;
-
-		if (propertyEntry->next()) {
-			propertyId = propertyEntry->getUInt64(1);
-		}
-
-		delete propertyEntry;
-		delete propertyLookup;
+		auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
+		LWOOBJID propertyId = LWOOBJID_EMPTY;
+		if (propertyInfo) propertyId = propertyInfo->id;
 
 		//Insert into ugc:
-		auto ugcs = Database::CreatePreppedStmt("INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)");
-		ugcs->setUInt(1, blueprintIDSmall);
-		ugcs->setInt(2, entity->GetParentUser()->GetAccountID());
-		ugcs->setInt(3, entity->GetCharacter()->GetID());
-		ugcs->setInt(4, 0);
-
-		//whacky stream biz
-		std::string s(sd0Data.get(), sd0Size);
-		std::istringstream iss(s);
-
-		ugcs->setBlob(5, &iss);
-		ugcs->setBoolean(6, false);
-		ugcs->setString(7, "weedeater.lxfml");
-		ugcs->execute();
-		delete ugcs;
+		std::string str(sd0Data.get(), sd0Size);
+		std::istringstream sd0DataStream(str);
+		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
-		auto* stmt = Database::CreatePreppedStmt("INSERT INTO `properties_contents` VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-		stmt->setUInt64(1, newIDL);
-		stmt->setUInt64(2, propertyId);
-		stmt->setUInt(3, blueprintIDSmall);
-		stmt->setUInt(4, 14); // 14 is the lot the BBB models use
-		stmt->setDouble(5, 0.0f); // x
-		stmt->setDouble(6, 0.0f); // y
-		stmt->setDouble(7, 0.0f); // z
-		stmt->setDouble(8, 0.0f); // rx
-		stmt->setDouble(9, 0.0f); // ry
-		stmt->setDouble(10, 0.0f); // rz
-		stmt->setDouble(11, 0.0f); // rw
-		stmt->setString(12, "Objects_14_name"); // Model name.  TODO make this customizable
-		stmt->setString(13, ""); // Model description.  TODO implement this.
-		stmt->setDouble(14, 0); // behavior 1.  TODO implement this.
-		stmt->setDouble(15, 0); // behavior 2.  TODO implement this.
-		stmt->setDouble(16, 0); // behavior 3.  TODO implement this.
-		stmt->setDouble(17, 0); // behavior 4.  TODO implement this.
-		stmt->setDouble(18, 0); // behavior 5.  TODO implement this.
-		stmt->execute();
-		delete stmt;
+		IPropertyContents::Model model;
+		model.id = newIDL;
+		model.ugcId = blueprintIDSmall;
+		model.position = NiPoint3::ZERO;
+		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		model.lot = 14;
+		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
 
 		/*
 			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
@@ -2716,7 +2672,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
 		}
 
-	});
+		});
 }
 
 void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -2747,7 +2703,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 		filterText.push_back(c);
 	}
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 
@@ -2774,7 +2730,7 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 	inStream->Read(index);
 	inStream->Read(returnToZone);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 	if (entranceComponent != nullptr) {
@@ -3108,7 +3064,7 @@ void GameMessages::SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std
 	bitStream.Write(eGameMessageType::NOTIFY_OBJECT);
 
 	bitStream.Write(objIDSender);
-	bitStream.Write(static_cast<uint32_t>(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (const auto character : name) {
 		bitStream.Write(character);
 	}
@@ -3165,7 +3121,7 @@ void GameMessages::SendServerTradeInvite(LWOOBJID objectId, bool bNeedInvitePopU
 
 	bitStream.Write(bNeedInvitePopUp);
 	bitStream.Write(i64Requestor);
-	bitStream.Write(static_cast<uint32_t>(wsName.size()));
+	bitStream.Write<uint32_t>(wsName.size());
 	for (const auto character : wsName) {
 		bitStream.Write(character);
 	}
@@ -3183,7 +3139,7 @@ void GameMessages::SendServerTradeInitialReply(LWOOBJID objectId, LWOOBJID i64In
 
 	bitStream.Write(i64Invitee);
 	bitStream.Write(resultType);
-	bitStream.Write(static_cast<uint32_t>(wsName.size()));
+	bitStream.Write<uint32_t>(wsName.size());
 	for (const auto character : wsName) {
 		bitStream.Write(character);
 	}
@@ -3201,7 +3157,7 @@ void GameMessages::SendServerTradeFinalReply(LWOOBJID objectId, bool bResult, LW
 
 	bitStream.Write(bResult);
 	bitStream.Write(i64Invitee);
-	bitStream.Write(static_cast<uint32_t>(wsName.size()));
+	bitStream.Write<uint32_t>(wsName.size());
 	for (const auto character : wsName) {
 		bitStream.Write(character);
 	}
@@ -3243,7 +3199,7 @@ void GameMessages::SendServerTradeUpdate(LWOOBJID objectId, uint64_t coins, cons
 
 	bitStream.Write(false);
 	bitStream.Write(coins);
-	bitStream.Write(static_cast<uint32_t>(items.size()));
+	bitStream.Write<uint32_t>(items.size());
 
 	for (const auto& item : items) {
 		bitStream.Write(item.itemId);
@@ -3452,7 +3408,7 @@ void GameMessages::SendNotifyPetTamingPuzzleSelected(LWOOBJID objectId, const st
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::NOTIFY_TAMING_PUZZLE_SELECTED);
 
-	bitStream.Write(static_cast<uint32_t>(bricks.size()));
+	bitStream.Write<uint32_t>(bricks.size());
 	for (const auto& brick : bricks) {
 		bitStream.Write(brick.designerID);
 		bitStream.Write(brick.materialID);
@@ -3501,7 +3457,7 @@ void GameMessages::SendAddPetToPlayer(LWOOBJID objectId, int32_t iElementalType,
 	bitStream.Write(eGameMessageType::ADD_PET_TO_PLAYER);
 
 	bitStream.Write(iElementalType);
-	bitStream.Write(static_cast<uint32_t>(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (const auto character : name) {
 		bitStream.Write(character);
 	}
@@ -3571,14 +3527,14 @@ void GameMessages::SendClientExitTamingMinigame(LWOOBJID objectId, bool bVolunta
 	SEND_PACKET;
 }
 
-void GameMessages::SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr) {
+void GameMessages::SendShowPetActionButton(const LWOOBJID objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::SHOW_PET_ACTION_BUTTON);
 
-	bitStream.Write(buttonLabel);
+	bitStream.Write(petAbility);
 	bitStream.Write(bShow);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
@@ -3635,7 +3591,7 @@ void GameMessages::SendSetPetName(LWOOBJID objectId, std::u16string name, LWOOBJ
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::SET_PET_NAME);
 
-	bitStream.Write(static_cast<uint32_t>(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (const auto character : name) {
 		bitStream.Write(character);
 	}
@@ -3674,12 +3630,12 @@ void GameMessages::SendPetNameChanged(LWOOBJID objectId, int32_t moderationStatu
 
 	bitStream.Write(moderationStatus);
 
-	bitStream.Write(static_cast<uint32_t>(name.size()));
+	bitStream.Write<uint32_t>(name.size());
 	for (const auto character : name) {
 		bitStream.Write(character);
 	}
 
-	bitStream.Write(static_cast<uint32_t>(ownerName.size()));
+	bitStream.Write<uint32_t>(ownerName.size());
 	for (const auto character : ownerName) {
 		bitStream.Write(character);
 	}
@@ -3957,19 +3913,19 @@ void GameMessages::SendDisplayMessageBox(LWOOBJID objectId, bool bShow, LWOOBJID
 	bitStream.Write(bShow);
 	bitStream.Write(callbackClient);
 
-	bitStream.Write(static_cast<uint32_t>(identifier.size()));
+	bitStream.Write<uint32_t>(identifier.size());
 	for (const auto character : identifier) {
 		bitStream.Write(character);
 	}
 
 	bitStream.Write(imageID);
 
-	bitStream.Write(static_cast<uint32_t>(text.size()));
+	bitStream.Write<uint32_t>(text.size());
 	for (const auto character : text) {
 		bitStream.Write(character);
 	}
 
-	bitStream.Write(static_cast<uint32_t>(userData.size()));
+	bitStream.Write<uint32_t>(userData.size());
 	for (const auto character : userData) {
 		bitStream.Write(character);
 	}
@@ -3986,7 +3942,7 @@ void GameMessages::SendDisplayChatBubble(LWOOBJID objectId, const std::u16string
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::DISPLAY_CHAT_BUBBLE);
 
-	bitStream.Write(static_cast<uint32_t>(text.size()));
+	bitStream.Write<uint32_t>(text.size());
 	for (const auto character : text) {
 		bitStream.Write(character);
 	}
@@ -4177,6 +4133,12 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity,
 		}
 
 		racingControlComponent->OnRequestDie(entity);
+	} else {
+		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
+
+		if (!destroyableComponent) return;
+
+		destroyableComponent->Smash(killerID, killType, deathType);
 	}
 }
 
@@ -4233,20 +4195,12 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStre
 	if (performanceCost == 0.0f) return;
 
 	auto zone = Game::zoneManager->GetZone();
-	const auto& worldId = zone->GetZoneID();
-	const auto cloneId = worldId.GetCloneID();
-	const auto zoneId = worldId.GetMapID();
+	if (!zone) {
+		LOG("If you see this message, something is very wrong.");
+		return;
+	}
 
-	auto updatePerformanceCostQuery = Database::CreatePreppedStmt("UPDATE properties SET performance_cost = ? WHERE clone_id = ? AND zone_id = ?");
-
-	updatePerformanceCostQuery->setDouble(1, performanceCost);
-	updatePerformanceCostQuery->setInt(2, cloneId);
-	updatePerformanceCostQuery->setInt(3, zoneId);
-
-	updatePerformanceCostQuery->executeUpdate();
-
-	delete updatePerformanceCostQuery;
-	updatePerformanceCostQuery = nullptr;
+	Database::Get()->UpdatePerformanceCost(zone->GetZoneID(), performanceCost);
 }
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4296,7 +4250,7 @@ void GameMessages::SendModuleAssemblyDBDataForClient(LWOOBJID objectId, LWOOBJID
 
 	bitStream.Write(assemblyID);
 
-	bitStream.Write(static_cast<uint32_t>(data.size()));
+	bitStream.Write<uint32_t>(data.size());
 	for (auto character : data) {
 		bitStream.Write(character);
 	}
@@ -4441,7 +4395,7 @@ void GameMessages::SendNotifyRacingClient(LWOOBJID objectId, int32_t eventType, 
 
 	bitStream.Write(paramObj);
 
-	bitStream.Write(static_cast<uint32_t>(paramStr.size()));
+	bitStream.Write<uint32_t>(paramStr.size());
 	for (auto character : paramStr) {
 		bitStream.Write(character);
 	}
@@ -4541,7 +4495,7 @@ void GameMessages::SendVehicleNotifyFinishedRace(LWOOBJID objectId, const System
 
 void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uint32_t buffID, uint32_t msDuration,
 	bool addImmunity, bool cancelOnDamaged, bool cancelOnDeath, bool cancelOnLogout,
-	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone,
+	bool cancelOnRemoveBuff, bool cancelOnUi, bool cancelOnUnequip, bool cancelOnZone, bool addedByTeammate, bool applyOnTeammates,
 	const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -4549,27 +4503,29 @@ void GameMessages::SendAddBuff(LWOOBJID& objectID, const LWOOBJID& casterID, uin
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::ADD_BUFF);
 
-	bitStream.Write(false); // Added by teammate
-	bitStream.Write(false); // Apply on teammates
-	bitStream.Write(false); // Cancel on damage absorb ran out
+	bitStream.Write(addedByTeammate); // Added by teammate
+	bitStream.Write(applyOnTeammates); // Apply on teammates
 	bitStream.Write(cancelOnDamaged);
 	bitStream.Write(cancelOnDeath);
 	bitStream.Write(cancelOnLogout);
+
 	bitStream.Write(false); // Cancel on move
 	bitStream.Write(cancelOnRemoveBuff);
-
 	bitStream.Write(cancelOnUi);
 	bitStream.Write(cancelOnUnequip);
 	bitStream.Write(cancelOnZone);
+
 	bitStream.Write(false); // Ignore immunities
 	bitStream.Write(addImmunity);
 	bitStream.Write(false); // Use ref count
 
-	bitStream.Write(buffID);
-	bitStream.Write(msDuration);
+	bitStream.Write(casterID != LWOOBJID_EMPTY);
+	if (casterID != LWOOBJID_EMPTY) bitStream.Write(casterID);
 
-	bitStream.Write(casterID);
-	bitStream.Write(casterID);
+	bitStream.Write(buffID);
+
+	bitStream.Write(msDuration != 0);
+	if (msDuration != 0) bitStream.Write(msDuration);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
 	SEND_PACKET;
@@ -4634,7 +4590,7 @@ void GameMessages::SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditi
 
 	bitStream.Write(bPlayCountdownSound);
 
-	bitStream.Write(static_cast<uint32_t>(sndName.size()));
+	bitStream.Write<uint32_t>(sndName.size());
 	for (auto character : sndName) {
 		bitStream.Write(character);
 	}
@@ -4655,10 +4611,11 @@ void GameMessages::HandleToggleGhostReferenceOverride(RakNet::BitStream* inStrea
 
 	inStream->Read(bOverride);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverride(bOverride);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverride(bOverride);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
@@ -4670,10 +4627,11 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 
 	inStream->Read(position);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverridePoint(position);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverridePoint(position);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
@@ -4681,7 +4639,7 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 
 
 void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bConfirmed{}; // this doesnt even do anything, thanks ND!
+	bool bConfirmed{}; // This doesn't appear to do anything.  Further research is needed.
 	bool countIsDefault{};
 	int count = 1;
 	LOT item;
@@ -4934,7 +4892,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 	inStream->Read(senderID);
 
 	auto* sender = Game::entityManager->GetEntity(senderID);
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (!player) {
 		return;
@@ -4967,7 +4925,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 			mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 		}
 
-		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), (int)mapId, (int)cloneId);
+		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
 
 		auto* character = player->GetCharacter();
 
@@ -4997,17 +4955,17 @@ void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Enti
 	GameMessages::SendPlatformResync(entity, sysAddr);
 }
 
-void GameMessages::HandleRebuildCancel(RakNet::BitStream* inStream, Entity* entity) {
+void GameMessages::HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity) {
 	bool bEarlyRelease;
 	LWOOBJID userID;
 
 	inStream->Read(bEarlyRelease);
 	inStream->Read(userID);
 
-	RebuildComponent* rebComp = static_cast<RebuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));
-	if (!rebComp) return;
+	auto* quickBuildComponent = static_cast<QuickBuildComponent*>(entity->GetComponent(eReplicaComponentType::QUICK_BUILD));;
+	if (!quickBuildComponent) return;
 
-	rebComp->CancelRebuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
+	quickBuildComponent->CancelQuickBuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
 }
 
 void GameMessages::HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5072,6 +5030,14 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
+	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
+	if (emotes) {
+		CDEmoteTable* emote = emotes->GetEmote(emoteID);
+		if (emote) sAnimationName = emote->animationName;
+	}
+
+	RenderComponent::PlayAnimation(entity, sAnimationName);
+
 	MissionComponent* missionComponent = entity->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
@@ -5097,14 +5063,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 			missionComponent->Progress(eMissionTaskType::EMOTE, emoteID, scripted->GetObjectID());
 		}
 	}
-
-	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
-	if (emotes) {
-		CDEmoteTable* emote = emotes->GetEmote(emoteID);
-		if (emote) sAnimationName = emote->animationName;
-	}
-
-	RenderComponent::PlayAnimation(entity, sAnimationName);
 }
 
 void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5126,6 +5084,10 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream* inStream, E
 	}
 
 	item->Disassemble(TEMP_MODELS);
+
+	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
+	stmt->setUInt64(1, item->GetSubKey());
+	stmt->execute();
 
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
@@ -5213,6 +5175,14 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* en
 	} else if (iMissionState == eMissionState::READY_TO_COMPLETE || iMissionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		missionComponent->CompleteMission(missionID);
 	}
+
+	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
+	|| !player->GetCharacter()
+	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+	player->AddCallbackTimer(0.5f, [player]() {
+		if (!player) return;
+		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
+	});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity) {
@@ -5321,7 +5291,7 @@ void GameMessages::HandleRequestDie(RakNet::BitStream* inStream, Entity* entity)
 	/*uint32_t deathTypeLength = deathType.size();
 	inStream->Read(deathTypeLength);
 	for (uint32_t k = 0; k < deathTypeLength; k++) {
-		inStream->Read(static_cast<uint16_t>(deathType[k]));
+		inStream->Read<uint16_t>(deathType[k]);
 	}*/
 
 	inStream->Read(directionRelative_AngleXZ);
@@ -5461,10 +5431,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream* inStream, En
 	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
 
 	if (bConfirmed) {
-		for (auto i = 0; i < iStackCount; ++i) {
-			if (eInvType == eInventoryType::MODELS) {
-				item->DisassembleModel();
-			}
+		if (eInvType == eInventoryType::MODELS) {
+			item->DisassembleModel(iStackCount);
 		}
 
 		item->SetCount(item->GetCount() - iStackCount, true);
@@ -5584,13 +5552,6 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 	InventoryComponent* inv = static_cast<InventoryComponent*>(character->GetComponent(eReplicaComponentType::INVENTORY));
 	if (!inv) return;
 
-	LOG("Build finished");
-
-	GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
-	GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
-
-	//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
-	//Game::entityManager->SerializeEntity(entity);
 
 	uint8_t count; // 3 for rockets, 7 for cars
 
@@ -5625,50 +5586,61 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream* inStream, Entity*
 			}
 		}
 
-		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
+		ObjectIDManager::RequestPersistentID([=](uint32_t newId) {
+			LOG("Build finished");
+			GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
+			GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
 
-		std::vector<LDFBaseData*> config;
-		config.push_back(moduleAssembly);
+			//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
+			//Game::entityManager->SerializeEntity(entity);
 
-		LWOOBJID newIdBig;
-		// Make sure a subkey isnt already in use.  Persistent Ids do not make sense here since this only needs to be unique for
-		// this character. Because of that, we just generate a random id and check for a collision.
-		do {
-			newIdBig = ObjectIDManager::Instance()->GenerateRandomObjectID();
+			const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
+
+			std::vector<LDFBaseData*> config;
+			config.push_back(moduleAssembly);
+
+			LWOOBJID newIdBig = newId;
 			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
-		} while (inv->FindItemBySubKey(newIdBig));
 
-		if (count == 3) {
-			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
-		} else if (count == 7) {
-			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
-		}
-
-		auto* missionComponent = character->GetComponent<MissionComponent>();
-
-		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
-			if (missionComponent != nullptr) {
-				missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
-				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, (LWOOBJID)eRacingTaskParam::MODULAR_BUILDING);
+			if (count == 3) {
+				inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
+			} else if (count == 7) {
+				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
-		}
-	}
 
-	ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
+			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
+			stmt->setUInt64(1, newIdBig);
+			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules).c_str());
+			auto* pCharacter = character->GetCharacter();
+			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
+			stmt->execute();
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnModularBuildExit(entity, character, count >= 3, modList);
-	}
+			auto* missionComponent = character->GetComponent<MissionComponent>();
 
-	// Move remaining temp models back to models
-	std::vector<Item*> items;
+			if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
+				if (missionComponent != nullptr) {
+					missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
+					if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, static_cast<LWOOBJID>(eRacingTaskParam::MODULAR_BUILDING));
+				}
+			}
 
-	for (const auto& pair : temp->GetItems()) {
-		items.push_back(pair.second);
-	}
+			ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
 
-	for (auto* item : items) {
-		inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
+			for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
+				script->OnModularBuildExit(entity, character, count >= 3, modList);
+			}
+
+			// Move remaining temp models back to models
+			std::vector<Item*> items;
+
+			for (const auto& pair : temp->GetItems()) {
+				items.push_back(pair.second);
+			}
+
+			for (auto* item : items) {
+				inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
+			}
+			});
 	}
 }
 
@@ -5993,31 +5965,27 @@ void GameMessages::SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* e
 
 void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) {
 	//Definitely not stolen from autogenerated code, no sir:
-	std::u16string body;
-	std::string clientVersion;
-	std::string nOtherPlayerID;
-	std::string selection;
-	uint32_t messageLength;
-	int32_t reporterID = 0;
+	IBugReports::Info reportInfo;
 
 	//Reading:
+	uint32_t messageLength;
 	inStream->Read(messageLength);
 
 	for (uint32_t i = 0; i < (messageLength); ++i) {
 		uint16_t character;
 		inStream->Read(character);
-		body.push_back(character);
+		reportInfo.body.push_back(static_cast<char>(character));
 	}
 
 	auto character = entity->GetCharacter();
-	if (character) reporterID = character->GetID();
+	if (character) reportInfo.characterId = character->GetID();
 
 	uint32_t clientVersionLength;
 	inStream->Read(clientVersionLength);
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		clientVersion.push_back(character);
+		reportInfo.clientVersion.push_back(character);
 	}
 
 	uint32_t nOtherPlayerIDLength;
@@ -6025,32 +5993,18 @@ void GameMessages::HandleReportBug(RakNet::BitStream* inStream, Entity* entity) 
 	for (unsigned int k = 0; k < nOtherPlayerIDLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		nOtherPlayerID.push_back(character);
+		reportInfo.otherPlayer.push_back(character);
 	}
-	// Convert other player id from LWOOBJID to the database id.
-	uint32_t otherPlayer = LWOOBJID_EMPTY;
-	if (nOtherPlayerID != "") otherPlayer = std::atoi(nOtherPlayerID.c_str());
 
 	uint32_t selectionLength;
 	inStream->Read(selectionLength);
 	for (unsigned int k = 0; k < selectionLength; k++) {
 		unsigned char character;
 		inStream->Read(character);
-		selection.push_back(character);
+		reportInfo.selection.push_back(character);
 	}
 
-	try {
-		sql::PreparedStatement* insertBug = Database::CreatePreppedStmt("INSERT INTO `bug_reports`(body, client_version, other_player_id, selection, reporter_id) VALUES (?, ?, ?, ?, ?)");
-		insertBug->setString(1, GeneralUtils::UTF16ToWTF8(body));
-		insertBug->setString(2, clientVersion);
-		insertBug->setString(3, std::to_string(otherPlayer));
-		insertBug->setString(4, selection);
-		insertBug->setInt(5, reporterID);
-		insertBug->execute();
-		delete insertBug;
-	} catch (sql::SQLException& e) {
-		LOG("Couldn't save bug report! (%s)", e.what());
-	}
+	Database::Get()->InsertNewBugReport(reportInfo);
 }
 
 void
@@ -6137,7 +6091,7 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Enti
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
-		characterComponent->UpdatePlayerStatistic((StatisticID)updateID, (uint64_t)std::max(updateValue, int64_t(0)));
+		characterComponent->UpdatePlayerStatistic(static_cast<StatisticID>(updateID), static_cast<uint64_t>(std::max(updateValue, static_cast<int64_t>(0))));
 	}
 }
 

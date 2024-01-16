@@ -5,7 +5,6 @@
 #include <iomanip>
 
 #include "Entity.h"
-#include "PacketUtils.h"
 
 #include "CDClientManager.h"
 #include "GameMessages.h"

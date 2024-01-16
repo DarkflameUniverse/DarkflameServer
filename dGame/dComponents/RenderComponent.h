@@ -1,7 +1,7 @@
 #ifndef RENDERCOMPONENT_H
 #define RENDERCOMPONENT_H
 
-#include <BitStream.h>
+#include "BitStream.h"
 #include <vector>
 #include <string>
 #include <unordered_map>

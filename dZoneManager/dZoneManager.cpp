@@ -15,7 +15,7 @@
 #include "CDZoneTableTable.h"
 #include "AssetManager.h"
 
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	LOG("Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
@@ -79,8 +79,6 @@ dZoneManager::~dZoneManager() {
 			delete p.second;
 			p.second = nullptr;
 		}
-
-		m_Spawners.erase(p.first);
 	}
 	if (m_WorldConfig) delete m_WorldConfig;
 }
@@ -94,33 +92,6 @@ void dZoneManager::LoadZone(const LWOZONEID& zoneID) {
 
 	m_ZoneID = zoneID;
 	m_pZone = new Zone(zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
-}
-
-void dZoneManager::NotifyZone(const dZoneNotifier& notifier, const LWOOBJID& objectID) {
-	switch (notifier) {
-	case dZoneNotifier::SpawnedObjectDestroyed:
-		break;
-	case dZoneNotifier::SpawnedChildObjectDestroyed:
-		break;
-	case dZoneNotifier::ReloadZone:
-		LOG("Forcing reload of zone %i", m_ZoneID.GetMapID());
-		LoadZone(m_ZoneID);
-
-		m_pZone->Initalize();
-		break;
-	case dZoneNotifier::UserJoined:
-		break;
-	case dZoneNotifier::UserMoved:
-		break;
-	case dZoneNotifier::PrintAllGameObjects:
-		m_pZone->PrintAllGameObjects();
-		break;
-	case dZoneNotifier::InvalidNotifier:
-		LOG("Got an invalid zone notifier.");
-		break;
-	default:
-		LOG("Unknown zone notifier: %i", int(notifier));
-	}
 }
 
 void dZoneManager::AddSpawner(LWOOBJID id, Spawner* spawner) {
@@ -141,7 +112,7 @@ LWOOBJID dZoneManager::MakeSpawner(SpawnerInfo info) {
 	auto objectId = info.spawnerID;
 
 	if (objectId == LWOOBJID_EMPTY) {
-		objectId = ObjectIDManager::Instance()->GenerateObjectID();
+		objectId = ObjectIDManager::GenerateObjectID();
 		GeneralUtils::SetBit(objectId, eObjectBits::CLIENT);
 
 		info.spawnerID = objectId;

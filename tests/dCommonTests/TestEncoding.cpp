@@ -26,7 +26,7 @@ TEST_F(EncodingTest, TestEncodingHello) {
 };
 
 TEST_F(EncodingTest, TestEncodingUmlaut) {
-	originalWord = u8"Frühling";
+	originalWord = reinterpret_cast<const char*>(u8"Frühling");
 	originalWordSv = originalWord;
 
 	GeneralUtils::_NextUTF8Char(originalWordSv, out); EXPECT_EQ(out, U'F');

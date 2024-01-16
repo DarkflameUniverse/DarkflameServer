@@ -1,5 +1,5 @@
 #include "DestroyableComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "Logger.h"
 #include "Game.h"
 #include "dConfig.h"
@@ -11,7 +11,7 @@
 #include "CDClientManager.h"
 #include "CDDestructibleComponentTable.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "CppScripts.h"
 #include "Loot.h"
 #include "Character.h"
@@ -85,11 +85,11 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 
 	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
 	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
-	int32_t rebuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
+	int32_t quickBuildComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::QUICK_BUILD);
 
 	int32_t componentID = 0;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
-	if (rebuildComponentID > 0) componentID = rebuildComponentID;
+	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
 	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
@@ -154,7 +154,7 @@ void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIn
 		outBitStream->Write(m_fMaxArmor);
 		outBitStream->Write(m_fMaxImagination);
 
-		outBitStream->Write(uint32_t(m_FactionIDs.size()));
+		outBitStream->Write<uint32_t>(m_FactionIDs.size());
 		for (size_t i = 0; i < m_FactionIDs.size(); ++i) {
 			outBitStream->Write(m_FactionIDs[i]);
 		}
@@ -380,7 +380,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT enemyList FROM Factions WHERE faction = ?;");
-	query.bind(1, (int)factionID);
+	query.bind(1, static_cast<int>(factionID));
 
 	auto result = query.execQuery();
 
@@ -557,7 +557,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	}
 
 	if (IsImmune() || IsCooldownImmune()) {
-		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID()); //Immune is succesfully proc'd
+		LOG_DEBUG("Target targetEntity %llu is immune!", m_Parent->GetObjectID());
 		return;
 	}
 
@@ -796,7 +796,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 	}
 
-	m_Parent->Kill(owner);
+	m_Parent->Kill(owner, killType);
 }
 
 void DestroyableComponent::SetFaction(int32_t factionID, bool ignoreChecks) {

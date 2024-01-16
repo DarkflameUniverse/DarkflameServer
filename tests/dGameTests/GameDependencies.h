@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "dServer.h"
+#include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dConfig.h"
@@ -33,6 +34,9 @@ protected:
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 		Game::entityManager = new EntityManager();
+
+		// Create a CDClientManager instance and load from defaults
+		CDClientManager::Instance().LoadValuesFromDefaults();
 	}
 
 	void TearDownDependencies() {

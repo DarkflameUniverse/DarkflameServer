@@ -1,22 +1,22 @@
 #include "ActMine.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 
 void ActMine::OnStartup(Entity* self) {
-	self->SetVar(u"RebuildComplete", false);
+	self->SetVar(u"QuickBuildComplete", false);
 	self->SetProximityRadius(MINE_RADIUS, "mineRadius");
 }
 
-void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
-	if (state == eRebuildState::COMPLETED) {
-		auto* rebuild = self->GetComponent<RebuildComponent>();
+void ActMine::OnQuickBuildNotifyState(Entity* self, eQuickBuildState state) {
+	if (state == eQuickBuildState::COMPLETED) {
+		auto* rebuild = self->GetComponent<QuickBuildComponent>();
 		if (rebuild) {
 			auto* builder = rebuild->GetBuilder();
 			self->SetVar(u"Builder", builder->GetObjectID());
 		}
 
-		self->SetVar(u"RebuildComplete", true);
+		self->SetVar(u"QuickBuildComplete", true);
 		self->SetVar(u"NumWarnings", 0);
 		self->AddToGroup("reset");
 	}
@@ -26,7 +26,7 @@ void ActMine::OnRebuildNotifyState(Entity* self, eRebuildState state) {
 void ActMine::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
 	auto* detroyable = self->GetComponent<DestroyableComponent>();
 	if (!detroyable) return;
-	if (status == "ENTER" && self->GetVar<bool>(u"RebuildComplete") == true && detroyable->IsEnemy(entering)) {
+	if (status == "ENTER" && self->GetVar<bool>(u"QuickBuildComplete") == true && detroyable->IsEnemy(entering)) {
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 242, u"orange", "sirenlight_B");
 		self->AddTimer("Tick", TICK_TIME);
 	}

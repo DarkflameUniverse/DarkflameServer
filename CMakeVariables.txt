@@ -1,22 +1,32 @@
 PROJECT_VERSION_MAJOR=1
 PROJECT_VERSION_MINOR=1
 PROJECT_VERSION_PATCH=1
-# LICENSE
-LICENSE=AGPL-3.0
+
 # Debugging
-# Set __dynamic to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
-__dynamic=1
-# Set __ggdb to 1 to enable the -ggdb flag for the linker, including more debug info.
-# __ggdb=1
-# Set __include_backtrace__ to 1 to includes the backtrace library for better crashlogs.
-# __include_backtrace__=1
-# Set __compile_backtrace__ to 1 to compile the backtrace library instead of using system libraries.
-# __compile_backtrace__=1
+# Set DYNAMIC to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
+DYNAMIC=1
+
+# Set GGDB to 1 to enable the -ggdb flag for the linker, including more debug info.
+# Do note, changing this will re-build the whole server
+GGDB=0
+
+# Set INCLUDE_BACKTRACE to 1 to includes the backtrace library for better crashlogs.
+# Do note, changing this will re-build the whole server
+INCLUDE_BACKTRACE=0
+
+# Set COMPILE_BACKTRACE to 1 to compile the backtrace library instead of using system libraries.
+# Do note, changing this will re-build the whole server
+COMPILE_BACKTRACE=0
+
 # Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.
-__maria_db_connector_compile_jobs__=1
+MARIADB_CONNECTOR_COMPILE_JOBS=1
+
 # When set to 1 and uncommented, compiling and linking testing folders and libraries will be done.
-__enable_testing__=1
+ENABLE_TESTING=1
+
 # The path to OpenSSL.  Change this if your OpenSSL install path is different than the default.
 OPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/
-# Uncomment the below line to cache the entire CDClient into memory
-# CDCLIENT_CACHE_ALL=1
+
+# Whether or not to cache the entire CDClient Database into memory instead of lazy loading.
+# 0 means to lazy load, all other values mean load the entire database.
+CDCLIENT_CACHE_ALL=0

@@ -12,5 +12,8 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AG
 	"AgMonumentRaceGoal.cpp"
 	"AgMonumentRaceCancel.cpp"
 	"NpcCowboyServer.cpp"
-	"NpcPirateServer.cpp"
-	PARENT_SCOPE)
+	"NpcPirateServer.cpp")
+
+add_library(dScriptsServerMapAG ${DSCRIPTS_SOURCES_02_SERVER_MAP_AG})
+target_include_directories(dScriptsServerMapAG PUBLIC ".")
+target_precompile_headers(dScriptsServerMapAG REUSE_FROM dScriptsBase)
