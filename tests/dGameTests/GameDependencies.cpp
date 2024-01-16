@@ -20,7 +20,7 @@ void GameDependenciesTest::SetUpDependencies() {
 	info.scale = 1.0f;
 	info.spawner = nullptr;
 	info.lot = 999;
-	Game::logger = new dLogger("./testing.log", true, true);
+	Game::logger = new Logger("./testing.log", true, true);
 	Game::server = new dServerMock();
 	Game::config = new dConfig("worldconfig.ini");
 	Game::entityManager = new EntityManager();

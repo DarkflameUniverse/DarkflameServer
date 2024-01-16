@@ -143,6 +143,11 @@ void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t start
 	m_TimeBasedMovement = m_Path->movingPlatform.timeBasedMovement;
 }
 
+
+void MovingPlatformComponent::OnQuickBuildComplete() {
+	if (m_NoAutoStart) return;
+}
+
 const PathWaypoint& PlatformSubComponent::GetNextWaypoint() const {
 	DluAssert(m_Path != nullptr);
 	return m_Path->pathWaypoints.at(m_NextWaypointIndex);

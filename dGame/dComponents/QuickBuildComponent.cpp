@@ -503,7 +503,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 
 	auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
 	if (movingPlatform != nullptr) {
-		movingPlatform->OnCompleteQuickBuild();
+		movingPlatform->OnQuickBuildComplete();
 	}
 
 	// Set flag

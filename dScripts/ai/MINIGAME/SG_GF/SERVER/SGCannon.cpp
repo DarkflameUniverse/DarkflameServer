@@ -328,7 +328,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		// Save the enemy and tell it to start pathing
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling);
 		}
 	}
 }

@@ -13,7 +13,7 @@
 
 class MovingPlatformComponentTests : public GameDependenciesTest {
 protected:
-	std::unique_ptr<Entity> baseEntity;
+	Entity* baseEntity;
 	CBITSTREAM;
 	uint32_t flags = 0;
 	Path path;
@@ -55,14 +55,14 @@ protected:
 		info.settings.push_back(new LDFData<bool>(u"platformIsSimpleMover", true));
 		info.settings.push_back(new LDFData<bool>(u"platformIsRotater", true));
 
-		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
+		baseEntity = new Entity(15, GameDependenciesTest::info);
 
-		auto* simplePhysicsComponent = new SimplePhysicsComponent(1, baseEntity.get());
-		baseEntity->AddComponent(SimplePhysicsComponent::ComponentType, simplePhysicsComponent);
-		auto* movingPlatformComponent = new MovingPlatformComponent(baseEntity.get(), path.pathName);
+		baseEntity->AddComponent<SimplePhysicsComponent>(1);
+		MovingPlatformComponent* movingPlatformComponent;
+		movingPlatformComponent = baseEntity->AddComponent<MovingPlatformComponent>(1, path.pathName);
+
 		movingPlatformComponent->LoadConfigData();
 		movingPlatformComponent->LoadDataFromTemplate();
-		baseEntity->AddComponent(MovingPlatformComponent::ComponentType, movingPlatformComponent);
 	}
 
 	void TearDown() override {
@@ -216,7 +216,7 @@ protected:
 		auto* movingPlatformComponent = baseEntity->GetComponent<MovingPlatformComponent>();
 		ASSERT_NE(movingPlatformComponent, nullptr);
 		uint32_t flags = 0;
-		movingPlatformComponent->Serialize(&bitStream, true, flags);
+		movingPlatformComponent->Serialize(&bitStream, true);
 		DeserializeMovingPlatformComponent();
 	}
 };

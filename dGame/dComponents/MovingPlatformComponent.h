@@ -186,6 +186,8 @@ public:
 	 */
 	void SetMovementState(eMovementPlatformState value);
 
+	void OnQuickBuildComplete();
+
 	/**
 	 * Instructs the moving platform to go to some waypoint
 	 * @param index the index of the waypoint

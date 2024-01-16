@@ -25,20 +25,7 @@ public:
 
 class GameDependenciesTest : public ::testing::Test {
 protected:
-	void SetUpDependencies() {
-		info.pos = NiPoint3::ZERO;
-		info.rot = NiQuaternion::IDENTITY;
-		info.scale = 1.0f;
-		info.spawner = nullptr;
-		info.lot = 999;
-		Game::logger = new Logger("./testing.log", true, true);
-		Game::server = new dServerMock();
-		Game::config = new dConfig("worldconfig.ini");
-		Game::entityManager = new EntityManager();
-
-		// Create a CDClientManager instance and load from defaults
-		CDClientManager::Instance().LoadValuesFromDefaults();
-	}
+	void SetUpDependencies();
 
 	void TearDownDependencies();
 
