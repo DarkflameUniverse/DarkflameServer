@@ -4,9 +4,6 @@
 #include <cstdint>
 #include "Component.h"
 
-// Create an alias for storing component type IDs
-using ComponentTypeContainer = std::vector<std::type_index>;
-
 // Create an alias for the archetype component container type
 template <typename T>
 using ComponentContainerType = std::vector<T>;
@@ -14,10 +11,6 @@ using ComponentContainerType = std::vector<T>;
 // Require the template type to be of component base class
 template <typename T>
 concept ComponentType = std::is_base_of_v<Component, T>;
-
-// This single type represents a collection of types,
-template <typename... Args>
-struct VariadicTypedef {};
 
 // Base struct to allow pointer/reference resolution
 struct ArchetypeBase {

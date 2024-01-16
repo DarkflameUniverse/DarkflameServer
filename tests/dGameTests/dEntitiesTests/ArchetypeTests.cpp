@@ -215,8 +215,4 @@ TEST_F(ArchetypeTest, AddEntityTest) {
 
 	ASSERT_FALSE(EntitySystem::HasComponent<DestroyableComponent>(entityOneId));
 	ASSERT_TRUE(EntitySystem::HasComponent<SimplePhysicsComponent>(entityOneId));
-
-	VariadicTypedef<DestroyableComponent, SimplePhysicsComponent> testVar;
-	
-	ASSERT_NO_THROW(testVar);
 }
