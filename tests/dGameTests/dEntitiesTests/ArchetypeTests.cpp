@@ -11,6 +11,7 @@
 #include "DestroyableComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "Archetype.h"
+#include "EntitySystem.h"
 #include "ObjectIDManager.h"
 
 class ArchetypeTest : public GameDependenciesTest {
@@ -127,40 +128,6 @@ TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
 	ASSERT_EQ(test.x, 1.0f);
 }
 
-// Adding entity tests
-namespace {
-	struct Record {
-		ArchetypeBase* archetype;
-		size_t index;
-	};
-
-	std::unordered_map<LWOOBJID, Record> entityIndex;
-
-	using ArchetypeId = uint32_t;
-	using ArchetypeSet = std::unordered_set<ArchetypeId>;
-	using ComponentTypeId = std::type_index;
-	std::unordered_map<ComponentTypeId, ArchetypeSet> componentTypeIndex;
-}
-
-namespace EntitySystem {
-	template <ComponentType CType>
-	bool HasComponent(const LWOOBJID entityId) {
-		ArchetypeBase* archetype = entityIndex[entityId].archetype;
-		ArchetypeSet& archetypeSet = componentTypeIndex[std::type_index(typeid(CType))];
-		return archetypeSet.count(archetype->id) != 0;
-	}
-
-	template <ComponentType CType>
-	CType* GetComponent(const LWOOBJID entityId) {
-		if (!HasComponent<CType>(entityId)) return nullptr;
-
-		auto index = entityIndex[entityId].index;
-		ArchetypeBase* archetype = entityIndex[entityId].archetype;
-
-		return nullptr;
-	}
-}
-
 TEST_F(ArchetypeTest, HasComponentTest) {
 
 
@@ -241,11 +208,15 @@ TEST_F(ArchetypeTest, AddEntityTest) {
 	ASSERT_NE(gottenArchetypeBase, nullptr);
 	ASSERT_EQ(gottenArchetypeBase, tempArchetype[0].get());*/
 
-	SimplePhysicsComponent* gottenComponent = EntitySystem::GetComponent<SimplePhysicsComponent>(entityOneId);
+	auto gottenComponent = EntitySystem::GetComponent<SimplePhysicsComponent>(entityOneId);
 	// Find the archetype containing entity one
 	// Find the indice within the archetype containing entity one
 
 
 	ASSERT_FALSE(EntitySystem::HasComponent<DestroyableComponent>(entityOneId));
 	ASSERT_TRUE(EntitySystem::HasComponent<SimplePhysicsComponent>(entityOneId));
+
+	VariadicTypedef<DestroyableComponent, SimplePhysicsComponent> testVar;
+	
+	ASSERT_NO_THROW(testVar);
 }

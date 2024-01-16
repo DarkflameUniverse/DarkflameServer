@@ -4,6 +4,9 @@
 #include <cstdint>
 #include "Component.h"
 
+// Create an alias for storing component type IDs
+using ComponentTypeContainer = std::vector<std::type_index>;
+
 // Create an alias for the archetype component container type
 template <typename T>
 using ComponentContainerType = std::vector<T>;
@@ -12,11 +15,15 @@ using ComponentContainerType = std::vector<T>;
 template <typename T>
 concept ComponentType = std::is_base_of_v<Component, T>;
 
+// This single type represents a collection of types,
+template <typename... Args>
+struct VariadicTypedef {};
+
 // Base struct to allow pointer/reference resolution
 struct ArchetypeBase {
-	ArchetypeBase(uint32_t id) noexcept : id{ id } {}
-
 	uint32_t id; // The ID of the archetype
+
+	ArchetypeBase(uint32_t id) noexcept : id{ id } {}
 };
 
 /**
@@ -25,7 +32,7 @@ struct ArchetypeBase {
 template <ComponentType... CTypes>
 class Archetype final : public ArchetypeBase {
 public:
-	explicit Archetype(uint32_t id) noexcept : ArchetypeBase{ id } {
+	constexpr explicit Archetype(uint32_t id) noexcept : ArchetypeBase{ id } {
 		// Reserve 16 KB of memory for the sum of all vectors ahead of time
 		constexpr size_t compBytes = (sizeof(CTypes) + ...);
 		constexpr size_t reservedBytes = 16000;
