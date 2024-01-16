@@ -2,7 +2,7 @@
 
 #include "tinyxml2.h"
 
-#include "../../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "RenderComponent.h"

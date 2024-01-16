@@ -3,7 +3,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "GameMessages.h"
 #include "InventoryComponent.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "ChatPackets.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
@@ -679,7 +679,7 @@ EquipRecord::EquipRecord(LOT item) {
 void EquipRecord::Act(Entity* actor) {
 	auto* inventoryComponent = actor->GetComponent<InventoryComponent>();
 
-	const LWOOBJID id = ObjectIDManager::Instance()->GenerateObjectID();
+	const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
 	const auto& info = Inventory::FindItemComponent(item);
 	

@@ -9,6 +9,7 @@
 #include "EntityInfo.h"
 #include "MissionComponent.h"
 #include "dConfig.h"
+#include "PlayerManager.h"
 
 using namespace Cinema;
 
@@ -153,7 +154,7 @@ void Cinema::Scene::CheckForShowings() {
 
 	// I don't care
 	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [this]() {
-		for (auto* player : Player::GetAllPlayers()) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
 			if (m_Audience.find(player->GetObjectID()) != m_Audience.end()) {
 				continue;
 			}

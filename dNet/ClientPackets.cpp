@@ -5,25 +5,6 @@
 
 #include "ClientPackets.h"
 #include "dCommonVars.h"
-#include "BitStream.h"
-#include "dChatFilter.h"
-#include "WorldPackets.h"
-#include "ChatPackets.h"
-#include "dServer.h"
-#include "GameMessages.h"
-#include "dZoneManager.h"
-#include "Player.h"
-#include "Zone.h"
-#include "PossessorComponent.h"
-#include "PossessableComponent.h"
-#include "VehiclePhysicsComponent.h"
-#include "dConfig.h"
-#include "CharacterComponent.h"
-#include "Database.h"
-#include "eGameMasterLevel.h"
-#include "eReplicaComponentType.h"
-#include "CheatDetection.h"
-#include "Recorder.h"
 #include "PositionUpdate.h"
 
 ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
@@ -42,16 +23,6 @@ ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 		message.message.push_back(character);
 	}
 
-	std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
-	LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-	ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
-
-	auto* recorder = Cinema::Recording::Recorder::GetRecorder(user->GetLoggedInChar());
-
-	if (recorder != nullptr) {
-		recorder->AddRecord(new Cinema::Recording::SpeakRecord(sMessage));
-	}
-	
 	return message;
 }
 
@@ -110,127 +81,6 @@ PositionUpdate ClientPackets::HandleClientPositionUpdate(Packet* packet) {
 		inStream.Read(update.remoteInputInfo.m_IsModified);
 	}
 
-	bool updateChar = true;
-
-	if (possessorComponent != nullptr) {
-		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
-
-		if (possassableEntity != nullptr) {
-			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
-			if (possessableComponent) {
-				// While possessing something, only update char if we are attached to the thing we are possessing
-				if (possessableComponent->GetPossessionType() != ePossessionType::ATTACHED_VISIBLE) updateChar = false;
-			}
-
-			auto* vehiclePhysicsComponent = possassableEntity->GetComponent<VehiclePhysicsComponent>();
-			if (vehiclePhysicsComponent != nullptr) {
-				vehiclePhysicsComponent->SetPosition(position);
-				vehiclePhysicsComponent->SetRotation(rotation);
-				vehiclePhysicsComponent->SetIsOnGround(onGround);
-				vehiclePhysicsComponent->SetIsOnRail(onRail);
-				vehiclePhysicsComponent->SetVelocity(velocity);
-				vehiclePhysicsComponent->SetDirtyVelocity(velocityFlag);
-				vehiclePhysicsComponent->SetAngularVelocity(angVelocity);
-				vehiclePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-				vehiclePhysicsComponent->SetRemoteInputInfo(remoteInput);
-			} else {
-				// Need to get the mount's controllable physics
-				auto* controllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
-				if (!controllablePhysicsComponent) return;
-				controllablePhysicsComponent->SetPosition(position);
-				controllablePhysicsComponent->SetRotation(rotation);
-				controllablePhysicsComponent->SetIsOnGround(onGround);
-				controllablePhysicsComponent->SetIsOnRail(onRail);
-				controllablePhysicsComponent->SetVelocity(velocity);
-				controllablePhysicsComponent->SetDirtyVelocity(velocityFlag);
-				controllablePhysicsComponent->SetAngularVelocity(angVelocity);
-				controllablePhysicsComponent->SetDirtyAngularVelocity(angVelocityFlag);
-			}
-			Game::entityManager->SerializeEntity(possassableEntity);
-		}
-	}
-
-	if (!updateChar) {
-		velocity = NiPoint3::ZERO;
-		angVelocity = NiPoint3::ZERO;
-	}
-
-
-
-	// Handle statistics
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
-	if (characterComponent != nullptr) {
-		characterComponent->TrackPositionUpdate(position);
-	}
-
-	comp->SetPosition(position);
-	comp->SetRotation(rotation);
-	comp->SetIsOnGround(onGround);
-	comp->SetIsOnRail(onRail);
-	comp->SetVelocity(velocity);
-	comp->SetDirtyVelocity(velocityFlag);
-	comp->SetAngularVelocity(angVelocity);
-	comp->SetDirtyAngularVelocity(angVelocityFlag);
-
-	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
-
-	if (recorder != nullptr) {
-		recorder->AddRecord(new Cinema::Recording::MovementRecord(
-			position,
-			rotation,
-			velocity,
-			angVelocity,
-			onGround,
-			velocityFlag,
-			angVelocityFlag
-		));
-	}
-
-	auto* player = static_cast<Player*>(entity);
-	player->SetGhostReferencePoint(position);
-	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
-
-	if (updateChar) Game::entityManager->SerializeEntity(entity);
-
-	//TODO: add moving platform stuffs
-	/*bool movingPlatformFlag;
-	inStream.Read(movingPlatformFlag);
-	if (movingPlatformFlag) {
-		LWOOBJID objectID;
-		NiPoint3 niData2;
-
-		inStream.Read(objectID);
-		inStream.Read(niData2.x);
-		inStream.Read(niData2.y);
-		inStream.Read(niData2.z);
-
-
-
-		bool niData3Flag;
-		inStream.Read(niData3Flag);
-		if (niData3Flag) {
-			NiPoint3 niData3;
-			inStream.Read(niData3.x);
-			inStream.Read(niData3.y);
-			inStream.Read(niData3.z);
-
-			controllablePhysics->GetLocationData()->GetMovingPlatformData()->SetData3(niData3);
-		}
-	}*/
-
-	/*
-	for (int i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i)
-	{
-		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
-		if (entity->GetSystemAddress() == player)
-		{
-			continue;
-		}
-
-		Game::entityManager->SerializeEntity(entity, player);
-	}
-	*/
 	return update;
 }
 

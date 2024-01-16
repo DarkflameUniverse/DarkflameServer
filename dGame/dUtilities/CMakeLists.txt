@@ -7,7 +7,7 @@ set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"Preconditions.cpp"
 	"SlashCommandHandler.cpp"
 	"ServerPreconditions.cpp"
-	"VanityUtilities.cpp" PARENT_SCOPE)
+	"VanityUtilities.cpp")
 
 add_library(dUtilities STATIC ${DGAME_DUTILITIES_SOURCES})
 target_precompile_headers(dUtilities REUSE_FROM dGameBase)

@@ -1309,6 +1309,12 @@ void HandlePacket(Packet* packet) {
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+
+			auto* recorder = Cinema::Recording::Recorder::GetRecorder(user->GetLoggedInChar());
+
+			if (recorder != nullptr) {
+				recorder->AddRecord(new Cinema::Recording::SpeakRecord(sMessage));
+			}
 		}
 
 		break;
