@@ -74,7 +74,7 @@ TEST_F(EntityTest, EntityTimerEdgeCaseTests) {
 	TimerTestFunction(4, "expiredAddedBefore1", 12.0f);
 	TimerTestFunction(5, "expiredAddedBefore2", 13.0f);
 
-	// Last 3 are added afterwards and should be at the end of the vector.
+	// Last 3 are added afterwards and should be at the end of the vector with their default times.
 	TimerTestFunction(6, "addedAfter1", 15.0f);
 	TimerTestFunction(7, "addedAfter2", 16.0f);
 	TimerTestFunction(8, "addedAfter3", 17.0f);
@@ -119,5 +119,5 @@ TEST_F(EntityTest, EntityCallbackTimerTest) {
 	TestingFunction(0, 1.5f, callbackTimerToAddTwoTimers2);
 	TestingFunction(1, 3.5f, callbackToAddCallbackTimer);
 	TestingFunction(2, 0.5f, callbackTimerToAddTwoTimers);
-	TestingFunction(3, 4.5f, emptyLambda);
+	TestingFunction(3, 4.5f, emptyLambda); // Make sure timers after the last one initially in the loop are not updated.
 }
