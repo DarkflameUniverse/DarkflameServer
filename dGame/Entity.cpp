@@ -1224,7 +1224,7 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 }
 
 void Entity::Update(const float deltaTime) {
-	uint32_t timerPosition;
+	size_t timerPosition;
 	size_t currentSize = m_Timers.size();
 	for (timerPosition = 0; timerPosition < currentSize;) {
 		auto& timer = m_Timers[timerPosition];
@@ -1243,7 +1243,7 @@ void Entity::Update(const float deltaTime) {
 			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
 			// element with the last element in the vector and then removes the last element.
 			currentSize--;
-			if (currentSize > 1 && timerPosition < currentSize) {
+			if (currentSize > 0 && timerPosition < currentSize) {
 				m_Timers.at(timerPosition) = m_Timers.at(currentSize);
 			}
 			m_Timers.erase(m_Timers.begin() + currentSize);
@@ -1276,7 +1276,7 @@ void Entity::Update(const float deltaTime) {
 			// This is a clever removal trick that avoids having to copy the entire vector and instead replaces this now expired
 			// element with the last element in the vector and then removes the last element.
 			currentSize--;
-			if (currentSize > 1 && timerPosition < currentSize) {
+			if (currentSize > 0 && timerPosition < currentSize) {
 				m_CallbackTimers.at(timerPosition) = m_CallbackTimers.at(currentSize);
 			}
 			m_CallbackTimers.erase(m_CallbackTimers.begin() + currentSize);

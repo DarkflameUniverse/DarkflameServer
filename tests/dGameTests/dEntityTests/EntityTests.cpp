@@ -121,3 +121,63 @@ TEST_F(EntityTest, EntityCallbackTimerTest) {
 	TestingFunction(2, 0.5f, callbackTimerToAddTwoTimers);
 	TestingFunction(3, 4.5f, emptyLambda); // Make sure timers after the last one initially in the loop are not updated.
 }
+
+TEST_F(EntityTest, EntityTimerSmallTest) {
+	entity->AddTimer("Timer", 1.0f);
+	entity->AddTimer("Timer2", 1.1f);
+	entity->Update(1.0f);
+	ASSERT_EQ(entity->GetTimers().size(), 1);
+	ASSERT_EQ(entity->GetTimers().at(0).GetName(), "Timer2");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(0).GetTime(), 0.1f);
+}
+
+TEST_F(EntityTest, EntityTimerSmallTestInverse) {
+	entity->AddTimer("Timer", 1.1f);
+	entity->AddTimer("Timer2", 1.0f);
+	entity->Update(1.0f);
+	ASSERT_EQ(entity->GetTimers().size(), 1);
+	ASSERT_EQ(entity->GetTimers().at(0).GetName(), "Timer");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(0).GetTime(), 0.1f);
+}
+
+TEST_F(EntityTest, EntityTimerPositiveTest) {
+	entity->AddTimer("Timer", 1.0f);
+	entity->Update(1.0f);
+	ASSERT_TRUE(entity->GetTimers().empty());
+}
+
+TEST_F(EntityTest, EntityTimerThreeTestRemoveFirst) {
+	entity->AddTimer("Timer1", 1.0f);
+	entity->AddTimer("Timer2", 2.0f);
+	entity->AddTimer("Timer3", 3.0f);
+	entity->Update(1.0f);
+	ASSERT_EQ(entity->GetTimers().size(), 2);
+	ASSERT_EQ(entity->GetTimers().at(0).GetName(), "Timer3");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(0).GetTime(), 2.0f);
+	ASSERT_EQ(entity->GetTimers().at(1).GetName(), "Timer2");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(1).GetTime(), 1.0f);
+}
+
+TEST_F(EntityTest, EntityTimerThreeTestRemoveSecond) {
+	entity->AddTimer("Timer1", 2.0f);
+	entity->AddTimer("Timer2", 1.0f);
+	entity->AddTimer("Timer3", 3.0f);
+	entity->Update(1.0f);
+	ASSERT_EQ(entity->GetTimers().size(), 2);
+	ASSERT_EQ(entity->GetTimers().at(0).GetName(), "Timer1");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(0).GetTime(), 1.0f);
+	ASSERT_EQ(entity->GetTimers().at(1).GetName(), "Timer3");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(1).GetTime(), 2.0f);
+}
+
+TEST_F(EntityTest, EntityTimerThreeTestRemoveThird) {
+	entity->AddTimer("Timer1", 2.0f);
+	entity->AddTimer("Timer2", 3.0f);
+	entity->AddTimer("Timer3", 1.0f);
+	entity->Update(1.0f);
+	ASSERT_EQ(entity->GetTimers().size(), 2);
+	ASSERT_EQ(entity->GetTimers().at(0).GetName(), "Timer1");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(0).GetTime(), 1.0f);
+	ASSERT_EQ(entity->GetTimers().at(1).GetName(), "Timer2");
+	ASSERT_FLOAT_EQ(entity->GetTimers().at(1).GetTime(), 2.0f);
+}
