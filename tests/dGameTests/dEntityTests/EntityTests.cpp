@@ -56,7 +56,7 @@ TEST_F(EntityTest, EntityTimerEdgeCaseTests) {
 	entity->AddTimer("addedAfter3", 17.0f);
 
 	ASSERT_EQ(entity->GetTimers().size(), 9);
-	std::function<void(int32_t, std::string, float)> TimerTestFunction = [this](int32_t index, std::string timerName, float time) {
+	auto TimerTestFunction = [this](int32_t index, std::string timerName, float time) {
 		ASSERT_EQ(entity->GetTimers().at(index).GetName(), timerName);
 		ASSERT_EQ(entity->GetTimers().at(index).GetTime(), time);
 	};
@@ -78,4 +78,46 @@ TEST_F(EntityTest, EntityTimerEdgeCaseTests) {
 	TimerTestFunction(6, "addedAfter1", 15.0f);
 	TimerTestFunction(7, "addedAfter2", 16.0f);
 	TimerTestFunction(8, "addedAfter3", 17.0f);
+}
+
+TEST_F(EntityTest, EntityCallbackTimerTest) {
+	auto emptyLambda = [](){};
+
+	auto callbackToAddCallbackTimer = [this, emptyLambda]() {
+		entity->AddCallbackTimer(0.5f, emptyLambda);
+	};
+
+	auto callbackToAddCallbackTimer2 = [this, emptyLambda]() {
+		entity->AddCallbackTimer(4.5f, emptyLambda);
+	};
+
+	auto callbackTimerToAddTwoTimers = [this, callbackToAddCallbackTimer]() {
+		entity->AddCallbackTimer(0.5f, callbackToAddCallbackTimer);
+		entity->AddCallbackTimer(0.5f, callbackToAddCallbackTimer);
+	};
+
+	auto callbackTimerToAddTwoTimers2 = [this, callbackToAddCallbackTimer]() {
+		entity->AddCallbackTimer(3.5f, callbackToAddCallbackTimer);
+		entity->AddCallbackTimer(3.5f, callbackToAddCallbackTimer);
+	};
+
+	entity->AddCallbackTimer(0.5f, emptyLambda);
+	entity->AddCallbackTimer(4.5f, callbackToAddCallbackTimer);
+	entity->AddCallbackTimer(0.5f, callbackToAddCallbackTimer2);
+	entity->AddCallbackTimer(1.5f, callbackTimerToAddTwoTimers);
+	entity->AddCallbackTimer(2.5f, callbackTimerToAddTwoTimers2);
+	entity->Update(1.0f);
+
+	ASSERT_EQ(entity->GetCallbackTimers().size(), 4);
+	
+	auto TestingFunction = [this](int32_t index, float time, std::function<void()> callback) {
+		ASSERT_TRUE(index < entity->GetCallbackTimers().size());
+		ASSERT_EQ(entity->GetCallbackTimers().at(index).GetTime(), time);
+		ASSERT_EQ(entity->GetCallbackTimers().at(index).GetCallback().target_type(), callback.target_type());
+	};
+
+	TestingFunction(0, 1.5f, callbackTimerToAddTwoTimers2);
+	TestingFunction(1, 3.5f, callbackToAddCallbackTimer);
+	TestingFunction(2, 0.5f, callbackTimerToAddTwoTimers);
+	TestingFunction(3, 4.5f, emptyLambda);
 }
