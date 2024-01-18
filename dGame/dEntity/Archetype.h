@@ -18,7 +18,7 @@ concept ComponentType = std::is_base_of_v<Component, T>;
 
 // Base struct to allow pointer/reference resolution
 struct ArchetypeBase {
-	ArchetypeId id; // The ID of the archetype
+	ArchetypeId id;
 
 	constexpr ArchetypeBase(ArchetypeId id) noexcept : id{ id } {}
 	virtual ~ArchetypeBase() = default;
