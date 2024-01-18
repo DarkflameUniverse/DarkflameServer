@@ -24,7 +24,7 @@ PlayerContainer::~PlayerContainer() {
 }
 
 PlayerData::PlayerData() {
-	gmLevel == eGameMasterLevel::CIVILIAN;
+	gmLevel = eGameMasterLevel::CIVILIAN;
 }
 
 TeamData::TeamData() {
