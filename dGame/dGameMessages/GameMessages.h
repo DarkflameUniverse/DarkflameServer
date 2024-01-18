@@ -92,6 +92,9 @@ namespace GameMessages {
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
+
+	// Specify sysAddr if you need to send a flash message to a client who you dont know the objectID of.
+	void SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr);
 	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
