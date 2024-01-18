@@ -123,13 +123,9 @@ TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
 	auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 	LOG("Total time: %lld μs", time);
 	LOG("Time per loop: %lld μs", time / nLoops);
-
-	constexpr NiPoint3 test{ 1.0f, 1.0f, 1.0f };
-	ASSERT_EQ(test.x, 1.0f);
 }
 
 TEST_F(ArchetypeTest, HasComponentTest) {
-
 
 	//ASSERT_TRUE(EntitySystem::HasComponent<DestroyableComponent>(baseEntity->GetObjectID()));
 	//ASSERT_FALSE(EntitySystem::HasComponent<CharacterComponent>(baseEntity->GetObjectID()));
@@ -213,6 +209,27 @@ TEST_F(ArchetypeTest, AddEntityTest) {
 	// Find the indice within the archetype containing entity one
 
 
-	ASSERT_FALSE(EntitySystem::HasComponent<DestroyableComponent>(entityOneId));
-	ASSERT_TRUE(EntitySystem::HasComponent<SimplePhysicsComponent>(entityOneId));
+	ASSERT_FALSE(EntitySystem::OldHasComponent<DestroyableComponent>(entityOneId));
+	ASSERT_TRUE(EntitySystem::OldHasComponent<SimplePhysicsComponent>(entityOneId));
+}
+
+TEST_F(ArchetypeTest, GetArchetypeTest) {
+	auto& archetype = EntitySystem::GetArchetype<DestroyableComponent, SimplePhysicsComponent>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	archetype.CreateComponents(DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2));
+
+	auto& sameArchetype = EntitySystem::GetArchetype<DestroyableComponent, SimplePhysicsComponent>();
+	auto sameEntityId = sameArchetype.GetComponent<DestroyableComponent>(0).GetParent()->GetObjectID();
+	ASSERT_EQ(sameEntityId, baseEntityId);
+}
+
+TEST_F(ArchetypeTest, CreateArchetypesTest) {
+	EntitySystem::CreateArchetypes<CharacterComponent, DestroyableComponent, SimplePhysicsComponent>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	EntitySystem::CreateComponents<DestroyableComponent, SimplePhysicsComponent>(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 12));
+	
+	const auto gottenEntityId = EntitySystem::GetArchetype<DestroyableComponent, SimplePhysicsComponent>().GetComponent<DestroyableComponent>(0).GetParent()->GetObjectID();
+	ASSERT_EQ(gottenEntityId, baseEntityId);
 }
