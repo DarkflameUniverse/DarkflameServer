@@ -625,6 +625,25 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	SEND_PACKET;
 }
 
+void GameMessages::SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	LWOOBJID empty = 0;
+	bitStream.Write(empty);
+	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS); // This is intentional to allow the server to send a ui message to a client via their system address.
+
+	bitStream.Write<AMFBaseValue&>(args);
+	uint32_t strMessageNameLength = message.size();
+	bitStream.Write(strMessageNameLength);
+
+	for (uint32_t k = 0; k < strMessageNameLength; k++) {
+		bitStream.Write<char>(message[k]);
+	}
+
+	SEND_PACKET;
+}
+
 void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;

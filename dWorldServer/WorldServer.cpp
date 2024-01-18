@@ -79,6 +79,7 @@
 #include "Server.h"
 #include "PositionUpdate.h"
 #include "PlayerManager.h"
+#include "eLoginResponse.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -867,10 +868,28 @@ void HandlePacket(Packet* packet) {
 			}
 
 			// Developers may skip this check
-			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum.string != databaseChecksum) {
-				LOG("Client's database checksum does not match the server's, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
-				return;
+			if (clientDatabaseChecksum.string != databaseChecksum) {
+
+				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
+					LOG("Client's database checksum does not match the server's, aborting connection.");
+					std::vector<Stamp> stamps;
+
+					// Using the LoginResponse here since the UI is still in the login screen state
+					// and we have a way to send a message about the client mismatch.
+					AuthPackets::SendLoginResponse(
+						Game::server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
+						Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
+					return;
+				} else {
+					AMFArrayValue args;
+
+					args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
+					args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
+
+					GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, packet->systemAddress);
+					LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
+						, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
+				}
 			}
 		}
 
