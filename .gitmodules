@@ -7,6 +7,7 @@
 [submodule "thirdparty/recastnavigation"]
 	path = thirdparty/recastnavigation
 	url = https://github.com/recastnavigation/recastnavigation
+	ignore = dirty
 [submodule "thirdparty/libbcrypt"]
 	path = thirdparty/libbcrypt
 	url = https://github.com/trusch/libbcrypt.git
