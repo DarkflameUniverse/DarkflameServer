@@ -1,7 +1,7 @@
 # Source Code for recast
 add_subdirectory(recastnavigation)
 
-target_compile_definitions(recastnavigation PRIVATE "-Werror=maybe-uninitialized")
+target_compile_definitions(recastnavigation PRIVATE "-Wno-maybe-uninitialized")
 
 # Turn off tinyxml2 testing
 set(tinyxml2_BUILD_TESTING OFF)
