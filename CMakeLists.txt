@@ -272,7 +272,9 @@ link_directories(${PROJECT_BINARY_DIR})
 
 # Load all of our third party directories
 add_subdirectory(thirdparty)
-
+if (UNIX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
 # Glob together all headers that need to be precompiled
 file(
 	GLOB HEADERS_DDATABASE
