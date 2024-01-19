@@ -7,12 +7,17 @@
 
 // Anonymous namespace contains "private" functions and variables
 namespace {
-	struct Record {
-		ArchetypeBase* archetype;
+	struct ArchetypeRecord {
+		IArchetype* archetype; // Could we potentially make this std::variant in order to deduce the type?
 		size_t index;
 	};
 
-	std::unordered_map<LWOOBJID, Record> entityIndex;
+	// Used to lookup components in archetypes
+	//using ArchetypeMap = std::unordered_map<ArchetypeId, ArchetypeRecord>;
+	//std::unordered_map<ArchetypeId, ArchetypeRecord> ArchetypeMap;
+	//std::unordered_map<ComponentId, ArchetypeMap> component_index;
+
+	std::unordered_map<LWOOBJID, ArchetypeRecord> entityIndex;
 
 	using ArchetypeId = uint32_t;
 	using ArchetypeSet = std::unordered_set<ArchetypeId>;
@@ -27,11 +32,11 @@ namespace EntitySystem {
 		Archetype<CharacterComponent, DestroyableComponent, SimplePhysicsComponent> a;
 
 		Archetype<CharacterComponent, DestroyableComponent> aa;
-							Archetype<DestroyableComponent, SimplePhysicsComponent> ab;
+		Archetype<DestroyableComponent, SimplePhysicsComponent> ab;
 
 		Archetype<CharacterComponent> aaa;
-							Archetype<DestroyableComponent> aab;
-												  Archetype<SimplePhysicsComponent> aac;
+		Archetype<DestroyableComponent> aab;
+		Archetype<SimplePhysicsComponent> aac;
 	};
 	// Of those listed above, the only ones that could possibly contain a character component (for example) would be:
 
@@ -60,16 +65,6 @@ namespace EntitySystem {
 
 	// TEST AREA BELOW
 
-	// Recursive function for printing typenames
-	template <typename T, typename ...Args>
-	std::string type_name() {
-		if constexpr (!sizeof...(Args)) {
-			return std::string(typeid(T).name());
-		} else {
-			return std::string(typeid(T).name()) + " " + type_name<Args...>();
-		}
-	}
-
 	// GetSize
 	template <typename ...Ts>
 	constexpr size_t GetNumTypes() {
@@ -88,8 +83,8 @@ namespace EntitySystem {
 	 * Creates an archetype for a given typeset and provides singleton access to it
 	*/
 	template <ComponentType ...CTypes>
-	Archetype<CTypes...>& GetArchetype() { // TODO: Make constexpr?
-		static Archetype<CTypes...> archetype{0};
+	Archetype<CTypes...>& GetArchetype() {
+		static Archetype<CTypes...> archetype{ 0 };
 		LOG("Got archetype!");
 		return archetype;
 	}
@@ -119,33 +114,32 @@ namespace EntitySystem {
 	}
 
 	template <ComponentType CType>
-	bool OldHasComponent(const LWOOBJID entityId) {
-		ArchetypeBase* archetype = entityIndex[entityId].archetype; //Gets a pointer to the archetype containing the entity ID
-		ArchetypeSet& archetypeSet = componentTypeIndex[std::type_index(typeid(CType))]; //Gets the component container corresponding to the selected component type
-		return archetypeSet.count(archetype->id) != 0; //Check that the component exists within there
+	bool HasComponent(const LWOOBJID entityId) {
+		IArchetype* const archetype = entityIndex[entityId].archetype; // Gets a pointer to the archetype containing the entity ID
+		ArchetypeSet& archetypeSet = componentTypeIndex[std::type_index(typeid(CType))]; // Gets the component container corresponding to the selected component type
+		return archetypeSet.count(archetype->id) != 0; // Check that the component exists within there
 	}
 
-	template <ComponentType CType>
+	/*template <ComponentType CType>
 	bool HasComponent(const LWOOBJID entityId) {
 		//auto& archetype = //GetArchetypeByEntityId(); //TODO - This CAN'T be known at compile time
 		return GetArchetype<DestroyableComponent>().hasComponent<CType>; //return archetype::hasComponent<CType>;
-	}
+	}*/
 
 	template <ComponentType CType>
 	CType* GetComponent(const LWOOBJID entityId) {
 		if (!HasComponent<CType>(entityId)) return nullptr;
 
-		auto index = entityIndex[entityId].index;
-		ArchetypeBase* archetype = entityIndex[entityId].archetype;
-
-		return nullptr;
+		auto& archetypeRecord = entityIndex[entityId];
+		IArchetype* const archetype = archetypeRecord.archetype;
+		return &archetype->Container<CType>()[archetypeRecord.index];
 	}
 }
 
 #endif // !__ENTITYSYSTEM_H_
 
 
-namespace ArchetypeSystem {
+/*namespace ArchetypeSystem {
 	// CONCEPTUALIZATION
 	using ArchetypeId = uint32_t;
 
@@ -160,4 +154,4 @@ namespace ArchetypeSystem {
 
 	// Think of the functions!
 
-}
+}*/
