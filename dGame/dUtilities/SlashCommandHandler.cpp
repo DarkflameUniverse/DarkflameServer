@@ -88,6 +88,7 @@
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
 #include "ePlayerFlag.h"
+#include "dNavMesh.h"
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr) {
 	auto commandCopy = command;
@@ -768,7 +769,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto control = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 		if (!control) return;
 
-		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(control->GetPosition());
+		float y = dpWorld::GetNavMesh()->GetHeightAtPoint(control->GetPosition());
 		std::u16string msg = u"Navmesh height: " + (GeneralUtils::to_u16string(y));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
@@ -1737,7 +1738,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "reloadconfig" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		Game::config->ReloadConfig();
 		VanityUtilities::SpawnVanity();
-		dpWorld::Instance().Reload();
+		dpWorld::Reload();
 		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (auto entity : entities) {
 			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();

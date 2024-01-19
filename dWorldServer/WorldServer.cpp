@@ -84,7 +84,6 @@
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
-	dpWorld* physicsWorld = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
@@ -257,7 +256,7 @@ int main(int argc, char** argv) {
 	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
-		dpWorld::Instance().Initialize(zoneID);
+		dpWorld::Initialize(zoneID);
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
@@ -388,7 +387,7 @@ int main(int argc, char** argv) {
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
 			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::Instance().StepWorld(deltaTime);
+			dpWorld::StepWorld(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
@@ -1439,6 +1438,7 @@ void FinalizeShutdown() {
 
 	//Delete our objects here:
 	Metrics::Clear();
+	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
 	Game::chatFilter = nullptr;
