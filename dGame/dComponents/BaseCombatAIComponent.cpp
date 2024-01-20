@@ -27,7 +27,7 @@
 #include "CDPhysicsComponentTable.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id): Component{ parentEntityId } {
-	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	auto* parentEntity const = Game::entityManager->GetEntity(m_Parent);
 
 	m_Target = LWOOBJID_EMPTY;
 	SetAiState(AiState::spawn);
