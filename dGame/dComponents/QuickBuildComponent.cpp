@@ -253,13 +253,13 @@ void QuickBuildComponent::OnUse(Entity* originator) {
 }
 
 void QuickBuildComponent::SpawnActivator() {
-	if (!m_SelfActivator || m_ActivatorPosition != NiPoint3::ZERO) {
+	if (!m_SelfActivator || m_ActivatorPosition != NiPoint3Constant::ZERO) {
 		if (!m_Activator) {
 			EntityInfo info;
 
 			info.lot = 6604;
 			info.spawnerID = m_Parent->GetObjectID();
-			info.pos = m_ActivatorPosition == NiPoint3::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
+			info.pos = m_ActivatorPosition == NiPoint3Constant::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
 
 			m_Activator = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 			if (m_Activator) {

@@ -42,7 +42,7 @@ NiQuaternion NiQuaternion::LookAt(const NiPoint3& sourcePoint, const NiPoint3& d
 
 	NiPoint3 forwardVector = NiPoint3(dest - source).Unitize();
 
-	NiPoint3 posZ = NiPoint3::UNIT_Z;
+	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
 	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
 	float dot = posZ.DotProduct(forwardVector);
@@ -58,7 +58,7 @@ NiQuaternion NiQuaternion::LookAt(const NiPoint3& sourcePoint, const NiPoint3& d
 NiQuaternion NiQuaternion::LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint) {
 	NiPoint3 forwardVector = NiPoint3(destPoint - sourcePoint).Unitize();
 
-	NiPoint3 posZ = NiPoint3::UNIT_Z;
+	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
 	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
 	float dot = posZ.DotProduct(forwardVector);

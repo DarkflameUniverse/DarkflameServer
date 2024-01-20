@@ -3,9 +3,6 @@
 #error "This should only be included inline in NiQuaternion.h: Do not include directly!"
 #endif
 
-// Static Variables
-constexpr const NiQuaternion NiQuaternion::IDENTITY(1, 0, 0, 0);
-
 // MARK: Setters / Getters
 
 //! Gets the W coordinate

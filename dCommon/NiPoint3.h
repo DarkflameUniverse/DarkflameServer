@@ -13,17 +13,13 @@ typedef NiPoint3 Vector3;       //!< The Vector3 class is technically the NiPoin
 //! A custom class the defines a point in space
 class NiPoint3 {
 public:
-	float x;            //!< The x position
-	float y;            //!< The y position
-	float z;            //!< The z position
+	float x{ 0 };            //!< The x position
+	float y{ 0 };            //!< The y position
+	float z{ 0 };            //!< The z position
 
 
 	//! Initializer
-	constexpr NiPoint3() noexcept
-		: x{ 0 }
-		, y{ 0 }
-		, z{ 0 } {
-	}
+	constexpr NiPoint3() = default;
 
 	//! Initializer
 	/*!
@@ -46,13 +42,6 @@ public:
 		, y{ point.y }
 		, z{ point.z } {
 	}
-
-	// MARK: Constants
-	static NiPoint3 ZERO;         //!< Point(0, 0, 0)
-	static NiPoint3 UNIT_X;       //!< Point(1, 0, 0)
-	static NiPoint3 UNIT_Y;       //!< Point(0, 1, 0)
-	static NiPoint3 UNIT_Z;       //!< Point(0, 0, 1)
-	static NiPoint3 UNIT_ALL;     //!< Point(1, 1, 1)
 
 	// MARK: Getters / Setters
 
@@ -199,6 +188,15 @@ public:
 	//This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
 	constexpr NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
 };
+
+// Static Variables
+namespace NiPoint3Constant {
+	constexpr NiPoint3 ZERO(0.0f, 0.0f, 0.0f);
+	constexpr NiPoint3 UNIT_X(1.0f, 0.0f, 0.0f);
+	constexpr NiPoint3 UNIT_Y(0.0f, 1.0f, 0.0f);
+	constexpr NiPoint3 UNIT_Z(0.0f, 0.0f, 1.0f);
+	constexpr NiPoint3 UNIT_ALL(1.0f, 1.0f, 1.0f);
+}
 
 // .inl file needed for code organization and to circumvent circular dependency issues
 #include "NiPoint3.inl"

@@ -14,7 +14,7 @@ float NiPoint3::Length() const {
 NiPoint3 NiPoint3::Unitize() const {
 	float length = this->Length();
 
-	return length != 0 ? *this / length : NiPoint3::ZERO;
+	return length != 0 ? *this / length : NiPoint3Constant::ZERO;
 }
 
 // MARK: Helper Functions

@@ -242,7 +242,7 @@ private:
 	/**
 	 * The position that the quickbuild activator is spawned at
 	 */
-	NiPoint3 m_ActivatorPosition = NiPoint3::ZERO;
+	NiPoint3 m_ActivatorPosition = NiPoint3Constant::ZERO;
 
 	/**
 	 * The entity that represents the quickbuild activator

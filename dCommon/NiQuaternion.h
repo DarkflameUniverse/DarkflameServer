@@ -15,19 +15,14 @@ typedef NiQuaternion Quaternion;        //!< A typedef for a shorthand version o
 //! A class that defines a rotation in space
 class NiQuaternion {
 public:
-	float w;            //!< The w coordinate
-	float x;            //!< The x coordinate
-	float y;            //!< The y coordinate
-	float z;            //!< The z coordinate
+	float w{ 1 };            //!< The w coordinate
+	float x{ 0 };            //!< The x coordinate
+	float y{ 0 };            //!< The y coordinate
+	float z{ 0 };            //!< The z coordinate
 
 
 	//! The initializer
-	constexpr NiQuaternion() noexcept
-		: w{ 1 }
-		, x{ 0 }
-		, y{ 0 }
-		, z{ 0 } {
-	}
+	constexpr NiQuaternion() = default;
 
 	//! The initializer
 	/*!
@@ -42,9 +37,6 @@ public:
 		, y{ y }
 		, z{ z } {
 	}
-
-	// MARK: Constants
-	static const NiQuaternion IDENTITY;         //!< Quaternion(1, 0, 0, 0)
 
 	// MARK: Setters / Getters
 
@@ -154,6 +146,11 @@ public:
 
 	static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
 };
+
+// Static Variables
+namespace NiQuaternionConstant {
+	constexpr NiQuaternion IDENTITY(1, 0, 0, 0);
+}
 
 // Include constexpr and inline function definitions in a seperate file for readability
 #include "NiQuaternion.inl"
