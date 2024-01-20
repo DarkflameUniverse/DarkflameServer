@@ -4,13 +4,11 @@ on:
   push:
     branches:
       - "main"
-      - "RemoveEntityPointers"
     tags:
       - "v*.*.*"
   pull_request:
     branches:
       - "main"
-      - "RemoveEntityPointers"
 
 env:
   REGISTRY: ghcr.io

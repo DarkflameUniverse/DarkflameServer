@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, RemoveEntityPointers ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, RemoveEntityPointers ]
 
 jobs:
   build-and-test:
