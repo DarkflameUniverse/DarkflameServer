@@ -20,7 +20,7 @@ struct PropertyState {
 /**
  * This component is unused and has no functionality
  */
-class PropertyComponent : public Component {
+class PropertyComponent final : public Component {
 public:
 	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* parentEntity);
