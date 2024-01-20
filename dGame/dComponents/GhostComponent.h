@@ -7,7 +7,7 @@
 
 class NiPoint3;
 
-class GhostComponent : public Component {
+class GhostComponent final : public Component {
 public:
 	static inline const eReplicaComponentType ComponentType = eReplicaComponentType::GHOST;
 	GhostComponent(Entity* parent);

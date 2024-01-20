@@ -29,10 +29,10 @@ enum class PropertyPrivacyOption
 /**
  * Main component that handles interactions with a property, generally the plaques you see on properties.
  */
-class PropertyManagementComponent : public Component
+class PropertyManagementComponent final : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent);
 	static PropertyManagementComponent* Instance();
 

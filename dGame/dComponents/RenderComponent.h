@@ -54,9 +54,9 @@ struct Effect {
  * Determines that a component should be visibly rendered into the world, most entities have this. This component
  * also handles effects that play for entities.
  */
-class RenderComponent : public Component {
+class RenderComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
 	RenderComponent(Entity* entity, int32_t componentId = -1);
 	~RenderComponent() override;

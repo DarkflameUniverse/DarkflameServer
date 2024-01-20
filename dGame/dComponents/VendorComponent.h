@@ -20,7 +20,7 @@ struct SoldItem {
 
 class VendorComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 	VendorComponent(Entity* parent);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

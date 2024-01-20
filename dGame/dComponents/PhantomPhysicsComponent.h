@@ -25,9 +25,9 @@ enum class ePhysicsEffectType : uint32_t ;
  * trigger gameplay events, for example the bus in Avant Gardens that moves around when the player touches its physics
  * body. Optionally this object can also have effects, like the fans in AG.
  */
-class PhantomPhysicsComponent : public PhysicsComponent {
+class PhantomPhysicsComponent final : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;

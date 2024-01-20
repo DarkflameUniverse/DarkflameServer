@@ -47,9 +47,9 @@ struct Buff {
 /**
  * Allows for the application of buffs to the parent entity, altering health, armor and imagination.
  */
-class BuffComponent : public Component {
+class BuffComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
 	explicit BuffComponent(Entity* parent);
 
