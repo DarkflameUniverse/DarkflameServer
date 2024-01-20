@@ -69,7 +69,7 @@ protected:
 	 * Helper function to check static assertions for derived classes
 	*/
 	template <typename CType>
-	consteval static void CheckComponentAssertions() {
+	constexpr static void CheckComponentAssertions() {
 		//constexpr auto componentName = 
 		static_assert(std::is_move_constructible<CType>(), "Component is not move-constructible!");
 		static_assert(std::is_move_assignable<CType>(), "Component is not move-assignable!");
