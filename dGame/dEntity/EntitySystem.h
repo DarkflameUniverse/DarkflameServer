@@ -53,7 +53,7 @@ public:
 
 		const size_t insertedIndex = archetype.size();
 		archetype.CreateComponents(std::forward<CTypes>(componentArgs)...); // Create the components in the archetype
-		m_EntityIndex.insert({ explicitId, ArchetypeRecord{ &archetype, insertedIndex } }); // Create the corresponding pointers in the entity index
+		m_EntityIndex.try_emplace(explicitId, ArchetypeRecord{ &archetype, insertedIndex }); // Create the corresponding pointers in the entity index
 	}
 
 	/**
