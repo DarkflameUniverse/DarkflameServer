@@ -19,10 +19,7 @@ struct CDMissionTasks {
 	UNUSED(std::string gate_version);  //!< ???
 };
 
-class CDMissionTasksTable : public CDTable<CDMissionTasksTable> {
-private:
-	std::vector<CDMissionTasks> entries;
-
+class CDMissionTasksTable : public CDTable<CDMissionTasksTable, std::vector<CDMissionTasks>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
@@ -30,6 +27,9 @@ public:
 
 	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
 
-	const std::vector<CDMissionTasks>& GetEntries() const;
+	// TODO: Remove this and replace it with a proper lookup function.
+	const CDTable::StorageType& GetEntries() const {
+		return CDTable::GetEntries();
+	}
 };
 

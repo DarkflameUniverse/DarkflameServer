@@ -17,6 +17,7 @@ void CDItemComponentTable::LoadValuesFromDatabase() {
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ItemComponent");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDItemComponent entry;
 		entry.id = tableData.getIntField("id", -1);
@@ -62,7 +63,7 @@ void CDItemComponentTable::LoadValuesFromDatabase() {
 		entry.forgeType = tableData.getIntField("forgeType", -1);
 		entry.SellMultiplier = tableData.getFloatField("SellMultiplier", -1.0f);
 
-		this->entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
@@ -70,8 +71,9 @@ void CDItemComponentTable::LoadValuesFromDatabase() {
 }
 
 const CDItemComponent& CDItemComponentTable::GetItemComponentByID(uint32_t skillID) {
-	const auto& it = this->entries.find(skillID);
-	if (it != this->entries.end()) {
+	auto& entries = GetEntriesMutable();
+	const auto& it = entries.find(skillID);
+	if (it != entries.end()) {
 		return it->second;
 	}
 
@@ -129,12 +131,12 @@ const CDItemComponent& CDItemComponentTable::GetItemComponentByID(uint32_t skill
 		entry.forgeType = tableData.getIntField("forgeType", -1);
 		entry.SellMultiplier = tableData.getFloatField("SellMultiplier", -1.0f);
 
-		this->entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
-	const auto& it2 = this->entries.find(skillID);
-	if (it2 != this->entries.end()) {
+	const auto& it2 = entries.find(skillID);
+	if (it2 != entries.end()) {
 		return it2->second;
 	}
 

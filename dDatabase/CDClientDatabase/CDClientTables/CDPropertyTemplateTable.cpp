@@ -1,5 +1,9 @@
 #include "CDPropertyTemplateTable.h"
 
+namespace {
+	CDPropertyTemplate defaultEntry{};
+};
+
 void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -12,7 +16,8 @@ void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 
 	tableSize.finalize();
 
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PropertyTemplate;");
 	while (!tableData.eof()) {
@@ -23,7 +28,7 @@ void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 				tableData.getStringField("spawnName", "")
 		};
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -31,7 +36,7 @@ void CDPropertyTemplateTable::LoadValuesFromDatabase() {
 }
 
 CDPropertyTemplate CDPropertyTemplateTable::GetByMapID(uint32_t mapID) {
-	for (const auto& entry : entries) {
+	for (const auto& entry : GetEntries()) {
 		if (entry.mapID == mapID)
 			return entry;
 	}

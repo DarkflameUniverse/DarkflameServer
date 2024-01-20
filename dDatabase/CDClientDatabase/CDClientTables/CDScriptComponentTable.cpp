@@ -1,5 +1,9 @@
 #include "CDScriptComponentTable.h"
 
+namespace {
+	CDScriptComponent m_ToReturnWhenNoneFound;
+};
+
 void CDScriptComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -15,13 +19,14 @@ void CDScriptComponentTable::LoadValuesFromDatabase() {
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ScriptComponent");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDScriptComponent entry;
 		entry.id = tableData.getIntField("id", -1);
 		entry.script_name = tableData.getStringField("script_name", "");
 		entry.client_script_name = tableData.getStringField("client_script_name", "");
 
-		this->entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
@@ -29,8 +34,9 @@ void CDScriptComponentTable::LoadValuesFromDatabase() {
 }
 
 const CDScriptComponent& CDScriptComponentTable::GetByID(uint32_t id) {
-	std::map<uint32_t, CDScriptComponent>::iterator it = this->entries.find(id);
-	if (it != this->entries.end()) {
+	auto& entries = GetEntries();
+	auto it = entries.find(id);
+	if (it != entries.end()) {
 		return it->second;
 	}
 
