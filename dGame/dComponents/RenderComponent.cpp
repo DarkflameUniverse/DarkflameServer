@@ -42,17 +42,6 @@ RenderComponent::RenderComponent(const LWOOBJID& parentEntityId, const int32_t c
 	result.finalize();
 }
 
-/*RenderComponent::~RenderComponent() {
-	for (auto& eff : m_Effects) {
-		if (eff) {
-			delete eff;
-			eff = nullptr;
-		}
-	}
-
-	m_Effects.clear();
-}*/
-
 void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 
@@ -104,7 +93,7 @@ void RenderComponent::RemoveEffect(const std::string& name) {
 		if (eff->name == name) {
 			index = i;
 
-			eff.release();
+			eff.reset(); // Delete effect
 
 			break;
 		}
