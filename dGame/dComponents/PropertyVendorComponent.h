@@ -7,8 +7,7 @@
 /**
  * The property guard that stands on a property before it's claimed, allows entities to attempt claiming this property.
  */
-class PropertyVendorComponent final : public Component
-{
+class PropertyVendorComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_VENDOR;
 	explicit PropertyVendorComponent(Entity* parent);
