@@ -48,11 +48,11 @@ public:
 	}
 
 	// MARK: Constants
-	static const NiPoint3 ZERO;         //!< Point(0, 0, 0)
-	static const NiPoint3 UNIT_X;       //!< Point(1, 0, 0)
-	static const NiPoint3 UNIT_Y;       //!< Point(0, 1, 0)
-	static const NiPoint3 UNIT_Z;       //!< Point(0, 0, 1)
-	static const NiPoint3 UNIT_ALL;     //!< Point(1, 1, 1)
+	static NiPoint3 ZERO;         //!< Point(0, 0, 0)
+	static NiPoint3 UNIT_X;       //!< Point(1, 0, 0)
+	static NiPoint3 UNIT_Y;       //!< Point(0, 1, 0)
+	static NiPoint3 UNIT_Z;       //!< Point(0, 0, 1)
+	static NiPoint3 UNIT_ALL;     //!< Point(1, 1, 1)
 
 	// MARK: Getters / Setters
 
