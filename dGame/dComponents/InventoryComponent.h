@@ -35,8 +35,7 @@ enum class eItemType : int32_t;
  * of different types, each type representing a different group of items, see `eInventoryType` for a list of
  * inventories.
  */
-class InventoryComponent final : public Component
-{
+class InventoryComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
