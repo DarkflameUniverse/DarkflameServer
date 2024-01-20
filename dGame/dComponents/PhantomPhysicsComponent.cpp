@@ -161,7 +161,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "miscellaneous\\misc_phys_640x640.hkx") {
 			// Move this down by 13.521004 units so it is still effectively at the same height as before
 			m_Position = m_Position - NiPoint3::UNIT_Y * 13.521004f;
@@ -172,56 +172,56 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
 
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\trigger_wall_tall.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 10.0f, 25.0f, 1.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\env_gen_placeholderphysics.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 20.0f, 20.0f, 20.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\POI_trigger_wall.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 7.5f);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position + m_Rotation.GetForwardVector() * 6.0f);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 4.5f);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_Position.y -= (111.467964f * m_Scale) / 2;
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		} else {
 			//LOG("This one is supposed to have %s", info->physicsAsset.c_str());
 
@@ -230,7 +230,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity->SetScale(m_Scale);
 			m_dpEntity->SetRotation(m_Rotation);
 			m_dpEntity->SetPosition(m_Position);
-			dpWorld::Instance().AddEntity(m_dpEntity);
+			dpWorld::AddEntity(m_dpEntity);
 		}
 
 	}
@@ -238,7 +238,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 
 PhantomPhysicsComponent::~PhantomPhysicsComponent() {
 	if (m_dpEntity) {
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+		dpWorld::RemoveEntity(m_dpEntity);
 	}
 }
 
@@ -300,7 +300,7 @@ void PhantomPhysicsComponent::CreatePhysics() {
 
 	m_dpEntity->SetPosition({ m_Position.x, m_Position.y - (height / 2), m_Position.z });
 
-	dpWorld::Instance().AddEntity(m_dpEntity);
+	dpWorld::AddEntity(m_dpEntity);
 
 	m_HasCreatedPhysics = true;
 }

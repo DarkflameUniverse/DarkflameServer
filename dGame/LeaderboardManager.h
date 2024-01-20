@@ -6,7 +6,6 @@
 #include <string_view>
 #include <vector>
 
-#include "Singleton.h"
 #include "dCommonVars.h"
 #include "LDFFormat.h"
 

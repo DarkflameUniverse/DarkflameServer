@@ -23,6 +23,8 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "PlayerManager.h"
+#include "GhostComponent.h"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -187,8 +189,9 @@ void EntityManager::SerializeEntities() {
 		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
-			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(toSerialize)) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
+				auto* ghostComponent = player->GetComponent<GhostComponent>();
+				if (ghostComponent && ghostComponent->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -376,11 +379,12 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		if (skipChecks) {
 			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		} else {
-			for (auto* player : Player::GetAllPlayers()) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->GetPlayerReadyForUpdates()) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				} else {
-					player->AddLimboConstruction(entity->GetObjectID());
+					auto* ghostComponent = player->GetComponent<GhostComponent>();
+					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
 				}
 			}
 		}
@@ -405,7 +409,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 		}
 	}
 
-	UpdateGhosting(Player::GetPlayer(sysAddr));
+	UpdateGhosting(PlayerManager::GetPlayer(sysAddr));
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
@@ -418,9 +422,10 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
-	for (auto* player : Player::GetAllPlayers()) {
+	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {
-			player->RemoveLimboConstruction(entity->GetObjectID());
+			auto* ghostComponent = player->GetComponent<GhostComponent>();
+			if (ghostComponent) ghostComponent->RemoveLimboConstruction(entity->GetObjectID());
 		}
 	}
 }
@@ -465,7 +470,7 @@ void EntityManager::QueueGhostUpdate(LWOOBJID playerID) {
 
 void EntityManager::UpdateGhosting() {
 	for (const auto playerID : m_PlayersToUpdateGhosting) {
-		auto* player = Player::GetPlayer(playerID);
+		auto* player = PlayerManager::GetPlayer(playerID);
 
 		if (player == nullptr) {
 			continue;
@@ -483,13 +488,14 @@ void EntityManager::UpdateGhosting(Player* player) {
 	}
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto* ghostComponent = player->GetComponent<GhostComponent>();
 
-	if (missionComponent == nullptr) {
+	if (missionComponent == nullptr || !ghostComponent) {
 		return;
 	}
 
-	const auto& referencePoint = player->GetGhostReferencePoint();
-	const auto isOverride = player->GetGhostOverride();
+	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
+	const auto isOverride = ghostComponent->GetGhostOverride();
 
 	for (auto* entity : m_EntitiesToGhost) {
 		const auto isAudioEmitter = entity->GetLOT() == 6368;
@@ -498,7 +504,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
@@ -510,7 +516,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 		}
 
 		if (observed && distance > ghostingDistanceMax && !isOverride) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
@@ -527,7 +533,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 				}
 			}
 
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 
@@ -548,23 +554,26 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 	const auto isAudioEmitter = entity->GetLOT() == 6368;
 
-	for (auto* player : Player::GetAllPlayers()) {
-		const auto& entityPoint = player->GetGhostReferencePoint();
+	for (auto* player : PlayerManager::GetAllPlayers()) {
+		auto* ghostComponent = player->GetComponent<GhostComponent>();
+		if (!ghostComponent) continue;
+
+		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
 		if (observed && distance > ghostingDistanceMax) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
 		} else if (!observed && ghostingDistanceMin > distance) {
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 

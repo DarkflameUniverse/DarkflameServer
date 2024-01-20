@@ -37,6 +37,7 @@
 #include "eGameMessageType.h"
 #include "ePlayerFlag.h"
 #include "dConfig.h"
+#include "GhostComponent.h"
 #include "StringifiedEnum.h"
 
 void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
@@ -108,9 +109,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
 		entity->SetPlayerReadyForUpdates();
 
-		auto* player = dynamic_cast<Player*>(entity);
-		if (player != nullptr) {
-			player->ConstructLimboEntities();
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent != nullptr) {
+			ghostComponent->ConstructLimboEntities();
 		}
 
 		InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
@@ -137,14 +138,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
 		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerLoaded(zoneControl, player);
+			script->OnPlayerLoaded(zoneControl, entity);
 		}
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerLoaded(scriptEntity, player);
+					script->OnPlayerLoaded(scriptEntity, entity);
 				}
 			}
 		}

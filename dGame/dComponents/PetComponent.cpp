@@ -30,6 +30,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
+#include "dNavMesh.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -250,17 +251,17 @@ void PetComponent::OnUse(Entity* originator) {
 	NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
 	forward.y = 0;
 
-	if (dpWorld::Instance().IsLoaded()) {
+	if (dpWorld::IsLoaded()) {
 		NiPoint3 attempt = petPosition + forward * interactionDistance;
 
-		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+		float y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 		while (std::abs(y - petPosition.y) > 4 && interactionDistance > 10) {
 			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
 
 			attempt = originatorPosition + forward * interactionDistance;
 
-			y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+			y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 			interactionDistance -= 0.5f;
 		}
@@ -812,8 +813,8 @@ void PetComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {

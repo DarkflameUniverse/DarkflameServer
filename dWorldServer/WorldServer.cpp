@@ -78,11 +78,12 @@
 #include "StringifiedEnum.h"
 #include "Server.h"
 #include "PositionUpdate.h"
+#include "PlayerManager.h"
+#include "eLoginResponse.h"
 
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
-	dpWorld* physicsWorld = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
@@ -255,7 +256,7 @@ int main(int argc, char** argv) {
 	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
-		dpWorld::Instance().Initialize(zoneID);
+		dpWorld::Initialize(zoneID);
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
@@ -386,7 +387,7 @@ int main(int argc, char** argv) {
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
 			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::Instance().StepWorld(deltaTime);
+			dpWorld::StepWorld(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
@@ -798,7 +799,7 @@ void HandlePacket(Packet* packet) {
 		auto* entity = Game::entityManager->GetEntity(c->GetObjectID());
 
 		if (!entity) {
-			entity = Player::GetPlayer(packet->systemAddress);
+			entity = PlayerManager::GetPlayer(packet->systemAddress);
 		}
 
 		if (entity) {
@@ -866,10 +867,28 @@ void HandlePacket(Packet* packet) {
 			}
 
 			// Developers may skip this check
-			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum.string != databaseChecksum) {
-				LOG("Client's database checksum does not match the server's, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
-				return;
+			if (clientDatabaseChecksum.string != databaseChecksum) {
+
+				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
+					LOG("Client's database checksum does not match the server's, aborting connection.");
+					std::vector<Stamp> stamps;
+
+					// Using the LoginResponse here since the UI is still in the login screen state
+					// and we have a way to send a message about the client mismatch.
+					AuthPackets::SendLoginResponse(
+						Game::server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
+						Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
+					return;
+				} else {
+					AMFArrayValue args;
+
+					args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
+					args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
+
+					GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, packet->systemAddress);
+					LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
+						, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
+				}
 			}
 		}
 
@@ -1125,6 +1144,7 @@ void HandlePacket(Packet* packet) {
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
 					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+					bitStream.Write(player->GetGMLevel());
 
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 				}
@@ -1205,7 +1225,7 @@ void HandlePacket(Packet* packet) {
 			return;
 		}
 
-		auto* entity = Player::GetPlayer(packet->systemAddress);
+		auto* entity = PlayerManager::GetPlayer(packet->systemAddress);
 
 		if (entity == nullptr) {
 			LOG("Unable to get player to parse chat moderation request");
@@ -1365,7 +1385,7 @@ void WorldShutdownProcess(uint32_t zoneId) {
 	for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
 
-		auto* entity = Player::GetPlayer(player);
+		auto* entity = PlayerManager::GetPlayer(player);
 		LOG("Saving data!");
 		if (entity != nullptr && entity->GetCharacter() != nullptr) {
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
@@ -1418,6 +1438,7 @@ void FinalizeShutdown() {
 
 	//Delete our objects here:
 	Metrics::Clear();
+	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
 	Game::chatFilter = nullptr;
