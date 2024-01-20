@@ -14,7 +14,7 @@
         "generator": "Unix Makefiles"
       },
       {
-        "name": "ci-ubuntu-20.04",
+        "name": "ci-ubuntu-22.04",
         "displayName": "CI configure step for Ubuntu",
         "description": "Same as default, Used in GitHub actions workflow",
         "inherits": "default"
@@ -67,8 +67,8 @@
         "jobs": 2
       },
       {
-        "name": "ci-ubuntu-20.04",
-        "configurePreset": "ci-ubuntu-20.04",
+        "name": "ci-ubuntu-22.04",
+        "configurePreset": "ci-ubuntu-22.04",
         "displayName": "Linux CI Build",
         "description": "This preset is used by the CI build on linux",
         "jobs": 2
@@ -83,8 +83,8 @@
     ],
     "testPresets": [
       {
-        "name": "ci-ubuntu-20.04",
-        "configurePreset": "ci-ubuntu-20.04",
+        "name": "ci-ubuntu-22.04",
+        "configurePreset": "ci-ubuntu-22.04",
         "displayName": "CI Tests on Linux",
         "description": "Runs all tests on a linux configuration",
 		"execution": {
