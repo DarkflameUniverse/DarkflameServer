@@ -30,8 +30,6 @@ MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
 	mIdleTimeElapsed = 0.0f;
 }
 
-MoverSubComponent::~MoverSubComponent() = default;
-
 void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write<bool>(true);
 
@@ -57,7 +55,7 @@ void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 
 MovingPlatformComponent::MovingPlatformComponent(const LWOOBJID& parentEntityId, const std::string& pathName) : Component{ parentEntityId } {
 	m_MoverSubComponentType = eMoverSubComponentType::mover;
-	m_MoverSubComponent = new MoverSubComponent(Game::entityManager->GetEntity(m_Parent)->GetDefaultPosition());
+	m_MoverSubComponent = std::make_unique<MoverSubComponent>(Game::entityManager->GetEntity(m_Parent)->GetDefaultPosition());
 	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
 	m_NoAutoStart = false;
@@ -65,10 +63,6 @@ MovingPlatformComponent::MovingPlatformComponent(const LWOOBJID& parentEntityId,
 	if (m_Path == nullptr) {
 		LOG("Path not found: %s", pathName.c_str());
 	}
-}
-
-MovingPlatformComponent::~MovingPlatformComponent() {
-	delete static_cast<MoverSubComponent*>(m_MoverSubComponent);
 }
 
 void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
@@ -106,7 +100,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	outBitStream->Write<bool>(hasPlatform);
 
 	if (hasPlatform) {
-		auto* mover = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+		auto* mover = m_MoverSubComponent.get();
 		outBitStream->Write(m_MoverSubComponentType);
 
 		if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
@@ -129,7 +123,7 @@ void MovingPlatformComponent::OnCompleteQuickBuild() {
 }
 
 void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
-	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	auto* subComponent = m_MoverSubComponent.get();
 
 	subComponent->mState = value;
 
@@ -137,7 +131,7 @@ void MovingPlatformComponent::SetMovementState(eMovementPlatformState value) {
 }
 
 void MovingPlatformComponent::GotoWaypoint(uint32_t index, bool stopAtWaypoint) {
-	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	auto* subComponent = m_MoverSubComponent.get();
 
 	subComponent->mDesiredWaypointIndex = index;
 	subComponent->mNextWaypointIndex = index;
@@ -151,7 +145,7 @@ void MovingPlatformComponent::StartPathing() {
 	m_PathingStopped = false;
 
 	auto* parentEntity = Game::entityManager->GetEntity(m_Parent);
-	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	auto* subComponent = m_MoverSubComponent.get();
 
 	subComponent->mShouldStopAtDesiredWaypoint = true;
 	subComponent->mState = eMovementPlatformState::Stationary;
@@ -202,7 +196,7 @@ void MovingPlatformComponent::StartPathing() {
 void MovingPlatformComponent::ContinuePathing() {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
-	auto* const subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	auto* const subComponent = m_MoverSubComponent.get();
 
 	subComponent->mState = eMovementPlatformState::Stationary;
 
@@ -314,7 +308,7 @@ void MovingPlatformComponent::ContinuePathing() {
 void MovingPlatformComponent::StopPathing() {
 	//Game::entityManager->GetEntity(m_Parent)->CancelCallbackTimers();
 
-	auto* subComponent = static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	auto& subComponent = m_MoverSubComponent;
 
 	m_PathingStopped = true;
 
@@ -354,5 +348,5 @@ size_t MovingPlatformComponent::GetLastWaypointIndex() const {
 }
 
 MoverSubComponent* MovingPlatformComponent::GetMoverSubComponent() const {
-	return static_cast<MoverSubComponent*>(m_MoverSubComponent);
+	return m_MoverSubComponent.get();
 }

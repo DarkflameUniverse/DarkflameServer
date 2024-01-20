@@ -28,8 +28,6 @@ namespace {
 
 BuffComponent::BuffComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
-BuffComponent::~BuffComponent() {}
-
 void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 	outBitStream->Write(!m_Buffs.empty());

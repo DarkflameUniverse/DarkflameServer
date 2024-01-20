@@ -64,10 +64,7 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 	}
 
 	auto* launcher = Game::entityManager->GetEntity(m_Parent)->GetComponent<RocketLaunchpadControlComponent>();
-
-	if (launcher == nullptr) {
-		return;
-	}
+	if (!launcher) return;
 
 	launcher->SetSelectedCloneId(entity->GetObjectID(), cloneId);
 

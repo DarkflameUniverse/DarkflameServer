@@ -19,7 +19,7 @@ public:
 	 * Constructor for this component
 	 * @param parent parent that contains this component
 	 */
-	LevelProgressionComponent(const LWOOBJID& parentEntityId);
+	LevelProgressionComponent(const LWOOBJID& parentEntityId) noexcept;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

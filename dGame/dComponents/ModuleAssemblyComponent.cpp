@@ -1,13 +1,9 @@
 #include "ModuleAssemblyComponent.h"
 
-ModuleAssemblyComponent::ModuleAssemblyComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+ModuleAssemblyComponent::ModuleAssemblyComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {
 	m_SubKey = LWOOBJID_EMPTY;
 	m_UseOptionalParts = false;
 	m_AssemblyPartsLOTs = u"";
-}
-
-ModuleAssemblyComponent::~ModuleAssemblyComponent() {
-
 }
 
 void ModuleAssemblyComponent::SetSubKey(LWOOBJID value) {

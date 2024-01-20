@@ -36,7 +36,6 @@ enum class eMoverSubComponentType : uint32_t {
 class MoverSubComponent {
 public:
 	MoverSubComponent(const NiPoint3& startPos);
-	~MoverSubComponent();
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
 
@@ -109,7 +108,6 @@ public:
 	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(const LWOOBJID& parentEntityId, const std::string& pathName);
-	~MovingPlatformComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
@@ -212,7 +210,7 @@ private:
 	/**
 	 * The mover sub component that belongs to this platform
 	 */
-	void* m_MoverSubComponent;
+	std::unique_ptr<MoverSubComponent> m_MoverSubComponent;
 
 	/**
 	 * Whether the platform shouldn't auto start

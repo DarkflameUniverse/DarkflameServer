@@ -17,7 +17,6 @@ public:
 	 * @param parent parent that contains this component
 	 */
 	MultiZoneEntranceComponent(const LWOOBJID& parentEntityId);
-	~MultiZoneEntranceComponent() override;
 
 	/**
 	 * Handles an OnUse event from some entity, preparing it for launch to some other world

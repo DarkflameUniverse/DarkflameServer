@@ -15,7 +15,6 @@ public:
 	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(const LWOOBJID& parentEntityId);
-	~BouncerComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

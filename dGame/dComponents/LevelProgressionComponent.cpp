@@ -6,10 +6,7 @@
 
 #include "CDRewardsTable.h"
 
-LevelProgressionComponent::LevelProgressionComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
-	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
-	
-	m_Parent = parentEntity->GetObjectID(); //TEMP
+LevelProgressionComponent::LevelProgressionComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {
 	m_Level = 1;
 	m_SpeedBase = 500.0f;
 	m_CharacterVersion = eCharacterVersion::LIVE;

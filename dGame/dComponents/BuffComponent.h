@@ -53,8 +53,6 @@ public:
 
 	explicit BuffComponent(const LWOOBJID& parentEntityId) noexcept;
 
-	~BuffComponent() override;
-
 	Entity* GetParent() const;
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;

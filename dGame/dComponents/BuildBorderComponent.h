@@ -19,7 +19,6 @@ public:
 	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUILD_BORDER;
 
 	BuildBorderComponent(const LWOOBJID& entityParentId) noexcept;
-	~BuildBorderComponent() override;
 
 	/**
 	 * Causes the originator to start build with this entity as a reference point

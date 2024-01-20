@@ -21,8 +21,6 @@ BouncerComponent::BouncerComponent(const LWOOBJID& parentEntityId) : Component{ 
 	}
 }
 
-BouncerComponent::~BouncerComponent() {}
-
 void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_PetEnabled);
 	if (m_PetEnabled) {

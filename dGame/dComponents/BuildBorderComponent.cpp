@@ -11,8 +11,6 @@
 
 BuildBorderComponent::BuildBorderComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
-BuildBorderComponent::~BuildBorderComponent() {}
-
 void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {
 		const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");

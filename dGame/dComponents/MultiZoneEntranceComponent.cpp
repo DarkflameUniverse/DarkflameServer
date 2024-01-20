@@ -13,8 +13,6 @@ MultiZoneEntranceComponent::MultiZoneEntranceComponent(const LWOOBJID& parentEnt
 	}
 }
 
-MultiZoneEntranceComponent::~MultiZoneEntranceComponent() {}
-
 void MultiZoneEntranceComponent::OnUse(Entity* originator) {
 	auto* rocket = originator->GetComponent<CharacterComponent>()->RocketEquip(originator);
 	if (!rocket) return;

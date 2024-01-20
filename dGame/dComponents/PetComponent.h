@@ -19,7 +19,6 @@ public:
 	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(const LWOOBJID& parentEntityId, uint32_t componentId);
-	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;

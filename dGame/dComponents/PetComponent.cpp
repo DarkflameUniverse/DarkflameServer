@@ -1052,9 +1052,6 @@ Entity* PetComponent::GetParentEntity() const {
 	return Game::entityManager->GetEntity(m_Parent);
 }
 
-PetComponent::~PetComponent() {
-}
-
 void PetComponent::SetPetNameForModeration(const std::string& petName) {
 	int approved = 1; //default, in mod
 
