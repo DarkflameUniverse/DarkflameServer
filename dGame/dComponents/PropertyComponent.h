@@ -1,21 +1,14 @@
 /*
  * Darkflame Universe
- * Copyright 2018
+ * Copyright 2024
  */
 
 #ifndef PROPERTYCOMPONENT_H
 #define PROPERTYCOMPONENT_H
 
-#include "BitStream.h"
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
-
-struct PropertyState {
-	LWOOBJID ownerID;
-	LWOOBJID propertyID;
-	bool rented;
-};
 
 /**
  * This component is unused and has no functionality
@@ -23,11 +16,7 @@ struct PropertyState {
 class PropertyComponent final : public Component {
 public:
 	constexpr static eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
-	explicit PropertyComponent(Entity* parentEntity);
-	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState.get(); };
-private:
-	std::unique_ptr<PropertyState> m_PropertyState;
-	std::string m_PropertyName;
+	explicit PropertyComponent(Entity* parentEntity) noexcept : Component{ parentEntity } {}
 };
 
-#endif // PROPERTYCOMPONENT_H
+#endif // !PROPERTYCOMPONENT_H
