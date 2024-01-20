@@ -103,7 +103,7 @@ void GameMessages::PropertyDataMessage::Serialize(RakNet::BitStream& stream) con
 }
 
 GameMessages::PropertyDataMessage::PropertyDataMessage(uint32_t mapID) {
-	const auto propertyTemplate = CDClientManager::Instance().GetTable<CDPropertyTemplateTable>()->GetByMapID(mapID);
+	const auto propertyTemplate = CDClientManager::GetTable<CDPropertyTemplateTable>()->GetByMapID(mapID);
 
 	TemplateID = propertyTemplate.id;
 	ZoneId = propertyTemplate.mapID;

@@ -40,7 +40,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 	m_State = eMissionState::UNKNOWN;
 
-	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
 
 	auto* mis = missionsTable->GetPtrByMissionID(missionId);
 	info = *mis;
@@ -51,7 +51,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 		return;
 	}
 
-	auto* tasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
+	auto* tasksTable = CDClientManager::GetTable<CDMissionTasksTable>();
 
 	auto tasks = tasksTable->GetByMissionID(missionId);
 
@@ -179,7 +179,7 @@ void Mission::UpdateXml(tinyxml2::XMLElement* element) {
 }
 
 bool Mission::IsValidMission(const uint32_t missionId) {
-	auto* table = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* table = CDClientManager::GetTable<CDMissionsTable>();
 
 	const auto missions = table->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -189,7 +189,7 @@ bool Mission::IsValidMission(const uint32_t missionId) {
 }
 
 bool Mission::IsValidMission(const uint32_t missionId, CDMissions& info) {
-	auto* table = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* table = CDClientManager::GetTable<CDMissionsTable>();
 
 	const auto missions = table->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -333,7 +333,7 @@ void Mission::Complete(const bool yieldRewards) {
 
 	missionComponent->Progress(eMissionTaskType::RACING, info.id, static_cast<LWOOBJID>(eRacingTaskParam::COMPLETE_TRACK_TASKS));
 
-	auto* missionEmailTable = CDClientManager::Instance().GetTable<CDMissionEmailTable>();
+	auto* missionEmailTable = CDClientManager::GetTable<CDMissionEmailTable>();
 
 	const auto missionId = GetMissionId();
 

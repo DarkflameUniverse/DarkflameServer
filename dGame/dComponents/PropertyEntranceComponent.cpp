@@ -18,7 +18,7 @@
 PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent) {
 	this->propertyQueries = {};
 
-	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
+	auto table = CDClientManager::GetTable<CDPropertyEntranceComponentTable>();
 	const auto& entry = table->GetByID(componentID);
 
 	this->m_MapID = entry.mapID;

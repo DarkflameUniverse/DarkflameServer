@@ -1896,7 +1896,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "setrewardcode" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+		auto* cdrewardCodes = CDClientManager::GetTable<CDRewardCodesTable>();
 
 		auto id = cdrewardCodes->GetCodeID(args[0]);
 		if (id != -1) Database::Get()->InsertRewardCode(user->GetAccountID(), id);
@@ -1957,7 +1957,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		Game::entityManager->SerializeEntity(closest);
 
-		auto* table = CDClientManager::Instance().GetTable<CDObjectsTable>();
+		auto* table = CDClientManager::GetTable<CDObjectsTable>();
 
 		const auto& info = table->GetByID(closest->GetLOT());
 

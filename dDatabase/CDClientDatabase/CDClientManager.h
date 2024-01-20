@@ -9,10 +9,7 @@
 /**
  * Initialize the CDClient tables so they are all loaded into memory.
  */
-class CDClientManager : public Singleton<CDClientManager> {
-public:
-	CDClientManager() = default;
-
+namespace CDClientManager {
 	void LoadValuesFromDatabase();
 	void LoadValuesFromDefaults();
 

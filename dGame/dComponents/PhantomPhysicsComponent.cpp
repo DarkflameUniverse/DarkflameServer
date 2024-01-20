@@ -143,10 +143,10 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 	*/
 
 	if (!m_HasCreatedPhysics) {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+		CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 
@@ -260,10 +260,10 @@ void PhantomPhysicsComponent::CreatePhysics() {
 		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
 		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
 	} else {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
 
-		CDPhysicsComponentTable* physComp = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+		CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 		if (physComp == nullptr) return;
 

@@ -26,7 +26,7 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 	if (!result.eof()) {
 		auto animationGroupIDs = std::string(result.getStringField("animationGroupIDs", ""));
 		if (!animationGroupIDs.empty()) {
-			auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+			auto* animationsTable = CDClientManager::GetTable<CDAnimationsTable>();
 			auto groupIdsSplit = GeneralUtils::SplitString(animationGroupIDs, ',');
 			for (auto& groupId : groupIdsSplit) {
 				int32_t groupIdInt;
@@ -218,7 +218,7 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 	auto* renderComponent = self->GetComponent<RenderComponent>();
 	if (!renderComponent) return returnlength;
 
-	auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+	auto* animationsTable = CDClientManager::GetTable<CDAnimationsTable>();
 	for (auto& groupId : renderComponent->m_animationGroupIds) {
 		auto animationGroup = animationsTable->GetAnimation(animation, renderComponent->GetLastAnimationName(), groupId);
 		if (animationGroup.FoundData()) {

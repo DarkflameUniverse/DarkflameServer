@@ -769,7 +769,7 @@ void CharacterComponent::AwardClaimCodes() {
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
 	if (rewardCodes.empty()) return;
 
-	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
+	auto* cdrewardCodes = CDClientManager::GetTable<CDRewardCodesTable>();
 	for (auto const rewardCode : rewardCodes) {
 		LOG_DEBUG("Processing RewardCode %i", rewardCode);
 		const uint32_t rewardCodeIndex = rewardCode >> 6;
