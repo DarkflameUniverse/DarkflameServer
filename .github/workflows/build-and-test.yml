@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, ConstexprNiTypes ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, ConstexprNiTypes ]
+    branches: [ main ]
 
 jobs:
   build-and-test:
