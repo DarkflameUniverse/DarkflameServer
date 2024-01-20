@@ -22,7 +22,7 @@ struct PropertyState {
  */
 class PropertyComponent final : public Component {
 public:
-	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
+	constexpr static eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* parentEntity);
 	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState.get(); };
 private:
