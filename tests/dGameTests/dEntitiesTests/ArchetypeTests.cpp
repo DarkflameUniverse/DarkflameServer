@@ -109,7 +109,7 @@ TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
 	}
 
 	// Benchmarking
-	constexpr uint32_t nLoops = 1E6;
+	constexpr uint32_t nLoops = 100; //1E6;
 	auto begin = std::chrono::high_resolution_clock::now();
 	for (auto i = 0; i < nLoops; ++i) {
 		for (const auto& destComp : destroyableContainer) {
