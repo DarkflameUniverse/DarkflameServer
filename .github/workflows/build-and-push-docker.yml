@@ -10,6 +10,7 @@ on:
   pull_request:
     branches:
       - "main"
+      - "RemoveEntityPointers"
 
 env:
   REGISTRY: ghcr.io
