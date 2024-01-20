@@ -16,6 +16,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 
+#include "dNavMesh.h"
+
 namespace {
 	/**
 	 * Cache of all lots and their respective speeds
@@ -169,8 +171,8 @@ NiPoint3 MovementAIComponent::ApproximateLocation() const {
 
 	auto approximation = source + ((destination - source) * percentageToWaypoint);
 
-	if (dpWorld::Instance().IsLoaded()) {
-		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
+	if (dpWorld::IsLoaded()) {
+		approximation.y = dpWorld::GetNavMesh()->GetHeightAtPoint(approximation);
 	}
 
 	return approximation;
@@ -181,8 +183,8 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	NiPoint3 destination = point;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(point);
 
 		if (std::abs(destination.y - point.y) > 3) {
 			return false;
@@ -302,8 +304,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	}
 
 	std::vector<NiPoint3> computedPath;
-	if (dpWorld::Instance().IsLoaded()) {
-		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(Game::entityManager->GetEntity(m_Parent)->GetPosition(), destination, m_Info.wanderSpeed);
+	if (dpWorld::IsLoaded()) {
+		computedPath = dpWorld::GetNavMesh()->GetPath(Game::entityManager->GetEntity(m_Parent)->GetPosition(), destination, m_Info.wanderSpeed);
 	}
 
 	// Somehow failed
@@ -328,8 +330,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 
 	// Simply path
 	for (auto& point : computedPath) {
-		if (dpWorld::Instance().IsLoaded()) {
-			point.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
+		if (dpWorld::IsLoaded()) {
+			point.y = dpWorld::GetNavMesh()->GetHeightAtPoint(point);
 		}
 
 		m_InterpolatedWaypoints.push_back(point);

@@ -25,6 +25,7 @@
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
+#include "eChatMessageType.h"
 
 //Component includes:
 #include "Component.h"
@@ -860,9 +861,20 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 
 	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (character) character->SetGMLevel(value);
+	if (!character) return;
+	character->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
+
+	// Update the chat server of our GM Level
+	{
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		bitStream.Write(m_ObjectID);
+		bitStream.Write(m_GMLevel);
+
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
 }
 
 void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
@@ -2129,9 +2141,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
 	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
-	auto* player = static_cast<Player*>(this);
-	player->SetGhostReferencePoint(update.position);
-	Game::entityManager->QueueGhostUpdate(player->GetObjectID());
+	auto* ghostComponent = GetComponent<GhostComponent>();
+	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(m_ObjectID);
 }

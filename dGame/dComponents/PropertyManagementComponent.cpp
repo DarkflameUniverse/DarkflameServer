@@ -21,6 +21,7 @@
 #include "eMissionTaskType.h"
 #include "eObjectBits.h"
 #include "CharacterComponent.h"
+#include "PlayerManager.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -227,7 +228,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	if (ownerEntity == nullptr) return;
 
-	const auto players = Player::GetAllPlayers();
+	const auto players = PlayerManager::GetAllPlayers();
 
 	LWOMAPID zoneId = 1100;
 

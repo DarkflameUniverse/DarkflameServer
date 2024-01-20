@@ -25,6 +25,7 @@
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
+#include "dNavMesh.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id) : Component{ parentEntityId } {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
@@ -128,17 +129,17 @@ BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, con
 	m_dpEntity->SetPosition(parentEntity->GetPosition());
 	m_dpEntityEnemy->SetPosition(parentEntity->GetPosition());
 
-	dpWorld::Instance().AddEntity(m_dpEntity);
-	dpWorld::Instance().AddEntity(m_dpEntityEnemy);
+	dpWorld::AddEntity(m_dpEntity);
+	dpWorld::AddEntity(m_dpEntityEnemy);
 
 }
 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
 	if (m_dpEntity)
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+		dpWorld::RemoveEntity(m_dpEntity);
 
 	if (m_dpEntityEnemy)
-		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
+		dpWorld::RemoveEntity(m_dpEntityEnemy);
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
@@ -651,8 +652,8 @@ void BaseCombatAIComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {

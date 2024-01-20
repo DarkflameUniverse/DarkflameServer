@@ -78,6 +78,7 @@
 #include "RailActivatorComponent.h"
 #include "LevelProgressionComponent.h"
 #include "DonationVendorComponent.h"
+#include "GhostComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -96,6 +97,7 @@
 #include "eGameMessageType.h"
 #include "ePetAbilityType.h"
 #include "ActivityManager.h"
+#include "PlayerManager.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -626,6 +628,25 @@ void GameMessages::SendUIMessageServerToSingleClient(const LWOOBJID entityId, co
 // Compatibility shim
 void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
 	GameMessages::SendUIMessageServerToSingleClient(entity->GetObjectID(), entity->GetSystemAddress(), message, args);
+}
+
+void GameMessages::SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	LWOOBJID empty = 0;
+	bitStream.Write(empty);
+	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_ALL_CLIENTS); // This is intentional to allow the server to send a ui message to a client via their system address.
+
+	bitStream.Write<AMFBaseValue&>(args);
+	uint32_t strMessageNameLength = message.size();
+	bitStream.Write(strMessageNameLength);
+
+	for (uint32_t k = 0; k < strMessageNameLength; k++) {
+		bitStream.Write<char>(message[k]);
+	}
+
+	SEND_PACKET;
 }
 
 void GameMessages::SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args) {
@@ -2720,7 +2741,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entit
 		filterText.push_back(c);
 	}
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 
@@ -2747,7 +2768,7 @@ void GameMessages::HandleEnterProperty(RakNet::BitStream* inStream, Entity* enti
 	inStream->Read(index);
 	inStream->Read(returnToZone);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	auto* entranceComponent = entity->GetComponent<PropertyEntranceComponent>();
 	if (entranceComponent != nullptr) {
@@ -4633,10 +4654,11 @@ void GameMessages::HandleToggleGhostReferenceOverride(RakNet::BitStream* inStrea
 
 	inStream->Read(bOverride);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverride(bOverride);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverride(bOverride);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
@@ -4648,10 +4670,11 @@ void GameMessages::HandleSetGhostReferencePosition(RakNet::BitStream* inStream, 
 
 	inStream->Read(position);
 
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (player != nullptr) {
-		player->SetGhostOverridePoint(position);
+		auto* ghostComponent = entity->GetComponent<GhostComponent>();
+		if (ghostComponent) ghostComponent->SetGhostOverridePoint(position);
 
 		Game::entityManager->UpdateGhosting(player);
 	}
@@ -4912,7 +4935,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 	inStream->Read(senderID);
 
 	auto* sender = Game::entityManager->GetEntity(senderID);
-	auto* player = Player::GetPlayer(sysAddr);
+	auto* player = PlayerManager::GetPlayer(sysAddr);
 
 	if (!player) {
 		return;

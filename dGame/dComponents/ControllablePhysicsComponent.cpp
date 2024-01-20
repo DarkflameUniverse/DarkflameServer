@@ -58,13 +58,13 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(const LWOOBJID& paren
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent, radius, false);
 		m_dpEntity->SetCollisionGroup(COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_FRIENDLY);
-		dpWorld::Instance().AddEntity(m_dpEntity);
+		dpWorld::AddEntity(m_dpEntity);
 	}
 }
 
 ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 	if (m_dpEntity) {
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+		dpWorld::RemoveEntity(m_dpEntity);
 	}
 }
 

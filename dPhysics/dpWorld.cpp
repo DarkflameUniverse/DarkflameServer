@@ -9,6 +9,21 @@
 #include "Logger.h"
 #include "dConfig.h"
 
+#include "dNavMesh.h"
+
+namespace {
+	dpGrid* m_Grid = nullptr;
+	dNavMesh* m_NavMesh = nullptr;
+	int32_t phys_sp_tilesize = 205;
+	int32_t phys_sp_tilecount = 12;
+
+	uint32_t m_ZoneID = 0;
+
+	std::vector<dpEntity*> m_StaticEntities;
+	std::vector<dpEntity*> m_DynamicEntites;
+	bool phys_spatial_partitioning = true;
+};
+
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
 	const auto physSpTilecount = Game::config->GetValue("phys_sp_tilecount");
 	if (!physSpTilecount.empty()) GeneralUtils::TryParse(physSpTilecount, phys_sp_tilecount);
@@ -51,7 +66,7 @@ void dpWorld::Reload() {
 	}
 }
 
-dpWorld::~dpWorld() {
+void dpWorld::Shutdown() {
 	if (m_Grid) {
 		// Triple check this is true
 		m_Grid->SetDeleteGrid(true);
@@ -63,6 +78,10 @@ dpWorld::~dpWorld() {
 		delete m_NavMesh;
 		m_NavMesh = nullptr;
 	}
+}
+
+bool dpWorld::IsLoaded() {
+	return m_NavMesh->GetdtNavMesh() != nullptr;
 }
 
 void dpWorld::StepWorld(float deltaTime) {
@@ -89,6 +108,10 @@ void dpWorld::StepWorld(float deltaTime) {
 			other->CheckCollision(entity); //swap "other" and "entity" if you want dyn objs to handle collisions.
 		}
 	}
+}
+
+dNavMesh* dpWorld::GetNavMesh() {
+	return m_NavMesh;
 }
 
 void dpWorld::AddEntity(dpEntity* entity) {
@@ -125,7 +148,7 @@ void dpWorld::RemoveEntity(dpEntity* entity) {
 	}
 }
 
-bool dpWorld::ShouldUseSP(unsigned int zoneID) {
+bool dpWorld::ShouldUseSP(uint32_t zoneID) {
 	if (!phys_spatial_partitioning) return false;
 
 	// TODO: Add to this list as needed.
