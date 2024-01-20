@@ -55,14 +55,14 @@ namespace GameMessages {
 		const SystemAddress& sysAddr,
 		bool bFirstTime = true,
 		const LWOOBJID& buildAreaID = LWOOBJID_EMPTY,
-		NiPoint3 buildStartPOS = NiPoint3::ZERO,
+		NiPoint3 buildStartPOS = NiPoint3Constant::ZERO,
 		int sourceBAG = 0,
 		const LWOOBJID& sourceID = LWOOBJID_EMPTY,
 		LOT sourceLOT = 0,
 		int sourceTYPE = 8,
 		const LWOOBJID& targetID = 0,
 		LOT targetLOT = 0,
-		NiPoint3 targetPOS = NiPoint3::ZERO,
+		NiPoint3 targetPOS = NiPoint3Constant::ZERO,
 		int targetTYPE = 0
 	);
 
@@ -127,7 +127,7 @@ namespace GameMessages {
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
 
-	void SendDropClientLoot(Entity* entity, const LWOOBJID sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3::ZERO, int count = 1);
+	void SendDropClientLoot(Entity* entity, const LWOOBJID sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3Constant::ZERO, int count = 1);
 	void SendDropClientLoot(const LWOOBJID entityId, const LWOOBJID sourceId, const LOT item, const int currency, const NiPoint3 spawnPos, const int count, const SystemAddress& sysAddr);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
@@ -245,7 +245,7 @@ namespace GameMessages {
 
 	void SendLockNodeRotation(Entity* entity, std::string nodeName);
 
-	void SendSetBuildModeConfirmed(LWOOBJID objectId, const SystemAddress& sysAddr, bool start, bool warnVisitors, bool modePaused, int32_t modeValue, LWOOBJID playerId, NiPoint3 startPos = NiPoint3::ZERO);
+	void SendSetBuildModeConfirmed(LWOOBJID objectId, const SystemAddress& sysAddr, bool start, bool warnVisitors, bool modePaused, int32_t modeValue, LWOOBJID playerId, NiPoint3 startPos = NiPoint3Constant::ZERO);
 
 	void SendGetModelsOnProperty(LWOOBJID objectId, std::map<LWOOBJID, LWOOBJID> models, const SystemAddress& sysAddr);
 

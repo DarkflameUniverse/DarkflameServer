@@ -54,8 +54,8 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_SystemAddress = m_ParentUser->GetSystemAddress();
 	m_DroppedCoins = 0;
 
-	m_GhostReferencePoint = NiPoint3::ZERO;
-	m_GhostOverridePoint = NiPoint3::ZERO;
+	m_GhostReferencePoint = NiPoint3Constant::ZERO;
+	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
 
 	int32_t initialObservedEntitiesCapacity = 256;

@@ -10,6 +10,8 @@ set(DCOMMON_SOURCES
 		"LDFFormat.cpp"
 		"MD5.cpp"
 		"Metrics.cpp"
+		"NiPoint3.cpp"
+		"NiQuaternion.cpp"
 		"SHA512.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
@@ -17,6 +19,12 @@ set(DCOMMON_SOURCES
 		"BinaryPathFinder.cpp"
 		"FdbToSqlite.cpp"
 )
+
+# Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97185
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set_source_files_properties("FdbToSqlite.cpp" PROPERTIES COMPILE_FLAGS "-Wno-stringop-overflow")
+endif()
 
 add_subdirectory(dClient)
 

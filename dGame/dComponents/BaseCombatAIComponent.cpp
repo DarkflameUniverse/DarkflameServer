@@ -26,8 +26,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id): Component{ parentEntityId } {
-	auto* parentEntity const = Game::entityManager->GetEntity(m_Parent);
+BaseCombatAIComponent::BaseCombatAIComponent(const LWOOBJID& parentEntityId, const uint32_t id) : Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
 	m_Target = LWOOBJID_EMPTY;
 	SetAiState(AiState::spawn);
@@ -185,7 +185,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now
 
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = parentEntity->GetPosition();
 	}
 

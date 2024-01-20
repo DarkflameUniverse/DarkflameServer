@@ -83,7 +83,7 @@ PetComponent::PetComponent(const LWOOBJID& parentEntityId, uint32_t componentId)
 	m_DatabaseId = LWOOBJID_EMPTY;
 	m_Status = 67108866; // Tamable
 	m_Ability = ePetAbilityType::Invalid;
-	m_StartPosition = NiPoint3::ZERO;
+	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
 	m_TresureTime = 0;
 	m_Preconditions = nullptr;
@@ -305,7 +305,7 @@ void PetComponent::OnUse(Entity* originator) {
 void PetComponent::Update(float deltaTime) {
 	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = parentEntity->GetPosition();
 	}
 
@@ -436,7 +436,7 @@ void PetComponent::Update(float deltaTime) {
 		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
-			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
+			Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
 
 			m_TresureTime = 2;
 		} else if (distance < 10 * 10) {
@@ -521,7 +521,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	EntityInfo info{};
 	info.lot = cached->second.puzzleModelLot;
 	info.pos = position;
-	info.rot = NiQuaternion::IDENTITY;
+	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
 
 	auto* modelEntity = Game::entityManager->CreateEntity(info);
@@ -579,9 +579,9 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		LWOOBJID_EMPTY,
 		false,
 		ePetTamingNotifyType::NAMINGPET,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -658,9 +658,9 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::SUCCESS,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -700,9 +700,9 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::QUIT,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -749,9 +749,9 @@ void PetComponent::ClientFailTamingMinigame() {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::FAILED,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 

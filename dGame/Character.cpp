@@ -451,7 +451,7 @@ void Character::LoadXmlRespawnCheckpoints() {
 	auto* r = points->FirstChildElement("r");
 	while (r != nullptr) {
 		int32_t map = 0;
-		NiPoint3 point = NiPoint3::ZERO;
+		NiPoint3 point = NiPoint3Constant::ZERO;
 
 		r->QueryAttribute("w", &map);
 		r->QueryAttribute("x", &point.x);
@@ -513,7 +513,7 @@ void Character::SetRespawnPoint(LWOMAPID map, const NiPoint3& point) {
 const NiPoint3& Character::GetRespawnPoint(LWOMAPID map) const {
 	const auto& pair = m_WorldRespawnCheckpoints.find(map);
 
-	if (pair == m_WorldRespawnCheckpoints.end()) return NiPoint3::ZERO;
+	if (pair == m_WorldRespawnCheckpoints.end()) return NiPoint3Constant::ZERO;
 
 	return pair->second;
 }

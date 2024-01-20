@@ -119,8 +119,8 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
-	auto startPosition = NiPoint3::ZERO;
-	auto startRotation = NiQuaternion::IDENTITY;
+	auto startPosition = NiPoint3Constant::ZERO;
+	auto startRotation = NiQuaternionConstant::IDENTITY;
 	const std::string placementAsString = std::to_string(positionNumber);
 	for (auto entity : spawnPointEntities) {
 		if (!entity) continue;
@@ -812,7 +812,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Some offset up to make they don't fall through the terrain on a
 			// respawn, seems to fix itself to the track anyhow
-			player.respawnPosition = position + NiPoint3::UNIT_Y * 5;
+			player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
 			player.respawnRotation = vehicle->GetRotation();
 			player.respawnIndex = respawnIndex;
 
