@@ -2,10 +2,8 @@
 #include "GameMessages.h"
 #include "dZoneManager.h"
 
-PropertyComponent::PropertyComponent(Entity* parent) : Component(parent) {
-	m_PropertyName = parent->GetVar<std::string>(u"propertyName");
-	m_PropertyState = new PropertyState();
+PropertyComponent::PropertyComponent(Entity* parentEntity)
+	: Component{ parentEntity }
+	, m_PropertyName{ parentEntity->GetVar<std::string>(u"propertyName") }
+	, m_PropertyState{ std::make_unique<PropertyState>() } {
 }
-
-PropertyComponent::~PropertyComponent() = default;
-

@@ -56,10 +56,9 @@ struct Effect {
  */
 class RenderComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* entity, int32_t componentId = -1);
-	~RenderComponent() override;
+	RenderComponent(Entity* parentEntity, const int32_t componentId = -1);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
@@ -100,12 +99,6 @@ public:
 	void StopEffect(const std::string& name, bool killImmediate = true);
 
 	/**
-	 * Returns the list of currently active effects
-	 * @return
-	 */
-	std::vector<Effect*>& GetEffects();
-
-	/**
 	 * Verifies that an animation can be played on this entity by checking
 	 * if it has the animation assigned to its group.  If it does, the animation is echo'd
 	 * down to all clients to be played and the duration of the played animation is returned.
@@ -136,7 +129,7 @@ private:
 	/**
 	 * List of currently active effects
 	 */
-	std::vector<Effect*> m_Effects;
+	std::vector<std::unique_ptr<Effect>> m_Effects;
 
 	std::vector<int32_t> m_animationGroupIds;
 

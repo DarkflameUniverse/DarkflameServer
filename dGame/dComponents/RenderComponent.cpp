@@ -14,8 +14,8 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component(parent) {
-	m_Effects = std::vector<Effect*>();
+RenderComponent::RenderComponent(Entity* parentEntity, const int32_t componentId): Component{ parentEntity } {
+	m_Effects = std::vector<std::unique_ptr<Effect>>();
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
 
@@ -42,23 +42,12 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 	result.finalize();
 }
 
-RenderComponent::~RenderComponent() {
-	for (Effect* eff : m_Effects) {
-		if (eff) {
-			delete eff;
-			eff = nullptr;
-		}
-	}
-
-	m_Effects.clear();
-}
-
 void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 
 	outBitStream->Write<uint32_t>(m_Effects.size());
 
-	for (Effect* eff : m_Effects) {
+	for (auto& eff : m_Effects) {
 		// we still need to write 0 as the size for name if it is a nullptr
 		if (!eff) {
 			outBitStream->Write<uint8_t>(0);
@@ -82,27 +71,29 @@ void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 }
 
 Effect* RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority) {
-	auto* eff = new Effect();
+	auto eff = std::make_unique<Effect>();
 
 	eff->effectID = effectId;
 	eff->name = name;
 	eff->type = type;
 	eff->priority = priority;
-	m_Effects.push_back(eff);
 
-	return eff;
+	auto* nonOwningPtr = eff.get();
+	m_Effects.push_back(std::move(eff));
+
+	return nonOwningPtr;
 }
 
 void RenderComponent::RemoveEffect(const std::string& name) {
 	uint32_t index = -1;
 
 	for (auto i = 0u; i < m_Effects.size(); ++i) {
-		auto* eff = m_Effects[i];
+		auto& eff = m_Effects[i];
 
 		if (eff->name == name) {
 			index = i;
 
-			delete eff;
+			eff.reset(); // Delete effect
 
 			break;
 		}
@@ -118,7 +109,7 @@ void RenderComponent::RemoveEffect(const std::string& name) {
 void RenderComponent::Update(const float deltaTime) {
 	std::vector<Effect*> dead;
 
-	for (auto* effect : m_Effects) {
+	for (auto& effect : m_Effects) {
 		if (effect->time == 0) {
 			continue; // Skip persistent effects
 		}
@@ -126,7 +117,7 @@ void RenderComponent::Update(const float deltaTime) {
 		const auto result = effect->time - deltaTime;
 
 		if (result <= 0) {
-			dead.push_back(effect);
+			dead.push_back(effect.get());
 
 			continue;
 		}
@@ -185,11 +176,6 @@ void RenderComponent::StopEffect(const std::string& name, const bool killImmedia
 
 	RemoveEffect(name);
 }
-
-std::vector<Effect*>& RenderComponent::GetEffects() {
-	return m_Effects;
-}
-
 
 float RenderComponent::PlayAnimation(Entity* self, const std::u16string& animation, float priority, float scale) {
 	if (!self) return 0.0f;

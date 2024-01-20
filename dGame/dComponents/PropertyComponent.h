@@ -22,12 +22,11 @@ struct PropertyState {
  */
 class PropertyComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* parentEntity);
-	~PropertyComponent() override;
-	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState; };
+	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState.get(); };
 private:
-	PropertyState* m_PropertyState;
+	std::unique_ptr<PropertyState> m_PropertyState;
 	std::string m_PropertyName;
 };
 
