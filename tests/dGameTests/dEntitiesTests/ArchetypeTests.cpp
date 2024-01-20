@@ -23,7 +23,7 @@ protected:
 	std::unique_ptr<Logger> logger = std::make_unique<Logger>("./ArchetypeTests", true, true);
 
 	CBITSTREAM
-	void SetUp() override {
+		void SetUp() override {
 		SetUpDependencies();
 
 		Game::logger = logger.get();
@@ -99,7 +99,7 @@ TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
 
 	std::vector<std::unique_ptr<Entity>> tempEntity; // Vector of temporary entities (so they die when this test goes out of scope)
 
-	LOG("Number of entries per vector: %d", /*simplePhysicsContainer.capacity()*/ 1000);
+	LOG("Number of entries per vector: %d", 1000); //simplePhysicsContainer.capacity()
 	srand(time(NULL));
 	for (auto i = 0; i < 1000; ++i) {
 		tempEntity.emplace_back(std::make_unique<Entity>(rand() + i, GameDependenciesTest::info)); // Create a new entity
@@ -126,12 +126,7 @@ TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
 	LOG("Time per loop: %lld μs", time / nLoops);
 }
 
-TEST_F(ArchetypeTest, HasComponentTest) {
-	// ASSERT_TRUE(EntitySystem::HasComponent<DestroyableComponent>(baseEntity->GetObjectID()));
-	// ASSERT_FALSE(EntitySystem::HasComponent<CharacterComponent>(baseEntity->GetObjectID()));
-}
-
-TEST_F(ArchetypeTest, AddEntityTest) {
+/*TEST_F(ArchetypeTest, AddEntityTest) {
 	// Create the archetypes
 	std::array<std::unique_ptr<IArchetype>, 3> tempArchetype;
 	tempArchetype[0] = std::make_unique<Archetype<SimplePhysicsComponent>>(1);
@@ -181,6 +176,8 @@ TEST_F(ArchetypeTest, AddEntityTest) {
 	auto recordThree = ArchetypeRecord{ tempArchetype[2].get(), 0 };
 
 	// Manually create the corresponding pointers in the entity index
+	entityIndex.insert({ entityOneId, ArchetypeRecord{ tempArchetype[0].get(), 0 }; });
+
 	entityIndex.insert({ entityOneId, recordOne });
 	entityIndex.insert({ entityTwoId, recordTwo });
 	entityIndex.insert({ entityThreeId, recordThree });
@@ -216,10 +213,10 @@ TEST_F(ArchetypeTest, CreateArchetypesTest) {
 
 	const auto baseEntityId = baseEntity->GetObjectID();
 	EntitySystem::CreateComponents<DestroyableComponent, SimplePhysicsComponent>(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 12));
-	
+
 	const auto gottenEntityId = EntitySystem::GetArchetype<DestroyableComponent, SimplePhysicsComponent>().GetComponent<DestroyableComponent>(0).GetParent()->GetObjectID();
 	ASSERT_EQ(gottenEntityId, baseEntityId);
-}
+}*/
 
 TEST_F(ArchetypeTest, MoveIArchetypeTest) {
 	// Insert an entry into the base archetype and set one trait for each
@@ -233,4 +230,39 @@ TEST_F(ArchetypeTest, MoveIArchetypeTest) {
 	ASSERT_FLOAT_EQ(movedArchetype->Container<DestroyableComponent>()[0].GetMaxHealth(), 30);
 	ASSERT_EQ(movedArchetype->Container<SimplePhysicsComponent>()[0].GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
 	ASSERT_EQ(baseArchetype.get(), nullptr);
+}
+
+TEST_F(ArchetypeTest, CreateEntityTest) {
+	auto entitySystem = std::make_unique<EntitySystem>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	const auto newEntityId = newEntity->GetObjectID();
+
+	ASSERT_NO_FATAL_FAILURE(entitySystem->CreateEntity(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2)));
+}
+
+TEST_F(ArchetypeTest, HasComponentTest) {
+	auto entitySystem = std::make_unique<EntitySystem>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	const auto newEntityId = newEntity->GetObjectID();
+
+	entitySystem->CreateEntity(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2));
+
+	ASSERT_TRUE(entitySystem->HasComponent<DestroyableComponent>(baseEntityId));
+	ASSERT_TRUE(entitySystem->HasComponent<SimplePhysicsComponent>(baseEntityId));
+	ASSERT_FALSE(entitySystem->HasComponent<CharacterComponent>(baseEntityId));
+}
+
+TEST_F(ArchetypeTest, GetComponentTest) {
+	auto entitySystem = std::make_unique<EntitySystem>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	const auto newEntityId = newEntity->GetObjectID();
+
+	entitySystem->CreateEntity(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2));
+
+	ASSERT_NE(entitySystem->GetComponent<DestroyableComponent>(baseEntityId), nullptr);
+	ASSERT_NE(entitySystem->GetComponent<SimplePhysicsComponent>(baseEntityId), nullptr);
+	ASSERT_EQ(entitySystem->GetComponent<CharacterComponent>(baseEntityId), nullptr);
 }

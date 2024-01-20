@@ -91,6 +91,14 @@ public:
 	}
 
 	/**
+	 * Get the size of the archetype (by taking the size of the first member container)
+	 * @returns The size of the archetype's containers
+	*/
+	constexpr size_t size() noexcept {
+		return std::get<0>(m_Components).size();
+	}
+
+	/**
 	 * Get a reference to the component container of an archetype.
 	 * @returns A reference to the archetype's container of components
 	*/
@@ -137,6 +145,9 @@ public:
 	 * Contains the number of component types an archetype consists of
 	*/
 	static constexpr size_t numTypes = sizeof...(CTypes);
+
+	template<ComponentType CType>
+	struct contains : std::disjunction<std::is_same<CType, CTypes>...> {};
 
 private:
 	/**
