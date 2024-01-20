@@ -67,11 +67,11 @@ public:
 
 private:
 
-	std::vector<MusicCue> m_MusicCues{};
-	std::vector<MusicParameter> m_MusicParameters{};
-	std::vector<GUIDResults> m_2DAmbientSounds{};
-	std::vector<GUIDResults> m_3DAmbientSounds{};
-	std::vector<MixerProgram> m_MixerPrograms{};
+	std::vector<MusicCue> m_MusicCues;
+	std::vector<MusicParameter> m_MusicParameters;
+	std::vector<GUIDResults> m_2DAmbientSounds;
+	std::vector<GUIDResults> m_3DAmbientSounds;
+	std::vector<MixerProgram> m_MixerPrograms;
 
 	bool m_Dirty = false;
 };
