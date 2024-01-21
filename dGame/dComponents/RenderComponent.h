@@ -78,7 +78,7 @@ public:
 	 * @param priority the priority of the effect
 	 * @return if successful, the effect that was created
 	 */
-	Effect& AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority);
+	[[maybe_unused]] Effect& AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority);
 
 	/**
 	 * Removes an effect for this entity
@@ -125,10 +125,10 @@ public:
 
 	static float PlayAnimation(Entity* self, const std::u16string& animation, float priority = 0.0f, float scale = 1.0f);
 	static float PlayAnimation(Entity* self, const std::string& animation, float priority = 0.0f, float scale = 1.0f);
-	static float GetAnimationTime(Entity* self, const std::string& animation);
-	static float GetAnimationTime(Entity* self, const std::u16string& animation);
+	[[nodiscard]] static float GetAnimationTime(Entity* self, const std::string& animation);
+	[[nodiscard]] static float GetAnimationTime(Entity* self, const std::u16string& animation);
 
-	const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
+	[[nodiscard]] const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
 	void SetLastAnimationName(const std::string& name) { m_LastAnimationName = name; };
 
 private:
