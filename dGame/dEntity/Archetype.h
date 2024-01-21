@@ -141,7 +141,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] static constexpr bool HasComponent() noexcept {
-		return std::disjunction_v<std::is_same<CType, CTypes>...>;
+		return (std::is_same_v<CType, CTypes> || ...); //std::disjunction_v<std::is_same<CType, CTypes>...>;
 	}
 
 	/**
