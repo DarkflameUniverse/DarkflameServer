@@ -15,19 +15,26 @@
 #include "dCommonVars.h"
 #include "ObjectIDManager.h"
 
+/**
+ * Archetype visitor structs (for use with std::visit)
+*/
 namespace {
 	/**
-	 * Archetype visitor structs (for use with std::visit)
+	 * ComponentVisitor struct: Used to perform GetComponent function calls on an archetype using std::visit
 	*/
 	template <ComponentType CType>
 	struct ComponentVisitor {
 		const size_t index;
 
-		explicit ComponentVisitor(const size_t index) noexcept : index{ index } {}
+		explicit constexpr ComponentVisitor(const size_t index) noexcept : index{ index } {}
 
-		CType* const operator()(auto&& archetype) { // There might be a way to use this to do compile-time checking...
+		/**
+		 * The operator() for the ComponentVisitor struct. Used to get components from an archetype
+		 * @returns A const pointer to the component if it is present in the archetype, nullptr if it is not
+		*/
+		constexpr CType* const operator()(auto&& archetype) { // TODO: There might be a way to use this to do compile-time checking...
 			if constexpr (archetype->template HasComponent<CType>()) {
-				return &archetype->template Container<CType>()[index];
+				return &archetype->template GetComponent<CType>(index);
 			} else {
 				return nullptr;
 			}

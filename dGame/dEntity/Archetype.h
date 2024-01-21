@@ -121,7 +121,9 @@ public:
 	 * @param index The archetype container index to delete
 	*/
 	void DeleteComponents(const size_t index) {
-		((Container<CTypes>()[index] = std::move(Container<CTypes>().back()),
+		if (size() < 1) return; // Do not delete if the container is already empty
+
+		((Container<CTypes>().at(index) = std::move(Container<CTypes>().back()),
 			Container<CTypes>().pop_back()), ...);
 	}
 
@@ -132,7 +134,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] CType& GetComponent(const size_t index) {
-		return Container<CType>()[index];
+		return Container<CType>().at(index);
 	}
 
 	/**
@@ -141,7 +143,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] static constexpr bool HasComponent() noexcept {
-		return (std::is_same_v<CType, CTypes> || ...); //std::disjunction_v<std::is_same<CType, CTypes>...>;
+		return std::disjunction_v<std::is_same<CType, CTypes>...>;
 	}
 
 	/**
