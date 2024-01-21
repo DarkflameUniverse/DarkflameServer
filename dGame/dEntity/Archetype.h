@@ -35,7 +35,7 @@ public:
 	 * @returns Boolean value representing whether the component type is present in the archetype
 	*/
 	template <ComponentType CType>
-	bool HasComponent() noexcept {
+	[[nodiscard]] bool HasComponent() noexcept {
 		return m_ContainerPointers.contains(std::type_index(typeid(CType))) != 0;
 	}
 
@@ -94,7 +94,7 @@ public:
 	 * Get the size of the archetype (by taking the size of the first member container)
 	 * @returns The size of the archetype's containers
 	*/
-	constexpr size_t size() noexcept {
+	[[nodiscard]] constexpr size_t size() noexcept {
 		return std::get<0>(m_Components).size();
 	}
 
@@ -140,7 +140,7 @@ public:
 	 * @returns Boolean representing component's presence
 	*/
 	template <ComponentType CType>
-	static constexpr bool HasComponent() {
+	[[nodiscard]] static constexpr bool HasComponent() {
 		return std::disjunction_v<std::is_same<CType, CTypes>...>;
 	}
 

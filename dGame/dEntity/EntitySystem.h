@@ -100,7 +100,7 @@ public:
 	 * Determine if an entity is associated with an Object ID
 	 *
 	*/
-	bool EntityExists(const LWOOBJID entityId) noexcept {
+	[[nodiscard]] bool EntityExists(const LWOOBJID entityId) noexcept {
 		return m_EntityIndex.count(entityId) != 0;
 	}
 
@@ -110,7 +110,7 @@ public:
 	 * @returns Boolean value representing whether component is present
 	*/
 	template <ComponentType CType>
-	bool HasComponent(const LWOOBJID entityId) {
+	[[nodiscard]] bool HasComponent(const LWOOBJID entityId) {
 		const auto& archetypeRecord = m_EntityIndex[entityId];
 		const auto& hasComponentVisitor = [](auto&& archetype) { return archetype->template HasComponent<CType>(); };
 

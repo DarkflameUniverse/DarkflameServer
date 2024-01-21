@@ -125,7 +125,7 @@ TEST_F(ArchetypeTest, ArchetypeDeleteTest) {
 	auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 	LOG("Total time: %lld μs", time);
 	LOG("Time per loop: %lld μs", time / nLoops);
-}
+}*/
 
 /*TEST_F(ArchetypeTest, AddEntityTest) {
 	// Create the archetypes
