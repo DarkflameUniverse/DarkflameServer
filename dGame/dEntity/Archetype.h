@@ -99,6 +99,14 @@ public:
 	}
 
 	/**
+	 * Get if the container is empty (by only checking the first member container)
+	 * @returns Boolean representing whether the container is empty
+	*/
+	[[nodiscard]] constexpr bool empty() noexcept {
+		return std::get<0>(m_Components).empty();
+	}
+
+	/**
 	 * Get a reference to the component container of an archetype.
 	 * @returns A reference to the archetype's container of components
 	*/
@@ -121,7 +129,7 @@ public:
 	 * @param index The archetype container index to delete
 	*/
 	void DeleteComponents(const size_t index) {
-		if (size() < 1) return; // Do not delete if the container is already empty
+		if (empty()) return; // Do not delete if the container is already empty
 
 		((Container<CTypes>().at(index) = std::move(Container<CTypes>().back()),
 			Container<CTypes>().pop_back()), ...);

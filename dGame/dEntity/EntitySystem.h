@@ -33,7 +33,9 @@ namespace {
 		 * @returns A const pointer to the component if it is present in the archetype, nullptr if it is not
 		*/
 		constexpr CType* const operator()(auto&& archetype) { // TODO: There might be a way to use this to do compile-time checking...
-			if constexpr (archetype->template HasComponent<CType>()) {
+			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(archetype)>>;
+			
+			if constexpr (ArchetypeType::template HasComponent<CType>()) {
 				return &archetype->template GetComponent<CType>(index);
 			} else {
 				return nullptr;

@@ -90,7 +90,7 @@ TEST_F(ArchetypeTest, ArchetypeDeleteTest) {
 	// Try deleting elements
 	ASSERT_NO_THROW(baseArchetype->DeleteComponents(0));
 	ASSERT_NO_THROW(baseArchetype->DeleteComponents(0));
-	//Deleting more entries than exist will cause a segfault currently. Wonder if that's actually an issue...
+	ASSERT_NO_THROW(baseArchetype->DeleteComponents(0)); // This is deleting one more entry than exists which should fail harmlessly
 }
 
 /*TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
