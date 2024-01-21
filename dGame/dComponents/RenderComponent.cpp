@@ -16,7 +16,7 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parentEntity, const int32_t componentId) : Component{ parentEntity } {
+RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t componentId) : Component{ parentEntity } {
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
 

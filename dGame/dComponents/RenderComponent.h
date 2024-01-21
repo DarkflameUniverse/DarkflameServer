@@ -19,7 +19,7 @@ class Entity;
 struct Effect {
 	Effect() noexcept : priority{ 1.0f } {}
 
-	explicit Effect(const int32_t effectID, const std::string name, const std::u16string type, const float priority = 1.0f) noexcept
+	explicit Effect(const int32_t effectID, const std::string& name, const std::u16string& type, const float priority = 1.0f) noexcept
 		: effectID{ effectID }
 		, name{ name }
 		, type{ type }
@@ -65,7 +65,7 @@ class RenderComponent final : public Component {
 public:
 	constexpr static eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* parentEntity, const int32_t componentId = -1);
+	RenderComponent(Entity* const parentEntity, const int32_t componentId = -1);
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
