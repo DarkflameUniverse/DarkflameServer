@@ -112,10 +112,9 @@ public:
 	template <ComponentType CType>
 	bool HasComponent(const LWOOBJID entityId) {
 		const auto& archetypeRecord = m_EntityIndex[entityId];
+		const auto& hasComponentVisitor = [](auto&& archetype) { return archetype->template HasComponent<CType>(); };
 
-		return std::visit(
-			[](auto&& archetype) { return archetype->template HasComponent<CType>(); },
-			archetypeRecord.archetypePtr); // Using visitor pattern
+		return std::visit(hasComponentVisitor, archetypeRecord.archetypePtr); // Using visitor pattern
 	}
 
 	/**
@@ -124,12 +123,10 @@ public:
 	 * @returns The pointer if the component exists, or nullptr if it does not
 	*/
 	template <ComponentType CType>
-	CType* const GetComponent(const LWOOBJID entityId) {
+	[[nodiscard]] CType* const GetComponent(const LWOOBJID entityId) {
 		const auto& archetypeRecord = m_EntityIndex[entityId];
 
-		return std::visit(
-			ComponentVisitor<CType>{ archetypeRecord.index },
-			archetypeRecord.archetypePtr); // Using visitor pattern
+		return std::visit(ComponentVisitor<CType>{ archetypeRecord.index }, archetypeRecord.archetypePtr); // Using visitor pattern
 	}
 
 protected:
@@ -138,7 +135,7 @@ protected:
 	 * @param archetypeId The ID to assign to the created archetype
 	*/
 	template <ComponentType... CTypes>
-	Archetype<CTypes...> CreateArchetype(const ArchetypeId archetypeId) { // TODO: Noexcept?
+	[[nodiscard]] Archetype<CTypes...> CreateArchetype(const ArchetypeId archetypeId) { // TODO: Noexcept?
 		(m_ComponentTypeIndex[std::type_index(typeid(CTypes))].insert(archetypeId), ...); // Add the matching types to the component type index
 		return Archetype<CTypes...>{ archetypeId }; // Return the created archetype
 	}
@@ -147,7 +144,7 @@ protected:
 	 * Method to get a reference to an entity archetype given the components it contains
 	*/
 	template <ComponentType... CTypes>
-	Archetype<CTypes...>& GetArchetype() {
+	[[nodiscard]] Archetype<CTypes...>& GetArchetype() {
 		static auto archetype = CreateArchetype<CTypes...>(++m_CurrentArchetypeId);
 		return archetype;
 	}

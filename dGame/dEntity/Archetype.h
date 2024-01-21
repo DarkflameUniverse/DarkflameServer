@@ -44,7 +44,7 @@ public:
 	 * @returns A reference to the component container
 	*/
 	template <ComponentType CType>
-	ContainerType<CType>& Container() {
+	[[nodiscard]] ContainerType<CType>& Container() {
 		return *reinterpret_cast<ContainerType<CType>*>(m_ContainerPointers[std::type_index(typeid(CType))]);
 	}
 
@@ -103,7 +103,7 @@ public:
 	 * @returns A reference to the archetype's container of components
 	*/
 	template <ComponentType CType>
-	constexpr ContainerType<CType>& Container() noexcept {
+	[[nodiscard]] constexpr ContainerType<CType>& Container() noexcept {
 		static_assert(HasComponent<CType>(), "Archetype does not have container of requested component!"); // Compile-time verification
 		return std::get<ContainerType<CType>>(m_Components);
 	}
@@ -121,7 +121,7 @@ public:
 	 * @param index The archetype container index to delete
 	*/
 	void DeleteComponents(const size_t index) {
-		((Container<CTypes>()[index] = std::move(Container<CTypes>().back()),
+		((Container<CTypes>().at(index) = std::move(Container<CTypes>().back()),
 			Container<CTypes>().pop_back()), ...);
 	}
 
@@ -131,8 +131,8 @@ public:
 	 * @returns A reference to the component type specified as a template argument
 	*/
 	template <ComponentType CType>
-	CType& GetComponent(const size_t index) {
-		return Container<CType>()[index];
+	[[nodiscard]] CType& GetComponent(const size_t index) {
+		return Container<CType>().at(index);
 	}
 
 	/**
