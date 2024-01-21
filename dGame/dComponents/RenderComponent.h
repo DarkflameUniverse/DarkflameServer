@@ -17,8 +17,6 @@ class Entity;
  * here.
  */
 struct Effect {
-	Effect() noexcept : priority{ 1.0f } {}
-
 	explicit Effect(const int32_t effectID, const std::string& name, const std::u16string& type, const float priority = 1.0f) noexcept
 		: effectID{ effectID }
 		, name{ name }
