@@ -15,7 +15,7 @@
  */
 class PropertyComponent final : public Component {
 public:
-	constexpr static eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* const parentEntity) noexcept : Component{ parentEntity } {}
 };
 

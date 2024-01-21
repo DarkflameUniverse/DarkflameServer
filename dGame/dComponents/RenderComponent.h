@@ -63,7 +63,7 @@ struct Effect {
  */
 class RenderComponent final : public Component {
 public:
-	constexpr static eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
 	RenderComponent(Entity* const parentEntity, const int32_t componentId = -1);
 
