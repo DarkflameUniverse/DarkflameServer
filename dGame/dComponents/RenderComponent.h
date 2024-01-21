@@ -17,7 +17,14 @@ class Entity;
  * here.
  */
 struct Effect {
-	Effect() { priority = 1.0f; }
+	Effect() noexcept : priority{ 1.0f } {}
+
+	explicit Effect(const int32_t effectID, const std::string name, const std::u16string type, const float priority = 1.0f) noexcept
+		: effectID{ effectID }
+		, name{ name }
+		, type{ type }
+		, priority{ priority } {
+	}
 
 	/**
 	 * The ID of the effect
@@ -71,7 +78,7 @@ public:
 	 * @param priority the priority of the effect
 	 * @return if successful, the effect that was created
 	 */
-	Effect* AddEffect(int32_t effectId, const std::string& name, const std::u16string& type, const float priority);
+	Effect& AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority);
 
 	/**
 	 * Removes an effect for this entity
@@ -129,7 +136,7 @@ private:
 	/**
 	 * List of currently active effects
 	 */
-	std::vector<std::unique_ptr<Effect>> m_Effects;
+	std::vector<Effect> m_Effects;
 
 	std::vector<int32_t> m_animationGroupIds;
 

@@ -1,5 +1,6 @@
 #include "RenderComponent.h"
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <iomanip>
@@ -14,8 +15,7 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
-RenderComponent::RenderComponent(Entity* parentEntity, const int32_t componentId): Component{ parentEntity } {
-	m_Effects = std::vector<std::unique_ptr<Effect>>();
+RenderComponent::RenderComponent(Entity* parentEntity, const int32_t componentId) : Component{ parentEntity } {
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
 
@@ -48,85 +48,43 @@ void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 	outBitStream->Write<uint32_t>(m_Effects.size());
 
 	for (auto& eff : m_Effects) {
-		// we still need to write 0 as the size for name if it is a nullptr
-		if (!eff) {
-			outBitStream->Write<uint8_t>(0);
-			continue;
-		}
-
-		outBitStream->Write<uint8_t>(eff->name.size());
+		outBitStream->Write<uint8_t>(eff.name.size());
 		// if there is no name, then we don't write anything else
-		if (eff->name.empty()) continue;
+		if (eff.name.empty()) continue;
 
-		for (const auto& value : eff->name) outBitStream->Write<uint8_t>(value);
+		for (const auto& value : eff.name) outBitStream->Write<uint8_t>(value);
 
-		outBitStream->Write(eff->effectID);
+		outBitStream->Write(eff.effectID);
 
-		outBitStream->Write<uint8_t>(eff->type.size());
-		for (const auto& value : eff->type) outBitStream->Write<uint16_t>(value);
+		outBitStream->Write<uint8_t>(eff.type.size());
+		for (const auto& value : eff.type) outBitStream->Write<uint16_t>(value);
 
-		outBitStream->Write<float_t>(eff->priority);
-		outBitStream->Write<int64_t>(eff->secondary);
+		outBitStream->Write<float_t>(eff.priority);
+		outBitStream->Write<int64_t>(eff.secondary);
 	}
 }
 
-Effect* RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority) {
-	auto eff = std::make_unique<Effect>();
-
-	eff->effectID = effectId;
-	eff->name = name;
-	eff->type = type;
-	eff->priority = priority;
-
-	auto* nonOwningPtr = eff.get();
-	m_Effects.push_back(std::move(eff));
-
-	return nonOwningPtr;
+Effect& RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority) {
+	return m_Effects.emplace_back(Effect{ effectId, name, type, priority });
 }
 
 void RenderComponent::RemoveEffect(const std::string& name) {
-	uint32_t index = -1;
+	const auto effectToRemove = std::ranges::find_if(m_Effects, [&name](auto&& effect) { return effect.name == name; });
+	if (effectToRemove == m_Effects.end()) return; // Return early if effect is not present
 
-	for (auto i = 0u; i < m_Effects.size(); ++i) {
-		auto& eff = m_Effects[i];
-
-		if (eff->name == name) {
-			index = i;
-
-			eff.reset(); // Delete effect
-
-			break;
-		}
-	}
-
-	if (index == -1) {
-		return;
-	}
-
-	m_Effects.erase(m_Effects.begin() + index);
+	const auto lastEffect = m_Effects.rbegin();
+	*effectToRemove = *lastEffect; // Overwrite
+	m_Effects.pop_back();
 }
 
-void RenderComponent::Update(const float deltaTime) {
-	std::vector<Effect*> dead;
-
+void RenderComponent::Update(const float deltaTime) {	
 	for (auto& effect : m_Effects) {
-		if (effect->time == 0) {
-			continue; // Skip persistent effects
-		}
+		if (effect.time == 0) continue; // Skip persistent effects
 
-		const auto result = effect->time - deltaTime;
+		const auto result = effect.time - deltaTime;
+		if (result <= 0) continue;
 
-		if (result <= 0) {
-			dead.push_back(effect.get());
-
-			continue;
-		}
-
-		effect->time = result;
-	}
-
-	for (auto* effect : dead) {
-		//        StopEffect(effect->name);
+		effect.time = result;
 	}
 }
 
@@ -135,12 +93,12 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 
 	GameMessages::SendPlayFXEffect(m_Parent, effectId, effectType, name, secondary, priority, scale, serialize);
 
-	auto* effect = AddEffect(effectId, name, effectType, priority);
+	auto& effect = AddEffect(effectId, name, effectType, priority);
 
 	const auto& pair = m_DurationCache.find(effectId);
 
 	if (pair != m_DurationCache.end()) {
-		effect->time = pair->second;
+		effect.time = pair->second;
 
 		return;
 	}
@@ -159,16 +117,16 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 
 		m_DurationCache[effectId] = 0;
 
-		effect->time = 0; // Persistent effect
+		effect.time = 0; // Persistent effect
 
 		return;
 	}
 
-	effect->time = static_cast<float>(result.getFloatField(0));
+	effect.time = static_cast<float>(result.getFloatField(0));
 
 	result.finalize();
 
-	m_DurationCache[effectId] = effect->time;
+	m_DurationCache[effectId] = effect.time;
 }
 
 void RenderComponent::StopEffect(const std::string& name, const bool killImmediate) {
