@@ -104,7 +104,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] constexpr ContainerType<CType>& Container() noexcept {
-		static_assert(HasComponent<CType>(), "Archetype does not have container of requested component!"); // Compile-time verification
+		static_assert(hasComponent<CType>, "Archetype does not have container of requested component!"); // Compile-time verification
 		return std::get<ContainerType<CType>>(m_Components);
 	}
 
@@ -121,7 +121,7 @@ public:
 	 * @param index The archetype container index to delete
 	*/
 	void DeleteComponents(const size_t index) {
-		((Container<CTypes>().at(index) = std::move(Container<CTypes>().back()),
+		((Container<CTypes>()[index] = std::move(Container<CTypes>().back()),
 			Container<CTypes>().pop_back()), ...);
 	}
 
@@ -132,17 +132,14 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] CType& GetComponent(const size_t index) {
-		return Container<CType>().at(index);
+		return Container<CType>()[index];
 	}
 
 	/**
-	 * Static function that returns if an archetype contains a specified component
-	 * @returns Boolean representing component's presence
+	 * Static function-like boolean that "returns" if an archetype contains a specified component
 	*/
 	template <ComponentType CType>
-	[[nodiscard]] static constexpr bool HasComponent() noexcept {
-		return std::disjunction_v<std::is_same<CType, CTypes>...>;
-	}
+	static constexpr bool hasComponent = std::disjunction_v<std::is_same<CType, CTypes>...>;
 
 	/**
 	 * Contains the number of component types an archetype consists of
