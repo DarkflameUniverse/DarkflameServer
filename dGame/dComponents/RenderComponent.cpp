@@ -70,6 +70,8 @@ Effect& RenderComponent::AddEffect(const int32_t effectId, const std::string& na
 }
 
 void RenderComponent::RemoveEffect(const std::string& name) {
+	if (m_Effects.size() < 1) return; // Don't try to delete if the container is already empty
+
 	const auto effectToRemove = std::ranges::find_if(m_Effects, [&name](auto&& effect) { return effect.name == name; });
 	if (effectToRemove == m_Effects.end()) return; // Return early if effect is not present
 
