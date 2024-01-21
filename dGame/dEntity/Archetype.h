@@ -140,7 +140,7 @@ public:
 	 * @returns Boolean representing component's presence
 	*/
 	template <ComponentType CType>
-	[[nodiscard]] static constexpr bool HasComponent() {
+	[[nodiscard]] static constexpr bool HasComponent() noexcept {
 		return std::disjunction_v<std::is_same<CType, CTypes>...>;
 	}
 
