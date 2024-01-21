@@ -104,7 +104,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] constexpr ContainerType<CType>& Container() noexcept {
-		static_assert(hasComponent<CType>, "Archetype does not have container of requested component!"); // Compile-time verification
+		static_assert(HasComponent<CType>(), "Archetype does not have container of requested component!"); // Compile-time verification
 		return std::get<ContainerType<CType>>(m_Components);
 	}
 
@@ -136,10 +136,13 @@ public:
 	}
 
 	/**
-	 * Static function-like boolean that "returns" if an archetype contains a specified component
+	 * Static function that returns if an archetype contains a specified component
+	 * @returns Boolean representing component's presence
 	*/
 	template <ComponentType CType>
-	static constexpr bool hasComponent = std::disjunction_v<std::is_same<CType, CTypes>...>;
+	[[nodiscard]] static constexpr bool HasComponent() noexcept {
+		return std::disjunction_v<std::is_same<CType, CTypes>...>;
+	}
 
 	/**
 	 * Contains the number of component types an archetype consists of

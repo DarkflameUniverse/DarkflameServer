@@ -26,7 +26,7 @@ namespace {
 		explicit ComponentVisitor(const size_t index) noexcept : index{ index } {}
 
 		CType* const operator()(auto&& archetype) { // There might be a way to use this to do compile-time checking...
-			if constexpr (archetype->template hasComponent<CType>) {
+			if constexpr (archetype->template HasComponent<CType>()) {
 				return &archetype->template Container<CType>()[index];
 			} else {
 				return nullptr;
@@ -112,7 +112,7 @@ public:
 	template <ComponentType CType>
 	[[nodiscard]] bool HasComponent(const LWOOBJID entityId) {
 		const auto& archetypeRecord = m_EntityIndex[entityId];
-		const auto& hasComponentVisitor = [](auto&& archetype) { return archetype->template hasComponent<CType>; };
+		const auto& hasComponentVisitor = [](auto&& archetype) { return archetype->template HasComponent<CType>(); };
 
 		return std::visit(hasComponentVisitor, archetypeRecord.archetypePtr); // Using visitor pattern
 	}
