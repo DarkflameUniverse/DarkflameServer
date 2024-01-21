@@ -79,15 +79,15 @@ public:
 	/**
 	 * Constructors and assignment operators
 	*/
-	Archetype(Archetype& other) noexcept : IArchetype{ std::copy(other) } { UpdatePointers(); } // Copy constructor
-	Archetype(Archetype&& other) noexcept : IArchetype{ std::move(other) } { UpdatePointers(); } // Move constructor
+	Archetype(Archetype& other) noexcept : IArchetype{ std::copy(other) } { /*UpdatePointers();*/ } // Copy constructor
+	Archetype(Archetype&& other) noexcept : IArchetype{ std::move(other) } { /*UpdatePointers();*/ } // Move constructor
 	Archetype& operator=(Archetype& other) noexcept { // Copy assignment operator
 		IArchetype::operator=(std::copy(other));
-		UpdatePointers();
+		/*UpdatePointers();*/
 	}
 	Archetype& operator=(Archetype&& other) noexcept { // Move assignment operator
 		IArchetype::operator=(std::move(other));
-		UpdatePointers();
+		/*UpdatePointers();*/
 	}
 
 	/**
@@ -104,7 +104,7 @@ public:
 	*/
 	template <ComponentType CType>
 	constexpr ContainerType<CType>& Container() noexcept {
-		static_assert(hasComponent<CType>, "Archetype does not have container of requested component!"); // Compile-time verification
+		static_assert(HasComponent<CType>(), "Archetype does not have container of requested component!"); // Compile-time verification
 		return std::get<ContainerType<CType>>(m_Components);
 	}
 
@@ -136,10 +136,13 @@ public:
 	}
 
 	/**
-	 * Function-like static bool that "returns" if an archetype contains a specified component
+	 * Static function that returns if an archetype contains a specified component
+	 * @returns Boolean representing component's presence
 	*/
 	template <ComponentType CType>
-	static constexpr bool hasComponent = std::disjunction_v<std::is_same<CType, CTypes>...>;
+	static constexpr bool HasComponent() {
+		return std::disjunction_v<std::is_same<CType, CTypes>...>;
+	}
 
 	/**
 	 * Contains the number of component types an archetype consists of

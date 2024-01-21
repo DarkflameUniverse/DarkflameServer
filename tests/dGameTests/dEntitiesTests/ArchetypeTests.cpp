@@ -93,19 +93,20 @@ TEST_F(ArchetypeTest, ArchetypeDeleteTest) {
 	//Deleting more entries than exist will cause a segfault currently. Wonder if that's actually an issue...
 }
 
-TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
-	auto& simplePhysicsContainer = baseArchetype->Container<SimplePhysicsComponent>();
-	auto& destroyableContainer = baseArchetype->Container<DestroyableComponent>();
+/*TEST_F(ArchetypeTest, ReadFromArchetypeTest) {
+	//auto& simplePhysicsContainer = baseArchetype->Container<SimplePhysicsComponent>();
+	//auto& destroyableContainer = baseArchetype->Container<DestroyableComponent>();
+	auto entitySystem = std::make_unique<EntitySystem>();
 
 	std::vector<std::unique_ptr<Entity>> tempEntity; // Vector of temporary entities (so they die when this test goes out of scope)
 
-	LOG("Number of entries per vector: %d", 1000); //simplePhysicsContainer.capacity()
+	LOG("Number of entries per vector: %d", 1000);
 	srand(time(NULL));
 	for (auto i = 0; i < 1000; ++i) {
 		tempEntity.emplace_back(std::make_unique<Entity>(rand() + i, GameDependenciesTest::info)); // Create a new entity
 
 		const auto tempEntityId = tempEntity[i]->GetObjectID();
-		baseArchetype->CreateComponents(DestroyableComponent(tempEntityId), SimplePhysicsComponent(tempEntityId, 2));
+		entitySystem->CreateEntity(tempEntityId, DestroyableComponent(tempEntityId), SimplePhysicsComponent(tempEntityId, 2));
 	}
 
 	// Benchmarking

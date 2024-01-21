@@ -9,17 +9,31 @@
 #include <variant>
 
 #include "Archetype.h"
+#include "CharacterComponent.h" // TEMP
 #include "DestroyableComponent.h" // TEMP
 #include "SimplePhysicsComponent.h" // TEMP
 #include "dCommonVars.h"
 #include "ObjectIDManager.h"
 
-/**
- * Archetype visitor struct (for use with std::visit)
-*/
-/*struct ArchetypeVisitor {
-	auto& operator()(auto& archetype) { return archetype->*hasComponent<CType>(); }
-};*/
+namespace {
+	/**
+	 * Archetype visitor structs (for use with std::visit)
+	*/
+	template <ComponentType CType>
+	struct ComponentVisitor {
+		const size_t index;
+
+		explicit ComponentVisitor(const size_t index) noexcept : index{ index } {}
+
+		CType* const operator()(auto&& archetype) { // There might be a way to use this to do compile-time checking...
+			if constexpr (archetype->template HasComponent<CType>()) {
+				return &archetype->template Container<CType>()[index];
+			} else {
+				return nullptr;
+			}
+		}
+	};
+}
 
 /**
  * TODO: Class documentation
@@ -32,9 +46,14 @@ public:
 	using ArchetypeId = uint32_t;
 	using ArchetypeSet = std::unordered_set<ArchetypeId>;
 	using ArchetypeVariantPtr = std::variant<
+		Archetype<CharacterComponent>*,
 		Archetype<DestroyableComponent>*,
 		Archetype<SimplePhysicsComponent>*,
-		Archetype<DestroyableComponent, SimplePhysicsComponent>*
+
+		Archetype<CharacterComponent, DestroyableComponent>*,
+		Archetype<DestroyableComponent, SimplePhysicsComponent>*,
+
+		Archetype<CharacterComponent, DestroyableComponent, SimplePhysicsComponent>*
 	>; // TODO: Figure out how to generate this automatically
 	using ComponentTypeId = std::type_index;
 
@@ -79,7 +98,7 @@ public:
 
 	/**
 	 * Determine if an entity is associated with an Object ID
-	 * 
+	 *
 	*/
 	bool EntityExists(const LWOOBJID entityId) noexcept {
 		return m_EntityIndex.count(entityId) != 0;
@@ -92,9 +111,11 @@ public:
 	*/
 	template <ComponentType CType>
 	bool HasComponent(const LWOOBJID entityId) {
-		IArchetype* const archetype = m_EntityIndex[entityId].archetype; // Gets a pointer to the archetype containing the entity ID
-		ArchetypeSet& archetypeSet = m_ComponentTypeIndex[std::type_index(typeid(CType))]; // Gets the component container corresponding to the selected component type
-		return archetypeSet.count(archetype->id) != 0; // Check that the component exists within there
+		const auto& archetypeRecord = m_EntityIndex[entityId];
+
+		return std::visit(
+			[](auto&& archetype) { return archetype->template HasComponent<CType>(); },
+			archetypeRecord.archetypePtr); // Using visitor pattern
 	}
 
 	/**
@@ -103,12 +124,12 @@ public:
 	 * @returns The pointer if the component exists, or nullptr if it does not
 	*/
 	template <ComponentType CType>
-	CType* GetComponent(const LWOOBJID entityId) {
-		if (!HasComponent<CType>(entityId)) return nullptr;
+	CType* const GetComponent(const LWOOBJID entityId) {
+		const auto& archetypeRecord = m_EntityIndex[entityId];
 
-		auto& archetypeRecord = m_EntityIndex[entityId];
-		IArchetype* const archetype = archetypeRecord.archetype;
-		return &archetype->Container<CType>()[archetypeRecord.index];
+		return std::visit(
+			ComponentVisitor<CType>{ archetypeRecord.index },
+			archetypeRecord.archetypePtr); // Using visitor pattern
 	}
 
 protected:
@@ -137,9 +158,7 @@ private:
 	ArchetypeId m_CurrentArchetypeId{ 0 };
 
 	struct ArchetypeRecord {
-		IArchetype* archetype; // Could we potentially make this std::variant in order to deduce the type?
-		//ArchetypeVariantPtr archetype;
-		//size_t type = archetype.index();
+		ArchetypeVariantPtr archetypePtr;
 		size_t index;
 	};
 
