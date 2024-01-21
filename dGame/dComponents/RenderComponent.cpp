@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <iomanip>
 
 #include "Entity.h"
@@ -73,7 +74,7 @@ void RenderComponent::RemoveEffect(const std::string& name) {
 	if (effectToRemove == m_Effects.end()) return; // Return early if effect is not present
 
 	const auto lastEffect = m_Effects.rbegin();
-	*effectToRemove = *lastEffect; // Overwrite
+	*effectToRemove = std::move(*lastEffect); // Move-overwrite
 	m_Effects.pop_back();
 }
 
