@@ -44,7 +44,7 @@ public:
 	/*!
 	  \return The w coordinate
 	 */
-	constexpr float GetW() const noexcept;
+	[[nodiscard]] constexpr float GetW() const noexcept;
 
 	//! Sets the W coordinate
 	/*!
@@ -56,7 +56,7 @@ public:
 	/*!
 	  \return The x coordinate
 	 */
-	constexpr float GetX() const noexcept;
+	[[nodiscard]] constexpr float GetX() const noexcept;
 
 	//! Sets the X coordinate
 	/*!
@@ -68,7 +68,7 @@ public:
 	/*!
 	  \return The y coordinate
 	 */
-	constexpr float GetY() const noexcept;
+	[[nodiscard]] constexpr float GetY() const noexcept;
 
 	//! Sets the Y coordinate
 	/*!
@@ -80,7 +80,7 @@ public:
 	/*!
 	  \return The z coordinate
 	 */
-	constexpr float GetZ() const noexcept;
+	[[nodiscard]] constexpr float GetZ() const noexcept;
 
 	//! Sets the Z coordinate
 	/*!
@@ -94,21 +94,21 @@ public:
 	/*!
 	  \return The forward vector of the quaternion
 	 */
-	constexpr Vector3 GetForwardVector() const noexcept;
+	[[nodiscard]] constexpr Vector3 GetForwardVector() const noexcept;
 
 	//! Returns the up vector from the quaternion
 	/*!
 	  \return The up vector fo the quaternion
 	 */
-	constexpr Vector3 GetUpVector() const noexcept;
+	[[nodiscard]] constexpr Vector3 GetUpVector() const noexcept;
 
 	//! Returns the right vector from the quaternion
 	/*!
 	  \return The right vector of the quaternion
 	 */
-	constexpr Vector3 GetRightVector() const noexcept;
+	[[nodiscard]] constexpr Vector3 GetRightVector() const noexcept;
 
-	Vector3 GetEulerAngles() const;
+	[[nodiscard]] Vector3 GetEulerAngles() const;
 
 	// MARK: Operators
 
@@ -126,7 +126,7 @@ public:
 	  \param destPoint The destination location
 	  \return The Quaternion with the rotation towards the destination
 	 */
-	static NiQuaternion LookAt(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
+	[[nodiscard]] static NiQuaternion LookAt(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
 
 	//! Look from a specific point in space to another point in space
 	/*!
@@ -134,7 +134,7 @@ public:
 	  \param destPoint The destination location
 	  \return The Quaternion with the rotation towards the destination
 	 */
-	static NiQuaternion LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
+	[[nodiscard]] static NiQuaternion LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
 
 	//! Creates a Quaternion from a specific axis and angle relative to that axis
 	/*!
@@ -142,9 +142,9 @@ public:
 	  \param angle The angle relative to this axis
 	  \return A quaternion created from the axis and angle
 	 */
-	static NiQuaternion CreateFromAxisAngle(const Vector3& axis, float angle);
+	[[nodiscard]] static NiQuaternion CreateFromAxisAngle(const Vector3& axis, float angle);
 
-	static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
+	[[nodiscard]] static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
 };
 
 // Static Variables

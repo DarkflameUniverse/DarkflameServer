@@ -49,7 +49,7 @@ public:
 	/*!
 	  \return The x coordinate
 	 */
-	constexpr float GetX() const noexcept;
+	[[nodiscard]] constexpr float GetX() const noexcept;
 
 	//! Sets the X coordinate
 	/*!
@@ -61,7 +61,7 @@ public:
 	/*!
 	  \return The y coordinate
 	 */
-	constexpr float GetY() const noexcept;
+	[[nodiscard]] constexpr float GetY() const noexcept;
 
 	//! Sets the Y coordinate
 	/*!
@@ -73,7 +73,7 @@ public:
 	/*!
 	  \return The z coordinate
 	 */
-	constexpr float GetZ() const noexcept;
+	[[nodiscard]] constexpr float GetZ() const noexcept;
 
 	//! Sets the Z coordinate
 	/*!
@@ -87,33 +87,33 @@ public:
 	/*!
 	  \return The scalar length of the vector
 	 */
-	float Length() const;
+	[[nodiscard]] float Length() const;
 
 	//! Gets the squared length of a vector
 	/*!
 	  \return The squared length of a vector
 	 */
-	constexpr float SquaredLength() const noexcept;
+	[[nodiscard]] constexpr float SquaredLength() const noexcept;
 
 	//! Returns the dot product of the vector dotted with another vector
 	/*!
 	  \param vec The second vector
 	  \return The dot product of the two vectors
 	 */
-	constexpr float DotProduct(const Vector3& vec) const noexcept;
+	[[nodiscard]] constexpr float DotProduct(const Vector3& vec) const noexcept;
 
 	//! Returns the cross product of the vector crossed with another vector
 	/*!
 	  \param vec The second vector
 	  \return The cross product of the two vectors
 	 */
-	constexpr Vector3 CrossProduct(const Vector3& vec) const noexcept;
+	[[nodiscard]] constexpr Vector3 CrossProduct(const Vector3& vec) const noexcept;
 
 	//! Unitize the vector
 	/*!
 	  \returns The current vector
 	 */
-	NiPoint3 Unitize() const;
+	[[nodiscard]] NiPoint3 Unitize() const;
 
 	// MARK: Operators
 
@@ -160,14 +160,14 @@ public:
 	  \param maxPoint The maximum point of the bounding box
 	  \return Whether or not this point lies within the box
 	 */
-	constexpr bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint) noexcept;
+	[[nodiscard]] constexpr bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint) noexcept;
 
 	//! Checks to see if the point (or vector) is within a sphere
 	/*!
 	  \param sphereCenter The sphere center
 	  \param radius The radius
 	 */
-	constexpr bool IsWithinSphere(const NiPoint3& sphereCenter, const float radius) noexcept;
+	[[nodiscard]] constexpr bool IsWithinSphere(const NiPoint3& sphereCenter, const float radius) noexcept;
 
 	/*!
 	  \param a Start of line
@@ -175,18 +175,18 @@ public:
 	  \param p Refrence point
 	  \return The point of line AB which is closest to P
 	*/
-	static constexpr NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p) noexcept;
+	[[nodiscard]] static constexpr NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p) noexcept;
 
-	static float Angle(const NiPoint3& a, const NiPoint3& b);
+	[[nodiscard]] static float Angle(const NiPoint3& a, const NiPoint3& b);
 
-	static float Distance(const NiPoint3& a, const NiPoint3& b);
+	[[nodiscard]] static float Distance(const NiPoint3& a, const NiPoint3& b);
 
-	static constexpr float DistanceSquared(const NiPoint3& a, const NiPoint3& b) noexcept;
+	[[nodiscard]] static constexpr float DistanceSquared(const NiPoint3& a, const NiPoint3& b) noexcept;
 
-	static NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, const float maxDistanceDelta);
+	[[nodiscard]] static NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, const float maxDistanceDelta);
 
 	//This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
-	constexpr NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
+	[[nodiscard]] constexpr NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
 };
 
 // Static Variables
