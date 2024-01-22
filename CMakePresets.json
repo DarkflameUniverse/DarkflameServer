@@ -20,10 +20,11 @@
         "inherits": "default"
       },
       {
-        "name": "ci-macos-latest",
+        "name": "ci-macos-11",
         "displayName": "CI configure step for MacOS",
         "description": "Same as default, Used in GitHub actions workflow",
         "inherits": "default"
+        
       },
       {
         "name": "ci-windows-2022",
@@ -74,8 +75,8 @@
         "jobs": 2
       },
       {
-        "name": "ci-macos-latest",
-        "configurePreset": "ci-macos-latest",
+        "name": "ci-macos-11",
+        "configurePreset": "ci-macos-11",
         "displayName": "MacOS CI Build",
         "description": "This preset is used by the CI build on MacOS",
         "jobs": 2
@@ -95,8 +96,8 @@
         }
       },
       {
-        "name": "ci-macos-latest",
-        "configurePreset": "ci-macos-latest",
+        "name": "ci-macos-11",
+        "configurePreset": "ci-macos-11",
         "displayName": "CI Tests on MacOS",
         "description": "Runs all tests on a Mac configuration",
 		"execution": {
