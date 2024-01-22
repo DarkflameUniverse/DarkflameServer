@@ -21,7 +21,7 @@ public:
 	AddStripMessage(AMFArrayValue* arguments);
 	StripUiPosition GetPosition() const { return position; };
 	ActionContext GetActionContext() const { return actionContext; };
-	std::vector<Action> GetActionsToAdd() const { return actionsToAdd; };
+	std::vector<Action> GetActionsToAdd() const;
 private:
 	StripUiPosition position;
 	ActionContext actionContext;
