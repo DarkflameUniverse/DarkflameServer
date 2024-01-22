@@ -23,6 +23,6 @@ AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase
 	LOG_DEBUG("number of actions %i", actionsToAdd.size());
 }
 
-std::vector<Action> AddStripMessage::GetActionsToAdd() {
+std::vector<Action> AddStripMessage::GetActionsToAdd() const {
 	return actionsToAdd;
 }
