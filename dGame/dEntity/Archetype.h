@@ -21,7 +21,7 @@ public:
 	/**
 	 * Create an alias type for the Archetype ID
 	*/
-	using ArchetypeId = uint32_t;
+	using ArchetypeId = size_t;
 	ArchetypeId id{ 0 };
 
 	/**

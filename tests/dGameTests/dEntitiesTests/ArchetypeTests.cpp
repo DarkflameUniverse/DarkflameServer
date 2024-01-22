@@ -267,3 +267,94 @@ TEST_F(ArchetypeTest, GetComponentTest) {
 	ASSERT_NE(entitySystem->GetComponent<SimplePhysicsComponent>(baseEntityId), nullptr);
 	ASSERT_EQ(entitySystem->GetComponent<CharacterComponent>(baseEntityId), nullptr);
 }
+
+namespace {
+	template <typename T>
+	struct TestContainerVisitor {
+		void operator()(auto&& archetype) {
+			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(*archetype)>>; // Needed to fix a MacOS issue
+
+			if constexpr (!ArchetypeType::template HasComponent<T>()) return;
+			else for (auto& destComp : archetype->template Container<T>()) {
+				const auto randNum = rand();
+				destComp.SetArmor(randNum);
+				ASSERT_EQ(randNum, destComp.GetArmor());
+			}
+		}
+	};
+}
+
+TEST_F(ArchetypeTest, IterateOverArchetypesTest) {
+	auto entitySystem = std::make_unique<EntitySystem>();
+
+	const auto baseEntityId = baseEntity->GetObjectID();
+	entitySystem->CreateEntity(baseEntityId, DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2));
+
+	const auto newEntityId = newEntity->GetObjectID();
+	entitySystem->CreateEntity(newEntityId, DestroyableComponent(newEntityId), SimplePhysicsComponent(newEntityId, 1));
+
+	const auto it = std::ranges::find_if(entitySystem->m_Archetypes, [](auto&& archetypeVariantPtr) {
+		return std::visit([](auto&& archetype) {
+			return archetype->template HasComponent<DestroyableComponent>();
+		}, archetypeVariantPtr);
+	});
+	ASSERT_FALSE(it == entitySystem->m_Archetypes.end());
+
+// ------------------- UPDATE LOOP TEST --------------
+	std::vector<std::unique_ptr<Entity>> tempEntity; // Vector of temporary entities (so they die when this test goes out of scope)
+
+	constexpr int32_t numEntries = 1000000;
+
+	LOG("Number of entries per vector: %d", numEntries);
+	srand(time(NULL));
+	for (auto i = 0; i < numEntries; ++i) {
+		tempEntity.emplace_back(std::make_unique<Entity>(rand() + i, GameDependenciesTest::info)); // Create a new entity
+
+		const auto tempEntityId = tempEntity[i]->GetObjectID();
+		entitySystem->CreateEntity(tempEntityId, DestroyableComponent(tempEntityId), SimplePhysicsComponent(tempEntityId, 2));
+	}
+
+	//ContainerVisitor
+	const auto& archetypes = entitySystem->m_Archetypes;
+
+	for (auto& archetypeVariantPtr : archetypes) {
+		std::visit(TestContainerVisitor<DestroyableComponent>(), archetypeVariantPtr); // Does the update loop test
+	}
+
+	/*for (auto& archetypeVariantPtr : archetypes) { // For the archetypes in m_Archetypes
+		const bool archetypeHasComponent = std::visit([](auto&& archetype), archetypeVariantPtr);
+		if (!archetypeHasComponent) continue; // Skip archetypes that don't have the relevant component
+
+		auto&& destCompCont = std::visit([](auto&& archetype) { return archetype->template Container<DestroyableComponent>(); }, archetypeVariantPtr); // Get destroyable component container
+		for (auto& destComp : destCompCont) {
+			const auto randNum = rand();
+			destComp.SetArmor(randNum);
+			ASSERT_EQ(randNum, destComp.GetArmor());
+		}
+	}*/
+
+	// Expanded version
+	/*for (auto it = archetypes.begin(), end = archetypes.end(); it != end; ++it) {
+		const auto& archetypeVariantPtr = *it;
+
+		std::vector<DestroyableComponent>&& destCompCont = std::visit([](auto&& archetype){ return archetype->template Container<DestroyableComponent>(); }, archetypeVariantPtr);
+
+		for (auto it = destCompCont.begin(), end = destCompCont.end(); it != end; ++it) {
+			const auto& destComp = *it;
+
+			// Magic
+		}
+	}*/
+	
+	// Notation I WANT
+	/*for (auto& archetype : archetypes) {
+		for (auto& destCompCont : archetype) {
+			for (auto& destComp : destCompCont) {
+				// MAGIC
+			}
+		}
+	}*/
+
+	ASSERT_NO_THROW(entitySystem->GetComponent<DestroyableComponent>(baseEntityId)->GetArmor());
+	ASSERT_NO_THROW(entitySystem->GetComponent<DestroyableComponent>(newEntityId)->GetArmor());
+};

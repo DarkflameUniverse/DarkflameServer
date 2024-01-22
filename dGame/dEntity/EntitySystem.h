@@ -32,8 +32,8 @@ namespace {
 		 * The operator() for the ComponentVisitor struct. Used to get components from an archetype
 		 * @returns A const pointer to the component if it is present in the archetype, nullptr if it is not
 		*/
-		constexpr CType* const operator()(auto&& archetype) { // TODO: There might be a way to use this to do compile-time checking...
-			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(archetype)>>;
+		constexpr CType* const operator()(auto&& archetype) {
+			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(*archetype)>>; // Needed to fix a MacOS issue
 			
 			if constexpr (ArchetypeType::template HasComponent<CType>()) {
 				return &archetype->template GetComponent<CType>(index);
@@ -55,14 +55,14 @@ public:
 	using ArchetypeId = uint32_t;
 	using ArchetypeSet = std::unordered_set<ArchetypeId>;
 	using ArchetypeVariantPtr = std::variant<
-		Archetype<CharacterComponent>*,
-		Archetype<DestroyableComponent>*,
-		Archetype<SimplePhysicsComponent>*,
+		std::unique_ptr<Archetype<CharacterComponent>>,
+		std::unique_ptr<Archetype<DestroyableComponent>>,
+		std::unique_ptr<Archetype<SimplePhysicsComponent>>,
 
-		Archetype<CharacterComponent, DestroyableComponent>*,
-		Archetype<DestroyableComponent, SimplePhysicsComponent>*,
+		std::unique_ptr<Archetype<CharacterComponent, DestroyableComponent>>,
+		std::unique_ptr<Archetype<DestroyableComponent, SimplePhysicsComponent>>,
 
-		Archetype<CharacterComponent, DestroyableComponent, SimplePhysicsComponent>*
+		std::unique_ptr<Archetype<CharacterComponent, DestroyableComponent, SimplePhysicsComponent>>
 	>; // TODO: Figure out how to generate this automatically
 	using ComponentTypeId = std::type_index;
 
@@ -81,7 +81,7 @@ public:
 
 		const size_t insertedIndex = archetype.size();
 		archetype.CreateComponents(std::forward<CTypes>(componentArgs)...); // Create the components in the archetype
-		m_EntityIndex.try_emplace(explicitId, ArchetypeRecord{ &archetype, insertedIndex }); // Create the corresponding pointers in the entity index
+		m_EntityIndex.try_emplace(explicitId, ArchetypeRecord{ archetype.id, insertedIndex }); // Create the corresponding pointers in the entity index
 	}
 
 	/**
@@ -107,7 +107,7 @@ public:
 
 	/**
 	 * Determine if an entity is associated with an Object ID
-	 *
+	 * @returns A boolean representing whether the entity exists
 	*/
 	[[nodiscard]] bool EntityExists(const LWOOBJID entityId) noexcept {
 		return m_EntityIndex.count(entityId) != 0;
@@ -120,10 +120,10 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] bool HasComponent(const LWOOBJID entityId) {
-		const auto& archetypeRecord = m_EntityIndex[entityId];
+		const ArchetypeRecord& record = m_EntityIndex[entityId];
 		const auto& hasComponentVisitor = [](auto&& archetype) { return archetype->template HasComponent<CType>(); };
 
-		return std::visit(hasComponentVisitor, archetypeRecord.archetypePtr); // Using visitor pattern
+		return std::visit(hasComponentVisitor, m_Archetypes[record.archetypeIndex]); // Using visitor pattern
 	}
 
 	/**
@@ -133,9 +133,9 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] CType* const GetComponent(const LWOOBJID entityId) {
-		const auto& archetypeRecord = m_EntityIndex[entityId];
+		const ArchetypeRecord& record = m_EntityIndex[entityId];
 
-		return std::visit(ComponentVisitor<CType>{ archetypeRecord.index }, archetypeRecord.archetypePtr); // Using visitor pattern
+		return std::visit(ComponentVisitor<CType>(record.componentIndex), m_Archetypes[record.archetypeIndex]); // Using visitor pattern
 	}
 
 protected:
@@ -144,9 +144,10 @@ protected:
 	 * @param archetypeId The ID to assign to the created archetype
 	*/
 	template <ComponentType... CTypes>
-	[[nodiscard]] Archetype<CTypes...> CreateArchetype(const ArchetypeId archetypeId) { // TODO: Noexcept?
-		(m_ComponentTypeIndex[std::type_index(typeid(CTypes))].insert(archetypeId), ...); // Add the matching types to the component type index
-		return Archetype<CTypes...>{ archetypeId }; // Return the created archetype
+	[[nodiscard]] const size_t CreateArchetype() { // TODO: Noexcept?
+		const size_t indexToInsert = m_Archetypes.size();
+		m_Archetypes.emplace_back(std::make_unique<Archetype<CTypes...>>(indexToInsert));
+		return indexToInsert;
 	}
 
 	/**
@@ -154,25 +155,23 @@ protected:
 	*/
 	template <ComponentType... CTypes>
 	[[nodiscard]] Archetype<CTypes...>& GetArchetype() {
-		static auto archetype = CreateArchetype<CTypes...>(++m_CurrentArchetypeId);
-		return archetype;
+		static size_t archetypeIndex = CreateArchetype<CTypes...>(); // TODO: Maybe split this out into some kind of 'register' function instead?
+
+		return *std::get<std::unique_ptr<Archetype<CTypes...>>>(m_Archetypes[archetypeIndex]);
 	}
 
-private:
-	friend class ArchetypeTest;
-
-	ArchetypeId m_CurrentArchetypeId{ 0 };
+public:
+//private:
+	std::vector<ArchetypeVariantPtr> m_Archetypes;
 
 	struct ArchetypeRecord {
-		ArchetypeVariantPtr archetypePtr;
-		size_t index;
+		size_t archetypeIndex;
+		size_t componentIndex;
 	};
 
 	std::unordered_map<LWOOBJID, ArchetypeRecord> m_EntityIndex;
 
 	std::unordered_set<LWOOBJID> m_EntitiesToDelete;
-
-	std::unordered_map<ComponentTypeId, ArchetypeSet> m_ComponentTypeIndex;
 };
 
 #endif // !__ENTITYSYSTEM_H
