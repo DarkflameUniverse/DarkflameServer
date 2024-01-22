@@ -69,8 +69,13 @@ public:
 	struct ArchetypeVariants final {
 		std::vector<ArchetypeVariantPtr> data;
 
-		template <typename T>
-		std::vector<T>& begin() { return &data[0]; }
+		auto begin() {
+			return data.begin();
+		}
+
+		auto end() {
+			return data.end();
+		}
 
 	};
 

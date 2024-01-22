@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <ranges>
 #include <typeindex>
 #include <unordered_set>
 
@@ -283,6 +284,16 @@ namespace {
 			}
 		}
 	};
+
+	template <typename T>
+	struct TestContainerVisitor2 {
+		std::vector<T>* const operator()(auto&& archetype) {
+			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(*archetype)>>; // Needed to fix a MacOS issue
+
+			if constexpr (!ArchetypeType::template HasComponent<T>()) return nullptr;
+			else return &archetype->template Container<T>();
+		}
+	};
 }
 
 TEST_F(ArchetypeTest, IterateOverArchetypesTest) {
@@ -318,8 +329,19 @@ TEST_F(ArchetypeTest, IterateOverArchetypesTest) {
 	//ContainerVisitor
 	const auto& archetypes = entitySystem->m_Archetypes;
 
-	for (auto& archetypeVariantPtr : archetypes) {
+	/*for (auto& archetypeVariantPtr : archetypes) {
 		std::visit(TestContainerVisitor<DestroyableComponent>(), archetypeVariantPtr); // Does the update loop test
+	}*/
+
+	for (const auto& archetypeVariantPtr : archetypes) {
+		auto&& destCompCont = std::visit(TestContainerVisitor2<DestroyableComponent>(), archetypeVariantPtr);
+		if (!destCompCont) continue;
+
+		for (auto& destComp : *destCompCont) {
+			const auto randNum = rand();
+			destComp.SetArmor(randNum);
+			ASSERT_EQ(randNum, destComp.GetArmor());
+		}
 	}
 
 	/*for (auto& archetypeVariantPtr : archetypes) { // For the archetypes in m_Archetypes
