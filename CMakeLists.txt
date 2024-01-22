@@ -52,7 +52,7 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC -fdata-sections -ffunction-sections -std=c++20")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC -fdata-sections -ffunction-sections")
 	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--gc-sections")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
