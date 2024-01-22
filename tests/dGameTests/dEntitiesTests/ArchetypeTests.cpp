@@ -286,7 +286,7 @@ namespace {
 	};
 
 	template <typename T>
-	struct TestContainerVisitor2 {
+	struct ContainerVisitor {
 		std::vector<T>* const operator()(auto&& archetype) {
 			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(*archetype)>>; // Needed to fix a MacOS issue
 
@@ -334,27 +334,17 @@ TEST_F(ArchetypeTest, IterateOverArchetypesTest) {
 	}*/
 
 	for (const auto& archetypeVariantPtr : archetypes) {
-		auto&& destCompCont = std::visit(TestContainerVisitor2<DestroyableComponent>(), archetypeVariantPtr);
-		if (!destCompCont) continue;
+		auto&& destCompContainer = std::visit(ContainerVisitor<DestroyableComponent>(), archetypeVariantPtr);
+		if (!destCompContainer) continue;
 
-		for (auto& destComp : *destCompCont) {
+		for (auto&& destComp : *destCompContainer) {
 			const auto randNum = rand();
 			destComp.SetArmor(randNum);
 			ASSERT_EQ(randNum, destComp.GetArmor());
 		}
 	}
-
-	/*for (auto& archetypeVariantPtr : archetypes) { // For the archetypes in m_Archetypes
-		const bool archetypeHasComponent = std::visit([](auto&& archetype), archetypeVariantPtr);
-		if (!archetypeHasComponent) continue; // Skip archetypes that don't have the relevant component
-
-		auto&& destCompCont = std::visit([](auto&& archetype) { return archetype->template Container<DestroyableComponent>(); }, archetypeVariantPtr); // Get destroyable component container
-		for (auto& destComp : destCompCont) {
-			const auto randNum = rand();
-			destComp.SetArmor(randNum);
-			ASSERT_EQ(randNum, destComp.GetArmor());
-		}
-	}*/
+	// TODO: The outer foor loop can be simplified a little bit by grabbing the
+	// archetypes known to contain the correct component types ahead of time
 
 	// Expanded version
 	/*for (auto it = archetypes.begin(), end = archetypes.end(); it != end; ++it) {
