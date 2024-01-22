@@ -56,7 +56,10 @@ if(UNIX)
 	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--gc-sections")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
-	if(NOT APPLE)
+	if(APPLE)
+		set(CMAKE_C_COMPILER "$(brew --prefix llvm@15)/bin/clang")
+		set(CMAKE_CXX_COMPILER "$(brew --prefix llvm@15)/bin/clang++")
+	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
 	endif()
 
