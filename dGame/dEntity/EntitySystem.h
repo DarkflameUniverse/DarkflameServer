@@ -66,6 +66,14 @@ public:
 	>; // TODO: Figure out how to generate this automatically
 	using ComponentTypeId = std::type_index;
 
+	struct ArchetypeVariants final {
+		std::vector<ArchetypeVariantPtr> data;
+
+		template <typename T>
+		std::vector<T>& begin() { return &data[0]; }
+
+	};
+
 	/**
 	 * Adds entity to the entity system
 	 * @param explicitId Explicit object ID to provide to entity
@@ -163,6 +171,7 @@ protected:
 public:
 //private:
 	std::vector<ArchetypeVariantPtr> m_Archetypes;
+	//ArchetypeVariants m_Archetypes;
 
 	struct ArchetypeRecord {
 		size_t archetypeIndex;

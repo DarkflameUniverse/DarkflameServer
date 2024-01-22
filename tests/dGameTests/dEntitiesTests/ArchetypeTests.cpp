@@ -1,6 +1,7 @@
 #include "GameDependencies.h"
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <typeindex>
 #include <unordered_set>
 
