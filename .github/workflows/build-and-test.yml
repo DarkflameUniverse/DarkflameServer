@@ -29,7 +29,7 @@ jobs:
       if: ${{ matrix.os == 'macos-11' }}
       run: |
         brew install openssl@3
-        cmake -S . -B build -D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang
+        cmake -S . -B build -D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++
 
     - name: cmake
       uses: lukka/run-cmake@v10
