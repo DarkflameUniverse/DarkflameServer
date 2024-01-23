@@ -31,7 +31,6 @@ jobs:
         brew install openssl@3
         sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
 
-
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
