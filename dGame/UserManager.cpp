@@ -451,7 +451,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		"User %i tried to rename a character that it does not own!",
 		u->GetAccountID());
 
-	std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
+	void = std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
 		if (c->GetID() == charID) {
 			character = c;
 			return true;
