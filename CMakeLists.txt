@@ -255,7 +255,6 @@ set(INCLUDED_DIRECTORIES
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if(APPLE)
 	include_directories("/usr/local/include/")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 # Actually include the directories from our list
@@ -274,8 +273,8 @@ link_directories(${PROJECT_BINARY_DIR})
 
 # Load all of our third party directories
 add_subdirectory(thirdparty)
-if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") #-Werror
+if (UNIX AND NOT APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 # Glob together all headers that need to be precompiled
 file(
