@@ -3,6 +3,7 @@ project(Darkflame)
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file
@@ -272,7 +273,7 @@ link_directories(${PROJECT_BINARY_DIR})
 
 # Load all of our third party directories
 add_subdirectory(thirdparty)
-if (UNIX)
+if (UNIX AND NOT APPLE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 # Glob together all headers that need to be precompiled
