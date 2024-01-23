@@ -25,7 +25,7 @@ jobs:
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
-    - name: Install libssl and switch to XCode 15.1 (Mac Only)
+    - name: Install libssl and switch to XCode 15.2 (Mac Only)
       if: ${{ matrix.os == 'macos-13' }}
       run: |
         brew install openssl@3
