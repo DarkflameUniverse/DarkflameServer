@@ -6,20 +6,15 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
-	m_Serialized = serialized;
-	m_Client = client;
-
+ScriptComponent::ScriptComponent(const LWOOBJID& parentEntityId, const std::string& scriptName, const bool serialized, const bool client) noexcept : Component{ parentEntityId }
+	, m_Serialized{ serialized }
+	, m_Client{ client } {
 	SetScript(scriptName);
-}
-
-ScriptComponent::~ScriptComponent() {
-
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
-		const auto& networkSettings = m_Parent->GetNetworkSettings();
+		const auto& networkSettings = Game::entityManager->GetEntity(m_Parent)->GetNetworkSettings();
 		auto hasNetworkSettings = !networkSettings.empty();
 		outBitStream->Write(hasNetworkSettings);
 
@@ -48,5 +43,5 @@ CppScripts::Script* ScriptComponent::GetScript() {
 void ScriptComponent::SetScript(const std::string& scriptName) {
 	// Scripts are managed by the CppScripts class and are effecitvely singletons
 	// and they may also be used by other script components so DON'T delete them.
-	m_Script = CppScripts::GetScript(m_Parent, scriptName);
+	m_Script = CppScripts::GetScript(Game::entityManager->GetEntity(m_Parent), scriptName);
 }

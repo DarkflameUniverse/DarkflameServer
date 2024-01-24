@@ -38,8 +38,8 @@ enum class eItemType : int32_t;
 class InventoryComponent : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
-	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
+	explicit InventoryComponent(const LWOOBJID& parentEntityId, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

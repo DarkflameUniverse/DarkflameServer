@@ -33,7 +33,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	}
 
 	if (m_useMouseposit && !branch.isSync) {
-		NiPoint3 targetPosition = NiPoint3::ZERO;
+		NiPoint3 targetPosition = NiPoint3Constant::ZERO;
 		if (!bitStream->Read(targetPosition)) {
 			LOG("Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 			return;

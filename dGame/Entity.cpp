@@ -96,6 +96,8 @@
 #include "CDZoneTableTable.h"
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
+	Game::entityManager->AddEntity(objectID, this); // TODO: FIX TEST CASES SO THIS CAN BE REMOVED
+
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -177,7 +179,7 @@ void Entity::Initialize() {
 	 * Set ourselves as a child of our parent
 	 */
 
-	if (m_ParentEntity != nullptr) {
+	if (m_ParentEntity) {
 		m_ParentEntity->AddChild(this);
 	}
 
@@ -1863,7 +1865,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
-	return NiPoint3::ZERO;
+	return NiPoint3Constant::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
@@ -1891,7 +1893,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return vehicel->GetRotation();
 	}
 
-	return NiQuaternion::IDENTITY;
+	return NiQuaternionConstant::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
@@ -2074,6 +2076,7 @@ uint8_t Entity::GetCollectibleID() const {
 
 void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	if (!IsPlayer()) return;
+	
 	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;
 
@@ -2081,45 +2084,46 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	bool updateChar = true;
 
 	if (possessorComponent) {
-		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+		const LWOOBJID possessableId = possessorComponent->GetPossessable();
+		auto* possessableEntity = Game::entityManager->GetEntity(possessableId);
 
-		if (possassableEntity) {
-			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+		if (possessableEntity) {
+			auto* possessableComponent = possessableEntity->GetComponent<PossessableComponent>();
 
 			// While possessing something, only update char if we are attached to the thing we are possessing
 			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
 
-			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			auto* havokVehiclePhysicsComponent = possessableEntity->GetComponent<HavokVehiclePhysicsComponent>();
 			if (havokVehiclePhysicsComponent) {
 				havokVehiclePhysicsComponent->SetPosition(update.position);
 				havokVehiclePhysicsComponent->SetRotation(update.rotation);
 				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
 				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
 				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
-				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
-				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				auto* possessedControllablePhysicsComponent = possessableEntity->GetComponent<ControllablePhysicsComponent>();
 				if (!possessedControllablePhysicsComponent) return;
 				possessedControllablePhysicsComponent->SetPosition(update.position);
 				possessedControllablePhysicsComponent->SetRotation(update.rotation);
 				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
 				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
 				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
-				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 			}
-			Game::entityManager->SerializeEntity(possassableEntity);
+			Game::entityManager->SerializeEntity(possessableId);
 		}
 	}
 
 	if (!updateChar) {
-		update.velocity = NiPoint3::ZERO;
-		update.angularVelocity = NiPoint3::ZERO;
+		update.velocity = NiPoint3Constant::ZERO;
+		update.angularVelocity = NiPoint3Constant::ZERO;
 	}
 
 	// Handle statistics
@@ -2133,13 +2137,13 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetIsOnGround(update.onGround);
 	controllablePhysicsComponent->SetIsOnRail(update.onRail);
 	controllablePhysicsComponent->SetVelocity(update.velocity);
-	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
 	auto* ghostComponent = GetComponent<GhostComponent>();
 	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
-	if (updateChar) Game::entityManager->SerializeEntity(this);
+	if (updateChar) Game::entityManager->SerializeEntity(m_ObjectID);
 }

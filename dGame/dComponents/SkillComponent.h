@@ -59,9 +59,9 @@ struct SkillExecutionResult {
  */
 class SkillComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
-	explicit SkillComponent(Entity* parent);
+	explicit SkillComponent(const LWOOBJID& parentEntityId);
 	~SkillComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

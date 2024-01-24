@@ -14,8 +14,7 @@
   */
 class ActivityInstance {
 public:
-	ActivityInstance(Entity* parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
-	//~ActivityInstance();
+	ActivityInstance(LWOOBJID parent, CDActivities activityInfo) { m_Parent = parent; m_ActivityInfo = activityInfo; };
 
 	/**
 	 * Adds an entity to this activity
@@ -80,7 +79,7 @@ private:
 	/**
 	 * The entity that owns this activity (the entity that has the ScriptedActivityComponent)
 	 */
-	Entity* m_Parent;
+	LWOOBJID m_Parent;
 
 	/**
 	 * All the participants of this activity
@@ -150,7 +149,7 @@ struct ActivityPlayer {
  */
 class ActivityComponent : public Component {
 public:
-	ActivityComponent(Entity* parent, int32_t activityID);
+	ActivityComponent(const LWOOBJID& parentEntityId, int32_t activityID);
 
 	void LoadActivityData(const int32_t activityId);
 

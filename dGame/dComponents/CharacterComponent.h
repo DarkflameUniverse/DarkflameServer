@@ -63,10 +63,9 @@ enum StatisticID {
  */
 class CharacterComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
-	CharacterComponent(Entity* parent, Character* character);
-	~CharacterComponent() override;
+	CharacterComponent(const LWOOBJID& parentEntityId, Character* character);
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;

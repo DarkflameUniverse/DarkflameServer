@@ -25,8 +25,8 @@ public:
 class GameDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		info.pos = NiPoint3::ZERO;
-		info.rot = NiQuaternion::IDENTITY;
+		info.pos = NiPoint3Constant::ZERO;
+		info.rot = NiQuaternionConstant::IDENTITY;
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;

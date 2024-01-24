@@ -32,8 +32,8 @@
 #define M_PI 3.14159265358979323846264338327950288
 #endif
 
-RacingControlComponent::RacingControlComponent(Entity* parent)
-	: Component(parent) {
+RacingControlComponent::RacingControlComponent(const LWOOBJID& parentEntityId)
+	: Component{ parentEntityId } {
 	m_PathName = u"MainPath";
 	m_RemainingLaps = 3;
 	m_LeadingPlayer = LWOOBJID_EMPTY;
@@ -119,8 +119,8 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
-	auto startPosition = NiPoint3::ZERO;
-	auto startRotation = NiQuaternion::IDENTITY;
+	auto startPosition = NiPoint3Constant::ZERO;
+	auto startRotation = NiQuaternionConstant::IDENTITY;
 	const std::string placementAsString = std::to_string(positionNumber);
 	for (auto entity : spawnPointEntities) {
 		if (!entity) continue;
@@ -142,28 +142,27 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	info.lot = 8092;
 	info.pos = startPosition;
 	info.rot = startRotation;
-	info.spawnerID = m_Parent->GetObjectID();
+	info.spawnerID = m_Parent;
 
-	auto* carEntity =
-		Game::entityManager->CreateEntity(info, nullptr, m_Parent);
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	auto* const carEntity = Game::entityManager->CreateEntity(info, nullptr, Game::entityManager->GetEntity(m_Parent)); // This is very gross
 
 	// Make the vehicle a child of the racing controller.
-	m_Parent->AddChild(carEntity);
+	parentEntity->AddChild(carEntity); // As is this
 
 	auto* destroyableComponent =
 		carEntity->GetComponent<DestroyableComponent>();
 
 	// Setup the vehicle stats.
-	if (destroyableComponent != nullptr) {
+	if (destroyableComponent) {
 		destroyableComponent->SetMaxImagination(60);
 		destroyableComponent->SetImagination(0);
 	}
 
 	// Setup the vehicle as being possessed by the player.
-	auto* possessableComponent =
-		carEntity->GetComponent<PossessableComponent>();
+	auto* possessableComponent = carEntity->GetComponent<PossessableComponent>();
 
-	if (possessableComponent != nullptr) {
+	if (possessableComponent) {
 		possessableComponent->SetPossessor(player->GetObjectID());
 	}
 
@@ -186,7 +185,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	// Setup the player as possessing the vehicle.
 	auto* possessorComponent = player->GetComponent<PossessorComponent>();
 
-	if (possessorComponent != nullptr) {
+	if (possessorComponent) {
 		possessorComponent->SetPossessable(carEntity->GetObjectID());
 		possessorComponent->SetPossessableType(ePossessionType::ATTACHED_VISIBLE); // for racing it's always Attached_Visible
 	}
@@ -194,7 +193,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	// Set the player's current activity as racing.
 	auto* characterComponent = player->GetComponent<CharacterComponent>();
 
-	if (characterComponent != nullptr) {
+	if (characterComponent) {
 		characterComponent->SetIsRacing(true);
 	}
 
@@ -222,29 +221,28 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	GameMessages::SendRacingSetPlayerResetInfo(
-		m_Parent->GetObjectID(), 0, 0, player->GetObjectID(), startPosition, 1,
-		UNASSIGNED_SYSTEM_ADDRESS);
+		m_Parent, 0, 0, player->GetObjectID(), startPosition, 1,
+		UNASSIGNED_SYSTEM_ADDRESS
+	);
 
 	const auto playerID = player->GetObjectID();
 
 	// Reset the player to the start position during downtime, in case something
 	// went wrong.
-	m_Parent->AddCallbackTimer(1, [this, playerID]() {
+	parentEntity->AddCallbackTimer(1, [this, playerID]() {
 		auto* player = Game::entityManager->GetEntity(playerID);
 
-		if (player == nullptr) {
-			return;
-		}
+		if (!player) return;
 
 		GameMessages::SendRacingResetPlayerToLastReset(
-			m_Parent->GetObjectID(), playerID, UNASSIGNED_SYSTEM_ADDRESS);
+			m_Parent, playerID, UNASSIGNED_SYSTEM_ADDRESS);
 		});
 
 	GameMessages::SendSetJetPackMode(player, false);
 
 	// Set the vehicle's state.
 	GameMessages::SendNotifyVehicleOfRacingObject(carEntity->GetObjectID(),
-		m_Parent->GetObjectID(),
+		m_Parent,
 		UNASSIGNED_SYSTEM_ADDRESS);
 
 	GameMessages::SendVehicleSetWheelLockState(carEntity->GetObjectID(), false,
@@ -265,7 +263,7 @@ void RacingControlComponent::OnRacingClientReady(Entity* player) {
 		if (racingPlayer.playerID != player->GetObjectID()) {
 			if (racingPlayer.playerLoaded) {
 				GameMessages::SendRacingPlayerLoaded(
-					m_Parent->GetObjectID(), racingPlayer.playerID,
+					m_Parent, racingPlayer.playerID,
 					racingPlayer.vehicleID, UNASSIGNED_SYSTEM_ADDRESS);
 			}
 
@@ -275,7 +273,7 @@ void RacingControlComponent::OnRacingClientReady(Entity* player) {
 		racingPlayer.playerLoaded = true;
 
 		GameMessages::SendRacingPlayerLoaded(
-			m_Parent->GetObjectID(), racingPlayer.playerID,
+			m_Parent, racingPlayer.playerID,
 			racingPlayer.vehicleID, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
@@ -312,15 +310,16 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 
 			// Respawn the player in 2 seconds, as was done in live.  Not sure if this value is in a setting somewhere else...
 			vehicle->AddCallbackTimer(2.0f, [=, this]() {
-				if (!vehicle || !this->m_Parent) return;
+				if (!vehicle) return;
 				GameMessages::SendRacingResetPlayerToLastReset(
-					m_Parent->GetObjectID(), racingPlayer.playerID,
-					UNASSIGNED_SYSTEM_ADDRESS);
+					m_Parent, racingPlayer.playerID,
+					UNASSIGNED_SYSTEM_ADDRESS
+				);
 
 				GameMessages::SendVehicleStopBoost(vehicle, player->GetSystemAddress(), true);
 
 				GameMessages::SendRacingSetPlayerResetInfo(
-					m_Parent->GetObjectID(), racingPlayer.lap,
+					m_Parent, racingPlayer.lap,
 					racingPlayer.respawnIndex, player->GetObjectID(),
 					racingPlayer.respawnPosition, racingPlayer.respawnIndex + 1,
 					UNASSIGNED_SYSTEM_ADDRESS);
@@ -338,13 +337,15 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 			}
 		} else {
 			GameMessages::SendRacingSetPlayerResetInfo(
-				m_Parent->GetObjectID(), racingPlayer.lap,
+				m_Parent, racingPlayer.lap,
 				racingPlayer.respawnIndex, player->GetObjectID(),
 				racingPlayer.respawnPosition, racingPlayer.respawnIndex + 1,
-				UNASSIGNED_SYSTEM_ADDRESS);
+				UNASSIGNED_SYSTEM_ADDRESS
+			);
 			GameMessages::SendRacingResetPlayerToLastReset(
-				m_Parent->GetObjectID(), racingPlayer.playerID,
-				UNASSIGNED_SYSTEM_ADDRESS);
+				m_Parent, racingPlayer.playerID,
+				UNASSIGNED_SYSTEM_ADDRESS
+			);
 		}
 	}
 }
@@ -357,12 +358,8 @@ void RacingControlComponent::OnRacingPlayerInfoResetFinished(Entity* player) {
 			continue;
 		}
 
-		auto* vehicle =
-			Game::entityManager->GetEntity(racingPlayer.vehicleID);
-
-		if (vehicle == nullptr) {
-			return;
-		}
+		auto* vehicle = Game::entityManager->GetEntity(racingPlayer.vehicleID);
+		if (!vehicle) return;
 
 		racingPlayer.noSmashOnReload = false;
 
@@ -372,10 +369,7 @@ void RacingControlComponent::OnRacingPlayerInfoResetFinished(Entity* player) {
 
 void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t button, const std::string& id) {
 	auto* data = GetPlayerData(player->GetObjectID());
-
-	if (data == nullptr) {
-		return;
-	}
+	if (!data) return;
 
 	if (id == "rewardButton") {
 		if (data->collectedRewards) return;
@@ -389,11 +383,11 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		}
 
 		const auto score = playersRating * 10 + data->finished;
-		Loot::GiveActivityLoot(player, m_Parent, m_ActivityID, score);
+		Loot::GiveActivityLoot(player, Game::entityManager->GetEntity(m_Parent), m_ActivityID, score);
 
 		// Giving rewards
 		GameMessages::SendNotifyRacingClient(
-			m_Parent->GetObjectID(), 2, 0, LWOOBJID_EMPTY, u"",
+			m_Parent, 2, 0, LWOOBJID_EMPTY, u"",
 			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -423,8 +417,9 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 
 		// Exiting race
 		GameMessages::SendNotifyRacingClient(
-			m_Parent->GetObjectID(), 3, 0, LWOOBJID_EMPTY, u"",
-			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+			m_Parent, 3, 0, LWOOBJID_EMPTY, u"",
+			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS
+		);
 
 		auto* characterComponent = player->GetComponent<CharacterComponent>();
 
@@ -644,7 +639,7 @@ void RacingControlComponent::Update(float deltaTime) {
 			// Setup for racing
 			if (m_StartTimer == 0) {
 				GameMessages::SendNotifyRacingClient(
-					m_Parent->GetObjectID(), 1, 0, LWOOBJID_EMPTY, u"",
+					m_Parent, 1, 0, LWOOBJID_EMPTY, u"",
 					LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
 
 				for (const auto& player : m_RacingPlayers) {
@@ -728,8 +723,7 @@ void RacingControlComponent::Update(float deltaTime) {
 				}
 
 				// Start the race
-				GameMessages::SendActivityStart(m_Parent->GetObjectID(),
-					UNASSIGNED_SYSTEM_ADDRESS);
+				GameMessages::SendActivityStart(m_Parent, UNASSIGNED_SYSTEM_ADDRESS);
 
 				m_Started = true;
 
@@ -766,8 +760,8 @@ void RacingControlComponent::Update(float deltaTime) {
 		// If the player is this far below the map, safe to assume they should
 		// be smashed by death plane
 		if (vehiclePosition.y < -500) {
-			GameMessages::SendDie(vehicle, m_Parent->GetObjectID(),
-				LWOOBJID_EMPTY, true, eKillType::VIOLENT, u"", 0, 0, 0,
+			GameMessages::SendDie(vehicle, m_Parent, LWOOBJID_EMPTY,
+				true, eKillType::VIOLENT, u"", 0, 0, 0,
 				true, false, 0);
 
 			OnRequestDie(playerEntity);
@@ -818,7 +812,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Some offset up to make they don't fall through the terrain on a
 			// respawn, seems to fix itself to the track anyhow
-			player.respawnPosition = position + NiPoint3::UNIT_Y * 5;
+			player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
 			player.respawnRotation = vehicle->GetRotation();
 			player.respawnIndex = respawnIndex;
 

@@ -29,7 +29,7 @@
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
 
-ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+ActivityComponent::ActivityComponent(const LWOOBJID& parentEntityId, int32_t activityID) : Component{ parentEntityId } {
 	/*
 	* This is precisely what the client does functionally
 	* Use the component id as the default activity id and load its data from the database
@@ -38,13 +38,14 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 
 	m_ActivityID = activityID;
 	LoadActivityData(activityID);
-	if (m_Parent->HasVar(u"activityID")) {
-		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	if (parentEntity->HasVar(u"activityID")) {
+		m_ActivityID = parentEntity->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);
 	}
 
-	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-
+	auto* destroyableComponent = parentEntity->GetComponent<DestroyableComponent>();
 	if (destroyableComponent) {
 		// First lookup the loot matrix id for this component id.
 		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
@@ -70,6 +71,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 		}
 	}
 }
+
 void ActivityComponent::LoadActivityData(const int32_t activityId) {
 	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });
@@ -82,7 +84,7 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 			m_ActivityInfo.minTeams = 1;
 		}
 		if (m_ActivityInfo.instanceMapID == -1) {
-			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
+			const auto& transferOverride = Game::entityManager->GetEntity(m_Parent)->GetVarAsString(u"transferZoneID");
 			if (!transferOverride.empty()) {
 				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
 			}
@@ -141,7 +143,7 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 }
 
 void ActivityComponent::PlayerJoinLobby(Entity* player) {
-	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
+	if (!Game::entityManager->GetEntity(m_Parent)->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
 	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
 	newLobbyPlayer->entityID = player->GetObjectID();
@@ -561,7 +563,7 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 			maxCoins = currencyTable[0].maxvalue;
 		}
 
-		Loot::DropLoot(participant, m_Parent, activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
+		Loot::DropLoot(participant, Game::entityManager->GetEntity(m_Parent), activityRewards[0].LootMatrixIndex, minCoins, maxCoins);
 	}
 }
 

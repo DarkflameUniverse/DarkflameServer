@@ -66,7 +66,7 @@ void AmDrawBridge::OnTimerDone(Entity* self, std::string timerName) {
 			return;
 		}
 
-		simplePhysicsComponent->SetAngularVelocity(NiPoint3::ZERO);
+		simplePhysicsComponent->SetAngularVelocity(NiPoint3Constant::ZERO);
 
 		Game::entityManager->SerializeEntity(bridge);
 	}

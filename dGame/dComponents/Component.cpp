@@ -1,34 +1,19 @@
 #include "Component.h"
 
+Component::Component(const LWOOBJID& parentEntityId) noexcept : m_Parent{ parentEntityId } {}
 
-Component::Component(Entity* parent) {
-	m_Parent = parent;
-}
-
-Component::~Component() {
-
-}
+Component::~Component() {}
 
 Entity* Component::GetParent() const {
-	return m_Parent;
+	return Game::entityManager->GetEntity(m_Parent); //TEMP
 }
 
-void Component::Update(float deltaTime) {
+void Component::Update(float deltaTime) {}
 
-}
+void Component::OnUse(Entity* originator) {}
 
-void Component::OnUse(Entity* originator) {
+void Component::UpdateXml(tinyxml2::XMLDocument* doc) {}
 
-}
+void Component::LoadFromXml(tinyxml2::XMLDocument* doc) {}
 
-void Component::UpdateXml(tinyxml2::XMLDocument* doc) {
-
-}
-
-void Component::LoadFromXml(tinyxml2::XMLDocument* doc) {
-
-}
-
-void Component::Serialize(RakNet::BitStream* outBitStream, bool isConstruction) {
-
-}
+void Component::Serialize(RakNet::BitStream* outBitStream, bool isConstruction) {}

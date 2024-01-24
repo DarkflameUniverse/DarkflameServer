@@ -13,11 +13,12 @@
 
 #include "Entity.h"
 
-SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componentID) : PhysicsComponent(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
+SimplePhysicsComponent::SimplePhysicsComponent(const LWOOBJID& parentEntityId, const uint32_t componentID) : PhysicsComponent{ parentEntityId } {
+	CheckComponentAssertions<SimplePhysicsComponent>(); // Check static assertions
 
-	const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	const auto& climbable_type = parentEntity->GetVar<std::u16string>(u"climbable");
 	if (climbable_type == u"wall") {
 		SetClimbableType(eClimbableType::CLIMBABLE_TYPE_WALL);
 	} else if (climbable_type == u"ladder") {
@@ -27,9 +28,6 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componen
 	} else {
 		SetClimbableType(eClimbableType::CLIMBABLE_TYPE_NOT);
 	}
-}
-
-SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
 void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {

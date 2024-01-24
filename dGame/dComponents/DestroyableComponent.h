@@ -19,10 +19,12 @@ enum class eStateChangeType : uint32_t;
  */
 class DestroyableComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity);
-	~DestroyableComponent() override;
+	DestroyableComponent(const LWOOBJID& parentEntityId);
+	~DestroyableComponent() override = default;
+	DestroyableComponent(DestroyableComponent&& other) = default;
+	DestroyableComponent& operator=(DestroyableComponent&& other) = default;
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

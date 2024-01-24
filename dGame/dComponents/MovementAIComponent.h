@@ -57,9 +57,9 @@ struct MovementAIInfo {
  */
 class MovementAIComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
-	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
+	MovementAIComponent(const LWOOBJID& parentEntityId, MovementAIInfo info);
 
 	void Update(float deltaTime) override;
 

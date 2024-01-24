@@ -1,8 +1,11 @@
 #include "PhysicsComponent.h"
 
-PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = NiPoint3::ZERO;
-	m_Rotation = NiQuaternion::IDENTITY;
+PhysicsComponent::PhysicsComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+	CheckComponentAssertions<PhysicsComponent>();
+
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	m_Position = parentEntity->GetDefaultPosition();
+	m_Rotation = parentEntity->GetDefaultRotation();
 	m_DirtyPosition = false;
 }
 

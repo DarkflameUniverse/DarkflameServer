@@ -9,17 +9,13 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 
-BuildBorderComponent::BuildBorderComponent(Entity* parent) : Component(parent) {
-}
-
-BuildBorderComponent::~BuildBorderComponent() {
-}
+BuildBorderComponent::BuildBorderComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {}
 
 void BuildBorderComponent::OnUse(Entity* originator) {
 	if (originator->GetCharacter()) {
 		const auto& entities = Game::entityManager->GetEntitiesInGroup("PropertyPlaque");
 
-		auto buildArea = m_Parent->GetObjectID();
+		auto buildArea = m_Parent;
 
 		if (!entities.empty()) {
 			buildArea = entities[0]->GetObjectID();
@@ -28,16 +24,10 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 		}
 
 		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
-
-		if (inventoryComponent == nullptr) {
-			return;
-		}
+		if (!inventoryComponent) return;
 
 		auto* thinkingHat = inventoryComponent->FindItemByLot(6086);
-
-		if (thinkingHat == nullptr) {
-			return;
-		}
+		if (!thinkingHat) return;
 
 		inventoryComponent->PushEquippedItems();
 
@@ -56,14 +46,14 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 				4,
 				0,
 				-1,
-				NiPoint3::ZERO,
+				NiPoint3Constant::ZERO,
 				0
 			);
 		} else {
 			GameMessages::SendStartArrangingWithItem(originator, originator->GetSystemAddress(), true, buildArea, originator->GetPosition());
 		}
 
-		InventoryComponent* inv = m_Parent->GetComponent<InventoryComponent>();
+		InventoryComponent* inv = Game::entityManager->GetEntity(m_Parent)->GetComponent<InventoryComponent>();
 		if (!inv) return;
 		inv->PushEquippedItems(); // technically this is supposed to happen automatically... but it doesnt? so just keep this here
 	}

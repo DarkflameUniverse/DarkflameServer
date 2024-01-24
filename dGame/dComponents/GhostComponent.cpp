@@ -1,8 +1,8 @@
 #include "GhostComponent.h"
 
-GhostComponent::GhostComponent(Entity* parent) : Component(parent) {
-	m_GhostReferencePoint = NiPoint3::ZERO;
-	m_GhostOverridePoint = NiPoint3::ZERO;
+GhostComponent::GhostComponent(const LWOOBJID& parentEntityId) noexcept : Component{ parentEntityId } {
+	m_GhostReferencePoint = NiPoint3Constant::ZERO;
+	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
 }
 
@@ -38,7 +38,7 @@ void GhostComponent::ConstructLimboEntities() {
 		auto* entity = Game::entityManager->GetEntity(objectId);
 		if (!entity) continue;
 
-		Game::entityManager->ConstructEntity(entity, m_Parent->GetSystemAddress());
+		Game::entityManager->ConstructEntity(entity, Game::entityManager->GetEntity(m_Parent)->GetSystemAddress());
 	}
 
 	m_LimboConstructions.clear();

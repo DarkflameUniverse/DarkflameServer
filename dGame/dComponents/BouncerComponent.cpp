@@ -9,17 +9,16 @@
 #include "BitStream.h"
 #include "eTriggerEventType.h"
 
-BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
+BouncerComponent::BouncerComponent(const LWOOBJID& parentEntityId) : Component{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;
 
-	if (parent->GetLOT() == 7625) {
+	if (parentEntity->GetLOT() == 7625) {
 		LookupPetSwitch();
 	}
-}
-
-BouncerComponent::~BouncerComponent() {
 }
 
 void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
@@ -30,7 +29,7 @@ void BouncerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitia
 }
 
 Entity* BouncerComponent::GetParentEntity() const {
-	return m_Parent;
+	return Game::entityManager->GetEntity(m_Parent);
 }
 
 void BouncerComponent::SetPetEnabled(bool value) {
@@ -42,15 +41,16 @@ void BouncerComponent::SetPetEnabled(bool value) {
 void BouncerComponent::SetPetBouncerEnabled(bool value) {
 	m_PetBouncerEnabled = value;
 
-	GameMessages::SendBouncerActiveStatus(m_Parent->GetObjectID(), value, UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendBouncerActiveStatus(m_Parent, value, UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
 	if (value) {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, m_Parent);
-		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
+		parentEntity->TriggerEvent(eTriggerEventType::PET_ON_SWITCH, Game::entityManager->GetEntity(m_Parent));
+		GameMessages::SendPlayFXEffect(m_Parent, 1513, u"create", "PetOnSwitch", LWOOBJID_EMPTY, 1, 1, true);
 	} else {
-		m_Parent->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, m_Parent);
+		parentEntity->TriggerEvent(eTriggerEventType::PET_OFF_SWITCH, Game::entityManager->GetEntity(m_Parent));
 		GameMessages::SendStopFXEffect(m_Parent, true, "PetOnSwitch");
 	}
 
@@ -65,7 +65,8 @@ bool BouncerComponent::GetPetBouncerEnabled() const {
 }
 
 void BouncerComponent::LookupPetSwitch() {
-	const auto& groups = m_Parent->GetGroups();
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	const auto& groups = parentEntity->GetGroups();
 
 	for (const auto& group : groups) {
 		const auto& entities = Game::entityManager->GetEntitiesInGroup(group);
@@ -89,7 +90,7 @@ void BouncerComponent::LookupPetSwitch() {
 	if (!m_PetSwitchLoaded) {
 		LOG("Failed to load pet bouncer");
 
-		m_Parent->AddCallbackTimer(0.5f, [this]() {
+		parentEntity->AddCallbackTimer(0.5f, [this]() {
 			LookupPetSwitch();
 			});
 	}

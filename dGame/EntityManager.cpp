@@ -86,7 +86,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	}
 
 	// For non player entites, we'll generate a new ID or set the appropiate flags
-	else if (user == nullptr || info.lot != 1) {
+	else if (!user || info.lot != 1) {
 
 		// Entities with no ID already set, often spawned entities, we'll generate a new sequencial ID
 		if (info.id == 0) {
@@ -121,17 +121,17 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	Entity* entity;
 
 	// Check if the entitty if a player, in case use the extended player entity class
-	if (user != nullptr) {
+	if (user) {
 		entity = new Player(id, info, user, parentEntity);
 	} else {
 		entity = new Entity(id, info, parentEntity);
 	}
 
-	// Initialize the entity
-	entity->Initialize();
-
 	// Add the entity to the entity map
 	m_Entities.insert_or_assign(id, entity);
+
+	// Initialize the entity
+	entity->Initialize();
 
 	// Set the zone control entity if the entity is a zone control object, this should only happen once
 	if (controller) {
@@ -430,12 +430,16 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	}
 }
 
+void EntityManager::SerializeEntity(const LWOOBJID entityId) {
+	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entityId) == m_EntitiesToSerialize.end()) {
+		m_EntitiesToSerialize.push_back(entityId);
+	}
+}
+
 void EntityManager::SerializeEntity(Entity* entity) {
 	if (!entity || entity->GetNetworkId() == 0) return;
 
-	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
-		m_EntitiesToSerialize.push_back(entity->GetObjectID());
-	}
+	EntityManager::SerializeEntity(entity->GetObjectID());
 }
 
 void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {

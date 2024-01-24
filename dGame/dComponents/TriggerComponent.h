@@ -7,9 +7,9 @@
 
 class TriggerComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
 
-	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
+	explicit TriggerComponent(const LWOOBJID& parentEntityId, const std::string triggerInfo);
 
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	LUTriggers::Trigger* GetTrigger() const { return m_Trigger; }

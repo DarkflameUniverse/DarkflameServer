@@ -15,7 +15,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent) {
+PropertyEntranceComponent::PropertyEntranceComponent(const LWOOBJID& parentEntityId, uint32_t componentID) : Component{ parentEntityId } {
 	this->propertyQueries = {};
 
 	auto table = CDClientManager::Instance().GetTable<CDPropertyEntranceComponentTable>();
@@ -32,7 +32,7 @@ void PropertyEntranceComponent::OnUse(Entity* entity) {
 	auto* rocket = entity->GetComponent<CharacterComponent>()->RocketEquip(entity);
 	if (!rocket) return;
 
-	GameMessages::SendPropertyEntranceBegin(m_Parent->GetObjectID(), entity->GetSystemAddress());
+	GameMessages::SendPropertyEntranceBegin(m_Parent, entity->GetSystemAddress());
 
 	AMFArrayValue args;
 
@@ -63,11 +63,8 @@ void PropertyEntranceComponent::OnEnterProperty(Entity* entity, uint32_t index, 
 		cloneId = query[index].CloneId;
 	}
 
-	auto* launcher = m_Parent->GetComponent<RocketLaunchpadControlComponent>();
-
-	if (launcher == nullptr) {
-		return;
-	}
+	auto* launcher = Game::entityManager->GetEntity(m_Parent)->GetComponent<RocketLaunchpadControlComponent>();
+	if (!launcher) return;
 
 	launcher->SetSelectedCloneId(entity->GetObjectID(), cloneId);
 
@@ -330,5 +327,5 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	delete propertiesLeft;
 	propertiesLeft = nullptr;
 
-	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, numberOfProperties - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+	GameMessages::SendPropertySelectQuery(m_Parent, startIndex, numberOfProperties - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }

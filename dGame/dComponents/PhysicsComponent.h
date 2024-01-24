@@ -11,8 +11,11 @@ namespace Raknet {
 
 class PhysicsComponent : public Component {
 public:
-	PhysicsComponent(Entity* parent);
+	PhysicsComponent(const LWOOBJID& parentEntityId);
 	virtual ~PhysicsComponent() = default;
+
+	PhysicsComponent(PhysicsComponent&& other) = default; 				// Move constructor
+	PhysicsComponent& operator=(PhysicsComponent&& other) = default; 	// Move-assignment operator
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 

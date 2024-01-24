@@ -27,9 +27,9 @@ enum class ePhysicsEffectType : uint32_t ;
  */
 class PhantomPhysicsComponent : public PhysicsComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
-	PhantomPhysicsComponent(Entity* parent);
+	PhantomPhysicsComponent(const LWOOBJID& parentEntityId);
 	~PhantomPhysicsComponent() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;

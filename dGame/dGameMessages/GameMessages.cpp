@@ -385,8 +385,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	float fIdleTimeElapsed = 0.0f;
 	float fMoveTimeElapsed = 0.0f;
 	float fPercentBetweenPoints = 0.0f;
-	NiPoint3 ptUnexpectedLocation = NiPoint3::ZERO;
-	NiQuaternion qUnexpectedRotation = NiQuaternion::IDENTITY;
+	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
+	NiQuaternion qUnexpectedRotation = NiQuaternionConstant::IDENTITY;
 
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
@@ -403,8 +403,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(ptUnexpectedLocation.y);
 	bitStream.Write(ptUnexpectedLocation.z);
 
-	bitStream.Write(qUnexpectedRotation != NiQuaternion::IDENTITY);
-	if (qUnexpectedRotation != NiQuaternion::IDENTITY) {
+	bitStream.Write(qUnexpectedRotation != NiQuaternionConstant::IDENTITY);
+	if (qUnexpectedRotation != NiQuaternionConstant::IDENTITY) {
 		bitStream.Write(qUnexpectedRotation.x);
 		bitStream.Write(qUnexpectedRotation.y);
 		bitStream.Write(qUnexpectedRotation.z);
@@ -607,11 +607,11 @@ void GameMessages::SendModifyLEGOScore(Entity* entity, const SystemAddress& sysA
 	SEND_PACKET;
 }
 
-void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
+void GameMessages::SendUIMessageServerToSingleClient(const LWOOBJID entityId, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::UI_MESSAGE_SERVER_TO_SINGLE_CLIENT);
 
 	bitStream.Write<AMFBaseValue&>(args);
@@ -623,6 +623,11 @@ void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const Syste
 	}
 
 	SEND_PACKET;
+}
+
+// Compatibility shim
+void GameMessages::SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args) {
+	GameMessages::SendUIMessageServerToSingleClient(entity->GetObjectID(), entity->GetSystemAddress(), message, args);
 }
 
 void GameMessages::SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr) {
@@ -680,19 +685,20 @@ void GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, 
 	SEND_PACKET_BROADCAST;
 }
 
+// Compatibility shim
 void GameMessages::SendPlayFXEffect(Entity* entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority, float scale, bool serialize) {
 	SendPlayFXEffect(entity->GetObjectID(), effectID, effectType, name, secondary, priority, scale, serialize);
 }
 
-void GameMessages::SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, const std::u16string& effectType, const std::string& name, LWOOBJID secondary, float priority, float scale, bool serialize) {
+void GameMessages::SendPlayFXEffect(const LWOOBJID entityId, const int32_t effectId, const std::u16string& effectType, const std::string& name, const LWOOBJID secondary, const float priority, const float scale, const bool serialize) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity);
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::PLAY_FX_EFFECT);
 
-	bitStream.Write(effectID != -1);
-	if (effectID != -1) bitStream.Write(effectID);
+	bitStream.Write(effectId != -1);
+	if (effectId != -1) bitStream.Write(effectId);
 
 	bitStream.Write<uint32_t>(effectType.size());
 	for (const auto& k : effectType) {
@@ -714,6 +720,20 @@ void GameMessages::SendPlayFXEffect(const LWOOBJID& entity, int32_t effectID, co
 	if (secondary != LWOOBJID_EMPTY) bitStream.Write(secondary);
 
 	bitStream.Write(serialize);
+
+	SEND_PACKET_BROADCAST;
+}
+
+void GameMessages::SendStopFXEffect(const LWOOBJID entityId, const bool killImmediate, const std::string& name) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entityId);
+	bitStream.Write(eGameMessageType::STOP_FX_EFFECT);
+
+	bitStream.Write(killImmediate);
+	bitStream.Write<uint32_t>(name.size());
+	bitStream.Write(name.c_str(), name.size());
 
 	SEND_PACKET_BROADCAST;
 }
@@ -770,7 +790,7 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	bitStream.Write(lootType != LOOTTYPE_NONE);
 	if (lootType != LOOTTYPE_NONE) bitStream.Write(lootType);
 
-	bitStream.Write(NiPoint3::ZERO);
+	bitStream.Write(NiPoint3Constant::ZERO);
 
 	bitStream.Write(sourceLOT != LOT_NULL);
 	if (sourceLOT != LOT_NULL) bitStream.Write(sourceLOT);
@@ -1055,21 +1075,29 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 	SEND_PACKET;
 }
 
-void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (Game::config->GetValue("disable_drops") == "1" || !entity) {
-		return;
-	}
+// Compatibility shim
+void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
+	if (!entity) return;
+
+	const auto entityID = entity->GetObjectID();
+	const auto sysAddr = entity->GetSystemAddress();
+
+	GameMessages::SendDropClientLoot(entityID, sourceID, item, currency, spawnPos, count, sysAddr);
+}
+
+void GameMessages::SendDropClientLoot(const LWOOBJID entityId, const LWOOBJID sourceId, const LOT item, const int currency, const NiPoint3 spawnPos, const int count, const SystemAddress& sysAddr) {
+	if (Game::config->GetValue("disable_drops") == "1") return;
 
 	bool bUsePosition = false;
 	NiPoint3 finalPosition;
-	LWOOBJID lootID = LWOOBJID_EMPTY;
-	LWOOBJID owner = entity->GetObjectID();
+	LWOOBJID lootId = LWOOBJID_EMPTY;
+	auto* const entity = Game::entityManager->GetEntity(entityId);
 
 	if (item != LOT_NULL && item != 0) {
-		lootID = ObjectIDManager::GenerateObjectID();
+		lootId = ObjectIDManager::GenerateObjectID();
 
 		Loot::Info info;
-		info.id = lootID;
+		info.id = lootId;
 		info.count = count;
 		info.lot = item;
 		entity->AddLootItem(info);
@@ -1079,15 +1107,15 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 		entity->RegisterCoinDrop(currency);
 	}
 
-	if (spawnPos != NiPoint3::ZERO) {
+	if (spawnPos != NiPoint3Constant::ZERO) {
 		bUsePosition = true;
 
 		//Calculate where the loot will go:
-		uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
+		const uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
 
-		double rad = degree * 3.14 / 180;
-		double sin_v = sin(rad) * 4.2;
-		double cos_v = cos(rad) * 4.2;
+		const double rad = degree * 3.14 / 180;
+		const double sin_v = sin(rad) * 4.2;
+		const double cos_v = cos(rad) * 4.2;
 
 		finalPosition = NiPoint3(static_cast<float>(spawnPos.GetX() + sin_v), spawnPos.GetY(), static_cast<float>(spawnPos.GetZ() + cos_v));
 	}
@@ -1096,24 +1124,24 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entityId);
 	bitStream.Write(eGameMessageType::DROP_CLIENT_LOOT);
 
 	bitStream.Write(bUsePosition);
 
-	bitStream.Write(finalPosition != NiPoint3::ZERO);
-	if (finalPosition != NiPoint3::ZERO) bitStream.Write(finalPosition);
+	bitStream.Write(finalPosition != NiPoint3Constant::ZERO);
+	if (finalPosition != NiPoint3Constant::ZERO) bitStream.Write(finalPosition);
 
 	bitStream.Write(currency);
 	bitStream.Write(item);
-	bitStream.Write(lootID);
-	bitStream.Write(owner);
-	bitStream.Write(sourceID);
+	bitStream.Write(lootId);
+	bitStream.Write(entityId);
+	bitStream.Write(sourceId);
 
-	bitStream.Write(spawnPos != NiPoint3::ZERO);
-	if (spawnPos != NiPoint3::ZERO) bitStream.Write(spawnPos);
+	bitStream.Write(spawnPos != NiPoint3Constant::ZERO);
+	if (spawnPos != NiPoint3Constant::ZERO) bitStream.Write(spawnPos);
 
-	auto* team = TeamManager::Instance()->GetTeam(owner);
+	auto* team = TeamManager::Instance()->GetTeam(entityId);
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
@@ -1123,9 +1151,9 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 		if (object.type != "Powerup") {
 			for (const auto memberId : team->members) {
-				auto* member = Game::entityManager->GetEntity(memberId);
+				auto* const member = Game::entityManager->GetEntity(memberId);
 
-				if (member == nullptr) continue;
+				if (!member) continue;
 
 				SystemAddress sysAddr = member->GetSystemAddress();
 				SEND_PACKET;
@@ -1135,7 +1163,6 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 		}
 	}
 
-	SystemAddress sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
 }
 
@@ -1170,7 +1197,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	const bool bIsNotIdentity = rotation != NiQuaternion::IDENTITY;
+	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
 
 	if (bIsNotIdentity) {
@@ -1646,8 +1673,8 @@ void GameMessages::SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const
 
 void GameMessages::HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	float angle = 0.0f;
-	NiPoint3 facing = NiPoint3::ZERO;
-	NiPoint3 muzzlePos = NiPoint3::ZERO;
+	NiPoint3 facing = NiPoint3Constant::ZERO;
+	NiPoint3 muzzlePos = NiPoint3Constant::ZERO;
 	inStream->Read(angle);
 	inStream->Read(facing);
 	inStream->Read(muzzlePos);
@@ -2103,8 +2130,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::PLACE_MODEL_RESPONSE);
 
-	bitStream.Write(position != NiPoint3::ZERO);
-	if (position != NiPoint3::ZERO) {
+	bitStream.Write(position != NiPoint3Constant::ZERO);
+	if (position != NiPoint3Constant::ZERO) {
 		bitStream.Write(position);
 	}
 
@@ -2118,8 +2145,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
-	bitStream.Write(rotation != NiQuaternion::IDENTITY);
-	if (rotation != NiQuaternion::IDENTITY) {
+	bitStream.Write(rotation != NiQuaternionConstant::IDENTITY);
+	if (rotation != NiQuaternionConstant::IDENTITY) {
 		bitStream.Write(response);
 	}
 
@@ -2271,7 +2298,7 @@ void GameMessages::HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entit
 	bool modePaused{};
 	int modeValue = 1;
 	LWOOBJID playerId{};
-	NiPoint3 startPosition = NiPoint3::ZERO;
+	NiPoint3 startPosition = NiPoint3Constant::ZERO;
 
 	inStream->Read(start);
 
@@ -2290,7 +2317,7 @@ void GameMessages::HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entit
 
 	auto* player = Game::entityManager->GetEntity(playerId);
 
-	if (startPosition == NiPoint3::ZERO) {
+	if (startPosition == NiPoint3Constant::ZERO) {
 		startPosition = player->GetPosition();
 	}
 
@@ -2384,13 +2411,13 @@ void GameMessages::HandlePlacePropertyModel(RakNet::BitStream* inStream, Entity*
 
 	inStream->Read(model);
 
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3::ZERO, NiQuaternion::IDENTITY);
+	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, NiQuaternionConstant::IDENTITY);
 }
 
 void GameMessages::HandleUpdatePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID model;
 	NiPoint3 position;
-	NiQuaternion rotation = NiQuaternion::IDENTITY;
+	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
 
 	inStream->Read(model);
 	inStream->Read(position);
@@ -2612,7 +2639,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		IPropertyContents::Model model;
 		model.id = newIDL;
 		model.ugcId = blueprintIDSmall;
-		model.position = NiPoint3::ZERO;
+		model.position = NiPoint3Constant::ZERO;
 		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
@@ -3393,7 +3420,7 @@ void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId
 	bitStream.Write(petsDestPos);
 	bitStream.Write(telePos);
 
-	const bool hasDefault = teleRot != NiQuaternion::IDENTITY;
+	const bool hasDefault = teleRot != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(hasDefault);
 	if (hasDefault) bitStream.Write(teleRot);
 
@@ -3566,11 +3593,11 @@ void GameMessages::SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID ta
 	SEND_PACKET;
 }
 
-void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+void GameMessages::SendRemoveBuff(const LWOOBJID& entity, const bool fromUnEquip, const bool removeImmunity, const uint32_t buffId) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(entity);
 	bitStream.Write(eGameMessageType::REMOVE_BUFF);
 
 	bitStream.Write(false); // bFromRemoveBehavior but setting this to true makes the GM not do anything on the client?
@@ -3579,6 +3606,11 @@ void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeI
 	bitStream.Write(buffId);
 
 	SEND_PACKET_BROADCAST;
+}
+
+// Compatibility shim
+void GameMessages::SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId) {
+	GameMessages::SendRemoveBuff(entity->GetObjectID(), fromUnEquip, removeImmunity, buffId);
 }
 
 void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr) {
@@ -4218,7 +4250,7 @@ void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* in
 	LWOOBJID pickupObjID = LWOOBJID_EMPTY;
 	LWOOBJID pickupSpawnerID = LWOOBJID_EMPTY;
 	int32_t pickupSpawnerIndex = -1;
-	NiPoint3 vehiclePosition = NiPoint3::ZERO;
+	NiPoint3 vehiclePosition = NiPoint3Constant::ZERO;
 
 	if (inStream->ReadBit()) inStream->Read(pickupObjID);
 	if (inStream->ReadBit()) inStream->Read(pickupSpawnerID);

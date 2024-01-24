@@ -20,6 +20,13 @@ class EntityManager {
 public:
 	void Initialize();
 
+	/**
+	 * Add entity to the entity lookup map
+	 * @param objectId Object ID
+	 * @param entityPtr Entity pointer 
+	*/
+	void AddEntity(const LWOOBJID objectId, Entity* entityPtr) { m_Entities.insert_or_assign(objectId, entityPtr); };
+
 	void UpdateEntities(float deltaTime);
 	Entity* CreateEntity(EntityInfo info, User* user = nullptr, Entity* parentEntity = nullptr, bool controller = false, LWOOBJID explicitId = LWOOBJID_EMPTY);
 	void DestroyEntity(const LWOOBJID& objectID);
@@ -44,6 +51,8 @@ public:
 
 	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	
+	void SerializeEntity(const LWOOBJID entity);
 	void SerializeEntity(Entity* entity);
 
 	void ConstructAllEntities(const SystemAddress& sysAddr);

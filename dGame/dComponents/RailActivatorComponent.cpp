@@ -11,13 +11,15 @@
 #include "EntityManager.h"
 #include "eStateChangeType.h"
 
-RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
+RailActivatorComponent::RailActivatorComponent(const LWOOBJID& parentEntityId, int32_t componentID) : Component{ parentEntityId } {
 	m_ComponentID = componentID;
 	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
-	m_Path = parent->GetVar<std::u16string>(u"rail_path");
-	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
-	m_PathStart = parent->GetVar<uint32_t>(u"rail_path_start");
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+
+	m_Path = parentEntity->GetVar<std::u16string>(u"rail_path");
+	m_PathDirection = parentEntity->GetVar<bool>(u"rail_path_direction");
+	m_PathStart = parentEntity->GetVar<uint32_t>(u"rail_path_start");
 
 	m_StartSound = tableData.startSound;
 	m_loopSound = tableData.loopSound;
@@ -31,23 +33,21 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 	m_LoopEffect = tableData.loopEffectID;
 	m_StopEffect = tableData.stopEffectID;
 
-	m_DamageImmune = parent->GetVar<bool>(u"rail_activator_damage_immune");
-	m_NoAggro = parent->GetVar<bool>(u"rail_no_aggro");
-	m_NotifyArrived = parent->GetVar<bool>(u"rail_notify_activator_arrived");
-	m_ShowNameBillboard = parent->GetVar<bool>(u"rail_show_name_billboard");
-	m_UseDB = parent->GetVar<bool>(u"rail_use_db");
+	m_DamageImmune = parentEntity->GetVar<bool>(u"rail_activator_damage_immune");
+	m_NoAggro = parentEntity->GetVar<bool>(u"rail_no_aggro");
+	m_NotifyArrived = parentEntity->GetVar<bool>(u"rail_notify_activator_arrived");
+	m_ShowNameBillboard = parentEntity->GetVar<bool>(u"rail_show_name_billboard");
+	m_UseDB = parentEntity->GetVar<bool>(u"rail_use_db");
 	m_CameraLocked = tableData.cameraLocked;
 	m_CollisionEnabled = tableData.playerCollision;
 }
 
-RailActivatorComponent::~RailActivatorComponent() = default;
-
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
-	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
+	auto* quickBuildComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
 		return;
 
-	if (quickBuildComponent != nullptr) {
+	if (quickBuildComponent) {
 		// Don't want it to be destroyed while a player is using it
 		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 10.0f);
 	}
@@ -67,7 +67,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 
 	const auto originatorID = originator->GetObjectID();
 
-	m_Parent->AddCallbackTimer(animationLength, [originatorID, this]() {
+	Game::entityManager->GetEntity(m_Parent)->AddCallbackTimer(animationLength, [originatorID, this]() {
 		auto* originator = Game::entityManager->GetEntity(originatorID);
 
 		if (originator == nullptr) {
@@ -78,7 +78,7 @@ void RailActivatorComponent::OnUse(Entity* originator) {
 			m_loopSound, m_StopSound, originator->GetSystemAddress(),
 			m_PathStart, m_PathDirection, m_DamageImmune, m_NoAggro, m_NotifyArrived,
 			m_ShowNameBillboard, m_CameraLocked, m_CollisionEnabled, m_UseDB, m_ComponentID,
-			m_Parent->GetObjectID());
+			m_Parent);
 		});
 }
 
@@ -106,7 +106,7 @@ void RailActivatorComponent::OnRailMovementReady(Entity* originator) const {
 
 		GameMessages::SendSetRailMovement(originator->GetObjectID(), m_PathDirection, m_Path, m_PathStart,
 			originator->GetSystemAddress(), m_ComponentID,
-			m_Parent->GetObjectID());
+			m_Parent);
 	}
 }
 
@@ -116,7 +116,7 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
+	auto* quickBuildComponent = Game::entityManager->GetEntity(m_Parent)->GetComponent<QuickBuildComponent>();
 
 	if (quickBuildComponent != nullptr) {
 		// Set back reset time

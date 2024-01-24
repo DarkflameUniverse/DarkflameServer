@@ -19,9 +19,9 @@
   */
 class ProximityMonitorComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
+	constexpr static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
 
-	ProximityMonitorComponent(Entity* parentEntity, int smallRadius = -1, int largeRadius = -1);
+	ProximityMonitorComponent(const LWOOBJID& parentEntityId, int smallRadius = -1, int largeRadius = -1);
 	~ProximityMonitorComponent() override;
 	void Update(float deltaTime) override;
 

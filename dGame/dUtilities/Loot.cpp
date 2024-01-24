@@ -254,8 +254,7 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, 
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
-	if (!inventoryComponent)
-		return;
+	if (!inventoryComponent) return;
 
 	std::unordered_map<LOT, int32_t> result = RollLootMatrix(player, matrixIndex);
 
@@ -267,8 +266,7 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 
-	if (!inventoryComponent)
-		return;
+	if (!inventoryComponent) return;
 
 	const auto spawnPosition = killedObject->GetPosition();
 

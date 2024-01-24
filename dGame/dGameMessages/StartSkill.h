@@ -16,13 +16,13 @@ public:
 		consumableItemID = LWOOBJID_EMPTY;
 		fCasterLatency = 0.0f;
 		iCastType = 0;
-		lastClickedPosit = NiPoint3::ZERO;
+		lastClickedPosit = NiPoint3Constant::ZERO;
 		optionalTargetID = LWOOBJID_EMPTY;
-		originatorRot = NiQuaternion::IDENTITY;
+		originatorRot = NiQuaternionConstant::IDENTITY;
 		uiSkillHandle = 0;
 	}
 
-	StartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, LWOOBJID _consumableItemID = LWOOBJID_EMPTY, float _fCasterLatency = 0.0f, int32_t _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = NiQuaternion::IDENTITY, uint32_t _uiSkillHandle = 0) {
+	StartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, LWOOBJID _consumableItemID = LWOOBJID_EMPTY, float _fCasterLatency = 0.0f, int32_t _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3Constant::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = NiQuaternionConstant::IDENTITY, uint32_t _uiSkillHandle = 0) {
 		bUsedMouse = _bUsedMouse;
 		consumableItemID = _consumableItemID;
 		fCasterLatency = _fCasterLatency;
@@ -57,16 +57,16 @@ public:
 		stream->Write(iCastType != 0);
 		if (iCastType != 0) stream->Write(iCastType);
 
-		stream->Write(lastClickedPosit != NiPoint3::ZERO);
-		if (lastClickedPosit != NiPoint3::ZERO) stream->Write(lastClickedPosit);
+		stream->Write(lastClickedPosit != NiPoint3Constant::ZERO);
+		if (lastClickedPosit != NiPoint3Constant::ZERO) stream->Write(lastClickedPosit);
 
 		stream->Write(optionalOriginatorID);
 
 		stream->Write(optionalTargetID != LWOOBJID_EMPTY);
 		if (optionalTargetID != LWOOBJID_EMPTY) stream->Write(optionalTargetID);
 
-		stream->Write(originatorRot != NiQuaternion::IDENTITY);
-		if (originatorRot != NiQuaternion::IDENTITY) stream->Write(originatorRot);
+		stream->Write(originatorRot != NiQuaternionConstant::IDENTITY);
+		if (originatorRot != NiQuaternionConstant::IDENTITY) stream->Write(originatorRot);
 
 		uint32_t sBitStreamLength = sBitStream.length();
 		stream->Write(sBitStreamLength);

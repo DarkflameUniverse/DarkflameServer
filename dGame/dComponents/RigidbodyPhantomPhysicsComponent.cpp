@@ -6,9 +6,11 @@
 #include "RigidbodyPhantomPhysicsComponent.h"
 #include "Entity.h"
 
-RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
-	m_Position = m_Parent->GetDefaultPosition();
-	m_Rotation = m_Parent->GetDefaultRotation();
+RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(const LWOOBJID& parentEntityId) : PhysicsComponent{ parentEntityId } {
+	auto* const parentEntity = Game::entityManager->GetEntity(m_Parent);
+	
+	m_Position = parentEntity->GetDefaultPosition();
+	m_Rotation = parentEntity->GetDefaultRotation();
 }
 
 void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {

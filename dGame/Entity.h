@@ -59,7 +59,7 @@ public:
 	 * Getters
 	 */
 
-	const LWOOBJID& GetObjectID() const { return m_ObjectID; }
+	const LWOOBJID& GetObjectID() const noexcept { return m_ObjectID; }
 
 	const LOT GetLOT() const { return m_TemplateID; }
 
@@ -229,8 +229,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3Constant::ZERO; }
+	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternionConstant::IDENTITY; }
 
 	void Sleep();
 	void Wake();
@@ -528,14 +528,14 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 
 	// If it doesn't exist, create it and forward the arguments to the constructor
 	if (!componentToReturn) {
-		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+		componentToReturn = new ComponentType(m_ObjectID, std::forward<VaArgs>(args)...);
 	} else {
 		// In this case the block is already allocated and ready for use
 		// so we use a placement new to construct the component again as was requested by the caller.
 		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
 		// This is useful for when we want to create a new object in the same memory location as an old one.
 		componentToReturn->~Component();
-		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
+		new(componentToReturn) ComponentType(m_ObjectID, std::forward<VaArgs>(args)...);
 	}
 
 	// Finally return the created or already existing component.
@@ -543,3 +543,5 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	// To allow a static cast here instead of a dynamic one.
 	return dynamic_cast<ComponentType*>(componentToReturn);
 }
+
+// TODO: Add a cast operator to convert to LWOOBJID: https://en.cppreference.com/w/cpp/language/cast_operator

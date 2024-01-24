@@ -28,6 +28,9 @@ add_subdirectory(SQLite)
 # Source code for magic_enum
 add_subdirectory(magic_enum)
 
+# Source code for MD5
+add_subdirectory(MD5)
+
 # MariaDB C++ Connector
 include(CMakeMariaDBLists.txt)
 
