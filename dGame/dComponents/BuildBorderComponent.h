@@ -14,9 +14,9 @@
  /**
   * Component for the build border, allowing the user to start building when interacting with it
   */
-class BuildBorderComponent : public Component {
+class BuildBorderComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::BUILD_BORDER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BUILD_BORDER;
 
 	BuildBorderComponent(Entity* parent);
 	~BuildBorderComponent() override;
