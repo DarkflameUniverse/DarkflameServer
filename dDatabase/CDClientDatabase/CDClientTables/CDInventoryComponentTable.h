@@ -4,9 +4,9 @@
 #include "CDTable.h"
 
 struct CDInventoryComponent {
-	unsigned int id;                //!< The component ID for this object
-	unsigned int itemid;            //!< The LOT of the object
-	unsigned int count;             //!< The count of the items the object has
+	uint32_t id;                //!< The component ID for this object
+	uint32_t itemid;            //!< The LOT of the object
+	uint32_t count;             //!< The count of the items the object has
 	bool equip;             //!< Whether or not to equip the item
 };
 

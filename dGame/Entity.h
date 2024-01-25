@@ -31,6 +31,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+class PositionUpdate;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
@@ -105,7 +106,7 @@ public:
 
 	virtual User* GetParentUser() const;
 
-	virtual SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	virtual const SystemAddress& GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
 
 	/**
 	 * Setters
@@ -123,13 +124,13 @@ public:
 
 	void SetNetworkId(uint16_t id);
 
-	void SetPosition(NiPoint3 position);
+	void SetPosition(const NiPoint3& position);
 
-	void SetRotation(NiQuaternion rotation);
+	void SetRotation(const NiQuaternion& rotation);
 
-	virtual void SetRespawnPos(NiPoint3 position) {}
+	virtual void SetRespawnPos(const NiPoint3& position) {}
 
-	virtual void SetRespawnRot(NiQuaternion rotation) {}
+	virtual void SetRespawnRot(const NiQuaternion& rotation) {}
 
 	virtual void SetSystemAddress(const SystemAddress& value) {};
 
@@ -160,6 +161,8 @@ public:
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 	void RemoveParent();
+
+	// Adds a timer to start next frame with the given name and time.
 	void AddTimer(std::string name, float time);
 	void AddCallbackTimer(float time, std::function<void()> callback);
 	bool HasTimer(const std::string& name);
@@ -226,8 +229,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3::ZERO; }
+	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
 
 	void Sleep();
 	void Wake();
@@ -294,6 +297,8 @@ public:
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
 
+	void ProcessPositionUpdate(PositionUpdate& update);
+
 protected:
 	LWOOBJID m_ObjectID;
 
@@ -324,9 +329,10 @@ protected:
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, Component*> m_Components;
-	std::vector<EntityTimer*> m_Timers;
-	std::vector<EntityTimer*> m_PendingTimers;
-	std::vector<EntityCallbackTimer*> m_CallbackTimers;
+	std::vector<EntityTimer> m_Timers;
+	std::vector<EntityTimer> m_PendingTimers;
+	std::vector<EntityCallbackTimer> m_CallbackTimers;
+	std::vector<EntityCallbackTimer> m_PendingCallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;
 

@@ -5,7 +5,7 @@
 
 struct CDRarityTable {
 	float randmax;
-	unsigned int rarity;
+	uint32_t rarity;
 };
 
 typedef std::vector<CDRarityTable> RarityTable;

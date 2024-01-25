@@ -4,9 +4,9 @@
 #include "Component.h"
 #include "eReplicaComponentType.h"
 
-class ItemComponent : public Component {
+class ItemComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ITEM;
 
 	ItemComponent(Entity* entity) : Component(entity) {}
 

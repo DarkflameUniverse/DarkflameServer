@@ -11,7 +11,10 @@
  */
 class CDClientManager : public Singleton<CDClientManager> {
 public:
-	CDClientManager();
+	CDClientManager() = default;
+
+	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 
 	/**
 	 * Fetch a table from CDClient

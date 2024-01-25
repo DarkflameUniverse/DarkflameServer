@@ -7,7 +7,6 @@
 #include "RakNetTypes.h"
 #include "BitStream.h"
 #include "Game.h"
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "eConnectionType.h"

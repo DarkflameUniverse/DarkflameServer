@@ -20,6 +20,8 @@
 #include "Database.h"
 #include "CDRewardCodesTable.h"
 #include "Mail.h"
+#include "ZoneInstanceManager.h"
+#include "WorldPackets.h"
 #include <ctime>
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
@@ -763,12 +765,12 @@ void CharacterComponent::AwardClaimCodes() {
 	if (!m_Parent) return;
 	auto* user = m_Parent->GetParentUser();
 	if (!user) return;
-	
+
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
 	if (rewardCodes.empty()) return;
 
 	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
-	for (auto const rewardCode: rewardCodes){
+	for (auto const rewardCode : rewardCodes) {
 		LOG_DEBUG("Processing RewardCode %i", rewardCode);
 		const uint32_t rewardCodeIndex = rewardCode >> 6;
 		const uint32_t bitIndex = rewardCode % 64;
@@ -785,4 +787,33 @@ void CharacterComponent::AwardClaimCodes() {
 		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
 		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
 	}
+}
+
+void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
+	const auto objid = m_Parent->GetObjectID();
+
+	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+		auto* entity = Game::entityManager->GetEntity(objid);
+
+		if (!entity) return;
+
+		const auto sysAddr = entity->GetSystemAddress();
+
+		auto* character = entity->GetCharacter();
+		auto* characterComponent = entity->GetComponent<CharacterComponent>();
+
+		if (character && characterComponent) {
+			character->SetZoneID(zoneID);
+			character->SetZoneInstance(zoneInstance);
+			character->SetZoneClone(zoneClone);
+
+			characterComponent->SetLastRocketConfig(u"");
+
+			character->SaveXMLToDatabase();
+		}
+
+		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+
+		Game::entityManager->DestructEntity(entity);
+		});
 }

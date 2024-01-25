@@ -18,91 +18,33 @@ public:
 	 * Getters
 	 */
 
-	User* GetParentUser() const override;
+	User* GetParentUser() const override { return m_ParentUser; };
 
-	SystemAddress GetSystemAddress() const override;
+	const SystemAddress& GetSystemAddress() const override { return m_SystemAddress; };
 
-	NiPoint3 GetRespawnPosition() const override;
+	const NiPoint3& GetRespawnPosition() const override { return m_respawnPos; };
 
-	NiQuaternion GetRespawnRotation() const override;
+	const NiQuaternion& GetRespawnRotation() const override { return m_respawnRot; };
 
-	const NiPoint3& GetGhostReferencePoint() const;
+	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot() { return m_DroppedLoot; };
 
-	const NiPoint3& GetOriginGhostReferencePoint() const;
-
-	const NiPoint3& GetGhostOverridePoint() const;
-
-	bool GetGhostOverride() const;
-
-	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot();
-
-	uint64_t GetDroppedCoins();
+	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
 
 	/**
 	 * Setters
 	 */
 
+	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
+
 	void SetSystemAddress(const SystemAddress& value) override;
 
-	void SetRespawnPos(NiPoint3 position) override;
+	void SetRespawnPos(const NiPoint3& position) override;
 
-	void SetRespawnRot(NiQuaternion rotation) override;
-
-	void SetGhostReferencePoint(const NiPoint3& value);
-
-	void SetGhostOverridePoint(const NiPoint3& value);
-
-	void SetGhostOverride(bool value);
-
-	void SetDroppedCoins(uint64_t value);
-
-	/**
-	 * Wrapper for sending an in-game mail.
-	 *
-	 * @param sender id of the sender. LWOOBJID_EMPTY for system mail
-	 * @param senderName name of the sender. Max 32 characters.
-	 * @param subject mail subject. Max 50 characters.
-	 * @param body mail body. Max 400 characters.
-	 * @param attachment LOT of the attached item. LOT_NULL if no attachment.
-	 * @param attachmentCount stack size for attachment.
-	 */
-	void SendMail(LWOOBJID sender, const std::string& senderName, const std::string& subject, const std::string& body, LOT attachment, uint16_t attachmentCount) const;
-
-	/**
-	 * Wrapper for transfering the player to another instance.
-	 *
-	 * @param zoneId zoneID for the new instance.
-	 * @param cloneId cloneID for the new instance.
-	 */
-	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0);
+	void SetRespawnRot(const NiQuaternion& rotation) override;
 
 	/**
 	 * Ghosting
 	 */
-
-	void AddLimboConstruction(LWOOBJID objectId);
-
-	void RemoveLimboConstruction(LWOOBJID objectId);
-
-	void ConstructLimboEntities();
-
-	void ObserveEntity(int32_t id);
-
-	bool IsObserved(int32_t id);
-
-	void GhostEntity(int32_t id);
-
-	/**
-	 * Static methods
-	 */
-
-	static Player* GetPlayer(const SystemAddress& sysAddr);
-
-	static Player* GetPlayer(const std::string& name);
-
-	static Player* GetPlayer(LWOOBJID playerID);
-
-	static const std::vector<Player*>& GetAllPlayers();
 
 	~Player() override;
 private:
@@ -114,23 +56,7 @@ private:
 
 	User* m_ParentUser;
 
-	NiPoint3 m_GhostReferencePoint;
-
-	NiPoint3 m_GhostOverridePoint;
-
-	bool m_GhostOverride;
-
-	std::vector<int32_t> m_ObservedEntities;
-
-	int32_t m_ObservedEntitiesLength;
-
-	int32_t m_ObservedEntitiesUsed;
-
-	std::vector<LWOOBJID> m_LimboConstructions;
-
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
 
 	uint64_t m_DroppedCoins;
-
-	static std::vector<Player*> m_Players;
 };

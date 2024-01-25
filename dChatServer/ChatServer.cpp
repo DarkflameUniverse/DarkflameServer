@@ -20,8 +20,10 @@
 #include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
 #include "ChatIgnoreList.h"
+#include "StringifiedEnum.h"
 
 #include "Game.h"
+#include "Server.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -38,7 +40,6 @@ namespace Game {
 	PlayerContainer playerContainer;
 }
 
-Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
@@ -51,14 +52,13 @@ int main(int argc, char** argv) {
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
+	Game::config = new dConfig("chatconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("ChatServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
 	//Read our config:
-	Game::config = new dConfig("chatconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	LOG("Starting Chat server...");
 	LOG("Version: %s", PROJECT_VERSION);
@@ -182,18 +182,6 @@ int main(int argc, char** argv) {
 	return EXIT_SUCCESS;
 }
 
-Logger* SetupLogger() {
-	std::string logPath = (BinaryPathFinder::GetBinaryDir() / ("logs/ChatServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
-}
-
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has disconnected, erasing their connected players from the list.");
@@ -236,7 +224,8 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
-		switch (static_cast<eChatMessageType>(packet->data[3])) {
+		eChatMessageType chat_message_type = static_cast<eChatMessageType>(packet->data[3]);
+		switch (chat_message_type) {
 		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
@@ -306,9 +295,61 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::TEAM_SET_LOOT:
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
-
+		case eChatMessageType::GMLEVEL_UPDATE:
+			ChatPacketHandler::HandleGMLevelUpdate(packet);
+			break;
+		case eChatMessageType::LOGIN_SESSION_NOTIFY:
+		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
+		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
+		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:
+		case eChatMessageType::WORLD_PARCEL_RESPONSE:
+		case eChatMessageType::TEAM_MISSED_INVITE_CHECK:
+		case eChatMessageType::GUILD_CREATE:
+		case eChatMessageType::GUILD_INVITE:
+		case eChatMessageType::GUILD_INVITE_RESPONSE:
+		case eChatMessageType::GUILD_LEAVE:
+		case eChatMessageType::GUILD_KICK:
+		case eChatMessageType::GUILD_GET_STATUS:
+		case eChatMessageType::GUILD_GET_ALL:
+		case eChatMessageType::SHOW_ALL:
+		case eChatMessageType::BLUEPRINT_MODERATED:
+		case eChatMessageType::BLUEPRINT_MODEL_READY:
+		case eChatMessageType::PROPERTY_READY_FOR_APPROVAL:
+		case eChatMessageType::PROPERTY_MODERATION_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED:
+		case eChatMessageType::PROPERTY_BUILDMODE_CHANGED_REPORT:
+		case eChatMessageType::MAIL:
+		case eChatMessageType::WORLD_INSTANCE_LOCATION_REQUEST:
+		case eChatMessageType::REPUTATION_UPDATE:
+		case eChatMessageType::SEND_CANNED_TEXT:
+		case eChatMessageType::CHARACTER_NAME_CHANGE_REQUEST:
+		case eChatMessageType::CSR_REQUEST:
+		case eChatMessageType::CSR_REPLY:
+		case eChatMessageType::GM_KICK:
+		case eChatMessageType::GM_ANNOUNCE:
+		case eChatMessageType::WORLD_ROUTE_PACKET:
+		case eChatMessageType::GET_ZONE_POPULATIONS:
+		case eChatMessageType::REQUEST_MINIMUM_CHAT_MODE:
+		case eChatMessageType::MATCH_REQUEST:
+		case eChatMessageType::UGCMANIFEST_REPORT_MISSING_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_FILE:
+		case eChatMessageType::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
+		case eChatMessageType::UGCC_REQUEST:
+		case eChatMessageType::WHO:
+		case eChatMessageType::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
+		case eChatMessageType::ACHIEVEMENT_NOTIFY:
+		case eChatMessageType::GM_CLOSE_PRIVATE_CHAT_WINDOW:
+		case eChatMessageType::UNEXPECTED_DISCONNECT:
+		case eChatMessageType::PLAYER_READY:
+		case eChatMessageType::GET_DONATION_TOTAL:
+		case eChatMessageType::UPDATE_DONATION:
+		case eChatMessageType::PRG_CSR_COMMAND:
+		case eChatMessageType::HEARTBEAT_REQUEST_FROM_WORLD:
+		case eChatMessageType::UPDATE_FREE_TRIAL_STATUS:
+			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			break;
 		default:
-			LOG("Unknown CHAT id: %i", int(packet->data[3]));
+			LOG("Unknown CHAT Message id: %i", chat_message_type);
 		}
 	}
 

@@ -16,7 +16,7 @@ CDLootMatrix CDLootMatrixTable::ReadRow(CppSQLite3Query& tableData) const {
 void CDLootMatrixTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM LootMatrix");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);

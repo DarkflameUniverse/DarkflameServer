@@ -4,9 +4,9 @@
 #include "CDTable.h"
 
 struct CDItemSetSkills {
-	unsigned int SkillSetID;            //!< The skill set ID
-	unsigned int SkillID;               //!< The skill ID
-	unsigned int SkillCastType;         //!< The skill cast type
+	uint32_t SkillSetID;            //!< The skill set ID
+	uint32_t SkillID;               //!< The skill ID
+	uint32_t SkillCastType;         //!< The skill cast type
 };
 
 class CDItemSetSkillsTable : public CDTable<CDItemSetSkillsTable> {
@@ -20,5 +20,5 @@ public:
 
 	const std::vector<CDItemSetSkills>& GetEntries() const;
 
-	std::vector<CDItemSetSkills> GetBySkillID(unsigned int SkillSetID);
+	std::vector<CDItemSetSkills> GetBySkillID(uint32_t SkillSetID);
 };

@@ -3,7 +3,7 @@
 void CDScriptComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM ScriptComponent");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -28,8 +28,8 @@ void CDScriptComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
-const CDScriptComponent& CDScriptComponentTable::GetByID(unsigned int id) {
-	std::map<unsigned int, CDScriptComponent>::iterator it = this->entries.find(id);
+const CDScriptComponent& CDScriptComponentTable::GetByID(uint32_t id) {
+	std::map<uint32_t, CDScriptComponent>::iterator it = this->entries.find(id);
 	if (it != this->entries.end()) {
 		return it->second;
 	}

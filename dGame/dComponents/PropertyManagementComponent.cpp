@@ -20,6 +20,8 @@
 #include "InventoryComponent.h"
 #include "eMissionTaskType.h"
 #include "eObjectBits.h"
+#include "CharacterComponent.h"
+#include "PlayerManager.h"
 
 #include <vector>
 #include "CppScripts.h"
@@ -226,7 +228,7 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	if (ownerEntity == nullptr) return;
 
-	const auto players = Player::GetAllPlayers();
+	const auto players = PlayerManager::GetAllPlayers();
 
 	LWOMAPID zoneId = 1100;
 
@@ -247,7 +249,8 @@ void PropertyManagementComponent::OnStartBuilding() {
 	for (auto* player : players) {
 		if (player == ownerEntity) continue;
 
-		player->SendToZone(zoneId);
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SendToZone(zoneId);
 	}
 	auto inventoryComponent = ownerEntity->GetComponent<InventoryComponent>();
 
@@ -519,7 +522,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->SetCount(item->GetCount() - 1);
 
-		LOG("BODGE TIME, YES IT GOES HERE");
+		LOG("DLU currently does not support breaking apart brick by brick models.");
 
 		break;
 	}

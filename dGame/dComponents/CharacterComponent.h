@@ -61,9 +61,9 @@ enum StatisticID {
 /**
  * Represents a character, including their rockets and stats
  */
-class CharacterComponent : public Component {
+class CharacterComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
 	CharacterComponent(Entity* parent, Character* character);
 	~CharacterComponent() override;
@@ -280,6 +280,14 @@ public:
 	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
 
 	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+
+	/**
+	 * Sends a player to another zone with an optional clone ID
+	 *
+	 * @param zoneId zoneID for the new instance.
+	 * @param cloneId cloneID for the new instance.
+	 */
+	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0) const;
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.

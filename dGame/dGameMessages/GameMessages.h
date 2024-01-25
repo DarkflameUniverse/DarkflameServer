@@ -32,6 +32,7 @@ enum class eObjectWorldState : uint32_t;
 enum class eTerminateType : uint32_t;
 enum class eControlScheme : uint32_t;
 enum class eStateChangeType : uint32_t;
+enum class ePetAbilityType : uint32_t;
 enum class ePetTamingNotifyType : uint32_t;
 enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
@@ -91,6 +92,9 @@ namespace GameMessages {
 
 	void SendModifyLEGOScore(Entity* entity, const SystemAddress& sysAddr, int64_t score, eLootSourceType sourceType);
 	void SendUIMessageServerToSingleClient(Entity* entity, const SystemAddress& sysAddr, const std::string& message, AMFBaseValue& args);
+
+	// Specify sysAddr if you need to send a flash message to a client who you dont know the objectID of.
+	void SendUIMessageServerToSingleClient(const std::string& message, AMFBaseValue& args, const SystemAddress& sysAddr);
 	void SendUIMessageServerToAllClients(const std::string& message, AMFBaseValue& args);
 
 	void SendPlayEmbeddedEffectOnAllClientsNearObject(Entity* entity, std::u16string effectName, const LWOOBJID& fromObjectID, float radius);
@@ -386,7 +390,7 @@ namespace GameMessages {
 
 	void SendClientExitTamingMinigame(LWOOBJID objectId, bool bVoluntaryExit, const SystemAddress& sysAddr);
 
-	void SendShowPetActionButton(LWOOBJID objectId, int32_t buttonLabel, bool bShow, const SystemAddress& sysAddr);
+	void SendShowPetActionButton(const LWOOBJID objectId, const ePetAbilityType petAbility, const bool bShow, const SystemAddress& sysAddr);
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 

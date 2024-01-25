@@ -16,9 +16,9 @@ enum class ePossessionType : uint8_t {
 /**
  * Represents an entity that can posess other entities. Generally used by players to drive a car.
  */
-class PossessorComponent : public Component {
+class PossessorComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSOR;
 
 	PossessorComponent(Entity* parent);
 	~PossessorComponent() override;

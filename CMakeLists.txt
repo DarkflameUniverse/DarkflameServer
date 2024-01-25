@@ -51,7 +51,7 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
 	if(NOT APPLE)
@@ -249,7 +249,9 @@ endforeach()
 
 # Add linking directories:
 # link_directories(${PROJECT_BINARY_DIR})
-
+if (UNIX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
 file(
 	GLOB HEADERS_DZONEMANAGER
 	LIST_DIRECTORIES false
@@ -281,6 +283,7 @@ add_subdirectory(dGame)
 add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
+add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
 set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "MariaDB::ConnCpp" "magic_enum")

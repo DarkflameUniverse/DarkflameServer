@@ -4,13 +4,13 @@
 #include <list>
 
 struct CDAnimation {
-	// unsigned int animationGroupID;
+	// uint32_t animationGroupID;
 	// std::string animation_type;
 	// The above two are a pair to represent a primary key in the map.
 	std::string animation_name;        //!< The animation name
 	float chance_to_play;           //!< The chance to play the animation
-	UNUSED_COLUMN(unsigned int min_loops;)                 //!< The minimum number of loops
-	UNUSED_COLUMN(unsigned int max_loops;)                 //!< The maximum number of loops
+	UNUSED_COLUMN(uint32_t min_loops;)                 //!< The minimum number of loops
+	UNUSED_COLUMN(uint32_t max_loops;)                 //!< The maximum number of loops
 	float animation_length;         //!< The animation length
 	UNUSED_COLUMN(bool hideEquip;)                 //!< Whether or not to hide the equip
 	UNUSED_COLUMN(bool ignoreUpperBody;)           //!< Whether or not to ignore the upper body

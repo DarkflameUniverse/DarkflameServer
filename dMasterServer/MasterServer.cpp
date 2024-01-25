@@ -36,10 +36,10 @@
 #include "InstanceManager.h"
 #include "MasterPackets.h"
 #include "PersistentIDManager.h"
-#include "PacketUtils.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
 #include "Start.h"
+#include "Server.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -55,7 +55,6 @@ namespace Game {
 bool shutdownSequenceStarted = false;
 int ShutdownSequence(int32_t signal = -1);
 int32_t FinalizeShutdown(int32_t signal = -1);
-Logger* SetupLogger();
 void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
@@ -77,8 +76,10 @@ int main(int argc, char** argv) {
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
 
+	Game::config = new dConfig("masterconfig.ini");
+
 	//Create all the objects we need to run our service:
-	Game::logger = SetupLogger();
+	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
 	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
@@ -87,9 +88,6 @@ int main(int argc, char** argv) {
 	if (!dConfig::Exists("sharedconfig.ini")) LOG("Could not find sharedconfig.ini, using default settings");
 	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
 
-	Game::config = new dConfig("masterconfig.ini");
-	Game::logger->SetLogToConsole(Game::config->GetValue("log_to_console") != "0");
-	Game::logger->SetLogDebugStatements(Game::config->GetValue("log_debug_statements") == "1");
 
 	uint32_t clientNetVersion = 171022;
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
@@ -395,19 +393,6 @@ int main(int argc, char** argv) {
 	return ShutdownSequence(EXIT_SUCCESS);
 }
 
-Logger* SetupLogger() {
-	std::string logPath =
-		(BinaryPathFinder::GetBinaryDir() / ("logs/MasterServer_" + std::to_string(time(nullptr)) + ".log")).string();
-	bool logToConsole = false;
-	bool logDebugStatements = false;
-#ifdef _DEBUG
-	logToConsole = true;
-	logDebugStatements = true;
-#endif
-
-	return new Logger(logPath, logToConsole, logDebugStatements);
-}
-
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
 		LOG("A server has disconnected");
@@ -518,17 +503,17 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
 			ServerType theirServerType;
-			std::string theirIP = "";
+			LUString theirIP;
 
 			inStream.Read(theirPort);
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
 			inStream.Read(theirServerType);
-			theirIP = PacketUtils::ReadString(24, packet, false); //24 is the current offset
+			inStream.Read(theirIP);
 
 			if (theirServerType == ServerType::World) {
 				if (!Game::im->IsPortInUse(theirPort)) {
-					Instance* in = new Instance(theirIP, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
 					SystemAddress copy;
 					copy.binaryAddress = packet->systemAddress.binaryAddress;
@@ -567,47 +552,42 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case eMasterMessageType::SET_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
-			std::string username;
-
 			inStream.Read(sessionKey);
-			username = PacketUtils::ReadString(12, packet, false);
-
+			LUString username;
+			inStream.Read(username);
+	
 			for (auto it : activeSessions) {
-				if (it.second == username) {
+				if (it.second == username.string) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
-					bitStream.Write<uint32_t>(username.size());
-					for (auto character : username) {
-						bitStream.Write(character);
-					}
+					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
 
 					break;
 				}
 			}
 
-			activeSessions.insert(std::make_pair(sessionKey, username));
-			LOG("Got sessionKey %i for user %s", sessionKey, username.c_str());
+			activeSessions.insert(std::make_pair(sessionKey, username.string));
+			LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
 			break;
 		}
 
 		case eMasterMessageType::REQUEST_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			std::string username = PacketUtils::ReadString(8, packet, false);
-
+			CINSTREAM_SKIP_HEADER;
+			LUWString username;
+			inStream.Read(username);
+			LOG("Requesting session key for %s", username.GetAsString().c_str());
 			for (auto key : activeSessions) {
-				if (key.second == username) {
+				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					bitStream.Write(LUString(key.second, 64));
+					bitStream.Write(username);
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}

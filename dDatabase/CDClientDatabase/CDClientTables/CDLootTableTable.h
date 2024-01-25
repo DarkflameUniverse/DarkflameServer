@@ -4,10 +4,10 @@
 #include "CDTable.h"
 
 struct CDLootTable {
-	unsigned int itemid;                 //!< The LOT of the item
-	unsigned int LootTableIndex;         //!< The Loot Table Index
+	uint32_t itemid;                 //!< The LOT of the item
+	uint32_t LootTableIndex;         //!< The Loot Table Index
 	bool MissionDrop;               //!< Whether or not this loot table is a mission drop
-	unsigned int sortPriority;           //!< The sorting priority
+	uint32_t sortPriority;           //!< The sorting priority
 };
 
 typedef uint32_t LootTableIndex;

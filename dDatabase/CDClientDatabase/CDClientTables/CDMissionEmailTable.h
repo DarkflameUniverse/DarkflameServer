@@ -4,13 +4,13 @@
 #include "CDTable.h"
 
 struct CDMissionEmail {
-	unsigned int ID;
-	unsigned int messageType;
-	unsigned int notificationGroup;
-	unsigned int missionID;
-	unsigned int attachmentLOT;
+	uint32_t ID;
+	uint32_t messageType;
+	uint32_t notificationGroup;
+	uint32_t missionID;
+	uint32_t attachmentLOT;
 	bool localize;
-	unsigned int locStatus;
+	uint32_t locStatus;
 	std::string gate_version;
 };
 

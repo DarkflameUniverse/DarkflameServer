@@ -101,7 +101,7 @@ TEST(LUWString33Test, SerializeReadTestNew) {
     std::u16string testString;
     for (int i = 0; i < 33; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));
-	LUWString result(33);
+	LUWString result;
 	ASSERT_EQ(result.size, 33);
 	ASSERT_TRUE(bitStream.Read(result));
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 0);
@@ -113,7 +113,7 @@ TEST(LUWString33Test, SerializeReadTestNewPartial) {
     std::u16string testString;
     for (int i = 0; i < 15; i++) testString += u'ü';
     bitStream.Write(LUWString(testString, 33));
-	LUWString result(33);
+	LUWString result;
 	ASSERT_EQ(result.size, 33);
 	ASSERT_TRUE(bitStream.Read(result));
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 0);
