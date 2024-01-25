@@ -8,6 +8,7 @@ set(DCOMMON_SOURCES
 		"Game.cpp"
 		"GeneralUtils.cpp"
 		"LDFFormat.cpp"
+		"MD5.cpp"
 		"Metrics.cpp"
 		"NiPoint3.cpp"
 		"NiQuaternion.cpp"
