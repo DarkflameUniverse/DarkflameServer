@@ -1,6 +1,7 @@
 #ifndef __ARCHETYPE_H__
 #define __ARCHETYPE_H__
 
+#include <concepts>
 #include <cstdint>
 #include <type_traits>
 #include <unordered_map>
@@ -10,13 +11,28 @@
 
 // Require the template type to be of component base class
 template <typename T>
-concept ComponentType = std::is_base_of_v<Component, T>;
+concept ComponentType = std::derived_from<T, Component>;
+
+// Forward declaration of archetype class
+template <ComponentType... CTypes>
+class Archetype;
+
+// Container struct for storing component data
+template <typename T>
+struct Container {
+	using type = T; // Alias to allow retrieval of entry type
+
+	using storage_type = std::vector<T>; //Alias for the archetype component container type
+	//using storage_type = std::array<T, 100>;
+
+	storage_type entries;
+};
 
 /**
  * Base class to allow pointer/reference resolution
  * Contains less-performant versions of methods to allow runtime resolution of component types
 */
-class IArchetype {
+class ArchetypeBase {
 public:
 	/**
 	 * Create an alias type for the Archetype ID
@@ -25,18 +41,12 @@ public:
 	ArchetypeId id{ 0 };
 
 	/**
-	 * Create an alias for the archetype component container type
-	*/
-	template <typename T>
-	using ContainerType = std::vector<T>;
-
-	/**
 	 * Check if a component type is contained by the archetype
 	 * @returns Boolean value representing whether the component type is present in the archetype
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] bool HasComponent() noexcept {
-		return m_ContainerPointers.contains(std::type_index(typeid(CType))) != 0;
+		return dynamic_cast<Container<CType>&>(*this).template HasComponent<CType>(); // TODO: Change this method!
 	}
 
 	/**
@@ -44,50 +54,39 @@ public:
 	 * @returns A reference to the component container
 	*/
 	template <ComponentType CType>
-	[[nodiscard]] ContainerType<CType>& Container() {
-		return *reinterpret_cast<ContainerType<CType>*>(m_ContainerPointers[std::type_index(typeid(CType))]);
+	[[nodiscard]] Container<CType>::storage_type& GetContainer() { // TODO: Try to avoid using this!
+		return dynamic_cast<Container<CType>&>(*this).template Container<CType>::entries;
 	}
 
-	virtual ~IArchetype() = default;
+	virtual ~ArchetypeBase() = default;
 
 protected:
-	IArchetype(ArchetypeId id) noexcept : id{ id } {}
+	ArchetypeBase() = default;
 
-	/**
-	 * Unordered map containing void pointers to each container
-	*/
-	std::unordered_map<std::type_index, void*> m_ContainerPointers;
+	constexpr explicit ArchetypeBase(ArchetypeId id) noexcept : id{ id } {};
 };
 
 /**
  * The archetype class stores a variable number of entity component types TODO: EXPAND ON
 */
 template <ComponentType... CTypes>
-class Archetype final : public IArchetype {
+class Archetype final : public ArchetypeBase, public Container<CTypes>... {
 public:
-	constexpr explicit Archetype(ArchetypeId id) noexcept : IArchetype{ id } {
+	/**
+	 * Alias that extracts the type of the Nth element passed as a template argument
+	*/
+	template <size_t N>
+	using type_index = std::tuple_element<N, std::tuple<CTypes...>>::type;
+
+	/**
+	 * Constructor
+	*/
+	constexpr explicit Archetype(ArchetypeId id) noexcept : ArchetypeBase{ id } {
 		// Reserve 16 KB of memory for the sum of all vectors ahead of time
 		constexpr size_t compBytes = (sizeof(CTypes) + ...);
 		constexpr size_t reservedBytes = 16000;
 		constexpr size_t reserveNumEntries = reservedBytes / compBytes;
-		(Container<CTypes>().reserve(reserveNumEntries), ...);
-
-		// Create void pointers to each component container present
-		(m_ContainerPointers.emplace(typeid(CTypes), reinterpret_cast<void*>(&Container<CTypes>())), ...);
-	}
-
-	/**
-	 * Constructors and assignment operators
-	*/
-	Archetype(Archetype& other) noexcept : IArchetype{ std::copy(other) } { /*UpdatePointers();*/ } // Copy constructor
-	Archetype(Archetype&& other) noexcept : IArchetype{ std::move(other) } { /*UpdatePointers();*/ } // Move constructor
-	Archetype& operator=(Archetype& other) noexcept { // Copy assignment operator
-		IArchetype::operator=(std::copy(other));
-		/*UpdatePointers();*/
-	}
-	Archetype& operator=(Archetype&& other) noexcept { // Move assignment operator
-		IArchetype::operator=(std::move(other));
-		/*UpdatePointers();*/
+		(Container<CTypes>::entries.reserve(reserveNumEntries), ...);
 	}
 
 	/**
@@ -95,7 +94,8 @@ public:
 	 * @returns The size of the archetype's containers
 	*/
 	[[nodiscard]] constexpr size_t size() noexcept {
-		return std::get<0>(m_Components).size();
+		Container<type_index<0>>::entries.size();
+		return Container<type_index<0>>::entries.size();
 	}
 
 	/**
@@ -103,36 +103,26 @@ public:
 	 * @returns Boolean representing whether the container is empty
 	*/
 	[[nodiscard]] constexpr bool empty() noexcept {
-		return std::get<0>(m_Components).empty();
-	}
-
-	/**
-	 * Get a reference to the component container of an archetype.
-	 * @returns A reference to the archetype's container of components
-	*/
-	template <ComponentType CType>
-	[[nodiscard]] constexpr ContainerType<CType>& Container() noexcept {
-		static_assert(HasComponent<CType>(), "Archetype does not have container of requested component!"); // Compile-time verification
-		return std::get<ContainerType<CType>>(m_Components);
+		return Container<type_index<0>>::entries.empty();
 	}
 
 	/**
 	 * Creates the archetype's components at the end of the container.
 	 * @param componentArgs Arguments to be forwarded to the component constructors
 	*/
-	void CreateComponents(CTypes&&... componentArgs) noexcept {
-		(Container<CTypes>().emplace_back(std::forward<CTypes>(componentArgs)), ...);
+	constexpr void CreateComponents(CTypes&&... componentArgs) noexcept {
+		(Container<CTypes>::entries.emplace_back(std::forward<CTypes>(componentArgs)), ...);
 	}
 
 	/**
 	 * Delete's the archetype's components at a specified container index, then moves the last element in the container to it.
 	 * @param index The archetype container index to delete
 	*/
-	void DeleteComponents(const size_t index) {
+	constexpr void DeleteComponents(const size_t index) {
 		if (empty()) return; // Do not delete if the container is already empty
 
-		((Container<CTypes>().at(index) = std::move(Container<CTypes>().back()),
-			Container<CTypes>().pop_back()), ...);
+		((Container<CTypes>::entries.at(index) = std::move(Container<CTypes>::entries.back()),
+			Container<CTypes>::entries.pop_back()), ...);
 	}
 
 	/**
@@ -142,7 +132,7 @@ public:
 	*/
 	template <ComponentType CType>
 	[[nodiscard]] CType& GetComponent(const size_t index) {
-		return Container<CType>().at(index);
+		return Container<CType>::entries.at(index);
 	}
 
 	/**
@@ -157,20 +147,15 @@ public:
 	/**
 	 * Contains the number of component types an archetype consists of
 	*/
-	static constexpr size_t numTypes = sizeof...(CTypes);
+	static constexpr size_t num_types = sizeof...(CTypes);
 
 	template<ComponentType CType>
 	struct contains : std::disjunction<std::is_same<CType, CTypes>...> {};
 
-private:
-	/**
-	 * Update void pointer locations in memory (to be called by move and copy constructors)
-	*/
-	constexpr void UpdatePointers() noexcept {
-		((m_ContainerPointers[std::type_index(typeid(CTypes))] = reinterpret_cast<void*>(Container<CTypes>())), ...);
-	}
+	template<ComponentType CType>
+	using contains_v = contains<CType>::value;
 
-	std::tuple<ContainerType<CTypes>...> m_Components; // Made it a tuple of vectors (may God help us all)
+private:
 	//std::unordered_map<eReplicaComponentType, ArchetypeEdge<Types...>> edges;
 };
 

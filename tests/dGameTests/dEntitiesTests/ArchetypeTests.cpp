@@ -76,7 +76,7 @@ TEST_F(ArchetypeTest, PlacementNewAddArchetypeTest) {
 
 	size_t destCompSize = sizeof(baseArchetype->GetComponent<DestroyableComponent>(1));
 	LOG("Destroyable component is of %ul size!", destCompSize);
-	auto nEntries = baseArchetype->Container<DestroyableComponent>().capacity();
+	auto nEntries = baseArchetype->Container<DestroyableComponent>::entries.capacity();
 	LOG("Archetype has %d entries!", nEntries);
 }
 
@@ -131,7 +131,7 @@ TEST_F(ArchetypeTest, ArchetypeDeleteTest) {
 
 /*TEST_F(ArchetypeTest, AddEntityTest) {
 	// Create the archetypes
-	std::array<std::unique_ptr<IArchetype>, 3> tempArchetype;
+	std::array<std::unique_ptr<ArchetypeBase>, 3> tempArchetype;
 	tempArchetype[0] = std::make_unique<Archetype<SimplePhysicsComponent>>(1);
 	tempArchetype[1] = std::make_unique<Archetype<DestroyableComponent, SimplePhysicsComponent>>(2);
 	tempArchetype[2] = std::make_unique<Archetype<DestroyableComponent>>(3);
@@ -221,17 +221,17 @@ TEST_F(ArchetypeTest, CreateArchetypesTest) {
 	ASSERT_EQ(gottenEntityId, baseEntityId);
 }*/
 
-TEST_F(ArchetypeTest, MoveIArchetypeTest) {
+TEST_F(ArchetypeTest, MoveArchetypeBaseTest) {
 	// Insert an entry into the base archetype and set one trait for each
 	const auto baseEntityId = baseEntity->GetObjectID();
 	baseArchetype->CreateComponents(DestroyableComponent(baseEntityId), SimplePhysicsComponent(baseEntityId, 2));
-	baseArchetype->Container<DestroyableComponent>()[0].SetMaxHealth(30);
-	baseArchetype->Container<SimplePhysicsComponent>()[0].SetPosition(NiPoint3(1.0f, 2.0f, 3.0f));
+	baseArchetype->Container<DestroyableComponent>::entries[0].SetMaxHealth(30);
+	baseArchetype->Container<SimplePhysicsComponent>::entries[0].SetPosition(NiPoint3(1.0f, 2.0f, 3.0f));
 
 	// Move the archetype and compare the entry results, as well as checking the original is deleted
-	std::unique_ptr<IArchetype> movedArchetype = std::move(baseArchetype);
-	ASSERT_FLOAT_EQ(movedArchetype->Container<DestroyableComponent>()[0].GetMaxHealth(), 30);
-	ASSERT_EQ(movedArchetype->Container<SimplePhysicsComponent>()[0].GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
+	std::unique_ptr<ArchetypeBase> movedArchetype = std::move(baseArchetype);
+	ASSERT_FLOAT_EQ(movedArchetype->GetContainer<DestroyableComponent>()[0].GetMaxHealth(), 30);
+	ASSERT_EQ(movedArchetype->GetContainer<SimplePhysicsComponent>()[0].GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
 	ASSERT_EQ(baseArchetype.get(), nullptr);
 }
 
@@ -287,11 +287,11 @@ namespace {
 
 	template <typename T>
 	struct ContainerVisitor {
-		std::vector<T>* const operator()(auto&& archetype) {
+		Container<T>::storage_type* const operator()(auto&& archetype) {
 			using ArchetypeType = std::remove_pointer_t<std::remove_reference_t<decltype(*archetype)>>; // Needed to fix a MacOS issue
 
 			if constexpr (!ArchetypeType::template HasComponent<T>()) return nullptr;
-			else return &archetype->template Container<T>();
+			else return &archetype->template Container<T>::entries;
 		}
 	};
 }
