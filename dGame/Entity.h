@@ -332,7 +332,6 @@ protected:
 	std::vector<EntityTimer> m_Timers;
 	std::vector<EntityTimer> m_PendingTimers;
 	std::vector<EntityCallbackTimer> m_CallbackTimers;
-	std::vector<EntityCallbackTimer> m_PendingCallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;
 
