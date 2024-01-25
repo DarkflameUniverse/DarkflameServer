@@ -8,6 +8,10 @@ target_link_libraries(dWorldServer PUBLIC dGameBase dCommon)
 add_executable(WorldServer "WorldServer.cpp")
 add_compile_definitions(WorldServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 
+target_include_directories(WorldServer PRIVATE
+	${PROJECT_SOURCE_DIR}/dServer/ # BinaryPathFinder.h
+)
+
 target_link_libraries(WorldServer ${COMMON_LIBRARIES}
 	dScripts
 	dGameBase
@@ -15,4 +19,4 @@ target_link_libraries(WorldServer ${COMMON_LIBRARIES}
 	dUtilities
 	dGameMessages
 	dInventory
-	dGame dChatFilter dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dNavigation)
+	dGame dChatFilter dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dNavigation dServer)
