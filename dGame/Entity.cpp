@@ -1988,13 +1988,9 @@ void Entity::SetNetworkId(const uint16_t id) {
 
 std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ) {
-		if (Game::entityManager->GetEntity(m_TargetsInPhantom.at(i))) {
-			i++;
-			continue;
-		}
-		m_TargetsInPhantom.erase(m_TargetsInPhantom.begin() + i);
-	}
+	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+		return !Game::entityManager->GetEntity(id);
+	}), m_TargetsInPhantom.end());
 
 	std::vector<LWOOBJID> enemies;
 	for (const auto id : m_TargetsInPhantom) {
