@@ -28,8 +28,6 @@ public:
 	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
 
 	// TODO: Remove this and replace it with a proper lookup function.
-	const CDTable::StorageType& GetEntries() const {
-		return CDTable::GetEntries();
-	}
+	const CDTable::StorageType& GetEntries() const;
 };
 

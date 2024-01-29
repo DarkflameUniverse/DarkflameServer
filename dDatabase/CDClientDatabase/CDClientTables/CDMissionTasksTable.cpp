@@ -63,3 +63,7 @@ std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(uint32_t missio
 
 	return tasks;
 }
+
+const typename CDMissionTasksTable::StorageType& CDMissionTasksTable::GetEntries() const {
+	return CDTable::GetEntries();
+}
