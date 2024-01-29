@@ -229,8 +229,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3Constant::ZERO; }
+	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternionConstant::IDENTITY; }
 
 	void Sleep();
 	void Wake();

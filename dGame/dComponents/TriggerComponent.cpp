@@ -218,7 +218,7 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 	if (argArray.size() <= 2) return;
 
 	auto position = targetEntity->GetPosition();
-	NiPoint3 offset = NiPoint3::ZERO;
+	NiPoint3 offset = NiPoint3Constant::ZERO;
 	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), offset);
 
 	position += offset;
@@ -228,7 +228,7 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() <= 2) return;
 
-	NiPoint3 vector = NiPoint3::ZERO;
+	NiPoint3 vector = NiPoint3Constant::ZERO;
 	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), vector);
 
 	NiQuaternion rotation = NiQuaternion::FromEulerAngles(vector);
@@ -246,7 +246,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(1);
-	NiPoint3 direction = NiPoint3::ZERO;
+	NiPoint3 direction = NiPoint3Constant::ZERO;
 	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), direction);
 	phantomPhysicsComponent->SetDirection(direction);
 
@@ -382,7 +382,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 	phantomPhysicsComponent->SetEffectType(effectType);
 	phantomPhysicsComponent->SetDirectionalMultiplier(std::stof(argArray.at(1)));
 	if (argArray.size() > 4) {
-		NiPoint3 direction = NiPoint3::ZERO;
+		NiPoint3 direction = NiPoint3Constant::ZERO;
 		GeneralUtils::TryParse(argArray.at(2), argArray.at(3), argArray.at(4), direction);
 		phantomPhysicsComponent->SetDirection(direction);
 	}
