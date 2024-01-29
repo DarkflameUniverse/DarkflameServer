@@ -59,9 +59,9 @@ private:
 /**
  * Allows entities to offer missions to other entities, depending on their mission inventory progression.
  */
-class MissionOfferComponent : public Component {
+class MissionOfferComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
 	MissionOfferComponent(Entity* parent, LOT parentLot);
 
