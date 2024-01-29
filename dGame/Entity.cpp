@@ -867,7 +867,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	// Update the chat server of our GM Level
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::GMLEVEL_UPDATE);
 		bitStream.Write(m_ObjectID);
 		bitStream.Write(m_GMLevel);
 

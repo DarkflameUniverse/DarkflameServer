@@ -17,7 +17,6 @@
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
 #include "eChatMessageType.h"
-#include "eChatInternalMessageType.h"
 #include "eWorldMessageType.h"
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
@@ -190,42 +189,28 @@ void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
 		LOG("A server is connecting, awaiting user list.");
 	}
-
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+	CINSTREAM;
+	inStream.SetReadOffset(BYTES_TO_BITS(1));
 
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
-		switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-		case eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION:
-			Game::playerContainer.InsertPlayer(packet);
-			break;
+	eConnectionType connection;
+	eChatMessageType chatMessageID;
 
-		case eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION:
-			Game::playerContainer.RemovePlayer(packet);
-			break;
+	inStream.Read(connection);
+	inStream.Read(chatMessageID);
+	inStream.SetReadOffset(BYTES_TO_BITS(HEADER_SIZE));
 
-		case eChatInternalMessageType::MUTE_UPDATE:
+	switch (chatMessageID) {
+		case eChatMessageType::GM_MUTE:
+			// verif internal
 			Game::playerContainer.MuteUpdate(packet);
 			break;
 
-		case eChatInternalMessageType::CREATE_TEAM:
+		case eChatMessageType::CREATE_TEAM:
+			// verif internal
 			Game::playerContainer.CreateTeamServer(packet);
 			break;
 
-		case eChatInternalMessageType::ANNOUNCEMENT: {
-			//we just forward this packet to every connected server
-			CINSTREAM;
-			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
-			break;
-		}
-
-		default:
-			LOG("Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
-		}
-	}
-
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
-		eChatMessageType chat_message_type = static_cast<eChatMessageType>(packet->data[3]);
-		switch (chat_message_type) {
 		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
@@ -296,15 +281,32 @@ void HandlePacket(Packet* packet) {
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
 		case eChatMessageType::GMLEVEL_UPDATE:
+			// verify internal
 			ChatPacketHandler::HandleGMLevelUpdate(packet);
 			break;
 		case eChatMessageType::WHO:
+			// verify internal
 			ChatPacketHandler::HandleWho(packet);
 			break;
 		case eChatMessageType::SHOW_ALL:
+			// verify internal
 			ChatPacketHandler::HandleShowAll(packet);
 			break;
 		case eChatMessageType::LOGIN_SESSION_NOTIFY:
+			// verify internal
+			Game::playerContainer.InsertPlayer(packet);
+			break;
+		case eChatMessageType::GM_ANNOUNCE:{
+			// verify internal
+			//we just forward this packet to every connected server
+			CINSTREAM;
+			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
+			}
+			break;
+		case eChatMessageType::UNEXPECTED_DISCONNECT:
+			// verify internal
+			Game::playerContainer.RemovePlayer(packet);
+			break;
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
 		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
 		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:
@@ -331,7 +333,6 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::CSR_REQUEST:
 		case eChatMessageType::CSR_REPLY:
 		case eChatMessageType::GM_KICK:
-		case eChatMessageType::GM_ANNOUNCE:
 		case eChatMessageType::WORLD_ROUTE_PACKET:
 		case eChatMessageType::GET_ZONE_POPULATIONS:
 		case eChatMessageType::REQUEST_MINIMUM_CHAT_MODE:
@@ -343,7 +344,6 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
 		case eChatMessageType::ACHIEVEMENT_NOTIFY:
 		case eChatMessageType::GM_CLOSE_PRIVATE_CHAT_WINDOW:
-		case eChatMessageType::UNEXPECTED_DISCONNECT:
 		case eChatMessageType::PLAYER_READY:
 		case eChatMessageType::GET_DONATION_TOTAL:
 		case eChatMessageType::UPDATE_DONATION:

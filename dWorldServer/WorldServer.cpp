@@ -67,7 +67,6 @@
 #include "eObjectBits.h"
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
-#include "eChatInternalMessageType.h"
 #include "eChatMessageType.h"
 #include "eWorldMessageType.h"
 #include "eMasterMessageType.h"
@@ -545,8 +544,8 @@ void HandlePacketChat(Packet* packet) {
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
-			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-			case eChatInternalMessageType::ANNOUNCEMENT: {
+			switch (static_cast<eChatMessageType>(packet->data[3])) {
+			case eChatMessageType::GM_ANNOUNCE: {
 				CINSTREAM_SKIP_HEADER;
 
 				std::string title;
@@ -579,7 +578,7 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case eChatInternalMessageType::MUTE_UPDATE: {
+			case eChatMessageType::GM_MUTE: {
 				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerId;
 				time_t expire = 0;
@@ -597,7 +596,7 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case eChatInternalMessageType::TEAM_UPDATE: {
+			case eChatMessageType::TEAM_GET_STATUS: {
 				CINSTREAM_SKIP_HEADER;
 
 				LWOOBJID teamID = 0;
@@ -822,7 +821,7 @@ void HandlePacket(Packet* packet) {
 
 		{
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::PLAYER_REMOVED_NOTIFICATION);
 			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -973,7 +972,7 @@ void HandlePacket(Packet* packet) {
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::PLAYER_REMOVED_NOTIFICATION);
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
@@ -1118,7 +1117,7 @@ void HandlePacket(Packet* packet) {
 					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::PLAYER_ADDED_NOTIFICATION);
 					bitStream.Write(player->GetObjectID());
 					bitStream.Write<uint32_t>(playerName.size());
 					for (size_t i = 0; i < playerName.size(); i++) {

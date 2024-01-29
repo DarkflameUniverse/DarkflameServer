@@ -9,7 +9,6 @@
 #include "BitStreamUtils.h"
 #include "Database.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
@@ -154,7 +153,7 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -337,22 +336,18 @@ void PlayerContainer::DisbandTeam(TeamData* team) {
 
 void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
-
 	if (index == mTeams.end()) return;
 
-	const auto& leader = GetPlayerData(team->leaderID);
-
-	if (!leader) return;
-
-	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
-
 	for (const auto memberId : team->memberIDs) {
-		const auto& otherMember = GetPlayerData(memberId);
-
-		if (!otherMember) continue;
-
+		const auto& member = GetPlayerData(memberId);
+		if (!member) {
+			RemoveMember(team, memberId, false, false, false, true);
+		}
+	}
+	for (const auto memberId : team->memberIDs) {
+		const auto& member = GetPlayerData(memberId);
 		if (!team->local) {
-			ChatPacketHandler::SendTeamStatus(otherMember, team->leaderID, leader.zoneID, team->lootFlag, 0, leaderName);
+			ChatPacketHandler::SendTeamStatus(member, team);
 		}
 	}
 
@@ -361,7 +356,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);

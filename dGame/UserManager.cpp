@@ -26,7 +26,7 @@
 #include "eCharacterCreationResponse.h"
 #include "eRenameResponse.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 
@@ -413,7 +413,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Database::Get()->DeleteCharacter(charID);
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::UNEXPECTED_DISCONNECT);
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
