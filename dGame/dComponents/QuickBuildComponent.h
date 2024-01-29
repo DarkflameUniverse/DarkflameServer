@@ -20,9 +20,9 @@ enum class eQuickBuildFailReason : uint32_t;
  * consists of an activator that shows a popup and then the actual entity that the bricks are built into. Note
  * that quick builds are also scripted activities so this shared some logic with the ScriptedActivityComponent.
  */
-class QuickBuildComponent : public Component {
+class QuickBuildComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
 	QuickBuildComponent(Entity* entity);
 	~QuickBuildComponent() override;
@@ -242,7 +242,7 @@ private:
 	/**
 	 * The position that the quickbuild activator is spawned at
 	 */
-	NiPoint3 m_ActivatorPosition = NiPoint3::ZERO;
+	NiPoint3 m_ActivatorPosition = NiPoint3Constant::ZERO;
 
 	/**
 	 * The entity that represents the quickbuild activator

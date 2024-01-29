@@ -8,8 +8,7 @@
 /**
  * Information regarding which players may visit this property
  */
-enum class PropertyPrivacyOption
-{
+enum class PropertyPrivacyOption {
 	/**
 	 * Default, only you can visit your property
 	 */
@@ -29,10 +28,9 @@ enum class PropertyPrivacyOption
 /**
  * Main component that handles interactions with a property, generally the plaques you see on properties.
  */
-class PropertyManagementComponent : public Component
-{
+class PropertyManagementComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent);
 	static PropertyManagementComponent* Instance();
 

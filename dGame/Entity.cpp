@@ -1357,16 +1357,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 
 	if (!other->GetIsDead()) {
-		auto* combat = GetComponent<BaseCombatAIComponent>();
-
-		if (combat != nullptr) {
+		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
-
-			const auto valid = combat->IsEnemy(otherEntity);
-
-			if (!valid) return;
 
 			m_TargetsInPhantom.push_back(otherEntity);
 		}
@@ -1863,7 +1857,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
-	return NiPoint3::ZERO;
+	return NiPoint3Constant::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
@@ -1891,7 +1885,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return vehicel->GetRotation();
 	}
 
-	return NiQuaternion::IDENTITY;
+	return NiQuaternionConstant::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
@@ -1992,25 +1986,21 @@ void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
-std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
+std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
+	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+		return !Game::entityManager->GetEntity(id);
+	}), m_TargetsInPhantom.end());
 
-		auto* entity = Game::entityManager->GetEntity(id);
+	std::vector<LWOOBJID> enemies;
+	for (const auto id : m_TargetsInPhantom) {
+		auto* combat = GetComponent<BaseCombatAIComponent>();
+		if (!combat || !combat->IsEnemy(id)) continue;
 
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
+		enemies.push_back(id);
 	}
 
-	m_TargetsInPhantom = valid;
-
-	return m_TargetsInPhantom;
+	return enemies;
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
@@ -2096,9 +2086,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
 				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
 				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
-				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
@@ -2109,17 +2099,17 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
 				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
 				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
-				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 			}
 			Game::entityManager->SerializeEntity(possassableEntity);
 		}
 	}
 
 	if (!updateChar) {
-		update.velocity = NiPoint3::ZERO;
-		update.angularVelocity = NiPoint3::ZERO;
+		update.velocity = NiPoint3Constant::ZERO;
+		update.angularVelocity = NiPoint3Constant::ZERO;
 	}
 
 	// Handle statistics
@@ -2133,9 +2123,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetIsOnGround(update.onGround);
 	controllablePhysicsComponent->SetIsOnRail(update.onRail);
 	controllablePhysicsComponent->SetVelocity(update.velocity);
-	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
 	auto* ghostComponent = GetComponent<GhostComponent>();
 	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);

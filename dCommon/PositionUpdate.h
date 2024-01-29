@@ -32,17 +32,17 @@ struct RemoteInputInfo {
 
 struct LocalSpaceInfo {
 	LWOOBJID objectId = LWOOBJID_EMPTY;
-	NiPoint3 position = NiPoint3::ZERO;
-	NiPoint3 linearVelocity = NiPoint3::ZERO;
+	NiPoint3 position = NiPoint3Constant::ZERO;
+	NiPoint3 linearVelocity = NiPoint3Constant::ZERO;
 };
 
 struct PositionUpdate {
-	NiPoint3 position = NiPoint3::ZERO;
-	NiQuaternion rotation = NiQuaternion::IDENTITY;
+	NiPoint3 position = NiPoint3Constant::ZERO;
+	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
 	bool onGround = false;
 	bool onRail = false;
-	NiPoint3 velocity = NiPoint3::ZERO;
-	NiPoint3 angularVelocity = NiPoint3::ZERO;
+	NiPoint3 velocity = NiPoint3Constant::ZERO;
+	NiPoint3 angularVelocity = NiPoint3Constant::ZERO;
 	LocalSpaceInfo localSpaceInfo;
 	RemoteInputInfo remoteInputInfo;
 };

@@ -103,9 +103,9 @@ struct RacingPlayerInfo {
 /**
  * Component that's attached to a manager entity in each race zone that loads player vehicles, keep scores, etc.
  */
-class RacingControlComponent : public Component {
+class RacingControlComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
