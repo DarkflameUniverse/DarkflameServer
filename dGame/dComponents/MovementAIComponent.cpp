@@ -43,7 +43,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_NextWaypoint = m_Parent->GetPosition();
 	m_Acceleration = 0.4f;
 	m_PullingToPoint = false;
-	m_PullPoint = NiPoint3::ZERO;
+	m_PullPoint = NiPoint3Constant::ZERO;
 	m_HaltDistance = 0;
 	m_TimeToTravel = 0;
 	m_TimeTravelled = 0;
@@ -88,7 +88,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	SetPosition(source);
 
-	NiPoint3 velocity = NiPoint3::ZERO;
+	NiPoint3 velocity = NiPoint3Constant::ZERO;
 
 	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
@@ -203,7 +203,7 @@ void MovementAIComponent::Stop() {
 
 	SetPosition(ApproximateLocation());
 
-	SetVelocity(NiPoint3::ZERO);
+	SetVelocity(NiPoint3Constant::ZERO);
 
 	m_TimeToTravel = 0;
 	m_TimeTravelled = 0;

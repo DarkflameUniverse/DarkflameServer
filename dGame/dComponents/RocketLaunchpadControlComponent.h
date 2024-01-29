@@ -16,9 +16,9 @@ class PreconditionExpression;
 /**
  * Component that handles rocket launchpads that can be interacted with to travel to other worlds.
  */
-class RocketLaunchpadControlComponent : public Component {
+class RocketLaunchpadControlComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH;
 
 	RocketLaunchpadControlComponent(Entity* parent, int rocketId);
 	~RocketLaunchpadControlComponent() override;

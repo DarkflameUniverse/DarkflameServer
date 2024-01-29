@@ -1,8 +1,8 @@
 #include "PhysicsComponent.h"
 
 PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
-	m_Position = NiPoint3::ZERO;
-	m_Rotation = NiQuaternion::IDENTITY;
+	m_Position = NiPoint3Constant::ZERO;
+	m_Rotation = NiQuaternionConstant::IDENTITY;
 	m_DirtyPosition = false;
 }
 

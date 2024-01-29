@@ -104,9 +104,9 @@ public:
  * don't at all do what you expect them to as we don't instruct the client of changes made here.
  * ^^^ Trivia: This made the red blocks platform and property platforms a pain to implement.
  */
-class MovingPlatformComponent : public Component {
+class MovingPlatformComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 	~MovingPlatformComponent() override;
