@@ -68,8 +68,8 @@ if(UNIX)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
-	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	add_compile_options("/wd4267" "/utf-8")
+	# Set MSVC-specific optimization flags and skip warning for invalid conversion from size_t to uint32_t for all targets below
+	add_compile_options("/O2" "/Zc:inline" "/wd4267" "/utf-8")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
