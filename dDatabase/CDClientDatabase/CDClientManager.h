@@ -27,7 +27,7 @@ namespace CDClientManager {
 	 * @return A pointer to the requested table.
 	 */
 	template<typename T>
-	T::StorageType& GetEntriesMutable();
+	typename T::StorageType& GetEntriesMutable();
 };
 
 
