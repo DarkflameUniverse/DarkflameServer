@@ -68,3 +68,7 @@ else ()
 endif ()
 
 target_link_libraries(dCommon ZLIB::ZLIB)
+
+if (APPLE)
+	set_source_files_properties("MD5.cpp" PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()

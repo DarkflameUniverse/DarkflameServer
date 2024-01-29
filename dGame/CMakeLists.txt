@@ -33,7 +33,3 @@ add_library(dGame INTERFACE)
 target_link_libraries(dGame INTERFACE
 	dGameBase dBehaviors dComponents dEntity dGameMessages dInventory dMission dPropertyBehaviors dUtilities dScripts
 )
-
-if (APPLE)
-	set_source_files_properties("MD5.cpp" PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
-endif()
