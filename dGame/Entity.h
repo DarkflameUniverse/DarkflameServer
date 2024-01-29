@@ -293,7 +293,7 @@ public:
 	/*
 	 * Collision
 	 */
-	std::vector<LWOOBJID>& GetTargetsInPhantom();
+	std::vector<LWOOBJID> GetTargetsInPhantom();
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
 

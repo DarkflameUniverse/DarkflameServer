@@ -1357,16 +1357,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 
 	if (!other->GetIsDead()) {
-		auto* combat = GetComponent<BaseCombatAIComponent>();
-
-		if (combat != nullptr) {
+		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
-
-			const auto valid = combat->IsEnemy(otherEntity);
-
-			if (!valid) return;
 
 			m_TargetsInPhantom.push_back(otherEntity);
 		}
@@ -1992,25 +1986,21 @@ void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
-std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
+std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
+	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+		return !Game::entityManager->GetEntity(id);
+	}), m_TargetsInPhantom.end());
 
-		auto* entity = Game::entityManager->GetEntity(id);
+	std::vector<LWOOBJID> enemies;
+	for (const auto id : m_TargetsInPhantom) {
+		auto* combat = GetComponent<BaseCombatAIComponent>();
+		if (!combat || !combat->IsEnemy(id)) continue;
 
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
+		enemies.push_back(id);
 	}
 
-	m_TargetsInPhantom = valid;
-
-	return m_TargetsInPhantom;
+	return enemies;
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
