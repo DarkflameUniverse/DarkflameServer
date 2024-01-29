@@ -66,7 +66,7 @@ public:
 // As a note, ## in a macro is used to concatenate two tokens together.
 
 #define SPECIALIZE_TABLE_STORAGE(table) \
-	template<> table::StorageType& CDClientManager::GetEntriesMutable<table>() { return table##Entries; };
+	template<> typename table::StorageType& CDClientManager::GetEntriesMutable<table>() { return table##Entries; };
 
 #define DEFINE_TABLE_STORAGE(table) namespace { table::StorageType table##Entries; }; SPECIALIZE_TABLE_STORAGE(table)
 
