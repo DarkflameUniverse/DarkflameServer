@@ -11,10 +11,10 @@
  * Component that handles the LOT that is shown in the LUP exhibit in the LUP world. Works by setting a timer and
  * switching the LOTs around that we'd like to display.
  */
-class LUPExhibitComponent : public Component
+class LUPExhibitComponent final : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LUP_EXHIBIT;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::LUP_EXHIBIT;
 
 	LUPExhibitComponent(Entity* parent) : Component(parent) {};
 	void Update(float deltaTime) override;

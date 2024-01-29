@@ -20,9 +20,9 @@ struct PropertyState {
 /**
  * This component is unused and has no functionality
  */
-class PropertyComponent : public Component {
+class PropertyComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY;
 	explicit PropertyComponent(Entity* parentEntity);
 	~PropertyComponent() override;
 	[[nodiscard]] PropertyState* GetPropertyState() const { return m_PropertyState; };

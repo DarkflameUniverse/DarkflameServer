@@ -1,8 +1,8 @@
 #include "GhostComponent.h"
 
 GhostComponent::GhostComponent(Entity* parent) : Component(parent) {
-	m_GhostReferencePoint = NiPoint3::ZERO;
-	m_GhostOverridePoint = NiPoint3::ZERO;
+	m_GhostReferencePoint = NiPoint3Constant::ZERO;
+	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
 }
 

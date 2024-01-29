@@ -7,8 +7,7 @@ class Entity;
 /**
  * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.
  */
-class Component
-{
+class Component {
 public:
 	Component(Entity* parent);
 	virtual ~Component();
