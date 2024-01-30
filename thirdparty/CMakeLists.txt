@@ -22,8 +22,11 @@ add_library(bcrypt ${SOURCES_LIBBCRYPT})
 target_include_directories(bcrypt PRIVATE "libbcrypt/include")
 target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
-# Source code for sqlite
-add_subdirectory(SQLite)
+# Source code for sqlite - also disable deprecation warnings on Apple Clang
+add_subdirectory(SQLite sqlite)
+if (APPLE)
+	target_compile_options(sqlite PRIVATE "-Wno-deprecated-declarations")
+endif()
 
 # Source code for magic_enum
 add_subdirectory(magic_enum)
