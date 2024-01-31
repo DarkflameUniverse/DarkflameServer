@@ -35,7 +35,7 @@
           "value": "x64"
         },
         "cacheVariables": {
-          "COMPILE_OPTIONS": "/permissive- /Zc:inline /wd4267 /utf-8",
+          "COMPILE_OPTIONS": "/permissive-;/Zc:inline;/wd4267;/utf-8",
           "CMAKE_BUILD_TYPE": "RelWithDebInfo"
         }
       },
