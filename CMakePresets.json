@@ -35,7 +35,8 @@
           "value": "x64"
         },
         "cacheVariables": { 
-          "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_FLAGS_INIT": "/W3 /Zc:inline"
         }
       },
       {
@@ -63,7 +64,7 @@
         "configurePreset": "ci-windows-2022",
         "displayName": "Windows CI Build",
         "description": "This preset is used by the CI build on windows",
-        "configuration": "RelWithDebInfo",
+        "configuration": "Release",
         "jobs": 2
       },
       {
