@@ -35,8 +35,7 @@
           "value": "x64"
         },
         "cacheVariables": { 
-          "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-          "COMPILE_OPTIONS": "/W3;/WX;/permissive-;/Zc:inline"
+          "CMAKE_BUILD_TYPE": "RelWithDebInfo"
         }
       },
       {
