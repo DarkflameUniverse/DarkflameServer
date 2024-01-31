@@ -36,7 +36,8 @@
         },
         "cacheVariables": { 
           "CMAKE_BUILD_TYPE": "Release",
-          "CMAKE_CXX_FLAGS_INIT": "/W3 /Zc:inline"
+          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+          "CMAKE_CXX_FLAGS_INIT": "/O2 /Zc:inline"
         }
       },
       {
