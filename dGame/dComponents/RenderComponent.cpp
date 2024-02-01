@@ -66,7 +66,7 @@ void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 }
 
 Effect& RenderComponent::AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority) {
-	return m_Effects.emplace_back(Effect{ effectId, name, type, priority });
+	return m_Effects.emplace_back(effectId, name, type, priority);
 }
 
 void RenderComponent::RemoveEffect(const std::string& name) {
