@@ -399,14 +399,8 @@ const T& Entity::GetVar(const std::u16string& name) const {
 template<typename T>
 T Entity::GetVarAs(const std::u16string& name) const {
 	const auto data = GetVarAsString(name);
-
-	T value;
-
-	if (!GeneralUtils::TryParse(data, value)) {
-		return LDFData<T>::Default;
-	}
-
-	return value;
+	
+	return GeneralUtils::TryParse<T>(data).value_or(LDFData<T>::Default);
 }
 
 template<typename T>

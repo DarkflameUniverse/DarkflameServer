@@ -419,10 +419,10 @@ void Entity::Initialize() {
 		if (!setFaction.empty()) {
 			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
 			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
-			int32_t factionToAdd;
 			for (const auto faction : factionsToAdd) {
-				if (GeneralUtils::TryParse(faction, factionToAdd)) {
-					comp->AddFaction(factionToAdd, true);
+				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
+				if (factionToAdd) {
+					comp->AddFaction(factionToAdd.value(), true);
 				}
 			}
 		}

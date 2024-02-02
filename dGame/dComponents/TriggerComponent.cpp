@@ -22,10 +22,8 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 
 	std::vector<std::string> tokens = GeneralUtils::SplitString(triggerInfo, ':');
 
-	uint32_t sceneID;
-	GeneralUtils::TryParse<uint32_t>(tokens.at(0), sceneID);
-	uint32_t triggerID;
-	GeneralUtils::TryParse<uint32_t>(tokens.at(1), triggerID);
+	const auto sceneID = GeneralUtils::TryParse<uint32_t>(tokens.at(0)).value();
+	const auto triggerID = GeneralUtils::TryParse<uint32_t>(tokens.at(1)).value();
 
 	m_Trigger = Game::zoneManager->GetZone()->GetTrigger(sceneID, triggerID);
 
@@ -191,9 +189,8 @@ void TriggerComponent::HandleFireEvent(Entity* targetEntity, std::string args) {
 }
 
 void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args){
-	uint32_t killType;
-	GeneralUtils::TryParse<uint32_t>(args, killType);
-	targetEntity->Smash(m_Parent->GetObjectID(), static_cast<eKillType>(killType));
+	const eKillType killType = GeneralUtils::TryParse<eKillType>(args).value_or(eKillType::SILENT);
+	targetEntity->Smash(m_Parent->GetObjectID(), killType);
 }
 
 void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
@@ -217,9 +214,8 @@ void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args
 void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() <= 2) return;
 
-	auto position = targetEntity->GetPosition();
-	NiPoint3 offset = NiPoint3Constant::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), offset);
+	NiPoint3 position = targetEntity->GetPosition();
+	const NiPoint3 offset = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 
 	position += offset;
 	targetEntity->SetPosition(position);
@@ -228,8 +224,7 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() <= 2) return;
 
-	NiPoint3 vector = NiPoint3Constant::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), vector);
+	const NiPoint3 vector = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 
 	NiQuaternion rotation = NiQuaternion::FromEulerAngles(vector);
 	targetEntity->SetRotation(rotation);
@@ -246,8 +241,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(1);
-	NiPoint3 direction = NiPoint3Constant::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), direction);
+	const NiPoint3 direction = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 	phantomPhysicsComponent->SetDirection(direction);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -260,8 +254,8 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
-	float forceMultiplier;
-	GeneralUtils::TryParse<float>(args, forceMultiplier);
+	const float forceMultiplier = GeneralUtils::TryParse<float>(args).value();
+
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::REPULSE);
 	phantomPhysicsComponent->SetDirectionalMultiplier(forceMultiplier);
@@ -280,11 +274,10 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 
 void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() != 2) {
-		LOG_DEBUG("Not ehought variables!");
+		LOG_DEBUG("Not enough variables!");
 		return;
 	}
-	float time = 0.0;
-	GeneralUtils::TryParse<float>(argArray.at(1), time);
+	const float time = GeneralUtils::TryParse<float>(argArray.at(1)).value_or(0.0f);
 	m_Parent->AddTimer(argArray.at(0), time);
 }
 
@@ -300,7 +293,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 	bool hidePlayer = false;
 
 	if (argArray.size() >= 2) {
-		GeneralUtils::TryParse<float>(argArray.at(1), leadIn);
+		leadIn = GeneralUtils::TryParse<float>(argArray.at(1)).value_or(leadIn);
 		if (argArray.size() >= 3 && argArray.at(2) == "wait") {
 			wait = eEndBehavior::WAIT;
 			if (argArray.size() >= 4 && argArray.at(3) == "unlock") {
@@ -345,12 +338,16 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 
 void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() < 3) return;
-	int32_t effectID = 0;
-	if (!GeneralUtils::TryParse<int32_t>(argArray.at(1), effectID)) return;
+	const auto effectID = GeneralUtils::TryParse<int32_t>(argArray.at(1));
+	if (!effectID) return;
 	std::u16string effectType = GeneralUtils::UTF8ToUTF16(argArray.at(2));
+	
 	float priority = 1;
-	if (argArray.size() == 4) GeneralUtils::TryParse<float>(argArray.at(3), priority);
-	GameMessages::SendPlayFXEffect(targetEntity, effectID, effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
+	if (argArray.size() == 4) {
+		priority = GeneralUtils::TryParse<float>(argArray.at(3)).value_or(priority);
+	}
+
+	GameMessages::SendPlayFXEffect(targetEntity, effectID.value(), effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
 }
 
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
@@ -359,8 +356,7 @@ void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 		LOG_DEBUG("Skill component not found!");
 		return;
 	}
-	uint32_t skillId;
-	GeneralUtils::TryParse<uint32_t>(args, skillId);
+	const uint32_t skillId = GeneralUtils::TryParse<uint32_t>(args).value();
 	skillComponent->CastSkill(skillId, targetEntity->GetObjectID());
 }
 
@@ -382,17 +378,16 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 	phantomPhysicsComponent->SetEffectType(effectType);
 	phantomPhysicsComponent->SetDirectionalMultiplier(std::stof(argArray.at(1)));
 	if (argArray.size() > 4) {
-		NiPoint3 direction = NiPoint3Constant::ZERO;
-		GeneralUtils::TryParse(argArray.at(2), argArray.at(3), argArray.at(4), direction);
+		const NiPoint3 direction = 
+			GeneralUtils::TryParse<NiPoint3>(argArray.at(2), argArray.at(3), argArray.at(4)).value_or(NiPoint3Constant::ZERO);
+
 		phantomPhysicsComponent->SetDirection(direction);
 	}
 	if (argArray.size() > 5) {
-		uint32_t min;
-		GeneralUtils::TryParse<uint32_t>(argArray.at(6), min);
+		const uint32_t min = GeneralUtils::TryParse<uint32_t>(argArray.at(6)).value_or(0);
 		phantomPhysicsComponent->SetMin(min);
 
-		uint32_t max;
-		GeneralUtils::TryParse<uint32_t>(argArray.at(7), max);
+		const uint32_t max = GeneralUtils::TryParse<uint32_t>(argArray.at(7)).value_or(0);
 		phantomPhysicsComponent->SetMax(max);
 	}
 

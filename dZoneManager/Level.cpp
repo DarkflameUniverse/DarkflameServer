@@ -214,9 +214,9 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	gating.major = 1;
 	gating.current = 10;
 	gating.minor = 64;
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major"), gating.major);
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current"), gating.current);
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor"), gating.minor);
+	gating.major = GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major")).value_or(gating.major);
+	gating.current = GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current")).value_or(gating.current);
+	gating.minor = GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor")).value_or(gating.minor);
 
 	const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	DluAssert(zoneControlObject != nullptr);

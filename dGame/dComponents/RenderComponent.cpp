@@ -29,13 +29,15 @@ RenderComponent::RenderComponent(Entity* parent, int32_t componentId): Component
 			auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
 			auto groupIdsSplit = GeneralUtils::SplitString(animationGroupIDs, ',');
 			for (auto& groupId : groupIdsSplit) {
-				int32_t groupIdInt;
-				if (!GeneralUtils::TryParse(groupId, groupIdInt)) {
+				const auto groupIdInt = GeneralUtils::TryParse<int32_t>(groupId);
+
+				if (!groupIdInt) {
 					LOG("bad animation group Id %s", groupId.c_str());
 					continue;
 				}
-				m_animationGroupIds.push_back(groupIdInt);
-				animationsTable->CacheAnimationGroup(groupIdInt);
+				
+				m_animationGroupIds.push_back(groupIdInt.value());
+				animationsTable->CacheAnimationGroup(groupIdInt.value());
 			}
 		}
 	}
