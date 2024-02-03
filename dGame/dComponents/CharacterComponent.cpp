@@ -24,7 +24,7 @@
 #include "WorldPackets.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
+CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
 	m_Character = character;
 
 	m_IsRacing = false;
@@ -46,6 +46,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
+	m_SystemAddress = systemAddress;
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -816,4 +817,8 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 
 		Game::entityManager->DestructEntity(entity);
 		});
+}
+
+const SystemAddress& CharacterComponent::GetSystemAddress() const {
+	return m_SystemAddress;
 }

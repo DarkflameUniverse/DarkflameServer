@@ -26,6 +26,7 @@
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
 #include "eChatMessageType.h"
+#include "PlayerManager.h"
 
 //Component includes:
 #include "Component.h"
@@ -127,6 +128,30 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 }
 
 Entity::~Entity() {
+	if (IsPlayer()) {
+		LOG("Deleted player");
+
+		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
+		if (!PlayerManager::RemovePlayer(static_cast<Player*>(this))) {
+			LOG("Unable to find player to remove from manager.");
+			return;
+		}
+
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+			script->OnPlayerExit(zoneControl, this);
+		}
+
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
+		for (Entity* scriptEntity : scriptedActs) {
+			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+					script->OnPlayerExit(scriptEntity, this);
+				}
+			}
+		}
+	}
+
 	if (m_Character) {
 		m_Character->SaveXMLToDatabase();
 	}
@@ -437,7 +462,8 @@ void Entity::Initialize() {
 
 		AddComponent<PlayerForcedMovementComponent>();
 
-		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+		AddComponent<CharacterComponent>(m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
 
 		AddComponent<GhostComponent>();
 	}
@@ -1990,7 +2016,7 @@ std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
 	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
 		return !Game::entityManager->GetEntity(id);
-	}), m_TargetsInPhantom.end());
+		}), m_TargetsInPhantom.end());
 
 	std::vector<LWOOBJID> enemies;
 	for (const auto id : m_TargetsInPhantom) {
@@ -2132,4 +2158,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+}
+
+const SystemAddress& Entity::GetSystemAddress() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
 }

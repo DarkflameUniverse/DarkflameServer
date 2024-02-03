@@ -20,8 +20,6 @@ public:
 
 	User* GetParentUser() const override { return m_ParentUser; };
 
-	const SystemAddress& GetSystemAddress() const override { return m_SystemAddress; };
-
 	const NiPoint3& GetRespawnPosition() const override { return m_respawnPos; };
 
 	const NiQuaternion& GetRespawnRotation() const override { return m_respawnRot; };
@@ -36,20 +34,10 @@ public:
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
 
-	void SetSystemAddress(const SystemAddress& value) override;
-
 	void SetRespawnPos(const NiPoint3& position) override;
 
 	void SetRespawnRot(const NiQuaternion& rotation) override;
-
-	/**
-	 * Ghosting
-	 */
-
-	~Player() override;
 private:
-	SystemAddress m_SystemAddress;
-
 	NiPoint3 m_respawnPos;
 
 	NiQuaternion m_respawnRot;

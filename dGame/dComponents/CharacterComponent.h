@@ -65,7 +65,7 @@ class CharacterComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
-	CharacterComponent(Entity* parent, Character* character);
+	CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
@@ -288,6 +288,8 @@ public:
 	 * @param cloneId cloneID for the new instance.
 	 */
 	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0) const;
+
+	const SystemAddress& GetSystemAddress() const;
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -579,6 +581,8 @@ private:
 	std::array<uint64_t, 4> m_ClaimCodes{};
 
 	void AwardClaimCodes();
+
+	SystemAddress m_SystemAddress;
 };
 
 #endif // CHARACTERCOMPONENT_H

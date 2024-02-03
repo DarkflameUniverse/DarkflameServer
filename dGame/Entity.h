@@ -106,7 +106,7 @@ public:
 
 	virtual User* GetParentUser() const;
 
-	virtual const SystemAddress& GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	const SystemAddress& GetSystemAddress() const;
 
 	/**
 	 * Setters
@@ -131,8 +131,6 @@ public:
 	virtual void SetRespawnPos(const NiPoint3& position) {}
 
 	virtual void SetRespawnRot(const NiQuaternion& rotation) {}
-
-	virtual void SetSystemAddress(const SystemAddress& value) {};
 
 	/**
 	 * Component management
