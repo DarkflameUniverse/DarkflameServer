@@ -14,6 +14,7 @@
 #include "BitStream.h"
 #include "NiPoint3.h"
 
+#include "dPlatforms.h"
 #include "Game.h"
 #include "Logger.h"
 
@@ -150,24 +151,24 @@ namespace GeneralUtils {
 	using numeric_parse_t = numeric_parse<T>::type;
 
 	/**
-	 * For numeric values: Parses a C-style char range (string) and returns an optional variable depending on the result
+	 * For numeric values: Parses a C-style char range (string) and returns an optional variable depending on the result.
 	 * @param str The pointer to the start of the char range (string)
 	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <Numeric T>
-	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) noexcept {
+	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) {
 		numeric_parse_t<T> result;
 		const bool isParsed = std::from_chars(str, strEnd, result).ec == std::errc{};
 
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
-#ifdef __APPLE__
+#ifdef DARKFLAME_PLATFORM_MACOS
 
 	/**
-	 * For floating-point values: Parses a C-style char range (string) and returns an optional variable depending on the result
-	 * Note that this function is only included for MacOS, as from_chars will fufill its purpose otherwise
+	 * For floating-point values: Parses a C-style char range (string) and returns an optional variable depending on the result.
+	 * Note that this function overload is only included for MacOS, as from_chars will fufill its purpose otherwise.
 	 * @param str The pointer to the start of the char range (string)
 	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL but is unused
 	 * @returns An std::optional containing the desired value if it exists in the string
@@ -188,7 +189,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string& str) noexcept {
+	[[nodiscard]] std::optional<T> TryParse(const std::string& str) {
 		return TryParse<T>(str.data(), str.data() + str.size());
 	}
 
@@ -198,7 +199,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept {
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
 		return TryParse<T>(str.data(), str.data() + str.size());
 	}
 
@@ -210,7 +211,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) noexcept {
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
 		const auto x = TryParse<float>(strX);
 		const auto y = TryParse<float>(strY);
 		const auto z = TryParse<float>(strZ);
@@ -224,8 +225,8 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) noexcept {
-		return TryParse<NiPoint3>(str.at(0), str.at(1), str.at(2));
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) {
+		return (str.size() == 3) ? TryParse<NiPoint3>(str[0], str[1], str[2]) : std::nullopt;
 	}
 
 	template <typename T>
