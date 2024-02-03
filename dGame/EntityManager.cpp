@@ -7,7 +7,6 @@
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "Spawner.h"
-#include "Player.h"
 #include "SkillComponent.h"
 #include "SwitchComponent.h"
 #include "UserManager.h"
@@ -118,14 +117,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 	info.id = id;
 
-	Entity* entity;
-
-	// Check if the entitty if a player, in case use the extended player entity class
-	if (user != nullptr) {
-		entity = new Player(id, info, user, parentEntity);
-	} else {
-		entity = new Entity(id, info, user, parentEntity);
-	}
+	Entity* entity = new Entity(id, info, user, parentEntity);
 
 	// Initialize the entity
 	entity->Initialize();
@@ -482,7 +474,7 @@ void EntityManager::UpdateGhosting() {
 	m_PlayersToUpdateGhosting.clear();
 }
 
-void EntityManager::UpdateGhosting(Player* player) {
+void EntityManager::UpdateGhosting(Entity* player) {
 	if (player == nullptr) {
 		return;
 	}

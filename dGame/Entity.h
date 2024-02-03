@@ -48,9 +48,9 @@ namespace CppScripts {
 class Entity {
 public:
 	explicit Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser = nullptr, Entity* parentEntity = nullptr);
-	virtual ~Entity();
+	~Entity();
 
-	virtual void Initialize();
+	void Initialize();
 
 	bool operator==(const Entity& other) const;
 	bool operator!=(const Entity& other) const;

@@ -53,7 +53,6 @@
 #include "Loot.h"
 #include "EntityInfo.h"
 #include "LUTriggers.h"
-#include "Player.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
 #include "dpShapeSphere.h"

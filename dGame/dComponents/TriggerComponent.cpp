@@ -9,7 +9,6 @@
 #include "ControllablePhysicsComponent.h"
 #include "MissionComponent.h"
 #include "PhantomPhysicsComponent.h"
-#include "Player.h"
 #include "QuickBuildComponent.h"
 #include "SkillComponent.h"
 #include "eEndBehavior.h"

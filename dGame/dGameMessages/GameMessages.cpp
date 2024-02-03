@@ -20,7 +20,6 @@
 #include "WorldPackets.h"
 #include "Item.h"
 #include "ZCompression.h"
-#include "Player.h"
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"

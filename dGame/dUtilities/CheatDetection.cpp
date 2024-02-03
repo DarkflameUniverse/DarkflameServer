@@ -2,7 +2,6 @@
 #include "Database.h"
 #include "Entity.h"
 #include "PossessableComponent.h"
-#include "Player.h"
 #include "Game.h"
 #include "EntityManager.h"
 #include "Character.h"

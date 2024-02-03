@@ -56,7 +56,6 @@
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "MasterPackets.h"
-#include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"

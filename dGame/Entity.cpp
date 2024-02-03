@@ -15,7 +15,6 @@
 #include "Spawner.h"
 #include "UserManager.h"
 #include "dpWorld.h"
-#include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
 #include "EntityTimer.h"
@@ -132,7 +131,7 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Enti
 
 		m_Character->SetEntity(this);
 
-		PlayerManager::AddPlayer(static_cast<Player*>(this));
+		PlayerManager::AddPlayer(this);
 	}
 }
 
@@ -141,7 +140,7 @@ Entity::~Entity() {
 		LOG("Deleted player");
 
 		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
-		if (!PlayerManager::RemovePlayer(static_cast<Player*>(this))) {
+		if (!PlayerManager::RemovePlayer(this)) {
 			LOG("Unable to find player to remove from manager.");
 			return;
 		}
