@@ -156,7 +156,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <Numeric T>
-	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) {
+	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) noexcept {
 		numeric_parse_t<T> result;
 		const bool isParsed = std::from_chars(str, strEnd, result).ec == std::errc{};
 
@@ -183,7 +183,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string& str) {
+	[[nodiscard]] std::optional<T> TryParse(const std::string& str) noexcept {
 		return TryParse<T>(str.data(), str.data() + str.size());
 	}
 
@@ -193,7 +193,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept {
 		return TryParse<T>(str.data(), str.data() + str.size());
 	}
 
@@ -205,7 +205,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) noexcept {
 		const auto x = TryParse<float>(strX);
 		const auto y = TryParse<float>(strY);
 		const auto z = TryParse<float>(strZ);
@@ -219,7 +219,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) {
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) noexcept {
 		return TryParse<NiPoint3>(str.at(0), str.at(1), str.at(2));
 	}
 
@@ -230,7 +230,7 @@ namespace GeneralUtils {
 
 	// From boost::hash_combine
 	template <class T>
-	void hash_combine(std::size_t& s, const T& v) {
+	constexpr void hash_combine(std::size_t& s, const T& v) noexcept {
 		std::hash<T> h;
 		s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
 	}
@@ -264,7 +264,7 @@ namespace GeneralUtils {
 	 * @returns The enum entry's value in its underlying type
 	*/
 	template <Enum eType>
-	constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) {
+	constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) noexcept {
 		return static_cast<typename std::underlying_type_t<eType>>(entry);
 	}
 
