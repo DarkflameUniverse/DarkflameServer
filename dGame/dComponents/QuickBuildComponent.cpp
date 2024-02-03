@@ -428,9 +428,7 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 }
 
 void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
-	if (user == nullptr) {
-		return;
-	}
+	if (!user) return;
 
 	auto* characterComponent = user->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
