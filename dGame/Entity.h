@@ -128,9 +128,9 @@ public:
 
 	void SetRotation(const NiQuaternion& rotation);
 
-	virtual void SetRespawnPos(const NiPoint3& position) {}
+	void SetRespawnPos(const NiPoint3& position);
 
-	virtual void SetRespawnRot(const NiQuaternion& rotation) {}
+	void SetRespawnRot(const NiQuaternion& rotation);
 
 	/**
 	 * Component management
@@ -227,8 +227,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3Constant::ZERO; }
-	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternionConstant::IDENTITY; }
+	const NiPoint3& GetRespawnPosition() const;
+	const NiQuaternion& GetRespawnRotation() const;
 
 	void Sleep();
 	void Wake();

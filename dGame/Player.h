@@ -20,10 +20,6 @@ public:
 
 	User* GetParentUser() const override { return m_ParentUser; };
 
-	const NiPoint3& GetRespawnPosition() const override { return m_respawnPos; };
-
-	const NiQuaternion& GetRespawnRotation() const override { return m_respawnRot; };
-
 	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot() { return m_DroppedLoot; };
 
 	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
@@ -33,15 +29,7 @@ public:
 	 */
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
-
-	void SetRespawnPos(const NiPoint3& position) override;
-
-	void SetRespawnRot(const NiQuaternion& rotation) override;
 private:
-	NiPoint3 m_respawnPos;
-
-	NiQuaternion m_respawnRot;
-
 	User* m_ParentUser;
 
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;

@@ -2164,3 +2164,22 @@ const SystemAddress& Entity::GetSystemAddress() const {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	return characterComponent ? characterComponent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
 }
+
+const NiPoint3& Entity::GetRespawnPosition() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnPosition() : NiPoint3Constant::ZERO;
+}
+
+const NiQuaternion& Entity::GetRespawnRotation() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
+}
+
+void Entity::SetRespawnPos(const NiPoint3& position) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnPos(position);
+}
+void Entity::SetRespawnRot(const NiQuaternion& rotation) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnRot(rotation);
+}

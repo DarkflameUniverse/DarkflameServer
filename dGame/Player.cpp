@@ -14,19 +14,6 @@
 #include "eReplicaComponentType.h"
 #include "PlayerManager.h"
 
-void Player::SetRespawnPos(const NiPoint3& position) {
-	if (!m_Character) return;
-
-	m_respawnPos = position;
-
-	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
-
-}
-
-void Player::SetRespawnRot(const NiQuaternion& rotation) {
-	m_respawnRot = rotation;
-}
-
 Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Entity* parentEntity) : Entity(objectID, info, parentEntity) {
 	m_ParentUser = user;
 	m_Character = m_ParentUser->GetLastUsedChar();

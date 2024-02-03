@@ -291,6 +291,14 @@ public:
 
 	const SystemAddress& GetSystemAddress() const;
 
+	const NiPoint3& GetRespawnPosition() const { return m_respawnPos; };
+
+	void SetRespawnPos(const NiPoint3& position);
+
+	const NiQuaternion& GetRespawnRotation() const { return m_respawnRot; };
+
+	void SetRespawnRot(const NiQuaternion& rotation);
+
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
 	 */
@@ -583,6 +591,10 @@ private:
 	void AwardClaimCodes();
 
 	SystemAddress m_SystemAddress;
+
+	NiPoint3 m_respawnPos;
+
+	NiQuaternion m_respawnRot;
 };
 
 #endif // CHARACTERCOMPONENT_H

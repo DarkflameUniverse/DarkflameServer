@@ -822,3 +822,16 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 const SystemAddress& CharacterComponent::GetSystemAddress() const {
 	return m_SystemAddress;
 }
+
+void CharacterComponent::SetRespawnPos(const NiPoint3& position) {
+	if (!m_Character) return;
+
+	m_respawnPos = position;
+
+	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
+
+}
+
+void CharacterComponent::SetRespawnRot(const NiQuaternion& rotation) {
+	m_respawnRot = rotation;
+}
