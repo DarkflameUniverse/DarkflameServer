@@ -176,7 +176,7 @@ namespace GeneralUtils {
 	template <std::floating_point T>
 	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) noexcept
 	try {
-		return std::make_optional<T>(std::stold(str));
+		return std::stold(str);
 	} catch (...) {
 		return std::nullopt;
 	}

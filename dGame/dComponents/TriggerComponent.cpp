@@ -22,8 +22,8 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 
 	std::vector<std::string> tokens = GeneralUtils::SplitString(triggerInfo, ':');
 
-	const auto sceneID = GeneralUtils::TryParse<uint32_t>(tokens.at(0)).value();
-	const auto triggerID = GeneralUtils::TryParse<uint32_t>(tokens.at(1)).value();
+	const auto sceneID = GeneralUtils::TryParse<uint32_t>(tokens.at(0)).value_or(0);
+	const auto triggerID = GeneralUtils::TryParse<uint32_t>(tokens.at(1)).value_or(0);
 
 	m_Trigger = Game::zoneManager->GetZone()->GetTrigger(sceneID, triggerID);
 
@@ -189,7 +189,7 @@ void TriggerComponent::HandleFireEvent(Entity* targetEntity, std::string args) {
 }
 
 void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args){
-	const eKillType killType = GeneralUtils::TryParse<eKillType>(args).value_or(eKillType::SILENT);
+	const eKillType killType = GeneralUtils::TryParse<eKillType>(args).value_or(eKillType::VIOLENT);
 	targetEntity->Smash(m_Parent->GetObjectID(), killType);
 }
 
@@ -254,7 +254,7 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
-	const float forceMultiplier = GeneralUtils::TryParse<float>(args).value();
+	const float forceMultiplier = GeneralUtils::TryParse<float>(args).value_or(1.0f);
 
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::REPULSE);
@@ -356,7 +356,7 @@ void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 		LOG_DEBUG("Skill component not found!");
 		return;
 	}
-	const uint32_t skillId = GeneralUtils::TryParse<uint32_t>(args).value();
+	const uint32_t skillId = GeneralUtils::TryParse<uint32_t>(args).value_or(0);
 	skillComponent->CastSkill(skillId, targetEntity->GetObjectID());
 }
 

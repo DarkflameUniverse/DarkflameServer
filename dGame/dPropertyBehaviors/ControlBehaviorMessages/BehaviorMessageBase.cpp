@@ -5,7 +5,7 @@
 #include "dCommonVars.h"
 
 BehaviorMessageBase::BehaviorMessageBase(AMFArrayValue* arguments) {
-	this->behaviorId = GetBehaviorIdFromArgument(arguments);
+	m_BehaviorId = GetBehaviorIdFromArgument(arguments);
 }
 
 int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments) {
@@ -13,13 +13,13 @@ int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments)
 	auto* behaviorIDValue = arguments->Get<std::string>(key);
 
 	if (behaviorIDValue && behaviorIDValue->GetValueType() == eAmf::String) {
-		this->behaviorId =
-			GeneralUtils::TryParse<int32_t>(behaviorIDValue->GetValue()).value_or(this->behaviorId);
+		m_BehaviorId =
+			GeneralUtils::TryParse<int32_t>(behaviorIDValue->GetValue()).value_or(m_BehaviorId);
 	} else if (arguments->Get(key) && arguments->Get(key)->GetValueType() != eAmf::Undefined) {
 		throw std::invalid_argument("Unable to find behavior ID");
 	}
 
-	return this->behaviorId;
+	return m_BehaviorId;
 }
 
 int32_t BehaviorMessageBase::GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName) {

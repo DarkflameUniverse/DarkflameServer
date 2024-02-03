@@ -1902,8 +1902,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "inspect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
 		Entity* closest = nullptr;
 
-		//eReplicaComponentType component;
-
 		std::u16string ldf;
 
 		bool isLDF = false;

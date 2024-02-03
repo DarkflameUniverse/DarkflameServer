@@ -144,7 +144,7 @@ void AmSkullkinTower::OnChildRemoved(Entity* self, Entity* child) {
 			);
 
 			for (const auto& mission : missions) {
-				const auto missionID = GeneralUtils::TryParse<LOT>(mission);
+				const auto missionID = GeneralUtils::TryParse<int32_t>(mission);
 				if (!missionID) continue;
 
 				missionIDs.push_back(missionID.value());

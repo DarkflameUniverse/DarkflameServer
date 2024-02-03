@@ -27,6 +27,13 @@ constexpr uint32_t highFrameDelta = FRAMES_TO_MS(highFramerate);
 constexpr uint32_t mediumFrameDelta = FRAMES_TO_MS(mediumFramerate);
 constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 
+//========== CLIENT VERSION DEFAULTS ===========
+namespace ClientVersion {
+	constexpr uint16_t major = 1;
+	constexpr uint16_t current = 10;
+	constexpr uint16_t minor = 64;
+}
+
 //========== MACROS ===========
 
 #define HEADER_SIZE 8

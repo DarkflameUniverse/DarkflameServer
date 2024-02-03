@@ -241,12 +241,12 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	loginResponse.Write(LUString(Game::config->GetValue("event_7")));
 	loginResponse.Write(LUString(Game::config->GetValue("event_8")));
 
-	uint16_t version_major = 1;
-	uint16_t version_current = 10;
-	uint16_t version_minor = 64;
-	version_major = GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major")).value_or(version_major);
-	version_current = GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current")).value_or(version_current);
-	version_minor = GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor")).value_or(version_minor);
+	const uint16_t version_major =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major")).value_or(ClientVersion::major);
+	const uint16_t version_current =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current")).value_or(ClientVersion::current);
+	const uint16_t version_minor =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor);
 
 	loginResponse.Write(version_major);
 	loginResponse.Write(version_current);
