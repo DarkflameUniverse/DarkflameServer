@@ -2,7 +2,7 @@
 
 #include "Action.h"
 
-AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
+AddStripMessage::AddStripMessage(AMFArrayValue* const arguments) : BehaviorMessageBase{ arguments } {
 	actionContext = ActionContext(arguments);
 	position = StripUiPosition(arguments);
 
