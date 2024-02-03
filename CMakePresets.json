@@ -17,7 +17,12 @@
         "name": "ci-ubuntu-22.04",
         "displayName": "CI configure step for Ubuntu",
         "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default"
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+          "CMAKE_CXX_FLAGS_INIT": "-O2"
+        }
       },
       {
         "name": "ci-macos-13",
