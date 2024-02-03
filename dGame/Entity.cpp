@@ -1656,18 +1656,23 @@ bool Entity::GetIsDead() const {
 
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot.insert(std::make_pair(info.id, info));
 }
 
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
 	InventoryComponent* inv = GetComponent<InventoryComponent>();
-	if (!inv) return;
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!inv || !characterComponent) return;
 
 	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
 
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
@@ -1703,22 +1708,28 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return false;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	if (count > droppedCoins) {
 		return false;
 	} else {
-		player->SetDroppedCoins(droppedCoins - count);
+		characterComponent->SetDroppedCoins(droppedCoins - count);
 		return true;
 	}
 }
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	droppedCoins += count;
-	player->SetDroppedCoins(droppedCoins);
+	characterComponent->SetDroppedCoins(droppedCoins);
 }
 
 void Entity::AddChild(Entity* child) {

@@ -19,7 +19,6 @@ Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Enti
 	m_Character = m_ParentUser->GetLastUsedChar();
 	m_ParentUser->SetLoggedInChar(objectID);
 	m_GMLevel = m_Character->GetGMLevel();
-	m_DroppedCoins = 0;
 
 	m_Character->SetEntity(this);
 

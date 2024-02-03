@@ -11,6 +11,7 @@
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
 #include <array>
+#include "Loot.h"
 
 enum class eGameActivity : uint32_t;
 
@@ -298,6 +299,12 @@ public:
 	const NiQuaternion& GetRespawnRotation() const { return m_respawnRot; };
 
 	void SetRespawnRot(const NiQuaternion& rotation);
+
+	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot() { return m_DroppedLoot; };
+
+	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
+
+	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -595,6 +602,10 @@ private:
 	NiPoint3 m_respawnPos;
 
 	NiQuaternion m_respawnRot;
+
+	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
+
+	uint64_t m_DroppedCoins = 0;
 };
 
 #endif // CHARACTERCOMPONENT_H
