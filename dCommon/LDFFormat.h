@@ -162,7 +162,7 @@ public:
 		return new LDFData<T>(key, value);
 	}
 
-	inline static T Default = {};
+	inline static const T Default = {};
 };
 
 // LDF Types
