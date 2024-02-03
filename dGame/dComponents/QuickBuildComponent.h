@@ -50,124 +50,124 @@ public:
 	 * Returns the entity that acts as the activator for this quickbuild
 	 * @return the entity that acts as the activator for this quickbuild
 	 */
-	[[nodiscard]] Entity* GetActivator() const;
+	Entity* GetActivator();
 
 	/**
 	 * Returns the spawn position of the activator for this quickbuild, if any
 	 * @return the spawn position of the activator for this quickbuild, if any
 	 */
-	[[nodiscard]] NiPoint3 GetActivatorPosition() const noexcept;
+	NiPoint3 GetActivatorPosition();
 
 	/**
 	 * Sets the spawn position for the activator of this quickbuild
 	 * @param value the spawn position to set for the activator
 	 */
-	void SetActivatorPosition(NiPoint3 value) noexcept;
+	void SetActivatorPosition(NiPoint3 value);
 
 	/**
 	 * Returns the time it takes for the quickbuild to reset after being built
 	 * @return the time it takes for the quickbuild to reset after being built
 	 */
-	[[nodiscard]] float GetResetTime() const noexcept;
+	float GetResetTime();
 
 	/**
 	 * Sets the time it takes for the quickbuild to reset after being built
 	 * @param value the reset time to set
 	 */
-	void SetResetTime(float value) noexcept;
+	void SetResetTime(float value);
 
 	/**
 	 * Returns the time it takes to complete the quickbuild
 	 * @return the time it takes to complete the quickbuild
 	 */
-	[[nodiscard]] float GetCompleteTime() const noexcept;
+	float GetCompleteTime();
 
 	/**
 	 * Sets the time it takes to complete the quickbuild
 	 * @param value the completion time to set
 	 */
-	void SetCompleteTime(float value) noexcept;
+	void SetCompleteTime(float value);
 
 	/**
 	 * Returns the imagination that's taken when completing the quickbuild
 	 * @return the imagination that's taken when completing the quickbuild
 	 */
-	[[nodiscard]] int GetTakeImagination() const noexcept;
+	int GetTakeImagination();
 
 	/**
 	 * Sets the imagination that's taken when completing the quickbuild
 	 * @param value the imagination deduction to set
 	 */
-	void SetTakeImagination(int value) noexcept;
+	void SetTakeImagination(int value);
 
 	/**
 	 * Returns if the quickbuild can be interrupted, currently unused
 	 * @return if the quickbuild can be interrupted
 	 */
-	[[nodiscard]] bool GetInterruptible() const noexcept;
+	bool GetInterruptible();
 
 	/**
 	 * Sets whether or not the quickbuild can be interrupted, currently unused
 	 * @param value true if the quickbuild may be interrupted, false otherwise
 	 */
-	void SetInterruptible(bool value) noexcept;
+	void SetInterruptible(bool value);
 
 	/**
 	 * Returns whether or not this entity contains a built-in activator
 	 * @return whether or not this entity contains a built-in activator
 	 */
-	[[nodiscard]] bool GetSelfActivator() const noexcept;
+	bool GetSelfActivator();
 
 	/**
 	 * Sets whether or not this entity contains a built-in activator. If set to false this will spawn activators on
 	 * each new quickbuild.
 	 * @param value whether or not this entity contains a built-in activator
 	 */
-	void SetSelfActivator(bool value) noexcept;
+	void SetSelfActivator(bool value);
 
 	/**
 	 * Currently unused
 	 */
-	[[nodiscard]] std::vector<int> GetCustomModules() const noexcept;
+	std::vector<int> GetCustomModules();
 
 	/**
 	 * Currently unused
 	 */
-	void SetCustomModules(std::vector<int> value) noexcept;
+	void SetCustomModules(std::vector<int> value);
 
 	/**
 	 * Returns the activity ID for participating in this quickbuild
 	 * @return the activity ID for participating in this quickbuild
 	 */
-	[[nodiscard]] int GetActivityId() const noexcept;
+	int GetActivityId();
 
 	/**
 	 * Sets the activity ID for participating in this quickbuild
 	 * @param value the activity ID to set
 	 */
-	void SetActivityId(int value) noexcept;
+	void SetActivityId(int value);
 
 	/**
 	 * Currently unused
 	 */
-	[[nodiscard]] int GetPostImaginationCost() const noexcept;
+	int GetPostImaginationCost();
 
 	/**
 	 * Currently unused
 	 */
-	void SetPostImaginationCost(int value) noexcept;
+	void SetPostImaginationCost(int value);
 
 	/**
 	 * Returns the time it takes for an incomplete quickbuild to be smashed automatically
 	 * @return the time it takes for an incomplete quickbuild to be smashed automatically
 	 */
-	[[nodiscard]] float GetTimeBeforeSmash() const noexcept;
+	float GetTimeBeforeSmash();
 
 	/**
 	 * Sets the time it takes for an incomplete quickbuild to be smashed automatically
 	 * @param value the time to set
 	 */
-	void SetTimeBeforeSmash(float value) noexcept;
+	void SetTimeBeforeSmash(float value);
 
 	/**
 	 * Returns the current quickbuild state
@@ -179,19 +179,19 @@ public:
 	 * Returns the player that is currently building this quickbuild
 	 * @return the player that is currently building this quickbuild
 	 */
-	[[nodiscard]] Entity* GetBuilder() const;
+	Entity* GetBuilder() const;
 
 	/**
 	 * Returns whether or not the player is repositioned when initiating the quickbuild
 	 * @return whether or not the player is repositioned when initiating the quickbuild
 	 */
-	[[nodiscard]] bool GetRepositionPlayer() const noexcept;
+	bool GetRepositionPlayer() const;
 
 	/**
 	 * Sets whether or not the player is repositioned when initiating the quickbuild
 	 * @param value whether or not the player is repositioned when initiating the quickbuild
 	 */
-	void SetRepositionPlayer(bool value) noexcept;
+	void SetRepositionPlayer(bool value);
 
 	/**
 	 * Adds a callback that is called when the quickbuild is completed

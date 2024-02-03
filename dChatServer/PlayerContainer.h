@@ -1,12 +1,13 @@
 #pragma once
 #include <map>
 #include "dCommonVars.h"
-#include "eGameMasterLevel.h"
 #include "RakString.h"
 #include <vector>
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
+
+enum class eGameMasterLevel : uint8_t;
 
 struct IgnoreData {
 	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName(name), playerId(id) {}
@@ -23,6 +24,7 @@ struct IgnoreData {
 };
 
 struct PlayerData {
+	PlayerData();
 	operator bool() const noexcept {
 		return playerID != LWOOBJID_EMPTY;
 	}
@@ -43,7 +45,7 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
-	eGameMasterLevel gmLevel = eGameMasterLevel::CIVILIAN;
+	eGameMasterLevel gmLevel;
 	bool isFTP = false;
 };
 
@@ -59,6 +61,8 @@ struct TeamData {
 
 class PlayerContainer {
 public:
+	~PlayerContainer();
+
 	void Initialize();
 	void InsertPlayer(Packet* packet);
 	void RemovePlayer(Packet* packet);

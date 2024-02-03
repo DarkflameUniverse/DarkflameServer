@@ -23,7 +23,7 @@
 
 #include "CppScripts.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component{ entity } {
+QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -283,47 +283,47 @@ void QuickBuildComponent::DespawnActivator() {
 	}
 }
 
-Entity* QuickBuildComponent::GetActivator() const {
+Entity* QuickBuildComponent::GetActivator() {
 	return Game::entityManager->GetEntity(m_ActivatorId);
 }
 
-NiPoint3 QuickBuildComponent::GetActivatorPosition() const noexcept {
+NiPoint3 QuickBuildComponent::GetActivatorPosition() {
 	return m_ActivatorPosition;
 }
 
-float QuickBuildComponent::GetResetTime() const noexcept {
+float QuickBuildComponent::GetResetTime() {
 	return m_ResetTime;
 }
 
-float QuickBuildComponent::GetCompleteTime() const noexcept {
+float QuickBuildComponent::GetCompleteTime() {
 	return m_CompleteTime;
 }
 
-int QuickBuildComponent::GetTakeImagination() const noexcept {
+int QuickBuildComponent::GetTakeImagination() {
 	return m_TakeImagination;
 }
 
-bool QuickBuildComponent::GetInterruptible() const noexcept {
+bool QuickBuildComponent::GetInterruptible() {
 	return m_Interruptible;
 }
 
-bool QuickBuildComponent::GetSelfActivator() const noexcept {
+bool QuickBuildComponent::GetSelfActivator() {
 	return m_SelfActivator;
 }
 
-std::vector<int> QuickBuildComponent::GetCustomModules() const noexcept {
+std::vector<int> QuickBuildComponent::GetCustomModules() {
 	return m_CustomModules;
 }
 
-int QuickBuildComponent::GetActivityId() const noexcept {
+int QuickBuildComponent::GetActivityId() {
 	return m_ActivityId;
 }
 
-int QuickBuildComponent::GetPostImaginationCost() const noexcept {
+int QuickBuildComponent::GetPostImaginationCost() {
 	return m_PostImaginationCost;
 }
 
-float QuickBuildComponent::GetTimeBeforeSmash() const noexcept {
+float QuickBuildComponent::GetTimeBeforeSmash() {
 	return m_TimeBeforeSmash;
 }
 
@@ -337,19 +337,19 @@ Entity* QuickBuildComponent::GetBuilder() const {
 	return builder;
 }
 
-bool QuickBuildComponent::GetRepositionPlayer() const noexcept {
+bool QuickBuildComponent::GetRepositionPlayer() const {
 	return m_RepositionPlayer;
 }
 
-void QuickBuildComponent::SetActivatorPosition(NiPoint3 value) noexcept {
+void QuickBuildComponent::SetActivatorPosition(NiPoint3 value) {
 	m_ActivatorPosition = value;
 }
 
-void QuickBuildComponent::SetResetTime(float value) noexcept {
+void QuickBuildComponent::SetResetTime(float value) {
 	m_ResetTime = value;
 }
 
-void QuickBuildComponent::SetCompleteTime(float value) noexcept {
+void QuickBuildComponent::SetCompleteTime(float value) {
 	if (value < 0) {
 		m_CompleteTime = 4.5f;
 	} else {
@@ -357,31 +357,31 @@ void QuickBuildComponent::SetCompleteTime(float value) noexcept {
 	}
 }
 
-void QuickBuildComponent::SetTakeImagination(int value) noexcept {
+void QuickBuildComponent::SetTakeImagination(int value) {
 	m_TakeImagination = value;
 }
 
-void QuickBuildComponent::SetInterruptible(bool value) noexcept {
+void QuickBuildComponent::SetInterruptible(bool value) {
 	m_Interruptible = value;
 }
 
-void QuickBuildComponent::SetSelfActivator(bool value) noexcept {
+void QuickBuildComponent::SetSelfActivator(bool value) {
 	m_SelfActivator = value;
 }
 
-void QuickBuildComponent::SetCustomModules(std::vector<int> value) noexcept {
+void QuickBuildComponent::SetCustomModules(std::vector<int> value) {
 	m_CustomModules = value;
 }
 
-void QuickBuildComponent::SetActivityId(int value) noexcept {
+void QuickBuildComponent::SetActivityId(int value) {
 	m_ActivityId = value;
 }
 
-void QuickBuildComponent::SetPostImaginationCost(int value) noexcept {
+void QuickBuildComponent::SetPostImaginationCost(int value) {
 	m_PostImaginationCost = value;
 }
 
-void QuickBuildComponent::SetTimeBeforeSmash(float value) noexcept {
+void QuickBuildComponent::SetTimeBeforeSmash(float value) {
 	if (value < 0) {
 		m_TimeBeforeSmash = 10.0f;
 	} else {
@@ -389,7 +389,7 @@ void QuickBuildComponent::SetTimeBeforeSmash(float value) noexcept {
 	}
 }
 
-void QuickBuildComponent::SetRepositionPlayer(bool value) noexcept {
+void QuickBuildComponent::SetRepositionPlayer(bool value) {
 	m_RepositionPlayer = value;
 }
 
