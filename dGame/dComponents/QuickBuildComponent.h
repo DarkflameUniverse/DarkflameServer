@@ -28,13 +28,13 @@ public:
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
-	void Update(const float deltaTime) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Handles a OnUse event from some entity, initiating the quick build
 	 * @param originator the entity that triggered the event
 	 */
-	void OnUse(Entity* const originator) override;
+	void OnUse(Entity* originator) override;
 
 	/**
 	 * Spawns the activator that can be used to initiate the quickbuild

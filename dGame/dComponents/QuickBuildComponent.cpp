@@ -109,7 +109,7 @@ void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIni
 	m_StateDirty = false;
 }
 
-void QuickBuildComponent::Update(const float deltaTime) {
+void QuickBuildComponent::Update(float deltaTime) {
 	m_Activator = GetActivator();
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
@@ -240,7 +240,7 @@ void QuickBuildComponent::Update(const float deltaTime) {
 	}
 }
 
-void QuickBuildComponent::OnUse(Entity* const originator) {
+void QuickBuildComponent::OnUse(Entity* originator) {
 	if (GetBuilder() != nullptr || m_State == eQuickBuildState::COMPLETED) {
 		return;
 	}
