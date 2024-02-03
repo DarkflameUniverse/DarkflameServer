@@ -17,6 +17,7 @@ namespace tinyxml2 {
 enum class eMissionState : int;
 enum class eMissionLockState : int;
 class MissionComponent;
+class Character;
 
 /**
  * A mission (or achievement) that a player may unlock, progress and complete.
@@ -46,7 +47,7 @@ public:
 	 * Returns the account owns the entity that is currently progressing this mission
 	 * @return the account owns the entity that is currently progressing this mission
 	 */
-	User* GetUser() const;
+	Character* GetCharacter() const;
 
 	/**
 	 * Returns the current state of this mission

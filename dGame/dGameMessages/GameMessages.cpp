@@ -2584,6 +2584,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	//We need to get a new ID for our model first:
 	ObjectIDManager::RequestPersistentID([=](uint32_t newID) {
+		if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
 		LWOOBJID newIDL = newID;
 		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
@@ -2606,7 +2607,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		//Insert into ugc:
 		std::string str(sd0Data.get(), sd0Size);
 		std::istringstream sd0DataStream(str);
-		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
 		IPropertyContents::Model model;
@@ -5110,13 +5111,8 @@ void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
 	inStream->Read(bFlag);
 	inStream->Read(iFlagID);
 
-	auto user = entity->GetParentUser();
-	if (user) {
-		auto character = user->GetLastUsedChar();
-		if (!character) return;
-
-		character->SetPlayerFlag(iFlagID, bFlag);
-	}
+	auto character = entity->GetCharacter();
+	if (character) character->SetPlayerFlag(iFlagID, bFlag);
 }
 
 void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity) {

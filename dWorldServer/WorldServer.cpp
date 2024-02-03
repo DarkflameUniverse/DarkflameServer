@@ -608,8 +608,8 @@ void HandlePacketChat(Packet* packet) {
 
 				auto* entity = Game::entityManager->GetEntity(playerId);
 
-				if (entity != nullptr) {
-					entity->GetParentUser()->SetMuteExpire(expire);
+				if (entity && entity->GetCharacter() && entity->GetCharacter()->GetParentUser()) {
+					entity->GetCharacter()->GetParentUser()->SetMuteExpire(expire);
 
 					entity->GetCharacter()->SendMuteNotice();
 				}
@@ -1127,9 +1127,8 @@ void HandlePacket(Packet* packet) {
 				//Mail::HandleNotificationRequest(packet->systemAddress, player->GetObjectID());
 
 				//Notify chat that a player has loaded:
-				{
+				if (player->GetCharacter() && player->GetCharacter()->GetParentUser()) {
 					const auto& playerName = player->GetCharacter()->GetName();
-					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
 
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
@@ -1143,7 +1142,7 @@ void HandlePacket(Packet* packet) {
 					bitStream.Write(zone.GetMapID());
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
-					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+					bitStream.Write(player->GetCharacter()->GetParentUser()->GetMuteExpire());
 					bitStream.Write(player->GetGMLevel());
 
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);

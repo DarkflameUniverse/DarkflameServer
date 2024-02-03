@@ -59,13 +59,13 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
 				sysAddr.ToString(),
 				entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
-			toReport = player->GetParentUser();
+			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
 		// In the case that the target entity id did not exist, just log the player info.
 		} else if (player) {
 			LOG("Player (%s) (%llu) at system address (%s) with sending player (%llu) does not match their own.",
 				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
 				sysAddr.ToString(), id);
-			toReport = player->GetParentUser();
+			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
 		// In the rare case that the player does not exist, just log the system address and who the target id was.
 		} else {
 			LOG("Player at system address (%s) with sending player (%llu) does not match their own.",

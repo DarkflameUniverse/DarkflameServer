@@ -1017,7 +1017,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					return;
 				}
 			} else {
-				accountId = player->GetParentUser()->GetAccountID();
+				if (player->GetCharacter() && player->GetCharacter()->GetParentUser()) accountId = player->GetCharacter()->GetParentUser()->GetAccountID();
 				characterId = player->GetObjectID();
 			}
 
@@ -1045,7 +1045,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				expire += 60 * 60 * hours;
 			}
 
-			Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
+			if (accountId != 0) Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
 
 			char buffer[32] = "brought up for review.\0";
 
@@ -1109,10 +1109,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					return;
 				}
 			} else {
-				accountId = player->GetParentUser()->GetAccountID();
+				if (player->GetCharacter() && player->GetCharacter()->GetParentUser()) accountId = player->GetCharacter()->GetParentUser()->GetAccountID();
 			}
 
-			Database::Get()->UpdateAccountBan(accountId, true);
+			if (accountId != 0) Database::Get()->UpdateAccountBan(accountId, true);
 
 			if (player != nullptr) {
 				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
@@ -1423,7 +1423,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
-	if (chatCommand == "gminvis" && entity->GetParentUser()->GetMaxGMLevel() >= eGameMasterLevel::DEVELOPER) {
+	if (chatCommand == "gminvis" && entity->GetCharacter()->GetParentUser()->GetMaxGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, UNASSIGNED_SYSTEM_ADDRESS);
 
 		return;

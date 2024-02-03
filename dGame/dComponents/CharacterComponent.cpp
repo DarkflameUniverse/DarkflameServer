@@ -763,8 +763,8 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 }
 
 void CharacterComponent::AwardClaimCodes() {
-	if (!m_Parent) return;
-	auto* user = m_Parent->GetParentUser();
+	if (!m_Parent || !m_Parent->GetCharacter()) return;
+	auto* user = m_Parent->GetCharacter()->GetParentUser();
 	if (!user) return;
 
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());

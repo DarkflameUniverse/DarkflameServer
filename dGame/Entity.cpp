@@ -237,7 +237,7 @@ void Entity::Initialize() {
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
-	if (GetParentUser()) {
+	if (m_Character && m_Character->GetParentUser()) {
 		AddComponent<MissionComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
@@ -814,14 +814,6 @@ bool Entity::operator!=(const Entity& other) const {
 	return other.m_ObjectID != m_ObjectID;
 }
 
-User* Entity::GetParentUser() const {
-	if (!IsPlayer()) {
-		return nullptr;
-	}
-
-	return static_cast<const Player*>(this)->GetParentUser();
-}
-
 Component* Entity::GetComponent(eReplicaComponentType componentID) const {
 	const auto& index = m_Components.find(componentID);
 
@@ -876,17 +868,12 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 
 void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
-	if (GetParentUser()) {
-		Character* character = GetParentUser()->GetLastUsedChar();
+	if (m_Character) m_Character->SetGMLevel(value);
 
-		if (character) {
-			character->SetGMLevel(value);
-		}
-	}
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 
-	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (!character) return;
-	character->SetGMLevel(value);
+	characterComponent->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
 

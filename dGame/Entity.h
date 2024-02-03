@@ -104,8 +104,6 @@ public:
 
 	const NiQuaternion& GetRotation() const;
 
-	virtual User* GetParentUser() const;
-
 	const SystemAddress& GetSystemAddress() const;
 
 	/**

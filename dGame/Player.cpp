@@ -15,9 +15,8 @@
 #include "PlayerManager.h"
 
 Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Entity* parentEntity) : Entity(objectID, info, parentEntity) {
-	m_ParentUser = user;
-	m_Character = m_ParentUser->GetLastUsedChar();
-	m_ParentUser->SetLoggedInChar(objectID);
+	m_Character = user->GetLastUsedChar();
+	user->SetLoggedInChar(objectID);
 	m_GMLevel = m_Character->GetGMLevel();
 
 	m_Character->SetEntity(this);
