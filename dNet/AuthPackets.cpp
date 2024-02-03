@@ -7,7 +7,6 @@
 #include "Database.h"
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
-#include "SHA512.h"
 #include "GeneralUtils.h"
 
 #include <bcrypt/BCrypt.hpp>
