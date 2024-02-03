@@ -163,19 +163,24 @@ namespace GeneralUtils {
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
+#ifdef __APPLE__
+
 	/**
 	 * For floating-point values: Parses a C-style char range (string) and returns an optional variable depending on the result
+	 * Note that this function is only included for MacOS, as from_chars will fufill its purpose otherwise
 	 * @param str The pointer to the start of the char range (string)
-	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL
+	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL but is unused
 	 * @returns An std::optional containing the desired value if it exists in the string
 	*/
-	/*template <std::floating_point T>
+	template <std::floating_point T>
 	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) noexcept
 	try {
 		return std::make_optional<T>(std::stold(str));
 	} catch (...) {
 		return std::nullopt;
-	}*/
+	}
+
+#endif
 
 	/**
 	 * The TryParse overload for std::string
