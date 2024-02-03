@@ -47,7 +47,7 @@ namespace CppScripts {
  */
 class Entity {
 public:
-	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
+	explicit Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser = nullptr, Entity* parentEntity = nullptr);
 	virtual ~Entity();
 
 	virtual void Initialize();

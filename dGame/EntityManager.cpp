@@ -124,7 +124,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	if (user != nullptr) {
 		entity = new Player(id, info, user, parentEntity);
 	} else {
-		entity = new Entity(id, info, parentEntity);
+		entity = new Entity(id, info, user, parentEntity);
 	}
 
 	// Initialize the entity

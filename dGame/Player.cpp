@@ -14,12 +14,6 @@
 #include "eReplicaComponentType.h"
 #include "PlayerManager.h"
 
-Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Entity* parentEntity) : Entity(objectID, info, parentEntity) {
-	m_Character = user->GetLastUsedChar();
-	user->SetLoggedInChar(objectID);
-	m_GMLevel = m_Character->GetGMLevel();
+Player::Player(const LWOOBJID& objectID, const EntityInfo info, User* user, Entity* parentEntity) : Entity(objectID, info, user, parentEntity) {
 
-	m_Character->SetEntity(this);
-
-	PlayerManager::AddPlayer(this);
 }
