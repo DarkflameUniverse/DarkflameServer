@@ -4,6 +4,6 @@ MoveToInventoryMessage::MoveToInventoryMessage(AMFArrayValue* arguments) : Behav
 	auto* behaviorIndexValue = arguments->Get<double>("BehaviorIndex");
 	if (!behaviorIndexValue) return;
 
-	m_BehaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	LOG_DEBUG("m_BehaviorId %i m_BehaviorIndex %i", m_BehaviorId, m_BehaviorIndex);
+	behaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
+	LOG_DEBUG("behaviorId %i behaviorIndex %i", behaviorId, behaviorIndex);
 }
