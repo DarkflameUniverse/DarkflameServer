@@ -9,5 +9,5 @@ AddActionMessage::AddActionMessage(AMFArrayValue* arguments) : BehaviorMessageBa
 
 	action = Action(actionValue);
 
-	LOG_DEBUG("actionIndex %i stripId %i stateId %i type %s valueParameterName %s valueParameterString %s valueParameterDouble %f m_BehaviorId %i", actionIndex, actionContext.GetStripId(), actionContext.GetStateId(), action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), m_BehaviorId);
+	LOG_DEBUG("actionIndex %i stripId %i stateId %i type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i", actionIndex, actionContext.GetStripId(), actionContext.GetStateId(), action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), behaviorId);
 }
