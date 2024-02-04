@@ -1108,7 +1108,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					return;
 				}
 			} else {
-				if (player->GetCharacter() && player->GetCharacter()->GetParentUser()) accountId = player->GetCharacter()->GetParentUser()->GetAccountID();
+				auto* character = player->GetCharacter();
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) accountId = user->GetAccountID();
 			}
 
 			if (accountId != 0) Database::Get()->UpdateAccountBan(accountId, true);
