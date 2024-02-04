@@ -9,4 +9,4 @@ namespace ClientVersion {
 	constexpr uint16_t minor = 64;
 }
 
-#endif  // !__CLIENTVERSION_H__
+#endif // !__CLIENTVERSION_H__
