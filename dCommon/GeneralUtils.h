@@ -142,7 +142,7 @@ namespace GeneralUtils {
 	template <Numeric T> requires Enum<T>
 	struct numeric_parse<T> { using type = std::underlying_type_t<T>; };
 
-	// If a boolean, present an alias to an integral type for parsing
+	// If a boolean, present an alias to an intermediate integral type for parsing
 	template <Numeric T> requires std::same_as<T, bool>
 	struct numeric_parse<T> { using type = uint32_t; };
 
@@ -151,15 +151,17 @@ namespace GeneralUtils {
 	using numeric_parse_t = numeric_parse<T>::type;
 
 	/**
-	 * For numeric values: Parses a C-style char range (string) and returns an optional variable depending on the result.
-	 * @param str The pointer to the start of the char range (string)
-	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL
-	 * @returns An std::optional containing the desired value if it exists in the string
+	 * For numeric values: Parses a string_view and returns an optional variable depending on the result.
+	 * @param str The string_view to be evaluated
+	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <Numeric T>
-	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) {
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
 		numeric_parse_t<T> result;
-		const bool isParsed = std::from_chars(str, strEnd, result).ec == std::errc{};
+
+		const char* const strEnd = str.data() + str.size();
+		const auto [parseEnd, ec] = std::from_chars(str.data(), strEnd, result);
+		const bool isParsed = parseEnd == strEnd && ec == std::errc{};
 
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
@@ -167,41 +169,45 @@ namespace GeneralUtils {
 #ifdef DARKFLAME_PLATFORM_MACOS
 
 	/**
-	 * For floating-point values: Parses a C-style char range (string) and returns an optional variable depending on the result.
+	 * For numeric values: Parses a string_view and returns an optional variable depending on the result.
 	 * Note that this function overload is only included for MacOS, as from_chars will fufill its purpose otherwise.
-	 * @param str The pointer to the start of the char range (string)
-	 * @param strEnd The pointer to the end of the char range (string), defaults to NULL but is unused
-	 * @returns An std::optional containing the desired value if it exists in the string
+	 * @param str The string_view to be evaluated
+	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
-	template <std::floating_point T>
-	[[nodiscard]] std::optional<T> TryParse(const char* const str, const char* const strEnd = NULL) noexcept
+    template <std::floating_point T>
+    [[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept
 	try {
-		return std::stold(str);
-	} catch (...) {
+        size_t parseNum;
+        const T result = Parse<T>(str, &parseNum);
+        const bool isParsed = str.length() == parseNum;
+
+        return isParsed ? result : std::optional<T>{};
+    } catch (...) {
 		return std::nullopt;
 	}
 
+	// Anonymous namespace containing MacOS floating-point parse function specializations
+	namespace {
+		template <std::floating_point T>
+		T Parse(const std::string_view str, size_t* parseNum);
+
+		template <>
+		[[nodiscard]] float Parse<float>(const std::string_view str, size_t* parseNum) {
+			return std::stof(std::string{ str }, parseNum);
+		}
+
+		template <>
+		[[nodiscard]] double Parse<double>(const std::string_view str, size_t* parseNum) {
+			return std::stod(std::string{ str }, parseNum);
+		}
+
+		template <>
+		[[nodiscard]] long double Parse<long double>(const std::string_view str, size_t* parseNum) {
+			return std::stold(std::string{ str }, parseNum);
+		}
+	}
+
 #endif
-
-	/**
-	 * The TryParse overload for std::string
-	 * @param str A constant reference to a std::string
-	 * @returns An std::optional containing the desired value if it exists in the string
-	*/
-	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string& str) {
-		return TryParse<T>(str.data(), str.data() + str.size());
-	}
-
-	/**
-	 * The TryParse overload for std::string_view
-	 * @param str A constant value std::string_view passed by copy
-	 * @returns An std::optional containing the desired value if it exists in the string
-	*/
-	template <typename T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
-		return TryParse<T>(str.data(), str.data() + str.size());
-	}
 
 	/**
 	 * The TryParse overload for handling NiPoint3 by passing 3 seperate string references
@@ -213,10 +219,15 @@ namespace GeneralUtils {
 	template <typename T>
 	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
 		const auto x = TryParse<float>(strX);
-		const auto y = TryParse<float>(strY);
-		const auto z = TryParse<float>(strZ);
+		if (!x) return std::nullopt;
 
-		return x && y && z ? std::make_optional<NiPoint3>(x.value(), y.value(), z.value()) : std::nullopt;
+		const auto y = TryParse<float>(strY);
+		if (!y) return std::nullopt;
+
+		const auto z = TryParse<float>(strZ);
+		if (!z) return std::nullopt;
+
+		return std::make_optional<NiPoint3>(x.value(), y.value(), z.value());
 	}
 
 	/**
