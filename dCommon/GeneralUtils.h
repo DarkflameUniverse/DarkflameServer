@@ -168,8 +168,14 @@ namespace GeneralUtils {
 
 #ifdef DARKFLAME_PLATFORM_MACOS
 
+// Anonymous namespace containing forward declaration of MacOS-specific Parse() template function
+	namespace {
+		template <std::floating_point T>
+		[[nodiscard]] T Parse(const std::string_view str, size_t* parseNum);
+	}
+
 	/**
-	 * For numeric values: Parses a string_view and returns an optional variable depending on the result.
+	 * For floating-point values: Parses a string_view and returns an optional variable depending on the result.
 	 * Note that this function overload is only included for MacOS, as from_chars will fufill its purpose otherwise.
 	 * @param str The string_view to be evaluated
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
@@ -188,9 +194,6 @@ namespace GeneralUtils {
 
 	// Anonymous namespace containing MacOS floating-point parse function specializations
 	namespace {
-		template <std::floating_point T>
-		T Parse(const std::string_view str, size_t* parseNum);
-
 		template <>
 		[[nodiscard]] float Parse<float>(const std::string_view str, size_t* parseNum) {
 			return std::stof(std::string{ str }, parseNum);
