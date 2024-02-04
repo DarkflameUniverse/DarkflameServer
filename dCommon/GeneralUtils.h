@@ -2,9 +2,9 @@
 
 // C++
 #include <charconv>
-#include <stdint.h>
+#include <cstdint>
 #include <random>
-#include <time.h>
+#include <ctime>
 #include <string>
 #include <string_view>
 #include <optional>
