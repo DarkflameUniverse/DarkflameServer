@@ -14,6 +14,7 @@
 
 #include "Game.h"
 #include "Logger.h"
+#include "dAttributes.h"
 
 enum eInventoryType : uint32_t;
 enum class eObjectBits : size_t;
@@ -177,7 +178,7 @@ namespace GeneralUtils {
 	}
 
 	template <typename T>
-	bool TryParse(const char* value, T& dst) {
+	[[DNO_INLINE]] bool TryParse(const char* value, T& dst) {
 		try {
 			dst = Parse<T>(value);
 
@@ -240,7 +241,7 @@ namespace GeneralUtils {
 	 * @returns The enum entry's value in its underlying type
 	*/
 	template <typename eType>
-	inline constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) {
+	[[DCAST_ALIAS]] constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) noexcept {
 		static_assert(std::is_enum_v<eType>, "Not an enum");
 
 		return static_cast<typename std::underlying_type_t<eType>>(entry);
