@@ -9,6 +9,7 @@
 #include "MD5.h"
 #include "SHA512.h"
 #include "GeneralUtils.h"
+#include "ClientVersion.h"
 
 #include <bcrypt/BCrypt.hpp>
 

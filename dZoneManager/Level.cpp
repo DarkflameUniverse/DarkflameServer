@@ -14,6 +14,7 @@
 #include "CDFeatureGatingTable.h"
 #include "CDClientManager.h"
 #include "AssetManager.h"
+#include "ClientVersion.h"
 #include "dConfig.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
