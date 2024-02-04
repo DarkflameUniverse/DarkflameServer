@@ -1,7 +1,6 @@
 #pragma once
 #include <map>
 #include "dCommonVars.h"
-#include "eGameMasterLevel.h"
 #include "RakString.h"
 #include <vector>
 #include "Game.h"
@@ -45,7 +44,7 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
-	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0);
+	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0); // CIVILLIAN
 	bool isFTP = false;
 };
 

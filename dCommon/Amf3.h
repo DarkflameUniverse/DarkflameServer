@@ -68,18 +68,18 @@ protected:
 	std::string m_Data;
 };
 
-using AMFNullValue = AMFValue<std::nullptr_t>;
-using AMFBoolValue = AMFValue<bool>;
-using AMFIntValue = AMFValue<int32_t>;
-using AMFStringValue = AMFValue<std::string>;
-using AMFDoubleValue = AMFValue<double>;
-
 template<> constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; };
 template<> constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; };
 template<> constexpr eAmf AMFValue<int32_t>::GetValueType() const noexcept { return eAmf::Integer; };
 template<> constexpr eAmf AMFValue<uint32_t>::GetValueType() const noexcept { return eAmf::Integer; };
 template<> constexpr eAmf AMFValue<std::string>::GetValueType() const noexcept { return eAmf::String; };
 template<> constexpr eAmf AMFValue<double>::GetValueType() const noexcept { return eAmf::Double; };
+
+using AMFNullValue = AMFValue<std::nullptr_t>;
+using AMFBoolValue = AMFValue<bool>;
+using AMFIntValue = AMFValue<int32_t>;
+using AMFStringValue = AMFValue<std::string>;
+using AMFDoubleValue = AMFValue<double>;
 
 /**
  * The AMFArrayValue object holds 2 types of lists:
