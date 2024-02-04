@@ -83,8 +83,8 @@ void PropertyBehavior::HandleMsg(AddMessage& msg) {
 	isLoot = m_BehaviorId != 7965;
 };
 
-void PropertyBehavior::SetBehaviorId(int32_t behaviorId) {
-	m_BehaviorId = behaviorId;
+void PropertyBehavior::SetBehaviorId(int32_t m_BehaviorId) {
+	m_BehaviorId = m_BehaviorId;
 }
 
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) const {

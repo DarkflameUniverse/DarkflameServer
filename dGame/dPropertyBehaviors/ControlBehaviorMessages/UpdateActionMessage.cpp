@@ -11,5 +11,5 @@ UpdateActionMessage::UpdateActionMessage(AMFArrayValue* arguments) : BehaviorMes
 	action = Action(actionValue);
 	actionIndex = GetActionIndexFromArgument(arguments);
 
-	LOG_DEBUG("type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i actionIndex %i stripId %i stateId %i", action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), behaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
+	LOG_DEBUG("type %s valueParameterName %s valueParameterString %s valueParameterDouble %f m_BehaviorId %i actionIndex %i stripId %i stateId %i", action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), m_BehaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
 }

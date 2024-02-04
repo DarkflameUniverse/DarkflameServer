@@ -7,5 +7,5 @@ MigrateActionsMessage::MigrateActionsMessage(AMFArrayValue* arguments) : Behavio
 	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
 	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
 
-	LOG_DEBUG("srcactionIndex %i dstactionIndex %i srcstripId %i dststripId %i srcstateId %i dststateId %i behaviorId %i", srcActionIndex, dstActionIndex, sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), behaviorId);
+	LOG_DEBUG("srcactionIndex %i dstactionIndex %i srcstripId %i dststripId %i srcstateId %i dststateId %i m_BehaviorId %i", srcActionIndex, dstActionIndex, sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), m_BehaviorId);
 }

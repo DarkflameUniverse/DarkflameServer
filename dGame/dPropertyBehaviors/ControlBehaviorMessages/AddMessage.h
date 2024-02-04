@@ -10,9 +10,9 @@
 class AddMessage : public BehaviorMessageBase {
 public:
 	AddMessage(AMFArrayValue* arguments);
-	const uint32_t GetBehaviorIndex() const { return behaviorIndex; };
+	const uint32_t GetBehaviorIndex() const { return m_BehaviorIndex; };
 private:
-	uint32_t behaviorIndex;
+	uint32_t m_BehaviorIndex;
 };
 
 #endif  //!__ADDMESSAGE__H__

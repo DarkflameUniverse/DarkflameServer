@@ -213,10 +213,15 @@ namespace GeneralUtils {
 	template <typename T>
 	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
 		const auto x = TryParse<float>(strX);
-		const auto y = TryParse<float>(strY);
-		const auto z = TryParse<float>(strZ);
+		if (!x) return std::nullopt;
 
-		return x && y && z ? std::make_optional<NiPoint3>(x.value(), y.value(), z.value()) : std::nullopt;
+		const auto y = TryParse<float>(strY);
+		if (!y) return std::nullopt;
+
+		const auto z = TryParse<float>(strZ);
+		if (!z) return std::nullopt;
+
+		return std::make_optional<NiPoint3>(x.value(), y.value(), z.value());
 	}
 
 	/**
