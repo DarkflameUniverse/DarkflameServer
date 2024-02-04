@@ -166,7 +166,7 @@ namespace GeneralUtils {
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
-//#ifdef DARKFLAME_PLATFORM_MACOS
+#ifdef DARKFLAME_PLATFORM_MACOS
 
 	// Anonymous namespace containing MacOS floating-point parse function specializations
 	namespace {
@@ -191,7 +191,7 @@ namespace GeneralUtils {
 
 	/**
 	 * For floating-point values: Parses a string_view and returns an optional variable depending on the result.
-	 * Note that this function overload is only included for MacOS, as from_chars will fufill its purpose otherwise.
+	 * Note that this function overload is only included for MacOS, as from_chars will fulfill its purpose otherwise.
 	 * @param str The string_view to be evaluated
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
@@ -206,7 +206,7 @@ namespace GeneralUtils {
 		return std::nullopt;
 	}
 
-//#endif
+#endif
 
 	/**
 	 * The TryParse overload for handling NiPoint3 by passing 3 seperate string references
@@ -224,9 +224,7 @@ namespace GeneralUtils {
 		if (!y) return std::nullopt;
 
 		const auto z = TryParse<float>(strZ);
-		if (!z) return std::nullopt;
-
-		return std::make_optional<NiPoint3>(x.value(), y.value(), z.value());
+		return z ? std::make_optional<NiPoint3>(x.value(), y.value(), z.value()) : std::nullopt;
 	}
 
 	/**
