@@ -52,6 +52,13 @@ protected:
 	ValueType m_Data;
 };
 
+template<> constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; };
+template<> constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; };
+template<> constexpr eAmf AMFValue<int32_t>::GetValueType() const noexcept { return eAmf::Integer; };
+template<> constexpr eAmf AMFValue<uint32_t>::GetValueType() const noexcept { return eAmf::Integer; };
+template<> constexpr eAmf AMFValue<std::string>::GetValueType() const noexcept { return eAmf::String; };
+template<> constexpr eAmf AMFValue<double>::GetValueType() const noexcept { return eAmf::Double; };
+
 // As a string this is much easier to write and read from a BitStream.
 template<>
 class AMFValue<const char*> : public AMFBaseValue {
@@ -67,13 +74,6 @@ public:
 protected:
 	std::string m_Data;
 };
-
-template<> constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; };
-template<> constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; };
-template<> constexpr eAmf AMFValue<int32_t>::GetValueType() const noexcept { return eAmf::Integer; };
-template<> constexpr eAmf AMFValue<uint32_t>::GetValueType() const noexcept { return eAmf::Integer; };
-template<> constexpr eAmf AMFValue<std::string>::GetValueType() const noexcept { return eAmf::String; };
-template<> constexpr eAmf AMFValue<double>::GetValueType() const noexcept { return eAmf::Double; };
 
 using AMFNullValue = AMFValue<std::nullptr_t>;
 using AMFBoolValue = AMFValue<bool>;
