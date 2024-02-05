@@ -14,7 +14,6 @@
 #include "Item.h"
 #include "Database.h"
 #include "ObjectIDManager.h"
-#include "Player.h"
 #include "RocketLaunchpadControlComponent.h"
 #include "PropertyEntranceComponent.h"
 #include "InventoryComponent.h"
@@ -176,8 +175,6 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	}
 
 	auto* entity = Game::entityManager->GetEntity(playerId);
-
-	auto* user = entity->GetParentUser();
 
 	auto character = entity->GetCharacter();
 	if (!character) return false;
