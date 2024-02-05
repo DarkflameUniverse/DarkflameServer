@@ -30,8 +30,8 @@ void dpGrid::Add(dpEntity* entity) {
 	int cellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
-	std::clamp(cellX, 0, NUM_CELLS - 1);
-	std::clamp(cellZ, 0, NUM_CELLS - 1);
+	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
+	cellZ = std::clamp(cellZ, 0, NUM_CELLS - 1);
 
 	//Add to cell:
 	m_Cells[cellX][cellZ].push_back(entity);
@@ -49,11 +49,11 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 	int cellZ = (int)std::round(z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
-	std::clamp(cellX, 0, NUM_CELLS - 1);
-	std::clamp(cellZ, 0, NUM_CELLS - 1);
+	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
+	cellZ = std::clamp(cellZ, 0, NUM_CELLS - 1);
 
-	std::clamp(oldCellX, 0, NUM_CELLS - 1);
-	std::clamp(oldCellZ, 0, NUM_CELLS - 1);
+	oldCellX = std::clamp(oldCellX, 0, NUM_CELLS - 1);
+	oldCellZ = std::clamp(oldCellZ, 0, NUM_CELLS - 1);
 
 	if (oldCellX == cellX && oldCellZ == cellZ) return;
 
@@ -77,8 +77,8 @@ void dpGrid::Delete(dpEntity* entity) {
 	int oldCellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
-	std::clamp(oldCellX, 0, NUM_CELLS - 1);
-	std::clamp(oldCellZ, 0, NUM_CELLS - 1);
+	cellX = std::clamp(oldCellX, 0, NUM_CELLS - 1);
+	cellZ = std::clamp(oldCellZ, 0, NUM_CELLS - 1);
 
 	auto& cell = m_Cells[oldCellX][oldCellZ];
 	auto toRemove = std::find(cell.begin(), cell.end(), entity);
