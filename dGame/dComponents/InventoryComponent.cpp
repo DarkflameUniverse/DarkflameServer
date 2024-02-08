@@ -14,7 +14,6 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "ItemSet.h"
-#include "Player.h"
 #include "PetComponent.h"
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
