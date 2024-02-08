@@ -1,8 +1,7 @@
 #pragma once
-#include <vector>
-#include <list>
-#include <forward_list>
 #include <map>
+#include <vector>
+
 #include "dCommonVars.h"
 
 class dpEntity;
@@ -30,7 +29,8 @@ public:
 	 */
 	void SetDeleteGrid(bool value) { this->m_DeleteGrid = value; };
 
-	std::vector<std::vector<std::forward_list<dpEntity*>>> GetCells() { return this->m_Cells; };
+	// Intentional copy since this is only used when we delete this class to re-create it.
+	std::vector<std::vector<std::vector<dpEntity*>>> GetCells() { return this->m_Cells; };
 
 private:
 	void HandleEntity(dpEntity* entity, dpEntity* other);
@@ -38,7 +38,7 @@ private:
 
 private:
 	//cells on X, cells on Y for that X, then another vector that contains the entities within that cell.
-	std::vector<std::vector<std::forward_list<dpEntity*>>> m_Cells;
+	std::vector<std::vector<std::vector<dpEntity*>>> m_Cells;
 	std::map<LWOOBJID, dpEntity*> m_GargantuanObjects;
 	bool m_DeleteGrid = true;
 };
