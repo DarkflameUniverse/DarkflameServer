@@ -15,7 +15,6 @@
 #include "Spawner.h"
 #include "UserManager.h"
 #include "dpWorld.h"
-#include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
 #include "EntityTimer.h"
@@ -26,6 +25,7 @@
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
 #include "eChatMessageType.h"
+#include "PlayerManager.h"
 
 //Component includes:
 #include "Component.h"
@@ -95,7 +95,7 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
-Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
+Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -124,9 +124,42 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_SpawnerNodeID = info.spawnerNodeID;
 
 	if (info.lot != 1) m_PlayerIsReadyForUpdates = true;
+	if (parentUser) {
+		m_Character = parentUser->GetLastUsedChar();
+		parentUser->SetLoggedInChar(objectID);
+		m_GMLevel = m_Character->GetGMLevel();
+
+		m_Character->SetEntity(this);
+
+		PlayerManager::AddPlayer(this);
+	}
 }
 
 Entity::~Entity() {
+	if (IsPlayer()) {
+		LOG("Deleted player");
+
+		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
+		if (!PlayerManager::RemovePlayer(this)) {
+			LOG("Unable to find player to remove from manager.");
+			return;
+		}
+
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+			script->OnPlayerExit(zoneControl, this);
+		}
+
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
+		for (Entity* scriptEntity : scriptedActs) {
+			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+					script->OnPlayerExit(scriptEntity, this);
+				}
+			}
+		}
+	}
+
 	if (m_Character) {
 		m_Character->SaveXMLToDatabase();
 	}
@@ -212,7 +245,7 @@ void Entity::Initialize() {
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
-	if (GetParentUser()) {
+	if (m_Character && m_Character->GetParentUser()) {
 		AddComponent<MissionComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
@@ -437,7 +470,8 @@ void Entity::Initialize() {
 
 		AddComponent<PlayerForcedMovementComponent>();
 
-		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+		AddComponent<CharacterComponent>(m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
 
 		AddComponent<GhostComponent>();
 	}
@@ -788,14 +822,6 @@ bool Entity::operator!=(const Entity& other) const {
 	return other.m_ObjectID != m_ObjectID;
 }
 
-User* Entity::GetParentUser() const {
-	if (!IsPlayer()) {
-		return nullptr;
-	}
-
-	return static_cast<const Player*>(this)->GetParentUser();
-}
-
 Component* Entity::GetComponent(eReplicaComponentType componentID) const {
 	const auto& index = m_Components.find(componentID);
 
@@ -850,17 +876,12 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 
 void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
-	if (GetParentUser()) {
-		Character* character = GetParentUser()->GetLastUsedChar();
+	if (m_Character) m_Character->SetGMLevel(value);
 
-		if (character) {
-			character->SetGMLevel(value);
-		}
-	}
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 
-	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (!character) return;
-	character->SetGMLevel(value);
+	characterComponent->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
 
@@ -1630,18 +1651,23 @@ bool Entity::GetIsDead() const {
 
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot.insert(std::make_pair(info.id, info));
 }
 
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
 	InventoryComponent* inv = GetComponent<InventoryComponent>();
-	if (!inv) return;
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!inv || !characterComponent) return;
 
 	CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
@@ -1677,22 +1703,28 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return false;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	if (count > droppedCoins) {
 		return false;
 	} else {
-		player->SetDroppedCoins(droppedCoins - count);
+		characterComponent->SetDroppedCoins(droppedCoins - count);
 		return true;
 	}
 }
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	droppedCoins += count;
-	player->SetDroppedCoins(droppedCoins);
+	characterComponent->SetDroppedCoins(droppedCoins);
 }
 
 void Entity::AddChild(Entity* child) {
@@ -1990,7 +2022,7 @@ std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
 	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
 		return !Game::entityManager->GetEntity(id);
-	}), m_TargetsInPhantom.end());
+		}), m_TargetsInPhantom.end());
 
 	std::vector<LWOOBJID> enemies;
 	for (const auto id : m_TargetsInPhantom) {
@@ -2132,4 +2164,28 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+}
+
+const SystemAddress& Entity::GetSystemAddress() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+}
+
+const NiPoint3& Entity::GetRespawnPosition() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnPosition() : NiPoint3Constant::ZERO;
+}
+
+const NiQuaternion& Entity::GetRespawnRotation() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
+}
+
+void Entity::SetRespawnPos(const NiPoint3& position) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnPos(position);
+}
+void Entity::SetRespawnRot(const NiQuaternion& rotation) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnRot(rotation);
 }

@@ -10,7 +10,6 @@
 #include "WorldPackets.h"
 #include "EntityManager.h"
 #include "ChatPackets.h"
-#include "Player.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
