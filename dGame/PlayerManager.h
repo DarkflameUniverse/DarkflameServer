@@ -5,21 +5,21 @@
 
 #include <string>
 
-class Player;
+class Entity;
 struct SystemAddress;
 
 namespace PlayerManager {
-	void AddPlayer(Player* player);
+	void AddPlayer(Entity* player);
 
-	bool RemovePlayer(Player* player);
+	bool RemovePlayer(Entity* player);
 
-	Player* GetPlayer(const SystemAddress& sysAddr);
+	Entity* GetPlayer(const SystemAddress& sysAddr);
 
-	Player* GetPlayer(const std::string& name);
+	Entity* GetPlayer(const std::string& name);
 
-	Player* GetPlayer(LWOOBJID playerID);
+	Entity* GetPlayer(LWOOBJID playerID);
 
-	const std::vector<Player*>& GetAllPlayers();
+	const std::vector<Entity*>& GetAllPlayers();
 };
 
 #endif  //!__PLAYERMANAGER__H__
