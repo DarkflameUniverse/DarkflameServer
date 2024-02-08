@@ -24,7 +24,7 @@
 #include "WorldPackets.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
+CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
 	m_Character = character;
 
 	m_IsRacing = false;
@@ -46,6 +46,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
+	m_SystemAddress = systemAddress;
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -762,8 +763,8 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 }
 
 void CharacterComponent::AwardClaimCodes() {
-	if (!m_Parent) return;
-	auto* user = m_Parent->GetParentUser();
+	if (!m_Parent || !m_Parent->GetCharacter()) return;
+	auto* user = m_Parent->GetCharacter()->GetParentUser();
 	if (!user) return;
 
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
@@ -816,4 +817,21 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 
 		Game::entityManager->DestructEntity(entity);
 		});
+}
+
+const SystemAddress& CharacterComponent::GetSystemAddress() const {
+	return m_SystemAddress;
+}
+
+void CharacterComponent::SetRespawnPos(const NiPoint3& position) {
+	if (!m_Character) return;
+
+	m_respawnPos = position;
+
+	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
+
+}
+
+void CharacterComponent::SetRespawnRot(const NiQuaternion& rotation) {
+	m_respawnRot = rotation;
 }

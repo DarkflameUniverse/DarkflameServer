@@ -18,7 +18,6 @@
 #include "Character.h"
 #include "ControllablePhysicsComponent.h"
 #include "dZoneManager.h"
-#include "Player.h"
 #include "CppScripts.h"
 
 #include "CDClientDatabase.h"

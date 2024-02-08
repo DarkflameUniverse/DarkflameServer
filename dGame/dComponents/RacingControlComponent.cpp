@@ -12,7 +12,6 @@
 #include "Item.h"
 #include "MissionComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "eRacingTaskParam.h"
