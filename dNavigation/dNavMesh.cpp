@@ -11,6 +11,7 @@
 
 #include "dZoneManager.h"
 #include "DluAssert.h"
+#include "DetourExtensions.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -30,16 +31,8 @@ dNavMesh::dNavMesh(uint32_t zoneId) {
 dNavMesh::~dNavMesh() {
 	// Clean up Recast information
 
-	if(m_Solid) rcFreeHeightField(m_Solid);
-	if (m_CHF) rcFreeCompactHeightfield(m_CHF);
-	if (m_CSet) rcFreeContourSet(m_CSet);
-	if (m_PMesh) rcFreePolyMesh(m_PMesh);
-	if (m_PMDMesh) rcFreePolyMeshDetail(m_PMDMesh);
 	if (m_NavMesh) dtFreeNavMesh(m_NavMesh);
 	if (m_NavQuery) dtFreeNavMeshQuery(m_NavQuery);
-
-	if (m_Ctx) delete m_Ctx;
-	if (m_Triareas) delete[] m_Triareas;
 }
 
 

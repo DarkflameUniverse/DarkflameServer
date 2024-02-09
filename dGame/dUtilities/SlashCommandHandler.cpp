@@ -53,7 +53,6 @@
 #include "Loot.h"
 #include "EntityInfo.h"
 #include "LUTriggers.h"
-#include "Player.h"
 #include "PhantomPhysicsComponent.h"
 #include "ProximityMonitorComponent.h"
 #include "dpShapeSphere.h"
@@ -1016,7 +1015,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					return;
 				}
 			} else {
-				accountId = player->GetParentUser()->GetAccountID();
+				auto* character = player->GetCharacter();
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) accountId = user->GetAccountID();
 				characterId = player->GetObjectID();
 			}
 
@@ -1044,7 +1045,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				expire += 60 * 60 * hours.value_or(0);
 			}
 
-			Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
+			if (accountId != 0) Database::Get()->UpdateAccountUnmuteTime(accountId, expire);
 
 			char buffer[32] = "brought up for review.\0";
 
@@ -1108,10 +1109,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					return;
 				}
 			} else {
-				accountId = player->GetParentUser()->GetAccountID();
+				auto* character = player->GetCharacter();
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) accountId = user->GetAccountID();
 			}
 
-			Database::Get()->UpdateAccountBan(accountId, true);
+			if (accountId != 0) Database::Get()->UpdateAccountBan(accountId, true);
 
 			if (player != nullptr) {
 				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
@@ -1424,7 +1427,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Allow for this on even while not a GM, as it sometimes toggles incorrrectly.
-	if (chatCommand == "gminvis" && entity->GetParentUser()->GetMaxGMLevel() >= eGameMasterLevel::DEVELOPER) {
+	if (chatCommand == "gminvis" && entity->GetCharacter()->GetParentUser()->GetMaxGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, UNASSIGNED_SYSTEM_ADDRESS);
 
 		return;
