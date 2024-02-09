@@ -36,7 +36,7 @@ protected:
 		Game::entityManager = new EntityManager();
 
 		// Create a CDClientManager instance and load from defaults
-		CDClientManager::Instance().LoadValuesFromDefaults();
+		CDClientManager::LoadValuesFromDefaults();
 	}
 
 	void TearDownDependencies() {

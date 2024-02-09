@@ -41,14 +41,14 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 		return;
 	}
 
-	auto* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
+	auto* lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
 	const auto& lootMatrices = lootMatrixTable->GetMatrix(m_LootMatrixID);
 
 	if (lootMatrices.empty()) return;
 
-	auto* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
-	auto* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
-	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
 		auto vendorItems = lootTableTable->GetTable(lootMatrix.LootTableIndex);
@@ -101,10 +101,10 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 }
 
 void VendorComponent::SetupConstants() {
-	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	int componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::VENDOR);
 
-	auto* vendorComponentTable = CDClientManager::Instance().GetTable<CDVendorComponentTable>();
+	auto* vendorComponentTable = CDClientManager::GetTable<CDVendorComponentTable>();
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });
 	if (vendorComps.empty()) return;
 	auto vendorData = vendorComps.at(0);

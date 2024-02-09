@@ -46,7 +46,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 
 	if (destroyableComponent) {
 		// First lookup the loot matrix id for this component id.
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
@@ -70,7 +70,7 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 	}
 }
 void ActivityComponent::LoadActivityData(const int32_t activityId) {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });
 
 	bool soloRacing = Game::config->GetValue("solo_racing") == "1";
@@ -106,7 +106,7 @@ void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 }
 
 void ActivityComponent::ReloadConfig() {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 	for (auto activity : activities) {
 		auto mapID = m_ActivityInfo.instanceMapID;
@@ -545,14 +545,14 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 	}
 
 	// First, get the activity data
-	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+	auto* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([this](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
 		uint32_t maxCoins = 0;
 
-		auto* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+		auto* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
 
 		if (!currencyTable.empty()) {

@@ -6,8 +6,8 @@
 
 // Sort the tables by their rarity so the highest rarity items are first.
 void SortTable(LootTableEntries& table) {
-	auto* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	auto* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	auto* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 	// We modify the table in place so the outer loop keeps track of what is sorted
 	// and the inner loop finds the highest rarity item and swaps it with the current position
 	// of the outer loop.
