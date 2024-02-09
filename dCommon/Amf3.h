@@ -45,26 +45,7 @@ public:
 	AMFValue(const ValueType value) { m_Data = value; }
 	virtual ~AMFValue() override = default;
 
-	// Can be used to determine the type of the AMFValue
-	template <typename... Ts>
-	static constexpr bool is_type = std::disjunction_v<std::is_same<ValueType, Ts>...>;
-
-	// Had to use this instead of specialization
-	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override {
-		if constexpr (is_type<std::nullptr_t>) {
-			return eAmf::Null;
-		} else if constexpr (is_type<bool>) {
-			return m_Data ? eAmf::True : eAmf::False;
-		} else if constexpr (is_type<int32_t, uint32_t>) {
-			return eAmf::Integer;
-		} else if constexpr (is_type<std::string, std::string_view>) {
-			return eAmf::String;
-		} else if constexpr (is_type<double>) {
-			return eAmf::Double;
-		} else {
-			return eAmf::Undefined;
-		}
-	}
+	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override;
 
 	[[nodiscard]] const ValueType& GetValue() const { return m_Data; }
 	void SetValue(const ValueType value) { m_Data = value; }
@@ -72,6 +53,25 @@ public:
 protected:
 	ValueType m_Data;
 };
+
+// Explicit template class instantiations
+template class AMFValue<std::nullptr_t>; 
+template class AMFValue<bool>;
+template class AMFValue<int32_t>;
+template class AMFValue<uint32_t>;
+template class AMFValue<std::string>;
+template class AMFValue<double>;
+
+// AMFValue template class member function instantiations
+template <> [[nodiscard]] constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<int32_t>::GetValueType() const noexcept { return eAmf::Integer; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<uint32_t>::GetValueType() const noexcept { return eAmf::Integer; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<std::string>::GetValueType() const noexcept { return eAmf::String; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<double>::GetValueType() const noexcept { return eAmf::Double; }
+
+template <typename ValueType>
+[[nodiscard]] constexpr eAmf AMFValue<ValueType>::GetValueType() const noexcept { return eAmf::Undefined; }
 
 // As a string this is much easier to write and read from a BitStream.
 template <>
