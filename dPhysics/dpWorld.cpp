@@ -81,7 +81,7 @@ void dpWorld::Shutdown() {
 }
 
 bool dpWorld::IsLoaded() {
-	return m_NavMesh->GetdtNavMesh() != nullptr;
+	return m_NavMesh->IsNavmeshLoaded();
 }
 
 void dpWorld::StepWorld(float deltaTime) {
