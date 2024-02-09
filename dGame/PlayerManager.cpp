@@ -1,20 +1,19 @@
 #include "PlayerManager.h"
 
 #include "Character.h"
-#include "Player.h"
 #include "User.h"
 #include "UserManager.h"
 #include "eReplicaComponentType.h"
 
 namespace {
-	std::vector<Player*> m_Players;
+	std::vector<Entity*> m_Players;
 };
 
-const std::vector<Player*>& PlayerManager::GetAllPlayers() {
+const std::vector<Entity*>& PlayerManager::GetAllPlayers() {
 	return m_Players;
 }
 
-void PlayerManager::AddPlayer(Player* player) {
+void PlayerManager::AddPlayer(Entity* player) {
 	const auto& iter = std::find(m_Players.begin(), m_Players.end(), player);
 
 	if (iter == m_Players.end()) {
@@ -22,7 +21,7 @@ void PlayerManager::AddPlayer(Player* player) {
 	}
 }
 
-bool PlayerManager::RemovePlayer(Player* player) {
+bool PlayerManager::RemovePlayer(Entity* player) {
 	const auto iter = std::find(m_Players.begin(), m_Players.end(), player);
 
 	const bool toReturn = iter != m_Players.end();
@@ -33,21 +32,21 @@ bool PlayerManager::RemovePlayer(Player* player) {
 	return toReturn;
 }
 
-Player* PlayerManager::GetPlayer(const SystemAddress& sysAddr) {
+Entity* PlayerManager::GetPlayer(const SystemAddress& sysAddr) {
 	auto* entity = UserManager::Instance()->GetUser(sysAddr)->GetLastUsedChar()->GetEntity();
 
-	return static_cast<Player*>(entity);
+	return entity;
 }
 
-Player* PlayerManager::GetPlayer(const std::string& name) {
+Entity* PlayerManager::GetPlayer(const std::string& name) {
 	const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
-	Player* player = nullptr;
+	Entity* player = nullptr;
 	for (auto* character : characters) {
 		if (!character->IsPlayer()) continue;
 		
 		if (GeneralUtils::CaseInsensitiveStringCompare(name, character->GetCharacter()->GetName())) {
-			player = dynamic_cast<Player*>(character);
+			player = character;
 			break;
 		}
 	}
@@ -55,8 +54,8 @@ Player* PlayerManager::GetPlayer(const std::string& name) {
 	return player;
 }
 
-Player* PlayerManager::GetPlayer(LWOOBJID playerID) {
-	Player* playerToReturn = nullptr;
+Entity* PlayerManager::GetPlayer(LWOOBJID playerID) {
+	Entity* playerToReturn = nullptr;
 	for (auto* player : m_Players) {
 		if (player->GetObjectID() == playerID) {
 			playerToReturn = player;
