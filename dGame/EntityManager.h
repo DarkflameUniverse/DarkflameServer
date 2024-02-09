@@ -50,9 +50,7 @@ public:
 	void DestructAllEntities(const SystemAddress& sysAddr);
 
 	void SetGhostDistanceMax(float value);
-	float GetGhostDistanceMax() const;
 	void SetGhostDistanceMin(float value);
-	float GetGhostDistanceMin() const;
 	void QueueGhostUpdate(LWOOBJID playerID);
 	void UpdateGhosting();
 	void UpdateGhosting(Entity* player);
