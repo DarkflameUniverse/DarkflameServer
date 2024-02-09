@@ -2,6 +2,7 @@
 #define __AMF3__H__
 
 #include "dCommonVars.h"
+#include "dPlatforms.h"
 #include "Logger.h"
 #include "Game.h"
 
@@ -53,12 +54,14 @@ protected:
 	ValueType m_Data;
 };
 
+#ifdef DARKFLAME_PLATFORM_MACOS
 template class AMFValue<std::nullptr_t>; 
 template class AMFValue<bool>;
 template class AMFValue<int32_t>;
 template class AMFValue<uint32_t>;
 template class AMFValue<std::string>;
 template class AMFValue<double>;
+#endif
 
 // AMFValue template class member function instantiations
 template <typename ValueType>
