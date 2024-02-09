@@ -785,14 +785,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			inventory->AddItem(itemLOT.value(), 1, eLootSourceType::MODERATION);
 		} else if (args.size() == 2) {
 			const auto itemLOT = GeneralUtils::TryParse<uint32_t>(args.at(0));
-
 			if (!itemLOT) {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid item LOT.");
 				return;
 			}
 
-			const auto count = GeneralUtils::TryParse<uint32_t>(args.at(0));
-
+			const auto count = GeneralUtils::TryParse<uint32_t>(args.at(1));
 			if (!count) {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid item count.");
 				return;
@@ -1024,15 +1022,16 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			time_t expire = 1; // Default to indefinate mute
 
 			if (args.size() >= 2) {
-				const auto days = GeneralUtils::TryParse<uint32_t>(args.at(1));
-				const auto hours = GeneralUtils::TryParse<uint32_t>(args.at(2));
+				const auto days = GeneralUtils::TryParse<uint32_t>(args[1]);
 				if (!days) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Invalid days.");
 
 					return;
 				}
 
+				std::optional<uint32_t> hours;
 				if (args.size() >= 3) {
+					hours = GeneralUtils::TryParse<uint32_t>(args[2]);
 					if (!hours) {
 						ChatPackets::SendSystemMessage(sysAddr, u"Invalid hours.");
 
@@ -1041,7 +1040,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				}
 
 				expire = time(NULL);
-				expire += 24 * 60 * 60 * days.value_or(0);
+				expire += 24 * 60 * 60 * days.value();
 				expire += 60 * 60 * hours.value_or(0);
 			}
 
@@ -1294,9 +1293,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		eLootSourceType lootType = eLootSourceType::MODERATION;
 
-		const auto type = GeneralUtils::TryParse<eLootSourceType>(args[1]);
-		if (args.size() >= 2 && type) {
-			lootType = type.value();
+		if (args.size() >= 2) {
+			const auto type = GeneralUtils::TryParse<eLootSourceType>(args[1]);
+			lootType = type.value_or(lootType);
 		}
 
 		GameMessages::SendModifyLEGOScore(entity, entity->GetSystemAddress(), uscore, lootType);
@@ -1466,13 +1465,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* buffComponent = entity->GetComponent<BuffComponent>();
 
 		const auto id = GeneralUtils::TryParse<int32_t>(args[0]);
-		const auto duration = GeneralUtils::TryParse<int32_t>(args[1]);
-
 		if (!id) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid buff id.");
 			return;
 		}
 
+		const auto duration = GeneralUtils::TryParse<int32_t>(args[1]);
 		if (!duration) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid buff duration.");
 			return;
@@ -1503,12 +1501,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 				force = true;
 			}
 
-			const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(args[index]);
-			if (args.size() > index && !cloneIdOptional) {
-				ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
-				return;
+			if (args.size() > index) {
+				const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(args[index]);
+				if (!cloneIdOptional) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
+					return;
+				}
+				cloneId = cloneIdOptional.value();
 			}
-			cloneId = cloneIdOptional.value();
 		}
 
 		const auto objid = entity->GetObjectID();
@@ -1670,14 +1670,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "reforge" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 2) {
 		const auto baseItem = GeneralUtils::TryParse<LOT>(args[0]);
-		const auto reforgedItem = GeneralUtils::TryParse<LOT>(args[1]);
-
 		if (!baseItem) return;
+
+		const auto reforgedItem = GeneralUtils::TryParse<LOT>(args[1]);
 		if (!reforgedItem) return;
 
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-		if (inventoryComponent == nullptr) return;
+		if (!inventoryComponent) return;
 
 		std::vector<LDFBaseData*> data{};
 		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem.value()));
@@ -1736,8 +1735,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		VanityUtilities::SpawnVanity();
 		dpWorld::Reload();
 		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
-		for (auto entity : entities) {
-			auto* scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
+		for (const auto* const entity : entities) {
+			auto* const scriptedActivityComponent = entity->GetComponent<ScriptedActivityComponent>();
 			if (!scriptedActivityComponent) continue;
 
 			scriptedActivityComponent->ReloadConfig();
@@ -1749,11 +1748,12 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 	if (chatCommand == "rollloot" && entity->GetGMLevel() >= eGameMasterLevel::OPERATOR && args.size() >= 3) {
 		const auto lootMatrixIndex = GeneralUtils::TryParse<uint32_t>(args[0]);
-		const auto targetLot = GeneralUtils::TryParse<uint32_t>(args[1]);
-		const auto loops = GeneralUtils::TryParse<uint32_t>(args[2]);
-
 		if (!lootMatrixIndex) return;
+
+		const auto targetLot = GeneralUtils::TryParse<uint32_t>(args[1]);
 		if (!targetLot) return;
+
+		const auto loops = GeneralUtils::TryParse<uint32_t>(args[2]);
 		if (!loops) return;
 
 		uint64_t totalRuns = 0;
