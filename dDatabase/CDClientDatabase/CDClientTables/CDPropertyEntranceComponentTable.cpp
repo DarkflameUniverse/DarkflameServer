@@ -1,5 +1,9 @@
 #include "CDPropertyEntranceComponentTable.h"
 
+namespace {
+	CDPropertyEntranceComponent defaultEntry{};
+};
+
 void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -12,7 +16,8 @@ void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 
 	tableSize.finalize();
 
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PropertyEntranceComponent;");
 	while (!tableData.eof()) {
@@ -24,7 +29,7 @@ void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 			tableData.getStringField("groupType", "")
 		};
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -32,11 +37,10 @@ void CDPropertyEntranceComponentTable::LoadValuesFromDatabase() {
 }
 
 CDPropertyEntranceComponent CDPropertyEntranceComponentTable::GetByID(uint32_t id) {
-	for (const auto& entry : entries) {
+	for (const auto& entry : GetEntries()) {
 		if (entry.id == id)
 			return entry;
 	}
 
 	return defaultEntry;
 }
-

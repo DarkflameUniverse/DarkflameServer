@@ -13,13 +13,9 @@ struct CDRewardCode {
 };
 
 
-class CDRewardCodesTable : public CDTable<CDRewardCodesTable> {
-private:
-	std::vector<CDRewardCode> entries;
-
+class CDRewardCodesTable : public CDTable<CDRewardCodesTable, std::vector<CDRewardCode>> {
 public:
 	void LoadValuesFromDatabase();
-	const std::vector<CDRewardCode>& GetEntries() const;
 	LOT GetAttachmentLOT(uint32_t rewardCodeId) const;
 	uint32_t GetCodeID(std::string code) const;
 };

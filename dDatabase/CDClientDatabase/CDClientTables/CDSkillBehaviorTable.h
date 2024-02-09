@@ -25,11 +25,7 @@ struct CDSkillBehavior {
 	UNUSED(uint32_t cancelType);            //!< The cancel type (?)
 };
 
-class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable> {
-private:
-	std::map<uint32_t, CDSkillBehavior> entries;
-	CDSkillBehavior m_empty;
-
+class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable, std::map<uint32_t, CDSkillBehavior>> {
 public:
 	void LoadValuesFromDatabase();
 
