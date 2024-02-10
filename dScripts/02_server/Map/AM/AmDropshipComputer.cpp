@@ -12,16 +12,12 @@ void AmDropshipComputer::OnStartup(Entity* self) {
 void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (quickBuildComponent == nullptr || quickBuildComponent->GetState() != eQuickBuildState::COMPLETED) {
-		return;
-	}
+	if (!quickBuildComponent || quickBuildComponent->GetState() != eQuickBuildState::COMPLETED) return;
 
 	auto* missionComponent = user->GetComponent<MissionComponent>();
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
-	if (missionComponent == nullptr || inventoryComponent == nullptr) {
-		return;
-	}
+	if (!missionComponent || !inventoryComponent) return;
 
 	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
 		return;

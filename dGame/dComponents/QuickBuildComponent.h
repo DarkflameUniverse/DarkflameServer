@@ -24,7 +24,7 @@ class QuickBuildComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::QUICK_BUILD;
 
-	QuickBuildComponent(Entity* entity);
+	QuickBuildComponent(Entity* const entity);
 	~QuickBuildComponent() override;
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
@@ -50,124 +50,124 @@ public:
 	 * Returns the entity that acts as the activator for this quickbuild
 	 * @return the entity that acts as the activator for this quickbuild
 	 */
-	Entity* GetActivator();
+	[[nodiscard]] Entity* GetActivator() const;
 
 	/**
 	 * Returns the spawn position of the activator for this quickbuild, if any
 	 * @return the spawn position of the activator for this quickbuild, if any
 	 */
-	NiPoint3 GetActivatorPosition();
+	[[nodiscard]] NiPoint3 GetActivatorPosition() const noexcept;
 
 	/**
 	 * Sets the spawn position for the activator of this quickbuild
 	 * @param value the spawn position to set for the activator
 	 */
-	void SetActivatorPosition(NiPoint3 value);
+	void SetActivatorPosition(const NiPoint3& value) noexcept;
 
 	/**
 	 * Returns the time it takes for the quickbuild to reset after being built
 	 * @return the time it takes for the quickbuild to reset after being built
 	 */
-	float GetResetTime();
+	[[nodiscard]] float GetResetTime() const noexcept;
 
 	/**
 	 * Sets the time it takes for the quickbuild to reset after being built
 	 * @param value the reset time to set
 	 */
-	void SetResetTime(float value);
+	void SetResetTime(const float value) noexcept;
 
 	/**
 	 * Returns the time it takes to complete the quickbuild
 	 * @return the time it takes to complete the quickbuild
 	 */
-	float GetCompleteTime();
+	[[nodiscard]] float GetCompleteTime() const noexcept;
 
 	/**
 	 * Sets the time it takes to complete the quickbuild
 	 * @param value the completion time to set
 	 */
-	void SetCompleteTime(float value);
+	void SetCompleteTime(const float value) noexcept;
 
 	/**
 	 * Returns the imagination that's taken when completing the quickbuild
 	 * @return the imagination that's taken when completing the quickbuild
 	 */
-	int GetTakeImagination();
+	[[nodiscard]] int32_t GetTakeImagination() const noexcept;
 
 	/**
 	 * Sets the imagination that's taken when completing the quickbuild
 	 * @param value the imagination deduction to set
 	 */
-	void SetTakeImagination(int value);
+	void SetTakeImagination(const int32_t value) noexcept;
 
 	/**
 	 * Returns if the quickbuild can be interrupted, currently unused
 	 * @return if the quickbuild can be interrupted
 	 */
-	bool GetInterruptible();
+	[[nodiscard]] bool GetInterruptible() const noexcept;
 
 	/**
 	 * Sets whether or not the quickbuild can be interrupted, currently unused
 	 * @param value true if the quickbuild may be interrupted, false otherwise
 	 */
-	void SetInterruptible(bool value);
+	void SetInterruptible(const bool value) noexcept;
 
 	/**
 	 * Returns whether or not this entity contains a built-in activator
 	 * @return whether or not this entity contains a built-in activator
 	 */
-	bool GetSelfActivator();
+	[[nodiscard]] bool GetSelfActivator() const noexcept;
 
 	/**
 	 * Sets whether or not this entity contains a built-in activator. If set to false this will spawn activators on
 	 * each new quickbuild.
 	 * @param value whether or not this entity contains a built-in activator
 	 */
-	void SetSelfActivator(bool value);
+	void SetSelfActivator(const bool value) noexcept;
 
 	/**
 	 * Currently unused
 	 */
-	std::vector<int> GetCustomModules();
+	[[nodiscard]] std::vector<int32_t> GetCustomModules() const noexcept;
 
 	/**
 	 * Currently unused
 	 */
-	void SetCustomModules(std::vector<int> value);
+	void SetCustomModules(const std::vector<int32_t>& value) noexcept;
 
 	/**
 	 * Returns the activity ID for participating in this quickbuild
 	 * @return the activity ID for participating in this quickbuild
 	 */
-	int GetActivityId();
+	[[nodiscard]] int32_t GetActivityId() const noexcept;
 
 	/**
 	 * Sets the activity ID for participating in this quickbuild
 	 * @param value the activity ID to set
 	 */
-	void SetActivityId(int value);
+	void SetActivityId(const int32_t value) noexcept;
 
 	/**
 	 * Currently unused
 	 */
-	int GetPostImaginationCost();
+	[[nodiscard]] int32_t GetPostImaginationCost() const noexcept;
 
 	/**
 	 * Currently unused
 	 */
-	void SetPostImaginationCost(int value);
+	void SetPostImaginationCost(const int32_t value) noexcept;
 
 	/**
 	 * Returns the time it takes for an incomplete quickbuild to be smashed automatically
 	 * @return the time it takes for an incomplete quickbuild to be smashed automatically
 	 */
-	float GetTimeBeforeSmash();
+	[[nodiscard]] float GetTimeBeforeSmash() const noexcept;
 
 	/**
 	 * Sets the time it takes for an incomplete quickbuild to be smashed automatically
 	 * @param value the time to set
 	 */
-	void SetTimeBeforeSmash(float value);
+	void SetTimeBeforeSmash(const float value) noexcept;
 
 	/**
 	 * Returns the current quickbuild state
@@ -179,19 +179,19 @@ public:
 	 * Returns the player that is currently building this quickbuild
 	 * @return the player that is currently building this quickbuild
 	 */
-	Entity* GetBuilder() const;
+	[[nodiscard]] Entity* GetBuilder() const;
 
 	/**
 	 * Returns whether or not the player is repositioned when initiating the quickbuild
 	 * @return whether or not the player is repositioned when initiating the quickbuild
 	 */
-	bool GetRepositionPlayer() const;
+	[[nodiscard]] bool GetRepositionPlayer() const noexcept;
 
 	/**
 	 * Sets whether or not the player is repositioned when initiating the quickbuild
 	 * @param value whether or not the player is repositioned when initiating the quickbuild
 	 */
-	void SetRepositionPlayer(bool value);
+	void SetRepositionPlayer(const bool value) noexcept;
 
 	/**
 	 * Adds a callback that is called when the quickbuild is completed
@@ -209,7 +209,7 @@ public:
 	 * Resets the quickbuild
 	 * @param failed whether or not the player failed to complete the quickbuild, triggers an extra animation
 	 */
-	void ResetQuickBuild(bool failed);
+	void ResetQuickBuild(const bool failed);
 
 	/**
 	 * Cancels the quickbuild if it wasn't completed
@@ -217,7 +217,7 @@ public:
 	 * @param failReason the reason the quickbuild was cancelled
 	 * @param skipChecks whether or not to skip the check for the quickbuild not being completed
 	 */
-	void CancelQuickBuild(Entity* builder, eQuickBuildFailReason failReason, bool skipChecks = false);
+	void CancelQuickBuild(Entity* const builder, const eQuickBuildFailReason failReason, const bool skipChecks = false);
 private:
 	/**
 	 * Whether or not the quickbuild state has been changed since we last serialized it.
@@ -287,7 +287,7 @@ private:
 	/**
 	 * The imagination that's deducted when completing the quickbuild
 	 */
-	int m_TakeImagination = 0;
+	int32_t m_TakeImagination = 0;
 
 	/**
 	 * Currently unused
@@ -302,17 +302,17 @@ private:
 	/**
 	 * Currently unused
 	 */
-	std::vector<int> m_CustomModules{};
+	std::vector<int32_t> m_CustomModules{};
 
 	/**
 	 * The activity ID that players partake in when doing this quickbuild
 	 */
-	int m_ActivityId = 0;
+	int32_t m_ActivityId = 0;
 
 	/**
 	 * Currently unused
 	 */
-	int m_PostImaginationCost = 0;
+	int32_t m_PostImaginationCost = 0;
 
 	/**
 	 * The time it takes for the quickbuild to reset when it's not completed yet
@@ -327,7 +327,7 @@ private:
 	/**
 	 * The amount of imagination that was drained when building this quickbuild
 	 */
-	int m_DrainedImagination = 0;
+	int32_t m_DrainedImagination = 0;
 
 	/**
 	 * Whether to reposition the player or not when building
@@ -337,7 +337,7 @@ private:
 	/**
 	 * Currently unused
 	 */
-	float m_SoftTimer = 0;
+	int32_t m_SoftTimer = 0;
 
 	/**
 	 * The ID of the entity that's currently building the quickbuild
@@ -353,13 +353,13 @@ private:
 	 * Starts the quickbuild for a certain entity
 	 * @param user the entity to start the quickbuild
 	 */
-	void StartQuickBuild(Entity* user);
+	void StartQuickBuild(Entity* const user);
 
 	/**
 	 * Completes the quickbuild for an entity, dropping loot and despawning the activator
 	 * @param user the entity that completed the quickbuild
 	 */
-	void CompleteQuickBuild(Entity* user);
+	void CompleteQuickBuild(Entity* const user);
 };
 
 #endif // QUICKBUILDCOMPONENT_H

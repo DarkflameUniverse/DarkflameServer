@@ -23,7 +23,7 @@
 
 #include "CppScripts.h"
 
-QuickBuildComponent::QuickBuildComponent(Entity* entity) : Component(entity) {
+QuickBuildComponent::QuickBuildComponent(Entity* const entity) : Component{ entity } {
 	std::u16string checkPreconditions = entity->GetVar<std::u16string>(u"CheckPrecondition");
 
 	if (!checkPreconditions.empty()) {
@@ -283,47 +283,47 @@ void QuickBuildComponent::DespawnActivator() {
 	}
 }
 
-Entity* QuickBuildComponent::GetActivator() {
+Entity* QuickBuildComponent::GetActivator() const {
 	return Game::entityManager->GetEntity(m_ActivatorId);
 }
 
-NiPoint3 QuickBuildComponent::GetActivatorPosition() {
+NiPoint3 QuickBuildComponent::GetActivatorPosition() const noexcept {
 	return m_ActivatorPosition;
 }
 
-float QuickBuildComponent::GetResetTime() {
+float QuickBuildComponent::GetResetTime() const noexcept {
 	return m_ResetTime;
 }
 
-float QuickBuildComponent::GetCompleteTime() {
+float QuickBuildComponent::GetCompleteTime() const noexcept {
 	return m_CompleteTime;
 }
 
-int QuickBuildComponent::GetTakeImagination() {
+int32_t QuickBuildComponent::GetTakeImagination() const noexcept {
 	return m_TakeImagination;
 }
 
-bool QuickBuildComponent::GetInterruptible() {
+bool QuickBuildComponent::GetInterruptible() const noexcept {
 	return m_Interruptible;
 }
 
-bool QuickBuildComponent::GetSelfActivator() {
+bool QuickBuildComponent::GetSelfActivator() const noexcept {
 	return m_SelfActivator;
 }
 
-std::vector<int> QuickBuildComponent::GetCustomModules() {
+std::vector<int32_t> QuickBuildComponent::GetCustomModules() const noexcept {
 	return m_CustomModules;
 }
 
-int QuickBuildComponent::GetActivityId() {
+int32_t QuickBuildComponent::GetActivityId() const noexcept {
 	return m_ActivityId;
 }
 
-int QuickBuildComponent::GetPostImaginationCost() {
+int32_t QuickBuildComponent::GetPostImaginationCost() const noexcept {
 	return m_PostImaginationCost;
 }
 
-float QuickBuildComponent::GetTimeBeforeSmash() {
+float QuickBuildComponent::GetTimeBeforeSmash() const noexcept {
 	return m_TimeBeforeSmash;
 }
 
@@ -332,24 +332,24 @@ eQuickBuildState QuickBuildComponent::GetState() const noexcept {
 }
 
 Entity* QuickBuildComponent::GetBuilder() const {
-	auto* builder = Game::entityManager->GetEntity(m_Builder);
+	auto* const builder = Game::entityManager->GetEntity(m_Builder);
 
 	return builder;
 }
 
-bool QuickBuildComponent::GetRepositionPlayer() const {
+bool QuickBuildComponent::GetRepositionPlayer() const noexcept {
 	return m_RepositionPlayer;
 }
 
-void QuickBuildComponent::SetActivatorPosition(NiPoint3 value) {
+void QuickBuildComponent::SetActivatorPosition(const NiPoint3& value) noexcept {
 	m_ActivatorPosition = value;
 }
 
-void QuickBuildComponent::SetResetTime(float value) {
+void QuickBuildComponent::SetResetTime(const float value) noexcept {
 	m_ResetTime = value;
 }
 
-void QuickBuildComponent::SetCompleteTime(float value) {
+void QuickBuildComponent::SetCompleteTime(const float value) noexcept {
 	if (value < 0) {
 		m_CompleteTime = 4.5f;
 	} else {
@@ -357,31 +357,31 @@ void QuickBuildComponent::SetCompleteTime(float value) {
 	}
 }
 
-void QuickBuildComponent::SetTakeImagination(int value) {
+void QuickBuildComponent::SetTakeImagination(const int32_t value) noexcept {
 	m_TakeImagination = value;
 }
 
-void QuickBuildComponent::SetInterruptible(bool value) {
+void QuickBuildComponent::SetInterruptible(const bool value) noexcept {
 	m_Interruptible = value;
 }
 
-void QuickBuildComponent::SetSelfActivator(bool value) {
+void QuickBuildComponent::SetSelfActivator(const bool value) noexcept {
 	m_SelfActivator = value;
 }
 
-void QuickBuildComponent::SetCustomModules(std::vector<int> value) {
+void QuickBuildComponent::SetCustomModules(const std::vector<int32_t>& value) noexcept {
 	m_CustomModules = value;
 }
 
-void QuickBuildComponent::SetActivityId(int value) {
+void QuickBuildComponent::SetActivityId(const int32_t value) noexcept {
 	m_ActivityId = value;
 }
 
-void QuickBuildComponent::SetPostImaginationCost(int value) {
+void QuickBuildComponent::SetPostImaginationCost(const int32_t value) noexcept {
 	m_PostImaginationCost = value;
 }
 
-void QuickBuildComponent::SetTimeBeforeSmash(float value) {
+void QuickBuildComponent::SetTimeBeforeSmash(const float value) noexcept {
 	if (value < 0) {
 		m_TimeBeforeSmash = 10.0f;
 	} else {
@@ -389,11 +389,11 @@ void QuickBuildComponent::SetTimeBeforeSmash(float value) {
 	}
 }
 
-void QuickBuildComponent::SetRepositionPlayer(bool value) {
+void QuickBuildComponent::SetRepositionPlayer(const bool value) noexcept {
 	m_RepositionPlayer = value;
 }
 
-void QuickBuildComponent::StartQuickBuild(Entity* user) {
+void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 	if (m_State == eQuickBuildState::OPEN || m_State == eQuickBuildState::COMPLETED || m_State == eQuickBuildState::INCOMPLETE) {
 		m_Builder = user->GetObjectID();
 
@@ -426,10 +426,8 @@ void QuickBuildComponent::StartQuickBuild(Entity* user) {
 	}
 }
 
-void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
-	if (user == nullptr) {
-		return;
-	}
+void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
+	if (!user) return;
 
 	auto* characterComponent = user->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -518,7 +516,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* user) {
 	RenderComponent::PlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }
 
-void QuickBuildComponent::ResetQuickBuild(bool failed) {
+void QuickBuildComponent::ResetQuickBuild(const bool failed) {
 	Entity* builder = GetBuilder();
 
 	if (m_State == eQuickBuildState::BUILDING && builder) {
@@ -553,7 +551,7 @@ void QuickBuildComponent::ResetQuickBuild(bool failed) {
 	}
 }
 
-void QuickBuildComponent::CancelQuickBuild(Entity* entity, eQuickBuildFailReason failReason, bool skipChecks) {
+void QuickBuildComponent::CancelQuickBuild(Entity* const entity, const eQuickBuildFailReason failReason, const bool skipChecks) {
 	if (m_State != eQuickBuildState::COMPLETED || skipChecks) {
 
 		m_Builder = LWOOBJID_EMPTY;
@@ -581,9 +579,7 @@ void QuickBuildComponent::CancelQuickBuild(Entity* entity, eQuickBuildFailReason
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
-	if (entity == nullptr) {
-		return;
-	}
+	if (!entity) return;
 
 	CharacterComponent* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (characterComponent) {

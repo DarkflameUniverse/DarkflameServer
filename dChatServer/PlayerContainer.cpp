@@ -10,7 +10,6 @@
 #include "Database.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
-#include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
 
@@ -19,14 +18,6 @@ void PlayerContainer::Initialize() {
 		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);
 	m_MaxNumberOfFriends =
 		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends")).value_or(m_MaxNumberOfFriends);
-}
-
-PlayerContainer::~PlayerContainer() {
-	m_Players.clear();
-}
-
-PlayerData::PlayerData() {
-	gmLevel = eGameMasterLevel::CIVILIAN;
 }
 
 TeamData::TeamData() {
