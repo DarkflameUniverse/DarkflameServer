@@ -215,7 +215,7 @@ void Entity::Initialize() {
 	}
 
 	// Get the registry table
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	/**
 	 * Special case for BBB models. They have components not corresponding to the registry.
@@ -369,7 +369,7 @@ void Entity::Initialize() {
 	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
@@ -404,7 +404,7 @@ void Entity::Initialize() {
 					uint32_t npcMinLevel = destCompData[0].level;
 					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
 
-					CDCurrencyTableTable* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+					CDCurrencyTableTable* currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 					std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
 
 					if (currencyValues.size() > 0) {
@@ -489,7 +489,7 @@ void Entity::Initialize() {
 	 * This is a bit of a mess
 	 */
 
-	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
 
 	std::string scriptName = "";
@@ -538,7 +538,7 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+		CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
@@ -561,7 +561,7 @@ void Entity::Initialize() {
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
 		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
 
-		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+		CDRebuildComponentTable* rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
 		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
@@ -685,7 +685,7 @@ void Entity::Initialize() {
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
 	if (movementAIID > 0) {
-		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
+		CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
 		if (moveAIComp.size() > 0) {
@@ -749,7 +749,7 @@ void Entity::Initialize() {
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
-		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
 		std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
 		if (proxCompData.size() > 0) {
 			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
@@ -1665,7 +1665,7 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (!inv || !characterComponent) return;
 
-	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+	CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
 	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
@@ -1678,10 +1678,10 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 			const CDObjects& object = objectsTable->GetByID(p.second.lot);
 			if (object.id != 0 && object.type == "Powerup") {
-				CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 					CDSkillBehavior behaviorData = skillBehTable->GetSkillByID(skill.skillID);
 
 					SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());

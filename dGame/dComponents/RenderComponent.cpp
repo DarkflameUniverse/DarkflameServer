@@ -27,7 +27,7 @@ RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t compo
 	if (!result.eof()) {
 		auto animationGroupIDs = std::string(result.getStringField("animationGroupIDs", ""));
 		if (!animationGroupIDs.empty()) {
-			auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+			auto* animationsTable = CDClientManager::GetTable<CDAnimationsTable>();
 			auto groupIdsSplit = GeneralUtils::SplitString(animationGroupIDs, ',');
 			for (auto& groupId : groupIdsSplit) {
 				const auto groupIdInt = GeneralUtils::TryParse<int32_t>(groupId);
@@ -167,13 +167,12 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 	auto* renderComponent = self->GetComponent<RenderComponent>();
 	if (!renderComponent) return returnlength;
 
-	auto* animationsTable = CDClientManager::Instance().GetTable<CDAnimationsTable>();
+	auto* animationsTable = CDClientManager::GetTable<CDAnimationsTable>();
 	for (auto& groupId : renderComponent->m_animationGroupIds) {
 		auto animationGroup = animationsTable->GetAnimation(animation, renderComponent->GetLastAnimationName(), groupId);
-		if (animationGroup.FoundData()) {
-			auto data = animationGroup.Data();
-			renderComponent->SetLastAnimationName(data.animation_name);
-			returnlength = data.animation_length;
+		if (animationGroup) {
+			renderComponent->SetLastAnimationName(animationGroup->animation_name);
+			returnlength = animationGroup->animation_length;
 		}
 	}
 	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);

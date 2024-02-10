@@ -14,7 +14,8 @@ void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovementAIComponent");
@@ -29,7 +30,7 @@ void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 		entry.WanderRadius = tableData.getFloatField("WanderRadius", -1.0f);
 		entry.attachedPath = tableData.getStringField("attachedPath", "");
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -38,14 +39,9 @@ void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 
 std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::function<bool(CDMovementAIComponent)> predicate) {
 
-	std::vector<CDMovementAIComponent> data = cpplinq::from(this->entries)
+	std::vector<CDMovementAIComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDMovementAIComponent>& CDMovementAIComponentTable::GetEntries(void) const {
-	return this->entries;
-}
-

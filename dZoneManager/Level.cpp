@@ -209,7 +209,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	uint32_t objectsCount = 0;
 	BinaryIO::BinaryRead(file, objectsCount);
 
-	CDFeatureGatingTable* featureGatingTable = CDClientManager::Instance().GetTable<CDFeatureGatingTable>();
+	CDFeatureGatingTable* featureGatingTable = CDClientManager::GetTable<CDFeatureGatingTable>();
 
 	CDFeatureGating gating;
 	gating.major =

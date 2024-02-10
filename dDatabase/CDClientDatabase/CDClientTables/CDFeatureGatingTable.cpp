@@ -14,7 +14,8 @@ void CDFeatureGatingTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM FeatureGating");
@@ -26,7 +27,7 @@ void CDFeatureGatingTable::LoadValuesFromDatabase() {
 		entry.minor = tableData.getIntField("minor", -1);
 		entry.description = tableData.getStringField("description", "");
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -35,7 +36,8 @@ void CDFeatureGatingTable::LoadValuesFromDatabase() {
 
 std::vector<CDFeatureGating> CDFeatureGatingTable::Query(std::function<bool(CDFeatureGating)> predicate) {
 
-	std::vector<CDFeatureGating> data = cpplinq::from(this->entries)
+	auto& entries = GetEntriesMutable();
+	std::vector<CDFeatureGating> data = cpplinq::from(entries)
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
@@ -43,6 +45,7 @@ std::vector<CDFeatureGating> CDFeatureGatingTable::Query(std::function<bool(CDFe
 }
 
 bool CDFeatureGatingTable::FeatureUnlocked(const CDFeatureGating& feature) const {
+	auto& entries = GetEntriesMutable();
 	for (const auto& entry : entries) {
 		if (entry.featureName == feature.featureName && feature >= entry) {
 			return true;
@@ -51,8 +54,3 @@ bool CDFeatureGatingTable::FeatureUnlocked(const CDFeatureGating& feature) const
 
 	return false;
 }
-
-const std::vector<CDFeatureGating>& CDFeatureGatingTable::GetEntries() const {
-	return this->entries;
-}
-

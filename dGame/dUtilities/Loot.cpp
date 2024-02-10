@@ -28,11 +28,11 @@ void Loot::CacheMatrix(uint32_t matrixIndex) {
 		return;
 	}
 	CachedMatrices.insert(matrixIndex);
-	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
-	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	CDLootTableTable* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
-	CDRarityTableTable* rarityTableTable = CDClientManager::Instance().GetTable<CDRarityTableTable>();
+	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	CDLootMatrixTable* lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+	CDLootTableTable* lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+	CDRarityTableTable* rarityTableTable = CDClientManager::GetTable<CDRarityTableTable>();
 
 	const auto& matrix = lootMatrixTable->GetMatrix(matrixIndex);
 
@@ -47,11 +47,11 @@ void Loot::CacheMatrix(uint32_t matrixIndex) {
 }
 
 std::unordered_map<LOT, int32_t> Loot::RollLootMatrix(Entity* player, uint32_t matrixIndex) {
-	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
-	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	CDLootTableTable* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
-	CDRarityTableTable* rarityTableTable = CDClientManager::Instance().GetTable<CDRarityTableTable>();
+	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	CDLootMatrixTable* lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+	CDLootTableTable* lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+	CDRarityTableTable* rarityTableTable = CDClientManager::GetTable<CDRarityTableTable>();
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 
 	std::unordered_map<LOT, int32_t> drops;
@@ -134,11 +134,11 @@ std::unordered_map<LOT, int32_t> Loot::RollLootMatrix(Entity* player, uint32_t m
 }
 
 std::unordered_map<LOT, int32_t> Loot::RollLootMatrix(uint32_t matrixIndex) {
-	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
-	CDLootMatrixTable* lootMatrixTable = CDClientManager::Instance().GetTable<CDLootMatrixTable>();
-	CDLootTableTable* lootTableTable = CDClientManager::Instance().GetTable<CDLootTableTable>();
-	CDRarityTableTable* rarityTableTable = CDClientManager::Instance().GetTable<CDRarityTableTable>();
+	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	CDLootMatrixTable* lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+	CDLootTableTable* lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+	CDRarityTableTable* rarityTableTable = CDClientManager::GetTable<CDRarityTableTable>();
 	std::unordered_map<LOT, int32_t> drops;
 
 	const auto& matrix = lootMatrixTable->GetMatrix(matrixIndex);
@@ -216,7 +216,7 @@ void Loot::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result, eL
 }
 
 void Loot::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
 	const CDActivityRewards* selectedReward = nullptr;
@@ -232,7 +232,7 @@ void Loot::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID,
 	uint32_t minCoins = 0;
 	uint32_t maxCoins = 0;
 
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
 	if (currencyTable.size() > 0) {
@@ -286,7 +286,7 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT
 }
 
 void Loot::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
-	CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
 	const CDActivityRewards* selectedReward = nullptr;
@@ -303,7 +303,7 @@ void Loot::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID,
 	uint32_t minCoins = 0;
 	uint32_t maxCoins = 0;
 
-	CDCurrencyTableTable* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+	CDCurrencyTableTable* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 	std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([selectedReward](CDCurrencyTable entry) { return (entry.currencyIndex == selectedReward->CurrencyIndex && entry.npcminlevel == 1); });
 
 	if (currencyTable.size() > 0) {

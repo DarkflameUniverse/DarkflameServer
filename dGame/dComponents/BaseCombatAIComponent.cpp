@@ -107,10 +107,10 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable != nullptr) {
 		auto* info = physicsComponentTable->GetByID(componentID);
