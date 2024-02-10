@@ -2,7 +2,6 @@
 #define __AMF3__H__
 
 #include "dCommonVars.h"
-#include "dPlatforms.h"
 #include "Logger.h"
 #include "Game.h"
 
