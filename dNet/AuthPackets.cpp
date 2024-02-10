@@ -41,7 +41,7 @@ void AuthPackets::LoadClaimCodes() {
 	for(auto const &codestring: codestrings){
 		const auto code = GeneralUtils::TryParse<uint32_t>(codestring);
 
-		if (code) claimCodes.push_back(code.value());
+		if (code && code.value() != -1) claimCodes.push_back(code.value());
 	}
 }
 
