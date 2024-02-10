@@ -8,11 +8,9 @@ set(DCOMMON_SOURCES
 		"Game.cpp"
 		"GeneralUtils.cpp"
 		"LDFFormat.cpp"
-		"MD5.cpp"
 		"Metrics.cpp"
 		"NiPoint3.cpp"
 		"NiQuaternion.cpp"
-		"SHA512.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
@@ -68,8 +66,3 @@ else ()
 endif ()
 
 target_link_libraries(dCommon ZLIB::ZLIB)
-
-# Disable deprecation warnings on MD5.cpp and SHA512.cpp for Apple Clang
-if (APPLE)
-	set_source_files_properties("MD5.cpp" "SHA512.cpp" PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
-endif()

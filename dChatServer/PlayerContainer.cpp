@@ -14,8 +14,10 @@
 #include "dConfig.h"
 
 void PlayerContainer::Initialize() {
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), m_MaxNumberOfBestFriends);
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), m_MaxNumberOfFriends);
+	m_MaxNumberOfBestFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);
+	m_MaxNumberOfFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends")).value_or(m_MaxNumberOfFriends);
 }
 
 TeamData::TeamData() {

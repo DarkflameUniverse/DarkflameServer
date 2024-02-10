@@ -13,7 +13,8 @@ void CDDestructibleComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM DestructibleComponent");
@@ -34,7 +35,7 @@ void CDDestructibleComponentTable::LoadValuesFromDatabase() {
 		entry.isSmashable = tableData.getIntField("isSmashable", -1) == 1 ? true : false;
 		entry.difficultyLevel = tableData.getIntField("difficultyLevel", -1);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -42,15 +43,9 @@ void CDDestructibleComponentTable::LoadValuesFromDatabase() {
 }
 
 std::vector<CDDestructibleComponent> CDDestructibleComponentTable::Query(std::function<bool(CDDestructibleComponent)> predicate) {
-
-	std::vector<CDDestructibleComponent> data = cpplinq::from(this->entries)
+	std::vector<CDDestructibleComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDDestructibleComponent>& CDDestructibleComponentTable::GetEntries() const {
-	return this->entries;
-}
-

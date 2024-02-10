@@ -247,7 +247,7 @@ bool Item::IsEquipped() const {
 }
 
 bool Item::Consume() {
-	auto* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+	auto* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 
 	auto skills = skillsTable->Query([this](const CDObjectSkills entry) {
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
@@ -313,12 +313,12 @@ void Item::UseNonEquip(Item* item) {
 		bool success = false;
 		auto inventory = item->GetInventory();
 		if (inventory && inventory->GetType() == eInventoryType::ITEMS) {
-			auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+			auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::PACKAGE);
 
 			if (packageComponentId == 0) return;
 
-			auto* packCompTable = CDClientManager::Instance().GetTable<CDPackageComponentTable>();
+			auto* packCompTable = CDClientManager::GetTable<CDPackageComponentTable>();
 			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
 			auto success = !packages.empty();
@@ -396,7 +396,7 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 }
 
 void Item::DisassembleModel(uint32_t numToDismantle) {
-	auto* table = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* table = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
@@ -468,20 +468,20 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	// First iteration gets the count
 	std::map<int32_t, int32_t> parts;
 	while (currentBrick) {
-		auto* designID = currentBrick->Attribute("designID");
+		const char* const designID = currentBrick->Attribute("designID");
 		if (designID) {
-			uint32_t designId;
-			if (!GeneralUtils::TryParse(designID, designId)) {
+			const auto designId = GeneralUtils::TryParse<uint32_t>(designID);
+			if (!designId) {
 				LOG("Failed to parse designID %s", designID);
 				continue;
 			}
-			parts[designId]++;
+			parts[designId.value()]++;
 		}
 
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());
 	}
 
-	auto* brickIDTable = CDClientManager::Instance().GetTable<CDBrickIDTableTable>();
+	auto* brickIDTable = CDClientManager::GetTable<CDBrickIDTableTable>();
 
 	// Second iteration actually distributes the bricks
 	for (const auto& [part, count] : parts) {

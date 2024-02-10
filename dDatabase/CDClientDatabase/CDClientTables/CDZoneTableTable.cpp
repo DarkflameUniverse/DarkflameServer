@@ -15,6 +15,7 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ZoneTable");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDZoneTable entry;
 		entry.zoneID = tableData.getIntField("zoneID", -1);
@@ -45,7 +46,7 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 		entry.mountsAllowed = tableData.getIntField("mountsAllowed", -1) == 1 ? true : false;
 
-		this->m_Entries.insert(std::make_pair(entry.zoneID, entry));
+		entries.insert(std::make_pair(entry.zoneID, entry));
 		tableData.nextRow();
 	}
 
@@ -54,6 +55,7 @@ void CDZoneTableTable::LoadValuesFromDatabase() {
 
 //! Queries the table with a zoneID to find.
 const CDZoneTable* CDZoneTableTable::Query(uint32_t zoneID) {
+	auto& m_Entries = GetEntries();
 	const auto& iter = m_Entries.find(zoneID);
 
 	if (iter != m_Entries.end()) {
