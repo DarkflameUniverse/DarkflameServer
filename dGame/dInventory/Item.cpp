@@ -468,14 +468,14 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	// First iteration gets the count
 	std::map<int32_t, int32_t> parts;
 	while (currentBrick) {
-		auto* designID = currentBrick->Attribute("designID");
+		const char* const designID = currentBrick->Attribute("designID");
 		if (designID) {
-			uint32_t designId;
-			if (!GeneralUtils::TryParse(designID, designId)) {
+			const auto designId = GeneralUtils::TryParse<uint32_t>(designID);
+			if (!designId) {
 				LOG("Failed to parse designID %s", designID);
 				continue;
 			}
-			parts[designId]++;
+			parts[designId.value()]++;
 		}
 
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());

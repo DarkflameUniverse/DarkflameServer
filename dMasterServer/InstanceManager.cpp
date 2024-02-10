@@ -17,7 +17,8 @@
 InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
-	GeneralUtils::TryParse(Game::config->GetValue("world_port_start"), m_LastPort);
+	m_LastPort =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
 }
 

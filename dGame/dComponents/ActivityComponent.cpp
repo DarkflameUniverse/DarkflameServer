@@ -83,7 +83,8 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 		if (m_ActivityInfo.instanceMapID == -1) {
 			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
 			if (!transferOverride.empty()) {
-				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
+				m_ActivityInfo.instanceMapID =
+					GeneralUtils::TryParse<uint32_t>(transferOverride).value_or(m_ActivityInfo.instanceMapID);
 			}
 		}
 	}

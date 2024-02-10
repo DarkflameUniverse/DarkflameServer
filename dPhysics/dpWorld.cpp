@@ -26,9 +26,15 @@ namespace {
 
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
 	const auto physSpTilecount = Game::config->GetValue("phys_sp_tilecount");
-	if (!physSpTilecount.empty()) GeneralUtils::TryParse(physSpTilecount, phys_sp_tilecount);
+	if (!physSpTilecount.empty()) {
+		phys_sp_tilecount = GeneralUtils::TryParse<int32_t>(physSpTilecount).value_or(phys_sp_tilecount);
+	}
+
 	const auto physSpTilesize = Game::config->GetValue("phys_sp_tilesize");
-	if (!physSpTilesize.empty()) GeneralUtils::TryParse(physSpTilesize, phys_sp_tilesize);
+	if (!physSpTilesize.empty()) {
+		phys_sp_tilesize = GeneralUtils::TryParse<int32_t>(physSpTilesize).value_or(phys_sp_tilesize);
+	}
+	
 	const auto physSpatialPartitioning = Game::config->GetValue("phys_spatial_partitioning");
 	if (!physSpatialPartitioning.empty()) phys_spatial_partitioning = physSpatialPartitioning == "1";
 

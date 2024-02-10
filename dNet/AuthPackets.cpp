@@ -8,6 +8,7 @@
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
 #include "GeneralUtils.h"
+#include "ClientVersion.h"
 
 #include <bcrypt/BCrypt.hpp>
 
@@ -38,10 +39,9 @@ void AuthPackets::LoadClaimCodes() {
 	auto rcstring = Game::config->GetValue("rewardcodes");
 	auto codestrings = GeneralUtils::SplitString(rcstring, ',');
 	for(auto const &codestring: codestrings){
-		uint32_t code = -1;
-		if(GeneralUtils::TryParse(codestring, code) && code != -1){
-			claimCodes.push_back(code);
-		}
+		const auto code = GeneralUtils::TryParse<uint32_t>(codestring);
+
+		if (code && code.value() != -1) claimCodes.push_back(code.value());
 	}
 }
 
@@ -73,9 +73,8 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
 	
-	uint32_t clientNetVersion = 171022;
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
-	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
+	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
 	bitStream.Write<uint32_t>(clientNetVersion);
 	bitStream.Write<uint32_t>(861228100);
@@ -242,12 +241,12 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	loginResponse.Write(LUString(Game::config->GetValue("event_7")));
 	loginResponse.Write(LUString(Game::config->GetValue("event_8")));
 
-	uint16_t version_major = 1;
-	uint16_t version_current = 10;
-	uint16_t version_minor = 64;
-	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major"), version_major);
-	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current"), version_current);
-	GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor"), version_minor);
+	const uint16_t version_major =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_major")).value_or(ClientVersion::major);
+	const uint16_t version_current =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_current")).value_or(ClientVersion::current);
+	const uint16_t version_minor =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor);
 
 	loginResponse.Write(version_major);
 	loginResponse.Write(version_current);

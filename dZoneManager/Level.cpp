@@ -14,6 +14,7 @@
 #include "CDFeatureGatingTable.h"
 #include "CDClientManager.h"
 #include "AssetManager.h"
+#include "ClientVersion.h"
 #include "dConfig.h"
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
@@ -211,12 +212,12 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 	CDFeatureGatingTable* featureGatingTable = CDClientManager::GetTable<CDFeatureGatingTable>();
 
 	CDFeatureGating gating;
-	gating.major = 1;
-	gating.current = 10;
-	gating.minor = 64;
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major"), gating.major);
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current"), gating.current);
-	GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor"), gating.minor);
+	gating.major =
+		GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_major")).value_or(ClientVersion::major);
+	gating.current =
+		GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_current")).value_or(ClientVersion::current);
+	gating.minor =
+		GeneralUtils::TryParse<int32_t>(Game::config->GetValue("version_minor")).value_or(ClientVersion::minor);
 
 	const auto zoneControlObject = Game::zoneManager->GetZoneControlObject();
 	DluAssert(zoneControlObject != nullptr);

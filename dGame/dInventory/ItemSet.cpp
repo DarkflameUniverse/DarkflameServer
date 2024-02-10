@@ -87,10 +87,8 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	m_Items = {};
 
 	while (std::getline(stream, token, ',')) {
-		int32_t value;
-		if (GeneralUtils::TryParse(token, value)) {
-			m_Items.push_back(value);
-		}
+		const auto validToken = GeneralUtils::TryParse<int32_t>(token);
+		if (validToken) m_Items.push_back(validToken.value());
 	}
 
 	m_Equipped = {};

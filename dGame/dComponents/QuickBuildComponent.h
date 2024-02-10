@@ -173,7 +173,7 @@ public:
 	 * Returns the current quickbuild state
 	 * @return the current quickbuild state
 	 */
-	eQuickBuildState GetState();
+	[[nodiscard]] eQuickBuildState GetState() const noexcept;
 
 	/**
 	 * Returns the player that is currently building this quickbuild
