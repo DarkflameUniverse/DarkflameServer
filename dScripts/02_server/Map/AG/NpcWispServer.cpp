@@ -1,9 +1,10 @@
 #include "NpcWispServer.h"
 #include "InventoryComponent.h"
-#include "EntityManager.h"
+#include "dZoneManager.h"
 #include "Entity.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
+#include "Spawner.h"
 
 void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
 	if (missionID != 1849 && missionID != 1883)
@@ -25,7 +26,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	}
 
 	// Next up hide or show the samples based on the mission state
-	auto visible = 1;
+	int32_t visible = 1;
 	if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
 		visible = 0;
 	}
@@ -35,9 +36,10 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	: std::vector<std::string>{ "MaelstromSamples", "MaelstromSamples2ndary1", "MaelstromSamples2ndary2" };
 
 	for (const auto& group : groups) {
-		auto samples = Game::entityManager->GetEntitiesInGroup(group);
-		for (auto* sample : samples) {
-			GameMessages::SendNotifyClientObject(sample->GetObjectID(), u"SetVisibility", visible, 0,
+		auto spawners = Game::zoneManager->GetSpawnersByName(group);
+		for (const auto* spawner : spawners) {
+			for (const auto objId : spawner->GetSpawnedObjectIDs())
+			GameMessages::SendNotifyClientObject(objId, u"SetVisibility", visible, 0,
 				target->GetObjectID(), "", target->GetSystemAddress());
 		}
 	}
