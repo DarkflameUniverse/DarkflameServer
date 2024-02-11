@@ -10,10 +10,12 @@
  */
 class RemoveStripMessage : public BehaviorMessageBase {
 public:
-	RemoveStripMessage(AMFArrayValue* arguments);
-	ActionContext GetActionContext() const { return actionContext; };
+	RemoveStripMessage(const AMFArrayValue* arguments);
+	
+	const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
+
 private:
-	ActionContext actionContext;
+	ActionContext m_ActionContext;
 };
 
 #endif  //!__REMOVESTRIPMESSAGE__H__

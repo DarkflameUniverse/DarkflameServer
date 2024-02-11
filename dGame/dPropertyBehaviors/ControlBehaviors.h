@@ -19,15 +19,17 @@ class SystemAddress;
 typedef std::string BlockName;					//! A block name
 
 struct ControlBehaviorContext {
-	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) : arguments(args), modelComponent(modelComponent), modelOwner(modelOwner) {};
+	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) noexcept
+		: arguments{ args }, modelComponent{ modelComponent }, modelOwner{ modelOwner } {
+	};
 
 	operator bool() const {
 		return arguments != nullptr && modelComponent != nullptr && modelOwner != nullptr;
 	}
 
 	AMFArrayValue* arguments;
-	Entity* modelOwner;
 	ModelComponent* modelComponent;
+	Entity* modelOwner;
 };
 
 class ControlBehaviors: public Singleton<ControlBehaviors> {
@@ -37,12 +39,11 @@ public:
 	 * @brief Main driver for processing Property Behavior commands
 	 *
 	 * @param modelEntity The model that sent this command
-	 * @param sysAddr The SystemAddress to respond to
 	 * @param arguments The arguments formatted as an AMFArrayValue
 	 * @param command The command to perform
 	 * @param modelOwner The owner of the model which sent this command
 	 */
-	void ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner);
+	void ProcessCommand(Entity* modelEntity, AMFArrayValue* arguments, std::string& command, Entity* modelOwner);
 
 	/**
 	 * @brief Gets a blocks parameter values by the name
@@ -52,13 +53,13 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	std::optional<BlockDefinition> GetBlockInfo(const BlockName& blockName);
+	[[nodiscard]] std::optional<BlockDefinition> GetBlockInfo(const std::string& blockName);
 private:
 	void RequestUpdatedID(ControlBehaviorContext& context);
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);
 	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
-	void UpdateAction(AMFArrayValue* arguments);
-	std::map<BlockName, BlockDefinition> blockTypes{};
+	void UpdateAction(const AMFArrayValue* arguments);
+	std::map<BlockName, BlockDefinition, std::less<>> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.
 	bool isInitialized = false;

@@ -13,14 +13,18 @@ class AMFArrayValue;
  */
 class AddActionMessage : public BehaviorMessageBase {
 public:
-	AddActionMessage(AMFArrayValue* arguments);
-	int32_t GetActionIndex() const { return actionIndex; };
-	Action GetAction() const { return action; };
-	ActionContext GetActionContext() const { return actionContext; };
+	AddActionMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] int32_t GetActionIndex() const noexcept { return m_ActionIndex; };
+
+	[[nodiscard]] const Action& GetAction() const noexcept { return m_Action; };
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; };
+
 private:
-	int32_t actionIndex = -1;
-	ActionContext actionContext;
-	Action action;
+	int32_t m_ActionIndex{ -1 };
+	ActionContext m_ActionContext;
+	Action m_Action;
 };
 
 #endif  //!__ADDACTIONMESSAGE__H__

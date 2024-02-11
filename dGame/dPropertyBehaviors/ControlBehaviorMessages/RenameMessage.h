@@ -7,14 +7,14 @@ class AMFArrayValue;
 
 /**
  * @brief Sent when a player renames this behavior
- * 
  */
 class RenameMessage : public BehaviorMessageBase {
 public:
-	RenameMessage(AMFArrayValue* arguments);
-	const std::string& GetName() const { return name; };
+	RenameMessage(const AMFArrayValue* arguments);
+	[[nodiscard]] const std::string& GetName() const { return m_Name; };
+
 private:
-	std::string name;
+	std::string m_Name;
 };
 
 #endif  //!__RENAMEMESSAGE__H__
