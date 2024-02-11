@@ -7,7 +7,6 @@
 #include <vector>
 #include <string>
 
-// Class definition
 class AMFDeserialize {
 public:
 	/**
