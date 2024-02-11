@@ -166,7 +166,7 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::SerializeEntities() {
-	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+	for (size_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
 		const LWOOBJID toSerialize = m_EntitiesToSerialize[i];
 		auto* entity = GetEntity(toSerialize);
 
@@ -196,7 +196,7 @@ void EntityManager::SerializeEntities() {
 }
 
 void EntityManager::KillEntities() {
-	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
+	for (size_t i = 0; i < m_EntitiesToKill.size(); i++) {
 		const LWOOBJID toKill = m_EntitiesToKill[i];
 		auto* entity = GetEntity(toKill);
 
@@ -215,7 +215,7 @@ void EntityManager::KillEntities() {
 }
 
 void EntityManager::DeleteEntities() {
-	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+	for (size_t i = 0; i < m_EntitiesToDelete.size(); i++) {
 		const LWOOBJID toDelete = m_EntitiesToDelete[i];
 		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
