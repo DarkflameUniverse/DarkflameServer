@@ -2,11 +2,22 @@
 
 #include "BitStream.h"
 
+#include <memory>
 #include <vector>
 #include <string>
 
+// Forward declarations
+template <typename ValueType>
+class AMFValue;
+
+class AMFArrayValue;
 class AMFBaseValue;
 
+using AMFDoubleValue = class AMFValue<double>;
+using AMFStringValue = class AMFValue<std::string>;
+using AMFIntValue = class AMFValue<int>;
+
+// Class definition
 class AMFDeserialize {
 public:
 	/**
@@ -15,7 +26,7 @@ public:
 	 * @param inStream inStream to read value from.
 	 * @return Returns an AMFValue with all the information from the bitStream in it.
 	 */
-	AMFBaseValue* Read(RakNet::BitStream* inStream);
+	std::unique_ptr<AMFBaseValue> Read(RakNet::BitStream* inStream);
 private:
 	/**
 	 * @brief Private method to read a U29 integer from a bitstream
@@ -23,7 +34,7 @@ private:
 	 * @param inStream bitstream to read data from
 	 * @return The number as an unsigned 29 bit integer
 	 */
-	uint32_t ReadU29(RakNet::BitStream* inStream);
+	static uint32_t ReadU29(RakNet::BitStream* inStream);
 
 	/**
 	 * @brief Reads a string from a bitstream
@@ -39,7 +50,7 @@ private:
 	 * @param inStream bitStream to read data from
 	 * @return Double value represented as an AMFValue
 	 */
-	AMFBaseValue* ReadAmfDouble(RakNet::BitStream* inStream);
+	static std::unique_ptr<AMFDoubleValue> ReadAmfDouble(RakNet::BitStream* inStream);
 
 	/**
 	 * @brief Read an AMFArray from a bitStream
@@ -47,7 +58,7 @@ private:
 	 * @param inStream bitStream to read data from
 	 * @return Array value represented as an AMFValue
 	 */
-	AMFBaseValue* ReadAmfArray(RakNet::BitStream* inStream);
+	std::unique_ptr<AMFArrayValue> ReadAmfArray(RakNet::BitStream* inStream);
 
 	/**
 	 * @brief Read an AMFString from a bitStream
@@ -55,7 +66,7 @@ private:
 	 * @param inStream bitStream to read data from
 	 * @return String value represented as an AMFValue
 	 */
-	AMFBaseValue* ReadAmfString(RakNet::BitStream* inStream);
+	std::unique_ptr<AMFStringValue> ReadAmfString(RakNet::BitStream* inStream);
 
 	/**
 	 * @brief Read an AMFInteger from a bitStream
@@ -63,7 +74,7 @@ private:
 	 * @param inStream bitStream to read data from
 	 * @return Integer value represented as an AMFValue
 	 */
-	AMFBaseValue* ReadAmfInteger(RakNet::BitStream* inStream);
+	static std::unique_ptr<AMFIntValue> ReadAmfInteger(RakNet::BitStream* inStream);
 
 	/**
 	 * List of strings read so far saved to be read by reference.

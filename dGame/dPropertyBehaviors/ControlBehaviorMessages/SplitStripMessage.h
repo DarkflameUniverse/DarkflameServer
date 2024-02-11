@@ -14,20 +14,31 @@ class AMFArrayValue;
  */
 class SplitStripMessage : public BehaviorMessageBase {
 public:
-	SplitStripMessage(AMFArrayValue* arguments);
-	ActionContext GetSourceActionContext() const { return sourceActionContext; };
-	ActionContext GetDestinationActionContext() const { return destinationActionContext; };
-	int32_t GetSrcActionIndex() const { return srcActionIndex; };
-	StripUiPosition GetPosition() const { return destinationPosition; };
-	const std::vector<Action>& GetTransferredActions() const { return transferredActions; };
-	void SetTransferredActions(std::vector<Action>::const_iterator begin, std::vector<Action>::const_iterator end) { transferredActions.assign(begin, end); };
-private:
-	ActionContext sourceActionContext;
-	ActionContext destinationActionContext;
-	int32_t srcActionIndex;
-	StripUiPosition destinationPosition;
+	SplitStripMessage(const AMFArrayValue& arguments);
+	
+	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
 
-	std::vector<Action> transferredActions;
+	[[nodiscard]] const ActionContext& GetSourceActionContext() const noexcept { return m_SourceActionContext; }
+	[[nodiscard]] ActionContext& GetSourceActionContext() noexcept { return m_SourceActionContext; }
+
+	[[nodiscard]] const ActionContext& GetDestinationActionContext() const noexcept { return m_DestinationActionContext; }
+	[[nodiscard]] ActionContext& GetDestinationActionContext() noexcept { return m_DestinationActionContext; }
+
+	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_DestinationPosition; }
+	[[nodiscard]] StripUiPosition& GetPosition() noexcept { return m_DestinationPosition; }
+	
+	[[nodiscard]] const std::vector<Action>& GetTransferredActions() const noexcept { return m_TransferredActions; }
+	[[nodiscard]] std::vector<Action>& GetTransferredActions() noexcept { return m_TransferredActions; }
+
+	void SetTransferredActions(std::vector<Action>::const_iterator begin, std::vector<Action>::const_iterator end) { m_TransferredActions.assign(begin, end); };
+
+private:
+	int32_t m_SrcActionIndex;
+	ActionContext m_SourceActionContext;
+	ActionContext m_DestinationActionContext;
+	StripUiPosition m_DestinationPosition;
+
+	std::vector<Action> m_TransferredActions;
 };
 
 #endif  //!__SPLITSTRIPMESSAGE__H__

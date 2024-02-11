@@ -1,11 +1,9 @@
 #include "AddMessage.h"
 
-AddMessage::AddMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	behaviorIndex = 0;
-	auto* behaviorIndexValue = arguments->Get<double>("BehaviorIndex");
-
+AddMessage::AddMessage(const AMFArrayValue& arguments) : BehaviorMessageBase{ arguments } {
+	const auto* const behaviorIndexValue = arguments.Get<double>("BehaviorIndex");
 	if (!behaviorIndexValue) return;
 
-	behaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	LOG_DEBUG("behaviorId %i index %i", behaviorId, behaviorIndex);
+	m_BehaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
+	LOG_DEBUG("behaviorId %i index %i", m_BehaviorId, m_BehaviorIndex);
 }

@@ -9,31 +9,31 @@
  * AMF3 Deserializer written by EmosewaMC
  */
 
-AMFBaseValue* AMFDeserialize::Read(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream* inStream) {
 	if (!inStream) return nullptr;
-	AMFBaseValue* returnValue = nullptr;
+	std::unique_ptr<AMFBaseValue> returnValue = nullptr;
 	// Read in the value type from the bitStream
 	eAmf marker;
 	inStream->Read(marker);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
 	case eAmf::Undefined: {
-		returnValue = new AMFBaseValue();
+		returnValue = std::make_unique<AMFBaseValue>();
 		break;
 	}
 
 	case eAmf::Null: {
-		returnValue = new AMFNullValue();
+		returnValue = std::make_unique<AMFNullValue>();
 		break;
 	}
 
 	case eAmf::False: {
-		returnValue = new AMFBoolValue(false);
+		returnValue = std::make_unique<AMFBoolValue>(false);
 		break;
 	}
 
 	case eAmf::True: {
-		returnValue = new AMFBoolValue(true);
+		returnValue = std::make_unique<AMFBoolValue>(true);
 		break;
 	}
 
@@ -119,20 +119,20 @@ const std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 	}
 }
 
-AMFBaseValue* AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFDoubleValue> AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
 	double value;
 	inStream->Read<double>(value);
-	return new AMFDoubleValue(value);
+	return std::make_unique<AMFDoubleValue>(value);
 }
 
-AMFBaseValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
-	auto arrayValue = new AMFArrayValue();
+std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
+	auto arrayValue = std::make_unique<AMFArrayValue>();
 
 	// Read size of dense array
-	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
+	const auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
 	// Then read associative portion
 	while (true) {
-		auto key = ReadString(inStream);
+		const auto key = ReadString(inStream);
 		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
 		arrayValue->Insert(key, Read(inStream));
@@ -144,10 +144,10 @@ AMFBaseValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	return arrayValue;
 }
 
-AMFBaseValue* AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
-	return new AMFStringValue(ReadString(inStream));
+std::unique_ptr<AMFStringValue> AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
+	return std::make_unique<AMFStringValue>(ReadString(inStream));
 }
 
-AMFBaseValue* AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
-	return new AMFIntValue(ReadU29(inStream));
+std::unique_ptr<AMFIntValue> AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
+	return std::make_unique<AMFIntValue>(ReadU29(inStream)); // NOTE: NARROWING CONVERSION FROM UINT TO INT. IS THIS INTENDED?
 }

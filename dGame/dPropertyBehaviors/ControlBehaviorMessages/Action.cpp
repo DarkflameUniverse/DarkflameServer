@@ -1,46 +1,34 @@
 #include "Action.h"
 #include "Amf3.h"
 
-Action::Action() {	
-	type = "";
-	valueParameterName = "";
-	valueParameterString = "";
-	valueParameterDouble = 0.0;
-}
-
-Action::Action(AMFArrayValue* arguments) {
-	type = "";
-	valueParameterName = "";
-	valueParameterString = "";
-	valueParameterDouble = 0.0;
-	for (auto& [paramName, paramValue] : arguments->GetAssociative()) {
+Action::Action(const AMFArrayValue& arguments) {
+	for (const auto& [paramName, paramValue] : arguments.GetAssociative()) {
 		if (paramName == "Type") {
 			if (paramValue->GetValueType() != eAmf::String) continue;
-			type = static_cast<AMFStringValue*>(paramValue)->GetValue();
+			m_Type = static_cast<AMFStringValue*>(paramValue.get())->GetValue();
 		} else {
-			valueParameterName = paramName;
+			m_ValueParameterName = paramName;
 			// Message is the only known string parameter
-			if (valueParameterName == "Message") {
+			if (m_ValueParameterName == "Message") {
 				if (paramValue->GetValueType() != eAmf::String) continue;
-				valueParameterString = static_cast<AMFStringValue*>(paramValue)->GetValue();
+				m_ValueParameterString = static_cast<AMFStringValue*>(paramValue.get())->GetValue();
 			} else {
 				if (paramValue->GetValueType() != eAmf::Double) continue;
-				valueParameterDouble = static_cast<AMFDoubleValue*>(paramValue)->GetValue();
+				m_ValueParameterDouble = static_cast<AMFDoubleValue*>(paramValue.get())->GetValue();
 			}
 		}
 	}
 }
 
 void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
-	auto* actionArgs = args.PushArray();
-	actionArgs->Insert("Type", type);
+	auto* const actionArgs = args.PushArray();
+	actionArgs->Insert("Type", m_Type);
 
-	auto valueParameterName = GetValueParameterName();
-	if (valueParameterName.empty()) return;
+	if (m_ValueParameterName.empty()) return;
 
-	if (valueParameterName == "Message") {
-		actionArgs->Insert(valueParameterName, valueParameterString);
+	if (m_ValueParameterName == "Message") {
+		actionArgs->Insert(m_ValueParameterName, m_ValueParameterString);
 	} else {
-		actionArgs->Insert(valueParameterName, valueParameterDouble);
+		actionArgs->Insert(m_ValueParameterName, m_ValueParameterDouble);
 	}
 }

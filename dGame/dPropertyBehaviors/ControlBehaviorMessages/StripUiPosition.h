@@ -9,14 +9,15 @@ class AMFArrayValue;
  */
 class StripUiPosition {
 public:
-	StripUiPosition();
-	StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName = "ui");
+	StripUiPosition() noexcept = default;
+	StripUiPosition(const AMFArrayValue& arguments, const std::string_view uiKeyName = "ui");
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
-	double GetX() const { return xPosition; };
-	double GetY() const { return yPosition; };
+	[[nodiscard]] double GetX() const noexcept { return m_XPosition; }
+	[[nodiscard]] double GetY() const noexcept { return m_YPosition; }
+
 private:
-	double xPosition;
-	double yPosition;
+	double m_XPosition{ 0.0 };
+	double m_YPosition{ 0.0 };
 };
 
 #endif  //!__STRIPUIPOSITION__H__

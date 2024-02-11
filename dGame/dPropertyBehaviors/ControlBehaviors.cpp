@@ -63,7 +63,7 @@ void ControlBehaviors::SendBehaviorListToClient(const ControlBehaviorContext& co
 // TODO This is also supposed to serialize the state of the behaviors in progress but those aren't implemented yet
 void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& context) {
 	if (!context) return;
-	BehaviorMessageBase behaviorMsg(context.arguments);
+	BehaviorMessageBase behaviorMsg{ context.arguments };
 
 	context.modelComponent->VerifyBehaviors();
 	AMFArrayValue behavior;
@@ -71,42 +71,42 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& contex
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorBlocks", behavior);
 }
 
-void ControlBehaviors::UpdateAction(AMFArrayValue* arguments) {
-	UpdateActionMessage updateActionMessage(arguments);
+void ControlBehaviors::UpdateAction(const AMFArrayValue& arguments) {
+	UpdateActionMessage updateActionMessage{ arguments };
 	auto blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
 	if (!blockDefinition) {
-		LOG("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
+		LOG("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().data());
 		return;
 	}
 
 	if (updateActionMessage.GetAction().GetValueParameterString().size() > 0) {
 		if (updateActionMessage.GetAction().GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
-			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().data());
 			return;
 		}
 	} else {
 		if (updateActionMessage.GetAction().GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
-			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().data());
 			return;
 		}
 	}
 }
 
-void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& sysAddr, AMFArrayValue* arguments, std::string command, Entity* modelOwner) {
-	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
-	auto* modelComponent = modelEntity->GetComponent<ModelComponent>();
+void ControlBehaviors::ProcessCommand(Entity* modelEntity, const AMFArrayValue& arguments, std::string_view command, Entity* modelOwner) {
+	if (!isInitialized || !modelEntity || !modelOwner) return;
+	auto* const modelComponent = modelEntity->GetComponent<ModelComponent>();
 
 	if (!modelComponent) return;
 
-	ControlBehaviorContext context(arguments, modelComponent, modelOwner);
+	ControlBehaviorContext context{ arguments, modelComponent, modelOwner };
 
 	if (command == "sendBehaviorListToClient") {
 		SendBehaviorListToClient(context);
 	} else if (command == "modelTypeChanged") {
-		auto* modelType = arguments->Get<double>("ModelType");
+		auto* const modelType = arguments.Get<double>("ModelType");
 		if (!modelType) return;
 
 		modelEntity->SetVar<int>(u"modelType", modelType->GetValue());
@@ -131,7 +131,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "rearrangeStrip") {
 		context.modelComponent->HandleControlBehaviorsMsg<RearrangeStripMessage>(arguments);
 	} else if (command == "add") {
-		AddMessage msg(context.arguments);
+		AddMessage msg{ context.arguments };
 		context.modelComponent->AddBehavior(msg);
 		SendBehaviorListToClient(context);
 	} else if (command == "removeActions") {
@@ -144,7 +144,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "sendBehaviorBlocksToClient") {
 		SendBehaviorBlocksToClient(context);
 	} else if (command == "moveToInventory") {
-		MoveToInventoryMessage msg(arguments);
+		MoveToInventoryMessage msg{ arguments };
 		context.modelComponent->MoveToInventory(msg);
 		auto* characterComponent = modelOwner->GetComponent<CharacterComponent>();
 		if (!characterComponent) return;
@@ -157,7 +157,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "updateAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<UpdateActionMessage>(arguments);
 	} else {
-		LOG("Unknown behavior command (%s)", command.c_str());
+		LOG("Unknown behavior command (%s)", command.data());
 	}
 }
 
@@ -279,11 +279,11 @@ ControlBehaviors::ControlBehaviors() {
 	isInitialized = true;
 	LOG_DEBUG("Created all base block classes");
 	for (auto& [name, block] : blockTypes) {
-		LOG_DEBUG("block name is %s default %s min %f max %f", name.c_str(), block.GetDefaultValue().c_str(), block.GetMinimumValue(), block.GetMaximumValue());
+		LOG_DEBUG("block name is %s default %s min %f max %f", name.data(), block.GetDefaultValue().data(), block.GetMinimumValue(), block.GetMaximumValue());
 	}
 }
 
-std::optional<BlockDefinition> ControlBehaviors::GetBlockInfo(const BlockName& blockName) {
+std::optional<BlockDefinition> ControlBehaviors::GetBlockInfo(const std::string_view blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
 	return blockDefinition != blockTypes.end() ? std::optional(blockDefinition->second) : std::nullopt;
 }

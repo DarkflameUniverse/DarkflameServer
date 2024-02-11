@@ -13,14 +13,20 @@ class AMFArrayValue;
  */
 class UpdateActionMessage : public BehaviorMessageBase {
 public:
-	UpdateActionMessage(AMFArrayValue* arguments);
-	int32_t GetActionIndex() const { return actionIndex; };
-	ActionContext GetActionContext() const { return actionContext; };
-	Action GetAction() const { return action; };
+	UpdateActionMessage(const AMFArrayValue& arguments);
+
+	[[nodiscard]] int32_t GetActionIndex() const noexcept { return m_ActionIndex; }
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
+	[[nodiscard]] ActionContext& GetActionContext() noexcept { return m_ActionContext; }
+
+	[[nodiscard]] const Action& GetAction() const noexcept { return m_Action; }
+	[[nodiscard]] Action& GetAction() noexcept { return m_Action; }
+
 private:
-	int32_t actionIndex;
-	ActionContext actionContext;
-	Action action;
+	int32_t m_ActionIndex;
+	ActionContext m_ActionContext;
+	Action m_Action;
 }; 
 
 #endif  //!__UPDATEACTIONMESSAGE__H__

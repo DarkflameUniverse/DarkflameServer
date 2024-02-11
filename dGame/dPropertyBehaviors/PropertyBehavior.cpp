@@ -83,10 +83,6 @@ void PropertyBehavior::HandleMsg(AddMessage& msg) {
 	isLoot = m_BehaviorId != 7965;
 };
 
-void PropertyBehavior::SetBehaviorId(int32_t behaviorId) {
-	m_BehaviorId = behaviorId;
-}
-
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) const {
 	args.Insert("id", std::to_string(m_BehaviorId));
 	args.Insert("name", m_Name);
@@ -111,19 +107,18 @@ void PropertyBehavior::VerifyLastEditedState() {
 }
 
 void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
-	auto* stateArray = args.InsertArray("states");
+	auto* const stateArray = args.InsertArray("states");
 
-	auto lastState = BehaviorState::HOME_STATE;
-	for (auto& [stateId, state] : m_States) {
+	for (const auto& [stateId, state] : m_States) {
 		if (state.IsEmpty()) continue;
 
 		LOG_DEBUG("Serializing state %i", stateId);
-		auto* stateArgs = stateArray->PushArray();
+		auto* const stateArgs = stateArray->PushArray();
 		stateArgs->Insert("id", static_cast<double>(stateId));
 		state.SendBehaviorBlocksToClient(*stateArgs);
 	}
 
-	auto* executionState = args.InsertArray("executionState");
+	auto* const executionState = args.InsertArray("executionState");
 	executionState->Insert("stateID", static_cast<double>(m_LastEditedState));
 	executionState->InsertArray("strips");
 

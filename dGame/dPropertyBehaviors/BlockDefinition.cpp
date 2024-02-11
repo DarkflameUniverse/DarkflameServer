@@ -2,8 +2,8 @@
 
 BlockDefinition BlockDefinition::blockDefinitionDefault{};
 
-BlockDefinition::BlockDefinition(std::string defaultValue, float minimumValue, float maximumValue) {
-	this->defaultValue = defaultValue;
-	this->minimumValue = minimumValue;
-	this->maximumValue = maximumValue;
+BlockDefinition::BlockDefinition(const std::string_view defaultValue, const float minimumValue, const float maximumValue)
+	: defaultValue{ defaultValue }
+	, minimumValue{ minimumValue }
+	, maximumValue{ maximumValue } {
 }
