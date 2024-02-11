@@ -57,12 +57,11 @@ protected:
 
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
 
-		auto* simplePhysicsComponent = new SimplePhysicsComponent(1, baseEntity.get());
-		baseEntity->AddComponent(SimplePhysicsComponent::ComponentType, simplePhysicsComponent);
-		auto* movingPlatformComponent = new MovingPlatformComponent(baseEntity.get(), path.pathName);
+		auto* simplePhysicsComponent = baseEntity->AddComponent<SimplePhysicsComponent>(1);
+		auto* movingPlatformComponent = baseEntity->AddComponent<MovingPlatformComponent>("ExamplePath");
+		new MovingPlatformComponent(baseEntity.get(), path.pathName);
 		movingPlatformComponent->LoadConfigData();
 		movingPlatformComponent->LoadDataFromTemplate();
-		baseEntity->AddComponent(MovingPlatformComponent::ComponentType, movingPlatformComponent);
 	}
 
 	void TearDown() override {
@@ -215,8 +214,7 @@ protected:
 	void TestSerialization() {
 		auto* movingPlatformComponent = baseEntity->GetComponent<MovingPlatformComponent>();
 		ASSERT_NE(movingPlatformComponent, nullptr);
-		uint32_t flags = 0;
-		movingPlatformComponent->Serialize(&bitStream, true, flags);
+		movingPlatformComponent->Serialize(&bitStream, true);
 		DeserializeMovingPlatformComponent();
 	}
 };

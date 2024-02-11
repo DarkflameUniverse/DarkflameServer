@@ -389,8 +389,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(subComponent.GetPosition().y);
 	bitStream.Write(subComponent.GetPosition().z);
 
-	bitStream.Write(subComponent.GetRotation() != NiQuaternion::IDENTITY);
-	if (subComponent.GetRotation() != NiQuaternion::IDENTITY) {
+	bitStream.Write(subComponent.GetRotation() != NiQuaternionConstant::IDENTITY);
+	if (subComponent.GetRotation() != NiQuaternionConstant::IDENTITY) {
 		bitStream.Write(subComponent.GetRotation().x);
 		bitStream.Write(subComponent.GetRotation().y);
 		bitStream.Write(subComponent.GetRotation().z);

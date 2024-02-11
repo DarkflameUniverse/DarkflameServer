@@ -15,13 +15,11 @@ struct CDMovingPlatformTableEntry {
 	bool platformStartAtEnd;
 };
 
-class CDMovingPlatformComponentTable : public CDTable<CDMovingPlatformComponentTable> {
+class CDMovingPlatformComponentTable : public CDTable<CDMovingPlatformComponentTable, std::map<ComponentID, CDMovingPlatformTableEntry>> {
 public:
 	CDMovingPlatformComponentTable();
 
 	void CachePlatformEntry(ComponentID id);
 	const std::optional<CDMovingPlatformTableEntry> GetPlatformEntry(ComponentID id);
-private:
-	std::map<ComponentID, CDMovingPlatformTableEntry> m_Platforms;
 };
 #endif  //!__CDMOVINGPLATFORMCOMPONENTTABLE__H__

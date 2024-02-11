@@ -327,10 +327,12 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		// Save the enemy and tell it to start pathing
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling);
 		}
 	}
 }
+
+#pragma warning("TODO: FIX THE ABOVE GM CALL")
 
 void SGCannon::EndGameBufferTimerFunc(Entity* self) {
 	RecordPlayerScore(self);
@@ -381,9 +383,7 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 			auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 			Game::entityManager->ConstructEntity(enemy);
 
-			auto* movementAI = new MovementAIComponent(enemy, {});
-
-			enemy->AddComponent(eReplicaComponentType::MOVEMENT_AI, movementAI);
+			auto* movementAI = enemy->AddComponent<MovementAIComponent, MovementAIInfo>({});
 
 			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);

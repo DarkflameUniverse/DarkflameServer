@@ -36,8 +36,8 @@ PlatformSubComponent::PlatformSubComponent(MovingPlatformComponent* parentCompon
 	m_IsDirty = false;
 	m_InReverse = false;
 	m_ShouldStopAtDesiredWaypoint = false;
-	m_LinearVelocity = NiPoint3::ZERO;
-	m_AngularVelocity = NiPoint3::ZERO;
+	m_LinearVelocity = NiPoint3Constant::ZERO;
+	m_AngularVelocity = NiPoint3Constant::ZERO;
 	m_TimeBasedMovement = false;
 	m_Path = nullptr; 
 }
@@ -221,8 +221,8 @@ void PlatformSubComponent::StopPathing() {
 	m_State |= eMovementPlatformState::Stopped;
 	m_State &= ~eMovementPlatformState::Travelling;
 	m_State &= ~eMovementPlatformState::Waiting;
-	m_LinearVelocity = NiPoint3::ZERO;
-	m_AngularVelocity = NiPoint3::ZERO;
+	m_LinearVelocity = NiPoint3Constant::ZERO;
+	m_AngularVelocity = NiPoint3Constant::ZERO;
 }
 
 //------------- PlatformSubComponent end --------------
@@ -285,7 +285,7 @@ void SimpleMoverPlatformSubComponent::LoadConfigData() {
 void SimpleMoverPlatformSubComponent::LoadDataFromTemplate() {
 	if (!m_ParentComponent->GetParent()->GetVar<bool>(u"dbonly")) return;
 
-	auto* movingPlatformTable = CDClientManager::Instance().GetTable<CDMovingPlatformComponentTable>();
+	auto* movingPlatformTable = CDClientManager::GetTable<CDMovingPlatformComponentTable>();
 	if (movingPlatformTable == nullptr) return;
 
 	const auto& platformEntry = movingPlatformTable->GetPlatformEntry(m_ParentComponent->GetComponentId());
@@ -324,7 +324,7 @@ void MovingPlatformComponent::LoadConfigData() {
 		AddMovingPlatform<MoverPlatformSubComponent>();
 	}
 	if (m_Parent->GetVar<bool>(u"platformIsSimpleMover")) {
-		AddMovingPlatform<SimpleMoverPlatformSubComponent>(NiPoint3::ZERO, false);
+		AddMovingPlatform<SimpleMoverPlatformSubComponent>(NiPoint3Constant::ZERO, false);
 	}
 	if (m_Parent->GetVar<bool>(u"platformIsRotater")) {
 		AddMovingPlatform<RotatorPlatformSubComponent>();
@@ -339,7 +339,7 @@ void MovingPlatformComponent::Update(float deltaTime) {
 	std::for_each(m_Platforms.begin(), m_Platforms.end(), [deltaTime](const std::unique_ptr<PlatformSubComponent>& platform) { platform->Update(deltaTime); });
 }
 
-void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
+void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	// For some reason we need to write this here instead of later on.
 	outBitStream->Write(!m_Platforms.empty());
 
@@ -370,7 +370,7 @@ void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
 }
 
-void MovingPlatformComponent::OnCompleteRebuild() {
+void MovingPlatformComponent::OnCompleteQuickBuild() {
 	if (m_NoAutoStart) return;
 
 	StartPathing();

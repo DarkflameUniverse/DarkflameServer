@@ -1,6 +1,7 @@
 #include "CDMovingPlatformComponentTable.h"
 
 CDMovingPlatformComponentTable::CDMovingPlatformComponentTable() {
+	auto& entries = GetEntriesMutable();
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovingPlatforms");
 	while (!tableData.eof()) {
 		CDMovingPlatformTableEntry entry;
@@ -11,12 +12,13 @@ CDMovingPlatformComponentTable::CDMovingPlatformComponentTable() {
 		entry.platformMove.z = tableData.getFloatField("platformMoveZ", 0.0f);
 		entry.moveTime = tableData.getFloatField("platformMoveTime", -1.0f);
 
-		DluAssert(m_Platforms.insert(std::make_pair(tableData.getIntField("id", -1), entry)).second);
+		DluAssert(entries.insert(std::make_pair(tableData.getIntField("id", -1), entry)).second);
 		tableData.nextRow();
 	}
 }
 
 void CDMovingPlatformComponentTable::CachePlatformEntry(ComponentID id) {
+	auto& entries = GetEntriesMutable();
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM MovingPlatforms WHERE id = ?;");
 	query.bind(1, static_cast<int32_t>(id));
 
@@ -30,16 +32,17 @@ void CDMovingPlatformComponentTable::CachePlatformEntry(ComponentID id) {
 		entry.platformMove.z = tableData.getFloatField("platformMoveZ", 0.0f);
 		entry.moveTime = tableData.getFloatField("platformMoveTime", -1.0f);
 
-		DluAssert(m_Platforms.insert(std::make_pair(tableData.getIntField("id", -1), entry)).second);
+		DluAssert(entries.insert(std::make_pair(tableData.getIntField("id", -1), entry)).second);
 		tableData.nextRow();
 	}
 }
 
 const std::optional<CDMovingPlatformTableEntry> CDMovingPlatformComponentTable::GetPlatformEntry(ComponentID id) {
-	auto itr = m_Platforms.find(id);
-	if (itr == m_Platforms.end()) {
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(id);
+	if (itr == entries.end()) {
 		CachePlatformEntry(id);
-		itr = m_Platforms.find(id);
+		itr = entries.find(id);
 	}
-	return itr != m_Platforms.end() ? std::make_optional<CDMovingPlatformTableEntry>(itr->second) : std::nullopt;
+	return itr != entries.end() ? std::make_optional<CDMovingPlatformTableEntry>(itr->second) : std::nullopt;
 }
