@@ -246,6 +246,7 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
+	"thirdparty/MD5"
 
 	"tests"
 	"tests/dCommonTests"
@@ -321,7 +322,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum" "MD5")
 
 # Add platform specific common libraries
 if(UNIX)

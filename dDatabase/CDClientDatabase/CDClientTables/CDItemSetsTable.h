@@ -21,15 +21,10 @@ struct CDItemSets {
 	float priority;         //!< The priority
 };
 
-class CDItemSetsTable : public CDTable<CDItemSetsTable> {
-private:
-	std::vector<CDItemSets> entries;
-
+class CDItemSetsTable : public CDTable<CDItemSetsTable, std::vector<CDItemSets>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSets> Query(std::function<bool(CDItemSets)> predicate);
-
-	const std::vector<CDItemSets>& GetEntries(void) const;
 };
 

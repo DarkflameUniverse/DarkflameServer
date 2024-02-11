@@ -2,6 +2,11 @@
 
 #include "CDTable.h"
 #include <list>
+#include <optional>
+
+typedef int32_t AnimationGroupID;
+typedef std::string AnimationID;
+typedef std::pair<std::string, AnimationGroupID> CDAnimationKey;
 
 struct CDAnimation {
 	// uint32_t animationGroupID;
@@ -20,12 +25,7 @@ struct CDAnimation {
 	UNUSED_COLUMN(float blendTime;)                //!< The blend time
 };
 
-typedef LookupResult<CDAnimation> CDAnimationLookupResult;
-
-class CDAnimationsTable : public CDTable<CDAnimationsTable> {
-	typedef int32_t AnimationGroupID;
-	typedef std::string AnimationID;
-	typedef std::pair<std::string, AnimationGroupID> CDAnimationKey;
+class CDAnimationsTable : public CDTable<CDAnimationsTable, std::map<CDAnimationKey, std::list<CDAnimation>>> {
 public:
 	void LoadValuesFromDatabase();
 	/**
@@ -38,7 +38,7 @@ public:
 	 * @param animationGroupID The animationGroupID to lookup
 	 * @return CDAnimationLookupResult 
 	 */
-	[[nodiscard]] CDAnimationLookupResult GetAnimation(const AnimationID& animationType, const std::string& previousAnimationName, const AnimationGroupID animationGroupID);
+	[[nodiscard]] std::optional<CDAnimation> GetAnimation(const AnimationID& animationType, const std::string& previousAnimationName, const AnimationGroupID animationGroupID);
 
 	/**
 	 * Cache a full AnimationGroup by its ID.
@@ -58,10 +58,4 @@ private:
 	 * @return false 
 	 */
 	bool CacheData(CppSQLite3Statement& queryToCache);
-
-	/**
-	 * Each animation is key'd by its animationName and its animationGroupID.  Each
-	 * animation has a possible list of animations.  This is because there can be animations have a percent chance to play so one is selected at random.
-	 */
-	std::map<CDAnimationKey, std::list<CDAnimation>> animations;
 };

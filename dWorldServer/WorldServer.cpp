@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	CDClientManager::Instance().LoadValuesFromDatabase();
+	CDClientManager::LoadValuesFromDatabase();
 
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
@@ -208,8 +208,7 @@ int main(int argc, char** argv) {
 
 	UserManager::Instance()->Initialize();
 
-	bool dontGenerateDCF = false;
-	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);

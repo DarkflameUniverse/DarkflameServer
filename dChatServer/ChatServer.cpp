@@ -99,18 +99,15 @@ int main(int argc, char** argv) {
 		masterPort = masterInfo->port;
 	}
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	uint32_t maxClients = 999;
-	uint32_t ourPort = 1501;
 	std::string ourIP = "localhost";
-	GeneralUtils::TryParse(Game::config->GetValue("max_clients"), maxClients);
-	GeneralUtils::TryParse(Game::config->GetValue("chat_server_port"), ourPort);
+	const uint32_t maxClients = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_clients")).value_or(999);
+	const uint32_t ourPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("chat_server_port")).value_or(1501);
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
 	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
 
-	bool dontGenerateDCF = false;
-	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 	
 	Game::randomEngine = std::mt19937(time(0));

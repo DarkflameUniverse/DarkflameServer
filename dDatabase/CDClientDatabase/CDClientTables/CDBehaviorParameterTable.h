@@ -5,12 +5,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-class CDBehaviorParameterTable : public CDTable<CDBehaviorParameterTable> {
-private:
-	typedef uint64_t BehaviorParameterHash;
-	typedef float BehaviorParameterValue;
-	std::unordered_map<BehaviorParameterHash, BehaviorParameterValue> m_Entries;
-	std::unordered_map<std::string, uint32_t> m_ParametersList;
+typedef uint64_t BehaviorParameterHash;
+typedef float BehaviorParameterValue;
+
+class CDBehaviorParameterTable : public CDTable<CDBehaviorParameterTable, std::unordered_map<BehaviorParameterHash, BehaviorParameterValue>> {
 public:
 	void LoadValuesFromDatabase();
 

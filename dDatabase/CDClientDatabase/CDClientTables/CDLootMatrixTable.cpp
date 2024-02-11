@@ -25,7 +25,8 @@ void CDLootMatrixTable::LoadValuesFromDatabase() {
 	}
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootMatrix");
@@ -33,14 +34,15 @@ void CDLootMatrixTable::LoadValuesFromDatabase() {
 		CDLootMatrix entry;
 		uint32_t lootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 
-		this->entries[lootMatrixIndex].push_back(ReadRow(tableData));
+		entries[lootMatrixIndex].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 }
 
 const LootMatrixEntries& CDLootMatrixTable::GetMatrix(uint32_t matrixId) {
-	auto itr = this->entries.find(matrixId);
-	if (itr != this->entries.end()) {
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(matrixId);
+	if (itr != entries.end()) {
 		return itr->second;
 	}
 
@@ -49,10 +51,10 @@ const LootMatrixEntries& CDLootMatrixTable::GetMatrix(uint32_t matrixId) {
 
 	auto tableData = query.execQuery();
 	while (!tableData.eof()) {
-		this->entries[matrixId].push_back(ReadRow(tableData));
+		entries[matrixId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 
-	return this->entries[matrixId];
+	return entries[matrixId];
 }
 

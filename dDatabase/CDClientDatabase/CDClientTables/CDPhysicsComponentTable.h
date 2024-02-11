@@ -21,13 +21,10 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
+class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable, std::map<uint32_t, CDPhysicsComponent>> {
 public:
 	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PhysicsComponent"; };
 	CDPhysicsComponent* GetByID(uint32_t componentID);
-
-private:
-	std::map<uint32_t, CDPhysicsComponent> m_entries;
 };
