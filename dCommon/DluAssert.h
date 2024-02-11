@@ -2,6 +2,7 @@
 #define __DLUASSERT__H__
 
 #include <assert.h>
+#define _DEBUG
 
 #ifdef _DEBUG
 #	define DluAssert(expression) assert(expression)

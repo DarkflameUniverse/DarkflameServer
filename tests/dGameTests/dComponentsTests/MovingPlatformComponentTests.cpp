@@ -25,14 +25,17 @@ protected:
 		PathWaypoint waypointStart;
 		waypointStart.position = NiPoint3(1, 2, 3);
 		waypointStart.rotation = NiQuaternion(4, 5, 6, 7);
+		waypointStart.movingPlatform.speed = 16.0f;
 
 		PathWaypoint waypointMiddle;
 		waypointMiddle.position = NiPoint3(4, 5, 6);
 		waypointMiddle.rotation = NiQuaternion(7, 8, 9, 10);
+		waypointStart.movingPlatform.speed = 16.0f;
 
 		PathWaypoint waypointEnd;
 		waypointEnd.position = NiPoint3(4, 5, 7);
 		waypointEnd.rotation = NiQuaternion(7, 8, 9, 10);
+		waypointStart.movingPlatform.speed = 16.0f;
 
 		path.pathWaypoints.push_back(waypointStart);
 		path.pathWaypoints.push_back(waypointMiddle);
@@ -59,7 +62,6 @@ protected:
 
 		auto* simplePhysicsComponent = baseEntity->AddComponent<SimplePhysicsComponent>(1);
 		auto* movingPlatformComponent = baseEntity->AddComponent<MovingPlatformComponent>("ExamplePath");
-		new MovingPlatformComponent(baseEntity.get(), path.pathName);
 		movingPlatformComponent->LoadConfigData();
 		movingPlatformComponent->LoadDataFromTemplate();
 	}
@@ -286,17 +288,14 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceTest) 
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	path.pathWaypoints.at(0).position = NiPoint3(99.296440, 419.293335, 207.219498);
-	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
 
-	path.pathWaypoints.at(1).position = NiPoint3(141.680099, 419.990051, 208.680450);
-	path.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
-	path.pathBehavior = PathBehavior::Bounce;
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	ASSERT_EQ(moverPlatformSubComponent.CalculateSpeed(), 16.0f);
 	NiPoint3 r = moverPlatformSubComponent.CalculateLinearVelocity();
-	ASSERT_FLOAT_EQ(r.x, 15.988346099854);
-	ASSERT_FLOAT_EQ(r.y, 0.26282161474228);
-	ASSERT_FLOAT_EQ(r.z, 0.5511137843132);
+	ASSERT_FLOAT_EQ(r.x, 9.2376051);
+	ASSERT_FLOAT_EQ(r.y, 9.2376051);
+	ASSERT_FLOAT_EQ(r.z, 9.2376051);
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 }
 

@@ -141,6 +141,7 @@ void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t start
 	m_InReverse = startsInReverse;
 	m_CurrentWaypointIndex = startingWaypointIndex;
 	m_TimeBasedMovement = m_Path->movingPlatform.timeBasedMovement;
+	m_NextWaypointIndex = m_InReverse ? m_CurrentWaypointIndex - 1 : m_CurrentWaypointIndex + 1;
 }
 
 const PathWaypoint& PlatformSubComponent::GetNextWaypoint() const {
@@ -159,6 +160,8 @@ float PlatformSubComponent::CalculateSpeed() const {
 		float unitizedDirection = 1.0f / (GetNextWaypoint().position - GetCurrentWaypoint().position).Length();
 		speed = unitizedDirection / GetCurrentWaypoint().movingPlatform.speed;
 	} else {
+		LOG("%i %i", m_CurrentWaypointIndex, m_NextWaypointIndex); 
+		Game::logger->Flush();
 		speed = (GetNextWaypoint().movingPlatform.speed - GetCurrentWaypoint().movingPlatform.speed) * m_PercentUntilNextWaypoint + GetCurrentWaypoint().movingPlatform.speed;
 	}
 	return speed;
