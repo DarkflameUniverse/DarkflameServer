@@ -179,7 +179,7 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 
 	std::vector<LWOOBJID> spiderEggs{};
 
-	auto spooders = Game::entityManager->GetEntitiesInGroup("EGG");
+	auto spooders = Game::entityManager->GetEntitiesInGroup("SpiderEggs");
 	for (auto spodder : spooders) {
 		spiderEggs.push_back(spodder->GetObjectID());
 	}
