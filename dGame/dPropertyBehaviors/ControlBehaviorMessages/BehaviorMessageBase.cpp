@@ -4,6 +4,10 @@
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
 
+BehaviorMessageBase::BehaviorMessageBase(const AMFArrayValue& arguments) {
+	m_BehaviorId = GetBehaviorIdFromArgument(arguments);
+}
+
 int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue& arguments) {
 	static constexpr std::string_view key = "BehaviorID";
 	const auto* const behaviorIDValue = arguments.Get<std::string>(key);
