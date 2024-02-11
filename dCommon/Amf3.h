@@ -155,10 +155,7 @@ public:
 		if (element == m_Associative.end()) {
 			auto newVal = std::make_unique<AMFValue<ValueType>>(value);
 			val = newVal.get();
-			m_Associative.emplace(
-				std::piecewise_construct,
-				std::forward_as_tuple(key),
-				std::forward_as_tuple(std::move(newVal)));
+			m_Associative.emplace(key, std::move(newVal));
 		} else {
 			val = dynamic_cast<AMFValue<ValueType>*>(element->second.get());
 			found = false;
@@ -174,10 +171,7 @@ public:
 		if (element == m_Associative.end()) {
 			auto newVal = std::make_unique<AMFArrayValue>();
 			val = newVal.get();
-			m_Associative.emplace(
-				std::piecewise_construct,
-				std::forward_as_tuple(key),
-				std::forward_as_tuple(std::move(newVal)));
+			m_Associative.emplace(key, std::move(newVal));
 		} else {
 			val = dynamic_cast<AMFArrayValue*>(element->second.get());
 			found = false;
@@ -229,12 +223,9 @@ public:
 	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
 		auto element = m_Associative.find(key);
 		if (element != m_Associative.end() && element->second) {
-			element->second.swap(value); // Swapped value should be deleted as this goes out of scope
+			element->second = std::move(value);
 		} else {
-			m_Associative.emplace(
-				std::piecewise_construct,
-				std::forward_as_tuple(key),
-				std::forward_as_tuple(std::move(value)));
+			m_Associative.emplace(key, std::move(value));
 		}
 	}
 
@@ -248,10 +239,7 @@ public:
 	 * @param value The value to insert
 	 */
 	void Insert(const size_t index, std::unique_ptr<AMFBaseValue> value) {
-		if (index < m_Dense.size()) {
-			AMFDense::iterator itr = m_Dense.begin() + index;
-			if (*itr) m_Dense.at(index).reset();
-		} else {
+		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
 		}
 		m_Dense.at(index) = std::move(value);
@@ -282,8 +270,7 @@ public:
 	void Remove(const std::string& key, const bool deleteValue = true) {
 		AMFAssociative::iterator it = m_Associative.find(key);
 		if (it != m_Associative.end()) {
-			if (deleteValue) it->second.reset();
-			m_Associative.erase(it);
+			if (deleteValue) m_Associative.erase(it);
 		}
 	}
 
@@ -292,9 +279,8 @@ public:
 	 */
 	void Remove(const size_t index) {
 		if (!m_Dense.empty() && index < m_Dense.size()) {
-			auto itr = m_Dense.begin() + index;
-			if (*itr) itr->reset();
-			m_Dense.erase(itr);
+			const auto itr = m_Dense.begin() + index;
+			if (*itr) m_Dense.erase(itr);
 		}
 	}
 
