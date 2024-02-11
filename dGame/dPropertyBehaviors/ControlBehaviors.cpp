@@ -239,7 +239,7 @@ ControlBehaviors::ControlBehaviors() {
 					if (values) {
 						auto* value = values->FirstChildElement("Value");
 						while (value) {
-							if (value->GetText() == blockDefinition.GetDefaultValue()) blockDefinition.GetDefaultValue() = std::to_string(blockDefinition.GetMaximumValue());
+							if (value->GetText() == blockDefinition.GetDefaultValue()) blockDefinition.SetDefaultValue(std::to_string(blockDefinition.GetMaximumValue()));
 							blockDefinition.SetMaximumValue(blockDefinition.GetMaximumValue() + 1);
 							value = value->NextSiblingElement("Value");
 						}
