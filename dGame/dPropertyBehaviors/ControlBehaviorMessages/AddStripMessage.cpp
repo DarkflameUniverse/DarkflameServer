@@ -17,7 +17,7 @@ AddStripMessage::AddStripMessage(const AMFArrayValue* arguments)
 		const auto* const actionValue = actions->GetArray(actionNumber);
 		if (!actionValue) continue;
 
-		m_ActionsToAdd.push_back(Action{ actionValue });
+		m_ActionsToAdd.emplace_back(actionValue);
 
 		LOG_DEBUG("xPosition %f yPosition %f stripId %i stateId %i behaviorId %i t %s valueParameterName %s valueParameterString %s valueParameterDouble %f", m_Position.GetX(), m_Position.GetY(), m_ActionContext.GetStripId(), m_ActionContext.GetStateId(), m_BehaviorId, m_ActionsToAdd.back().GetType().c_str(), m_ActionsToAdd.back().GetValueParameterName().c_str(), m_ActionsToAdd.back().GetValueParameterString().c_str(), m_ActionsToAdd.back().GetValueParameterDouble());
 	}
