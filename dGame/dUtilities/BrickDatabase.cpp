@@ -17,25 +17,17 @@ const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 		return cached->second;
 	}
 
-	AssetMemoryBuffer buffer = Game::assetManager->GetFileAsBuffer((lxfmlPath).c_str());
+	auto file = Game::assetManager->GetFile((lxfmlPath).c_str());
 
-	if (!buffer.m_Success) {
-		return emptyCache;
-	}
-
-	std::istream file(&buffer);
-	if (!file.good()) {
+	if (!file) {
 		return emptyCache;
 	}
 
 	std::stringstream data;
 	data << file.rdbuf();
 	if (data.str().empty()) {
-		buffer.close();
 		return emptyCache;
 	}
-
-	buffer.close();
 
 	auto* doc = new tinyxml2::XMLDocument();
 	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {

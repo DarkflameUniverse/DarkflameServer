@@ -22,10 +22,8 @@ DonationVendorComponent::DonationVendorComponent(Entity* parent) : VendorCompone
 		return;
 	}
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::CreatePreppedStmt("SELECT SUM(primaryScore) as donation_total FROM leaderboard WHERE game_id = ?;"));
-	query->setInt(1, m_ActivityId);
-	std::unique_ptr<sql::ResultSet> donation_total(query->executeQuery());
-	if (donation_total->next()) m_TotalDonated = donation_total->getInt("donation_total");
+	auto donationTotal = Database::Get()->GetDonationTotal(m_ActivityId);
+	if (donationTotal) m_TotalDonated = donationTotal.value();
 	m_TotalRemaining = m_Goal - m_TotalDonated;
 	m_PercentComplete = m_TotalDonated/static_cast<float>(m_Goal);
 }
@@ -38,8 +36,8 @@ void DonationVendorComponent::SubmitDonation(uint32_t count) {
 	m_DirtyDonationVendor = true;
 }
 
-void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags) {
-	VendorComponent::Serialize(outBitStream, bIsInitialUpdate, flags);
+void DonationVendorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+	VendorComponent::Serialize(outBitStream, bIsInitialUpdate);
 	outBitStream->Write(bIsInitialUpdate || m_DirtyDonationVendor);
 	if (bIsInitialUpdate || m_DirtyDonationVendor) {
 		outBitStream->Write(m_PercentComplete);

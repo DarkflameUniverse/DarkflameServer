@@ -8,6 +8,11 @@ public:
 	dConfig(const std::string& filepath);
 
 	/**
+	 * Checks whether the specified filepath exists
+	 */
+	static const bool Exists(const std::string& filepath);
+
+	/**
 	 * Gets the specified key from the config.  Returns an empty string if the value is not found.
 	 *
 	 * @param key Key to find

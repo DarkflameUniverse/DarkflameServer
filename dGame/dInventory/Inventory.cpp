@@ -194,7 +194,7 @@ void Inventory::AddManagedItem(Item* item) {
 	const auto id = item->GetId();
 
 	if (items.find(id) != items.end()) {
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present id (%llu)!", id);
+		LOG("Attempting to add an item with an already present id (%llu)!", id);
 
 		return;
 	}
@@ -204,7 +204,7 @@ void Inventory::AddManagedItem(Item* item) {
 	const auto slot = item->GetSlot();
 
 	if (slots.find(slot) != slots.end()) {
-		Game::logger->Log("Inventory", "Attempting to add an item with an already present slot (%i)!", slot);
+		LOG("Attempting to add an item with an already present slot (%i)!", slot);
 
 		return;
 	}
@@ -218,7 +218,7 @@ void Inventory::RemoveManagedItem(Item* item) {
 	const auto id = item->GetId();
 
 	if (items.find(id) == items.end()) {
-		Game::logger->Log("Inventory", "Attempting to remove an item with an invalid id (%llu), lot (%i)!", id, item->GetLot());
+		LOG("Attempting to remove an item with an invalid id (%llu), lot (%i)!", id, item->GetLot());
 
 		return;
 	}
@@ -275,14 +275,14 @@ eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {
 }
 
 const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
-	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* registry = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
-	auto* itemComponents = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	auto* itemComponents = CDClientManager::GetTable<CDItemComponentTable>();
 
 	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 
 	if (componentId == 0) {
-		Game::logger->Log("Inventory", "Failed to find item component for (%i)!", lot);
+		LOG("Failed to find item component for (%i)!", lot);
 
 		return CDItemComponentTable::Default;
 	}
@@ -293,7 +293,7 @@ const CDItemComponent& Inventory::FindItemComponent(const LOT lot) {
 }
 
 bool Inventory::IsValidItem(const LOT lot) {
-	auto* registry = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* registry = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = registry->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 

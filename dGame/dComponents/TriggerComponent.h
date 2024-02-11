@@ -5,9 +5,9 @@
 #include "LUTriggers.h"
 #include "eReplicaComponentType.h"
 
-class TriggerComponent : public Component {
+class TriggerComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 

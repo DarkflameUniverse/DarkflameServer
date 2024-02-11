@@ -2,21 +2,19 @@
 #include "RakNetTypes.h"
 #include "Game.h"
 #include "User.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Character.h"
 #include "GeneralUtils.h"
 #include "dServer.h"
 #include "Spawner.h"
-#include "Player.h"
 #include "SkillComponent.h"
 #include "SwitchComponent.h"
 #include "UserManager.h"
-#include "PacketUtils.h"
 #include "Metrics.hpp"
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "MessageIdentifiers.h"
 #include "dConfig.h"
 #include "eTriggerEventType.h"
@@ -24,6 +22,8 @@
 #include "eGameMasterLevel.h"
 #include "eReplicaComponentType.h"
 #include "eReplicaPacketType.h"
+#include "PlayerManager.h"
+#include "GhostComponent.h"
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -47,10 +47,6 @@ std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
 
 // Configure some exceptions for ghosting, nessesary for some special objects.
 std::vector<LOT> EntityManager::m_GhostingExcludedLOTs = {
-	// NT - Pipes
-	9524,
-	12408,
-
 	// AG - Footrace
 	4967
 };
@@ -93,7 +89,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 		// Entities with no ID already set, often spawned entities, we'll generate a new sequencial ID
 		if (info.id == 0) {
-			id = ObjectIDManager::Instance()->GenerateObjectID();
+			id = ObjectIDManager::GenerateObjectID();
 		}
 
 		// Entities with an ID already set, often level entities, we'll use that ID as a base
@@ -121,14 +117,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 
 	info.id = id;
 
-	Entity* entity;
-
-	// Check if the entitty if a player, in case use the extended player entity class
-	if (user != nullptr) {
-		entity = new Player(id, info, user, parentEntity);
-	} else {
-		entity = new Entity(id, info, parentEntity);
-	}
+	Entity* entity = new Entity(id, info, user, parentEntity);
 
 	// Initialize the entity
 	entity->Initialize();
@@ -176,23 +165,25 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::SerializeEntities() {
-	for (auto entry = m_EntitiesToSerialize.begin(); entry != m_EntitiesToSerialize.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+		const LWOOBJID toSerialize = m_EntitiesToSerialize.at(i);
+		auto* entity = GetEntity(toSerialize);
 
 		if (!entity) continue;
 
 		m_SerializationCounter++;
 
 		RakNet::BitStream stream;
-		stream.Write(static_cast<char>(ID_REPLICA_MANAGER_SERIALIZE));
-		stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+		stream.Write<char>(ID_REPLICA_MANAGER_SERIALIZE);
+		stream.Write<unsigned short>(entity->GetNetworkId());
 
 		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
 		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
-			for (auto* player : Player::GetAllPlayers()) {
-				if (player->IsObserved(*entry)) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
+				auto* ghostComponent = player->GetComponent<GhostComponent>();
+				if (ghostComponent && ghostComponent->IsObserved(toSerialize)) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				}
 			}
@@ -204,11 +195,12 @@ void EntityManager::SerializeEntities() {
 }
 
 void EntityManager::KillEntities() {
-	for (auto entry = m_EntitiesToKill.begin(); entry != m_EntitiesToKill.end(); entry++) {
-		auto* entity = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
+		const LWOOBJID toKill = m_EntitiesToKill.at(i);
+		auto* entity = GetEntity(toKill);
 
 		if (!entity) {
-			Game::logger->Log("EntityManager", "Attempting to kill null entity %llu", *entry);
+			LOG("Attempting to kill null entity %llu", toKill);
 			continue;
 		}
 
@@ -222,8 +214,9 @@ void EntityManager::KillEntities() {
 }
 
 void EntityManager::DeleteEntities() {
-	for (auto entry = m_EntitiesToDelete.begin(); entry != m_EntitiesToDelete.end(); entry++) {
-		auto entityToDelete = GetEntity(*entry);
+	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+		const LWOOBJID toDelete = m_EntitiesToDelete.at(i);
+		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
 			// Get all this info first before we delete the player.
 			auto networkIdToErase = entityToDelete->GetNetworkId();
@@ -237,9 +230,9 @@ void EntityManager::DeleteEntities() {
 
 			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		} else {
-			Game::logger->Log("EntityManager", "Attempted to delete non-existent entity %llu", *entry);
+			LOG("Attempted to delete non-existent entity %llu", toDelete);
 		}
-		m_Entities.erase(*entry);
+		m_Entities.erase(toDelete);
 	}
 	m_EntitiesToDelete.clear();
 }
@@ -298,6 +291,16 @@ std::vector<Entity*> EntityManager::GetEntitiesByLOT(const LOT& lot) const {
 	return entities;
 }
 
+std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, float radius) const{
+	std::vector<Entity*> entities = {};
+	if (radius > 1000.0f) return entities;
+	for (const auto& entity : m_Entities) {
+		if (NiPoint3::Distance(reference, entity.second->GetPosition()) <= radius) entities.push_back(entity.second);
+	}
+	return entities;
+}
+
+
 Entity* EntityManager::GetZoneControlEntity() const {
 	return m_ZoneControlEntity;
 }
@@ -320,7 +323,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 
 void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
 	if (!entity) {
-		Game::logger->Log("EntityManager", "Attempted to construct null entity");
+		LOG("Attempted to construct null entity");
 		return;
 	}
 
@@ -357,9 +360,9 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 
 	RakNet::BitStream stream;
 
-	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_CONSTRUCTION));
+	stream.Write<char>(ID_REPLICA_MANAGER_CONSTRUCTION);
 	stream.Write(true);
-	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+	stream.Write<unsigned short>(entity->GetNetworkId());
 
 	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
 	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
@@ -368,19 +371,18 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		if (skipChecks) {
 			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		} else {
-			for (auto* player : Player::GetAllPlayers()) {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->GetPlayerReadyForUpdates()) {
 					Game::server->Send(&stream, player->GetSystemAddress(), false);
 				} else {
-					player->AddLimboConstruction(entity->GetObjectID());
+					auto* ghostComponent = player->GetComponent<GhostComponent>();
+					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
 				}
 			}
 		}
 	} else {
 		Game::server->Send(&stream, sysAddr, false);
 	}
-
-	// PacketUtils::SavePacket("[24]_"+std::to_string(entity->GetObjectID()) + "_" + std::to_string(m_SerializationCounter) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 
 	if (entity->IsPlayer()) {
 		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
@@ -399,7 +401,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 		}
 	}
 
-	UpdateGhosting(Player::GetPlayer(sysAddr));
+	UpdateGhosting(PlayerManager::GetPlayer(sysAddr));
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
@@ -407,14 +409,15 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	RakNet::BitStream stream;
 
-	stream.Write(static_cast<char>(ID_REPLICA_MANAGER_DESTRUCTION));
-	stream.Write(static_cast<unsigned short>(entity->GetNetworkId()));
+	stream.Write<char>(ID_REPLICA_MANAGER_DESTRUCTION);
+	stream.Write<unsigned short>(entity->GetNetworkId());
 
 	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
-	for (auto* player : Player::GetAllPlayers()) {
+	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {
-			player->RemoveLimboConstruction(entity->GetObjectID());
+			auto* ghostComponent = player->GetComponent<GhostComponent>();
+			if (ghostComponent) ghostComponent->RemoveLimboConstruction(entity->GetObjectID());
 		}
 	}
 }
@@ -425,8 +428,6 @@ void EntityManager::SerializeEntity(Entity* entity) {
 	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
 		m_EntitiesToSerialize.push_back(entity->GetObjectID());
 	}
-
-	//PacketUtils::SavePacket(std::to_string(m_SerializationCounter) + "_[27]_"+std::to_string(entity->GetObjectID()) + ".bin", (char*)stream.GetData(), stream.GetNumberOfBytesUsed());
 }
 
 void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {
@@ -461,7 +462,7 @@ void EntityManager::QueueGhostUpdate(LWOOBJID playerID) {
 
 void EntityManager::UpdateGhosting() {
 	for (const auto playerID : m_PlayersToUpdateGhosting) {
-		auto* player = Player::GetPlayer(playerID);
+		auto* player = PlayerManager::GetPlayer(playerID);
 
 		if (player == nullptr) {
 			continue;
@@ -473,19 +474,20 @@ void EntityManager::UpdateGhosting() {
 	m_PlayersToUpdateGhosting.clear();
 }
 
-void EntityManager::UpdateGhosting(Player* player) {
+void EntityManager::UpdateGhosting(Entity* player) {
 	if (player == nullptr) {
 		return;
 	}
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	auto* ghostComponent = player->GetComponent<GhostComponent>();
 
-	if (missionComponent == nullptr) {
+	if (missionComponent == nullptr || !ghostComponent) {
 		return;
 	}
 
-	const auto& referencePoint = player->GetGhostReferencePoint();
-	const auto isOverride = player->GetGhostOverride();
+	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
+	const auto isOverride = ghostComponent->GetGhostOverride();
 
 	for (auto* entity : m_EntitiesToGhost) {
 		const auto isAudioEmitter = entity->GetLOT() == 6368;
@@ -494,7 +496,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
@@ -506,7 +508,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 		}
 
 		if (observed && distance > ghostingDistanceMax && !isOverride) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
@@ -523,7 +525,7 @@ void EntityManager::UpdateGhosting(Player* player) {
 				}
 			}
 
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 
@@ -544,23 +546,26 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 	const auto isAudioEmitter = entity->GetLOT() == 6368;
 
-	for (auto* player : Player::GetAllPlayers()) {
-		const auto& entityPoint = player->GetGhostReferencePoint();
+	for (auto* player : PlayerManager::GetAllPlayers()) {
+		auto* ghostComponent = player->GetComponent<GhostComponent>();
+		if (!ghostComponent) continue;
+
+		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
 
 		const int32_t id = entity->GetObjectID();
 
-		const auto observed = player->IsObserved(id);
+		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
 		if (observed && distance > ghostingDistanceMax) {
-			player->GhostEntity(id);
+			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
 		} else if (!observed && ghostingDistanceMin > distance) {
-			player->ObserveEntity(id);
+			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
 
@@ -581,12 +586,6 @@ Entity* EntityManager::GetGhostCandidate(int32_t id) {
 
 bool EntityManager::GetGhostingEnabled() const {
 	return m_GhostingEnabled;
-}
-
-void EntityManager::ResetFlags() {
-	for (const auto& e : m_Entities) {
-		e.second->ResetFlags();
-	}
 }
 
 void EntityManager::ScheduleForKill(Entity* entity) {

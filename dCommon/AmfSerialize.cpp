@@ -1,7 +1,7 @@
 #include "AmfSerialize.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // Writes an AMFValue pointer to a RakNet::BitStream
 template<>
@@ -29,7 +29,7 @@ void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value) {
 		break;
 	}
 	default: {
-		Game::logger->Log("AmfSerialize", "Encountered unwritable AMFType %i!", type);
+		LOG("Encountered unwritable AMFType %i!", type);
 	}
 	case eAmf::Undefined:
 	case eAmf::Null:
@@ -54,17 +54,17 @@ void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value) {
  * RakNet writes in the correct byte order - do not reverse this.
  */
 void WriteUInt29(RakNet::BitStream* bs, uint32_t v) {
-	unsigned char b4 = (unsigned char)v;
+	unsigned char b4 = static_cast<unsigned char>(v);
 	if (v < 0x00200000) {
 		b4 = b4 & 0x7F;
 		if (v > 0x7F) {
 			unsigned char b3;
 			v = v >> 7;
-			b3 = ((unsigned char)(v)) | 0x80;
+			b3 = static_cast<unsigned char>(v) | 0x80;
 			if (v > 0x7F) {
 				unsigned char b2;
 				v = v >> 7;
-				b2 = ((unsigned char)(v)) | 0x80;
+				b2 = static_cast<unsigned char>(v) | 0x80;
 				bs->Write(b2);
 			}
 
@@ -76,11 +76,11 @@ void WriteUInt29(RakNet::BitStream* bs, uint32_t v) {
 		unsigned char b3;
 
 		v = v >> 8;
-		b3 = ((unsigned char)(v)) | 0x80;
+		b3 = static_cast<unsigned char>(v) | 0x80;
 		v = v >> 7;
-		b2 = ((unsigned char)(v)) | 0x80;
+		b2 = static_cast<unsigned char>(v) | 0x80;
 		v = v >> 7;
-		b1 = ((unsigned char)(v)) | 0x80;
+		b1 = static_cast<unsigned char>(v) | 0x80;
 
 		bs->Write(b1);
 		bs->Write(b2);
@@ -105,8 +105,8 @@ void WriteFlagNumber(RakNet::BitStream* bs, uint32_t v) {
  * RakNet writes in the correct byte order - do not reverse this.
  */
 void WriteAMFString(RakNet::BitStream* bs, const std::string& str) {
-	WriteFlagNumber(bs, (uint32_t)str.size());
-	bs->Write(str.c_str(), (uint32_t)str.size());
+	WriteFlagNumber(bs, static_cast<uint32_t>(str.size()));
+	bs->Write(str.c_str(), static_cast<uint32_t>(str.size()));
 }
 
 /**

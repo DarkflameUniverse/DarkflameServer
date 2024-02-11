@@ -1,7 +1,7 @@
 #ifndef RENDERCOMPONENT_H
 #define RENDERCOMPONENT_H
 
-#include <BitStream.h>
+#include "BitStream.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -17,7 +17,12 @@ class Entity;
  * here.
  */
 struct Effect {
-	Effect() { scale = 1.0f; }
+	explicit Effect(const int32_t effectID, const std::string& name, const std::u16string& type, const float priority = 1.0f) noexcept
+		: effectID{ effectID }
+		, name{ name }
+		, type{ type }
+		, priority{ priority } {
+	}
 
 	/**
 	 * The ID of the effect
@@ -35,9 +40,9 @@ struct Effect {
 	std::u16string type = u"";
 
 	/**
-	 * How scaled (enlarged) the effect is
+	 * The importantness of the effect
 	 */
-	float scale = 1.0f;
+	float priority = 1.0f;
 
 	/**
 	 * Some related entity that casted the effect
@@ -54,14 +59,13 @@ struct Effect {
  * Determines that a component should be visibly rendered into the world, most entities have this. This component
  * also handles effects that play for entities.
  */
-class RenderComponent : public Component {
+class RenderComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* entity, int32_t componentId = -1);
-	~RenderComponent() override;
+	RenderComponent(Entity* const parentEntity, const int32_t componentId = -1);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -69,9 +73,10 @@ public:
 	 * @param effectId the ID of the effect
 	 * @param name the name of the effect
 	 * @param type the type of the effect
+	 * @param priority the priority of the effect
 	 * @return if successful, the effect that was created
 	 */
-	Effect* AddEffect(int32_t effectId, const std::string& name, const std::u16string& type);
+	[[maybe_unused]] Effect& AddEffect(const int32_t effectId, const std::string& name, const std::u16string& type, const float priority);
 
 	/**
 	 * Removes an effect for this entity
@@ -99,35 +104,29 @@ public:
 	void StopEffect(const std::string& name, bool killImmediate = true);
 
 	/**
-	 * Returns the list of currently active effects
-	 * @return
-	 */
-	std::vector<Effect*>& GetEffects();
-
-	/**
 	 * Verifies that an animation can be played on this entity by checking
 	 * if it has the animation assigned to its group.  If it does, the animation is echo'd
 	 * down to all clients to be played and the duration of the played animation is returned.
 	 * If the animation did not exist or the function was called in an invalid state, 0 is returned.
-	 * 
+	 *
 	 * The logic here matches the exact client logic.
-	 * 
+	 *
 	 * @param self The entity that wants to play an animation
 	 * @param animation The animation_type (animationID in the client) to be played.
 	 * @param sendAnimation Whether or not to echo the animation down to all clients.
 	 * @param priority The priority of the animation.  Only used if sendAnimation is true.
 	 * @param scale	The scale of the animation.  Only used if sendAnimation is true.
-	 * 
+	 *
 	 * @return The duration of the animation that was played.
 	 */
 	static float DoAnimation(Entity* self, const std::string& animation, bool sendAnimation, float priority = 0.0f, float scale = 1.0f);
 
 	static float PlayAnimation(Entity* self, const std::u16string& animation, float priority = 0.0f, float scale = 1.0f);
 	static float PlayAnimation(Entity* self, const std::string& animation, float priority = 0.0f, float scale = 1.0f);
-	static float GetAnimationTime(Entity* self, const std::string& animation);
-	static float GetAnimationTime(Entity* self, const std::u16string& animation);
+	[[nodiscard]] static float GetAnimationTime(Entity* self, const std::string& animation);
+	[[nodiscard]] static float GetAnimationTime(Entity* self, const std::u16string& animation);
 
-	const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
+	[[nodiscard]] const std::string& GetLastAnimationName() const { return m_LastAnimationName; };
 	void SetLastAnimationName(const std::string& name) { m_LastAnimationName = name; };
 
 private:
@@ -135,7 +134,7 @@ private:
 	/**
 	 * List of currently active effects
 	 */
-	std::vector<Effect*> m_Effects;
+	std::vector<Effect> m_Effects;
 
 	std::vector<int32_t> m_animationGroupIds;
 

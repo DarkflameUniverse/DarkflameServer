@@ -2,9 +2,9 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "InventoryComponent.h"
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Item.h"
 #include "Character.h"
 #include "CharacterComponent.h"
@@ -67,7 +67,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 	if (participant == m_ParticipantA) {
 		m_AcceptedA = !value;
 
-		Game::logger->Log("Trade", "Accepted from A (%d), B: (%d)", value, m_AcceptedB);
+		LOG("Accepted from A (%d), B: (%d)", value, m_AcceptedB);
 
 		auto* entityB = GetParticipantBEntity();
 
@@ -77,7 +77,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 	} else if (participant == m_ParticipantB) {
 		m_AcceptedB = !value;
 
-		Game::logger->Log("Trade", "Accepted from B (%d), A: (%d)", value, m_AcceptedA);
+		LOG("Accepted from B (%d), A: (%d)", value, m_AcceptedA);
 
 		auto* entityA = GetParticipantAEntity();
 
@@ -125,7 +125,7 @@ void Trade::Complete() {
 
 	// First verify both players have the coins and items requested for the trade.
 	if (characterA->GetCoins() < m_CoinsA || characterB->GetCoins() < m_CoinsB) {
-		Game::logger->Log("TradingManager", "Possible coin trade cheating attempt! Aborting trade.");
+		LOG("Possible coin trade cheating attempt! Aborting trade.");
 		return;
 	}
 
@@ -133,11 +133,11 @@ void Trade::Complete() {
 		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
-				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
+				LOG("Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
 				return;
 			}
 		} else {
-			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
+			LOG("Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
 			return;
 		}
 	}
@@ -146,11 +146,11 @@ void Trade::Complete() {
 		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
-				Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
+				LOG("Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
 				return;
 			}
 		} else {
-			Game::logger->Log("TradingManager", "Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
+			LOG("Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
 			return;
 		}
 	}
@@ -194,7 +194,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 	uint64_t coins;
 	std::vector<TradeItem> itemIds;
 
-	Game::logger->Log("Trade", "Attempting to send trade update");
+	LOG("Attempting to send trade update");
 
 	if (participant == m_ParticipantA) {
 		other = GetParticipantBEntity();
@@ -228,7 +228,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 		items.push_back(tradeItem);
 	}
 
-	Game::logger->Log("Trade", "Sending trade update");
+	LOG("Sending trade update");
 
 	GameMessages::SendServerTradeUpdate(other->GetObjectID(), coins, items, other->GetSystemAddress());
 }
@@ -273,13 +273,13 @@ void TradingManager::CancelTrade(LWOOBJID tradeId) {
 }
 
 Trade* TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
-	const LWOOBJID tradeId = ObjectIDManager::Instance()->GenerateObjectID();
+	const LWOOBJID tradeId = ObjectIDManager::GenerateObjectID();
 
 	auto* trade = new Trade(tradeId, participantA, participantB);
 
 	trades[tradeId] = trade;
 
-	Game::logger->Log("TradingManager", "Created new trade between (%llu) <-> (%llu)", participantA, participantB);
+	LOG("Created new trade between (%llu) <-> (%llu)", participantA, participantB);
 
 	return trade;
 }

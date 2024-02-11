@@ -2,8 +2,9 @@
 #define __GAMEDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
+#include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"

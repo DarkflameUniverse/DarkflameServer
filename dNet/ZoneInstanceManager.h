@@ -1,13 +1,11 @@
 #pragma once
 
-// C++
-#define _VARIADIC_MAX 10
 #include <functional>
 #include <vector>
 #include <string>
 
 // RakNet
-#include <RakNetTypes.h>
+#include "RakNetTypes.h"
 
 class dServer;
 
@@ -56,7 +54,7 @@ public:
 	  \param requestID The request ID
 	  \param packet The packet
 	 */
-	void HandleRequestZoneTransferResponse(uint64_t requestID, Packet* packet);
+	void HandleRequestZoneTransferResponse(Packet* packet);
 
 	void CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password);
 

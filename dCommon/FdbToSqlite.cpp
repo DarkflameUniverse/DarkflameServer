@@ -9,7 +9,7 @@
 #include "CDClientDatabase.h"
 #include "GeneralUtils.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "AssetManager.h"
 
 #include "eSqliteDataType.h"
@@ -28,10 +28,8 @@ FdbToSqlite::Convert::Convert(std::string binaryOutPath) {
 	this->m_BinaryOutPath = binaryOutPath;
 }
 
-bool FdbToSqlite::Convert::ConvertDatabase(AssetMemoryBuffer& buffer) {
+bool FdbToSqlite::Convert::ConvertDatabase(AssetStream& buffer) {
 	if (m_ConversionStarted) return false;
-
-	std::istream cdClientBuffer(&buffer);
 
 	this->m_ConversionStarted = true;
 	try {
@@ -39,12 +37,12 @@ bool FdbToSqlite::Convert::ConvertDatabase(AssetMemoryBuffer& buffer) {
 
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 
-		int32_t numberOfTables = ReadInt32(cdClientBuffer);
-		ReadTables(numberOfTables, cdClientBuffer);
+		int32_t numberOfTables = ReadInt32(buffer);
+		ReadTables(numberOfTables, buffer);
 
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	} catch (CppSQLite3Exception& e) {
-		Game::logger->Log("FdbToSqlite", "Encountered error %s converting FDB to SQLite", e.errorMessage());
+		LOG("Encountered error %s converting FDB to SQLite", e.errorMessage());
 		return false;
 	}
 

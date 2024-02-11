@@ -1,6 +1,6 @@
 /*
  * Darkflame Universe
- * Copyright 2018
+ * Copyright 2024
  */
 
 #ifndef SKILLCOMPONENT_H
@@ -12,7 +12,7 @@
 #include "BitStream.h"
 #include "Component.h"
 #include "Entity.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "eReplicaComponentType.h"
 
 struct ProjectileSyncEntry {
@@ -55,16 +55,16 @@ struct SkillExecutionResult {
  *
  * Skills are a built up by a tree of behaviors. See dGame/dBehaviors/ for a list of behaviors.
  *
- * This system is very conveluted and still has a lot of unknowns.
+ * This system is very convoluted and still has a lot of unknowns.
  */
-class SkillComponent : public Component {
+class SkillComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
 	explicit SkillComponent(Entity* parent);
 	~SkillComponent() override;
 
-	static void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Computes skill updates. Invokes CalculateUpdate.

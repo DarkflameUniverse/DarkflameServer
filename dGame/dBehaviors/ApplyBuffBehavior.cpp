@@ -15,7 +15,7 @@ void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	if (buffComponent == nullptr) return;
 
 	buffComponent->ApplyBuff(m_BuffId, m_Duration, context->originator, addImmunity, cancelOnDamaged, cancelOnDeath,
-		cancelOnLogout, cancelonRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone);
+		cancelOnLogout, cancelonRemoveBuff, cancelOnUi, cancelOnUnequip, cancelOnZone, m_ApplyOnTeammates);
 }
 
 void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
@@ -45,4 +45,5 @@ void ApplyBuffBehavior::Load() {
 	cancelOnUi = GetBoolean("cancel_on_ui");
 	cancelOnUnequip = GetBoolean("cancel_on_unequip");
 	cancelOnZone = GetBoolean("cancel_on_zone");
+	m_ApplyOnTeammates = GetBoolean("apply_on_teammates");
 }

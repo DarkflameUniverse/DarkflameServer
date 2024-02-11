@@ -80,6 +80,8 @@ target_compile_options(raknet PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         /w>)
 
+set_property(TARGET raknet PROPERTY CXX_STANDARD 17)
+
 if(WIN32)
         # Link Win Sockets 2 to RakNet
 	target_link_libraries(raknet ws2_32)

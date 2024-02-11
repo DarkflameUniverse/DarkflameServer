@@ -30,13 +30,13 @@ struct OfferedMission {
 	 * Returns if this mission is offered by the entity
 	 * @return true if this mission is offered by the entity, false otherwise
 	 */
-	bool GetOfferMission() const;
+	bool GetOffersMission() const;
 
 	/**
 	 * Returns if this mission may be accepted by the entity (currently unused)
 	 * @return true if this mission may be accepted by the entity, false otherwise
 	 */
-	bool GetAcceptMission() const;
+	bool GetAcceptsMission() const;
 
 private:
 
@@ -59,12 +59,11 @@ private:
 /**
  * Allows entities to offer missions to other entities, depending on their mission inventory progression.
  */
-class MissionOfferComponent : public Component {
+class MissionOfferComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
 	MissionOfferComponent(Entity* parent, LOT parentLot);
-	~MissionOfferComponent() override;
 
 	/**
 	 * Handles the OnUse event triggered by some entity, determines which missions to show based on what they may
@@ -85,7 +84,7 @@ private:
 	/**
 	 * The missions this entity has to offer
 	 */
-	std::vector<OfferedMission*> offeredMissions;
+	std::vector<OfferedMission> offeredMissions;
 };
 
 #endif // MISSIONOFFERCOMPONENT_H

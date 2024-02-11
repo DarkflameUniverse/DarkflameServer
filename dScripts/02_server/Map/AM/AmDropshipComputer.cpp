@@ -1,6 +1,6 @@
 #include "AmDropshipComputer.h"
 #include "MissionComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
 #include "eMissionState.h"
@@ -10,18 +10,14 @@ void AmDropshipComputer::OnStartup(Entity* self) {
 }
 
 void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr || rebuildComponent->GetState() != eRebuildState::COMPLETED) {
-		return;
-	}
+	if (!quickBuildComponent || quickBuildComponent->GetState() != eQuickBuildState::COMPLETED) return;
 
 	auto* missionComponent = user->GetComponent<MissionComponent>();
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 
-	if (missionComponent == nullptr || inventoryComponent == nullptr) {
-		return;
-	}
+	if (!missionComponent || !inventoryComponent) return;
 
 	if (inventoryComponent->GetLotCount(m_NexusTalonDataCard) != 0 || missionComponent->GetMission(979)->GetMissionState() == eMissionState::COMPLETE) {
 		return;
@@ -33,14 +29,12 @@ void AmDropshipComputer::OnUse(Entity* self, Entity* user) {
 void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
-	int32_t pipeNum = 0;
-	if (!GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1), pipeNum)) {
-		return;
-	}
+	const auto pipeNum = GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1));
+	if (!pipeNum) return;
 
 	const auto pipeGroup = myGroup.substr(0, 10);
 
-	const auto nextPipeNum = pipeNum + 1;
+	const auto nextPipeNum = pipeNum.value() + 1;
 
 	const auto samePipeSpawners = Game::zoneManager->GetSpawnersByName(myGroup);
 
@@ -70,13 +64,11 @@ void AmDropshipComputer::OnDie(Entity* self, Entity* killer) {
 }
 
 void AmDropshipComputer::OnTimerDone(Entity* self, std::string timerName) {
-	auto* rebuildComponent = self->GetComponent<RebuildComponent>();
+	const auto* const quickBuildComponent = self->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent == nullptr) {
-		return;
-	}
+	if (!quickBuildComponent) return;
 
-	if (timerName == "reset" && rebuildComponent->GetState() == eRebuildState::OPEN) {
+	if (timerName == "reset" && quickBuildComponent->GetState() == eQuickBuildState::OPEN) {
 		self->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }

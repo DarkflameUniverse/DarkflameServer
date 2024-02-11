@@ -1,6 +1,6 @@
 #include "AgQbWall.h"
 
-void AgQbWall::OnRebuildComplete(Entity* self, Entity* player) {
+void AgQbWall::OnQuickBuildComplete(Entity* self, Entity* player) {
 	self->SetVar(u"player", player->GetObjectID());
 	auto targetWallSpawners = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner"));
 	if (targetWallSpawners != "") {

@@ -53,7 +53,7 @@ bool _IsSuffixChar(uint8_t c) {
 bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 	size_t rem = slice.length();
 	if (slice.empty()) return false;
-	const uint8_t* bytes = (const uint8_t*)&slice.front();
+	const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&slice.front());
 	if (rem > 0) {
 		uint8_t first = bytes[0];
 		if (first < 0x80) { // 1 byte character
@@ -318,8 +318,4 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 	}
 
 	return sortedFiles;
-}
-
-bool GeneralUtils::TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst) {
-	return TryParse<float>(x.c_str(), dst.x) && TryParse<float>(y.c_str(), dst.y) && TryParse<float>(z.c_str(), dst.z);
 }

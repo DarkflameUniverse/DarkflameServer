@@ -17,13 +17,14 @@ void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryPara
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate, uint32_t& flags) const {
+void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate) {
 	// Start ScriptedActivityComponent
 	outBitStream->Write<bool>(true);
 	if (m_CurrentPlayerID == LWOOBJID_EMPTY) {
 		outBitStream->Write<uint32_t>(0);
 	} else {
 		outBitStream->Write<uint32_t>(1);
+		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
 		for (size_t i = 0; i < 10; i++) {
 			outBitStream->Write<float_t>(0.0f);
 		}
@@ -60,6 +61,7 @@ void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool i
 		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
 		outBitStream->Write<float_t>(m_DynamicParams.cannonTimeout);
 		outBitStream->Write<float_t>(m_DynamicParams.cannonFOV);
+		if (!isInitialUpdate) m_Dirty = false;
 	}
 }
 

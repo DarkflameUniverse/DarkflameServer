@@ -4,18 +4,31 @@
 #define __CONTROLBEHAVIORS__H__
 
 #include <map>
+#include <optional>
 #include <string>
 
+#include "BlockDefinition.h"
 #include "Singleton.h"
 
 class AMFArrayValue;
-class BlockDefinition;
 class Entity;
 class ModelComponent;
 class SystemAddress;
 
 // Type definition to clarify what is used where
 typedef std::string BlockName;					//! A block name
+
+struct ControlBehaviorContext {
+	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) : arguments(args), modelComponent(modelComponent), modelOwner(modelOwner) {};
+
+	operator bool() const {
+		return arguments != nullptr && modelComponent != nullptr && modelOwner != nullptr;
+	}
+
+	AMFArrayValue* arguments;
+	Entity* modelOwner;
+	ModelComponent* modelComponent;
+};
 
 class ControlBehaviors: public Singleton<ControlBehaviors> {
 public:
@@ -39,27 +52,13 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	BlockDefinition* GetBlockInfo(const BlockName& blockName);
+	std::optional<BlockDefinition> GetBlockInfo(const BlockName& blockName);
 private:
-	void RequestUpdatedID(int32_t behaviorID, ModelComponent* modelComponent, Entity* modelOwner, const SystemAddress& sysAddr);
-	void SendBehaviorListToClient(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner);
-	void ModelTypeChanged(AMFArrayValue* arguments, ModelComponent* ModelComponent);
-	void ToggleExecutionUpdates();
-	void AddStrip(AMFArrayValue* arguments);
-	void RemoveStrip(AMFArrayValue* arguments);
-	void MergeStrips(AMFArrayValue* arguments);
-	void SplitStrip(AMFArrayValue* arguments);
-	void UpdateStripUI(AMFArrayValue* arguments);
-	void AddAction(AMFArrayValue* arguments);
-	void MigrateActions(AMFArrayValue* arguments);
-	void RearrangeStrip(AMFArrayValue* arguments);
-	void Add(AMFArrayValue* arguments);
-	void RemoveActions(AMFArrayValue* arguments);
-	void Rename(Entity* modelEntity, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	void SendBehaviorBlocksToClient(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
+	void RequestUpdatedID(ControlBehaviorContext& context);
+	void SendBehaviorListToClient(const ControlBehaviorContext& context);
+	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
 	void UpdateAction(AMFArrayValue* arguments);
-	void MoveToInventory(ModelComponent* modelComponent, const SystemAddress& sysAddr, Entity* modelOwner, AMFArrayValue* arguments);
-	std::map<BlockName, BlockDefinition*> blockTypes{};
+	std::map<BlockName, BlockDefinition> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.
 	bool isInitialized = false;

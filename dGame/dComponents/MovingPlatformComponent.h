@@ -158,9 +158,9 @@ public:
  * don't at all do what you expect them to as we don't instruct the client of changes made here.
  * ^^^ Trivia: This made the red blocks platform and property platforms a pain to implement.
  */
-class MovingPlatformComponent : public Component {
+class MovingPlatformComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 
@@ -168,17 +168,17 @@ public:
 	void LoadConfigData();
 	void Update(float deltaTime) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Stops all pathing, called when an entity starts a quick build associated with this platform
 	 */
-	void OnRebuildInitilized();
+	void OnQuickBuildInitilized();
 
 	/**
 	 * Starts the pathing, called when an entity completed a quick build associated with this platform
 	 */
-	void OnCompleteRebuild();
+	void OnCompleteQuickBuild();
 
 	/**
 	 * Updates the movement state for the moving platform

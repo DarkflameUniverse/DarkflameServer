@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
@@ -133,9 +133,9 @@ void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
 
 void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse) {
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
-	Game::logger->Log("MovingPlatformComponent", "setting up path %s", pathName.c_str());
+	LOG("setting up path %s", pathName.c_str());
 	if (!m_Path) {
-		Game::logger->Log("MovingPlatformComponent", "Failed to find path (%s)", pathName.c_str());
+		LOG("Failed to find path (%s)", pathName.c_str());
 		return;
 	}
 	m_InReverse = startsInReverse;
@@ -366,7 +366,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	outBitStream->Write0(); // No more platforms to write
 }
 
-void MovingPlatformComponent::OnRebuildInitilized() {
+void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
 }
 

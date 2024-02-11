@@ -1,14 +1,13 @@
 #pragma once
 
-#include "../thirdparty/tinyxml2/tinyxml2.h"
+#include "tinyxml2.h"
 
 class Entity;
 
 /**
  * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.
  */
-class Component
-{
+class Component {
 public:
 	Component(Entity* parent);
 	virtual ~Component();
@@ -42,6 +41,8 @@ public:
 	 * @param doc the document to read data from
 	 */
 	virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
+
+	virtual void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
 
 protected:
 

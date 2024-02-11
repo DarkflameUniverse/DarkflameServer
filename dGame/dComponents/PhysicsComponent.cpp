@@ -1,0 +1,21 @@
+#include "PhysicsComponent.h"
+
+PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
+	m_Position = NiPoint3Constant::ZERO;
+	m_Rotation = NiQuaternionConstant::IDENTITY;
+	m_DirtyPosition = false;
+}
+
+void PhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+	outBitStream->Write(bIsInitialUpdate || m_DirtyPosition);
+	if (bIsInitialUpdate || m_DirtyPosition) {
+		outBitStream->Write(m_Position.x);
+		outBitStream->Write(m_Position.y);
+		outBitStream->Write(m_Position.z);
+		outBitStream->Write(m_Rotation.x);
+		outBitStream->Write(m_Rotation.y);
+		outBitStream->Write(m_Rotation.z);
+		outBitStream->Write(m_Rotation.w);
+		if (!bIsInitialUpdate) m_DirtyPosition = false;
+	}
+}

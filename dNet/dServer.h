@@ -1,10 +1,11 @@
 #pragma once
 #include <string>
+#include <csignal>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
 #include "NetworkIDManager.h"
 
-class dLogger;
+class Logger;
 class dConfig;
 enum class eServerDisconnectIdentifiers : uint32_t;
 
@@ -14,6 +15,18 @@ enum class ServerType : uint32_t {
 	Chat,
 	World
 };
+
+enum class ServiceId : uint32_t{
+	General = 0,
+	Auth = 1,
+	Chat = 2,
+	World = 4,
+	Client = 5,
+};
+
+namespace Game {
+	using signal_t = volatile std::sig_atomic_t;
+}
 
 class dServer {
 public:
@@ -26,12 +39,12 @@ public:
 		int maxConnections,
 		bool isInternal,
 		bool useEncryption,
-		dLogger* logger,
+		Logger* logger,
 		const std::string masterIP,
 		int masterPort,
 		ServerType serverType,
 		dConfig* config,
-		bool* shouldShutdown,
+		Game::signal_t* shouldShutdown,
 		unsigned int zoneID = 0);
 	~dServer();
 
@@ -51,7 +64,7 @@ public:
 	const bool GetIsEncrypted() const { return mUseEncryption; }
 	const bool GetIsInternal() const { return mIsInternal; }
 	const bool GetIsOkay() const { return mIsOkay; }
-	dLogger* GetLogger() const { return mLogger; }
+	Logger* GetLogger() const { return mLogger; }
 	const bool GetIsConnectedToMaster() const { return mMasterConnectionActive; }
 	const unsigned int GetZoneID() const { return mZoneID; }
 	const int GetInstanceID() const { return mInstanceID; }
@@ -74,16 +87,16 @@ private:
 	bool ConnectToMaster();
 
 private:
-	dLogger* mLogger = nullptr;
+	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
 	ReplicaManager* mReplicaManager = nullptr;
 	NetworkIDManager* mNetIDManager = nullptr;
 
 	/**
-	 * Whether or not to shut down the server.  Pointer to Game::shouldShutdown.
+	 * Whether or not to shut down the server.  Pointer to Game::lastSignal.
 	 */
-	bool* mShouldShutdown = nullptr;
+	Game::signal_t* mShouldShutdown = nullptr;
 	SocketDescriptor mSocketDescriptor;
 	std::string mIP;
 	int mPort;

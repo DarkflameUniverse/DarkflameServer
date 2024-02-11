@@ -16,6 +16,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 
+#include "dNavMesh.h"
+
 namespace {
 	/**
 	 * Cache of all lots and their respective speeds
@@ -41,7 +43,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_NextWaypoint = m_Parent->GetPosition();
 	m_Acceleration = 0.4f;
 	m_PullingToPoint = false;
-	m_PullPoint = NiPoint3::ZERO;
+	m_PullPoint = NiPoint3Constant::ZERO;
 	m_HaltDistance = 0;
 	m_TimeToTravel = 0;
 	m_TimeTravelled = 0;
@@ -86,7 +88,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	SetPosition(source);
 
-	NiPoint3 velocity = NiPoint3::ZERO;
+	NiPoint3 velocity = NiPoint3Constant::ZERO;
 
 	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
@@ -169,8 +171,8 @@ NiPoint3 MovementAIComponent::ApproximateLocation() const {
 
 	auto approximation = source + ((destination - source) * percentageToWaypoint);
 
-	if (dpWorld::Instance().IsLoaded()) {
-		approximation.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(approximation);
+	if (dpWorld::IsLoaded()) {
+		approximation.y = dpWorld::GetNavMesh()->GetHeightAtPoint(approximation);
 	}
 
 	return approximation;
@@ -181,8 +183,8 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 
 	NiPoint3 destination = point;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(point);
 
 		if (std::abs(destination.y - point.y) > 3) {
 			return false;
@@ -201,7 +203,7 @@ void MovementAIComponent::Stop() {
 
 	SetPosition(ApproximateLocation());
 
-	SetVelocity(NiPoint3::ZERO);
+	SetVelocity(NiPoint3Constant::ZERO);
 
 	m_TimeToTravel = 0;
 	m_TimeTravelled = 0;
@@ -242,8 +244,8 @@ float MovementAIComponent::GetBaseSpeed(LOT lot) {
 		return it->second;
 	}
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	int32_t componentID;
 	CDPhysicsComponent* physicsComponent = nullptr;
@@ -302,8 +304,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	}
 
 	std::vector<NiPoint3> computedPath;
-	if (dpWorld::Instance().IsLoaded()) {
-		computedPath = dpWorld::Instance().GetNavMesh()->GetPath(m_Parent->GetPosition(), destination, m_Info.wanderSpeed);
+	if (dpWorld::IsLoaded()) {
+		computedPath = dpWorld::GetNavMesh()->GetPath(m_Parent->GetPosition(), destination, m_Info.wanderSpeed);
 	}
 
 	// Somehow failed
@@ -328,8 +330,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 
 	// Simply path
 	for (auto& point : computedPath) {
-		if (dpWorld::Instance().IsLoaded()) {
-			point.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(point);
+		if (dpWorld::IsLoaded()) {
+			point.y = dpWorld::GetNavMesh()->GetHeightAtPoint(point);
 		}
 
 		m_InterpolatedWaypoints.push_back(point);

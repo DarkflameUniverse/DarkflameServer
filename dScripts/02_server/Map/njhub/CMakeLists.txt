@@ -28,4 +28,11 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB_BOSS_INSTANCE})
 	set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB} "boss_instance/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB} PARENT_SCOPE)
+add_library(dScriptsServerMapNJHub ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB})
+target_include_directories(dScriptsServerMapNJHub PUBLIC "." "boss_instance")
+target_link_libraries(dScriptsServerMapNJHub
+	dScriptsServerPets 
+	dScriptsServerMapAM
+	dScriptsServerMapGeneral
+)
+target_precompile_headers(dScriptsServerMapNJHub REUSE_FROM dScriptsBase)

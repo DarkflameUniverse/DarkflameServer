@@ -11,8 +11,9 @@ class StripUiPosition {
 public:
 	StripUiPosition();
 	StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName = "ui");
-	double GetX() { return xPosition; };
-	double GetY() { return yPosition; };
+	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
+	double GetX() const { return xPosition; };
+	double GetY() const { return yPosition; };
 private:
 	double xPosition;
 	double yPosition;

@@ -19,7 +19,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillSetWith2, skillSetWith3, skillSetWith4, skillSetWith5, skillSetWith6, itemIDs FROM ItemSets WHERE setID = ?;");
-	query.bind(1, (int)id);
+	query.bind(1, static_cast<int>(id));
 
 	auto result = query.execQuery();
 
@@ -87,10 +87,8 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 	m_Items = {};
 
 	while (std::getline(stream, token, ',')) {
-		int32_t value;
-		if (GeneralUtils::TryParse(token, value)) {
-			m_Items.push_back(value);
-		}
+		const auto validToken = GeneralUtils::TryParse<int32_t>(token);
+		if (validToken) m_Items.push_back(validToken.value());
 	}
 
 	m_Equipped = {};
@@ -129,7 +127,7 @@ void ItemSet::OnEquip(const LOT lot) {
 	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		auto* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 
@@ -161,7 +159,7 @@ void ItemSet::OnUnEquip(const LOT lot) {
 	const auto& skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
 
 	for (const auto skill : skillSet) {
-		auto* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		auto* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 
 		const auto behaviorId = skillTable->GetSkillByID(skill).behaviorID;
 

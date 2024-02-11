@@ -10,14 +10,14 @@
 /**
  * Attached to bouncer entities, allowing other entities to bounce off of it
  */
-class BouncerComponent : public Component {
+class BouncerComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
 	BouncerComponent(Entity* parentEntity);
 	~BouncerComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	Entity* GetParentEntity() const;
 

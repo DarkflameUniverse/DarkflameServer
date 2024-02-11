@@ -103,15 +103,15 @@ struct RacingPlayerInfo {
 /**
  * Component that's attached to a manager entity in each race zone that loads player vehicles, keep scores, etc.
  */
-class RacingControlComponent : public Component {
+class RacingControlComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_CONTROL;
 
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
-	void Update(float deltaTime);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Update(float deltaTime) override;
 
 	/**
 	 * Invoked when a player loads into the zone.
@@ -150,13 +150,6 @@ public:
 	 * Get the racing data from a player's LWOOBJID.
 	 */
 	RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
-
-	/**
-	 * Formats a time to a string, currently unused
-	 * @param time the time to format
-	 * @return the time formatted as string
-	 */
-	static std::string FormatTimeString(time_t time);
 
 private:
 
@@ -251,4 +244,5 @@ private:
 	 * Value for message box response to know if we are exiting the race via the activity dialogue
 	 */
 	const int32_t m_ActivityExitConfirm = 1;
+	bool m_AllPlayersReady = false;
 };

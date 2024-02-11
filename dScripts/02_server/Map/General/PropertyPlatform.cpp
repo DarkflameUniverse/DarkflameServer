@@ -1,5 +1,5 @@
 #include "PropertyPlatform.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "GameMessages.h"
 #include "MovingPlatformComponent.h"
 

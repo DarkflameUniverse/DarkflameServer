@@ -7,48 +7,44 @@ set(DSCRIPTS_SOURCES
 	"BaseWavesGenericEnemy.cpp"
 	"BaseWavesServer.cpp"
 	"ChooseYourDestinationNsToNt.cpp"
-	"CppScripts.cpp"
 	"Darkitect.cpp"
+	"InvalidScript.cpp"
 	"NPCAddRemoveItem.cpp"
 	"NtFactionSpyServer.cpp"
 	"ScriptComponent.cpp"
 	"ScriptedPowerupSpawner.cpp"
 	"SpawnPetBaseServer.cpp")
 
+link_libraries(dDatabase dPhysics)
+
+add_library(dScriptsBase STATIC ${DSCRIPTS_SOURCES})
+target_include_directories(dScriptsBase PUBLIC .)
+target_link_libraries(dScriptsBase
+	INTERFACE dGameBase)
+target_precompile_headers(dScriptsBase PRIVATE ${HEADERS_DGAME})
+
+include_directories(
+	${PROJECT_SOURCE_DIR}/dScripts
+	${PROJECT_SOURCE_DIR}/dGame
+)
+link_libraries(dScriptsBase)
+# dComponents
+
 add_subdirectory(02_server)
-
-foreach(file ${DSCRIPTS_SOURCES_02_SERVER})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "02_server/${file}")
-endforeach()
-
 add_subdirectory(ai)
-
-foreach(file ${DSCRIPTS_SOURCES_AI})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "ai/${file}")
-endforeach()
-
 add_subdirectory(client)
-
-foreach(file ${DSCRIPTS_SOURCES_CLIENT})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "client/${file}")
-endforeach()
-
 add_subdirectory(EquipmentScripts)
-
-foreach(file ${DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "EquipmentScripts/${file}")
-endforeach()
-
 add_subdirectory(EquipmentTriggers)
-
-foreach(file ${DSCRIPTS_SOURCES_EQUIPMENTTRIGGERSSCRIPTS})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "EquipmentTriggers/${file}")
-endforeach()
-
 add_subdirectory(zone)
 
-foreach(file ${DSCRIPTS_SOURCES_ZONE})
-	set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} "zone/${file}")
-endforeach()
-
-set(DSCRIPTS_SOURCES ${DSCRIPTS_SOURCES} PARENT_SCOPE)
+add_library(dScripts STATIC "CppScripts.cpp")
+target_precompile_headers(dScripts REUSE_FROM dScriptsBase)
+target_include_directories(dScripts PUBLIC ".")
+target_link_libraries(dScripts
+	dScriptsBase
+	dScriptsServer
+	dScriptsAI
+	dScriptsClient
+	dScriptsEquipmentScripts
+	dScriptsEquipmentTriggers
+	dScriptsZone)

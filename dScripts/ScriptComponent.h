@@ -17,14 +17,14 @@ class Entity;
  * Handles the loading and execution of server side scripts on entities, scripts were originally written in Lua,
  * here they're written in C++
  */
-class ScriptComponent : public Component {
+class ScriptComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
 	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
 	~ScriptComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the script that's attached to this entity

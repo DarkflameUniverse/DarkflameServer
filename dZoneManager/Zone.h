@@ -18,6 +18,11 @@ struct SceneRef {
 	uint32_t id;
 	uint32_t sceneType; //0 = general, 1 = audio?
 	std::string name;
+	NiPoint3 unknown1;
+	float unknown2;
+	uint8_t color_r;
+	uint8_t color_g;
+	uint8_t color_b;
 	Level* level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
@@ -101,7 +106,7 @@ enum class PropertyType : int32_t {
 	Headspace = 3
 };
 
-enum class PropertyRentalTimeUnit : int32_t {
+enum class PropertyRentalPeriod : uint32_t {
 	Forever = 0,
 	Seconds = 1,
 	Minutes = 2,
@@ -112,7 +117,7 @@ enum class PropertyRentalTimeUnit : int32_t {
 	Years = 7
 };
 
-enum class PropertyAchievmentRequired : int32_t {
+enum class PropertyAchievmentRequired : uint32_t {
 	None = 0,
 	Builder = 1,
 	Craftsman = 2,
@@ -134,14 +139,17 @@ struct MovingPlatformPath {
 struct PropertyPath {
 	PropertyPathType pathType;
 	int32_t price;
-	PropertyRentalTimeUnit rentalTimeUnit;
+	uint32_t rentalTime;
 	uint64_t associatedZone;
 	std::string displayName;
 	std::string displayDesc;
 	PropertyType type;
-	int32_t cloneLimit;
+	uint32_t cloneLimit;
 	float repMultiplier;
+	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
+
+	// Player respawn coordinates in the main zone (not the property zone)
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
 };
@@ -177,15 +185,17 @@ struct Path {
 
 class Zone {
 public:
-	enum class ZoneFileFormatVersion : uint32_t { //Times are guessed.
-		PreAlpha = 0x20,
-		EarlyAlpha = 0x23,
-		Alpha = 0x24,
-		LateAlpha = 0x25,
-		Beta = 0x26,
-		Launch = 0x27,
-		Auramar = 0x28,
-		Latest = 0x29
+	enum class FileFormatVersion : uint32_t { //Times are guessed.
+		PrePreAlpha = 30,
+		PreAlpha = 32,
+		LatePreAlpha = 33,
+		EarlyAlpha = 35,
+		Alpha = 36,
+		LateAlpha = 37,
+		Beta = 38,
+		Launch = 39,
+		Auramar = 40,
+		Latest = 41
 	};
 
 public:
@@ -200,7 +210,6 @@ public:
 	void AddRevision(LWOSCENEID sceneID, uint32_t revision);
 	const LWOZONEID& GetZoneID() const { return m_ZoneID; }
 	const uint32_t GetChecksum() const { return m_CheckSum; }
-	const void PrintAllGameObjects();
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
 	const Path* GetPath(std::string name) const;
 	void AddPath(const Path& path) { m_Paths.push_back(path); };
@@ -219,10 +228,9 @@ public:
 private:
 	LWOZONEID m_ZoneID;
 	std::string m_ZoneFilePath;
-	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
-	ZoneFileFormatVersion m_ZoneFileFormatVersion;
+	FileFormatVersion m_FileFormatVersion;
 	uint32_t m_CheckSum;
 	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;
@@ -234,18 +242,17 @@ private:
 	std::string m_ZoneDesc; //Description of the zone by a level designer
 	std::string m_ZoneRawPath; //Path to the .raw file of this zone.
 
-	std::map<LWOSCENEID, SceneRef, mapCompareLwoSceneIDs> m_Scenes;
+	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;
 	std::vector<Path> m_Paths;
 
-	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
-
+	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
 	//private ("helper") functions:
 	void LoadScene(std::istream& file);
-	std::vector<LUTriggers::Trigger*> LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID);
+	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
 	void LoadPath(std::istream& file);

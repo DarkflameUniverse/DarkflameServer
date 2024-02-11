@@ -21,4 +21,8 @@ foreach(file ${DSCRIPTS_SOURCES_AI_NS_WH})
 	set(DSCRIPTS_SOURCES_AI_NS ${DSCRIPTS_SOURCES_AI_NS} "WH/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_AI_NS ${DSCRIPTS_SOURCES_AI_NS} PARENT_SCOPE)
+add_library(dScriptsAiNS STATIC ${DSCRIPTS_SOURCES_AI_NS})
+target_include_directories(dScriptsAiNS PUBLIC "." "NS_PP_01" "WH"
+PRIVATE
+	${PROJECT_SOURCE_DIR}/dScripts/02_server/Map/NS) # NsConcertChoiceBuildManager.h
+target_precompile_headers(dScriptsAiNS REUSE_FROM dScriptsBase)

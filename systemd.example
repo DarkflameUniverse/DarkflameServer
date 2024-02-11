@@ -1,0 +1,19 @@
+[Unit]
+# Description of the service.
+Description=Darkflame LEGO Universe Server
+# Wait for network to start first before starting this service.
+After=network.target
+
+[Service]
+Type=simple
+# Services should have their own, dedicated, user account.
+# The specific user that our service will run as, you can find your current user by issuing `id -un`
+User=darkflame
+# The specific group that our service will run as, you can find your current primary group by issuing `id -gn`
+Group=darkflame
+# Full Path to the darkflame server process
+ExecStart=/PATH/TO/DarkflameServer/build/MasterServer
+
+[Install]
+# Define the behavior if the service is enabled or disabled to automatically started at boot.
+WantedBy=multi-user.target
