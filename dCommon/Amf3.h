@@ -280,7 +280,7 @@ public:
 	void Remove(const size_t index) {
 		if (!m_Dense.empty() && index < m_Dense.size()) {
 			const auto itr = m_Dense.begin() + index;
-			if (*itr) m_Dense.erase(itr);
+			m_Dense.erase(itr);
 		}
 	}
 

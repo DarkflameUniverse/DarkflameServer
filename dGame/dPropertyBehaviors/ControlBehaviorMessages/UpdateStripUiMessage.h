@@ -16,10 +16,8 @@ public:
 	UpdateStripUiMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_Position; };
-	[[nodiscard]] StripUiPosition& GetPosition() noexcept { return m_Position; };
 
 	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; };
-	[[nodiscard]] ActionContext& GetActionContext() noexcept { return m_ActionContext; };
 
 private:
 	StripUiPosition m_Position;

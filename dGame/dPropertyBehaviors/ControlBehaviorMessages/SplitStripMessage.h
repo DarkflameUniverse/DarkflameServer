@@ -19,16 +19,12 @@ public:
 	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
 
 	[[nodiscard]] const ActionContext& GetSourceActionContext() const noexcept { return m_SourceActionContext; }
-	[[nodiscard]] ActionContext& GetSourceActionContext() noexcept { return m_SourceActionContext; }
 
 	[[nodiscard]] const ActionContext& GetDestinationActionContext() const noexcept { return m_DestinationActionContext; }
-	[[nodiscard]] ActionContext& GetDestinationActionContext() noexcept { return m_DestinationActionContext; }
 
 	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_DestinationPosition; }
-	[[nodiscard]] StripUiPosition& GetPosition() noexcept { return m_DestinationPosition; }
 	
 	[[nodiscard]] const std::vector<Action>& GetTransferredActions() const noexcept { return m_TransferredActions; }
-	[[nodiscard]] std::vector<Action>& GetTransferredActions() noexcept { return m_TransferredActions; }
 
 	void SetTransferredActions(std::vector<Action>::const_iterator begin, std::vector<Action>::const_iterator end) { m_TransferredActions.assign(begin, end); };
 

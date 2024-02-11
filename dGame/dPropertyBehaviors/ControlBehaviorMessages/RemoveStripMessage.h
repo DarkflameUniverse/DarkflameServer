@@ -13,7 +13,6 @@ public:
 	RemoveStripMessage(const AMFArrayValue& arguments);
 	
 	const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
-	ActionContext& GetActionContext() noexcept { return m_ActionContext; }
 
 private:
 	ActionContext m_ActionContext;

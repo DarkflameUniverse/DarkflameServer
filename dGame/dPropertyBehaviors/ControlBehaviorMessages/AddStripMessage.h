@@ -21,13 +21,10 @@ public:
 	AddStripMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_Position; }
-	[[nodiscard]] StripUiPosition& GetPosition() noexcept { return m_Position; }
 
 	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
-	[[nodiscard]] ActionContext& GetActionContext() noexcept { return m_ActionContext; }
 
 	[[nodiscard]] const std::vector<Action>& GetActionsToAdd() const noexcept { return m_ActionsToAdd; }
-	[[nodiscard]] std::vector<Action>& GetActionsToAdd() noexcept { return m_ActionsToAdd; }
 
 private:
 	StripUiPosition m_Position;

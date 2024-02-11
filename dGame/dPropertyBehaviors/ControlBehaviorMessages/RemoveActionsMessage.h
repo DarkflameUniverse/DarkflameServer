@@ -17,7 +17,6 @@ public:
 	[[nodiscard]] int32_t GetActionIndex() const noexcept { return m_ActionIndex; }
 
 	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
-	[[nodiscard]] ActionContext& GetActionContext() noexcept { return m_ActionContext; }
 
 private:
 	int32_t m_ActionIndex;

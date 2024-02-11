@@ -18,13 +18,10 @@ public:
 	[[nodiscard]] int32_t GetDstActionIndex() const noexcept { return m_DstActionIndex; }
 
 	[[nodiscard]] const ActionContext& GetSourceActionContext() const noexcept { return m_SourceActionContext; }
-	[[nodiscard]] ActionContext& GetSourceActionContext() noexcept { return m_SourceActionContext; }
 
 	[[nodiscard]] const ActionContext& GetDestinationActionContext() const noexcept { return m_DestinationActionContext; }
-	[[nodiscard]] ActionContext& GetDestinationActionContext() noexcept { return m_DestinationActionContext; }
 
 	[[nodiscard]] const std::vector<Action>& GetMigratedActions() const noexcept { return m_MigratedActions; }
-	[[nodiscard]] std::vector<Action>& GetMigratedActions() noexcept { return m_MigratedActions; }
 
 	void SetMigratedActions(std::vector<Action>::const_iterator start, std::vector<Action>::const_iterator end) { m_MigratedActions.assign(start, end); };
 
