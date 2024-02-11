@@ -1,21 +1,11 @@
 #pragma once
 
+#include "Amf3.h"
 #include "BitStream.h"
 
 #include <memory>
 #include <vector>
 #include <string>
-
-// Forward declarations
-template <typename ValueType>
-class AMFValue;
-
-class AMFArrayValue;
-class AMFBaseValue;
-
-using AMFDoubleValue = class AMFValue<double>;
-using AMFStringValue = class AMFValue<std::string>;
-using AMFIntValue = class AMFValue<int>;
 
 // Class definition
 class AMFDeserialize {
