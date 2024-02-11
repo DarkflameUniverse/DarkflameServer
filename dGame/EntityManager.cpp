@@ -549,7 +549,7 @@ void EntityManager::CheckGhosting(Entity* entity) {
 	}
 }
 
-Entity* EntityManager::GetGhostCandidate(int32_t id) {
+Entity* EntityManager::GetGhostCandidate(LWOOBJID id) const {
 	for (auto* entity : m_EntitiesToGhost) {
 		if (entity->GetObjectID() == id) {
 			return entity;

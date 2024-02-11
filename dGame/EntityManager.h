@@ -55,7 +55,7 @@ public:
 	void UpdateGhosting();
 	void UpdateGhosting(Entity* player);
 	void CheckGhosting(Entity* entity);
-	Entity* GetGhostCandidate(int32_t id);
+	Entity* GetGhostCandidate(LWOOBJID id) const;
 	bool GetGhostingEnabled() const;
 
 	void ScheduleForKill(Entity* entity);
