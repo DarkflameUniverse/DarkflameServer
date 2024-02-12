@@ -631,6 +631,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		if (infile.good()) {
 			std::string line;
 			while (std::getline(infile, line)) {
+				// Do this in two separate calls to catch both \n and \r\n
+				line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
+				line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 				SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16(line), entity, sysAddr);
 			}
 		} else {

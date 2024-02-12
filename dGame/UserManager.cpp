@@ -301,6 +301,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	const auto name = LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
+
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
@@ -323,7 +324,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
+	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) mutable {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
@@ -365,6 +366,14 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		//Check to see if our name was pre-approved:
 		bool nameOk = IsNamePreapproved(name);
 		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+
+		// If predefined name is invalid, change it to be their object id
+		// that way more than one player can create characters if the predefined name files are not provided
+		if (predefinedName == "INVALID") {
+			std::stringstream nameObjID;
+			nameObjID << "minifig" << objectID;
+			predefinedName = nameObjID.str();
+		}
 
 		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
 		std::string pendingName = !name.empty() && !nameOk ? name : "";
