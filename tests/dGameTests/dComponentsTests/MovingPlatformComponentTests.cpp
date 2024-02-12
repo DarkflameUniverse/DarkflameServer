@@ -71,11 +71,11 @@ protected:
 	}
 
 	void DeserializeSimpleMoverPlatformSubComponent() {
-		bool dirtyStartingPoint;
+		bool dirtyStartingPoint = false;
 		bitStream.Read(dirtyStartingPoint);
 		ASSERT_TRUE(dirtyStartingPoint);
 
-		bool hasStartingPoint;
+		bool hasStartingPoint = false;
 		bitStream.Read(hasStartingPoint);
 		ASSERT_TRUE(hasStartingPoint);
 
@@ -231,6 +231,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSerializationTest) {
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwardTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
@@ -247,6 +249,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwar
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceReverseTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, true);
+
 	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 0);
@@ -264,6 +268,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceRevers
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
@@ -301,6 +307,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypoint().position, NiPoint3(1, 2, 3));
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypoint().position, NiPoint3(4, 5, 6));
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
@@ -310,6 +318,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess)
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	path.pathWaypoints.at(0).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
 	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
 
@@ -327,6 +337,8 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformPercentBetweenPointsTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+
 	path.pathWaypoints.at(0).position = NiPoint3(0, 0, 1);
 	path.pathWaypoints.at(1).position = NiPoint3(0, 0, 3);
 	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 1);

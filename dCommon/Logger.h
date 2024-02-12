@@ -29,8 +29,9 @@ constexpr const char* GetFileNameFromAbsolutePath(const char* path) {
 // they will not be valid constexpr and will be evaluated at runtime instead of compile time!
 // The full string is still stored in the binary, however the offset of the filename in the absolute paths
 // is used in the instruction instead of the start of the absolute path.
-#define LOG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->Log(str, message, ##__VA_ARGS__); Game::logger->Flush(); } while(0)
+#define LOG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->Log(str, message, ##__VA_ARGS__); } while(0)
 #define LOG_DEBUG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); } while(0)
+#define LOG_TEST(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); Game::logger->Flush();} while(0)
 
 // Writer class for writing data to files.
 class Writer {
