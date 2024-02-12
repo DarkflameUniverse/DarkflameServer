@@ -1,4 +1,25 @@
 set(DGAME_DPROPERTYBEHAVIORS_CONTROLBEHAVIORMESSAGES
+#header
+    "Action.h"
+    "ActionContext.h"
+    "AddActionMessage.h"
+    "AddMessage.h"
+    "AddStripMessage.h"
+    "BehaviorMessageBase.h"
+    "ControlBehaviorMsgs.h"
+    "MergeStripsMessage.h"
+    "MigrateActionsMessage.h"
+    "MoveToInventoryMessage.h"
+    "RearrangeStripMessage.h"
+    "RemoveActionsMessage.h"
+    "RemoveStripMessage.h"
+    "RenameMessage.h"
+    "SplitStripMessage.h"
+    "StripUiPosition.h"
+    "UpdateActionMessage.h"
+    "UpdateStripUiMessage.h"
+
+#source
     "Action.cpp"
     "ActionContext.cpp"
     "AddActionMessage.cpp"

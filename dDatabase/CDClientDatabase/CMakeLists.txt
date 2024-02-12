@@ -1,4 +1,9 @@
 set(DDATABASE_CDCLIENTDATABASE_SOURCES
+#header
+	"CDClientDatabase.h"
+	"CDClientManager.h"
+
+#source
 	"CDClientDatabase.cpp"
 	"CDClientManager.cpp"
 )

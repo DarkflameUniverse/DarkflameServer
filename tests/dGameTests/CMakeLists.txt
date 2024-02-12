@@ -1,4 +1,8 @@
 set(DGAMETEST_SOURCES
+#header
+	"GameDependencies.h"
+
+#source
 	"GameDependencies.cpp"
 )
 
@@ -12,7 +16,7 @@ file(COPY ${GAMEMESSAGE_TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
-
+target_include_directories(dGameTests PUBLIC .)
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main dGame dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dChatFilter dNavigation)
 
 # Discover the tests

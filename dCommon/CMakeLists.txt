@@ -1,21 +1,46 @@
 set(DCOMMON_SOURCES
-		"AMFDeserialize.cpp"
-		"AmfSerialize.cpp"
-		"BinaryIO.cpp"
-		"dConfig.cpp"
-		"Diagnostics.cpp"
-		"Logger.cpp"
-		"Game.cpp"
-		"GeneralUtils.cpp"
-		"LDFFormat.cpp"
-		"Metrics.cpp"
-		"NiPoint3.cpp"
-		"NiQuaternion.cpp"
-		"Demangler.cpp"
-		"ZCompression.cpp"
-		"BrickByBrickFix.cpp"
-		"BinaryPathFinder.cpp"
-		"FdbToSqlite.cpp"
+#header
+    "Amf3.h"
+    "AMFDeserialize.h"
+    "AmfSerialize.h"
+    "BinaryIO.h"
+	"BinaryPathFinder.h"
+	"Brick.h"
+    "BrickByBrickFix.h"
+    "dConfig.h"
+    "Demangler.h"
+    "Diagnostics.h"
+    "DluAssert.h"
+    "FdbToSqlite.h"
+    "Game.h"
+    "GeneralUtils.h"
+    "LDFFormat.h"
+	"Logger.h"
+    "Metrics.hpp"
+    "NiPoint3.h"
+    "NiQuaternion.h"
+	"PositionUpdate.h"
+	"Singleton.h"
+    "ZCompression.h"
+
+#source
+	"AMFDeserialize.cpp"
+	"AmfSerialize.cpp"
+	"BinaryIO.cpp"
+	"BinaryPathFinder.cpp"
+	"BrickByBrickFix.cpp"
+	"dConfig.cpp"
+	"Demangler.cpp"
+	"Diagnostics.cpp"
+	"FdbToSqlite.cpp"
+	"Game.cpp"
+	"GeneralUtils.cpp"
+	"LDFFormat.cpp"
+	"Logger.cpp"
+	"Metrics.cpp"
+	"NiPoint3.cpp"
+	"NiQuaternion.cpp"
+	"ZCompression.cpp"
 )
 
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.
@@ -30,11 +55,15 @@ foreach(file ${DCOMMON_DCLIENT_SOURCES})
 	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dClient/${file}")
 endforeach()
 
-include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
-
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
 
-target_link_libraries(dCommon bcrypt dDatabase tinyxml2)
+target_include_directories(dCommon PUBLIC
+.
+./dClient
+./dEnums
+)
+
+target_link_libraries(dCommon PUBLIC dDatabase dNet PRIVATE bcrypt tinyxml2)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)
@@ -65,4 +94,4 @@ else ()
 	)
 endif ()
 
-target_link_libraries(dCommon ZLIB::ZLIB)
+target_link_libraries(dCommon PRIVATE ZLIB::ZLIB)

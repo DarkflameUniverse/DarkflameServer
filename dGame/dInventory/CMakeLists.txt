@@ -1,4 +1,13 @@
 set(DGAME_DINVENTORY_SOURCES
+#header
+	"DatabasePet.h"
+	"EquippedItem.h"
+	"Inventory.h"
+	"Item.h"
+	"ItemSet.h"
+	"ItemSetPassiveAbility.h"
+
+#source
 	"EquippedItem.cpp"
 	"Inventory.cpp"
 	"Item.cpp"
@@ -12,4 +21,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 add_library(dInventory STATIC ${DGAME_DINVENTORY_SOURCES})
+target_include_directories(dInventory PUBLIC .)
+target_link_libraries(dInventory PUBLIC dCommon dGameMessages)
 target_precompile_headers(dInventory REUSE_FROM dGameBase)

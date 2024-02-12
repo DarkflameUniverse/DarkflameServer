@@ -1,4 +1,4 @@
-set(DNAVIGATION_SOURCES "dNavMesh.cpp")
+set(DNAVIGATION_SOURCES "dNavMesh.h" "dNavMesh.cpp")
 
 add_subdirectory(dTerrain)
 
@@ -7,4 +7,9 @@ foreach(file ${DNAVIGATIONS_DTERRAIN_SOURCES})
 endforeach()
 
 add_library(dNavigation STATIC ${DNAVIGATION_SOURCES})
-target_link_libraries(dNavigation Detour Recast)
+target_include_directories(dNavigation PUBLIC
+.
+./dTerrain
+)
+
+target_link_libraries(dNavigation PUBLIC Detour Recast dCommon dZoneManager)

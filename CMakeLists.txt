@@ -202,42 +202,8 @@ foreach(file ${SQL_FILES})
 	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
-# Create our list of include directories
+# Create our list of thirdparty include directories
 set(INCLUDED_DIRECTORIES
-	"dCommon"
-	"dCommon/dClient"
-	"dCommon/dEnums"
-
-	"dChatFilter"
-
-	"dGame"
-	"dGame/dBehaviors"
-	"dGame/dComponents"
-	"dGame/dGameMessages"
-	"dGame/dInventory"
-	"dGame/dMission"
-	"dGame/dEntity"
-	"dGame/dPropertyBehaviors"
-	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
-	"dGame/dUtilities"
-
-	"dPhysics"
-
-	"dNavigation"
-	"dNavigation/dTerrain"
-
-	"dZoneManager"
-
-	"dDatabase"
-	"dDatabase/CDClientDatabase"
-	"dDatabase/CDClientDatabase/CDClientTables"
-	"dDatabase/GameDatabase"
-	"dDatabase/GameDatabase/ITables"
-	"dDatabase/GameDatabase/MySQL"
-	"dDatabase/GameDatabase/MySQL/Tables"
-
-	"dNet"
-
 	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
@@ -246,11 +212,6 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
 	"thirdparty/MD5"
-
-	"tests"
-	"tests/dCommonTests"
-	"tests/dGameTests"
-	"tests/dGameTests/dComponentsTests"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)

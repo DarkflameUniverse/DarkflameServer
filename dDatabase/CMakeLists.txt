@@ -13,7 +13,18 @@ foreach(file ${DDATABASE_GAMEDATABASE_SOURCES})
 endforeach()
 
 add_library(dDatabase STATIC ${DDATABASE_SOURCES})
-target_link_libraries(dDatabase sqlite3 mariadbConnCpp)
+target_include_directories(dDatabase PUBLIC
+.
+./CDClientDatabase
+./CDClientDatabase/CDClientTables
+
+./GameDatabase
+./GameDatabase/ITables
+./GameDatabase/MySQL
+./GameDatabase/MySQL/Tables
+)
+
+target_link_libraries(dDatabase PUBLIC sqlite3 mariadbConnCpp dCommon)
 
 if (${CDCLIENT_CACHE_ALL})
 	add_compile_definitions(dDatabase CDCLIENT_CACHE_ALL=${CDCLIENT_CACHE_ALL})
