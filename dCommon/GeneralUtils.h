@@ -32,18 +32,18 @@ namespace GeneralUtils {
 	//! Converts a plain ASCII string to a UTF-16 string
 	/*!
 	  \param string The string to convert
-	  \param size A size to trim the string to. Default is -1 (No trimming)
+	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-16 representation of the string
 	 */
-	std::u16string ASCIIToUTF16(const std::string_view& string, size_t size = -1);
+	std::u16string ASCIIToUTF16(const std::string_view& string, const size_t size = SIZE_MAX);
 
 	//! Converts a UTF-8 String to a UTF-16 string
 	/*!
 	  \param string The string to convert
-	  \param size A size to trim the string to. Default is -1 (No trimming)
+	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-16 representation of the string
 	 */
-	std::u16string UTF8ToUTF16(const std::string_view& string, size_t size = -1);
+	std::u16string UTF8ToUTF16(const std::string_view& string, const size_t size = SIZE_MAX);
 
 	//! Internal, do not use
 	bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
@@ -51,10 +51,10 @@ namespace GeneralUtils {
 	//! Converts a UTF-16 string to a UTF-8 string
 	/*!
 	  \param string The string to convert
-	  \param size A size to trim the string to. Default is -1 (No trimming)
+	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-8 representation of the string
 	 */
-	std::string UTF16ToWTF8(const std::u16string_view& string, size_t size = -1);
+	std::string UTF16ToWTF8(const std::u16string_view& string, const size_t size = SIZE_MAX);
 
 	/**
 	 * Compares two basic strings but does so ignoring case sensitivity
@@ -97,14 +97,14 @@ namespace GeneralUtils {
 	  \param value The value to set the bit for
 	  \param index The index of the bit
 	 */
-	int64_t SetBit(int64_t value, uint32_t index);
+	int64_t SetBit(int64_t value, const uint32_t index);
 
 	//! Clears a specific bit in a signed 64-bit integer
 	/*!
 	  \param value The value to clear the bit from
 	  \param index The index of the bit
 	 */
-	int64_t ClearBit(int64_t value, uint32_t index);
+	int64_t ClearBit(int64_t value, const uint32_t index);
 
 	//! Checks a specific bit in a signed 64-bit integer
 	/*!
@@ -112,17 +112,17 @@ namespace GeneralUtils {
 	  \param index The index of the bit
 	  \return Whether or not the bit is set
 	 */
-	bool CheckBit(int64_t value, uint32_t index);
+	bool CheckBit(int64_t value, const uint32_t index);
 
 	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
 
 	std::u16string ReadWString(RakNet::BitStream* inStream);
 
-	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
+	std::vector<std::wstring> SplitString(const std::wstring& str, const wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(const std::u16string& str, char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string& str, const char16_t delimiter);
 
-	std::vector<std::string> SplitString(const std::string& str, char delimiter);
+	std::vector<std::string> SplitString(const std::string& str, const char delimiter);
 
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
 

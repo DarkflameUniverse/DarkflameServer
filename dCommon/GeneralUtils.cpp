@@ -8,7 +8,7 @@
 #include <map>
 
 template <typename T>
-inline size_t MinSize(size_t size, const std::basic_string_view<T>& string) {
+inline size_t MinSize(const size_t size, const std::basic_string_view<T>& string) {
 	if (size == size_t(-1) || size > string.size()) {
 		return string.size();
 	} else {
@@ -16,15 +16,15 @@ inline size_t MinSize(size_t size, const std::basic_string_view<T>& string) {
 	}
 }
 
-inline bool IsLeadSurrogate(char16_t c) {
+inline bool IsLeadSurrogate(const char16_t c) {
 	return (0xD800 <= c) && (c <= 0xDBFF);
 }
 
-inline bool IsTrailSurrogate(char16_t c) {
+inline bool IsTrailSurrogate(const char16_t c) {
 	return (0xDC00 <= c) && (c <= 0xDFFF);
 }
 
-inline void PushUTF8CodePoint(std::string& ret, char32_t cp) {
+inline void PushUTF8CodePoint(std::string& ret, const char32_t cp) {
 	if (cp <= 0x007F) {
 		ret.push_back(static_cast<uint8_t>(cp));
 	} else if (cp <= 0x07FF) {
@@ -107,7 +107,7 @@ bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 }
 
 /// See <https://www.ietf.org/rfc/rfc2781.html#section-2.1>
-bool PushUTF16CodePoint(std::u16string& output, uint32_t U, size_t size) {
+bool PushUTF16CodePoint(std::u16string& output, const uint32_t U, const size_t size) {
 	if (output.length() >= size) return false;
 	if (U < 0x10000) {
 		// If U < 0x10000, encode U as a 16-bit unsigned integer and terminate.
@@ -141,7 +141,7 @@ bool PushUTF16CodePoint(std::u16string& output, uint32_t U, size_t size) {
 	} else return false;
 }
 
-std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t size) {
+std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, const size_t size) {
 	size_t newSize = MinSize(size, string);
 	std::u16string output;
 	output.reserve(newSize);
@@ -153,7 +153,7 @@ std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view& string, size_t 
 }
 
 //! Converts an std::string (ASCII) to UCS-2 / UTF-16
-std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view& string, size_t size) {
+std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view& string, const size_t size) {
 	size_t newSize = MinSize(size, string);
 	std::u16string ret;
 	ret.reserve(newSize);
@@ -169,7 +169,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view& string, size_t
 
 //! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
-std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view& string, size_t size) {
+std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view& string, const size_t size) {
 	size_t newSize = MinSize(size, string);
 	std::string ret;
 	ret.reserve(newSize);
@@ -202,17 +202,17 @@ bool GeneralUtils::CaseInsensitiveStringCompare(const std::string& a, const std:
 // MARK: Bits
 
 //! Sets a specific bit in a signed 64-bit integer
-int64_t GeneralUtils::SetBit(int64_t value, uint32_t index) {
+int64_t GeneralUtils::SetBit(int64_t value, const uint32_t index) {
 	return value |= 1ULL << index;
 }
 
 //! Clears a specific bit in a signed 64-bit integer
-int64_t GeneralUtils::ClearBit(int64_t value, uint32_t index) {
+int64_t GeneralUtils::ClearBit(int64_t value, const uint32_t index) {
 	return value &= ~(1ULL << index);
 }
 
 //! Checks a specific bit in a signed 64-bit integer
-bool GeneralUtils::CheckBit(int64_t value, uint32_t index) {
+bool GeneralUtils::CheckBit(int64_t value, const uint32_t index) {
 	return value & (1ULL << index);
 }
 
@@ -224,7 +224,7 @@ bool GeneralUtils::ReplaceInString(std::string& str, const std::string& from, co
 	return true;
 }
 
-std::vector<std::wstring> GeneralUtils::SplitString(std::wstring& str, wchar_t delimiter) {
+std::vector<std::wstring> GeneralUtils::SplitString(const std::wstring& str, const wchar_t delimiter) {
 	std::vector<std::wstring> vector = std::vector<std::wstring>();
 	std::wstring current;
 
@@ -241,7 +241,7 @@ std::vector<std::wstring> GeneralUtils::SplitString(std::wstring& str, wchar_t d
 	return vector;
 }
 
-std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string& str, char16_t delimiter) {
+std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string& str, const char16_t delimiter) {
 	std::vector<std::u16string> vector = std::vector<std::u16string>();
 	std::u16string current;
 
@@ -258,13 +258,11 @@ std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string& str,
 	return vector;
 }
 
-std::vector<std::string> GeneralUtils::SplitString(const std::string& str, char delimiter) {
+std::vector<std::string> GeneralUtils::SplitString(const std::string& str, const char delimiter) {
 	std::vector<std::string> vector = std::vector<std::string>();
 	std::string current = "";
 
-	for (size_t i = 0; i < str.length(); i++) {
-		char c = str[i];
-
+	for (const auto& c : str) {
 		if (c == delimiter) {
 			vector.push_back(current);
 			current = "";
@@ -274,7 +272,6 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string& str, char 
 	}
 
 	vector.push_back(current);
-
 	return vector;
 }
 
@@ -295,10 +292,10 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream* inStream) {
 std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::string& folder) {
 	// Because we dont know how large the initial number before the first _ is we need to make it a map like so.
     std::map<uint32_t, std::string> filenames{};
-	for (auto& t : std::filesystem::directory_iterator(folder)) {
-        auto filename = t.path().filename().string();
-        auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
-        filenames.insert(std::make_pair(index, filename));
+	for (const auto& t : std::filesystem::directory_iterator(folder)) {
+        const auto filename = t.path().filename().string();
+        const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
+        filenames.emplace(index, std::move(filename));
 	}
 
 	// Now sort the map by the oldest migration.
@@ -314,7 +311,7 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
             continue;
 		}
         if (oldest->first > fileIterator->first) oldest = fileIterator;
-        fileIterator++;
+        fileIterator = std::next(fileIterator);
 	}
 
 	return sortedFiles;
