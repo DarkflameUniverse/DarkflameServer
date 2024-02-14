@@ -17,6 +17,7 @@
 
 #include "eTriggerCommandType.h"
 #include "eTriggerEventType.h"
+#include "dNavMesh.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
@@ -153,7 +154,7 @@ void Zone::LoadZoneIntoMemory() {
 
 std::string Zone::GetFilePathForZoneID() {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
 		std::string toReturn = "maps/" + zone->zoneName;
@@ -463,9 +464,9 @@ void Zone::LoadPath(std::istream& file) {
 		// We verify the waypoint heights against the navmesh because in many movement paths,
 		// the waypoint is located near 0 height, 
 		if (path.pathType == PathType::Movement) {
-			if (dpWorld::Instance().IsLoaded()) {
+			if (dpWorld::IsLoaded()) {
 				// 2000 should be large enough for every world.
-				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
+				waypoint.position.y = dpWorld::GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
 			}
 		}
 		path.pathWaypoints.push_back(waypoint);

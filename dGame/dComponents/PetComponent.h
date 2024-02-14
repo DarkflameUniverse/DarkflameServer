@@ -5,6 +5,7 @@
 #include "MovementAIComponent.h"
 #include "Component.h"
 #include "Preconditions.h"
+#include "ePetAbilityType.h"
 #include "eReplicaComponentType.h"
 #include "ePetAbilityType.h"
 #include "CDPetComponentTable.h"
@@ -64,9 +65,10 @@ enum PetEmote : int32_t {
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
  * to dig for treasure and activate pet bouncers.
  */
-class PetComponent : public Component {
+class PetComponent final : public Component
+{
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	/**
 	 * PetComponent constructor
@@ -252,7 +254,7 @@ public:
 	 * @param typeId extra information about the command, e.g. the emote to play
 	 * @param overrideObey unused
 	 */
-	void Command(const NiPoint3& position, const LWOOBJID& source, int32_t commandType, int32_t typeId, bool overrideObey);
+	void Command(const NiPoint3& position, const LWOOBJID source, const int32_t commandType, const int32_t typeId, const bool overrideObey);
 
 	/**
 	 * Returns the ID of the owner of this pet (if any)
@@ -583,8 +585,9 @@ private:
 
 	/**
 	 * Pet information loaded from the CDClientDatabase
+	 * TODO: Switch to a reference when safe to do so
 	 */
-	CDPetComponent& m_PetInfo;
+	CDPetComponent m_PetInfo;
 };
 
-#endif // PETCOMPONENT_H
+#endif // !PETCOMPONENT_H

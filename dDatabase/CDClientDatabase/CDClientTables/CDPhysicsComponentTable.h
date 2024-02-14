@@ -3,7 +3,7 @@
 #include <string>
 
 struct CDPhysicsComponent {
-	int id;
+	int32_t id;
 	bool bStatic;
 	std::string physicsAsset;
 	UNUSED(bool jump);
@@ -12,8 +12,8 @@ struct CDPhysicsComponent {
 	UNUSED(float rotSpeed);
 	float playerHeight;
 	float playerRadius;
-	int pcShapeType;
-	int collisionGroup;
+	int32_t pcShapeType;
+	int32_t collisionGroup;
 	UNUSED(float airSpeed);
 	UNUSED(std::string boundaryAsset);
 	UNUSED(float jumpAirSpeed);
@@ -21,13 +21,10 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
+class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable, std::map<uint32_t, CDPhysicsComponent>> {
 public:
 	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PhysicsComponent"; };
-	CDPhysicsComponent* GetByID(unsigned int componentID);
-
-private:
-	std::map<unsigned int, CDPhysicsComponent> m_entries;
+	CDPhysicsComponent* GetByID(uint32_t componentID);
 };

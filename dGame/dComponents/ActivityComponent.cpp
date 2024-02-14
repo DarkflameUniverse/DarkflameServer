@@ -10,7 +10,6 @@
 #include "WorldPackets.h"
 #include "EntityManager.h"
 #include "ChatPackets.h"
-#include "Player.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "GeneralUtils.h"
@@ -30,46 +29,62 @@
 #include "LeaderboardManager.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
-	if (activityID > 0) m_ActivityID = activityID;
-	else m_ActivityID = parent->GetVar<int32_t>(u"activityID");
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
-	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
+	/*
+	* This is precisely what the client does functionally
+	* Use the component id as the default activity id and load its data from the database
+	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
+	*/
 
-	for (CDActivities activity : activities) {
-		m_ActivityInfo = activity;
-		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && Game::config->GetValue("solo_racing") == "1") {
-			m_ActivityInfo.minTeamSize = 1;
-			m_ActivityInfo.minTeams = 1;
-		}
-		if (m_ActivityInfo.instanceMapID == -1) {
-			const auto& transferOverride = parent->GetVarAsString(u"transferZoneID");
-			if (!transferOverride.empty()) {
-				GeneralUtils::TryParse(transferOverride, m_ActivityInfo.instanceMapID);
-			}
-		}
+	m_ActivityID = activityID;
+	LoadActivityData(activityID);
+	if (m_Parent->HasVar(u"activityID")) {
+		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
+		LoadActivityData(m_ActivityID);
 	}
 
 	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (destroyableComponent) {
-		// check for LMIs and set the loot LMIs
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+		// First lookup the loot matrix id for this component id.
+		CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
 
 		uint32_t startingLMI = 0;
 
+		// If we have one, set the starting loot matrix id to that.
 		if (activityRewards.size() > 0) {
 			startingLMI = activityRewards[0].LootMatrixIndex;
 		}
 
 		if (startingLMI > 0) {
-			// now time for bodge :)
+			// We may have more than 1 loot matrix index to use depending ont the size of the team that is looting the activity.
+			// So this logic will get the rest of the loot matrix indices for this activity.
 
 			std::vector<CDActivityRewards> objectTemplateActivities = activityRewardsTable->Query([=](CDActivityRewards entry) {return (activityRewards[0].objectTemplate == entry.objectTemplate); });
 			for (const auto& item : objectTemplateActivities) {
 				if (item.activityRating > 0 && item.activityRating < 5) {
 					m_ActivityLootMatrices.insert({ item.activityRating, item.LootMatrixIndex });
 				}
+			}
+		}
+	}
+}
+void ActivityComponent::LoadActivityData(const int32_t activityId) {
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
+	std::vector<CDActivities> activities = activitiesTable->Query([activityId](CDActivities entry) {return (entry.ActivityID == activityId); });
+
+	bool soloRacing = Game::config->GetValue("solo_racing") == "1";
+	for (CDActivities activity : activities) {
+		m_ActivityInfo = activity;
+		if (static_cast<Leaderboard::Type>(activity.leaderboardType) == Leaderboard::Type::Racing && soloRacing) {
+			m_ActivityInfo.minTeamSize = 1;
+			m_ActivityInfo.minTeams = 1;
+		}
+		if (m_ActivityInfo.instanceMapID == -1) {
+			const auto& transferOverride = m_Parent->GetVarAsString(u"transferZoneID");
+			if (!transferOverride.empty()) {
+				m_ActivityInfo.instanceMapID =
+					GeneralUtils::TryParse<uint32_t>(transferOverride).value_or(m_ActivityInfo.instanceMapID);
 			}
 		}
 	}
@@ -92,7 +107,7 @@ void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsIniti
 }
 
 void ActivityComponent::ReloadConfig() {
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([this](CDActivities entry) {return (entry.ActivityID == m_ActivityID); });
 	for (auto activity : activities) {
 		auto mapID = m_ActivityInfo.instanceMapID;
@@ -531,14 +546,14 @@ void ActivityInstance::RewardParticipant(Entity* participant) {
 	}
 
 	// First, get the activity data
-	auto* activityRewardsTable = CDClientManager::Instance().GetTable<CDActivityRewardsTable>();
+	auto* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([this](CDActivityRewards entry) { return (entry.objectTemplate == m_ActivityInfo.ActivityID); });
 
 	if (!activityRewards.empty()) {
 		uint32_t minCoins = 0;
 		uint32_t maxCoins = 0;
 
-		auto* currencyTableTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+		auto* currencyTableTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 		std::vector<CDCurrencyTable> currencyTable = currencyTableTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == activityRewards[0].CurrencyIndex && entry.npcminlevel == 1); });
 
 		if (!currencyTable.empty()) {

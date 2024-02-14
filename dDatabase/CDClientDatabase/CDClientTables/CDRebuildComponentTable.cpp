@@ -3,7 +3,7 @@
 void CDRebuildComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM RebuildComponent");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -14,7 +14,8 @@ void CDRebuildComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RebuildComponent");
@@ -31,7 +32,7 @@ void CDRebuildComponentTable::LoadValuesFromDatabase() {
 		entry.post_imagination_cost = tableData.getIntField("post_imagination_cost", -1);
 		entry.time_before_smash = tableData.getFloatField("time_before_smash", -1.0f);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -40,14 +41,9 @@ void CDRebuildComponentTable::LoadValuesFromDatabase() {
 
 std::vector<CDRebuildComponent> CDRebuildComponentTable::Query(std::function<bool(CDRebuildComponent)> predicate) {
 
-	std::vector<CDRebuildComponent> data = cpplinq::from(this->entries)
+	std::vector<CDRebuildComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDRebuildComponent>& CDRebuildComponentTable::GetEntries() const {
-	return this->entries;
-}
-

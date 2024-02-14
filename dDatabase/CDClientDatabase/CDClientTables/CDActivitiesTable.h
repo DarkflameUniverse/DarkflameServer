@@ -4,36 +4,31 @@
 #include "CDTable.h"
 
 struct CDActivities {
-	unsigned int ActivityID;
-	unsigned int locStatus;
-	unsigned int instanceMapID;
-	unsigned int minTeams;
-	unsigned int maxTeams;
-	unsigned int minTeamSize;
-	unsigned int maxTeamSize;
-	unsigned int waitTime;
-	unsigned int startDelay;
+	uint32_t ActivityID;
+	uint32_t locStatus;
+	uint32_t instanceMapID;
+	uint32_t minTeams;
+	uint32_t maxTeams;
+	uint32_t minTeamSize;
+	uint32_t maxTeamSize;
+	uint32_t waitTime;
+	uint32_t startDelay;
 	bool requiresUniqueData;
-	unsigned int leaderboardType;
+	uint32_t leaderboardType;
 	bool localize;
-	int optionalCostLOT;
-	int optionalCostCount;
+	int32_t optionalCostLOT;
+	int32_t optionalCostCount;
 	bool showUIRewards;
-	unsigned int CommunityActivityFlagID;
+	uint32_t CommunityActivityFlagID;
 	std::string gate_version;
 	bool noTeamLootOnDeath;
 	float optionalPercentage;
 };
 
-class CDActivitiesTable : public CDTable<CDActivitiesTable> {
-private:
-	std::vector<CDActivities> entries;
-
+class CDActivitiesTable : public CDTable<CDActivitiesTable, std::vector<CDActivities>> {
 public:
 	void LoadValuesFromDatabase();
 
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);
-
-	const std::vector<CDActivities>& GetEntries() const { return this->entries; }
 };

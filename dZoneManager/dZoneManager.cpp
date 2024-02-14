@@ -29,7 +29,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LOT zoneControlTemplate = 2365;
 
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable != nullptr) {
 		const CDZoneTable* zone = zoneTable->Query(zoneID.GetMapID());
 
@@ -212,7 +212,7 @@ uint32_t dZoneManager::GetUniqueMissionIdStartingValue() {
 
 bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(zoneID);
 	if (zone != nullptr) {
 		return Game::assetManager->HasFile(("maps/" + zone->zoneName).c_str());

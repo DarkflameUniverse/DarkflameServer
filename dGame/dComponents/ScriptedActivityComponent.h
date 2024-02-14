@@ -6,9 +6,9 @@
 
 class Entity;
 
-class ScriptedActivityComponent : public ActivityComponent {
+class ScriptedActivityComponent final : public ActivityComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPTED_ACTIVITY;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPTED_ACTIVITY;
 	ScriptedActivityComponent(Entity* parent, int activityID) : ActivityComponent(parent, activityID){};
 };
 

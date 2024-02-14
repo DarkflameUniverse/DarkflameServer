@@ -1,6 +1,5 @@
 #include "MasterPackets.h"
 #include "BitStream.h"
-#include "PacketUtils.h"
 #include "dCommonVars.h"
 #include "dServer.h"
 #include "eConnectionType.h"
@@ -88,7 +87,7 @@ void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddres
 	bitStream.Write(zoneInstance);
 	bitStream.Write(zoneClone);
 	bitStream.Write<uint16_t>(serverPort);
-	bitStream.Write(LUString(serverIP, static_cast<uint32_t>(serverIP.size() + 1)));
+	bitStream.Write(LUString(serverIP, 255));
 
 	server->Send(&bitStream, sysAddr, false);
 }
@@ -100,12 +99,12 @@ void MasterPackets::HandleServerInfo(Packet* packet) {
 	uint32_t theirPort = 0;
 	uint32_t theirZoneID = 0;
 	uint32_t theirInstanceID = 0;
-	std::string theirIP = "";
+	LUString theirIP;
 
 	inStream.Read(theirPort);
 	inStream.Read(theirZoneID);
 	inStream.Read(theirInstanceID);
-	theirIP = PacketUtils::ReadString(inStream.GetReadOffset(), packet, false); //20 is the current offset
+	inStream.Read(theirIP);
 
 	//TODO: Actually mark this server as an available server in the manager
 }
@@ -118,7 +117,7 @@ void MasterPackets::SendServerInfo(dServer* server, Packet* packet) {
 	bitStream.Write(server->GetZoneID());
 	bitStream.Write(server->GetInstanceID());
 	bitStream.Write(server->GetServerType());
-	bitStream.Write(LUString(server->GetIP(), server->GetIP().size()));
+	bitStream.Write(LUString(server->GetIP()));
 
 	server->SendToMaster(&bitStream);
 }

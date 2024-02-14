@@ -15,6 +15,10 @@
 
 //! The CDClient Database namespace
 namespace CDClientDatabase {
+	/**
+	 * Boolean defining the connection status of CDClient
+	*/
+	extern bool isConnected;
 
 	//! Opens a connection with the CDClient
 	/*!

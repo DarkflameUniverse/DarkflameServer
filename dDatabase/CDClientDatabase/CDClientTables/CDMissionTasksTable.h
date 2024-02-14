@@ -4,25 +4,22 @@
 #include "CDTable.h"
 
 struct CDMissionTasks {
-	unsigned int id;                //!< The Mission ID that the task belongs to
-	UNUSED(unsigned int locStatus);         //!< ???
-	unsigned int taskType;          //!< The task type
-	unsigned int target;            //!< The mission target
+	uint32_t id;                //!< The Mission ID that the task belongs to
+	UNUSED(uint32_t locStatus);         //!< ???
+	uint32_t taskType;          //!< The task type
+	uint32_t target;            //!< The mission target
 	std::string targetGroup;        //!< The mission target group
-	int targetValue;       //!< The target value
+	int32_t targetValue;       //!< The target value
 	std::string taskParam1;    //!< The task param 1
 	UNUSED(std::string largeTaskIcon); //!< ???
-	UNUSED(unsigned int IconID);            //!< ???
-	unsigned int uid;               //!< ???
-	UNUSED(unsigned int largeTaskIconID);   //!< ???
+	UNUSED(uint32_t IconID);            //!< ???
+	uint32_t uid;               //!< ???
+	UNUSED(uint32_t largeTaskIconID);   //!< ???
 	UNUSED(bool localize);          //!< Whether or not the task should be localized
 	UNUSED(std::string gate_version);  //!< ???
 };
 
-class CDMissionTasksTable : public CDTable<CDMissionTasksTable> {
-private:
-	std::vector<CDMissionTasks> entries;
-
+class CDMissionTasksTable : public CDTable<CDMissionTasksTable, std::vector<CDMissionTasks>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
@@ -30,6 +27,7 @@ public:
 
 	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
 
-	const std::vector<CDMissionTasks>& GetEntries() const;
+	// TODO: Remove this and replace it with a proper lookup function.
+	const CDTable::StorageType& GetEntries() const;
 };
 

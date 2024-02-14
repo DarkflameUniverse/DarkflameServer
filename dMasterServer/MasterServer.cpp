@@ -36,7 +36,6 @@
 #include "InstanceManager.h"
 #include "MasterPackets.h"
 #include "PersistentIDManager.h"
-#include "PacketUtils.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
 #include "Start.h"
@@ -90,9 +89,8 @@ int main(int argc, char** argv) {
 	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
 
 
-	uint32_t clientNetVersion = 171022;
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
-	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
+	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
 	LOG("Using net version %i", clientNetVersion);
 
@@ -177,17 +175,6 @@ int main(int argc, char** argv) {
 
 	// Run migrations should any need to be run.
 	MigrationRunner::RunSQLiteMigrations();
-
-	//Get CDClient initial information
-	try {
-		CDClientManager::Instance();
-	} catch (CppSQLite3Exception& e) {
-		LOG("Failed to initialize CDServer SQLite Database");
-		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
-		LOG("Error: %s", e.errorMessage());
-		LOG("Error Code: %i", e.errorCode());
-		return EXIT_FAILURE;
-	}
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
@@ -504,17 +491,17 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
 			ServerType theirServerType;
-			std::string theirIP = "";
+			LUString theirIP;
 
 			inStream.Read(theirPort);
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
 			inStream.Read(theirServerType);
-			theirIP = PacketUtils::ReadString(24, packet, false); //24 is the current offset
+			inStream.Read(theirIP);
 
 			if (theirServerType == ServerType::World) {
 				if (!Game::im->IsPortInUse(theirPort)) {
-					Instance* in = new Instance(theirIP, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
 					SystemAddress copy;
 					copy.binaryAddress = packet->systemAddress.binaryAddress;
@@ -553,47 +540,42 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case eMasterMessageType::SET_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
-			std::string username;
-
 			inStream.Read(sessionKey);
-			username = PacketUtils::ReadString(12, packet, false);
-
+			LUString username;
+			inStream.Read(username);
+	
 			for (auto it : activeSessions) {
-				if (it.second == username) {
+				if (it.second == username.string) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
-					bitStream.Write<uint32_t>(username.size());
-					for (auto character : username) {
-						bitStream.Write(character);
-					}
+					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
 
 					break;
 				}
 			}
 
-			activeSessions.insert(std::make_pair(sessionKey, username));
-			LOG("Got sessionKey %i for user %s", sessionKey, username.c_str());
+			activeSessions.insert(std::make_pair(sessionKey, username.string));
+			LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
 			break;
 		}
 
 		case eMasterMessageType::REQUEST_SESSION_KEY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			std::string username = PacketUtils::ReadString(8, packet, false);
-
+			CINSTREAM_SKIP_HEADER;
+			LUWString username;
+			inStream.Read(username);
+			LOG("Requesting session key for %s", username.GetAsString().c_str());
 			for (auto key : activeSessions) {
-				if (key.second == username) {
+				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
-					bitStream.Write(LUString(key.second, 64));
+					bitStream.Write(username);
 					Game::server->Send(&bitStream, packet->systemAddress, false);
 					break;
 				}

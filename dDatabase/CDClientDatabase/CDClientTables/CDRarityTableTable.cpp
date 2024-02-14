@@ -3,7 +3,7 @@
 void CDRarityTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM RarityTable");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -14,7 +14,8 @@ void CDRarityTableTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RarityTable order by randmax desc;");
@@ -30,5 +31,5 @@ void CDRarityTableTable::LoadValuesFromDatabase() {
 }
 
 const std::vector<CDRarityTable>& CDRarityTableTable::GetRarityTable(uint32_t id) {
-	return entries[id];
+	return GetEntriesMutable()[id];
 }

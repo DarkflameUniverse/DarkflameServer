@@ -12,7 +12,6 @@
 #include "Item.h"
 #include "MissionComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "eRacingTaskParam.h"
@@ -54,7 +53,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	if (Game::zoneManager->CheckIfAccessibleZone((worldID / 10) * 10)) m_MainWorld = (worldID / 10) * 10;
 
 	m_ActivityID = 42;
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
 }
@@ -71,10 +70,8 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 
 	// If the race has already started, send the player back to the main world.
 	if (m_Loaded || !vehicle) {
-		auto* playerInstance = dynamic_cast<Player*>(player);
-		if (playerInstance) {
-			playerInstance->SendToZone(m_MainWorld);
-		}
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 		return;
 	}
 
@@ -105,10 +102,11 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	if (item == nullptr) {
 		LOG("Failed to find item");
-		auto* playerInstance = dynamic_cast<Player*>(player);
-		if (playerInstance) {
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
+
+		if (characterComponent) {
 			m_LoadedPlayers--;
-			playerInstance->SendToZone(m_MainWorld);
+			characterComponent->SendToZone(m_MainWorld);
 		}
 		return;
 
@@ -120,8 +118,8 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
-	auto startPosition = NiPoint3::ZERO;
-	auto startRotation = NiQuaternion::IDENTITY;
+	auto startPosition = NiPoint3Constant::ZERO;
+	auto startRotation = NiQuaternionConstant::IDENTITY;
 	const std::string placementAsString = std::to_string(positionNumber);
 	for (auto entity : spawnPointEntities) {
 		if (!entity) continue;
@@ -427,9 +425,9 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 			m_Parent->GetObjectID(), 3, 0, LWOOBJID_EMPTY, u"",
 			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 
-		auto* playerInstance = dynamic_cast<Player*>(player);
+		auto* characterComponent = player->GetComponent<CharacterComponent>();
 
-		playerInstance->SendToZone(m_MainWorld);
+		if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 
 		vehicle->Kill();
 	}
@@ -561,9 +559,9 @@ void RacingControlComponent::Update(float deltaTime) {
 					continue;
 				}
 
-				auto* playerInstance = dynamic_cast<Player*>(playerEntity);
+				auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
 
-				playerInstance->SendToZone(m_MainWorld);
+				if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 			}
 
 			m_LobbyPlayers.clear();
@@ -623,9 +621,9 @@ void RacingControlComponent::Update(float deltaTime) {
 					continue;
 				}
 
-				auto* playerInstance = dynamic_cast<Player*>(playerEntity);
+				auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
 
-				playerInstance->SendToZone(m_MainWorld);
+				if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 			}
 
 			return;
@@ -819,7 +817,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Some offset up to make they don't fall through the terrain on a
 			// respawn, seems to fix itself to the track anyhow
-			player.respawnPosition = position + NiPoint3::UNIT_Y * 5;
+			player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
 			player.respawnRotation = vehicle->GetRotation();
 			player.respawnIndex = respawnIndex;
 

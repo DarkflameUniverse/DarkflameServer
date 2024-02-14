@@ -4,25 +4,20 @@
 #include "CDTable.h"
 
 struct CDMissionEmail {
-	unsigned int ID;
-	unsigned int messageType;
-	unsigned int notificationGroup;
-	unsigned int missionID;
-	unsigned int attachmentLOT;
+	uint32_t ID;
+	uint32_t messageType;
+	uint32_t notificationGroup;
+	uint32_t missionID;
+	uint32_t attachmentLOT;
 	bool localize;
-	unsigned int locStatus;
+	uint32_t locStatus;
 	std::string gate_version;
 };
 
 
-class CDMissionEmailTable : public CDTable<CDMissionEmailTable> {
-private:
-	std::vector<CDMissionEmail> entries;
-
+class CDMissionEmailTable : public CDTable<CDMissionEmailTable, std::vector<CDMissionEmail>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionEmail> Query(std::function<bool(CDMissionEmail)> predicate);
-
-	const std::vector<CDMissionEmail>& GetEntries() const;
 };

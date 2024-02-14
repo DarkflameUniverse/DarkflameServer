@@ -2,7 +2,7 @@
 
 #include "Action.h"
 
-AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
+AddStripMessage::AddStripMessage(AMFArrayValue* const arguments) : BehaviorMessageBase{ arguments } {
 	actionContext = ActionContext(arguments);
 	position = StripUiPosition(arguments);
 
@@ -21,4 +21,8 @@ AddStripMessage::AddStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase
 		LOG_DEBUG("xPosition %f yPosition %f stripId %i stateId %i behaviorId %i t %s valueParameterName %s valueParameterString %s valueParameterDouble %f", position.GetX(), position.GetY(), actionContext.GetStripId(), actionContext.GetStateId(), behaviorId, actionsToAdd.back().GetType().c_str(), actionsToAdd.back().GetValueParameterName().c_str(), actionsToAdd.back().GetValueParameterString().c_str(), actionsToAdd.back().GetValueParameterDouble());
 	}
 	LOG_DEBUG("number of actions %i", actionsToAdd.size());
+}
+
+std::vector<Action> AddStripMessage::GetActionsToAdd() const {
+	return actionsToAdd;
 }

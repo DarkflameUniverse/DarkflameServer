@@ -14,12 +14,10 @@
 #include "dConfig.h"
 
 void PlayerContainer::Initialize() {
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), m_MaxNumberOfBestFriends);
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), m_MaxNumberOfFriends);
-}
-
-PlayerContainer::~PlayerContainer() {
-	m_Players.clear();
+	m_MaxNumberOfBestFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);
+	m_MaxNumberOfFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends")).value_or(m_MaxNumberOfFriends);
 }
 
 TeamData::TeamData() {
@@ -47,6 +45,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 
 	inStream.Read(data.zoneID);
 	inStream.Read(data.muteExpire);
+	inStream.Read(data.gmLevel);
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);

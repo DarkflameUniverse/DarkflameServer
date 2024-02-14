@@ -3,6 +3,7 @@ project(Darkflame)
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file
@@ -51,7 +52,7 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -O2 -Wuninitialized -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
 	if(NOT APPLE)
@@ -244,6 +245,7 @@ set(INCLUDED_DIRECTORIES
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
+	"thirdparty/MD5"
 
 	"tests"
 	"tests/dCommonTests"
@@ -272,7 +274,9 @@ link_directories(${PROJECT_BINARY_DIR})
 
 # Load all of our third party directories
 add_subdirectory(thirdparty)
-
+if (UNIX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
 # Glob together all headers that need to be precompiled
 file(
 	GLOB HEADERS_DDATABASE
@@ -317,7 +321,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum" "MD5")
 
 # Add platform specific common libraries
 if(UNIX)

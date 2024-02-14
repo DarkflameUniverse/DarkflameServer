@@ -11,6 +11,7 @@
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
 #include <array>
+#include "Loot.h"
 
 enum class eGameActivity : uint32_t;
 
@@ -61,11 +62,11 @@ enum StatisticID {
 /**
  * Represents a character, including their rockets and stats
  */
-class CharacterComponent : public Component {
+class CharacterComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::CHARACTER;
 
-	CharacterComponent(Entity* parent, Character* character);
+	CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;
 
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
@@ -280,6 +281,30 @@ public:
 	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
 
 	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+
+	/**
+	 * Sends a player to another zone with an optional clone ID
+	 *
+	 * @param zoneId zoneID for the new instance.
+	 * @param cloneId cloneID for the new instance.
+	 */
+	void SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId = 0) const;
+
+	const SystemAddress& GetSystemAddress() const;
+
+	const NiPoint3& GetRespawnPosition() const { return m_respawnPos; };
+
+	void SetRespawnPos(const NiPoint3& position);
+
+	const NiQuaternion& GetRespawnRotation() const { return m_respawnRot; };
+
+	void SetRespawnRot(const NiQuaternion& rotation);
+
+	std::map<LWOOBJID, Loot::Info>& GetDroppedLoot() { return m_DroppedLoot; };
+
+	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
+
+	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
@@ -571,6 +596,16 @@ private:
 	std::array<uint64_t, 4> m_ClaimCodes{};
 
 	void AwardClaimCodes();
+
+	SystemAddress m_SystemAddress;
+
+	NiPoint3 m_respawnPos;
+
+	NiQuaternion m_respawnRot;
+
+	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
+
+	uint64_t m_DroppedCoins = 0;
 };
 
 #endif // CHARACTERCOMPONENT_H

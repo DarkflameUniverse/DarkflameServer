@@ -1,8 +1,12 @@
 #include "CDObjectsTable.h"
 
+namespace {
+	CDObjects m_default;
+};
+
 void CDObjectsTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Objects");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -14,6 +18,7 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Objects");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDObjects entry;
 		entry.id = tableData.getIntField("id", -1);
@@ -31,7 +36,7 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 		UNUSED_COLUMN(entry.gate_version = tableData.getStringField("gate_version", "");)
 		UNUSED_COLUMN(entry.HQ_valid = tableData.getIntField("HQ_valid", -1);)
 
-		this->entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
@@ -40,9 +45,10 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 	m_default.id = 0;
 }
 
-const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
-	const auto& it = this->entries.find(LOT);
-	if (it != this->entries.end()) {
+const CDObjects& CDObjectsTable::GetByID(uint32_t LOT) {
+	auto& entries = GetEntriesMutable();
+	const auto& it = entries.find(LOT);
+	if (it != entries.end()) {
 		return it->second;
 	}
 
@@ -51,7 +57,7 @@ const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
 
 	auto tableData = query.execQuery();
 	if (tableData.eof()) {
-		this->entries.insert(std::make_pair(LOT, m_default));
+		entries.insert(std::make_pair(LOT, m_default));
 		return m_default;
 	}
 
@@ -73,7 +79,7 @@ const CDObjects& CDObjectsTable::GetByID(unsigned int LOT) {
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 		UNUSED(entry.HQ_valid = tableData.getIntField("HQ_valid", -1));
 
-		this->entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 

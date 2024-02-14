@@ -8,7 +8,7 @@ class Entity;
 
 class RacingSoundTriggerComponent : public SoundTriggerComponent {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_SOUND_TRIGGER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_SOUND_TRIGGER;
 	RacingSoundTriggerComponent(Entity* parent) : SoundTriggerComponent(parent){};
 };
 

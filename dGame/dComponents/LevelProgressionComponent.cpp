@@ -44,7 +44,7 @@ void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 }
 
 void LevelProgressionComponent::HandleLevelUp() {
-	auto* rewardsTable = CDClientManager::Instance().GetTable<CDRewardsTable>();
+	auto* rewardsTable = CDClientManager::GetTable<CDRewardsTable>();
 
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
 	bool rewardingItem = rewards.size() > 0;

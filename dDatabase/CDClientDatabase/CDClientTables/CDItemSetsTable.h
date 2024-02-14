@@ -4,32 +4,27 @@
 #include "CDTable.h"
 
 struct CDItemSets {
-	unsigned int setID;             //!< The item set ID
-	unsigned int locStatus;         //!< The loc status
+	uint32_t setID;             //!< The item set ID
+	uint32_t locStatus;         //!< The loc status
 	std::string itemIDs;       //!< THe item IDs
-	unsigned int kitType;           //!< The item kit type
-	unsigned int kitRank;           //!< The item kit rank
-	unsigned int kitImage;          //!< The item kit image
-	unsigned int skillSetWith2;     //!< The skill set with 2
-	unsigned int skillSetWith3;     //!< The skill set with 3
-	unsigned int skillSetWith4;     //!< The skill set with 4
-	unsigned int skillSetWith5;     //!< The skill set with 5
-	unsigned int skillSetWith6;     //!< The skill set with 6
+	uint32_t kitType;           //!< The item kit type
+	uint32_t kitRank;           //!< The item kit rank
+	uint32_t kitImage;          //!< The item kit image
+	uint32_t skillSetWith2;     //!< The skill set with 2
+	uint32_t skillSetWith3;     //!< The skill set with 3
+	uint32_t skillSetWith4;     //!< The skill set with 4
+	uint32_t skillSetWith5;     //!< The skill set with 5
+	uint32_t skillSetWith6;     //!< The skill set with 6
 	bool localize;          //!< Whether or localize
 	std::string gate_version;  //!< The gate version
-	unsigned int kitID;             //!< The kit ID
+	uint32_t kitID;             //!< The kit ID
 	float priority;         //!< The priority
 };
 
-class CDItemSetsTable : public CDTable<CDItemSetsTable> {
-private:
-	std::vector<CDItemSets> entries;
-
+class CDItemSetsTable : public CDTable<CDItemSetsTable, std::vector<CDItemSets>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDItemSets> Query(std::function<bool(CDItemSets)> predicate);
-
-	const std::vector<CDItemSets>& GetEntries(void) const;
 };
 

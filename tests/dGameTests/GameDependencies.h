@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "dServer.h"
+#include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
@@ -26,8 +27,8 @@ public:
 class GameDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		info.pos = NiPoint3::ZERO;
-		info.rot = NiQuaternion::IDENTITY;
+		info.pos = NiPoint3Constant::ZERO;
+		info.rot = NiQuaternionConstant::IDENTITY;
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;
@@ -41,6 +42,9 @@ protected:
 		auto worldConfig = new WorldConfig();
 		worldConfig->petFollowRadius = 10.0f;
 		Game::zoneManager->SetWorldConfig(worldConfig);
+
+		// Create a CDClientManager instance and load from defaults
+		CDClientManager::LoadValuesFromDefaults();
 	}
 
 	void TearDownDependencies() {

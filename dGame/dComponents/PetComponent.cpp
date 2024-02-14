@@ -34,6 +34,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
+#include "dNavMesh.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -73,8 +74,8 @@ std::map<LOT, int32_t> PetComponent::petFlags = {
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity },
-	m_PetInfo{ CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(componentId) } {
+PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
+	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
 	m_ComponentId = componentId;
 	m_Interaction = LWOOBJID_EMPTY;
 	m_InteractType = PetInteractType::none;
@@ -273,17 +274,17 @@ void PetComponent::OnUse(Entity* originator) {
 	NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
 	forward.y = 0;
 
-	if (dpWorld::Instance().IsLoaded()) {
+	if (dpWorld::IsLoaded()) {
 		NiPoint3 attempt = petPosition + forward * interactionDistance;
 
-		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+		float y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 		while (std::abs(y - petPosition.y) > 4 && interactionDistance > 10) {
 			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
 
 			attempt = originatorPosition + forward * interactionDistance;
 
-			y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+			y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 			interactionDistance -= 0.5f;
 		}
@@ -476,7 +477,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	EntityInfo info{};
 	info.lot = cached->second.puzzleModelLot;
 	info.pos = position;
-	info.rot = NiQuaternion::IDENTITY;
+	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
 
 	auto* modelEntity = Game::entityManager->CreateEntity(info);
@@ -531,9 +532,9 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		LWOOBJID_EMPTY,
 		false,
 		ePetTamingNotifyType::NAMINGPET,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -608,9 +609,9 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::SUCCESS,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -649,9 +650,9 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::QUIT,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -700,9 +701,9 @@ void PetComponent::ClientFailTamingMinigame() {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::FAILED,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -746,8 +747,8 @@ void PetComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
@@ -756,7 +757,7 @@ void PetComponent::Wander() {
 		return;
 	}
 
-	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed); //info.wanderSpeed);
+	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 
 	m_MovementAI->SetDestination(destination);
 
@@ -1153,6 +1154,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
 	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
+	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
 			LOG("No petComponent and/or no playerDestroyableComponent");
 			return;
@@ -1209,7 +1211,7 @@ void PetComponent::Release() {
 	item->SetCount(0, false, false);
 }
 
-void PetComponent::Command(const NiPoint3& position, const LWOOBJID& source, int32_t commandType, int32_t typeId, bool overrideObey) {
+void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, const int32_t commandType, const int32_t typeId, const bool overrideObey) {
 	auto* owner = GetOwner();
 	if (!owner) return;
 
