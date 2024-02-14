@@ -716,8 +716,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		uint32_t petStatus;		
-		if (!GeneralUtils::TryParse(args[0], petStatus)) {
+		const auto petStatus = GeneralUtils::TryParse<uint32_t>(args[0]);
+		if (!petStatus) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
 			return;
 		}
@@ -729,10 +729,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		petComponent->SetStatus(petStatus);
+		petComponent->SetStatus(petStatus.value());
 		//Game::entityManager->SerializeEntity(petComponent->GetParentEntity());
 
-		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus));
+		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus.value()));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 
@@ -743,14 +743,14 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		int32_t commandType;
-		if (!GeneralUtils::TryParse(args[0+3], commandType)) {
+		const auto commandType = GeneralUtils::TryParse<int32_t>(args[0+3]);
+		if (!commandType) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type!");
 			return;
 		}
 
-		int32_t typeId;
-		if (!GeneralUtils::TryParse(args[1+3], typeId)) {
+		const auto typeId = GeneralUtils::TryParse<int32_t>(args[1+3]);
+		if (!typeId) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type id!");
 			return;
 		}
@@ -763,29 +763,16 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		//Determine the positional coordinates
-		NiPoint3 commandPos{};
-		float x, y, z;
-		if (!GeneralUtils::TryParse(args[0], x)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
-			return;
-		}
-
-		if (!GeneralUtils::TryParse(args[1], y)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
-			return;
-		}
-
-		if (!GeneralUtils::TryParse(args[2], z)) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+		//NiPoint3 commandPos{};
+		//float x, y, z;
+		const auto commandPos = GeneralUtils::TryParse<NiPoint3>(args[0], args[1], args[2]);
+		if (!commandPos) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid position.");
 			return;
 		}
 		
 		// Set command position
-		commandPos.SetX(x);
-		commandPos.SetY(y);
-		commandPos.SetZ(z);
-
-		petComponent->Command(commandPos, entity->GetObjectID(), commandType, typeId, true);
+		petComponent->Command(commandPos.value(), entity->GetObjectID(), commandType.value(), typeId.value(), true);
 	}
 
 	// Pet speed utility
@@ -795,8 +782,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		float petMaxSpeed;
-		if (!GeneralUtils::TryParse(args[0], petMaxSpeed)) {
+		const auto petMaxSpeed = GeneralUtils::TryParse<float>(args[0]);
+		if (!petMaxSpeed) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid speed!");
 			return;
 		}
@@ -811,9 +798,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
 		if (!movementAIComponent) return;
 
-		movementAIComponent->SetMaxSpeed(petMaxSpeed);
+		movementAIComponent->SetMaxSpeed(petMaxSpeed.value());
 
-		std::u16string msg = u"Set pet max speed to " + (GeneralUtils::to_u16string(petMaxSpeed));
+		std::u16string msg = u"Set pet max speed to " + (GeneralUtils::to_u16string(petMaxSpeed.value()));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 
@@ -824,25 +811,25 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		float petAccel;
-		if (!GeneralUtils::TryParse(args[0], petAccel)) {
+		const auto petAccel = GeneralUtils::TryParse<float>(args[0]);
+		if (!petAccel) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid acceleration!");
 			return;
 		}
 
 		// Determine if player has a pet summoned
-		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		auto* const petComponent = PetComponent::GetActivePet(entity->GetObjectID());
 		if (!petComponent) {
 			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
 			return;
 		}
 
-		auto* movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
+		auto* const movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
 		if (!movementAIComponent) return;
 
-		movementAIComponent->SetAcceleration(petAccel);
+		movementAIComponent->SetAcceleration(petAccel.value());
 
-		std::u16string msg = u"Set pet acceleration to " + (GeneralUtils::to_u16string(petAccel));
+		std::u16string msg = u"Set pet acceleration to " + GeneralUtils::to_u16string(petAccel.value());
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 
@@ -853,8 +840,8 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		float petHaltDistance;
-		if (!GeneralUtils::TryParse(args[0], petHaltDistance)) {
+		const auto petHaltDistance = GeneralUtils::TryParse<float>(args[0]);
+		if (!petHaltDistance) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid halt distance!");
 			return;
 		}
@@ -869,9 +856,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto* movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
 		if (!movementAIComponent) return;
 
-		movementAIComponent->SetHaltDistance(petHaltDistance);
+		movementAIComponent->SetHaltDistance(petHaltDistance.value());
 
-		std::u16string msg = u"Set pet halt distance to " + (GeneralUtils::to_u16string(petHaltDistance));
+		std::u16string msg = u"Set pet halt distance to " + GeneralUtils::to_u16string(petHaltDistance.value());
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 

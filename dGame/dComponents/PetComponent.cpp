@@ -767,7 +767,7 @@ void PetComponent::Wander() {
 void PetComponent::OnSpawn() {
 	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
 
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
 
@@ -982,7 +982,7 @@ void PetComponent::HandleInteractBouncer() {
 			const auto bouncerId = bouncerComp->GetParentEntity()->GetObjectID();
 
 			bouncerComp->SetPetBouncerEnabled(true);
-			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3::ZERO, NiPoint3::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
+			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3Constant::ZERO, NiPoint3Constant::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
 			bouncerComp->SetPetBouncerEnabled(false);
 			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
 			});
@@ -990,7 +990,7 @@ void PetComponent::HandleInteractBouncer() {
 		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged"); //TODO: Check if the timing on this is right
 		// TODO: Need to freeze player movement until the bounce begins!
 
-		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::ActivateSwitch, true); // Plays 'jump on switch' animation
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, PetEmote::ActivateSwitch, true); // Plays 'jump on switch' animation
 		StopInteract();
 	}
 	m_Timer += 0.5f;
@@ -1043,7 +1043,7 @@ void PetComponent::StartInteractTreasureDig() {
 	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent);
 
-	Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure, true); // Plays 'dig' animation
+	Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, PetEmote::DigTreasure, true); // Plays 'dig' animation
 	m_Timer = 2.0f;
 }
 
@@ -1064,7 +1064,7 @@ void PetComponent::HandleInteractTreasureDig() {
 	}
 
 	if (m_TimerBounce <= 0.0f) {
-		Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, PetEmote::Bounce, true); // Plays 'bounce' animation
 		m_TimerBounce = 1.0f;
 	}
 
@@ -1154,7 +1154,6 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
 	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
-	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
 			LOG("No petComponent and/or no playerDestroyableComponent");
 			return;
@@ -1230,7 +1229,7 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 	}
 
 	// Add movement functionality
-	if (position != NiPoint3::ZERO) {
+	if (position != NiPoint3Constant::ZERO) {
 		m_MovementAI->SetDestination(position);
 	}
 }
