@@ -2505,7 +2505,7 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 	auto owner = PropertyManagementComponent::Instance()->GetOwner();
 	if (!owner) return;
 
-	ControlBehaviors::Instance().ProcessCommand(entity, *amfArguments.get(), command, owner);
+	ControlBehaviors::Instance().ProcessCommand(entity, *amfArguments, command, owner);
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
