@@ -1081,11 +1081,7 @@ Cinema::Recording::PlayEffectRecord::PlayEffectRecord(const std::string& effect)
 }
 
 void Cinema::Recording::PlayEffectRecord::Act(Entity* actor) {
-	int32_t effectID = 0;
-
-	if (!GeneralUtils::TryParse(effect, effectID)) {
-		return;
-	}
+	int32_t effectID = GeneralUtils::TryParse<int32_t>(effect).value_or(0);
 
 	GameMessages::SendPlayFXEffect(
 		actor->GetObjectID(),

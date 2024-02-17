@@ -538,13 +538,13 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 		const auto precondition = ServerPreconditions::CheckPreconditions(entity, player);
 
-		if (observed && (distance > ghostingDistanceMax || !precondition)) {
+		if (observed && (distance > m_GhostDistanceMaxSquared || !precondition)) {
 			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && (ghostingDistanceMin > distance && precondition)) {
+		} else if (!observed && (m_GhostDistanceMinSqaured > distance && precondition)) {
 			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());

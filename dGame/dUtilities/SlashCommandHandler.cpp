@@ -716,9 +716,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	if (chatCommand == "removemission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		if (args.size() == 0) return;
 
-		uint32_t missionID;
+		uint32_t missionID = GeneralUtils::TryParse<uint32_t>(args.at(0)).value_or(0);
 
-		if (!GeneralUtils::TryParse(args[0], missionID)) {
+		if (missionID == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission id.");
 			return;
 		}
@@ -914,9 +914,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		// If there is an argument, set the lot
 		if (args.size() > 0) {
-			if (!GeneralUtils::TryParse(args[0], info.lot)) {
-				ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
-				return;
+			const auto lotOptional = GeneralUtils::TryParse<LOT>(args[0]);
+			if (lotOptional) {
+				info.lot = lotOptional.value();
 			}
 		}
 
@@ -998,9 +998,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		float scale = 1.0f;
 
 		if (args.size() >= 2) {
-			if (!GeneralUtils::TryParse(args[1], scale)) {
-				ChatPackets::SendSystemMessage(sysAddr, u"Invalid scale.");
-				return;
+			const auto scaleOptional = GeneralUtils::TryParse<float>(args[1]);
+			if (scaleOptional) {
+				scale = scaleOptional.value();
 			}
 		}
 
@@ -1012,9 +1012,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	if (chatCommand == "prefab-destroy" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
-		size_t id;
+		size_t id = GeneralUtils::TryParse<size_t>(args[0]).value_or(0);
 
-		if (!GeneralUtils::TryParse(args[0], id)) {
+		if (id == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid prefab ID.");
 			return;
 		}
@@ -2240,15 +2240,27 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 					}
 				}
 			} else if (args[1] == "-rotate" && args.size() >= 4) {
-				const auto& rx = args[2];
-				const auto& ry = args[3];
-				const auto& rz = args[4];
-
-				float x, y, z;
-
-				if (!GeneralUtils::TryParse(rx, x) || !GeneralUtils::TryParse(ry, y) || !GeneralUtils::TryParse(rz, z)) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
 					return;
 				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
 
 				// Degrees to radia
 				x *= 0.0174533f;
@@ -2261,15 +2273,27 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				Game::entityManager->SerializeEntity(closest);
 			} else if (args[1] == "-translate" && args.size() >= 4) {
-				const auto& tx = args[2];
-				const auto& ty = args[3];
-				const auto& tz = args[4];
-
-				float x, y, z;
-
-				if (!GeneralUtils::TryParse(tx, x) || !GeneralUtils::TryParse(ty, y) || !GeneralUtils::TryParse(tz, z)) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
 					return;
 				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
 
 				const auto translation = NiPoint3(x, y, z);
 
@@ -2277,15 +2301,28 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				Game::entityManager->SerializeEntity(closest);
 			} else if (args[1] == "-warp" && args.size() >= 4) {
-				const auto& tx = args[2];
-				const auto& ty = args[3];
-				const auto& tz = args[4];
-
-				float x, y, z;
-
-				if (!GeneralUtils::TryParse(tx, x) || !GeneralUtils::TryParse(ty, y) || !GeneralUtils::TryParse(tz, z)) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
 					return;
 				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
+
 
 				const auto translation = NiPoint3(x, y, z);
 
@@ -2293,9 +2330,10 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 				Game::entityManager->SerializeEntity(closest);
 			} else if (args[1] == "-fx" && args.size() >= 4) {
-				int32_t effectID = 0;
+				int32_t effectID = GeneralUtils::TryParse<int32_t>(args[2]).value_or(-1);
 
-				if (!GeneralUtils::TryParse(args[2], effectID)) {
+				if (effectID == -1) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid effect ID.");
 					return;
 				}
 

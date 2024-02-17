@@ -2175,8 +2175,8 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 			update.velocity,
 			update.angularVelocity,
 			update.onGround,
-			update.velocity != NiPoint3::ZERO,
-			update.angularVelocity != NiPoint3::ZERO
+			update.velocity != NiPoint3Constant::ZERO,
+			update.angularVelocity != NiPoint3Constant::ZERO
 		));
 	}
 }

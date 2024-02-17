@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Player.h"
 #include "Game.h"
 #include "EntityManager.h"
 #include "tinyxml2.h"
