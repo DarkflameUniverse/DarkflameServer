@@ -15,7 +15,6 @@
 #include "Spawner.h"
 #include "UserManager.h"
 #include "dpWorld.h"
-#include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
 #include "EntityTimer.h"
@@ -26,6 +25,7 @@
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
 #include "eChatMessageType.h"
+#include "PlayerManager.h"
 
 //Component includes:
 #include "Component.h"
@@ -96,7 +96,7 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
-Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
+Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -125,9 +125,42 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_SpawnerNodeID = info.spawnerNodeID;
 
 	if (info.lot != 1) m_PlayerIsReadyForUpdates = true;
+	if (parentUser) {
+		m_Character = parentUser->GetLastUsedChar();
+		parentUser->SetLoggedInChar(objectID);
+		m_GMLevel = m_Character->GetGMLevel();
+
+		m_Character->SetEntity(this);
+
+		PlayerManager::AddPlayer(this);
+	}
 }
 
 Entity::~Entity() {
+	if (IsPlayer()) {
+		LOG("Deleted player");
+
+		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
+		if (!PlayerManager::RemovePlayer(this)) {
+			LOG("Unable to find player to remove from manager.");
+			return;
+		}
+
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+			script->OnPlayerExit(zoneControl, this);
+		}
+
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
+		for (Entity* scriptEntity : scriptedActs) {
+			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+					script->OnPlayerExit(scriptEntity, this);
+				}
+			}
+		}
+	}
+
 	if (m_Character) {
 		m_Character->SaveXMLToDatabase();
 	}
@@ -183,7 +216,7 @@ void Entity::Initialize() {
 	}
 
 	// Get the registry table
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	/**
 	 * Special case for BBB models. They have components not corresponding to the registry.
@@ -213,7 +246,7 @@ void Entity::Initialize() {
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
-	if (GetParentUser()) {
+	if (m_Character && m_Character->GetParentUser()) {
 		AddComponent<MissionComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
@@ -337,7 +370,7 @@ void Entity::Initialize() {
 	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
@@ -372,7 +405,7 @@ void Entity::Initialize() {
 					uint32_t npcMinLevel = destCompData[0].level;
 					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
 
-					CDCurrencyTableTable* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+					CDCurrencyTableTable* currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 					std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
 
 					if (currencyValues.size() > 0) {
@@ -420,10 +453,10 @@ void Entity::Initialize() {
 		if (!setFaction.empty()) {
 			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
 			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
-			int32_t factionToAdd;
 			for (const auto faction : factionsToAdd) {
-				if (GeneralUtils::TryParse(faction, factionToAdd)) {
-					comp->AddFaction(factionToAdd, true);
+				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
+				if (factionToAdd) {
+					comp->AddFaction(factionToAdd.value(), true);
 				}
 			}
 		}
@@ -438,7 +471,8 @@ void Entity::Initialize() {
 
 		AddComponent<PlayerForcedMovementComponent>();
 
-		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+		AddComponent<CharacterComponent>(m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
 
 		AddComponent<GhostComponent>();
 	}
@@ -456,7 +490,7 @@ void Entity::Initialize() {
 	 * This is a bit of a mess
 	 */
 
-	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
 
 	std::string scriptName = "";
@@ -505,7 +539,7 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+		CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
@@ -528,7 +562,7 @@ void Entity::Initialize() {
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
 		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
 
-		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+		CDRebuildComponentTable* rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
 		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
@@ -652,7 +686,7 @@ void Entity::Initialize() {
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
 	if (movementAIID > 0) {
-		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
+		CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
 		if (moveAIComp.size() > 0) {
@@ -716,7 +750,7 @@ void Entity::Initialize() {
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
-		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
 		std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
 		if (proxCompData.size() > 0) {
 			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
@@ -789,14 +823,6 @@ bool Entity::operator!=(const Entity& other) const {
 	return other.m_ObjectID != m_ObjectID;
 }
 
-User* Entity::GetParentUser() const {
-	if (!IsPlayer()) {
-		return nullptr;
-	}
-
-	return static_cast<const Player*>(this)->GetParentUser();
-}
-
 Component* Entity::GetComponent(eReplicaComponentType componentID) const {
 	const auto& index = m_Components.find(componentID);
 
@@ -851,17 +877,12 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 
 void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
-	if (GetParentUser()) {
-		Character* character = GetParentUser()->GetLastUsedChar();
+	if (m_Character) m_Character->SetGMLevel(value);
 
-		if (character) {
-			character->SetGMLevel(value);
-		}
-	}
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 
-	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (!character) return;
-	character->SetGMLevel(value);
+	characterComponent->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
 
@@ -1358,16 +1379,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 
 	if (!other->GetIsDead()) {
-		auto* combat = GetComponent<BaseCombatAIComponent>();
-
-		if (combat != nullptr) {
+		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
-
-			const auto valid = combat->IsEnemy(otherEntity);
-
-			if (!valid) return;
 
 			m_TargetsInPhantom.push_back(otherEntity);
 		}
@@ -1637,18 +1652,23 @@ bool Entity::GetIsDead() const {
 
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot.insert(std::make_pair(info.id, info));
 }
 
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
 	InventoryComponent* inv = GetComponent<InventoryComponent>();
-	if (!inv) return;
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!inv || !characterComponent) return;
 
-	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+	CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
@@ -1659,13 +1679,13 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 			const CDObjects& object = objectsTable->GetByID(p.second.lot);
 			if (object.id != 0 && object.type == "Powerup") {
-				CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-					CDSkillBehavior behaviorData = skillBehTable->GetSkillByID(skill.skillID);
+					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 
-					SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
+					auto* skillComponent = GetComponent<SkillComponent>();
+					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID());
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
@@ -1684,22 +1704,28 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return false;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	if (count > droppedCoins) {
 		return false;
 	} else {
-		player->SetDroppedCoins(droppedCoins - count);
+		characterComponent->SetDroppedCoins(droppedCoins - count);
 		return true;
 	}
 }
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	droppedCoins += count;
-	player->SetDroppedCoins(droppedCoins);
+	characterComponent->SetDroppedCoins(droppedCoins);
 }
 
 void Entity::AddChild(Entity* child) {
@@ -1864,7 +1890,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
-	return NiPoint3::ZERO;
+	return NiPoint3Constant::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
@@ -1892,7 +1918,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return vehicel->GetRotation();
 	}
 
-	return NiQuaternion::IDENTITY;
+	return NiQuaternionConstant::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
@@ -1993,25 +2019,21 @@ void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
-std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
+std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
+	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+		return !Game::entityManager->GetEntity(id);
+		}), m_TargetsInPhantom.end());
 
-		auto* entity = Game::entityManager->GetEntity(id);
+	std::vector<LWOOBJID> enemies;
+	for (const auto id : m_TargetsInPhantom) {
+		auto* combat = GetComponent<BaseCombatAIComponent>();
+		if (!combat || !combat->IsEnemy(id)) continue;
 
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
+		enemies.push_back(id);
 	}
 
-	m_TargetsInPhantom = valid;
-
-	return m_TargetsInPhantom;
+	return enemies;
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
@@ -2097,9 +2119,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
 				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
 				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
-				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
@@ -2110,17 +2132,17 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
 				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
 				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
-				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 			}
 			Game::entityManager->SerializeEntity(possassableEntity);
 		}
 	}
 
 	if (!updateChar) {
-		update.velocity = NiPoint3::ZERO;
-		update.angularVelocity = NiPoint3::ZERO;
+		update.velocity = NiPoint3Constant::ZERO;
+		update.angularVelocity = NiPoint3Constant::ZERO;
 	}
 
 	// Handle statistics
@@ -2134,9 +2156,9 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetIsOnGround(update.onGround);
 	controllablePhysicsComponent->SetIsOnRail(update.onRail);
 	controllablePhysicsComponent->SetVelocity(update.velocity);
-	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3::ZERO);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
 	auto* ghostComponent = GetComponent<GhostComponent>();
 	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
@@ -2157,4 +2179,28 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 			update.angularVelocity != NiPoint3::ZERO
 		));
 	}
+}
+
+const SystemAddress& Entity::GetSystemAddress() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+}
+
+const NiPoint3& Entity::GetRespawnPosition() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnPosition() : NiPoint3Constant::ZERO;
+}
+
+const NiQuaternion& Entity::GetRespawnRotation() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
+}
+
+void Entity::SetRespawnPos(const NiPoint3& position) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnPos(position);
+}
+void Entity::SetRespawnRot(const NiQuaternion& rotation) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnRot(rotation);
 }

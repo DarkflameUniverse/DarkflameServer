@@ -9,11 +9,7 @@ struct CDScriptComponent {
 	std::string client_script_name;    //!< The client script name
 };
 
-class CDScriptComponentTable : public CDTable<CDScriptComponentTable> {
-private:
-	std::map<uint32_t, CDScriptComponent> entries;
-	CDScriptComponent m_ToReturnWhenNoneFound;
-
+class CDScriptComponentTable : public CDTable<CDScriptComponentTable, std::map<uint32_t, CDScriptComponent>> {
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by scriptID

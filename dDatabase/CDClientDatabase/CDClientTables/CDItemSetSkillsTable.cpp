@@ -14,7 +14,8 @@ void CDItemSetSkillsTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ItemSetSkills");
@@ -24,7 +25,7 @@ void CDItemSetSkillsTable::LoadValuesFromDatabase() {
 		entry.SkillID = tableData.getIntField("SkillID", -1);
 		entry.SkillCastType = tableData.getIntField("SkillCastType", -1);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -32,22 +33,17 @@ void CDItemSetSkillsTable::LoadValuesFromDatabase() {
 }
 
 std::vector<CDItemSetSkills> CDItemSetSkillsTable::Query(std::function<bool(CDItemSetSkills)> predicate) {
-
-	std::vector<CDItemSetSkills> data = cpplinq::from(this->entries)
+	std::vector<CDItemSetSkills> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
 
-const std::vector<CDItemSetSkills>& CDItemSetSkillsTable::GetEntries() const {
-	return this->entries;
-}
-
 std::vector<CDItemSetSkills> CDItemSetSkillsTable::GetBySkillID(uint32_t SkillSetID) {
 	std::vector<CDItemSetSkills> toReturn;
 
-	for (CDItemSetSkills entry : this->entries) {
+	for (const auto& entry : GetEntries()) {
 		if (entry.SkillSetID == SkillSetID) toReturn.push_back(entry);
 		if (entry.SkillSetID > SkillSetID) return toReturn; //stop seeking in the db if it's not needed.
 	}

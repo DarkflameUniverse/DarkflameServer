@@ -12,7 +12,6 @@
 #include "Item.h"
 #include "MissionComponent.h"
 #include "ModuleAssemblyComponent.h"
-#include "Player.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
 #include "eRacingTaskParam.h"
@@ -54,7 +53,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	if (Game::zoneManager->CheckIfAccessibleZone((worldID / 10) * 10)) m_MainWorld = (worldID / 10) * 10;
 
 	m_ActivityID = 42;
-	CDActivitiesTable* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
 }
@@ -119,8 +118,8 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		GeneralUtils::UTF16ToWTF8(m_PathName));
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
-	auto startPosition = NiPoint3::ZERO;
-	auto startRotation = NiQuaternion::IDENTITY;
+	auto startPosition = NiPoint3Constant::ZERO;
+	auto startRotation = NiQuaternionConstant::IDENTITY;
 	const std::string placementAsString = std::to_string(positionNumber);
 	for (auto entity : spawnPointEntities) {
 		if (!entity) continue;
@@ -818,7 +817,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Some offset up to make they don't fall through the terrain on a
 			// respawn, seems to fix itself to the track anyhow
-			player.respawnPosition = position + NiPoint3::UNIT_Y * 5;
+			player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
 			player.respawnRotation = vehicle->GetRotation();
 			player.respawnIndex = respawnIndex;
 

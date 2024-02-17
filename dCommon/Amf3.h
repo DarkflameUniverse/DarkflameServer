@@ -31,54 +31,68 @@ enum class eAmf : uint8_t {
 
 class AMFBaseValue {
 public:
-	virtual eAmf GetValueType() { return eAmf::Undefined; };
-	AMFBaseValue() {};
-	virtual ~AMFBaseValue() {};
+	[[nodiscard]] constexpr virtual eAmf GetValueType() const noexcept { return eAmf::Undefined; }
+	constexpr AMFBaseValue() noexcept = default;
+	constexpr virtual ~AMFBaseValue() noexcept = default;
 };
 
-template<typename ValueType>
+// AMFValue template class instantiations
+template <typename ValueType>
 class AMFValue : public AMFBaseValue {
 public:
-	AMFValue() {};
-	AMFValue(ValueType value) { SetValue(value); };
-	virtual ~AMFValue() override {};
+	AMFValue() = default;
+	AMFValue(const ValueType value) { m_Data = value; }
+	virtual ~AMFValue() override = default;
 
-	eAmf GetValueType() override { return eAmf::Undefined; };
+	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override;
 
-	const ValueType& GetValue() { return data; };
-	void SetValue(ValueType value) { data = value; };
+	[[nodiscard]] const ValueType& GetValue() const { return m_Data; }
+	void SetValue(const ValueType value) { m_Data = value; }
+
 protected:
-	ValueType data;
+	ValueType m_Data;
 };
+
+// Explicit template class instantiations
+template class AMFValue<std::nullptr_t>; 
+template class AMFValue<bool>;
+template class AMFValue<int32_t>;
+template class AMFValue<uint32_t>;
+template class AMFValue<std::string>;
+template class AMFValue<double>;
+
+// AMFValue template class member function instantiations
+template <> [[nodiscard]] constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<int32_t>::GetValueType() const noexcept { return eAmf::Integer; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<uint32_t>::GetValueType() const noexcept { return eAmf::Integer; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<std::string>::GetValueType() const noexcept { return eAmf::String; }
+template <> [[nodiscard]] constexpr eAmf AMFValue<double>::GetValueType() const noexcept { return eAmf::Double; }
+
+template <typename ValueType>
+[[nodiscard]] constexpr eAmf AMFValue<ValueType>::GetValueType() const noexcept { return eAmf::Undefined; }
 
 // As a string this is much easier to write and read from a BitStream.
-template<>
+template <>
 class AMFValue<const char*> : public AMFBaseValue {
 public:
-	AMFValue() {};
-	AMFValue(const char* value) { SetValue(std::string(value)); };
-	virtual ~AMFValue() override {};
+	AMFValue() = default;
+	AMFValue(const char* value) { m_Data = value; }
+	virtual ~AMFValue() override = default;
 
-	eAmf GetValueType() override { return eAmf::String; };
+	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::String; }
 
-	const std::string& GetValue() { return data; };
-	void SetValue(std::string value) { data = value; };
+	[[nodiscard]] const std::string& GetValue() const { return m_Data; }
+	void SetValue(const std::string& value) { m_Data = value; }
 protected:
-	std::string data;
+	std::string m_Data;
 };
 
-typedef AMFValue<std::nullptr_t> AMFNullValue;
-typedef AMFValue<bool> AMFBoolValue;
-typedef AMFValue<int32_t> AMFIntValue;
-typedef AMFValue<std::string> AMFStringValue;
-typedef AMFValue<double> AMFDoubleValue;
-
-template<> inline eAmf AMFValue<std::nullptr_t>::GetValueType() { return eAmf::Null; };
-template<> inline eAmf AMFValue<bool>::GetValueType() { return this->data ? eAmf::True : eAmf::False; };
-template<> inline eAmf AMFValue<int32_t>::GetValueType() { return eAmf::Integer; };
-template<> inline eAmf AMFValue<uint32_t>::GetValueType() { return eAmf::Integer; };
-template<> inline eAmf AMFValue<std::string>::GetValueType() { return eAmf::String; };
-template<> inline eAmf AMFValue<double>::GetValueType() { return eAmf::Double; };
+using AMFNullValue = AMFValue<std::nullptr_t>;
+using AMFBoolValue = AMFValue<bool>;
+using AMFIntValue = AMFValue<int32_t>;
+using AMFStringValue = AMFValue<std::string>;
+using AMFDoubleValue = AMFValue<double>;
 
 /**
  * The AMFArrayValue object holds 2 types of lists:
@@ -89,12 +103,11 @@ template<> inline eAmf AMFValue<double>::GetValueType() { return eAmf::Double; }
  * and are not to be deleted by a caller.
  */
 class AMFArrayValue : public AMFBaseValue {
-
-	typedef std::unordered_map<std::string, AMFBaseValue*> AMFAssociative;
-	typedef std::vector<AMFBaseValue*> AMFDense;
+	using AMFAssociative = std::unordered_map<std::string, AMFBaseValue*>;
+	using AMFDense = std::vector<AMFBaseValue*>;
 
 public:
-	eAmf GetValueType() override { return eAmf::Array; };
+	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::Array; }
 
 	~AMFArrayValue() override {
 		for (auto valueToDelete : GetDense()) {
@@ -109,17 +122,17 @@ public:
 				valueToDelete.second = nullptr;
 			}
 		}
-	};
+	}
 
 	/**
 	 * Returns the Associative portion of the object
 	 */
-	inline AMFAssociative& GetAssociative() { return this->associative; };
+	[[nodiscard]] inline AMFAssociative& GetAssociative() noexcept { return this->associative; }
 
 	/**
 	 * Returns the dense portion of the object
 	 */
-	inline AMFDense& GetDense() { return this->dense; };
+	[[nodiscard]] inline AMFDense& GetDense() noexcept { return this->dense; }
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given key.
@@ -135,8 +148,8 @@ public:
 	 * @return The inserted element if the type matched,
 	 * or nullptr if a key existed and was not the same type
 	 */
-	template<typename ValueType>
-	std::pair<AMFValue<ValueType>*, bool> Insert(const std::string& key, ValueType value) {
+	template <typename ValueType>
+	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const std::string& key, const ValueType value) {
 		auto element = associative.find(key);
 		AMFValue<ValueType>* val = nullptr;
 		bool found = true;
@@ -148,10 +161,10 @@ public:
 			found = false;
 		}
 		return std::make_pair(val, found);
-	};
+	}
 
 	// Associates an array with a string key
-	std::pair<AMFBaseValue*, bool> Insert(const std::string& key) {
+	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const std::string& key) {
 		auto element = associative.find(key);
 		AMFArrayValue* val = nullptr;
 		bool found = true;
@@ -163,10 +176,10 @@ public:
 			found = false;
 		}
 		return std::make_pair(val, found);
-	};
+	}
 
 	// Associates an array with an integer key
-	std::pair<AMFBaseValue*, bool> Insert(const uint32_t& index) {
+	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const size_t index) {
 		AMFArrayValue* val = nullptr;
 		bool inserted = false;
 		if (index >= dense.size()) {
@@ -176,7 +189,7 @@ public:
 			inserted = true;
 		}
 		return std::make_pair(dynamic_cast<AMFArrayValue*>(dense.at(index)), inserted);
-	};
+	}
 
 	/**
 	 * @brief Inserts an AMFValue into the AMFArray key'd by index.
@@ -188,8 +201,8 @@ public:
 	 * @return The inserted element, or nullptr if the type did not match
 	 * what was at the index.
 	 */
-	template<typename ValueType>
-	std::pair<AMFValue<ValueType>*, bool> Insert(const uint32_t& index, ValueType value) {
+	template <typename ValueType>
+	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const size_t index, const ValueType value) {
 		AMFValue<ValueType>* val = nullptr;
 		bool inserted = false;
 		if (index >= this->dense.size()) {
@@ -199,7 +212,7 @@ public:
 			inserted = true;
 		}
 		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(this->dense.at(index)), inserted);
-	};
+	}
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given key.
@@ -210,7 +223,7 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const std::string& key, AMFBaseValue* value) {
+	void Insert(const std::string& key, AMFBaseValue* const value) {
 		auto element = associative.find(key);
 		if (element != associative.end() && element->second) {
 			delete element->second;
@@ -218,7 +231,7 @@ public:
 		} else {
 			associative.insert(std::make_pair(key, value));
 		}
-	};
+	}
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given index.
@@ -229,7 +242,7 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const uint32_t index, AMFBaseValue* value) {
+	void Insert(const size_t index, AMFBaseValue* const value) {
 		if (index < dense.size()) {
 			AMFDense::iterator itr = dense.begin() + index;
 			if (*itr) delete dense.at(index);
@@ -237,7 +250,7 @@ public:
 			dense.resize(index + 1);
 		}
 		dense.at(index) = value;
-	};
+	}
 
 	/**
 	 * Pushes an AMFValue into the back of the dense portion.
@@ -249,10 +262,10 @@ public:
 	 *
 	 * @return The inserted pointer, or nullptr should the key already be in use.
 	 */
-	template<typename ValueType>
-	inline AMFValue<ValueType>* Push(ValueType value) {
+	template <typename ValueType>
+	[[maybe_unused]] inline AMFValue<ValueType>* Push(const ValueType value) {
 		return Insert(this->dense.size(), value).first;
-	};
+	}
 
 	/**
 	 * Removes the key from the associative portion
@@ -261,7 +274,7 @@ public:
 	 *
 	 * @param key The key to remove from the associative portion
 	 */
-	void Remove(const std::string& key, bool deleteValue = true) {
+	void Remove(const std::string& key, const bool deleteValue = true) {
 		AMFAssociative::iterator it = this->associative.find(key);
 		if (it != this->associative.end()) {
 			if (deleteValue) delete it->second;
@@ -272,7 +285,7 @@ public:
 	/**
 	 * Pops the last element in the dense portion, deleting it in the process.
 	 */
-	void Remove(const uint32_t index) {
+	void Remove(const size_t index) {
 		if (!this->dense.empty() && index < this->dense.size()) {
 			auto itr = this->dense.begin() + index;
 			if (*itr) delete (*itr);
@@ -284,29 +297,29 @@ public:
 		if (!this->dense.empty()) Remove(this->dense.size() - 1);
 	}
 
-	AMFArrayValue* GetArray(const std::string& key) {
+	[[nodiscard]] AMFArrayValue* GetArray(const std::string& key) {
 		AMFAssociative::const_iterator it = this->associative.find(key);
 		if (it != this->associative.end()) {
 			return dynamic_cast<AMFArrayValue*>(it->second);
 		}
 		return nullptr;
-	};
+	}
 
-	AMFArrayValue* GetArray(const uint32_t index) {
+	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) {
 		return index >= this->dense.size() ? nullptr : dynamic_cast<AMFArrayValue*>(this->dense.at(index));
-	};
+	}
 
-	inline AMFArrayValue* InsertArray(const std::string& key) {
+	[[maybe_unused]] inline AMFArrayValue* InsertArray(const std::string& key) {
 		return static_cast<AMFArrayValue*>(Insert(key).first);
-	};
+	}
 
-	inline AMFArrayValue* InsertArray(const uint32_t index) {
+	[[maybe_unused]] inline AMFArrayValue* InsertArray(const size_t index) {
 		return static_cast<AMFArrayValue*>(Insert(index).first);
-	};
+	}
 
-	inline AMFArrayValue* PushArray() {
+	[[maybe_unused]] inline AMFArrayValue* PushArray() {
 		return static_cast<AMFArrayValue*>(Insert(this->dense.size()).first);
-	};
+	}
 
 	/**
 	 * Gets an AMFValue by the key from the associative portion and converts it
@@ -318,18 +331,18 @@ public:
 	 * @return The AMFValue
 	 */
 	template <typename AmfType>
-	AMFValue<AmfType>* Get(const std::string& key) const {
+	[[nodiscard]] AMFValue<AmfType>* Get(const std::string& key) const {
 		AMFAssociative::const_iterator it = this->associative.find(key);
 		return it != this->associative.end() ?
 			dynamic_cast<AMFValue<AmfType>*>(it->second) :
 			nullptr;
-	};
+	}
 
 	// Get from the array but dont cast it
-	AMFBaseValue* Get(const std::string& key) const {
+	[[nodiscard]] AMFBaseValue* Get(const std::string& key) const {
 		AMFAssociative::const_iterator it = this->associative.find(key);
 		return it != this->associative.end() ? it->second : nullptr;
-	};
+	}
 
 	/**
 	 * @brief Get an AMFValue object at a position in the dense portion.
@@ -341,16 +354,17 @@ public:
 	 * @return The casted object, or nullptr.
 	 */
 	template <typename AmfType>
-	AMFValue<AmfType>* Get(uint32_t index) const {
+	[[nodiscard]] AMFValue<AmfType>* Get(const size_t index) const {
 		return index < this->dense.size() ?
 			dynamic_cast<AMFValue<AmfType>*>(this->dense.at(index)) :
 			nullptr;
-	};
+	}
 
 	// Get from the dense but dont cast it
-	AMFBaseValue* Get(const uint32_t index) const {
+	[[nodiscard]] AMFBaseValue* Get(const size_t index) const {
 		return index < this->dense.size() ? this->dense.at(index) : nullptr;
-	};
+	}
+
 private:
 	/**
 	 * The associative portion.  These values are key'd with strings to an AMFValue.

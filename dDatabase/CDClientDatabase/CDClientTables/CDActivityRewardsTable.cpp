@@ -1,5 +1,6 @@
 #include "CDActivityRewardsTable.h"
 
+
 void CDActivityRewardsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
@@ -14,7 +15,8 @@ void CDActivityRewardsTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ActivityRewards");
@@ -28,7 +30,7 @@ void CDActivityRewardsTable::LoadValuesFromDatabase() {
 		entry.ChallengeRating = tableData.getIntField("ChallengeRating", -1);
 		entry.description = tableData.getStringField("description", "");
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -37,7 +39,7 @@ void CDActivityRewardsTable::LoadValuesFromDatabase() {
 
 std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(CDActivityRewards)> predicate) {
 
-	std::vector<CDActivityRewards> data = cpplinq::from(this->entries)
+	std::vector<CDActivityRewards> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 

@@ -18,7 +18,6 @@
 #include "Character.h"
 #include "ControllablePhysicsComponent.h"
 #include "dZoneManager.h"
-#include "Player.h"
 #include "CppScripts.h"
 
 #include "CDClientDatabase.h"
@@ -291,7 +290,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
 
-		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		CDSkillBehaviorTable* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
 
 		bool success = false;

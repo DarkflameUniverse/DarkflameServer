@@ -89,9 +89,8 @@ int main(int argc, char** argv) {
 	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
 
 
-	uint32_t clientNetVersion = 171022;
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
-	if (!clientNetVersionString.empty()) GeneralUtils::TryParse(clientNetVersionString, clientNetVersion);
+	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
 	LOG("Using net version %i", clientNetVersion);
 
@@ -176,17 +175,6 @@ int main(int argc, char** argv) {
 
 	// Run migrations should any need to be run.
 	MigrationRunner::RunSQLiteMigrations();
-
-	//Get CDClient initial information
-	try {
-		CDClientManager::Instance();
-	} catch (CppSQLite3Exception& e) {
-		LOG("Failed to initialize CDServer SQLite Database");
-		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
-		LOG("Error: %s", e.errorMessage());
-		LOG("Error Code: %i", e.errorCode());
-		return EXIT_FAILURE;
-	}
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.

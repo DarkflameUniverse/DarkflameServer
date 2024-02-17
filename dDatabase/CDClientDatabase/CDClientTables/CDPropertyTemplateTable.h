@@ -8,13 +8,9 @@ struct CDPropertyTemplate {
 	std::string spawnName;
 };
 
-class CDPropertyTemplateTable : public CDTable<CDPropertyTemplateTable> {
+class CDPropertyTemplateTable : public CDTable<CDPropertyTemplateTable, std::vector<CDPropertyTemplate>> {
 public:
 	void LoadValuesFromDatabase();
 
-	static const std::string GetTableName() { return "PropertyTemplate"; };
 	CDPropertyTemplate GetByMapID(uint32_t mapID);
-private:
-	std::vector<CDPropertyTemplate> entries{};
-	CDPropertyTemplate defaultEntry{};
 };

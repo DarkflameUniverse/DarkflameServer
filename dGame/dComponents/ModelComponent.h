@@ -22,9 +22,9 @@ class MoveToInventoryMessage;
 /**
  * Component that represents entities that are a model, e.g. collectible models and BBB models.
  */
-class ModelComponent : public Component {
+class ModelComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
 	ModelComponent(Entity* parent);
 

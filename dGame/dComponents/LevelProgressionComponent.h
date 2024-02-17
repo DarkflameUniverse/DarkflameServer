@@ -11,9 +11,9 @@
   *
  */
 
-class LevelProgressionComponent : public Component {
+class LevelProgressionComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::LEVEL_PROGRESSION;
 
 	/**
 	 * Constructor for this component

@@ -356,6 +356,10 @@ The Darkflame Server is automatically built and published as a Docker Container 
 
 ## Compose
 
+> [!WARNING]
+> It seems that Docker Desktop on Windows with the WSL 2 backend has some issues with MariaDB (c.f. [mariadb-docker#331](https://github.com/MariaDB/mariadb-docker/issues/331)) triggered by NexusDashboard
+> migrations, so this setup may not work for you. If that is the case, please tell us about your setup in [NexusDashboard#92](https://github.com/DarkflameUniverse/NexusDashboard/issues/92).
+
 You can use the `docker-compose` tool to [setup a MariaDB database](#database-setup), run the Darkflame Server and manage it with [Nexus Dashboard](https://github.com/DarkflameUniverse/NexusDashboard) all
 at once. For that:
 

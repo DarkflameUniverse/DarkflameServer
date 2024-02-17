@@ -7,7 +7,7 @@
 
 class NiPoint3;
 
-class GhostComponent : public Component {
+class GhostComponent final : public Component {
 public:
 	static inline const eReplicaComponentType ComponentType = eReplicaComponentType::GHOST;
 	GhostComponent(Entity* parent);
@@ -33,18 +33,18 @@ public:
 
 	void ConstructLimboEntities();
 
-	void ObserveEntity(const int32_t id);
+	void ObserveEntity(const LWOOBJID id);
 
-	bool IsObserved(const int32_t id);
+	bool IsObserved(const LWOOBJID id);
 
-	void GhostEntity(const int32_t id);
+	void GhostEntity(const LWOOBJID id);
 
 private:
 	NiPoint3 m_GhostReferencePoint;
 
 	NiPoint3 m_GhostOverridePoint;
 
-	std::unordered_set<int32_t> m_ObservedEntities;
+	std::unordered_set<LWOOBJID> m_ObservedEntities;
 
 	std::unordered_set<LWOOBJID> m_LimboConstructions;
 

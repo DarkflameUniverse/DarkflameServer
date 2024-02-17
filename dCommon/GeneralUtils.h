@@ -1,17 +1,20 @@
 #pragma once
 
 // C++
-#include <stdint.h>
+#include <charconv>
+#include <cstdint>
 #include <random>
-#include <time.h>
+#include <ctime>
 #include <string>
-#include <type_traits>
+#include <string_view>
+#include <optional>
 #include <functional>
 #include <type_traits>
 #include <stdexcept>
 #include "BitStream.h"
 #include "NiPoint3.h"
 
+#include "dPlatforms.h"
 #include "Game.h"
 #include "Logger.h"
 
@@ -123,90 +126,125 @@ namespace GeneralUtils {
 
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
 
+	// Concept constraining to enum types
 	template <typename T>
-	T Parse(const char* value);
+	concept Enum = std::is_enum_v<T>;
 
-	template <>
-	inline bool Parse(const char* value) {
-		return std::stoi(value);
-	}
-
-	template <>
-	inline int32_t Parse(const char* value) {
-		return std::stoi(value);
-	}
-
-	template <>
-	inline int64_t Parse(const char* value) {
-		return std::stoll(value);
-	}
-
-	template <>
-	inline float Parse(const char* value) {
-		return std::stof(value);
-	}
-
-	template <>
-	inline double Parse(const char* value) {
-		return std::stod(value);
-	}
-
-	template <>
-	inline uint16_t Parse(const char* value) {
-		return std::stoul(value);
-	}
-
-	template <>
-	inline uint32_t Parse(const char* value) {
-		return std::stoul(value);
-	}
-
-	template <>
-	inline uint64_t Parse(const char* value) {
-		return std::stoull(value);
-	}
-
-	template <>
-	inline eInventoryType Parse(const char* value) {
-		return static_cast<eInventoryType>(std::stoul(value));
-	}
-
-	template <>
-	inline eReplicaComponentType Parse(const char* value) {
-		return static_cast<eReplicaComponentType>(std::stoul(value));
-	}
-
+	// Concept constraining to numeric types
 	template <typename T>
-	bool TryParse(const char* value, T& dst) {
-		try {
-			dst = Parse<T>(value);
+	concept Numeric = std::integral<T> || Enum<T> || std::floating_point<T>;
 
-			return true;
-		} catch (...) {
-			return false;
+	// Concept trickery to enable parsing underlying numeric types
+	template <Numeric T>
+	struct numeric_parse { using type = T; };
+
+	// If an enum, present an alias to its underlying type for parsing
+	template <Numeric T> requires Enum<T>
+	struct numeric_parse<T> { using type = std::underlying_type_t<T>; };
+
+	// If a boolean, present an alias to an intermediate integral type for parsing
+	template <Numeric T> requires std::same_as<T, bool>
+	struct numeric_parse<T> { using type = uint32_t; };
+
+	// Shorthand type alias
+	template <Numeric T>
+	using numeric_parse_t = numeric_parse<T>::type;
+
+	/**
+	 * For numeric values: Parses a string_view and returns an optional variable depending on the result.
+	 * @param str The string_view to be evaluated
+	 * @returns An std::optional containing the desired value if it is equivalent to the string
+	*/
+	template <Numeric T>
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
+		numeric_parse_t<T> result;
+
+		const char* const strEnd = str.data() + str.size();
+		const auto [parseEnd, ec] = std::from_chars(str.data(), strEnd, result);
+		const bool isParsed = parseEnd == strEnd && ec == std::errc{};
+
+		return isParsed ? static_cast<T>(result) : std::optional<T>{};
+	}
+
+#ifdef DARKFLAME_PLATFORM_MACOS
+
+	// Anonymous namespace containing MacOS floating-point parse function specializations
+	namespace {
+		template <std::floating_point T>
+		[[nodiscard]] T Parse(const std::string_view str, size_t* parseNum);
+
+		template <>
+		[[nodiscard]] float Parse<float>(const std::string_view str, size_t* parseNum) {
+			return std::stof(std::string{ str }, parseNum);
+		}
+
+		template <>
+		[[nodiscard]] double Parse<double>(const std::string_view str, size_t* parseNum) {
+			return std::stod(std::string{ str }, parseNum);
+		}
+
+		template <>
+		[[nodiscard]] long double Parse<long double>(const std::string_view str, size_t* parseNum) {
+			return std::stold(std::string{ str }, parseNum);
 		}
 	}
 
+	/**
+	 * For floating-point values: Parses a string_view and returns an optional variable depending on the result.
+	 * Note that this function overload is only included for MacOS, as from_chars will fulfill its purpose otherwise.
+	 * @param str The string_view to be evaluated
+	 * @returns An std::optional containing the desired value if it is equivalent to the string
+	*/
+	template <std::floating_point T>
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept try {
+		size_t parseNum;
+		const T result = Parse<T>(str, &parseNum);
+		const bool isParsed = str.length() == parseNum;
+
+		return isParsed ? result : std::optional<T>{};
+	} catch (...) {
+		return std::nullopt;
+	}
+
+#endif
+
+	/**
+	 * The TryParse overload for handling NiPoint3 by passing 3 seperate string references
+	 * @param strX The string representing the X coordinate
+	 * @param strY The string representing the Y coordinate
+	 * @param strZ The string representing the Z coordinate
+	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
+	*/
 	template <typename T>
-	T Parse(const std::string& value) {
-		return Parse<T>(value.c_str());
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
+		const auto x = TryParse<float>(strX);
+		if (!x) return std::nullopt;
+
+		const auto y = TryParse<float>(strY);
+		if (!y) return std::nullopt;
+
+		const auto z = TryParse<float>(strZ);
+		return z ? std::make_optional<NiPoint3>(x.value(), y.value(), z.value()) : std::nullopt;
+	}
+
+	/**
+	 * The TryParse overload for handling NiPoint3 by passingn a reference to a vector of three strings
+	 * @param str The string vector representing the X, Y, and Xcoordinates
+	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
+	*/
+	template <typename T>
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) {
+		return (str.size() == 3) ? TryParse<NiPoint3>(str[0], str[1], str[2]) : std::nullopt;
 	}
 
 	template <typename T>
-	bool TryParse(const std::string& value, T& dst) {
-		return TryParse<T>(value.c_str(), dst);
-	}
-
-	bool TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst);
-
-	template<typename T>
 	std::u16string to_u16string(T value) {
 		return GeneralUtils::ASCIIToUTF16(std::to_string(value));
 	}
 
 	// From boost::hash_combine
 	template <class T>
-	void hash_combine(std::size_t& s, const T& v) {
+	constexpr void hash_combine(std::size_t& s, const T& v) {
 		std::hash<T> h;
 		s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
 	}
@@ -239,10 +277,8 @@ namespace GeneralUtils {
 	 * @param entry Enum entry to cast
 	 * @returns The enum entry's value in its underlying type
 	*/
-	template <typename eType>
-	inline constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) {
-		static_assert(std::is_enum_v<eType>, "Not an enum");
-
+	template <Enum eType>
+	constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) noexcept {
 		return static_cast<typename std::underlying_type_t<eType>>(entry);
 	}
 

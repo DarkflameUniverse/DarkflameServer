@@ -7,6 +7,7 @@
 #include "GeneralUtils.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
+#include "dNavMesh.h"
 
 void BaseEnemyMech::OnStartup(Entity* self) {
 	auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
@@ -19,7 +20,7 @@ void BaseEnemyMech::OnDie(Entity* self, Entity* killer) {
 	ControllablePhysicsComponent* controlPhys = static_cast<ControllablePhysicsComponent*>(self->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 	if (!controlPhys) return;
 
-	NiPoint3 newLoc = { controlPhys->GetPosition().x, dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(controlPhys->GetPosition()), controlPhys->GetPosition().z };
+	NiPoint3 newLoc = { controlPhys->GetPosition().x, dpWorld::GetNavMesh()->GetHeightAtPoint(controlPhys->GetPosition()), controlPhys->GetPosition().z };
 
 	EntityInfo info = EntityInfo();
 	std::vector<LDFBaseData*> cfg;

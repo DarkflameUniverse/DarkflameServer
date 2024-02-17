@@ -26,10 +26,7 @@ struct CDEmoteTable {
 	std::string gateVersion;
 };
 
-class CDEmoteTableTable : public CDTable<CDEmoteTableTable> {
-private:
-	std::map<int, CDEmoteTable> entries;
-
+class CDEmoteTableTable : public CDTable<CDEmoteTableTable, std::map<int, CDEmoteTable>> {
 public:
 	void LoadValuesFromDatabase();
 	// Returns an emote by ID

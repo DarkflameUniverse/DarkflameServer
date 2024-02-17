@@ -25,6 +25,7 @@
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
+#include "dNavMesh.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
@@ -106,10 +107,10 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable != nullptr) {
 		auto* info = physicsComponentTable->GetByID(componentID);
@@ -128,17 +129,17 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_dpEntity->SetPosition(m_Parent->GetPosition());
 	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
 
-	dpWorld::Instance().AddEntity(m_dpEntity);
-	dpWorld::Instance().AddEntity(m_dpEntityEnemy);
+	dpWorld::AddEntity(m_dpEntity);
+	dpWorld::AddEntity(m_dpEntityEnemy);
 
 }
 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
 	if (m_dpEntity)
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+		dpWorld::RemoveEntity(m_dpEntity);
 
 	if (m_dpEntityEnemy)
-		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
+		dpWorld::RemoveEntity(m_dpEntityEnemy);
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
@@ -184,7 +185,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now
 
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
 
@@ -653,8 +654,8 @@ void BaseCombatAIComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {
