@@ -15,6 +15,7 @@
 #include "CDClientManager.h"
 #include "CDMovingPlatformComponentTable.h"
 #include "Zone.h"
+#include "StringifiedEnum.h"
 
  //------------- PlatformSubComponent begin --------------
 
@@ -84,22 +85,10 @@ void PlatformSubComponent::UpdateLinearVelocity() {
 }
 
 void PlatformSubComponent::AdvanceToNextWaypoint() {
-	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
 	m_ParentComponent->GetParent()->SetPosition(GetCurrentWaypoint().position);
 	m_ParentComponent->GetParent()->SetRotation(GetCurrentWaypoint().rotation);
-	uint32_t nextWaypointIndex = m_CurrentWaypointIndex + 1;
-	if (numWaypoints <= nextWaypointIndex) {
-		PathBehavior behavior = m_Path->pathBehavior;
-		if (behavior == PathBehavior::Once) {
-			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
-		} else if (behavior == PathBehavior::Bounce) {
-			nextWaypointIndex = m_Path->pathWaypoints.size() - 2;
-			m_InReverse = true;
-		} else {
-			m_NextWaypointIndex = 0;
-		}
-	}
+	int32_t nextWaypointIndex = FindNextWaypointIndex();
 	m_NextWaypointIndex = nextWaypointIndex;
 	m_DesiredWaypointIndex = nextWaypointIndex;
 	UpdateLinearVelocity();
@@ -108,22 +97,10 @@ void PlatformSubComponent::AdvanceToNextWaypoint() {
 }
 
 void PlatformSubComponent::AdvanceToNextReverseWaypoint() {
-	uint32_t numWaypoints = m_Path->pathWaypoints.size();
 	m_ParentComponent->GetParent()->SetPosition(GetCurrentWaypoint().position);
 	m_ParentComponent->GetParent()->SetRotation(GetCurrentWaypoint().rotation);
 	m_CurrentWaypointIndex = m_NextWaypointIndex;
-	int32_t nextWaypointIndex = m_CurrentWaypointIndex - 1;
-	if (nextWaypointIndex < 0) {
-		PathBehavior behavior = m_Path->pathBehavior;
-		if (behavior == PathBehavior::Once) {
-			nextWaypointIndex = 0;
-		} else if (behavior == PathBehavior::Bounce) {
-			nextWaypointIndex = 1;
-			m_InReverse = false;
-		} else {
-			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
-		}
-	}
+	int32_t nextWaypointIndex = FindNextReversedWaypointIndex();
 	m_NextWaypointIndex = nextWaypointIndex;
 	m_DesiredWaypointIndex = nextWaypointIndex;
 	UpdateLinearVelocity();
@@ -141,13 +118,49 @@ void PlatformSubComponent::SetupPath(const std::string& pathName, uint32_t start
 	m_InReverse = startsInReverse;
 	m_CurrentWaypointIndex = startingWaypointIndex;
 	m_TimeBasedMovement = m_Path->movingPlatform.timeBasedMovement;
-	m_NextWaypointIndex = m_InReverse ? m_CurrentWaypointIndex - 1 : m_CurrentWaypointIndex + 1;
+	m_NextWaypointIndex = m_InReverse ? FindNextReversedWaypointIndex() : FindNextWaypointIndex();
 }
 
 const PathWaypoint& PlatformSubComponent::GetNextWaypoint() const {
 	DluAssert(m_Path != nullptr);
 	return m_Path->pathWaypoints.at(m_NextWaypointIndex);
 }
+const int32_t PlatformSubComponent::FindNextWaypointIndex() {
+	DluAssert(m_Path != nullptr);
+	uint32_t numWaypoints = m_Path->pathWaypoints.size();
+	uint32_t nextWaypointIndex = m_CurrentWaypointIndex + 1;
+	if (numWaypoints <= nextWaypointIndex) {
+		PathBehavior behavior = m_Path->pathBehavior;
+		if (behavior == PathBehavior::Once) {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
+		} else if (behavior == PathBehavior::Bounce) {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 2;
+			m_InReverse = true;
+		} else {
+			nextWaypointIndex = 0;
+		}
+	}
+	return nextWaypointIndex;
+}
+
+const int32_t PlatformSubComponent::FindNextReversedWaypointIndex() {
+	DluAssert(m_Path != nullptr);
+	uint32_t numWaypoints = m_Path->pathWaypoints.size();
+	int32_t nextWaypointIndex = m_CurrentWaypointIndex - 1;
+	if (nextWaypointIndex < 0) {
+		PathBehavior behavior = m_Path->pathBehavior;
+		if (behavior == PathBehavior::Once) {
+			nextWaypointIndex = 0;
+		} else if (behavior == PathBehavior::Bounce) {
+			nextWaypointIndex = 1;
+			m_InReverse = false;
+		} else {
+			nextWaypointIndex = m_Path->pathWaypoints.size() - 1;
+		}
+	}
+	return nextWaypointIndex;
+}
+
 
 const PathWaypoint& PlatformSubComponent::GetCurrentWaypoint() const {
 	DluAssert(m_Path != nullptr);

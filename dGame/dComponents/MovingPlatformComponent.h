@@ -60,6 +60,8 @@ public:
 	float CalculateSpeed() const;
 	const PathWaypoint& GetNextWaypoint() const;
 	const PathWaypoint& GetCurrentWaypoint() const;
+	const int32_t FindNextWaypointIndex();
+	const int32_t FindNextReversedWaypointIndex();
 	void SetupPath(const std::string& pathName, uint32_t startingWaypointIndex, bool startsInReverse);
 	void AdvanceToNextWaypoint();
 	void AdvanceToNextReverseWaypoint();

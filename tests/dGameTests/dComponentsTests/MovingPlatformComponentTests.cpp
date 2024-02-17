@@ -16,12 +16,11 @@ protected:
 	std::unique_ptr<Entity> baseEntity;
 	CBITSTREAM;
 	uint32_t flags = 0;
-	Path path;
+	Path pathOnce;
+	Path pathBounce;
+	Path pathLoop;
 	void SetUp() override {
 		SetUpDependencies();
-		path.movingPlatform.timeBasedMovement = false;
-		path.pathBehavior = PathBehavior::Once;
-		path.pathName = "ExamplePath";
 		PathWaypoint waypointStart;
 		waypointStart.position = NiPoint3(1, 2, 3);
 		waypointStart.rotation = NiQuaternion(4, 5, 6, 7);
@@ -36,13 +35,40 @@ protected:
 		waypointEnd.position = NiPoint3(4, 5, 7);
 		waypointEnd.rotation = NiQuaternion(7, 8, 9, 10);
 		waypointStart.movingPlatform.speed = 16.0f;
+		{
+			pathOnce.movingPlatform.timeBasedMovement = false;
+			pathOnce.pathBehavior = PathBehavior::Once;
+			pathOnce.pathName = "ExampleOncePath";
 
-		path.pathWaypoints.push_back(waypointStart);
-		path.pathWaypoints.push_back(waypointMiddle);
-		path.pathWaypoints.push_back(waypointEnd);
+			pathOnce.pathWaypoints.push_back(waypointStart);
+			pathOnce.pathWaypoints.push_back(waypointMiddle);
+			pathOnce.pathWaypoints.push_back(waypointEnd);
 
-		Game::zoneManager->GetZone()->AddPath(path);
+			Game::zoneManager->GetZone()->AddPath(pathOnce);
+		}
+		{
+			pathBounce.movingPlatform.timeBasedMovement = false;
+			pathBounce.pathBehavior = PathBehavior::Bounce;
+			pathBounce.pathName = "ExampleBouncePath";
 
+			pathBounce.pathWaypoints.push_back(waypointStart);
+			pathBounce.pathWaypoints.push_back(waypointMiddle);
+			pathBounce.pathWaypoints.push_back(waypointEnd);
+
+			Game::zoneManager->GetZone()->AddPath(pathBounce);
+		}
+		{
+			pathLoop.movingPlatform.timeBasedMovement = false;
+			pathLoop.pathBehavior = PathBehavior::Loop;
+			pathLoop.pathName = "ExampleLoopPath";
+
+
+			pathLoop.pathWaypoints.push_back(waypointStart);
+			pathLoop.pathWaypoints.push_back(waypointMiddle);
+			pathLoop.pathWaypoints.push_back(waypointEnd);
+
+			Game::zoneManager->GetZone()->AddPath(pathLoop);
+		}
 		// Set our starting position
 		info.pos = NiPoint3(25, 26, 27);
 		info.rot = NiQuaternion(28, 29, 30, 31);
@@ -61,7 +87,7 @@ protected:
 		baseEntity = std::make_unique<Entity>(15, GameDependenciesTest::info);
 
 		auto* simplePhysicsComponent = baseEntity->AddComponent<SimplePhysicsComponent>(1);
-		auto* movingPlatformComponent = baseEntity->AddComponent<MovingPlatformComponent>("ExamplePath");
+		auto* movingPlatformComponent = baseEntity->AddComponent<MovingPlatformComponent>("ExampleOncePath");
 		movingPlatformComponent->LoadConfigData();
 		movingPlatformComponent->LoadDataFromTemplate();
 	}
@@ -176,7 +202,7 @@ protected:
 		ASSERT_TRUE(bitStream.Read(pathNameLength));
 		pathName.resize(pathNameLength);
 		ASSERT_TRUE(bitStream.ReadBits(reinterpret_cast<unsigned char*>(pathName.data()), BYTES_TO_BITS(pathNameLength) * 2));
-		ASSERT_EQ(pathName, u"ExamplePath");
+		ASSERT_EQ(pathName, u"ExampleOncePath");
 
 		uint32_t pathStartIndex;
 		ASSERT_TRUE(bitStream.Read(pathStartIndex));
@@ -229,10 +255,12 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSerializationTest) {
 	TestSerialization();
 }
 
-TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwardTest) {
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathOnceAdvanceTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
-
+	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
+	
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
@@ -240,36 +268,18 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceForwar
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 2);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
 	ASSERT_FALSE(moverPlatformSubComponent.GetInReverse());
-	path.pathBehavior = PathBehavior::Bounce;
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 2);
-	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
-	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
+	ASSERT_FALSE(moverPlatformSubComponent.GetInReverse());
 }
 
-TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceReverseTest) {
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathBounceAdvanceTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, true);
-
-	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
-	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
-	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 0);
-	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
-	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
-	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
-	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 0);
-	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
-	path.pathBehavior = PathBehavior::Bounce;
-	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	moverPlatformSubComponent.SetupPath("ExampleBouncePath", 0, false);
+	
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
-	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
-}
-
-TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceTest) {
-	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
-
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
@@ -286,16 +296,53 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentPathAdvanceTest) 
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
 	ASSERT_FALSE(moverPlatformSubComponent.GetInReverse());
+}
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentLoopAdvanceTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExampleLoopPath", 0, false);
+	
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
 	moverPlatformSubComponent.AdvanceToNextWaypoint();
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 2);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 0);
+	ASSERT_FALSE(moverPlatformSubComponent.GetInReverse());
+	moverPlatformSubComponent.AdvanceToNextWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
 	ASSERT_FALSE(moverPlatformSubComponent.GetInReverse());
 }
+
+TEST_F(MovingPlatformComponentTests, MovingPlatformSubComponentLoopAdvanceReverseTest) {
+	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+	moverPlatformSubComponent.SetupPath("ExampleLoopPath", 0, true);
+	
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
+	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 2);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 1);
+	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 1);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 0);
+	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
+	moverPlatformSubComponent.AdvanceToNextReverseWaypoint();
+	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypointIndex(), 0);
+	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypointIndex(), 2);
+	ASSERT_TRUE(moverPlatformSubComponent.GetInReverse());
+}
+
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
 
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
 
 	ASSERT_EQ(moverPlatformSubComponent.CalculateSpeed(), 16.0f);
 	NiPoint3 r = moverPlatformSubComponent.CalculateLinearVelocity();
@@ -307,7 +354,7 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformMoverSpeedCalculationTest) {
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
 
 	ASSERT_EQ(moverPlatformSubComponent.GetCurrentWaypoint().position, NiPoint3(1, 2, 3));
 	ASSERT_EQ(moverPlatformSubComponent.GetNextWaypoint().position, NiPoint3(4, 5, 6));
@@ -318,29 +365,30 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess)
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
 
-	path.pathWaypoints.at(0).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
-	path.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
+	pathOnce.pathWaypoints.at(1).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
+	pathOnce.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
 
-	path.pathWaypoints.at(1).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
-	path.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
+	pathOnce.pathWaypoints.at(2).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
+	pathOnce.pathWaypoints.at(2).movingPlatform.speed = 16.0f;
 
 	moverPlatformSubComponent.UpdateLinearVelocity();
 	moverPlatformSubComponent.Update(2.65f);
-
+	auto [x,y,z] = moverPlatformSubComponent.GetPosition();
+	LOG_TEST("x: %f, y: %f, z: %f", x, y, z);
 	// just check that its close enough
-	EXPECT_LT(141.680099f - moverPlatformSubComponent.GetPosition().x, 0.1f);
-	EXPECT_LT(419.990051f - moverPlatformSubComponent.GetPosition().y, 0.1f);
-	EXPECT_LT(208.680450f - moverPlatformSubComponent.GetPosition().z, 0.1f);
+	EXPECT_LT(141.680099f - x, 0.1f);
+	EXPECT_LT(419.990051f - y, 0.1f);
+	EXPECT_LT(208.680450f - z, 0.1f);
 }
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformPercentBetweenPointsTest) {
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
 
-	path.pathWaypoints.at(0).position = NiPoint3(0, 0, 1);
-	path.pathWaypoints.at(1).position = NiPoint3(0, 0, 3);
+	pathOnce.pathWaypoints.at(0).position = NiPoint3(0, 0, 1);
+	pathOnce.pathWaypoints.at(1).position = NiPoint3(0, 0, 3);
 	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 1);
 	ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
 	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 2);
