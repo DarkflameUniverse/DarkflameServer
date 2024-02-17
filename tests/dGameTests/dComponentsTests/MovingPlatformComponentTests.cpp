@@ -365,14 +365,28 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess)
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 	baseEntity->SetPosition(NiPoint3(99.296440f, 419.293335f, 207.219498f));
+	Path path;
+
+	PathWaypoint waypointStart;
+	waypointStart.position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
+	waypointStart.rotation = NiQuaternion(0, 0, 0, 0);
+	waypointStart.movingPlatform.speed = 16.0f;
+
+	PathWaypoint waypointEnd;
+	waypointEnd.position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
+	waypointEnd.rotation = NiQuaternion(0, 0, 0, 0);
+
+	waypointStart.movingPlatform.speed = 16.0f;
+	path.movingPlatform.timeBasedMovement = false;
+	path.pathBehavior = PathBehavior::Once;
+	path.pathName = "ExamplePath";
+
+	path.pathWaypoints.push_back(waypointStart);
+	path.pathWaypoints.push_back(waypointEnd);
+
+	Game::zoneManager->GetZone()->AddPath(path);
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
-
-	pathOnce.pathWaypoints.at(0).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
-	pathOnce.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
-
-	pathOnce.pathWaypoints.at(1).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
-	pathOnce.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
+	moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
 
 	moverPlatformSubComponent.UpdateLinearVelocity();
 	moverPlatformSubComponent.StartPathing();
@@ -386,26 +400,52 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 }
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformPercentBetweenPointsTest) {
-	pathOnce.pathWaypoints.at(0).position = NiPoint3(1, 0, 0);
-	pathOnce.pathWaypoints.at(1).position = NiPoint3(3, 0, 0);
+	
+	Path path;
+
+	PathWaypoint waypointStart;
+	waypointStart.position = NiPoint3(0, 0, 0);
+	waypointStart.rotation = NiQuaternion(0, 0, 0, 0);
+	waypointStart.movingPlatform.speed = 16.0f;
+
+	PathWaypoint waypointEnd;
+	waypointEnd.position = NiPoint3(2, 0, 0);
+	waypointEnd.rotation = NiQuaternion(0, 0, 0, 0);
+
+	waypointStart.movingPlatform.speed = 16.0f;
+	path.movingPlatform.timeBasedMovement = false;
+	path.pathBehavior = PathBehavior::Once;
+	path.pathName = "ExamplePath";
+
+	path.pathWaypoints.push_back(waypointStart);
+	path.pathWaypoints.push_back(waypointEnd);
+
+	Game::zoneManager->GetZone()->AddPath(path);
+	{
+		baseEntity->SetPosition(NiPoint3(0, 0, 0));
+		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+		moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+		EXPECT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
+	}
 	{
 		baseEntity->SetPosition(NiPoint3(1, 0, 0));
 		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
-		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
+		moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+		EXPECT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.5f);
 	}
 	{
 		baseEntity->SetPosition(NiPoint3(2, 0, 0));
 		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
-		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.5f);
+		moverPlatformSubComponent.SetupPath("ExamplePath", 0, false);
+		EXPECT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 1.0f);
 	}
 	{
-		baseEntity->SetPosition(NiPoint3(3, 0, 0));
+		path.movingPlatform.timeBasedMovement = true;
+		path.pathName = "ExamplePath2";
+		Game::zoneManager->GetZone()->AddPath(path);
+		baseEntity->SetPosition(NiPoint3(1, 0, 0));
 		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
-		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 1.0f);
+		moverPlatformSubComponent.SetupPath("ExamplePath2", 0, false);
+		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
 	}
-	// moverPlatformSubComponent.m_TimeBasedMovement = true;
-	// ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
 }
