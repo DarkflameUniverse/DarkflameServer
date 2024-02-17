@@ -364,19 +364,21 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformNextAndCurrentWaypointAccess)
 }
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
+	baseEntity->SetPosition(NiPoint3(99.296440f, 419.293335f, 207.219498f));
 	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
 	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
 
-	pathOnce.pathWaypoints.at(1).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
+	pathOnce.pathWaypoints.at(0).position = NiPoint3(99.296440f, 419.293335f, 207.219498f);
+	pathOnce.pathWaypoints.at(0).movingPlatform.speed = 16.0f;
+
+	pathOnce.pathWaypoints.at(1).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
 	pathOnce.pathWaypoints.at(1).movingPlatform.speed = 16.0f;
 
-	pathOnce.pathWaypoints.at(2).position = NiPoint3(141.680099f, 419.990051f, 208.680450f);
-	pathOnce.pathWaypoints.at(2).movingPlatform.speed = 16.0f;
-
 	moverPlatformSubComponent.UpdateLinearVelocity();
+	moverPlatformSubComponent.StartPathing();
 	moverPlatformSubComponent.Update(2.65f);
+
 	auto [x,y,z] = moverPlatformSubComponent.GetPosition();
-	LOG_TEST("x: %f, y: %f, z: %f", x, y, z);
 	// just check that its close enough
 	EXPECT_LT(141.680099f - x, 0.1f);
 	EXPECT_LT(419.990051f - y, 0.1f);
@@ -384,17 +386,26 @@ TEST_F(MovingPlatformComponentTests, MovingPlatformRunTest) {
 }
 
 TEST_F(MovingPlatformComponentTests, MovingPlatformPercentBetweenPointsTest) {
-	MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
-	moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
-
-	pathOnce.pathWaypoints.at(0).position = NiPoint3(0, 0, 1);
-	pathOnce.pathWaypoints.at(1).position = NiPoint3(0, 0, 3);
-	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 1);
-	ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
-	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 2);
-	ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.5f);
-	// moverPlatformSubComponent.m_Position = NiPoint3(0, 0, 3);
-	ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 1.0f);
+	pathOnce.pathWaypoints.at(0).position = NiPoint3(1, 0, 0);
+	pathOnce.pathWaypoints.at(1).position = NiPoint3(3, 0, 0);
+	{
+		baseEntity->SetPosition(NiPoint3(1, 0, 0));
+		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
+		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
+	}
+	{
+		baseEntity->SetPosition(NiPoint3(2, 0, 0));
+		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
+		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.5f);
+	}
+	{
+		baseEntity->SetPosition(NiPoint3(3, 0, 0));
+		MoverPlatformSubComponent moverPlatformSubComponent(baseEntity->GetComponent<MovingPlatformComponent>());
+		moverPlatformSubComponent.SetupPath("ExampleOncePath", 0, false);
+		ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 1.0f);
+	}
 	// moverPlatformSubComponent.m_TimeBasedMovement = true;
-	ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
+	// ASSERT_FLOAT_EQ(moverPlatformSubComponent.CalculatePercentToNextWaypoint(), 0.0f);
 }
