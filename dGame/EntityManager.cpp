@@ -24,6 +24,7 @@
 #include "eReplicaPacketType.h"
 #include "PlayerManager.h"
 #include "GhostComponent.h"
+#include <ranges>
 
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
@@ -165,8 +166,8 @@ void EntityManager::DestroyEntity(Entity* entity) {
 }
 
 void EntityManager::SerializeEntities() {
-	for (int32_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
-		const LWOOBJID toSerialize = m_EntitiesToSerialize.at(i);
+	for (size_t i = 0; i < m_EntitiesToSerialize.size(); i++) {
+		const LWOOBJID toSerialize = m_EntitiesToSerialize[i];
 		auto* entity = GetEntity(toSerialize);
 
 		if (!entity) continue;
@@ -195,8 +196,8 @@ void EntityManager::SerializeEntities() {
 }
 
 void EntityManager::KillEntities() {
-	for (int32_t i = 0; i < m_EntitiesToKill.size(); i++) {
-		const LWOOBJID toKill = m_EntitiesToKill.at(i);
+	for (size_t i = 0; i < m_EntitiesToKill.size(); i++) {
+		const LWOOBJID toKill = m_EntitiesToKill[i];
 		auto* entity = GetEntity(toKill);
 
 		if (!entity) {
@@ -214,8 +215,8 @@ void EntityManager::KillEntities() {
 }
 
 void EntityManager::DeleteEntities() {
-	for (int32_t i = 0; i < m_EntitiesToDelete.size(); i++) {
-		const LWOOBJID toDelete = m_EntitiesToDelete.at(i);
+	for (size_t i = 0; i < m_EntitiesToDelete.size(); i++) {
+		const LWOOBJID toDelete = m_EntitiesToDelete[i];
 		auto entityToDelete = GetEntity(toDelete);
 		if (entityToDelete) {
 			// Get all this info first before we delete the player.
@@ -238,8 +239,8 @@ void EntityManager::DeleteEntities() {
 }
 
 void EntityManager::UpdateEntities(const float deltaTime) {
-	for (const auto& e : m_Entities) {
-		e.second->Update(deltaTime);
+	for (auto* entity : m_Entities | std::views::values) {
+		entity->Update(deltaTime);
 	}
 
 	SerializeEntities();
@@ -259,10 +260,10 @@ Entity* EntityManager::GetEntity(const LWOOBJID& objectId) const {
 
 std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group) {
 	std::vector<Entity*> entitiesInGroup;
-	for (const auto& entity : m_Entities) {
-		for (const auto& entityGroup : entity.second->GetGroups()) {
+	for (auto* entity : m_Entities | std::views::values) {
+		for (const auto& entityGroup : entity->GetGroups()) {
 			if (entityGroup == group) {
-				entitiesInGroup.push_back(entity.second);
+				entitiesInGroup.push_back(entity);
 			}
 		}
 	}
@@ -272,10 +273,12 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 
 std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
-	for (const auto& entity : m_Entities) {
-		if (componentType != eReplicaComponentType::INVALID && !entity.second->HasComponent(componentType)) continue;
+	if (componentType != eReplicaComponentType::INVALID) {
+		for (auto* entity : m_Entities | std::views::values) {
+			if (!entity->HasComponent(componentType)) continue;
 
-		withComp.push_back(entity.second);
+			withComp.push_back(entity);
+		}
 	}
 	return withComp;
 }
@@ -283,19 +286,19 @@ std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaCompone
 std::vector<Entity*> EntityManager::GetEntitiesByLOT(const LOT& lot) const {
 	std::vector<Entity*> entities;
 
-	for (const auto& entity : m_Entities) {
-		if (entity.second->GetLOT() == lot)
-			entities.push_back(entity.second);
+	for (auto* entity : m_Entities | std::views::values) {
+		if (entity->GetLOT() == lot) entities.push_back(entity);
 	}
 
 	return entities;
 }
 
-std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, float radius) const{
-	std::vector<Entity*> entities = {};
-	if (radius > 1000.0f) return entities;
-	for (const auto& entity : m_Entities) {
-		if (NiPoint3::Distance(reference, entity.second->GetPosition()) <= radius) entities.push_back(entity.second);
+std::vector<Entity*> EntityManager::GetEntitiesByProximity(NiPoint3 reference, float radius) const {
+	std::vector<Entity*> entities;
+	if (radius <= 1000.0f) { // The client has a 1000 unit limit on this same logic, so we'll use the same limit
+		for (auto* entity : m_Entities | std::views::values) {
+			if (NiPoint3::Distance(reference, entity->GetPosition()) <= radius) entities.push_back(entity);
+		}
 	}
 	return entities;
 }
@@ -309,12 +312,8 @@ Entity* EntityManager::GetSpawnPointEntity(const std::string& spawnName) const {
 	// Lookup the spawn point entity in the map
 	const auto& spawnPoint = m_SpawnPoints.find(spawnName);
 
-	if (spawnPoint == m_SpawnPoints.end()) {
-		return nullptr;
-	}
-
 	// Check if the spawn point entity is valid just in case
-	return GetEntity(spawnPoint->second);
+	return spawnPoint == m_SpawnPoints.end() ? nullptr : GetEntity(spawnPoint->second);
 }
 #include <thread>
 const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEntities() const {
@@ -340,29 +339,25 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		entity->SetNetworkId(networkId);
 	}
 
-	const auto checkGhosting = entity->GetIsGhostingCandidate();
-
-	if (checkGhosting) {
-		const auto& iter = std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entity);
-
-		if (iter == m_EntitiesToGhost.end()) {
+	if (entity->GetIsGhostingCandidate()) {
+		if (std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entity) == m_EntitiesToGhost.end()) {
 			m_EntitiesToGhost.push_back(entity);
 		}
-	}
 
-	if (checkGhosting && sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-		CheckGhosting(entity);
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			CheckGhosting(entity);
 
-		return;
+			return;
+		}
 	}
 
 	m_SerializationCounter++;
 
 	RakNet::BitStream stream;
 
-	stream.Write<char>(ID_REPLICA_MANAGER_CONSTRUCTION);
+	stream.Write<uint8_t>(ID_REPLICA_MANAGER_CONSTRUCTION);
 	stream.Write(true);
-	stream.Write<unsigned short>(entity->GetNetworkId());
+	stream.Write<uint16_t>(entity->GetNetworkId());
 
 	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
 	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
@@ -395,9 +390,9 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 	//ZoneControl is special:
 	ConstructEntity(m_ZoneControlEntity, sysAddr);
 
-	for (const auto& e : m_Entities) {
-		if (e.second && (e.second->GetSpawnerID() != 0 || e.second->GetLOT() == 1) && !e.second->GetIsGhostingCandidate()) {
-			ConstructEntity(e.second, sysAddr);
+	for (auto* entity : m_Entities | std::views::values) {
+		if (entity && (entity->GetSpawnerID() != 0 || entity->GetLOT() == 1) && !entity->GetIsGhostingCandidate()) {
+			ConstructEntity(entity, sysAddr);
 		}
 	}
 
@@ -409,8 +404,8 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 	RakNet::BitStream stream;
 
-	stream.Write<char>(ID_REPLICA_MANAGER_DESTRUCTION);
-	stream.Write<unsigned short>(entity->GetNetworkId());
+	stream.Write<uint8_t>(ID_REPLICA_MANAGER_DESTRUCTION);
+	stream.Write<uint16_t>(entity->GetNetworkId());
 
 	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
@@ -431,8 +426,8 @@ void EntityManager::SerializeEntity(Entity* entity) {
 }
 
 void EntityManager::DestructAllEntities(const SystemAddress& sysAddr) {
-	for (const auto& e : m_Entities) {
-		DestructEntity(e.second, sysAddr);
+	for (auto* entity : m_Entities | std::views::values) {
+		DestructEntity(entity, sysAddr);
 	}
 }
 
@@ -440,22 +435,12 @@ void EntityManager::SetGhostDistanceMax(float value) {
 	m_GhostDistanceMaxSquared = value * value;
 }
 
-float EntityManager::GetGhostDistanceMax() const {
-	return std::sqrt(m_GhostDistanceMaxSquared);
-}
-
 void EntityManager::SetGhostDistanceMin(float value) {
 	m_GhostDistanceMinSqaured = value * value;
 }
 
-float EntityManager::GetGhostDistanceMin() const {
-	return std::sqrt(m_GhostDistanceMinSqaured);
-}
-
 void EntityManager::QueueGhostUpdate(LWOOBJID playerID) {
-	const auto& iter = std::find(m_PlayersToUpdateGhosting.begin(), m_PlayersToUpdateGhosting.end(), playerID);
-
-	if (iter == m_PlayersToUpdateGhosting.end()) {
+	if (std::find(m_PlayersToUpdateGhosting.begin(), m_PlayersToUpdateGhosting.end(), playerID) == m_PlayersToUpdateGhosting.end()) {
 		m_PlayersToUpdateGhosting.push_back(playerID);
 	}
 }
@@ -475,26 +460,20 @@ void EntityManager::UpdateGhosting() {
 }
 
 void EntityManager::UpdateGhosting(Entity* player) {
-	if (player == nullptr) {
-		return;
-	}
+	if (!player) return;
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
 	auto* ghostComponent = player->GetComponent<GhostComponent>();
 
-	if (missionComponent == nullptr || !ghostComponent) {
-		return;
-	}
+	if (!missionComponent || !ghostComponent) return;
 
 	const auto& referencePoint = ghostComponent->GetGhostReferencePoint();
 	const auto isOverride = ghostComponent->GetGhostOverride();
 
 	for (auto* entity : m_EntitiesToGhost) {
-		const auto isAudioEmitter = entity->GetLOT() == 6368;
-
 		const auto& entityPoint = entity->GetPosition();
 
-		const int32_t id = entity->GetObjectID();
+		const auto id = entity->GetObjectID();
 
 		const auto observed = ghostComponent->IsObserved(id);
 
@@ -503,6 +482,7 @@ void EntityManager::UpdateGhosting(Entity* player) {
 		auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
 		auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
 
+		const auto isAudioEmitter = entity->GetLOT() == 6368; // https://explorer.lu/objects/6368
 		if (isAudioEmitter) {
 			ghostingDistanceMax = ghostingDistanceMin;
 		}
@@ -541,30 +521,25 @@ void EntityManager::CheckGhosting(Entity* entity) {
 
 	const auto& referencePoint = entity->GetPosition();
 
-	auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
-	auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
-
-	const auto isAudioEmitter = entity->GetLOT() == 6368;
-
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		auto* ghostComponent = player->GetComponent<GhostComponent>();
 		if (!ghostComponent) continue;
 
 		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
 
-		const int32_t id = entity->GetObjectID();
+		const auto id = entity->GetObjectID();
 
 		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
-		if (observed && distance > ghostingDistanceMax) {
+		if (observed && distance > m_GhostDistanceMaxSquared) {
 			ghostComponent->GhostEntity(id);
 
 			DestructEntity(entity, player->GetSystemAddress());
 
 			entity->SetObservers(entity->GetObservers() - 1);
-		} else if (!observed && ghostingDistanceMin > distance) {
+		} else if (!observed && m_GhostDistanceMinSqaured > distance) {
 			ghostComponent->ObserveEntity(id);
 
 			ConstructEntity(entity, player->GetSystemAddress());
@@ -574,7 +549,7 @@ void EntityManager::CheckGhosting(Entity* entity) {
 	}
 }
 
-Entity* EntityManager::GetGhostCandidate(int32_t id) {
+Entity* EntityManager::GetGhostCandidate(LWOOBJID id) const {
 	for (auto* entity : m_EntitiesToGhost) {
 		if (entity->GetObjectID() == id) {
 			return entity;
@@ -600,26 +575,22 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	const auto objectId = entity->GetObjectID();
 
-	if (std::count(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId)) {
-		return;
+	if (std::find(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId) != m_EntitiesToKill.end()) {
+		m_EntitiesToKill.push_back(objectId);
 	}
-
-	m_EntitiesToKill.push_back(objectId);
 }
 
 void EntityManager::ScheduleForDeletion(LWOOBJID entity) {
-	if (std::count(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity)) {
-		return;
+	if (std::find(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity) != m_EntitiesToDelete.end()) {
+		m_EntitiesToDelete.push_back(entity);
 	}
-
-	m_EntitiesToDelete.push_back(entity);
 }
 
 
 void EntityManager::FireEventServerSide(Entity* origin, std::string args) {
-	for (std::pair<LWOOBJID, Entity*> e : m_Entities) {
-		if (e.second) {
-			e.second->OnFireEventServerSide(origin, args);
+	for (const auto entity : m_Entities | std::views::values) {
+		if (entity) {
+			entity->OnFireEventServerSide(origin, args);
 		}
 	}
 }
