@@ -17,7 +17,8 @@
 InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
-	GeneralUtils::TryParse(Game::config->GetValue("world_port_start"), m_LastPort);
+	m_LastPort =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
 }
 
@@ -322,7 +323,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -335,7 +336,7 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 

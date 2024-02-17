@@ -16,15 +16,10 @@ struct CDRebuildComponent {
 	float time_before_smash;        //!< The time before smash
 };
 
-class CDRebuildComponentTable : public CDTable<CDRebuildComponentTable> {
-private:
-	std::vector<CDRebuildComponent> entries;
-
+class CDRebuildComponentTable : public CDTable<CDRebuildComponentTable, std::vector<CDRebuildComponent>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDRebuildComponent> Query(std::function<bool(CDRebuildComponent)> predicate);
-
-	const std::vector<CDRebuildComponent>& GetEntries() const;
 };
 

@@ -27,19 +27,15 @@ MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask) 
 	std::string token;
 
 	while (std::getline(stream, token, ',')) {
-		uint32_t parameter;
-		if (GeneralUtils::TryParse(token, parameter)) {
-			parameters.push_back(parameter);
-		}
+		const auto parameter = GeneralUtils::TryParse<uint32_t>(token);
+		if (parameter) parameters.push_back(parameter.value());
 	}
 
 	stream = std::istringstream(info->targetGroup);
 
 	while (std::getline(stream, token, ',')) {
-		uint32_t parameter;
-		if (GeneralUtils::TryParse(token, parameter)) {
-			targets.push_back(parameter);
-		}
+		const auto parameter = GeneralUtils::TryParse<uint32_t>(token);
+		if (parameter) targets.push_back(parameter.value());
 	}
 }
 

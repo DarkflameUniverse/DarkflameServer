@@ -134,7 +134,7 @@ private:
 	Logger* mLogger;
 	std::string mExternalIP;
 	std::vector<Instance*> m_Instances;
-	unsigned short m_LastPort = 3000;
+	uint16_t m_LastPort = 3000;
 	LWOINSTANCEID m_LastInstanceID;
 
 	/**

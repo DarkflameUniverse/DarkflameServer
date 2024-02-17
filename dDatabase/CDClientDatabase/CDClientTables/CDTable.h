@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CDClientDatabase.h"
+#include "CDClientManager.h"
 #include "Singleton.h"
 #include "DluAssert.h"
 
@@ -27,22 +28,23 @@
 #define UNUSED_ENTRY(v, x)
 
 #pragma warning (disable : 4244) //Disable double to float conversion warnings
-#pragma warning (disable : 4715) //Disable "not all control paths return a value"
+// #pragma warning (disable : 4715) //Disable "not all control paths return a value"
 
-template<class Table>
+template<class Table, typename Storage>
 class CDTable : public Singleton<Table> {
+public:
+	typedef Storage StorageType;
+
 protected:
 	virtual ~CDTable() = default;
-};
 
-template<class T>
-class LookupResult {
-	typedef std::pair<T, bool> DataType;
-public:
-	LookupResult() { m_data.first = T(); m_data.second = false; };
-	LookupResult(T& data) { m_data.first = data; m_data.second = true; };
-	inline const T& Data() { return m_data.first; };
-	inline const bool& FoundData() { return m_data.second; };
-private:
-	DataType m_data;
+	// If you need these for a specific table, override it such that there is a public variant.
+	[[nodiscard]] StorageType& GetEntriesMutable() const {
+		return CDClientManager::GetEntriesMutable<Table>();
+	}
+
+	// If you need these for a specific table, override it such that there is a public variant.
+	[[nodiscard]] const StorageType& GetEntries() const {
+		return GetEntriesMutable();
+	}
 };

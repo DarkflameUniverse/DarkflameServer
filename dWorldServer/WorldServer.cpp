@@ -56,7 +56,6 @@
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "MasterPackets.h"
-#include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
@@ -181,7 +180,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	CDClientManager::Instance().LoadValuesFromDatabase();
+	CDClientManager::LoadValuesFromDatabase();
 
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
@@ -209,8 +208,7 @@ int main(int argc, char** argv) {
 
 	UserManager::Instance()->Initialize();
 
-	bool dontGenerateDCF = false;
-	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
@@ -607,9 +605,10 @@ void HandlePacketChat(Packet* packet) {
 				inStream.Read(expire);
 
 				auto* entity = Game::entityManager->GetEntity(playerId);
-
-				if (entity != nullptr) {
-					entity->GetParentUser()->SetMuteExpire(expire);
+				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					user->SetMuteExpire(expire);
 
 					entity->GetCharacter()->SendMuteNotice();
 				}
@@ -1031,8 +1030,8 @@ void HandlePacket(Packet* packet) {
 
 				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
 
-				if (respawnPoint != NiPoint3::ZERO) {
-					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternion::IDENTITY);
+				if (respawnPoint != NiPoint3Constant::ZERO) {
+					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternionConstant::IDENTITY);
 				}
 
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
@@ -1127,9 +1126,10 @@ void HandlePacket(Packet* packet) {
 				//Mail::HandleNotificationRequest(packet->systemAddress, player->GetObjectID());
 
 				//Notify chat that a player has loaded:
-				{
-					const auto& playerName = player->GetCharacter()->GetName();
-					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
+				auto* character = player->GetCharacter();
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					const auto& playerName = character->GetName();
 
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
@@ -1143,7 +1143,7 @@ void HandlePacket(Packet* packet) {
 					bitStream.Write(zone.GetMapID());
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
-					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+					bitStream.Write(user->GetMuteExpire());
 					bitStream.Write(player->GetGMLevel());
 
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);

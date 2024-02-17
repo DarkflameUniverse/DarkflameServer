@@ -47,10 +47,10 @@ namespace CppScripts {
  */
 class Entity {
 public:
-	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
-	virtual ~Entity();
+	explicit Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser = nullptr, Entity* parentEntity = nullptr);
+	~Entity();
 
-	virtual void Initialize();
+	void Initialize();
 
 	bool operator==(const Entity& other) const;
 	bool operator!=(const Entity& other) const;
@@ -104,9 +104,7 @@ public:
 
 	const NiQuaternion& GetRotation() const;
 
-	virtual User* GetParentUser() const;
-
-	virtual const SystemAddress& GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	const SystemAddress& GetSystemAddress() const;
 
 	/**
 	 * Setters
@@ -128,11 +126,9 @@ public:
 
 	void SetRotation(const NiQuaternion& rotation);
 
-	virtual void SetRespawnPos(const NiPoint3& position) {}
+	void SetRespawnPos(const NiPoint3& position);
 
-	virtual void SetRespawnRot(const NiQuaternion& rotation) {}
-
-	virtual void SetSystemAddress(const SystemAddress& value) {};
+	void SetRespawnRot(const NiQuaternion& rotation);
 
 	/**
 	 * Component management
@@ -229,8 +225,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual const NiPoint3& GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual const NiQuaternion& GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	const NiPoint3& GetRespawnPosition() const;
+	const NiQuaternion& GetRespawnRotation() const;
 
 	void Sleep();
 	void Wake();
@@ -399,14 +395,8 @@ const T& Entity::GetVar(const std::u16string& name) const {
 template<typename T>
 T Entity::GetVarAs(const std::u16string& name) const {
 	const auto data = GetVarAsString(name);
-
-	T value;
-
-	if (!GeneralUtils::TryParse(data, value)) {
-		return LDFData<T>::Default;
-	}
-
-	return value;
+	
+	return GeneralUtils::TryParse<T>(data).value_or(LDFData<T>::Default);
 }
 
 template<typename T>

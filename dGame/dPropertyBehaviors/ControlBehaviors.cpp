@@ -13,6 +13,7 @@
 #include "User.h"
 #include "tinyxml2.h"
 #include "CDClientDatabase.h"
+#include "CharacterComponent.h"
 
 // Message includes
 #include "Action.h"
@@ -145,10 +146,12 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const SystemAddress& 
 	} else if (command == "moveToInventory") {
 		MoveToInventoryMessage msg(arguments);
 		context.modelComponent->MoveToInventory(msg);
+		auto* characterComponent = modelOwner->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
 
 		AMFArrayValue args;
 		args.Insert("BehaviorID", std::to_string(msg.GetBehaviorId()));
-		GameMessages::SendUIMessageServerToSingleClient(modelOwner, modelOwner->GetParentUser()->GetSystemAddress(), "BehaviorRemoved", args);
+		GameMessages::SendUIMessageServerToSingleClient(modelOwner, characterComponent->GetSystemAddress(), "BehaviorRemoved", args);
 
 		SendBehaviorListToClient(context);
 	} else if (command == "updateAction") {

@@ -15,13 +15,13 @@ enum class BehaviorState : uint32_t;
  */
 class BehaviorMessageBase {
 public:
-	static inline int32_t DefaultBehaviorId = -1;
-	const int32_t GetBehaviorId() const { return behaviorId; };
-	bool IsDefaultBehaviorId() { return behaviorId == DefaultBehaviorId; };
-	BehaviorMessageBase(AMFArrayValue* arguments);
+	static constexpr int32_t DefaultBehaviorId = -1;
+	[[nodiscard]] int32_t GetBehaviorId() const { return behaviorId; };
+	[[nodiscard]] bool IsDefaultBehaviorId() { return behaviorId == DefaultBehaviorId; };
+	BehaviorMessageBase(AMFArrayValue* const arguments);
 protected:
-	int32_t GetBehaviorIdFromArgument(AMFArrayValue* arguments);
-	int32_t GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName = "actionIndex");
+	[[nodiscard]] int32_t GetBehaviorIdFromArgument(AMFArrayValue* const arguments);
+	[[nodiscard]] int32_t GetActionIndexFromArgument(AMFArrayValue* const arguments, const std::string& keyName = "actionIndex") const;
 	int32_t behaviorId = DefaultBehaviorId;
 };
 

@@ -20,7 +20,6 @@
 #include "WorldPackets.h"
 #include "Item.h"
 #include "ZCompression.h"
-#include "Player.h"
 #include "dConfig.h"
 #include "TeamManager.h"
 #include "ChatPackets.h"
@@ -385,8 +384,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	float fIdleTimeElapsed = 0.0f;
 	float fMoveTimeElapsed = 0.0f;
 	float fPercentBetweenPoints = 0.0f;
-	NiPoint3 ptUnexpectedLocation = NiPoint3::ZERO;
-	NiQuaternion qUnexpectedRotation = NiQuaternion::IDENTITY;
+	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
+	NiQuaternion qUnexpectedRotation = NiQuaternionConstant::IDENTITY;
 
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
@@ -403,8 +402,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(ptUnexpectedLocation.y);
 	bitStream.Write(ptUnexpectedLocation.z);
 
-	bitStream.Write(qUnexpectedRotation != NiQuaternion::IDENTITY);
-	if (qUnexpectedRotation != NiQuaternion::IDENTITY) {
+	bitStream.Write(qUnexpectedRotation != NiQuaternionConstant::IDENTITY);
+	if (qUnexpectedRotation != NiQuaternionConstant::IDENTITY) {
 		bitStream.Write(qUnexpectedRotation.x);
 		bitStream.Write(qUnexpectedRotation.y);
 		bitStream.Write(qUnexpectedRotation.z);
@@ -770,7 +769,7 @@ void GameMessages::SendSetCurrency(Entity* entity, int64_t currency, int lootTyp
 	bitStream.Write(lootType != LOOTTYPE_NONE);
 	if (lootType != LOOTTYPE_NONE) bitStream.Write(lootType);
 
-	bitStream.Write(NiPoint3::ZERO);
+	bitStream.Write(NiPoint3Constant::ZERO);
 
 	bitStream.Write(sourceLOT != LOT_NULL);
 	if (sourceLOT != LOT_NULL) bitStream.Write(sourceLOT);
@@ -1079,7 +1078,7 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 		entity->RegisterCoinDrop(currency);
 	}
 
-	if (spawnPos != NiPoint3::ZERO) {
+	if (spawnPos != NiPoint3Constant::ZERO) {
 		bUsePosition = true;
 
 		//Calculate where the loot will go:
@@ -1101,8 +1100,8 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 	bitStream.Write(bUsePosition);
 
-	bitStream.Write(finalPosition != NiPoint3::ZERO);
-	if (finalPosition != NiPoint3::ZERO) bitStream.Write(finalPosition);
+	bitStream.Write(finalPosition != NiPoint3Constant::ZERO);
+	if (finalPosition != NiPoint3Constant::ZERO) bitStream.Write(finalPosition);
 
 	bitStream.Write(currency);
 	bitStream.Write(item);
@@ -1110,14 +1109,14 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 	bitStream.Write(owner);
 	bitStream.Write(sourceID);
 
-	bitStream.Write(spawnPos != NiPoint3::ZERO);
-	if (spawnPos != NiPoint3::ZERO) bitStream.Write(spawnPos);
+	bitStream.Write(spawnPos != NiPoint3Constant::ZERO);
+	if (spawnPos != NiPoint3Constant::ZERO) bitStream.Write(spawnPos);
 
 	auto* team = TeamManager::Instance()->GetTeam(owner);
 
 	// Currency and powerups should not sync
 	if (team != nullptr && currency == 0) {
-		CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+		CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
 		const CDObjects& object = objectsTable->GetByID(item);
 
@@ -1170,7 +1169,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	const bool bIsNotIdentity = rotation != NiQuaternion::IDENTITY;
+	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
 
 	if (bIsNotIdentity) {
@@ -1646,8 +1645,8 @@ void GameMessages::SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const
 
 void GameMessages::HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	float angle = 0.0f;
-	NiPoint3 facing = NiPoint3::ZERO;
-	NiPoint3 muzzlePos = NiPoint3::ZERO;
+	NiPoint3 facing = NiPoint3Constant::ZERO;
+	NiPoint3 muzzlePos = NiPoint3Constant::ZERO;
 	inStream->Read(angle);
 	inStream->Read(facing);
 	inStream->Read(muzzlePos);
@@ -2103,8 +2102,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::PLACE_MODEL_RESPONSE);
 
-	bitStream.Write(position != NiPoint3::ZERO);
-	if (position != NiPoint3::ZERO) {
+	bitStream.Write(position != NiPoint3Constant::ZERO);
+	if (position != NiPoint3Constant::ZERO) {
 		bitStream.Write(position);
 	}
 
@@ -2118,8 +2117,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
-	bitStream.Write(rotation != NiQuaternion::IDENTITY);
-	if (rotation != NiQuaternion::IDENTITY) {
+	bitStream.Write(rotation != NiQuaternionConstant::IDENTITY);
+	if (rotation != NiQuaternionConstant::IDENTITY) {
 		bitStream.Write(response);
 	}
 
@@ -2271,7 +2270,7 @@ void GameMessages::HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entit
 	bool modePaused{};
 	int modeValue = 1;
 	LWOOBJID playerId{};
-	NiPoint3 startPosition = NiPoint3::ZERO;
+	NiPoint3 startPosition = NiPoint3Constant::ZERO;
 
 	inStream->Read(start);
 
@@ -2290,7 +2289,7 @@ void GameMessages::HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entit
 
 	auto* player = Game::entityManager->GetEntity(playerId);
 
-	if (startPosition == NiPoint3::ZERO) {
+	if (startPosition == NiPoint3Constant::ZERO) {
 		startPosition = player->GetPosition();
 	}
 
@@ -2384,13 +2383,13 @@ void GameMessages::HandlePlacePropertyModel(RakNet::BitStream* inStream, Entity*
 
 	inStream->Read(model);
 
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3::ZERO, NiQuaternion::IDENTITY);
+	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, NiQuaternionConstant::IDENTITY);
 }
 
 void GameMessages::HandleUpdatePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID model;
 	NiPoint3 position;
-	NiQuaternion rotation = NiQuaternion::IDENTITY;
+	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
 
 	inStream->Read(model);
 	inStream->Read(position);
@@ -2584,6 +2583,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 
 	//We need to get a new ID for our model first:
 	ObjectIDManager::RequestPersistentID([=](uint32_t newID) {
+		if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
 		LWOOBJID newIDL = newID;
 		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
 		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
@@ -2606,13 +2606,13 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* ent
 		//Insert into ugc:
 		std::string str(sd0Data.get(), sd0Size);
 		std::istringstream sd0DataStream(str);
-		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
 		IPropertyContents::Model model;
 		model.id = newIDL;
 		model.ugcId = blueprintIDSmall;
-		model.position = NiPoint3::ZERO;
+		model.position = NiPoint3Constant::ZERO;
 		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
@@ -3270,7 +3270,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 
 		if (trade != nullptr) {
 			if (!trade->IsParticipant(i64Invitee)) {
-				TradingManager::Instance()->CancelTrade(trade->GetTradeId());
+				TradingManager::Instance()->CancelTrade(entity->GetObjectID(), trade->GetTradeId());
 
 				TradingManager::Instance()->NewTrade(entity->GetObjectID(), i64Invitee);
 			}
@@ -3295,7 +3295,7 @@ void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* 
 
 	LOG("Trade canceled from (%llu)", entity->GetObjectID());
 
-	TradingManager::Instance()->CancelTrade(trade->GetTradeId());
+	TradingManager::Instance()->CancelTrade(entity->GetObjectID(), trade->GetTradeId());
 }
 
 void GameMessages::HandleClientTradeAccept(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -3393,7 +3393,7 @@ void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId
 	bitStream.Write(petsDestPos);
 	bitStream.Write(telePos);
 
-	const bool hasDefault = teleRot != NiQuaternion::IDENTITY;
+	const bool hasDefault = teleRot != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(hasDefault);
 	if (hasDefault) bitStream.Write(teleRot);
 
@@ -4218,7 +4218,7 @@ void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* in
 	LWOOBJID pickupObjID = LWOOBJID_EMPTY;
 	LWOOBJID pickupSpawnerID = LWOOBJID_EMPTY;
 	int32_t pickupSpawnerIndex = -1;
-	NiPoint3 vehiclePosition = NiPoint3::ZERO;
+	NiPoint3 vehiclePosition = NiPoint3Constant::ZERO;
 
 	if (inStream->ReadBit()) inStream->Read(pickupObjID);
 	if (inStream->ReadBit()) inStream->Read(pickupSpawnerID);
@@ -4686,8 +4686,8 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 		return;
 	}
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4778,8 +4778,8 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -4828,8 +4828,8 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	Item* item = inv->FindItemById(iObjID);
 	if (!item) return;
 
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 
 	int itemCompID = compRegistryTable->GetByIDAndType(item->GetLot(), eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
@@ -5041,7 +5041,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity) 
 	if (emoteID == 0) return;
 	std::string sAnimationName = "deaded"; //Default name in case we fail to get the emote
 
-	CDEmoteTableTable* emotes = CDClientManager::Instance().GetTable<CDEmoteTableTable>();
+	CDEmoteTableTable* emotes = CDClientManager::GetTable<CDEmoteTableTable>();
 	if (emotes) {
 		CDEmoteTable* emote = emotes->GetEmote(emoteID);
 		if (emote) sAnimationName = emote->animationName;
@@ -5110,13 +5110,8 @@ void GameMessages::HandleSetFlag(RakNet::BitStream* inStream, Entity* entity) {
 	inStream->Read(bFlag);
 	inStream->Read(iFlagID);
 
-	auto user = entity->GetParentUser();
-	if (user) {
-		auto character = user->GetLastUsedChar();
-		if (!character) return;
-
-		character->SetPlayerFlag(iFlagID, bFlag);
-	}
+	auto character = entity->GetCharacter();
+	if (character) character->SetPlayerFlag(iFlagID, bFlag);
 }
 
 void GameMessages::HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity) {

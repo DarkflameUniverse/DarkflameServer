@@ -104,7 +104,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 		}
 
 		Complete();
-		TradingManager::Instance()->CancelTrade(m_TradeId);
+		TradingManager::Instance()->CancelTrade(LWOOBJID_EMPTY, m_TradeId, false);
 	}
 }
 
@@ -178,14 +178,14 @@ void Trade::Complete() {
 	return;
 }
 
-void Trade::Cancel() {
+void Trade::Cancel(const LWOOBJID canceller) {
 	auto* entityA = GetParticipantAEntity();
 	auto* entityB = GetParticipantBEntity();
 
 	if (entityA == nullptr || entityB == nullptr) return;
 
-	GameMessages::SendServerTradeCancel(entityA->GetObjectID(), entityA->GetSystemAddress());
-	GameMessages::SendServerTradeCancel(entityB->GetObjectID(), entityB->GetSystemAddress());
+	if (entityA->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) GameMessages::SendServerTradeCancel(entityA->GetObjectID(), entityA->GetSystemAddress());
+	if (entityB->GetObjectID() != canceller || canceller == LWOOBJID_EMPTY) GameMessages::SendServerTradeCancel(entityB->GetObjectID(), entityB->GetSystemAddress());
 }
 
 void Trade::SendUpdateToOther(LWOOBJID participant) {
@@ -262,10 +262,12 @@ Trade* TradingManager::GetPlayerTrade(LWOOBJID playerId) const {
 	return nullptr;
 }
 
-void TradingManager::CancelTrade(LWOOBJID tradeId) {
+void TradingManager::CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, const bool sendCancelMessage) {
 	auto* trade = GetTrade(tradeId);
 
 	if (trade == nullptr) return;
+
+	if (sendCancelMessage) trade->Cancel(canceller);
 
 	delete trade;
 

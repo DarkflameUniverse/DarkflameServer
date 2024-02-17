@@ -18,14 +18,9 @@ struct CDCurrencyTable {
 };
 
 //! CurrencyTable table
-class CDCurrencyTableTable : public CDTable<CDCurrencyTableTable> {
-private:
-	std::vector<CDCurrencyTable> entries;
-
+class CDCurrencyTableTable : public CDTable<CDCurrencyTableTable, std::vector<CDCurrencyTable>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDCurrencyTable> Query(std::function<bool(CDCurrencyTable)> predicate);
-
-	const std::vector<CDCurrencyTable>& GetEntries() const;
 };

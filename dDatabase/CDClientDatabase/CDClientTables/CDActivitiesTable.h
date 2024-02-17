@@ -25,15 +25,10 @@ struct CDActivities {
 	float optionalPercentage;
 };
 
-class CDActivitiesTable : public CDTable<CDActivitiesTable> {
-private:
-	std::vector<CDActivities> entries;
-
+class CDActivitiesTable : public CDTable<CDActivitiesTable, std::vector<CDActivities>> {
 public:
 	void LoadValuesFromDatabase();
 
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);
-
-	const std::vector<CDActivities>& GetEntries() const { return this->entries; }
 };

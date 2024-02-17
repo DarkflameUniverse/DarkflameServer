@@ -402,7 +402,7 @@ Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 	auto lookup = leaderboardCache.find(gameID);
 	if (lookup != leaderboardCache.end()) return lookup->second;
 
-	auto* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	auto* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([gameID](const CDActivities& entry) {
 		return entry.ActivityID == gameID;
 		});

@@ -27,7 +27,6 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"PlayerForcedMovementComponent.cpp"
 	"PossessableComponent.cpp"
 	"PossessorComponent.cpp"
-	"PropertyComponent.cpp"
 	"PropertyEntranceComponent.cpp"
 	"PropertyManagementComponent.cpp"
 	"PropertyVendorComponent.cpp"

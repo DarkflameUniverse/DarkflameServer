@@ -1,8 +1,10 @@
 #include "CDSkillBehaviorTable.h"
 
-void CDSkillBehaviorTable::LoadValuesFromDatabase() {
-	m_empty = CDSkillBehavior();
+namespace {
+	CDSkillBehavior m_empty = CDSkillBehavior();
+};
 
+void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM SkillBehavior");
@@ -14,8 +16,7 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 
 	tableSize.finalize();
 
-	// Reserve the size
-	//this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM SkillBehavior");
@@ -41,7 +42,7 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 		UNUSED(entry.gate_version = tableData.getStringField("gate_version", ""));
 		UNUSED(entry.cancelType = tableData.getIntField("cancelType", -1));
 
-		this->entries.insert(std::make_pair(entry.skillID, entry));
+		entries.insert(std::make_pair(entry.skillID, entry));
 		//this->entries.push_back(entry);
 		tableData.nextRow();
 	}
@@ -50,8 +51,9 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 }
 
 const CDSkillBehavior& CDSkillBehaviorTable::GetSkillByID(uint32_t skillID) {
-	std::map<uint32_t, CDSkillBehavior>::iterator it = this->entries.find(skillID);
-	if (it != this->entries.end()) {
+	auto& entries = GetEntries();
+	auto it = entries.find(skillID);
+	if (it != entries.end()) {
 		return it->second;
 	}
 
