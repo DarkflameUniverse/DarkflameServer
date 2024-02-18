@@ -123,6 +123,11 @@ public:
 	MoverPlatformSubComponent(MovingPlatformComponent* parentComponent);
 	~MoverPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Mover; }
+	void LoadConfigData() override;
+
+private:
+	bool m_AllowPositionSnapping = true;
+	float m_MaxLerpDistnace = 16.0f;
 };
 
 class RotatorPlatformSubComponent : public PlatformSubComponent {
@@ -131,7 +136,16 @@ public:
 	RotatorPlatformSubComponent(MovingPlatformComponent* parentComponent);
 	~RotatorPlatformSubComponent() override = default;
 	eMoverSubComponentType GetPlatformType() override { return eMoverSubComponentType::Rotator; }
+	void LoadConfigData() override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override { PlatformSubComponent::Serialize(outBitStream, bIsInitialUpdate); };
+private:
+	NiPoint3 m_Rotation = NiPoint3Constant::ZERO;
+	float m_Rate = 0.0f;
+	NiPoint3 m_AngularVelocity = NiPoint3Constant::ZERO;
+	bool m_AllowRotationSnapping = true;
+	float m_MaxLerpAngle = 0.1396263;
+	bool m_DirtyAngularVelocity = false;
+	float m_UnknownFloat = 0.0f;
 };
 
 // Only moves. Has NO path. This moving platform gets its initial position and rotation from the server on serialization.

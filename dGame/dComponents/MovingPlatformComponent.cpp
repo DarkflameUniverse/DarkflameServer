@@ -249,11 +249,39 @@ MoverPlatformSubComponent::MoverPlatformSubComponent(MovingPlatformComponent* pa
 
 }
 
+void MoverPlatformSubComponent::LoadConfigData() {
+	m_AllowPositionSnapping = m_ParentComponent->GetParent()->GetVar<bool>(u"allowPosSnap");
+	if(m_ParentComponent->GetParent()->HasVar(u"maxLerpDist")){
+		m_MaxLerpDistnace = m_ParentComponent->GetParent()->GetVar<float>(u"maxLerpDist");
+		m_MaxLerpDistnace = m_MaxLerpDistnace * m_MaxLerpDistnace;
+	}
+
+}
 //------------- MoverPlatformSubComponent end --------------
 
 //------------- RotatorPlatformSubComponent begin --------------
 
 RotatorPlatformSubComponent::RotatorPlatformSubComponent(MovingPlatformComponent* parentComponent) : PlatformSubComponent(parentComponent) {
+
+}
+void RotatorPlatformSubComponent::LoadConfigData() {
+	if(m_ParentComponent->GetParent()->HasVar(u"rotX")){
+		m_Rotation.x = m_ParentComponent->GetParent()->GetVar<float>(u"rotX") * M_PI;
+	}
+	if(m_ParentComponent->GetParent()->HasVar(u"rotY")){
+		m_Rotation.y = m_ParentComponent->GetParent()->GetVar<float>(u"rotY") * M_PI;
+	}
+	if(m_ParentComponent->GetParent()->HasVar(u"rotZ")){
+		m_Rotation.z = m_ParentComponent->GetParent()->GetVar<float>(u"rotZ") * M_PI;
+	}
+	if(m_ParentComponent->GetParent()->HasVar(u"allowRotSnap")){
+		m_AllowRotationSnapping = m_ParentComponent->GetParent()->GetVar<bool>(u"allowRotSnap");
+	}
+	if(m_AllowRotationSnapping) {
+		if(m_ParentComponent->GetParent()->HasVar(u"maxLerpAngle")){
+			m_MaxLerpAngle = (m_ParentComponent->GetParent()->GetVar<float>(u"maxLerpAngle") * M_PI) / 180;
+		}
+	}
 
 }
 
