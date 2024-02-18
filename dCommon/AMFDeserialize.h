@@ -1,11 +1,26 @@
 #pragma once
 
-#include "Amf3.h"
 #include "BitStream.h"
 
 #include <memory>
 #include <vector>
 #include <string>
+
+// Forward declarations
+
+template <typename T>
+class AMFValue;
+class AMFArrayValue;
+class AMFBaseValue;
+extern template class AMFValue<std::nullptr_t>;
+extern template class AMFValue<bool>;
+extern template class AMFValue<int32_t>;
+extern template class AMFValue<uint32_t>;
+extern template class AMFValue<std::string>;
+extern template class AMFValue<double>;
+using AMFDoubleValue = AMFValue<double>;
+using AMFIntValue = AMFValue<int32_t>;
+using AMFStringValue = AMFValue<const char*>;
 
 class AMFDeserialize {
 public:
