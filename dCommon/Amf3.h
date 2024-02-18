@@ -127,12 +127,12 @@ public:
 	/**
 	 * Returns the Associative portion of the object
 	 */
-	[[nodiscard]] inline AMFAssociative& GetAssociative() noexcept { return this->associative; }
+	[[nodiscard]] inline const AMFAssociative& GetAssociative() const noexcept { return this->associative; }
 
 	/**
 	 * Returns the dense portion of the object
 	 */
-	[[nodiscard]] inline AMFDense& GetDense() noexcept { return this->dense; }
+	[[nodiscard]] inline const AMFDense& GetDense() const noexcept { return this->dense; }
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given key.
@@ -297,7 +297,7 @@ public:
 		if (!this->dense.empty()) Remove(this->dense.size() - 1);
 	}
 
-	[[nodiscard]] AMFArrayValue* GetArray(const std::string& key) {
+	[[nodiscard]] AMFArrayValue* GetArray(const std::string& key) const {
 		AMFAssociative::const_iterator it = this->associative.find(key);
 		if (it != this->associative.end()) {
 			return dynamic_cast<AMFArrayValue*>(it->second);
@@ -305,7 +305,7 @@ public:
 		return nullptr;
 	}
 
-	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) {
+	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) const {
 		return index >= this->dense.size() ? nullptr : dynamic_cast<AMFArrayValue*>(this->dense.at(index));
 	}
 

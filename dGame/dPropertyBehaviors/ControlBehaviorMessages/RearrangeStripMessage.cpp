@@ -1,10 +1,10 @@
 #include "RearrangeStripMessage.h"
 
-RearrangeStripMessage::RearrangeStripMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	actionContext = ActionContext(arguments);
-	srcActionIndex = GetActionIndexFromArgument(arguments, "srcActionIndex");
+RearrangeStripMessage::RearrangeStripMessage(const AMFArrayValue* arguments)
+	: BehaviorMessageBase{ arguments }
+	, m_SrcActionIndex{ GetActionIndexFromArgument(arguments, "srcActionIndex") }
+	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }
+	, m_ActionContext{ arguments } {
 
-	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
-
-	LOG_DEBUG("srcactionIndex %i dstactionIndex %i stripId %i behaviorId %i stateId %i", srcActionIndex, dstActionIndex, actionContext.GetStripId(), behaviorId, actionContext.GetStateId());
+	LOG_DEBUG("srcactionIndex %i dstactionIndex %i stripId %i behaviorId %i stateId %i", m_SrcActionIndex, m_DstActionIndex, m_ActionContext.GetStripId(), m_BehaviorId, m_ActionContext.GetStateId());
 }

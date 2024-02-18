@@ -13,7 +13,8 @@ class AMFArrayValue;
 class PropertyBehavior {
 public:
 	PropertyBehavior();
-	template<typename Msg>
+
+	template <typename Msg>
 	void HandleMsg(Msg& msg);
 
 	// If the last edited state has no strips, this method will set the last edited state to the first state that has strips.
@@ -21,8 +22,9 @@ public:
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 
-	int32_t GetBehaviorId() const { return m_BehaviorId; }
-	void SetBehaviorId(int32_t id);
+	[[nodiscard]] int32_t GetBehaviorId() const noexcept { return m_BehaviorId; }
+	void SetBehaviorId(int32_t id) noexcept { m_BehaviorId = id; }
+
 private:
 
 	// The states this behavior has.

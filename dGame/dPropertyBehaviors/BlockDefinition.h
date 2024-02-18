@@ -7,19 +7,20 @@ class AMFArrayValue;
 
 class BlockDefinition {
 public:
-	BlockDefinition(std::string defaultValue = "", float minimumValue = 0.0f, float maximumValue = 0.0f);
+	BlockDefinition(const std::string& defaultValue = "", const float minimumValue = 0.0f, const float maximumValue = 0.0f);
 	static BlockDefinition blockDefinitionDefault;
 
-	std::string& GetDefaultValue() { return defaultValue; };
-	float GetMinimumValue() { return minimumValue; };
-	float GetMaximumValue() { return maximumValue; };
-	void SetDefaultValue(std::string value) { defaultValue = value; };
-	void SetMinimumValue(float value) { minimumValue = value; };
-	void SetMaximumValue(float value) { maximumValue = value; };
+	[[nodiscard]] const std::string& GetDefaultValue() const { return m_DefaultValue; }
+	[[nodiscard]] float GetMinimumValue() const noexcept { return m_MinimumValue; }
+	[[nodiscard]] float GetMaximumValue() const noexcept { return m_MaximumValue; }
+	void SetDefaultValue(const std::string& value) { m_DefaultValue = value; }
+	void SetMinimumValue(const float value) noexcept { m_MinimumValue = value; }
+	void SetMaximumValue(const float value) noexcept { m_MaximumValue = value; }
+
 private:
-	std::string defaultValue;
-	float minimumValue;
-	float maximumValue;
+	std::string m_DefaultValue;
+	float m_MinimumValue;
+	float m_MaximumValue;
 };
 
 #endif  //!__BLOCKDEFINITION__H__

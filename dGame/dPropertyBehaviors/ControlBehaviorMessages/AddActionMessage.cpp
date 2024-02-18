@@ -1,13 +1,14 @@
 #include "AddActionMessage.h"
 
-AddActionMessage::AddActionMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	actionContext = ActionContext(arguments);
-	actionIndex = GetActionIndexFromArgument(arguments);
+AddActionMessage::AddActionMessage(const AMFArrayValue* arguments)
+	: BehaviorMessageBase{ arguments }
+	, m_ActionIndex{ GetActionIndexFromArgument(arguments) }
+	, m_ActionContext{ arguments } {
 
-	auto* actionValue = arguments->GetArray("action");
+	const auto* const actionValue = arguments->GetArray("action");
 	if (!actionValue) return;
 
-	action = Action(actionValue);
+	m_Action = Action{ actionValue };
 
-	LOG_DEBUG("actionIndex %i stripId %i stateId %i type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i", actionIndex, actionContext.GetStripId(), actionContext.GetStateId(), action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), behaviorId);
+	LOG_DEBUG("actionIndex %i stripId %i stateId %i type %s valueParameterName %s valueParameterString %s valueParameterDouble %f m_BehaviorId %i", m_ActionIndex, m_ActionContext.GetStripId(), m_ActionContext.GetStateId(), m_Action.GetType().c_str(), m_Action.GetValueParameterName().c_str(), m_Action.GetValueParameterString().c_str(), m_Action.GetValueParameterDouble(), m_BehaviorId);
 }

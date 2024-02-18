@@ -12,15 +12,16 @@ class AMFArrayValue;
  */
 class ActionContext {
 public:
-	ActionContext();
-	ActionContext(AMFArrayValue* arguments, std::string customStateKey = "stateID", std::string customStripKey = "stripID");
-	const StripId GetStripId() const { return stripId; };
-	const BehaviorState GetStateId() const { return stateId; };
+	ActionContext() noexcept = default;
+	ActionContext(const AMFArrayValue* arguments, const std::string& customStateKey = "stateID", const std::string& customStripKey = "stripID");
+	[[nodiscard]] StripId GetStripId() const noexcept { return m_StripId; };
+	[[nodiscard]] BehaviorState GetStateId() const noexcept { return m_StateId; };
+
 private:
-	BehaviorState GetBehaviorStateFromArgument(AMFArrayValue* arguments, const std::string& key);
-	StripId GetStripIdFromArgument(AMFArrayValue* arguments, const std::string& key);
-	StripId stripId;
-	BehaviorState stateId;
+	[[nodiscard]] BehaviorState GetBehaviorStateFromArgument(const AMFArrayValue* arguments, const std::string& key) const;
+	[[nodiscard]] StripId GetStripIdFromArgument(const AMFArrayValue* arguments, const std::string& key) const;
+	StripId m_StripId{ 0 };
+	BehaviorState m_StateId{ BehaviorState::HOME_STATE };
 };
 
 #endif  //!__ACTIONCONTEXT__H__
