@@ -114,24 +114,14 @@ public:
 	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::Array; }
 
 	/**
-	 * Returns the Associative portion of the object (const)
+	 * Returns the Associative portion of the object
 	 */
 	[[nodiscard]] inline const AMFAssociative& GetAssociative() const noexcept { return m_Associative; }
 
 	/**
-	 * Returns the Associative portion of the object (non-const)
-	 */
-	[[nodiscard]] inline AMFAssociative& GetAssociative() noexcept { return m_Associative; }
-
-	/**
-	 * Returns the dense portion of the object (const)
+	 * Returns the dense portion of the object
 	 */
 	[[nodiscard]] inline const AMFDense& GetDense() const noexcept { return m_Dense; }
-
-	/**
-	 * Returns the dense portion of the object (non-const)
-	 */
-	[[nodiscard]] inline AMFDense& GetDense() noexcept { return m_Dense; }
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given key.

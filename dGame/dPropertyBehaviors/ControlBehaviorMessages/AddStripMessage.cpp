@@ -13,7 +13,7 @@ AddStripMessage::AddStripMessage(const AMFArrayValue& arguments)
 	const auto* const actions = strip->GetArray("actions");
 	if (!actions) return;
 
-	for (uint32_t actionNumber = 0; actionNumber < actions->GetDense().size(); actionNumber++) {
+	for (size_t actionNumber = 0; actionNumber < actions->GetDense().size(); actionNumber++) {
 		const auto* const actionValue = actions->GetArray(actionNumber);
 		if (!actionValue) continue;
 

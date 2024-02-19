@@ -106,7 +106,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, const AMFArrayValue& 
 	if (command == "sendBehaviorListToClient") {
 		SendBehaviorListToClient(context);
 	} else if (command == "modelTypeChanged") {
-		auto* const modelType = arguments.Get<double>("ModelType");
+		const auto* const modelType = arguments.Get<double>("ModelType");
 		if (!modelType) return;
 
 		modelEntity->SetVar<int>(u"modelType", modelType->GetValue());

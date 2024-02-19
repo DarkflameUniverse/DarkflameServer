@@ -3271,7 +3271,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream* inStream, Entity*
 
 		if (trade != nullptr) {
 			if (!trade->IsParticipant(i64Invitee)) {
-				TradingManager::Instance()->CancelTrade(trade->GetTradeId());
+				TradingManager::Instance()->CancelTrade(entity->GetObjectID(), trade->GetTradeId());
 
 				TradingManager::Instance()->NewTrade(entity->GetObjectID(), i64Invitee);
 			}
@@ -3296,7 +3296,7 @@ void GameMessages::HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* 
 
 	LOG("Trade canceled from (%llu)", entity->GetObjectID());
 
-	TradingManager::Instance()->CancelTrade(trade->GetTradeId());
+	TradingManager::Instance()->CancelTrade(entity->GetObjectID(), trade->GetTradeId());
 }
 
 void GameMessages::HandleClientTradeAccept(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
