@@ -3,7 +3,6 @@
 
 #include <string>
 
-
 class AMFArrayValue;
 
 class BlockDefinition {
