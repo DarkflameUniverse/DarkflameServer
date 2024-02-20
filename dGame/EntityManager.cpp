@@ -575,13 +575,13 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	const auto objectId = entity->GetObjectID();
 
-	if (std::find(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId) != m_EntitiesToKill.end()) {
+	if (std::find(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId) == m_EntitiesToKill.end()) {
 		m_EntitiesToKill.push_back(objectId);
 	}
 }
 
 void EntityManager::ScheduleForDeletion(LWOOBJID entity) {
-	if (std::find(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity) != m_EntitiesToDelete.end()) {
+	if (std::find(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity) == m_EntitiesToDelete.end()) {
 		m_EntitiesToDelete.push_back(entity);
 	}
 }
