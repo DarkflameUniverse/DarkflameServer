@@ -168,23 +168,25 @@ namespace GeneralUtils {
 
 #ifdef DARKFLAME_PLATFORM_MACOS
 
-	// MacOS floating-point parse function specializations
-	template <std::floating_point T>
-	[[nodiscard]] T Parse_(const std::string_view str, size_t& parseNum);
+	// MacOS floating-point parse helper function specializations
+	namespace details {
+		template <std::floating_point T>
+		[[nodiscard]] T Parse_(const std::string_view str, size_t& parseNum);
 
-	template <>
-	[[nodiscard]] inline float Parse_<float>(const std::string_view str, size_t& parseNum) {
-		return std::stof(std::string{ str }, &parseNum);
-	}
+		template <>
+		[[nodiscard]] inline float Parse_<float>(const std::string_view str, size_t& parseNum) {
+			return std::stof(std::string{ str }, &parseNum);
+		}
 
-	template <>
-	[[nodiscard]] inline double Parse_<double>(const std::string_view str, size_t& parseNum) {
-		return std::stod(std::string{ str }, &parseNum);
-	}
+		template <>
+		[[nodiscard]] inline double Parse_<double>(const std::string_view str, size_t& parseNum) {
+			return std::stod(std::string{ str }, &parseNum);
+		}
 
-	template <>
-	[[nodiscard]] inline long double Parse_<long double>(const std::string_view str, size_t& parseNum) {
-		return std::stold(std::string{ str }, &parseNum);
+		template <>
+		[[nodiscard]] inline long double Parse_<long double>(const std::string_view str, size_t& parseNum) {
+			return std::stold(std::string{ str }, &parseNum);
+		}
 	}
 
 	/**
