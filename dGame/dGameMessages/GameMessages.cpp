@@ -78,6 +78,7 @@
 #include "LevelProgressionComponent.h"
 #include "DonationVendorComponent.h"
 #include "GhostComponent.h"
+#include "AchievementVendorComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -4665,84 +4666,71 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
 
+	// Handle buying properties
 	auto* propertyVendorComponent = static_cast<PropertyVendorComponent*>(entity->GetComponent(eReplicaComponentType::PROPERTY_VENDOR));
-
-	if (propertyVendorComponent != nullptr) {
+	if (propertyVendorComponent) {
 		propertyVendorComponent->OnBuyFromVendor(player, bConfirmed, item, count);
-
 		return;
 	}
 
-	const auto isCommendationVendor = entity->GetLOT() == 13806;
-
+	// handle buying items
+	auto* achVend = entity->GetComponent<AchievementVendorComponent>();
 	auto* vend = entity->GetComponent<VendorComponent>();
-	if (!vend && !isCommendationVendor) return;
+	if (!vend && !achVend) return;
 
 	auto* inv = player->GetComponent<InventoryComponent>();
 	if (!inv) return;
 
-	if (!isCommendationVendor && !vend->SellsItem(item)) {
-		LOG("User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
-		return;
-	}
-
+	// get the item Comp from the item LOT
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
-
 	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 
-	Character* character = player->GetCharacter();
-	if (!character) return;
-
-	// Extra currency that needs to be deducted in case of crafting
-	auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
-	for (const auto& craftingCurrency : craftingCurrencies) {
-		inv->RemoveItem(craftingCurrency.first, craftingCurrency.second * count);
-	}
-
-	if (isCommendationVendor) {
-		if (itemComp.commendationLOT != 13763) {
+	if (achVend) {
+		if (!achVend->SellsItem(item)) {
+			LOG("User %llu %s tried to buy an item %i from a achievement vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
 			return;
 		}
+		uint32_t costLOT = itemComp.commendationLOT;
+		if (costLOT == 13763) { // Faction Token Proxy
+			auto* missionComponent = player->GetComponent<MissionComponent>();
+			if (!missionComponent) return;
 
-		auto* missionComponent = player->GetComponent<MissionComponent>();
-
-		if (missionComponent == nullptr) {
-			return;
+			if (missionComponent->GetMissionState(545) == eMissionState::COMPLETE) costLOT = 8318; // "Assembly Token"
+			if (missionComponent->GetMissionState(556) == eMissionState::COMPLETE) costLOT = 8321; // "Venture League Token"
+			if (missionComponent->GetMissionState(567) == eMissionState::COMPLETE) costLOT = 8319; // "Sentinels Token"
+			if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE) costLOT = 8320; // "Paradox Token"
 		}
-
-		LOT tokenId = -1;
-
-		if (missionComponent->GetMissionState(545) == eMissionState::COMPLETE) tokenId = 8318; // "Assembly Token"
-		if (missionComponent->GetMissionState(556) == eMissionState::COMPLETE) tokenId = 8321; // "Venture League Token"
-		if (missionComponent->GetMissionState(567) == eMissionState::COMPLETE) tokenId = 8319; // "Sentinels Token"
-		if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE) tokenId = 8320; // "Paradox Token"
-
 		const uint32_t altCurrencyCost = itemComp.commendationCost * count;
 
-		if (inv->GetLotCount(tokenId) < altCurrencyCost) {
-			return;
-		}
-
-		inv->RemoveItem(tokenId, altCurrencyCost);
-
+		if (inv->GetLotCount(costLOT) < altCurrencyCost) return;
+		inv->RemoveItem(costLOT, altCurrencyCost);
 		inv->AddItem(item, count, eLootSourceType::VENDOR);
 	} else {
-		float buyScalar = vend->GetBuyScalar();
-
-		const auto coinCost = static_cast<uint32_t>(std::floor((itemComp.baseValue * buyScalar) * count));
-
-		if (character->GetCoins() < coinCost) {
+		if (!vend->SellsItem(item)) {
+			LOG("User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
 			return;
 		}
+
+		// Extra currency that needs to be deducted in case of crafting
+		// TODO: Don't Blindly remove everything without first checking if they do have all the items to craft
+		auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
+		for (const auto& [crafintCurrencyLOT, crafintCurrencyCount]: craftingCurrencies) {
+			inv->RemoveItem(crafintCurrencyLOT, crafintCurrencyCount * count);
+		}
+
+		float buyScalar = vend->GetBuyScalar();
+		const auto coinCost = static_cast<uint32_t>(std::floor((itemComp.baseValue * buyScalar) * count));
+
+		Character* character = player->GetCharacter();
+		if (!character) return;
+		if (character->GetCoins() < coinCost) return;
 
 		if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 			const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * buyScalar) * count;
 
-			if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
-				return;
-			}
+			if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) return;
 
 			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 		}

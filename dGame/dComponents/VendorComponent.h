@@ -28,7 +28,7 @@ public:
 	void OnUse(Entity* originator) override;
 	void RefreshInventory(bool isCreation = false);
 	void SetupConstants();
-	bool SellsItem(const LOT item) const;
+	virtual bool SellsItem(const LOT item) const;
 	float GetBuyScalar() const { return m_BuyScalar; }
 	float GetSellScalar() const { return m_SellScalar; }
 	void SetBuyScalar(const float value) { m_BuyScalar = value; }
