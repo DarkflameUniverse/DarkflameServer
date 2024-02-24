@@ -86,6 +86,11 @@
 #include "CDRewardCodesTable.h"
 #include "CDObjectsTable.h"
 #include "CDZoneTableTable.h"
+
+#include "Recorder.h"
+#include "ServerPreconditions.h"
+#include "Prefab.h"
+#include "Scene.h"
 #include "ePlayerFlag.h"
 #include "dNavMesh.h"
 
@@ -708,6 +713,33 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		entity->GetCharacter()->SetPlayerFlag(flagId.value(), false);
 	}
 
+	if (chatCommand == "removemission" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() == 0) return;
+
+		uint32_t missionID = GeneralUtils::TryParse<uint32_t>(args.at(0)).value_or(0);
+
+		if (missionID == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid mission id.");
+			return;
+		}
+
+		auto* comp = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
+
+		if (comp == nullptr) {
+			return;
+		}
+
+		auto* mission = comp->GetMission(missionID);
+
+		if (mission == nullptr) {
+			return;
+		}
+
+		comp->RemoveMission(missionID);
+
+		return;
+	}
+
 	if (chatCommand == "playeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {
 		const auto effectID = GeneralUtils::TryParse<int32_t>(args.at(0));
 
@@ -864,6 +896,150 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
+	}
+
+	if (chatCommand == "record-act" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		EntityInfo info;
+		info.lot = 2097253;
+		info.pos = entity->GetPosition();
+		info.rot = entity->GetRotation();
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// If there is an argument, set the lot
+		if (args.size() > 0) {
+			const auto lotOptional = GeneralUtils::TryParse<LOT>(args[0]);
+			if (lotOptional) {
+				info.lot = lotOptional.value();
+			}
+		}
+
+		// Spawn it
+		auto* actor = Game::entityManager->CreateEntity(info);
+
+		// If there is an argument, set the actors name
+		if (args.size() > 1) {
+			actor->SetVar(u"npcName", args[1]);
+		}
+
+		// Construct it
+		Game::entityManager->ConstructEntity(actor);
+
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			record->Act(actor);
+		} else {
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-start" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		Cinema::Recording::Recorder::StartRecording(entity->GetObjectID());
+
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			if (args.size() > 0 && args[0] == "clear") {
+				record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+			}
+			else if (args.size() > 0 && args[0] == "copy") {
+				record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+
+				auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+				if (inventoryComponent) {
+					for (const auto& [k, v] : inventoryComponent->GetEquippedItems()) {
+						auto* equipmentRecord = new Cinema::Recording::EquipRecord();
+						equipmentRecord->item = v.lot;
+
+						record->AddRecord(equipmentRecord);
+					}
+				}
+			}
+		} else {
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-stop" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		Cinema::Recording::Recorder::StopRecording(entity->GetObjectID());
+	}
+
+	if (chatCommand == "record-save" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+		if (record) {
+			record->SaveToFile(args[0]);
+		} else {
+			LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+		}
+	}
+
+	if (chatCommand == "record-load" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		auto* record = Cinema::Recording::Recorder::LoadFromFile(args[0]);
+
+		if (record) {
+			Cinema::Recording::Recorder::AddRecording(entity->GetObjectID(), record);
+		} else {
+			LOG("Failed to load recording from file: %s", args[0].c_str());
+		}
+	}
+
+	if (chatCommand == "prefab-spawn" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		const auto& prefab = Cinema::Prefab::LoadFromFile(args[0]);
+
+		float scale = 1.0f;
+
+		if (args.size() >= 2) {
+			const auto scaleOptional = GeneralUtils::TryParse<float>(args[1]);
+			if (scaleOptional) {
+				scale = scaleOptional.value();
+			}
+		}
+
+		size_t id = prefab.Instantiate(entity->GetPosition(), scale);
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Spawned prefab with ID: " + GeneralUtils::to_u16string(id));
+
+		return;
+	}
+
+	if (chatCommand == "prefab-destroy" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+		size_t id = GeneralUtils::TryParse<size_t>(args[0]).value_or(0);
+
+		if (id == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid prefab ID.");
+			return;
+		}
+
+		Cinema::Prefab::DestroyInstance(id);
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Destroyed prefab with ID: " + GeneralUtils::to_u16string(id));
+
+		return;
+	}
+
+	if (chatCommand == "scene-act" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto& scene = Cinema::Scene::LoadFromFile(args[0]);
+
+		scene.Act(entity);
+
+		return;
+	}
+
+	if (chatCommand == "scene-setup" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 1) {
+		auto& scene = Cinema::Scene::LoadFromFile(args[0]);
+
+		scene.Rehearse();
+
+		return;
 	}
 
 	if ((chatCommand == "teleport" || chatCommand == "tele") && entity->GetGMLevel() >= eGameMasterLevel::JUNIOR_MODERATOR) {
@@ -2063,6 +2239,106 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 						ChatPackets::SendSystemMessage(sysAddr, u"Trigger: " + (GeneralUtils::to_u16string(trigger->id)));
 					}
 				}
+			} else if (args[1] == "-rotate" && args.size() >= 4) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
+					return;
+				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
+
+				// Degrees to radia
+				x *= 0.0174533f;
+				y *= 0.0174533f;
+				z *= 0.0174533f;
+
+				const auto rotation = NiQuaternion::FromEulerAngles(NiPoint3(x, y, z));
+
+				closest->SetRotation(rotation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-translate" && args.size() >= 4) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
+					return;
+				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
+
+				const auto translation = NiPoint3(x, y, z);
+
+				closest->SetPosition(closest->GetPosition() + translation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-warp" && args.size() >= 4) {
+				const auto rx = GeneralUtils::TryParse<float>(args.at(2));
+				if (!rx) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid x.");
+					return;
+				}
+
+				const auto ry = GeneralUtils::TryParse<float>(args.at(3));
+				if (!ry) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid y.");
+					return;
+				}
+
+				const auto rz = GeneralUtils::TryParse<float>(args.at(4));
+				if (!rz) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid z.");
+					return;
+				}
+
+				float x = rx.value();
+				float y = ry.value();
+				float z = rz.value();
+
+
+				const auto translation = NiPoint3(x, y, z);
+
+				closest->SetPosition(translation);
+
+				Game::entityManager->SerializeEntity(closest);
+			} else if (args[1] == "-fx" && args.size() >= 4) {
+				int32_t effectID = GeneralUtils::TryParse<int32_t>(args[2]).value_or(-1);
+
+				if (effectID == -1) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid effect ID.");
+					return;
+				}
+
+				// FIXME: use fallible ASCIIToUTF16 conversion, because non-ascii isn't valid anyway
+				GameMessages::SendPlayFXEffect(closest->GetObjectID(), effectID, GeneralUtils::ASCIIToUTF16(args[3]), args[4]);
 			}
 		}
 	}

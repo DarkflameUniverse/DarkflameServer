@@ -27,8 +27,9 @@ add_subdirectory(dInventory)
 add_subdirectory(dMission)
 add_subdirectory(dPropertyBehaviors)
 add_subdirectory(dUtilities)
+add_subdirectory(dCinema)
 
 add_library(dGame INTERFACE)
 target_link_libraries(dGame INTERFACE
-	dGameBase dBehaviors dComponents dEntity dGameMessages dInventory dMission dPropertyBehaviors dUtilities dScripts
+	dGameBase dBehaviors dComponents dEntity dGameMessages dInventory dMission dPropertyBehaviors dUtilities dScripts dCinema
 )

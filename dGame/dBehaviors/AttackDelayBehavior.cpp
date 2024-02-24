@@ -4,6 +4,8 @@
 #include "Game.h"
 #include "Logger.h"
 
+#include "Recorder.h"
+
 void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
 	uint32_t handle{};
 
@@ -11,6 +13,8 @@ void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
+	
+	Cinema::Recording::Recorder::RegisterEffectForActor(context->originator, this->m_effectId);
 
 	for (auto i = 0u; i < this->m_numIntervals; ++i) {
 		context->RegisterSyncBehavior(handle, this, branch, this->m_delay * i, m_ignoreInterrupts);
