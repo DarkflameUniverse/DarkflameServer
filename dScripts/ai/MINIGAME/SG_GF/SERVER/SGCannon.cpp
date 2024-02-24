@@ -16,6 +16,7 @@
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
 #include "eGameActivity.h"
+#include "MovingPlatformComponent.h"
 
 void SGCannon::OnStartup(Entity* self) {
 	LOG("OnStartup");
@@ -326,10 +327,12 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		// Save the enemy and tell it to start pathing
 		if (enemy != nullptr) {
 			const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
-			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling);
 		}
 	}
 }
+
+#pragma warning("TODO: FIX THE ABOVE GM CALL")
 
 void SGCannon::EndGameBufferTimerFunc(Entity* self) {
 	RecordPlayerScore(self);
@@ -346,7 +349,68 @@ void SGCannon::OnActivityTimerDone(Entity* self, const std::string& name) {
 	} else if (name == GameOverTimer) {
 		GameOverTimerFunc(self);
 	} else if (name.rfind(DoSpawnTimer, 0) == 0) {
-		DoSpawnTimerFunc(self, name);
+		if (self->GetVar<bool>(GameStartedVariable)) {
+			const auto spawnNumber = (uint32_t)std::stoi(name.substr(7));
+			const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
+			if (activeSpawns.size() < spawnNumber) {
+				LOG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
+				return;
+			}
+			const auto& toSpawn = activeSpawns.at(spawnNumber);
+			const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
+			const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
+			if (!path) {
+				LOG("Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
+				return;
+			}
+
+			auto info = EntityInfo{};
+			info.lot = toSpawn.lot;
+			info.spawnerID = self->GetObjectID();
+			info.pos = path->pathWaypoints.at(0).position;
+
+			info.settings = {
+				new LDFData<SGEnemy>(u"SpawnData", toSpawn),
+				new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"),
+				new LDFData<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua"),
+				new LDFData<std::string>(u"attached_path", path->pathName),
+				new LDFData<uint32_t>(u"attached_path_start", 0),
+				new LDFData<std::u16string>(u"groupID", u"SGEnemy")
+			};
+
+			LOG("Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
+
+			auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
+			Game::entityManager->ConstructEntity(enemy);
+
+			auto* movementAI = enemy->AddComponent<MovementAIComponent, MovementAIInfo>({});
+
+			movementAI->SetMaxSpeed(toSpawn.initialSpeed);
+			movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
+			movementAI->SetHaltDistance(0.0f);
+
+			std::vector<NiPoint3> pathWaypoints;
+
+			for (const auto& waypoint : path->pathWaypoints) {
+				pathWaypoints.push_back(waypoint.position);
+			}
+
+			if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
+				std::reverse(pathWaypoints.begin(), pathWaypoints.end());
+			}
+
+			movementAI->SetPath(pathWaypoints);
+
+			enemy->AddDieCallback([this, self, enemy, name]() {
+				RegisterHit(self, enemy, name);
+				});
+
+			// Save the enemy and tell it to start pathing
+			if (enemy != nullptr) {
+				const_cast<std::vector<LWOOBJID>&>(self->GetVar<std::vector<LWOOBJID>>(SpawnedObjects)).push_back(enemy->GetObjectID());
+				GameMessages::SendPlatformResync(enemy, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling);
+			}
+		}
 	} else if (name == EndGameBufferTimer) {
 		EndGameBufferTimerFunc(self);
 	}

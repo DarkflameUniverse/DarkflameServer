@@ -348,7 +348,7 @@ void Zone::LoadPath(std::istream& file) {
 	BinaryIO::BinaryRead(file, path.pathVersion);
 
 	BinaryIO::ReadString<uint8_t>(file, path.pathName, BinaryIO::ReadType::WideString);
-
+	LOG("pathname: %s", path.pathName.c_str());
 	BinaryIO::BinaryRead(file, path.pathType);
 	BinaryIO::BinaryRead(file, path.flags);
 	BinaryIO::BinaryRead(file, path.pathBehavior);
@@ -420,6 +420,7 @@ void Zone::LoadPath(std::istream& file) {
 		if (path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.speed);
+			LOG("speed: %f", waypoint.movingPlatform.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
 			if (path.pathVersion >= 13) {
 				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.departSound, BinaryIO::ReadType::WideString);

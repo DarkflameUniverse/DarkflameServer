@@ -5,6 +5,7 @@
 #include "Character.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
+#include "MovingPlatformComponent.h"
 
 void CavePrisonCage::OnStartup(Entity* self) {
 	const auto& myNum = self->GetVar<std::u16string>(u"myNumber");
@@ -83,8 +84,8 @@ void CavePrisonCage::SpawnCounterweight(Entity* self, Spawner* spawner) {
 				return;
 			}
 
-			// Move the counterweight down 2 units
-			counterweight->SetPosition(counterweight->GetPosition() + NiPoint3(0, -2, 0));
+			auto* mpc = counterweight->GetComponent<MovingPlatformComponent>();
+			if (mpc) mpc->StartPathing();
 
 			// Serialize the counterweight
 			Game::entityManager->SerializeEntity(counterweight);

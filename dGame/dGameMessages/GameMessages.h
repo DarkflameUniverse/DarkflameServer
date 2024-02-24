@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "eMovementPlatformState.h"
 #include "NiPoint3.h"
 #include "eEndBehavior.h"
 #include "eCyclingMode.h"
@@ -21,6 +20,7 @@ class Leaderboard;
 class PropertySelectQueryProperty;
 class TradeItem;
 
+enum eMovementPlatformState : uint32_t;
 enum class eAnimationFlags : uint32_t;
 
 enum class eUnequippableActiveType;
@@ -71,9 +71,9 @@ namespace GameMessages {
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
-	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
-		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving);
+	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr,
+		eMovementPlatformState movementState, bool bStopAtDesiredWaypoint = false,
+		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1);
 
 	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);

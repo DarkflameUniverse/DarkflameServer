@@ -25,7 +25,6 @@
 #include "ChatPackets.h"
 #include "MultiZoneEntranceComponent.h"
 #include "eUnequippableActiveType.h"
-#include "eMovementPlatformState.h"
 #include "LeaderboardManager.h"
 #include "Amf3.h"
 #include "Loot.h"
@@ -359,55 +358,43 @@ void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAdd
 	SEND_PACKET;
 }
 
-void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
-	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	eMovementPlatformState movementState) {
+void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr,
+		eMovementPlatformState movementState, bool bStopAtDesiredWaypoint,
+	int iIndex, int iDesiredWaypointIndex, int nextIndex) {
 	CBITSTREAM;
 	CMSGHEADER;
 
 	const auto lot = entity->GetLOT();
 
-	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449) {
-		iDesiredWaypointIndex = 0;
-		iIndex = 0;
-		nextIndex = 0;
-		bStopAtDesiredWaypoint = true;
-		movementState = eMovementPlatformState::Stationary;
-	}
-
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::PLATFORM_RESYNC);
 
-	bool bReverse = false;
-	int eCommand = 0;
-	int eUnexpectedCommand = 0;
-	float fIdleTimeElapsed = 0.0f;
-	float fMoveTimeElapsed = 0.0f;
-	float fPercentBetweenPoints = 0.0f;
-	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
-	NiQuaternion qUnexpectedRotation = NiQuaternionConstant::IDENTITY;
+	auto* movingPlatformComponent = entity->GetComponent<MovingPlatformComponent>();
+	if (!movingPlatformComponent) return;
+	if (!movingPlatformComponent->HasPlatform()) return;
+	auto& subComponent = movingPlatformComponent->GetPlatform();
 
-	bitStream.Write(bReverse);
-	bitStream.Write(bStopAtDesiredWaypoint);
-	bitStream.Write(eCommand);
-	bitStream.Write(static_cast<int32_t>(movementState));
-	bitStream.Write(eUnexpectedCommand);
-	bitStream.Write(fIdleTimeElapsed);
-	bitStream.Write(fMoveTimeElapsed);
-	bitStream.Write(fPercentBetweenPoints);
-	bitStream.Write(iDesiredWaypointIndex);
-	bitStream.Write(iIndex);
-	bitStream.Write(nextIndex);
-	bitStream.Write(ptUnexpectedLocation.x);
-	bitStream.Write(ptUnexpectedLocation.y);
-	bitStream.Write(ptUnexpectedLocation.z);
+	bitStream.Write(subComponent.GetInReverse());
+	bitStream.Write(subComponent.GetShouldStopAtDesiredWaypoint());
+	bitStream.Write<int32_t>(0);
+	bitStream.Write(subComponent.GetState());
+	bitStream.Write<int32_t>(0);
+	bitStream.Write(subComponent.GetIdleTimeElapsed());
+	bitStream.Write(subComponent.GetMoveTimeElapsed());
+	bitStream.Write(subComponent.GetPercentUntilNextWaypoint());
+	bitStream.Write(subComponent.GetDesiredWaypointIndex());
+	bitStream.Write(subComponent.GetCurrentWaypointIndex());
+	bitStream.Write(subComponent.GetNextWaypointIndex());
+	bitStream.Write(subComponent.GetPosition().x);
+	bitStream.Write(subComponent.GetPosition().y);
+	bitStream.Write(subComponent.GetPosition().z);
 
-	bitStream.Write(qUnexpectedRotation != NiQuaternionConstant::IDENTITY);
-	if (qUnexpectedRotation != NiQuaternionConstant::IDENTITY) {
-		bitStream.Write(qUnexpectedRotation.x);
-		bitStream.Write(qUnexpectedRotation.y);
-		bitStream.Write(qUnexpectedRotation.z);
-		bitStream.Write(qUnexpectedRotation.w);
+	bitStream.Write(subComponent.GetRotation() != NiQuaternionConstant::IDENTITY);
+	if (subComponent.GetRotation() != NiQuaternionConstant::IDENTITY) {
+		bitStream.Write(subComponent.GetRotation().x);
+		bitStream.Write(subComponent.GetRotation().y);
+		bitStream.Write(subComponent.GetRotation().z);
+		bitStream.Write(subComponent.GetRotation().w);
 	}
 
 	SEND_PACKET_BROADCAST;
@@ -4962,8 +4949,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream* inStream, Entity
 }
 
 void GameMessages::HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
-	if (entity->GetLOT() == 6267 || entity->GetLOT() == 16141) return;
-	GameMessages::SendPlatformResync(entity, sysAddr);
+	GameMessages::SendPlatformResync(entity, sysAddr, eMovementPlatformState::Travelling);
 }
 
 void GameMessages::HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity) {

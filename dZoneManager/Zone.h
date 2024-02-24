@@ -212,6 +212,7 @@ public:
 	const uint32_t GetChecksum() const { return m_CheckSum; }
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
 	const Path* GetPath(std::string name) const;
+	void AddPath(const Path& path) { m_Paths.push_back(path); };
 
 	uint32_t GetWorldID() const { return m_WorldID; }
 	[[nodiscard]] std::string GetZoneName() const { return m_ZoneName; }

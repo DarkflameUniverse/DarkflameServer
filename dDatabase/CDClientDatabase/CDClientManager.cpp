@@ -40,6 +40,7 @@
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
 #include "CDPetComponentTable.h"
+#include "CDMovingPlatformComponentTable.h"
 
 #include <exception>
 
@@ -110,6 +111,7 @@ DEFINE_TABLE_STORAGE(CDScriptComponentTable);
 DEFINE_TABLE_STORAGE(CDSkillBehaviorTable);
 DEFINE_TABLE_STORAGE(CDVendorComponentTable);
 DEFINE_TABLE_STORAGE(CDZoneTableTable);
+DEFINE_TABLE_STORAGE(CDMovingPlatformComponentTable);
 
 void CDClientManager::LoadValuesFromDatabase() {
 	if (!CDClientDatabase::isConnected) throw CDClientConnectionException();

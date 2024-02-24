@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "ProximityMonitorComponent.h"
+#include "MovingPlatformComponent.h"
 
 void AgBusDoor::OnStartup(Entity* self) {
 	m_Counter = 0;
@@ -48,9 +49,9 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 
 void AgBusDoor::MoveDoor(Entity* self, bool bOpen) {
 	if (bOpen) {
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 1, 0);
+		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling, true, 1, 0);
 	} else {
-		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, true, 0, 1);
+		GameMessages::SendPlatformResync(self, UNASSIGNED_SYSTEM_ADDRESS, eMovementPlatformState::Travelling, true, 0, 1);
 		self->AddTimer("dustTimer", 2.0f);
 	}
 

@@ -315,7 +315,7 @@ Entity* EntityManager::GetSpawnPointEntity(const std::string& spawnName) const {
 	// Check if the spawn point entity is valid just in case
 	return spawnPoint == m_SpawnPoints.end() ? nullptr : GetEntity(spawnPoint->second);
 }
-
+#include <thread>
 const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEntities() const {
 	return m_SpawnPoints;
 }

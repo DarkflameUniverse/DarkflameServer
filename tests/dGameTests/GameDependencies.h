@@ -7,6 +7,7 @@
 #include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dZoneManager.h"
 #include "dConfig.h"
 #include <gtest/gtest.h>
 
@@ -24,32 +25,11 @@ public:
 
 class GameDependenciesTest : public ::testing::Test {
 protected:
-	void SetUpDependencies() {
-		info.pos = NiPoint3Constant::ZERO;
-		info.rot = NiQuaternionConstant::IDENTITY;
-		info.scale = 1.0f;
-		info.spawner = nullptr;
-		info.lot = 999;
-		Game::logger = new Logger("./testing.log", true, true);
-		Game::server = new dServerMock();
-		Game::config = new dConfig("worldconfig.ini");
-		Game::entityManager = new EntityManager();
+	void SetUpDependencies();
 
-		// Create a CDClientManager instance and load from defaults
-		CDClientManager::LoadValuesFromDefaults();
-	}
+	void TearDownDependencies();
 
-	void TearDownDependencies() {
-		if (Game::server) delete Game::server;
-		if (Game::entityManager) delete Game::entityManager;
-		if (Game::logger) {
-			Game::logger->Flush();
-			delete Game::logger;
-		}
-		if (Game::config) delete Game::config;
-	}
-
-	EntityInfo info{};
+	EntityInfo info;
 };
 
 #endif //!__GAMEDEPENDENCIES__H__
