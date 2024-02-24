@@ -82,7 +82,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
 	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
 	else bitStream.Write(ServiceId::General);
-	bitStream.Write<uint32_t>(774909490);
+	bitStream.Write<uint64_t>(215523405360);
 
 	server->Send(&bitStream, sysAddr, false);
 }
