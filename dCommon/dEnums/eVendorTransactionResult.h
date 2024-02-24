@@ -1,0 +1,15 @@
+#ifndef __EVENDORTRANSACTIONRESULT__
+#define __EVENDORTRANSACTIONRESULT__
+
+#include <cstdint>
+
+enum class eVendorTransactionResult : uint32_t {
+	SELL_SUCCESS = 0,
+	SELL_FAIL,
+	PURCHASE_SUCCESS,
+	PURCHASE_FAIL,
+	DONATION_FAIL,
+	DONATION_FULL
+};
+
+#endif // !__EVENDORTRANSACTIONRESULT__

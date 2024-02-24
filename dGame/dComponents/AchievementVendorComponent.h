@@ -11,6 +11,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ACHIEVEMENT_VENDOR;
 	AchievementVendorComponent(Entity* parent) : VendorComponent(parent) {};
 	bool SellsItem(const LOT item) const override;
+	void Buy(Entity* buyer, LOT lot, uint32_t count) override;
+
 private:
 
 };

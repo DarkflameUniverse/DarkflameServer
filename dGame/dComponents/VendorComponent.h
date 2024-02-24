@@ -47,6 +47,7 @@ public:
 		m_DirtyVendor = true;
 	}
 
+	virtual void Buy(Entity* buyer, LOT lot, uint32_t count);
 
 private:
 	void SetupMaxCustomVendor();
