@@ -5,14 +5,31 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDItemComponentTable.h"
 #include "eVendorTransactionResult.h"
+#include "CheatDetection.h"
+#include "UserManager.h"
+#include "CDMissionsTable.h"
 
-
-bool AchievementVendorComponent::SellsItem(const LOT item) const {
-	// TODO: Logic for checking if player has completed an achievement to be able to by the lot
-	return true;
+bool AchievementVendorComponent::SellsItem( Entity* buyer, const LOT lot) const {
+	auto* missionComponent = buyer->GetComponent<MissionComponent>();
+	CDMissionsTable* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
+	const auto missions = missionsTable->GetMissionsForReward(lot);
+	for (const auto mission : missions) {
+		if (missionComponent->GetMissionState(mission) == eMissionState::COMPLETE) return true;
+	}
+	return false;
 }
+
 void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
-	if (SellsItem(lot)) {
+	// get the item Comp from the item LOT
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	int itemCompID = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::ITEM);
+	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
+	uint32_t costLOT = itemComp.commendationLOT;
+	
+	if (costLOT == -1 || !SellsItem(buyer, lot)) {
+		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
+		CheatDetection::ReportCheat(user, buyer->GetSystemAddress(), "Attempted to buy item %i from achievement vendor %i that is not purchasable", lot, m_Parent->GetLOT());
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
@@ -22,13 +39,6 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
-
-	// get the item Comp from the item LOT
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
-	int itemCompID = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::ITEM);
-	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
-	uint32_t costLOT = itemComp.commendationLOT;
 
 	if (costLOT == 13763) { // Faction Token Proxy
 		auto* missionComponent = buyer->GetComponent<MissionComponent>();
@@ -45,6 +55,7 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
+
 	inventoryComponent->RemoveItem(costLOT, altCurrencyCost);
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
 	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);

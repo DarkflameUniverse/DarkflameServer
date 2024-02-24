@@ -4719,7 +4719,10 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 
 	// Items with a base value of 0 or max int are special items that should not be sold if they're not sub items
-	if (itemComp.baseValue == 0 || itemComp.baseValue == UINT_MAX) return;
+	if (itemComp.baseValue == 0 || itemComp.baseValue == UINT_MAX) {
+		GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::SELL_FAIL);
+		return;
+	}
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
@@ -4727,11 +4730,9 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
 	}
 
-	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
 	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
-	//Game::entityManager->SerializeEntity(player); // so inventory updates
-	GameMessages::SendVendorTransactionResult(entity, sysAddr);
+	GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::SELL_SUCCESS);
 }
 
 void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4773,16 +4774,16 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	const auto cost = static_cast<uint32_t>(std::floor(((itemComp.baseValue * sellScalar) * count)));
 
 	if (character->GetCoins() < cost) {
+		GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * sellScalar) * count;
-
 		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
+			GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
-
 		inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 	}
 
@@ -4790,7 +4791,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
 	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR);
 	//Game::entityManager->SerializeEntity(player); // so inventory updates
-	GameMessages::SendVendorTransactionResult(entity, sysAddr);
+	GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
 }
 
 void GameMessages::HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {

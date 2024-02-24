@@ -11,6 +11,8 @@
 #include "InventoryComponent.h"
 #include "Character.h"
 #include "eVendorTransactionResult.h"
+#include "UserManager.h"
+#include "CheatDetection.h"
 
 VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 	m_HasStandardCostItems = false;
@@ -158,11 +160,13 @@ void VendorComponent::HandleMrReeCameras(){
 
 void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 
-	if (SellsItem(lot)) {
-		
+	if (!SellsItem(lot)) {
+		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
+		CheatDetection::ReportCheat(user, buyer->GetSystemAddress(), "Attempted to buy item %i from achievement vendor %i that is not purchasable", lot, m_Parent->GetLOT());
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
+
 	auto* inventoryComponent = buyer->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) {
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);

@@ -28,7 +28,7 @@ public:
 	void OnUse(Entity* originator) override;
 	void RefreshInventory(bool isCreation = false);
 	void SetupConstants();
-	virtual bool SellsItem(const LOT item) const;
+	bool SellsItem(const LOT item) const;
 	float GetBuyScalar() const { return m_BuyScalar; }
 	float GetSellScalar() const { return m_SellScalar; }
 	void SetBuyScalar(const float value) { m_BuyScalar = value; }
@@ -47,7 +47,7 @@ public:
 		m_DirtyVendor = true;
 	}
 
-	virtual void Buy(Entity* buyer, LOT lot, uint32_t count);
+	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
 private:
 	void SetupMaxCustomVendor();
