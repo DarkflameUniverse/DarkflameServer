@@ -191,25 +191,10 @@ namespace GeneralUtils {
 
 #ifdef DARKFLAME_PLATFORM_MACOS
 
-	// Anonymous namespace containing MacOS floating-point parse function specializations
-	namespace {
+	// MacOS floating-point parse helper function specializations
+	namespace details {
 		template <std::floating_point T>
-		[[nodiscard]] T Parse(const std::string_view str, size_t* parseNum);
-
-		template <>
-		[[nodiscard]] float Parse<float>(const std::string_view str, size_t* parseNum) {
-			return std::stof(std::string{ str }, parseNum);
-		}
-
-		template <>
-		[[nodiscard]] double Parse<double>(const std::string_view str, size_t* parseNum) {
-			return std::stod(std::string{ str }, parseNum);
-		}
-
-		template <>
-		[[nodiscard]] long double Parse<long double>(const std::string_view str, size_t* parseNum) {
-			return std::stold(std::string{ str }, parseNum);
-		}
+		[[nodiscard]] T _parse(const std::string_view str, size_t& parseNum);
 	}
 
 	/**
@@ -219,9 +204,10 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <std::floating_point T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept try {
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept
+	try {
 		size_t parseNum;
-		const T result = Parse<T>(str, &parseNum);
+		const T result = details::_parse<T>(str, parseNum);
 		const bool isParsed = str.length() == parseNum;
 
 		return isParsed ? result : std::optional<T>{};
