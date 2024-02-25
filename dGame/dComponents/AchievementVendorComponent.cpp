@@ -9,12 +9,21 @@
 #include "UserManager.h"
 #include "CDMissionsTable.h"
 
-bool AchievementVendorComponent::SellsItem( Entity* buyer, const LOT lot) const {
+bool AchievementVendorComponent::SellsItem(Entity* buyer, const LOT lot) const {
 	auto* missionComponent = buyer->GetComponent<MissionComponent>();
+	if (!missionComponent) return false;
+
+	if (m_PlayerPurchasableItems[buyer->GetObjectID()].contains(lot)){
+		return true;
+	}
+
 	CDMissionsTable* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
 	const auto missions = missionsTable->GetMissionsForReward(lot);
 	for (const auto mission : missions) {
-		if (missionComponent->GetMissionState(mission) == eMissionState::COMPLETE) return true;
+		if (missionComponent->GetMissionState(mission) == eMissionState::COMPLETE) {
+			m_PlayerPurchasableItems[buyer->GetObjectID()].insert(lot);
+			return true;
+		}
 	}
 	return false;
 }

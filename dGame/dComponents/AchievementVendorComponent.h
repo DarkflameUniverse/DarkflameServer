@@ -14,7 +14,7 @@ public:
 	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
 private:
-
+	std::map<LWOOBJID,std::set<LOT>> m_PlayerPurchasableItems;
 };
 
 
