@@ -32,26 +32,26 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componen
 SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
-void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
-		outBitStream->Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);
-		outBitStream->Write(m_ClimbableType);
+		outBitStream.Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);
+		outBitStream.Write(m_ClimbableType);
 	}
 
-	outBitStream->Write(m_DirtyVelocity || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyVelocity || bIsInitialUpdate);
 	if (m_DirtyVelocity || bIsInitialUpdate) {
-		outBitStream->Write(m_Velocity);
-		outBitStream->Write(m_AngularVelocity);
+		outBitStream.Write(m_Velocity);
+		outBitStream.Write(m_AngularVelocity);
 
 		m_DirtyVelocity = false;
 	}
 
 	// Physics motion state
 	if (m_PhysicsMotionState != 0) {
-		outBitStream->Write1();
-		outBitStream->Write<uint32_t>(m_PhysicsMotionState);
+		outBitStream.Write1();
+		outBitStream.Write<uint32_t>(m_PhysicsMotionState);
 	} else {
-		outBitStream->Write0();
+		outBitStream.Write0();
 	}
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }

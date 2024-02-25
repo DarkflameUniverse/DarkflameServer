@@ -7,7 +7,7 @@
 #include "Logger.h"
 #include "DestroyableComponent.h"
 
-void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 
 	auto* entity = Game::entityManager->GetEntity(target);

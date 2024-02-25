@@ -2,13 +2,13 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 
-void DurationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void DurationBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	branch.duration = this->m_duration;
 
 	this->m_action->Handle(context, bitStream, branch);
 }
 
-void DurationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void DurationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	branch.duration = this->m_duration;
 
 	this->m_action->Calculate(context, bitStream, branch);

@@ -269,11 +269,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		auto* skill_component = entity->GetComponent<SkillComponent>();
 
 		if (skill_component != nullptr) {
-			auto* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(message.sBitStream.c_str())), message.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(message.sBitStream.c_str())), message.sBitStream.size(), false);
 
 			skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
-
-			delete bs;
 		}
 
 		break;
@@ -296,7 +294,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		bool success = false;
 
 		if (behaviorId > 0) {
-			RakNet::BitStream* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(startSkill.sBitStream.c_str())), startSkill.sBitStream.size(), false);
+			RakNet::BitStream bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(startSkill.sBitStream.c_str())), startSkill.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
@@ -306,8 +304,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
 				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
 			}
-
-			delete bs;
 		}
 
 		if (Game::server->GetZoneID() == 1302) {
@@ -353,13 +349,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		if (usr != nullptr) {
-			RakNet::BitStream* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(sync.sBitStream.c_str())), sync.sBitStream.size(), false);
+			RakNet::BitStream bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(sync.sBitStream.c_str())), sync.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
-
-			delete bs;
 		}
 
 		EchoSyncSkill echo = EchoSyncSkill();

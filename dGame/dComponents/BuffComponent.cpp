@@ -32,24 +32,24 @@ BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
 BuffComponent::~BuffComponent() {
 }
 
-void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void BuffComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
-	outBitStream->Write(!m_Buffs.empty());
+	outBitStream.Write(!m_Buffs.empty());
 	if (!m_Buffs.empty()) {
-		outBitStream->Write<uint32_t>(m_Buffs.size());
+		outBitStream.Write<uint32_t>(m_Buffs.size());
 
 		for (const auto& [id, buff] : m_Buffs) {
-			outBitStream->Write<uint32_t>(id);
-			outBitStream->Write(buff.time != 0.0f);
-			if (buff.time != 0.0f) outBitStream->Write<uint32_t>(buff.time * 1000.0f);
-			outBitStream->Write(buff.cancelOnDeath);
-			outBitStream->Write(buff.cancelOnZone);
-			outBitStream->Write(buff.cancelOnDamaged);
-			outBitStream->Write(buff.cancelOnRemoveBuff);
-			outBitStream->Write(buff.cancelOnUi);
-			outBitStream->Write(buff.cancelOnLogout);
-			outBitStream->Write(buff.cancelOnUnequip);
-			outBitStream->Write0(); // Cancel on Damage Absorb Ran Out. Generally false from what I can tell
+			outBitStream.Write<uint32_t>(id);
+			outBitStream.Write(buff.time != 0.0f);
+			if (buff.time != 0.0f) outBitStream.Write<uint32_t>(buff.time * 1000.0f);
+			outBitStream.Write(buff.cancelOnDeath);
+			outBitStream.Write(buff.cancelOnZone);
+			outBitStream.Write(buff.cancelOnDamaged);
+			outBitStream.Write(buff.cancelOnRemoveBuff);
+			outBitStream.Write(buff.cancelOnUi);
+			outBitStream.Write(buff.cancelOnLogout);
+			outBitStream.Write(buff.cancelOnUnequip);
+			outBitStream.Write0(); // Cancel on Damage Absorb Ran Out. Generally false from what I can tell
 
 			auto* team = TeamManager::Instance()->GetTeam(buff.source);
 			bool addedByTeammate = false;
@@ -57,15 +57,15 @@ void BuffComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUp
 				addedByTeammate = std::count(team->members.begin(), team->members.end(), m_Parent->GetObjectID()) > 0;
 			}
 
-			outBitStream->Write(addedByTeammate); // Added by teammate. If source is in the same team as the target, this is true. Otherwise, false.
-			outBitStream->Write(buff.applyOnTeammates);
-			if (addedByTeammate) outBitStream->Write(buff.source);
+			outBitStream.Write(addedByTeammate); // Added by teammate. If source is in the same team as the target, this is true. Otherwise, false.
+			outBitStream.Write(buff.applyOnTeammates);
+			if (addedByTeammate) outBitStream.Write(buff.source);
 
-			outBitStream->Write<uint32_t>(buff.refCount);
+			outBitStream.Write<uint32_t>(buff.refCount);
 		}
 	}
 
-	outBitStream->Write0(); // something to do with immunity buffs?
+	outBitStream.Write0(); // something to do with immunity buffs?
 }
 
 void BuffComponent::Update(float deltaTime) {
