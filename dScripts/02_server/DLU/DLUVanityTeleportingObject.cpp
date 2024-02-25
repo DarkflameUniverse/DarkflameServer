@@ -1,22 +1,22 @@
-#include "DLUVanityNPC.h"
+#include "DLUVanityTeleportingObject.h"
 #include "GameMessages.h"
 #include "dServer.h"
 #include "VanityUtilities.h"
 #include "RenderComponent.h"
 
-void DLUVanityNPC::OnStartup(Entity* self) {
-	m_NPC = VanityUtilities::GetNPC("averysumner - Destroyer of Worlds");
+void DLUVanityTeleportingObject::OnStartup(Entity* self) {
+	if (!self->HasVar(u"npcName") || !self->HasVar(u"teleport")) return;
+	m_Object = VanityUtilities::GetObject(self->GetVarAsString(u"npcName"));
 
-	if (m_NPC == nullptr) {
-		return;
-	}
+	if (!m_Object) return;
+	if (self->HasVar(u"teleportInterval")) m_TeleportInterval = self->GetVar<float>(u"teleportInterval");
 
 	if (self->GetVar<bool>(u"teleport")) {
-		self->AddTimer("setupTeleport", 15.0f);
+		self->AddTimer("setupTeleport", m_TeleportInterval);
 	}
 }
 
-void DLUVanityNPC::OnTimerDone(Entity* self, std::string timerName) {
+void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "setupTeleport") {
 		RenderComponent::PlayAnimation(self, u"interact");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
@@ -28,20 +28,22 @@ void DLUVanityNPC::OnTimerDone(Entity* self, std::string timerName) {
 		GameMessages::SendStopFXEffect(self, true, "teleportBeam");
 		GameMessages::SendStopFXEffect(self, true, "teleportRings");
 	} else if (timerName == "teleport") {
-		std::vector<VanityNPCLocation>& locations = m_NPC->m_Locations[Game::server->GetZoneID()];
+		std::vector<VanityObjectLocation>& locations = m_Object->m_Locations[Game::server->GetZoneID()];
 
 	selectLocation:
-		VanityNPCLocation& newLocation = locations[GeneralUtils::GenerateRandomNumber<size_t>(0, locations.size() - 1)];
+		VanityObjectLocation& newLocation = locations[GeneralUtils::GenerateRandomNumber<size_t>(0, locations.size() - 1)];
 
+		// try to get not the same position, but if we get the same one twice, it's fine
 		if (self->GetPosition() == newLocation.m_Position) {
-			goto selectLocation; // cry about it
+			VanityObjectLocation& newLocation = locations[GeneralUtils::GenerateRandomNumber<size_t>(0, locations.size() - 1)];
 		}
 
 		self->SetPosition(newLocation.m_Position);
 		self->SetRotation(newLocation.m_Rotation);
+		self->SetScale(newLocation.m_Scale);
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
 		self->AddTimer("stopFX", 2.0f);
-		self->AddTimer("setupTeleport", 15.0f);
+		self->AddTimer("setupTeleport", m_TeleportInterval);
 	}
 }
