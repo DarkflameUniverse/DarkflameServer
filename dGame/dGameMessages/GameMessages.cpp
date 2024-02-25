@@ -2502,7 +2502,7 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream* inStream, Entity* e
 		command.push_back(character);
 	}
 
-	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+	auto* const owner = PropertyManagementComponent::Instance()->GetOwner();
 	if (!owner) return;
 
 	ControlBehaviors::Instance().ProcessCommand(entity, *amfArguments, command, owner);
