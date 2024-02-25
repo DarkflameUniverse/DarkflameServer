@@ -439,7 +439,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
-	projectileImpact.Serialize(&message);
+	projectileImpact.Serialize(message);
 
 	Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 
