@@ -7,7 +7,7 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "InvalidScript.h"
 
 //VE / AG scripts:
@@ -209,6 +209,11 @@
 #include "NtXRayServer.h"
 #include "NtSleepingGuard.h"
 #include "NtImagimeterVisibility.h"
+#include "FrictionVolumeServer.h"
+#include "NTPipeVisibilityServer.h"
+#include "NTNaomiDirtServer.h"
+#include "MinigameBlueMark.h"
+#include "NtNaomiBreadcrumbServer.h"
 
 // DLU Scripts
 #include "DLUVanityNPC.h"
@@ -314,23 +319,19 @@
 #include "WildNinjaStudent.h"
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
+#include "VisToggleNotifierServer.h"
 
-//Big bad global bc this is a namespace and not a class:
-InvalidScript* invalidToReturn = new InvalidScript();
-std::map<std::string, CppScripts::Script*> m_Scripts;
-
-// yeah sorry darwin ill fix the global later
+namespace {
+	InvalidScript* invalidToReturn = new InvalidScript();
+	std::map<std::string, CppScripts::Script*> m_Scripts;
+};
 
 CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-	Script* script;
-
 	if (m_Scripts.find(scriptName) != m_Scripts.end()) {
-		script = m_Scripts[scriptName];
-
-		return script;
+		return m_Scripts[scriptName];
 	}
 
-	script = invalidToReturn;
+	Script* script = invalidToReturn;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -414,7 +415,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_CANCEL.lua")
 		script = new AgMonumentRaceCancel();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_ZONE_AG_SPIDER_QUEEN.lua")
-		script = (ZoneAgProperty*)new ZoneAgSpiderQueen();
+		script = new ZoneAgSpiderQueen();
 	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_SPIDER_BOSS_TREASURE_CHEST_SERVER.lua")
 		script = new SpiderBossTreasureChestServer();
 	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_COWBOY_SERVER.lua")
@@ -478,7 +479,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HAMMERLING_ENEMY_SERVER.lua")
 		script = new WaveBossHammerling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_APE_ENEMY_SERVER.lua")
-		script = (BaseEnemyApe*) new WaveBossApe();
+		script = new WaveBossApe();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_DARK_SPIDERLING_ENEMY_SERVER.lua")
 		script = new WaveBossSpiderling();
 	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HORESEMEN_ENEMY_SERVER.lua")
@@ -639,7 +640,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_PROP_PLATFORM.lua")
 		script = new PropertyPlatform();
 	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
-		return new VeBricksampleServer();
+		script = new VeBricksampleServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
@@ -702,19 +703,30 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NtDukeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_HAEL_SERVER.lua")
 		script = new NtHaelServer();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_FACTION_SPY_SERVER.lua")
+		script = new NtFactionSpyServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_OVERBUILD_SERVER.lua")
 		script = new NtOverbuildServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_VANDA_SERVER.lua")
 		script = new NtVandaServer();
 	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FORCE_VOLUME_SERVER.lua")
 		script = new ForceVolumeServer();
+	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FRICTION_VOLUME_SERVER.lua")
+		script = new FrictionVolumeServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_XRAY_SERVER.lua")
 		script = new NtXRayServer();
 	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
 		script = new NtSleepingGuard();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua") {
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua")
 		script = new NTImagimeterVisibility();
-	}
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_PIPE_VISIBILITY_SERVER.lua")
+		script = new NTPipeVisibilityServer();
+	else if (scriptName == "scripts\\ai\\MINIGAME\\Objects\\MINIGAME_BLUE_MARK.lua")
+		script = new MinigameBlueMark();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_BREADCRUMB_SERVER.lua")
+		script = new NtNaomiBreadcrumbServer();
+	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_DIRT_SERVER.lua")
+		script = new NTNaomiDirtServer();
 
 	//AM:
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
@@ -776,7 +788,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_COLE_NPC.lua")
 		script = new NjColeNPC();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_JAY_MISSION_ITEMS.lua")
-		script = (NjNPCMissionSpinjitzuServer*) new NjJayMissionItems();
+		script = new NjJayMissionItems();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_NPC_MISSION_SPINJITZU_SERVER.lua")
 		script = new NjNPCMissionSpinjitzuServer();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_ENEMY_SKELETON_SPAWNER.lua")
@@ -944,7 +956,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
-			)) Game::logger->LogDebug("CppScripts", "LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	m_Scripts[scriptName] = script;
@@ -960,12 +972,4 @@ std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
 		}
 	}
 	return scripts;
-}
-
-CppScripts::Script::Script() {
-
-}
-
-CppScripts::Script::~Script() {
-
 }

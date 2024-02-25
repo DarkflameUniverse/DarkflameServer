@@ -5,7 +5,7 @@
 #include "Entity.h"
 #include "GameMessages.h"
 #include "EntityManager.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "BouncerComponent.h"
 #include <algorithm>
 #include "Component.h"
@@ -14,9 +14,9 @@
 /**
  * A component for switches in game, including pet triggered switches.
  */
-class SwitchComponent : public Component {
+class SwitchComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;
@@ -75,7 +75,7 @@ private:
 	/**
 	 * Attached rebuild component.
 	 */
-	RebuildComponent* m_Rebuild;
+	QuickBuildComponent* m_QuickBuild;
 
 	/**
 	 * If the switch is on or off.

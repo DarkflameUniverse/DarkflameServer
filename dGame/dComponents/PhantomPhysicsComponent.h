@@ -11,8 +11,8 @@
 #include <vector>
 #include "CppScripts.h"
 #include "InvalidScript.h"
-#include "Component.h"
 #include "eReplicaComponentType.h"
+#include "PhysicsComponent.h"
 
 class LDFBaseData;
 class Entity;
@@ -25,9 +25,9 @@ enum class ePhysicsEffectType : uint32_t ;
  * trigger gameplay events, for example the bus in Avant Gardens that moves around when the player touches its physics
  * body. Optionally this object can also have effects, like the fans in AG.
  */
-class PhantomPhysicsComponent : public Component {
+class PhantomPhysicsComponent final : public PhysicsComponent {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;
@@ -76,28 +76,16 @@ public:
 	void SetPhysicsEffectActive(bool val) { m_IsPhysicsEffectActive = val; m_EffectInfoDirty = true; }
 
 	/**
-	 * Returns the position of this physics object
-	 * @return the position of this physics object
-	 */
-	const NiPoint3& GetPosition() const { return m_Position; }
-
-	/**
 	 * Sets the position of this physics object
 	 * @param pos the position to set
 	 */
-	void SetPosition(const NiPoint3& pos);
-
-	/**
-	 * Returns the rotation of this physics object
-	 * @return the rotation of this physics object
-	 */
-	const NiQuaternion& GetRotation() const { return m_Rotation; }
+	void SetPosition(const NiPoint3& pos) override;
 
 	/**
 	 * Sets the rotation of this physics object
 	 * @param rot the rotation to set
 	 */
-	void SetRotation(const NiQuaternion& rot);
+	void SetRotation(const NiQuaternion& rot) override;
 
 	/**
 	 * Returns the effect that's currently active, defaults to 0
@@ -134,26 +122,10 @@ public:
 	void SetMax(uint32_t max);
 
 private:
-
-	/**
-	 * The position of the physics object
-	 */
-	NiPoint3 m_Position;
-
-	/**
-	 * The rotation of the physics object
-	 */
-	NiQuaternion m_Rotation;
-
 	/**
 	 * A scale to apply to the size of the physics object
 	 */
 	float m_Scale;
-
-	/**
-	 * Whether or not the position has changed and needs to be serialized
-	 */
-	bool m_PositionInfoDirty;
 
 	/**
 	 * Whether or not the effect has changed and needs to be serialized

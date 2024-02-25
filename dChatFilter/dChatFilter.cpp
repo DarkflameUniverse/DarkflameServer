@@ -8,7 +8,7 @@
 #include <regex>
 
 #include "dCommonVars.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 #include "Database.h"
 #include "Game.h"
@@ -32,15 +32,11 @@ dChatFilter::dChatFilter(const std::string& filepath, bool dontGenerateDCF) {
 	}
 
 	//Read player names that are ok as well:
-	auto stmt = Database::CreatePreppedStmt("select name from charinfo;");
-	auto res = stmt->executeQuery();
-	while (res->next()) {
-		std::string line = res->getString(1).c_str();
-		std::transform(line.begin(), line.end(), line.begin(), ::tolower); //Transform to lowercase
-		m_ApprovedWords.push_back(CalculateHash(line));
+	auto approvedNames = Database::Get()->GetApprovedCharacterNames();
+	for (auto& name : approvedNames) {
+		std::transform(name.begin(), name.end(), name.begin(), ::tolower); //Transform to lowercase
+		m_ApprovedWords.push_back(CalculateHash(name));
 	}
-	delete res;
-	delete stmt;
 }
 
 dChatFilter::~dChatFilter() {
@@ -144,7 +140,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 			listOfBadSegments.emplace_back(position, originalSegment.length());
 		}
 
-		position += segment.length() + 1;
+		position += originalSegment.length() + 1;
 	}
 
 	return listOfBadSegments;

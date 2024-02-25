@@ -6,5 +6,8 @@ set(DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS
 	"PersonalFortress.cpp"
 	"BuccaneerValiantShip.cpp"
 	"FireFirstSkillonStartup.cpp"
-	"StunImmunity.cpp"
-	PARENT_SCOPE)
+	"StunImmunity.cpp")
+
+add_library(dScriptsEquipmentScripts STATIC ${DSCRIPTS_SOURCES_EQUIPMENTSCRIPTS})
+target_include_directories(dScriptsEquipmentScripts PUBLIC ".")
+target_precompile_headers(dScriptsEquipmentScripts REUSE_FROM dScriptsBase)

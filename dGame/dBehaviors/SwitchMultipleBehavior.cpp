@@ -5,7 +5,7 @@
 #include "BehaviorBranchContext.h"
 #include "CDActivitiesTable.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 
 
@@ -13,7 +13,7 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 	float value{};
 
 	if (!bitStream->Read(value)) {
-		Game::logger->Log("SwitchMultipleBehavior", "Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read value from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -42,7 +42,7 @@ void SwitchMultipleBehavior::Load() {
 		"(select bP2.value FROM BehaviorParameter bP2 WHERE bP2.behaviorID = ?1 AND bP2.parameterID LIKE 'value %' "
 		"AND replace(bP1.parameterID, 'behavior ', '') = replace(bP2.parameterID, 'value ', '')) as value "
 		"FROM BehaviorParameter bP1 WHERE bP1.behaviorID = ?1 AND bP1.parameterID LIKE 'behavior %';");
-	query.bind(1, (int)this->m_behaviorId);
+	query.bind(1, static_cast<int>(this->m_behaviorId));
 
 	auto result = query.execQuery();
 

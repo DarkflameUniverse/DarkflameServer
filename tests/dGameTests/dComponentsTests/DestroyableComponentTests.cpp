@@ -16,8 +16,7 @@ protected:
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = new Entity(15, GameDependenciesTest::info);
-		destroyableComponent = new DestroyableComponent(baseEntity);
-		baseEntity->AddComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent);
+		destroyableComponent = baseEntity->AddComponent<DestroyableComponent>();
 		// Initialize some values to be not default
 		destroyableComponent->SetMaxHealth(12345.0f);
 		destroyableComponent->SetHealth(23);
@@ -36,6 +35,14 @@ protected:
 		TearDownDependencies();
 	}
 };
+
+TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
+	ASSERT_NE(destroyableComponent, nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 7);
+	baseEntity->AddComponent<DestroyableComponent>();
+	ASSERT_NE(baseEntity->GetComponent<DestroyableComponent>(), nullptr);
+	ASSERT_EQ(destroyableComponent->GetArmor(), 0);
+}
 
 /**
  * Test Construction of a DestroyableComponent
@@ -318,9 +325,7 @@ TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
 
 TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 	auto* enemyEntity = new Entity(19, info);
-	auto* enemyDestroyableComponent = new DestroyableComponent(enemyEntity);
-	enemyEntity->AddComponent(eReplicaComponentType::DESTROYABLE, enemyDestroyableComponent);
-	enemyDestroyableComponent->AddFactionNoLookup(16);
+	enemyEntity->AddComponent<DestroyableComponent>()->AddFactionNoLookup(16);
 	destroyableComponent->AddEnemyFaction(16);
 	EXPECT_TRUE(destroyableComponent->IsEnemy(enemyEntity));
 	EXPECT_FALSE(destroyableComponent->IsFriend(enemyEntity));
@@ -531,3 +536,22 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
 
 }
 
+/**
+ * Test the Damage cooldown timer of DestroyableComponent
+ */
+TEST_F(DestroyableTest, DestroyableComponentDamageCooldownTest) {
+	// Test the damage immune timer state (anything above 0.0f)
+	destroyableComponent->SetDamageCooldownTimer(1.0f);
+	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 1.0f);
+	ASSERT_TRUE(destroyableComponent->IsCooldownImmune());
+
+	// Test that the Update() function correctly decrements the damage cooldown timer
+	destroyableComponent->Update(0.5f);
+	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.5f);
+	ASSERT_TRUE(destroyableComponent->IsCooldownImmune());
+
+	// Test the non damage immune timer state (anything below or equal to 0.0f)
+	destroyableComponent->SetDamageCooldownTimer(0.0f);
+	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 0.0f);
+	ASSERT_FALSE(destroyableComponent->IsCooldownImmune());
+}

@@ -4,30 +4,24 @@
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
 
-BehaviorMessageBase::BehaviorMessageBase(AMFArrayValue* arguments) {
-	behaviorId = 0;
-	behaviorId = GetBehaviorIdFromArgument(arguments);
-}
-
-int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(AMFArrayValue* arguments) {
-	const auto* key = "BehaviorID";
-	auto* behaviorIDValue = arguments->Get<std::string>(key);
-	int32_t behaviorID = -1;
+int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue* arguments) {
+	static constexpr const char* key = "BehaviorID";
+	const auto* const behaviorIDValue = arguments->Get<std::string>(key);
+	int32_t behaviorId = DefaultBehaviorId;
 
 	if (behaviorIDValue && behaviorIDValue->GetValueType() == eAmf::String) {
-		behaviorID = std::stoul(behaviorIDValue->GetValue());
-	} else if (arguments->Get(key)->GetValueType() != eAmf::Undefined) {
+		behaviorId =
+			GeneralUtils::TryParse<int32_t>(behaviorIDValue->GetValue()).value_or(behaviorId);
+	} else if (arguments->Get(key) && arguments->Get(key)->GetValueType() != eAmf::Undefined) {
 		throw std::invalid_argument("Unable to find behavior ID");
 	}
 
-	return behaviorID;
+	return behaviorId;
 }
 
-uint32_t BehaviorMessageBase::GetActionIndexFromArgument(AMFArrayValue* arguments, const std::string& keyName) {
-	auto* actionIndexAmf = arguments->Get<double>(keyName);
-	if (!actionIndexAmf) {
-		throw std::invalid_argument("Unable to find actionIndex");
-	}
+int32_t BehaviorMessageBase::GetActionIndexFromArgument(const AMFArrayValue* arguments, const std::string& keyName) const {
+	const auto* const actionIndexAmf = arguments->Get<double>(keyName);
+	if (!actionIndexAmf) throw std::invalid_argument("Unable to find actionIndex");
 
-	return static_cast<uint32_t>(actionIndexAmf->GetValue());
+	return static_cast<int32_t>(actionIndexAmf->GetValue());
 }

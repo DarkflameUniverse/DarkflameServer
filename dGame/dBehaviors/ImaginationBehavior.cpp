@@ -3,7 +3,7 @@
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 
 void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {

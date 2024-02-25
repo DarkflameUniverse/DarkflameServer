@@ -12,8 +12,8 @@
 #include "EntityInfo.h"
 
 struct SpawnerNode {
-	NiPoint3 position = NiPoint3::ZERO;
-	NiQuaternion rotation = NiQuaternion::IDENTITY;
+	NiPoint3 position = NiPoint3Constant::ZERO;
+	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
 	uint32_t nodeID = 0;
 	uint32_t nodeMax = 1;
 	std::vector<LWOOBJID> entities;
@@ -66,6 +66,7 @@ public:
 	void SetRespawnTime(float time);
 	void SetNumToMaintain(int32_t value);
 	bool GetIsSpawnSmashGroup() const { return m_SpawnSmashFoundGroup; };
+	std::vector<LWOOBJID> GetSpawnedObjectIDs() const;
 
 	SpawnerInfo m_Info;
 	bool m_Active = true;

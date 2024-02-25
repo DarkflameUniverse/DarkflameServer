@@ -12,12 +12,15 @@ class AMFArrayValue;
  */
 class RemoveActionsMessage : public BehaviorMessageBase {
 public:
-	RemoveActionsMessage(AMFArrayValue* arguments);
-	const uint32_t GetActionIndex() { return actionIndex; };
-	ActionContext GetActionContext() { return actionContext; };
+	RemoveActionsMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] int32_t GetActionIndex() const noexcept { return m_ActionIndex; }
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
+
 private:
-	ActionContext actionContext;
-	uint32_t actionIndex;
+	int32_t m_ActionIndex;
+	ActionContext m_ActionContext;
 };
 
 #endif  //!__REMOVEACTIONSMESSAGE__H__

@@ -16,11 +16,10 @@
 #include "Entity.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
-#include "../dDatabase/CDClientDatabase.h"
-
-enum class eGameMessageType : uint16_t;
+#include "CDClientDatabase.h"
+#include "eGameMessageType.h"
 
 namespace GameMessageHandler {
 	void HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID);

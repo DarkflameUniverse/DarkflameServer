@@ -34,7 +34,7 @@ enum class eReplicaComponentType : uint32_t {
 	PLATFORM_BOUNDARY,
 	MODULE,
 	ARCADE,
-	VEHICLE_PHYSICS, // Havok demo based
+	HAVOK_VEHICLE_PHYSICS,
 	MOVEMENT_AI,
 	EXHIBIT,
 	OVERHEAD_ICON,
@@ -50,11 +50,11 @@ enum class eReplicaComponentType : uint32_t {
 	PROPERTY_ENTRANCE,
 	FX,
 	PROPERTY_MANAGEMENT,
-	VEHICLE_PHYSICS_NEW, // internal physics based on havok
+	VEHICLE_PHYSICS,
 	PHYSICS_SYSTEM,
 	QUICK_BUILD,
 	SWITCH,
-	ZONE_CONTROL, // Minigame
+	MINI_GAME_CONTROL,
 	CHANGLING,
 	CHOICE_BUILD,
 	PACKAGE,
@@ -101,7 +101,7 @@ enum class eReplicaComponentType : uint32_t {
 	TRADE,
 	USER_CONTROL,
 	IGNORE_LIST,
-	ROCKET_LAUNCH_LUP,
+	MULTI_ZONE_ENTRANCE,
 	BUFF_REAL, // the real buff component, should just be name BUFF
 	INTERACTION_MANAGER,
 	DONATION_VENDOR,

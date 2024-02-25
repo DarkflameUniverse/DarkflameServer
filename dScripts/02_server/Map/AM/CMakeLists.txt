@@ -18,3 +18,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmTeapotServer.cpp"
 	"WanderingVendor.cpp"
 	PARENT_SCOPE)
+
+add_library(dScriptsServerMapAM ${DSCRIPTS_SOURCES_02_SERVER_MAP_AM})
+target_include_directories(dScriptsServerMapAM PUBLIC ".")
+target_precompile_headers(dScriptsServerMapAM REUSE_FROM dScriptsBase)

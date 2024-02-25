@@ -2,14 +2,15 @@
 
 #include "Action.h"
 
-UpdateActionMessage::UpdateActionMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	actionContext = ActionContext(arguments);
+UpdateActionMessage::UpdateActionMessage(const AMFArrayValue* arguments)
+	: BehaviorMessageBase{ arguments }
+	, m_ActionIndex{ GetActionIndexFromArgument(arguments) }
+	, m_ActionContext{ arguments } {
 
-	auto* actionValue = arguments->GetArray("action");
+	const auto* const actionValue = arguments->GetArray("action");
 	if (!actionValue) return;
+	
+	m_Action = Action{ actionValue };
 
-	action = Action(actionValue);
-	actionIndex = GetActionIndexFromArgument(arguments);
-
-	Game::logger->LogDebug("UpdateActionMessage", "type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i actionIndex %i stripId %i stateId %i", action.GetType().c_str(), action.GetValueParameterName().c_str(), action.GetValueParameterString().c_str(), action.GetValueParameterDouble(), behaviorId, actionIndex, actionContext.GetStripId(), actionContext.GetStateId());
+	LOG_DEBUG("type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i actionIndex %i stripId %i stateId %i", m_Action.GetType().c_str(), m_Action.GetValueParameterName().c_str(), m_Action.GetValueParameterString().c_str(), m_Action.GetValueParameterDouble(), m_BehaviorId, m_ActionIndex, m_ActionContext.GetStripId(), m_ActionContext.GetStateId());
 }

@@ -10,14 +10,17 @@
  */
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
-	RearrangeStripMessage(AMFArrayValue* arguments);
-	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
-	const uint32_t GetDstActionIndex() { return dstActionIndex; };
-	ActionContext GetActionContext() { return actionContext; };
+	RearrangeStripMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
+	[[nodiscard]] int32_t GetDstActionIndex() const noexcept { return m_DstActionIndex; }
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
+
 private:
-	ActionContext actionContext;
-	uint32_t srcActionIndex;
-	uint32_t dstActionIndex;
+	int32_t m_SrcActionIndex;
+	int32_t m_DstActionIndex;
+	ActionContext m_ActionContext;
 };
 
 #endif  //!__REARRANGESTRIPMESSAGE__H__

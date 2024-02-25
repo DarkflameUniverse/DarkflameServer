@@ -1,9 +1,11 @@
 #pragma once
 
+#include <string>
 #include <random>
+#include <csignal>
 
 class dServer;
-class dLogger;
+class Logger;
 class InstanceManager;
 class dChatFilter;
 class dConfig;
@@ -12,9 +14,11 @@ class AssetManager;
 struct SystemAddress;
 class EntityManager;
 class dZoneManager;
+class PlayerContainer;
 
 namespace Game {
-	extern dLogger* logger;
+	using signal_t = volatile std::sig_atomic_t;
+	extern Logger* logger;
 	extern dServer* server;
 	extern InstanceManager* im;
 	extern dChatFilter* chatFilter;
@@ -23,7 +27,14 @@ namespace Game {
 	extern RakPeerInterface* chatServer;
 	extern AssetManager* assetManager;
 	extern SystemAddress chatSysAddr;
-	extern bool shouldShutdown;
+	extern signal_t lastSignal;
 	extern EntityManager* entityManager;
 	extern dZoneManager* zoneManager;
+	extern PlayerContainer playerContainer;
+	extern std::string projectVersion;
+
+	inline bool ShouldShutdown() {
+		return lastSignal != 0;
+	}
+	void OnSignal(int signal);
 }

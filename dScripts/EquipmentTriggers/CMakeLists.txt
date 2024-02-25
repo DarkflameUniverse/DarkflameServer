@@ -1,3 +1,6 @@
 set(DSCRIPTS_SOURCES_EQUIPMENTTRIGGERSSCRIPTS
-	"CoilBackpackBase.cpp"
-	PARENT_SCOPE)
+	"CoilBackpackBase.cpp")
+
+add_library(dScriptsEquipmentTriggers STATIC ${DSCRIPTS_SOURCES_EQUIPMENTTRIGGERSSCRIPTS})
+target_include_directories(dScriptsEquipmentTriggers PUBLIC ".")
+target_precompile_headers(dScriptsEquipmentTriggers REUSE_FROM dScriptsBase)

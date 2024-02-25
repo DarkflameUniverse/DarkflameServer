@@ -18,14 +18,18 @@ class AMFArrayValue;
  */
 class AddStripMessage : public BehaviorMessageBase {
 public:
-	AddStripMessage(AMFArrayValue* arguments);
-	StripUiPosition GetPosition() { return position; };
-	ActionContext GetActionContext() { return actionContext; };
-	std::vector<Action> GetActionsToAdd() { return actionsToAdd; };
+	AddStripMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_Position; }
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; }
+
+	[[nodiscard]] const std::vector<Action>& GetActionsToAdd() const noexcept { return m_ActionsToAdd; }
+
 private:
-	StripUiPosition position;
-	ActionContext actionContext;
-	std::vector<Action> actionsToAdd;
+	StripUiPosition m_Position;
+	ActionContext m_ActionContext;
+	std::vector<Action> m_ActionsToAdd;
 };
 
 #endif  //!__ADDSTRIPMESSAGE__H__

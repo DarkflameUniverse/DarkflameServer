@@ -2,17 +2,15 @@
 #define __DCOMMONDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
-#include "EntityInfo.h"
-#include "EntityManager.h"
 #include "dConfig.h"
 #include <gtest/gtest.h>
 
 class dCommonDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		Game::logger = new dLogger("./testing.log", true, true);
+		Game::logger = new Logger("./testing.log", true, true);
 	}
 
 	void TearDownDependencies() {

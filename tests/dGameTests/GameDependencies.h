@@ -2,8 +2,9 @@
 #define __GAMEDEPENDENCIES__H__
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dServer.h"
+#include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dConfig.h"
@@ -24,15 +25,18 @@ public:
 class GameDependenciesTest : public ::testing::Test {
 protected:
 	void SetUpDependencies() {
-		info.pos = NiPoint3::ZERO;
-		info.rot = NiQuaternion::IDENTITY;
+		info.pos = NiPoint3Constant::ZERO;
+		info.rot = NiQuaternionConstant::IDENTITY;
 		info.scale = 1.0f;
 		info.spawner = nullptr;
 		info.lot = 999;
-		Game::logger = new dLogger("./testing.log", true, true);
+		Game::logger = new Logger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 		Game::entityManager = new EntityManager();
+
+		// Create a CDClientManager instance and load from defaults
+		CDClientManager::LoadValuesFromDefaults();
 	}
 
 	void TearDownDependencies() {

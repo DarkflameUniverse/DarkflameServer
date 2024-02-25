@@ -22,7 +22,7 @@ dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStati
 		break;
 
 	default:
-		std::cout << "No shape for shapeType: " << (int)shapeType << std::endl;
+		LOG("No shape for shapeType: %d", static_cast<int32_t>(shapeType));
 	}
 }
 
@@ -76,22 +76,16 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		return;
 	}
 
-	bool wasFound = (m_CurrentlyCollidingObjects.find(other->GetObjectID()) != m_CurrentlyCollidingObjects.end());
+	bool wasFound = m_CurrentlyCollidingObjects.contains(other->GetObjectID());
 
 	bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
 		m_CurrentlyCollidingObjects.emplace(other->GetObjectID(), other);
 		m_NewObjects.push_back(other);
-
-		//if (m_CollisionShape->GetShapeType() == dpShapeType::Sphere && other->GetShape()->GetShapeType() == dpShapeType::Sphere)
-			//std::cout << "started sphere col at: " << other->GetPosition().x << ", " << other->GetPosition().y << ", " << other->GetPosition().z << std::endl;
 	} else if (!isColliding && wasFound) {
 		m_CurrentlyCollidingObjects.erase(other->GetObjectID());
 		m_RemovedObjects.push_back(other);
-
-		//if (m_CollisionShape->GetShapeType() == dpShapeType::Sphere && other->GetShape()->GetShapeType() == dpShapeType::Sphere)
-		//	std::cout << "stopped sphere col at: " << other->GetPosition().x << ", " << other->GetPosition().y << ", " << other->GetPosition().z << std::endl;
 	}
 }
 

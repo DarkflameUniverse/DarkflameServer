@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 #include "EntityManager.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
 #include "CppScripts.h"
 #include "SimplePhysicsComponent.h"
@@ -35,7 +35,7 @@ MoverSubComponent::~MoverSubComponent() = default;
 void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write<bool>(true);
 
-	outBitStream->Write<uint32_t>(static_cast<uint32_t>(mState));
+	outBitStream->Write(mState);
 	outBitStream->Write<int32_t>(mDesiredWaypointIndex);
 	outBitStream->Write(mShouldStopAtDesiredWaypoint);
 	outBitStream->Write(mInReverse);
@@ -63,7 +63,7 @@ MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::stri
 	m_NoAutoStart = false;
 
 	if (m_Path == nullptr) {
-		Game::logger->Log("MovingPlatformComponent", "Path not found: %s", pathName.c_str());
+		LOG("Path not found: %s", pathName.c_str());
 	}
 }
 
@@ -90,9 +90,9 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 		// Is on rail
 		outBitStream->Write1();
 
-		outBitStream->Write(static_cast<uint16_t>(m_PathName.size()));
+		outBitStream->Write<uint16_t>(m_PathName.size());
 		for (const auto& c : m_PathName) {
-			outBitStream->Write(static_cast<uint16_t>(c));
+			outBitStream->Write<uint16_t>(c);
 		}
 
 		// Starting point
@@ -107,7 +107,7 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 
 	if (hasPlatform) {
 		auto* mover = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-		outBitStream->Write<uint32_t>(static_cast<uint32_t>(m_MoverSubComponentType));
+		outBitStream->Write(m_MoverSubComponentType);
 
 		if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
 			// TODO
@@ -117,11 +117,11 @@ void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bI
 	}
 }
 
-void MovingPlatformComponent::OnRebuildInitilized() {
+void MovingPlatformComponent::OnQuickBuildInitilized() {
 	StopPathing();
 }
 
-void MovingPlatformComponent::OnCompleteRebuild() {
+void MovingPlatformComponent::OnCompleteQuickBuild() {
 	if (m_NoAutoStart)
 		return;
 

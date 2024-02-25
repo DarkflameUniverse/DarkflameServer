@@ -1,6 +1,6 @@
 #include "Diagnostics.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
@@ -9,7 +9,7 @@
 #include <Dbghelp.h>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 
 void make_minidump(EXCEPTION_POINTERS* e) {
 	auto hDbgHelp = LoadLibraryA("dbghelp");
@@ -28,7 +28,7 @@ void make_minidump(EXCEPTION_POINTERS* e) {
 			"_%4d%02d%02d_%02d%02d%02d.dmp",
 			t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
 	}
-	Game::logger->Log("Diagnostics", "Creating crash dump %s", name);
+	LOG("Creating crash dump %s", name);
 	auto hFile = CreateFileA(name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return;
@@ -71,7 +71,7 @@ LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e) {
 #include <cstring>
 #include <exception>
 
-#if defined(__include_backtrace__)
+#if defined(INCLUDE_BACKTRACE)
 #include <backtrace.h>
 
 #include <backtrace-supported.h>
@@ -83,7 +83,7 @@ struct bt_ctx {
 
 static inline void Bt(struct backtrace_state* state) {
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	Game::logger->Log("Diagnostics", "backtrace is enabled, crash dump located at %s", fileName.c_str());
+	LOG("backtrace is enabled, crash dump located at %s", fileName.c_str());
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
 		backtrace_print(state, 2, file);
@@ -107,7 +107,7 @@ static void ErrorCallback(void* data, const char* msg, int errnum) {
 }
 #endif
 
-#include "Type.h"
+#include "Demangler.h"
 
 void GenerateDump() {
 	std::string cmd = "sudo gcore " + std::to_string(getpid());
@@ -115,58 +115,66 @@ void GenerateDump() {
 }
 
 void CatchUnhandled(int sig) {
-#ifndef __include_backtrace__
+	std::exception_ptr eptr = std::current_exception();
+	try {
+		if (eptr) std::rethrow_exception(eptr);
+	} catch(const std::exception& e) {
+		LOG("Caught exception: '%s'", e.what());
+	}
+
+#ifndef INCLUDE_BACKTRACE
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	Game::logger->Log("Diagnostics", "Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
+	LOG("Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();
 	}
-
-	void* array[10];
+	constexpr uint8_t MaxStackTrace = 32;
+	void* array[MaxStackTrace];
 	size_t size;
 
 	// get void*'s for all entries on the stack
-	size = backtrace(array, 10);
+	size = backtrace(array, MaxStackTrace);
 
-#if defined(__GNUG__) and defined(__dynamic)
+#  if defined(__GNUG__)
 
 	// Loop through the returned addresses, and get the symbols to be demangled
 	char** strings = backtrace_symbols(array, size);
 
+	FILE* file = fopen(fileName.c_str(), "w+");
+	if (file != NULL) {
+		fprintf(file, "Error: signal %d:\n", sig);
+	}
 	// Print the stack trace
 	for (size_t i = 0; i < size; i++) {
-		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]' and extract the function name
+		// Take a string like './WorldServer(_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress+0x6187) [0x55869c44ecf7]'
+		// and extract '_ZN19SlashCommandHandler17HandleChatCommandERKSbIDsSt11char_traitsIDsESaIDsEEP6EntityRK13SystemAddress' from it to be demangled into a proper name
 		std::string functionName = strings[i];
 		std::string::size_type start = functionName.find('(');
 		std::string::size_type end = functionName.find('+');
 		if (start != std::string::npos && end != std::string::npos) {
 			std::string demangled = functionName.substr(start + 1, end - start - 1);
 
-			demangled = demangle(functionName.c_str());
+			demangled = Demangler::Demangle(demangled.c_str());
 
-			if (demangled.empty()) {
-				Game::logger->Log("Diagnostics", "[%02zu] %s", i, demangled.c_str());
-			} else {
-				Game::logger->Log("Diagnostics", "[%02zu] %s", i, functionName.c_str());
+			// If the demangled string is not empty, then we can replace the mangled string with the demangled one
+			if (!demangled.empty()) {
+				demangled.push_back('(');
+				demangled += functionName.substr(end);
+				functionName = demangled;
 			}
-		} else {
-			Game::logger->Log("Diagnostics", "[%02zu] %s", i, functionName.c_str());
+		}
+
+		LOG("[%02zu] %s", i, functionName.c_str());
+		if (file != NULL) {
+			fprintf(file, "[%02zu] %s\n", i, functionName.c_str());
 		}
 	}
-#else
+#  else // defined(__GNUG__)
 	backtrace_symbols_fd(array, size, STDOUT_FILENO);
-#endif
+#  endif // defined(__GNUG__)
 
-	FILE* file = fopen(fileName.c_str(), "w+");
-	if (file != NULL) {
-		// print out all the frames to stderr
-		fprintf(file, "Error: signal %d:\n", sig);
-		backtrace_symbols_fd(array, size, fileno(file));
-		fclose(file);
-	}
-
-#else
+#else // INCLUDE_BACKTRACE
 
 	struct backtrace_state* state = backtrace_create_state(
 		Diagnostics::GetProcessFileName().c_str(),
@@ -177,7 +185,7 @@ void CatchUnhandled(int sig) {
 	struct bt_ctx ctx = { state, 0 };
 	Bt(state);
 
-#endif
+#endif // INCLUDE_BACKTRACE
 
 	exit(EXIT_FAILURE);
 }
@@ -196,10 +204,10 @@ void MakeBacktrace() {
 	sigact.sa_sigaction = CritErrHdlr;
 	sigact.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	if (sigaction(SIGSEGV, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGFPE, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGABRT, &sigact, (struct sigaction*)nullptr) != 0 ||
-		sigaction(SIGILL, &sigact, (struct sigaction*)nullptr) != 0) {
+	if (sigaction(SIGSEGV, &sigact, nullptr) != 0 ||
+		sigaction(SIGFPE, &sigact, nullptr) != 0 ||
+		sigaction(SIGABRT, &sigact, nullptr) != 0 ||
+		sigaction(SIGILL, &sigact, nullptr) != 0) {
 		fprintf(stderr, "error setting signal handler for %d (%s)\n",
 			SIGSEGV,
 			strsignal(SIGSEGV));

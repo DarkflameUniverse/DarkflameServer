@@ -9,11 +9,11 @@
 #include "ControllablePhysicsComponent.h"
 #include "MissionComponent.h"
 #include "PhantomPhysicsComponent.h"
-#include "Player.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "SkillComponent.h"
 #include "MovementAIComponent.h"
 #include "eEndBehavior.h"
+#include "PlayerManager.h"
 
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
 	m_Parent = parent;
@@ -21,10 +21,8 @@ TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo
 
 	std::vector<std::string> tokens = GeneralUtils::SplitString(triggerInfo, ':');
 
-	uint32_t sceneID;
-	GeneralUtils::TryParse<uint32_t>(tokens.at(0), sceneID);
-	uint32_t triggerID;
-	GeneralUtils::TryParse<uint32_t>(tokens.at(1), triggerID);
+	const auto sceneID = GeneralUtils::TryParse<uint32_t>(tokens.at(0)).value_or(0);
+	const auto triggerID = GeneralUtils::TryParse<uint32_t>(tokens.at(1)).value_or(0);
 
 	m_Trigger = Game::zoneManager->GetZone()->GetTrigger(sceneID, triggerID);
 
@@ -167,7 +165,7 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
 			// DEPRECATED BLOCK END
 			default:
-				Game::logger->LogDebug("TriggerComponent", "Event %i was not handled!", command->id);
+				LOG_DEBUG("Event %i was not handled!", command->id);
 				break;
 		}
 	}
@@ -187,7 +185,7 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 		}
 	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
 	else if (command->target == "allPlayers") {
-		for (auto* player : Player::GetAllPlayers()) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
 			entities.push_back(player);
 		}
 	} else if (command->target == "allNPCs") { /*UNUSED*/ }
@@ -202,27 +200,26 @@ void TriggerComponent::HandleFireEvent(Entity* targetEntity, std::string args) {
 }
 
 void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args){
-	uint32_t killType;
-	GeneralUtils::TryParse<uint32_t>(args, killType);
-	targetEntity->Smash(m_Parent->GetObjectID(), static_cast<eKillType>(killType));
+	const eKillType killType = GeneralUtils::TryParse<eKillType>(args).value_or(eKillType::VIOLENT);
+	targetEntity->Smash(m_Parent->GetObjectID(), killType);
 }
 
 void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
 	auto* triggerComponent = targetEntity->GetComponent<TriggerComponent>();
 	if (!triggerComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleToggleTrigger", "Trigger component not found!");
+		LOG_DEBUG("Trigger component not found!");
 		return;
 	}
 	triggerComponent->SetTriggerEnabled(args == "1");
 }
 
 void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
-	auto* rebuildComponent = targetEntity->GetComponent<RebuildComponent>();
-	if (!rebuildComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleResetRebuild", "Rebuild component not found!");
+	auto* quickBuildComponent = targetEntity->GetComponent<QuickBuildComponent>();
+	if (!quickBuildComponent) {
+		LOG_DEBUG("Rebuild component not found!");
 		return;
 	}
-	rebuildComponent->ResetRebuild(args == "1");
+	quickBuildComponent->ResetQuickBuild(args == "1");
 }
 
 void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray){
@@ -240,9 +237,8 @@ void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::stri
 void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() <= 2) return;
 
-	auto position = targetEntity->GetPosition();
-	NiPoint3 offset = NiPoint3::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), offset);
+	NiPoint3 position = targetEntity->GetPosition();
+	const NiPoint3 offset = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 
 	position += offset;
 	targetEntity->SetPosition(position);
@@ -251,8 +247,7 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() <= 2) return;
 
-	NiPoint3 vector = NiPoint3::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), vector);
+	const NiPoint3 vector = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 
 	NiQuaternion rotation = NiQuaternion::FromEulerAngles(vector);
 	targetEntity->SetRotation(rotation);
@@ -263,14 +258,13 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandlePushObject", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(1);
-	NiPoint3 direction = NiPoint3::ZERO;
-	GeneralUtils::TryParse(argArray.at(0), argArray.at(1), argArray.at(2), direction);
+	const NiPoint3 direction = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
 	phantomPhysicsComponent->SetDirection(direction);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -280,11 +274,11 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args){
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleRepelObject", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
-	float forceMultiplier;
-	GeneralUtils::TryParse<float>(args, forceMultiplier);
+	const float forceMultiplier = GeneralUtils::TryParse<float>(args).value_or(1.0f);
+
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::REPULSE);
 	phantomPhysicsComponent->SetDirectionalMultiplier(forceMultiplier);
@@ -303,11 +297,10 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 
 void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() != 2) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetTimer", "Not ehought variables!");
+		LOG_DEBUG("Not enough variables!");
 		return;
 	}
-	float time = 0.0;
-	GeneralUtils::TryParse<float>(argArray.at(1), time);
+	const float time = GeneralUtils::TryParse<float>(argArray.at(1)).value_or(0.0f);
 	m_Parent->AddTimer(argArray.at(0), time);
 }
 
@@ -323,7 +316,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 	bool hidePlayer = false;
 
 	if (argArray.size() >= 2) {
-		GeneralUtils::TryParse<float>(argArray.at(1), leadIn);
+		leadIn = GeneralUtils::TryParse<float>(argArray.at(1)).value_or(leadIn);
 		if (argArray.size() >= 3 && argArray.at(2) == "wait") {
 			wait = eEndBehavior::WAIT;
 			if (argArray.size() >= 4 && argArray.at(3) == "unlock") {
@@ -344,7 +337,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 void TriggerComponent::HandleToggleBBB(Entity* targetEntity, std::string args) {
 	auto* character = targetEntity->GetCharacter();
 	if (!character) {
-		Game::logger->LogDebug("TriggerComponent::HandleToggleBBB", "Character was not found!");
+		LOG_DEBUG("Character was not found!");
 		return;
 	}
 	bool buildMode = !(character->GetBuildMode());
@@ -360,7 +353,7 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	if (argArray.at(0) != "exploretask") return;
 	MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
 	if (!missionComponent){
-		Game::logger->LogDebug("TriggerComponent::HandleUpdateMission", "Mission component not found!");
+		LOG_DEBUG("Mission component not found!");
 		return;
 	}
 	missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, argArray.at(4));
@@ -398,29 +391,32 @@ void TriggerComponent::HandleStartPathing(Entity* targetEntity){
 
 void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() < 3) return;
-	int32_t effectID = 0;
-	if (!GeneralUtils::TryParse<int32_t>(argArray.at(1), effectID)) return;
+	const auto effectID = GeneralUtils::TryParse<int32_t>(argArray.at(1));
+	if (!effectID) return;
 	std::u16string effectType = GeneralUtils::UTF8ToUTF16(argArray.at(2));
+	
 	float priority = 1;
-	if (argArray.size() == 4) GeneralUtils::TryParse<float>(argArray.at(3), priority);
-	GameMessages::SendPlayFXEffect(targetEntity, effectID, effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
+	if (argArray.size() == 4) {
+		priority = GeneralUtils::TryParse<float>(argArray.at(3)).value_or(priority);
+	}
+
+	GameMessages::SendPlayFXEffect(targetEntity, effectID.value(), effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
 }
 
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 	auto* skillComponent = targetEntity->GetComponent<SkillComponent>();
 	if (!skillComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleCastSkill", "Skill component not found!");
+		LOG_DEBUG("Skill component not found!");
 		return;
 	}
-	uint32_t skillId;
-	GeneralUtils::TryParse<uint32_t>(args, skillId);
+	const uint32_t skillId = GeneralUtils::TryParse<uint32_t>(args).value_or(0);
 	skillComponent->CastSkill(skillId, targetEntity->GetObjectID());
 }
 
 void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
@@ -435,17 +431,16 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 	phantomPhysicsComponent->SetEffectType(effectType);
 	phantomPhysicsComponent->SetDirectionalMultiplier(std::stof(argArray.at(1)));
 	if (argArray.size() > 4) {
-		NiPoint3 direction = NiPoint3::ZERO;
-		GeneralUtils::TryParse(argArray.at(2), argArray.at(3), argArray.at(4), direction);
+		const NiPoint3 direction = 
+			GeneralUtils::TryParse<NiPoint3>(argArray.at(2), argArray.at(3), argArray.at(4)).value_or(NiPoint3Constant::ZERO);
+
 		phantomPhysicsComponent->SetDirection(direction);
 	}
 	if (argArray.size() > 5) {
-		uint32_t min;
-		GeneralUtils::TryParse<uint32_t>(argArray.at(6), min);
+		const uint32_t min = GeneralUtils::TryParse<uint32_t>(argArray.at(6)).value_or(0);
 		phantomPhysicsComponent->SetMin(min);
 
-		uint32_t max;
-		GeneralUtils::TryParse<uint32_t>(argArray.at(7), max);
+		const uint32_t max = GeneralUtils::TryParse<uint32_t>(argArray.at(7)).value_or(0);
 		phantomPhysicsComponent->SetMax(max);
 	}
 
@@ -455,7 +450,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		Game::logger->LogDebug("TriggerComponent::HandleSetPhysicsVolumeEffect", "Phantom Physics component not found!");
+		LOG_DEBUG("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(args == "On");
@@ -492,6 +487,6 @@ void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string a
 	} else if (args == "false"){
 		// TODO remove Phsyics entity if there is one
 	} else {
-		Game::logger->LogDebug("TriggerComponent", "Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
+		LOG_DEBUG("Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
 	}
 }

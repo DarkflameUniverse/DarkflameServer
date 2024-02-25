@@ -8,5 +8,8 @@ set(DSCRIPTS_SOURCES_AI_WILD
 	"WildNinjaBricks.cpp"
 	"WildNinjaStudent.cpp"
 	"WildNinjaSensei.cpp"
-	"WildPants.cpp"
-	PARENT_SCOPE)
+	"WildPants.cpp")
+
+add_library(dScriptsAiWild STATIC ${DSCRIPTS_SOURCES_AI_WILD})
+target_include_directories(dScriptsAiWild PUBLIC ".")
+target_precompile_headers(dScriptsAiWild REUSE_FROM dScriptsBase)

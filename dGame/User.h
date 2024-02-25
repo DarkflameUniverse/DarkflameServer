@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "../thirdparty/raknet/Source/RakNetTypes.h"
+#include "RakNetTypes.h"
 #include "dCommonVars.h"
 
 #include <unordered_map>
@@ -43,8 +43,8 @@ public:
 	bool GetLastChatMessageApproved() { return m_LastChatMessageApproved; }
 	void SetLastChatMessageApproved(bool approved) { m_LastChatMessageApproved = approved; }
 
-	std::unordered_map<std::string, bool> GetIsBestFriendMap() { return m_IsBestFriendMap; }
-	void SetIsBestFriendMap(std::unordered_map<std::string, bool> mapToSet) { m_IsBestFriendMap = mapToSet; }
+	const std::unordered_map<std::string, bool>& GetIsBestFriendMap() { return m_IsBestFriendMap; }
+	void UpdateBestFriendValue(const std::string_view playerName, const bool newValue);
 
 	bool GetIsMuted() const;
 

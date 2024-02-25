@@ -4,4 +4,6 @@ set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Zone.cpp")
 
 add_library(dZoneManager STATIC ${DZONEMANAGER_SOURCES})
-target_link_libraries(dZoneManager dPhysics) 
+target_link_libraries(dZoneManager
+	PUBLIC dPhysics
+	INTERFACE dWorldServer)

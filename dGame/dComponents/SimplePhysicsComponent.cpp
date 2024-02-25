@@ -6,17 +6,16 @@
 #include "SimplePhysicsComponent.h"
 #include "BitStream.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dpWorld.h"
 #include "CDClientManager.h"
 #include "CDPhysicsComponentTable.h"
 
 #include "Entity.h"
 
-SimplePhysicsComponent::SimplePhysicsComponent(uint32_t componentID, Entity* parent) : Component(parent) {
+SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, uint32_t componentID) : PhysicsComponent(parent) {
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
-	m_IsDirty = true;
 
 	const auto& climbable_type = m_Parent->GetVar<std::u16string>(u"climbable");
 	if (climbable_type == u"wall") {
@@ -54,19 +53,7 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIs
 	} else {
 		outBitStream->Write0();
 	}
-
-	outBitStream->Write(m_IsDirty || bIsInitialUpdate);
-	if (m_IsDirty || bIsInitialUpdate) {
-		outBitStream->Write(m_Position.x);
-		outBitStream->Write(m_Position.y);
-		outBitStream->Write(m_Position.z);
-		outBitStream->Write(m_Rotation.x);
-		outBitStream->Write(m_Rotation.y);
-		outBitStream->Write(m_Rotation.z);
-		outBitStream->Write(m_Rotation.w);
-
-		m_IsDirty = false;
-	}
+	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }
 
 uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const {

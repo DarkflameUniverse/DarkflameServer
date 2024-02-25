@@ -8,9 +8,9 @@
  * Component that handles player forced movement
   *
  */
-class PlayerForcedMovementComponent : public Component {
+class PlayerForcedMovementComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PLAYER_FORCED_MOVEMENT;
 
 	/**
 	 * Constructor for this component

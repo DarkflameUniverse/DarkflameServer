@@ -19,7 +19,7 @@ class Entity;
 /**
  * The current state of the AI
  */
-enum class AiState : int {
+enum class AiState : uint32_t {
 	idle = 0,   // Doing nothing
 	aggro,      // Waiting for an enemy to cross / running back to spawn
 	tether,     // Chasing an enemy
@@ -45,9 +45,9 @@ struct AiSkillEntry
 /**
  * Handles the AI of entities, making them wander, tether and attack their enemies
  */
-class BaseCombatAIComponent : public Component {
+class BaseCombatAIComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
 	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
 	~BaseCombatAIComponent() override;

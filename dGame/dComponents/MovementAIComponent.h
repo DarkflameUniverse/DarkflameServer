@@ -11,7 +11,7 @@
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
 #include <vector>
@@ -56,9 +56,9 @@ struct MovementAIInfo {
  * Component that handles the movement settings of an entity. Not to be confused with the BaseCombatAI component that
  * actually handles attacking and following enemy entities.
  */
-class MovementAIComponent : public Component {
+class MovementAIComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 

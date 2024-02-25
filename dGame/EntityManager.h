@@ -28,6 +28,7 @@ public:
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
 	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
+	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;
 	Entity* GetZoneControlEntity() const;
 
 	// Get spawn point entity by spawn name
@@ -49,14 +50,12 @@ public:
 	void DestructAllEntities(const SystemAddress& sysAddr);
 
 	void SetGhostDistanceMax(float value);
-	float GetGhostDistanceMax() const;
 	void SetGhostDistanceMin(float value);
-	float GetGhostDistanceMin() const;
 	void QueueGhostUpdate(LWOOBJID playerID);
 	void UpdateGhosting();
-	void UpdateGhosting(Player* player);
+	void UpdateGhosting(Entity* player);
 	void CheckGhosting(Entity* entity);
-	Entity* GetGhostCandidate(int32_t id);
+	Entity* GetGhostCandidate(LWOOBJID id) const;
 	bool GetGhostingEnabled() const;
 
 	void ScheduleForKill(Entity* entity);

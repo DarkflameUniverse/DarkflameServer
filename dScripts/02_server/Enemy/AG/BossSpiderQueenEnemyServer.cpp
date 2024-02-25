@@ -52,7 +52,7 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
-	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID) {
+	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
 		auto* missionComponent = killer->GetComponent<MissionComponent>();
 		if (missionComponent == nullptr)
 			return;
@@ -85,7 +85,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
 
 		//First rotate for anim
-		NiQuaternion rot = NiQuaternion::IDENTITY;
+		NiQuaternion rot = NiQuaternionConstant::IDENTITY;
 
 		controllable->SetStatic(false);
 
@@ -179,7 +179,7 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 
 	std::vector<LWOOBJID> spiderEggs{};
 
-	auto spooders = Game::entityManager->GetEntitiesInGroup("EGG");
+	auto spooders = Game::entityManager->GetEntitiesInGroup("SpiderEggs");
 	for (auto spodder : spooders) {
 		spiderEggs.push_back(spodder->GetObjectID());
 	}
@@ -196,7 +196,7 @@ void BossSpiderQueenEnemyServer::SpiderWaveManager(Entity* self) {
 			for (auto en : hatchList) {
 				if (en == randomEgg) {
 					randomEggLoc++;
-					randomEgg = spiderEggs[randomEggLoc];
+					randomEgg = spiderEggs.at(randomEggLoc % spiderEggs.size());
 				}
 			}
 
@@ -288,7 +288,7 @@ void BossSpiderQueenEnemyServer::RunRainOfFire(Entity* self) {
 
 		if (index == 0) {
 			impactList.insert(impactList.end(), spawned.begin(), spawned.end());
-		} else {
+		} else if (!spawned.empty()) {
 			const auto randomIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, spawned.size() - 1);
 
 			impactList.push_back(spawned[randomIndex]);
@@ -309,7 +309,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		impactList.erase(impactList.begin());
 
 		if (entity == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact!");
+			LOG("Failed to find impact!");
 
 			return;
 		}
@@ -317,7 +317,7 @@ void BossSpiderQueenEnemyServer::RainOfFireManager(Entity* self) {
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 		if (skillComponent == nullptr) {
-			Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find impact skill component!");
+			LOG("Failed to find impact skill component!");
 
 			return;
 		}
@@ -366,7 +366,7 @@ void BossSpiderQueenEnemyServer::RunRapidFireShooter(Entity* self) {
 	}
 
 	if (targets.empty()) {
-		Game::logger->Log("BossSpiderQueenEnemyServer", "Failed to find RFS targets");
+		LOG("Failed to find RFS targets");
 
 		self->AddTimer("RFS", GeneralUtils::GenerateRandomNumber<float>(5, 10));
 
@@ -402,7 +402,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		const auto withdrawn = self->GetBoolean(u"isWithdrawn");
 		if (!withdrawn) return;
 
-		NiQuaternion rot = NiQuaternion::IDENTITY;
+		NiQuaternion rot = NiQuaternionConstant::IDENTITY;
 
 		//First rotate for anim
 		controllable->SetStatic(false);
@@ -597,12 +597,12 @@ void BossSpiderQueenEnemyServer::OnUpdate(Entity* self) {
 
 	if (!isWithdrawn) return;
 
-	if (controllable->GetRotation() == NiQuaternion::IDENTITY) {
+	if (controllable->GetRotation() == NiQuaternionConstant::IDENTITY) {
 		return;
 	}
 
 	controllable->SetStatic(false);
-	controllable->SetRotation(NiQuaternion::IDENTITY);
+	controllable->SetRotation(NiQuaternionConstant::IDENTITY);
 	controllable->SetStatic(true);
 
 	Game::entityManager->SerializeEntity(self);

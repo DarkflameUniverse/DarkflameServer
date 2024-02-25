@@ -6,24 +6,48 @@
 #include <string>
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dConfig.h"
 
+#include "dNavMesh.h"
+
+namespace {
+	dpGrid* m_Grid = nullptr;
+	dNavMesh* m_NavMesh = nullptr;
+	int32_t phys_sp_tilesize = 205;
+	int32_t phys_sp_tilecount = 12;
+
+	uint32_t m_ZoneID = 0;
+
+	std::vector<dpEntity*> m_StaticEntities;
+	std::vector<dpEntity*> m_DynamicEntites;
+	bool phys_spatial_partitioning = true;
+};
+
 void dpWorld::Initialize(unsigned int zoneID, bool generateNewNavMesh) {
-	phys_sp_tilecount = std::atoi(Game::config->GetValue("phys_sp_tilecount").c_str());
-	phys_sp_tilesize = std::atoi(Game::config->GetValue("phys_sp_tilesize").c_str());
+	const auto physSpTilecount = Game::config->GetValue("phys_sp_tilecount");
+	if (!physSpTilecount.empty()) {
+		phys_sp_tilecount = GeneralUtils::TryParse<int32_t>(physSpTilecount).value_or(phys_sp_tilecount);
+	}
+
+	const auto physSpTilesize = Game::config->GetValue("phys_sp_tilesize");
+	if (!physSpTilesize.empty()) {
+		phys_sp_tilesize = GeneralUtils::TryParse<int32_t>(physSpTilesize).value_or(phys_sp_tilesize);
+	}
+	
+	const auto physSpatialPartitioning = Game::config->GetValue("phys_spatial_partitioning");
+	if (!physSpatialPartitioning.empty()) phys_spatial_partitioning = physSpatialPartitioning == "1";
 
 	//If spatial partitioning is enabled, then we need to create the m_Grid.
 	//if m_Grid exists, then the old method will be used.
 	//SP will NOT be used unless it is added to ShouldUseSP();
-	if (std::atoi(Game::config->GetValue("phys_spatial_partitioning").c_str()) == 1
-		&& ShouldUseSP(zoneID)) {
+	if (ShouldUseSP(zoneID)) {
 		m_Grid = new dpGrid(phys_sp_tilecount, phys_sp_tilesize);
 	}
 
 	if (generateNewNavMesh) m_NavMesh = new dNavMesh(zoneID);
 
-	Game::logger->Log("dpWorld", "Physics world initialized!");
+	LOG("Physics world initialized!");
 	m_ZoneID = zoneID;
 }
 
@@ -42,13 +66,13 @@ void dpWorld::Reload() {
 				}
 			}
 		}
-		Game::logger->Log("dpWorld", "Successfully reloaded physics world!");
+		LOG("Successfully reloaded physics world!");
 	} else {
-		Game::logger->Log("dpWorld", "No physics world to reload!");
+		LOG("No physics world to reload!");
 	}
 }
 
-dpWorld::~dpWorld() {
+void dpWorld::Shutdown() {
 	if (m_Grid) {
 		// Triple check this is true
 		m_Grid->SetDeleteGrid(true);
@@ -60,6 +84,10 @@ dpWorld::~dpWorld() {
 		delete m_NavMesh;
 		m_NavMesh = nullptr;
 	}
+}
+
+bool dpWorld::IsLoaded() {
+	return m_NavMesh->IsNavmeshLoaded();
 }
 
 void dpWorld::StepWorld(float deltaTime) {
@@ -86,6 +114,10 @@ void dpWorld::StepWorld(float deltaTime) {
 			other->CheckCollision(entity); //swap "other" and "entity" if you want dyn objs to handle collisions.
 		}
 	}
+}
+
+dNavMesh* dpWorld::GetNavMesh() {
+	return m_NavMesh;
 }
 
 void dpWorld::AddEntity(dpEntity* entity) {
@@ -122,7 +154,9 @@ void dpWorld::RemoveEntity(dpEntity* entity) {
 	}
 }
 
-bool dpWorld::ShouldUseSP(unsigned int zoneID) {
+bool dpWorld::ShouldUseSP(uint32_t zoneID) {
+	if (!phys_spatial_partitioning) return false;
+
 	// TODO: Add to this list as needed.
 	// Only large maps should be added as tiling likely makes little difference on small maps.
 

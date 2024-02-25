@@ -2,7 +2,7 @@
 #include "BehaviorBranchContext.h"
 #include "BehaviorContext.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "SkillComponent.h"
 #include "DestroyableComponent.h"
@@ -41,7 +41,7 @@ void OverTimeBehavior::Load() {
 	m_Action = GetInt("action");
 	// Since m_Action is a skillID and not a behavior, get is correlated behaviorID.
 
-	CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+	CDSkillBehaviorTable* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 	m_ActionBehaviorId = skillTable->GetSkillByID(m_Action).behaviorID;
 
 	m_Delay = GetFloat("delay");

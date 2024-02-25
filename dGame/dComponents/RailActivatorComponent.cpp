@@ -4,16 +4,16 @@
 #include "CDRailActivatorComponent.h"
 #include "Entity.h"
 #include "GameMessages.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "RenderComponent.h"
 #include "EntityManager.h"
 #include "eStateChangeType.h"
 
 RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t componentID) : Component(parent) {
 	m_ComponentID = componentID;
-	const auto tableData = CDClientManager::Instance().GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
+	const auto tableData = CDClientManager::GetTable<CDRailActivatorComponentTable>()->GetEntryByID(componentID);;
 
 	m_Path = parent->GetVar<std::u16string>(u"rail_path");
 	m_PathDirection = parent->GetVar<bool>(u"rail_path_direction");
@@ -43,13 +43,13 @@ RailActivatorComponent::RailActivatorComponent(Entity* parent, int32_t component
 RailActivatorComponent::~RailActivatorComponent() = default;
 
 void RailActivatorComponent::OnUse(Entity* originator) {
-	auto* rebuildComponent = m_Parent->GetComponent<RebuildComponent>();
-	if (rebuildComponent != nullptr && rebuildComponent->GetState() != eRebuildState::COMPLETED)
+	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
+	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED)
 		return;
 
-	if (rebuildComponent != nullptr) {
+	if (quickBuildComponent != nullptr) {
 		// Don't want it to be destroyed while a player is using it
-		rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() + 10.0f);
+		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 10.0f);
 	}
 
 	m_EntitiesOnRail.push_back(originator->GetObjectID());
@@ -116,11 +116,11 @@ void RailActivatorComponent::OnCancelRailMovement(Entity* originator) {
 		true, true, true, true, true, true, true
 	);
 
-	auto* rebuildComponent = m_Parent->GetComponent<RebuildComponent>();
+	auto* quickBuildComponent = m_Parent->GetComponent<QuickBuildComponent>();
 
-	if (rebuildComponent != nullptr) {
+	if (quickBuildComponent != nullptr) {
 		// Set back reset time
-		rebuildComponent->SetResetTime(rebuildComponent->GetResetTime() - 10.0f);
+		quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() - 10.0f);
 	}
 
 	if (std::find(m_EntitiesOnRail.begin(), m_EntitiesOnRail.end(), originator->GetObjectID()) != m_EntitiesOnRail.end()) {

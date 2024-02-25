@@ -63,15 +63,15 @@ private:
 
 	//! Writes the key to the packet
 	void WriteKey(RakNet::BitStream* packet) {
-		packet->Write(static_cast<uint8_t>(this->key.length() * sizeof(uint16_t)));
+		packet->Write<uint8_t>(this->key.length() * sizeof(uint16_t));
 		for (uint32_t i = 0; i < this->key.length(); ++i) {
-			packet->Write(static_cast<uint16_t>(this->key[i]));
+			packet->Write<uint16_t>(this->key[i]);
 		}
 	}
 
 	//! Writes the value to the packet
 	void WriteValue(RakNet::BitStream* packet) {
-		packet->Write(static_cast<uint8_t>(this->GetValueType()));
+		packet->Write<uint8_t>(this->GetValueType());
 		packet->Write(this->value);
 	}
 
@@ -162,7 +162,7 @@ public:
 		return new LDFData<T>(key, value);
 	}
 
-	inline static T Default = {};
+	inline static const T Default = {};
 };
 
 // LDF Types
@@ -179,30 +179,30 @@ template<> inline eLDFType LDFData<std::string>::GetValueType(void) { return LDF
 // The specialized version for std::u16string (UTF-16)
 template<>
 inline void LDFData<std::u16string>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write(static_cast<uint8_t>(this->GetValueType()));
+	packet->Write<uint8_t>(this->GetValueType());
 
-	packet->Write(static_cast<uint32_t>(this->value.length()));
+	packet->Write<uint32_t>(this->value.length());
 	for (uint32_t i = 0; i < this->value.length(); ++i) {
-		packet->Write(static_cast<uint16_t>(this->value[i]));
+		packet->Write<uint16_t>(this->value[i]);
 	}
 }
 
 // The specialized version for bool
 template<>
 inline void LDFData<bool>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write(static_cast<uint8_t>(this->GetValueType()));
+	packet->Write<uint8_t>(this->GetValueType());
 
-	packet->Write(static_cast<uint8_t>(this->value));
+	packet->Write<uint8_t>(this->value);
 }
 
 // The specialized version for std::string (UTF-8)
 template<>
 inline void LDFData<std::string>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write(static_cast<uint8_t>(this->GetValueType()));
+	packet->Write<uint8_t>(this->GetValueType());
 
-	packet->Write(static_cast<uint32_t>(this->value.length()));
+	packet->Write<uint32_t>(this->value.length());
 	for (uint32_t i = 0; i < this->value.length(); ++i) {
-		packet->Write(static_cast<uint8_t>(this->value[i]));
+		packet->Write<uint8_t>(this->value[i]);
 	}
 }
 

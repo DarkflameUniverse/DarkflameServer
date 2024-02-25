@@ -1,7 +1,7 @@
 #include "GameDependencies.h"
 
 namespace Game {
-	dLogger* logger = nullptr;
+	Logger* logger = nullptr;
 	dServer* server = nullptr;
 	dZoneManager* zoneManager = nullptr;
 	dChatFilter* chatFilter = nullptr;
@@ -11,4 +11,5 @@ namespace Game {
 	AssetManager* assetManager = nullptr;
 	SystemAddress chatSysAddr;
 	EntityManager* entityManager = nullptr;
+	std::string projectVersion;
 }

@@ -1,6 +1,7 @@
 #ifndef __MIGRATEACTIONSMESSAGE__H__
 #define __MIGRATEACTIONSMESSAGE__H__
 
+#include "Action.h"
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
 
@@ -12,16 +13,26 @@ class AMFArrayValue;
  */
 class MigrateActionsMessage : public BehaviorMessageBase {
 public:
-	MigrateActionsMessage(AMFArrayValue* arguments);
-	const uint32_t GetSrcActionIndex() { return srcActionIndex; };
-	const uint32_t GetDstActionIndex() { return dstActionIndex; };
-	ActionContext GetSourceActionContext() { return sourceActionContext; };
-	ActionContext GetDestinationActionContext() { return destinationActionContext; };
+	MigrateActionsMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
+
+	[[nodiscard]] int32_t GetDstActionIndex() const noexcept { return m_DstActionIndex; }
+
+	[[nodiscard]] const ActionContext& GetSourceActionContext() const noexcept { return m_SourceActionContext; }
+
+	[[nodiscard]] const ActionContext& GetDestinationActionContext() const noexcept { return m_DestinationActionContext; }
+
+	[[nodiscard]] const std::vector<Action>& GetMigratedActions() const noexcept { return m_MigratedActions; }
+
+	void SetMigratedActions(std::vector<Action>::const_iterator start, std::vector<Action>::const_iterator end) { m_MigratedActions.assign(start, end); }
+
 private:
-	ActionContext sourceActionContext;
-	ActionContext destinationActionContext;
-	uint32_t srcActionIndex;
-	uint32_t dstActionIndex;
+	int32_t m_SrcActionIndex;
+	int32_t m_DstActionIndex;
+	std::vector<Action> m_MigratedActions;
+	ActionContext m_SourceActionContext;
+	ActionContext m_DestinationActionContext;
 };
 
 #endif  //!__MIGRATEACTIONSMESSAGE__H__

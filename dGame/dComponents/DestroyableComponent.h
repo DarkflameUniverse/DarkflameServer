@@ -17,13 +17,14 @@ enum class eStateChangeType : uint32_t;
  * Represents the stats of an entity, for example its health, imagination and armor. Also handles factions, which
  * indicate which enemies this entity has.
  */
-class DestroyableComponent : public Component {
+class DestroyableComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
 	DestroyableComponent(Entity* parentEntity);
 	~DestroyableComponent() override;
 
+	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
@@ -165,6 +166,11 @@ public:
 	 * @return whether or not this entity is immune to attacks
 	 */
 	bool IsImmune() const;
+
+	/**
+	 * @return whether this entity is currently immune to attacks due to a damage cooldown period
+	*/
+	bool IsCooldownImmune() const;
 
 	/**
 	 * Sets if this entity has GM immunity, making it not killable
@@ -373,14 +379,6 @@ public:
 	Entity* GetKiller() const;
 
 	/**
-	 * Checks if the target ID is a valid enemy of this entity
-	 * @param target the target ID to check for
-	 * @param ignoreFactions whether or not check for the factions, e.g. just return true if the entity cannot be smashed
-	 * @return if the target ID is a valid enemy
-	 */
-	bool CheckValidity(LWOOBJID target, bool ignoreFactions = false, bool targetEnemy = true, bool targetFriend = false) const;
-
-	/**
 	 * Attempt to damage this entity, handles everything from health and armor to absorption, immunity and callbacks.
 	 * @param damage the damage to attempt to apply
 	 * @param source the attacker that caused this damage
@@ -415,15 +413,23 @@ public:
 	);
 
 	// Getters for status immunities
-	const bool GetImmuneToBasicAttack() {return m_ImmuneToBasicAttackCount > 0;};
-	const bool GetImmuneToDamageOverTime() {return m_ImmuneToDamageOverTimeCount > 0;};
-	const bool GetImmuneToKnockback() {return m_ImmuneToKnockbackCount > 0;};
-	const bool GetImmuneToInterrupt() {return m_ImmuneToInterruptCount > 0;};
-	const bool GetImmuneToSpeed() {return m_ImmuneToSpeedCount > 0;};
-	const bool GetImmuneToImaginationGain() {return m_ImmuneToImaginationGainCount > 0;};
-	const bool GetImmuneToImaginationLoss() {return m_ImmuneToImaginationLossCount > 0;};
-	const bool GetImmuneToQuickbuildInterrupt() {return m_ImmuneToQuickbuildInterruptCount > 0;};
-	const bool GetImmuneToPullToPoint() {return m_ImmuneToPullToPointCount > 0;};
+	const bool GetImmuneToBasicAttack() { return m_ImmuneToBasicAttackCount > 0; };
+	const bool GetImmuneToDamageOverTime() { return m_ImmuneToDamageOverTimeCount > 0; };
+	const bool GetImmuneToKnockback() { return m_ImmuneToKnockbackCount > 0; };
+	const bool GetImmuneToInterrupt() { return m_ImmuneToInterruptCount > 0; };
+	const bool GetImmuneToSpeed() { return m_ImmuneToSpeedCount > 0; };
+	const bool GetImmuneToImaginationGain() { return m_ImmuneToImaginationGainCount > 0; };
+	const bool GetImmuneToImaginationLoss() { return m_ImmuneToImaginationLossCount > 0; };
+	const bool GetImmuneToQuickbuildInterrupt() { return m_ImmuneToQuickbuildInterruptCount > 0; };
+	const bool GetImmuneToPullToPoint() { return m_ImmuneToPullToPointCount > 0; };
+
+	// Damage cooldown setters/getters
+	void SetDamageCooldownTimer(float value) { m_DamageCooldownTimer = value; }
+	float GetDamageCooldownTimer() { return m_DamageCooldownTimer; }
+
+	// Death behavior setters/getters
+	void SetDeathBehavior(int32_t value) { m_DeathBehavior = value; }
+	int32_t GetDeathBehavior() const { return m_DeathBehavior; }
 
 	/**
 	 * Utility to reset all stats to the default stats based on items and completed missions
@@ -606,6 +612,16 @@ private:
 	uint32_t m_ImmuneToImaginationLossCount;
 	uint32_t m_ImmuneToQuickbuildInterruptCount;
 	uint32_t m_ImmuneToPullToPointCount;
+
+	/**
+	 * Death behavior type.  If 0, the client plays a death animation as opposed to a smash animation.
+	 */
+	int32_t m_DeathBehavior;
+
+	/**
+	 * Damage immunity cooldown timer. Set to a value that then counts down to create a damage cooldown for players
+	 */
+	float 	m_DamageCooldownTimer;
 };
 
 #endif // DESTROYABLECOMPONENT_H

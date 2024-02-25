@@ -1,5 +1,5 @@
 #include "BaseCombatAIComponent.h"
-#include <BitStream.h>
+#include "BitStream.h"
 
 #include "Entity.h"
 #include "EntityManager.h"
@@ -20,11 +20,12 @@
 #include <vector>
 
 #include "SkillComponent.h"
-#include "RebuildComponent.h"
+#include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
 #include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
+#include "dNavMesh.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
@@ -34,13 +35,12 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_MovementAI = nullptr;
 	m_Disabled = false;
 	m_SkillEntries = {};
-	m_MovementAI = nullptr;
 	m_SoftTimer = 5.0f;
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, (int)id);
+	componentQuery.bind(1, static_cast<int>(id));
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -77,7 +77,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	 */
 	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, (int)parent->GetLOT());
+	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
 
 	auto result = skillQuery.execQuery();
 
@@ -107,10 +107,10 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
-	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
-	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::Instance().GetTable<CDPhysicsComponentTable>();
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable != nullptr) {
 		auto* info = physicsComponentTable->GetByID(componentID);
@@ -129,17 +129,17 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_dpEntity->SetPosition(m_Parent->GetPosition());
 	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
 
-	dpWorld::Instance().AddEntity(m_dpEntity);
-	dpWorld::Instance().AddEntity(m_dpEntityEnemy);
+	dpWorld::AddEntity(m_dpEntity);
+	dpWorld::AddEntity(m_dpEntityEnemy);
 
 }
 
 BaseCombatAIComponent::~BaseCombatAIComponent() {
 	if (m_dpEntity)
-		dpWorld::Instance().RemoveEntity(m_dpEntity);
+		dpWorld::RemoveEntity(m_dpEntity);
 
 	if (m_dpEntityEnemy)
-		dpWorld::Instance().RemoveEntity(m_dpEntityEnemy);
+		dpWorld::RemoveEntity(m_dpEntityEnemy);
 }
 
 void BaseCombatAIComponent::Update(const float deltaTime) {
@@ -185,7 +185,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now
 
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
 
@@ -243,12 +243,12 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hadRemainingDowntime = m_SkillTime > 0.0f;
 	if (m_SkillTime > 0.0f) m_SkillTime -= deltaTime;
 
-	auto* rebuild = m_Parent->GetComponent<RebuildComponent>();
+	auto* rebuild = m_Parent->GetComponent<QuickBuildComponent>();
 
 	if (rebuild != nullptr) {
 		const auto state = rebuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return;
 		}
 	}
@@ -523,7 +523,7 @@ bool BaseCombatAIComponent::IsMech() {
 void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
 	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
-		outBitStream->Write(uint32_t(m_State));
+		outBitStream->Write(m_State);
 		outBitStream->Write(m_Target);
 		m_DirtyStateOrTarget = false;
 	}
@@ -540,7 +540,7 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* entity = Game::entityManager->GetEntity(target);
 
 	if (entity == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid entity for checking validity (%llu)!", target);
+		LOG("Invalid entity for checking validity (%llu)!", target);
 
 		return false;
 	}
@@ -554,17 +554,17 @@ bool BaseCombatAIComponent::IsEnemy(LWOOBJID target) const {
 	auto* referenceDestroyable = m_Parent->GetComponent<DestroyableComponent>();
 
 	if (referenceDestroyable == nullptr) {
-		Game::logger->Log("BaseCombatAIComponent", "Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
+		LOG("Invalid reference destroyable component on (%llu)!", m_Parent->GetObjectID());
 
 		return false;
 	}
 
-	auto* quickbuild = entity->GetComponent<RebuildComponent>();
+	auto* quickbuild = entity->GetComponent<QuickBuildComponent>();
 
 	if (quickbuild != nullptr) {
 		const auto state = quickbuild->GetState();
 
-		if (state != eRebuildState::COMPLETED) {
+		if (state != eQuickBuildState::COMPLETED) {
 			return false;
 		}
 	}
@@ -654,8 +654,8 @@ void BaseCombatAIComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {

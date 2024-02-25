@@ -16,7 +16,7 @@ LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component
 void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
-		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while updating XML!");
+		LOG("Failed to find lvl tag while updating XML!");
 		return;
 	}
 	level->SetAttribute("l", m_Level);
@@ -27,7 +27,7 @@ void LevelProgressionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* level = doc->FirstChildElement("obj")->FirstChildElement("lvl");
 	if (!level) {
-		Game::logger->Log("LevelProgressionComponent", "Failed to find lvl tag while loading XML!");
+		LOG("Failed to find lvl tag while loading XML!");
 		return;
 	}
 	level->QueryAttribute("l", &m_Level);
@@ -44,7 +44,7 @@ void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool 
 }
 
 void LevelProgressionComponent::HandleLevelUp() {
-	auto* rewardsTable = CDClientManager::Instance().GetTable<CDRewardsTable>();
+	auto* rewardsTable = CDClientManager::GetTable<CDRewardsTable>();
 
 	const auto& rewards = rewardsTable->GetByLevelID(m_Level);
 	bool rewardingItem = rewards.size() > 0;

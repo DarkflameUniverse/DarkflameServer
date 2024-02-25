@@ -12,7 +12,7 @@ struct SpyData {
 	uint32_t missionID;
 };
 
-class NtFactionSpyServer : public CppScripts::Script {
+class NtFactionSpyServer : public virtual CppScripts::Script {
 	void OnStartup(Entity* self) override;
 	void OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) override;
 	void OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName, float_t pathTime, float_t totalTime, int32_t waypoint) override;

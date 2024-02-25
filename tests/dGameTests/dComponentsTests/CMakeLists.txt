@@ -1,5 +1,7 @@
 set(DCOMPONENTS_TESTS
 	"DestroyableComponentTests.cpp"
+	"PetComponentTests.cpp"
+	"SimplePhysicsComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above

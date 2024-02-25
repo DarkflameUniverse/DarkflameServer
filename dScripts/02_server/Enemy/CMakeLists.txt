@@ -42,4 +42,15 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_ENEMY_WAVES})
 	set(DSCRIPTS_SOURCES_02_SERVER_ENEMY ${DSCRIPTS_SOURCES_02_SERVER_ENEMY} "Waves/${file}")
 endforeach()
 
-set(DSCRIPTS_SOURCES_02_SERVER_ENEMY ${DSCRIPTS_SOURCES_02_SERVER_ENEMY} PARENT_SCOPE)
+add_library(dScriptsServerEnemy STATIC ${DSCRIPTS_SOURCES_02_SERVER_ENEMY})
+target_link_libraries(dScriptsServerEnemy dScriptsBase)
+target_include_directories(dScriptsServerEnemy PUBLIC "."
+	"AG"
+	"AM"
+	"FV"
+	"General"
+	"Survival"
+	"VE"
+	"Waves"
+)
+target_precompile_headers(dScriptsServerEnemy REUSE_FROM dScriptsBase)

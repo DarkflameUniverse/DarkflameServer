@@ -4,9 +4,9 @@
 #include "dZoneManager.h"
 #include "SwitchComponent.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "GameMessages.h"
-#include <BitStream.h>
+#include "BitStream.h"
 #include "eTriggerEventType.h"
 
 BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
@@ -81,13 +81,13 @@ void BouncerComponent::LookupPetSwitch() {
 
 				Game::entityManager->SerializeEntity(m_Parent);
 
-				Game::logger->Log("BouncerComponent", "Loaded pet bouncer");
+				LOG("Loaded pet bouncer");
 			}
 		}
 	}
 
 	if (!m_PetSwitchLoaded) {
-		Game::logger->Log("BouncerComponent", "Failed to load pet bouncer");
+		LOG("Failed to load pet bouncer");
 
 		m_Parent->AddCallbackTimer(0.5f, [this]() {
 			LookupPetSwitch();

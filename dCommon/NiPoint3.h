@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __NIPOINT3_H__
+#define __NIPOINT3_H__
 
 /*!
   \file NiPoint3.hpp
@@ -12,13 +13,13 @@ typedef NiPoint3 Vector3;       //!< The Vector3 class is technically the NiPoin
 //! A custom class the defines a point in space
 class NiPoint3 {
 public:
-	float x;            //!< The x position
-	float y;            //!< The y position
-	float z;            //!< The z position
+	float x{ 0 };            //!< The x position
+	float y{ 0 };            //!< The y position
+	float z{ 0 };            //!< The z position
 
 
 	//! Initializer
-	NiPoint3(void);
+	constexpr NiPoint3() = default;
 
 	//! Initializer
 	/*!
@@ -26,23 +27,21 @@ public:
 	  \param y The y coordinate
 	  \param z The z coordinate
 	 */
-	NiPoint3(float x, float y, float z);
+	constexpr NiPoint3(const float x, const float y, const float z) noexcept
+		: x{ x }
+		, y{ y }
+		, z{ z } {
+	}
 
 	//! Copy Constructor
 	/*!
 	  \param point The point to copy
 	 */
-	NiPoint3(const NiPoint3& point);
-
-	//! Destructor
-	~NiPoint3(void);
-
-	// MARK: Constants
-	static const NiPoint3 ZERO;         //!< Point(0, 0, 0)
-	static const NiPoint3 UNIT_X;       //!< Point(1, 0, 0)
-	static const NiPoint3 UNIT_Y;       //!< Point(0, 1, 0)
-	static const NiPoint3 UNIT_Z;       //!< Point(0, 0, 1)
-	static const NiPoint3 UNIT_ALL;     //!< Point(1, 1, 1)
+	constexpr NiPoint3(const NiPoint3& point) noexcept
+		: x{ point.x }
+		, y{ point.y }
+		, z{ point.z } {
+	}
 
 	// MARK: Getters / Setters
 
@@ -50,38 +49,37 @@ public:
 	/*!
 	  \return The x coordinate
 	 */
-	float GetX(void) const;
+	[[nodiscard]] constexpr float GetX() const noexcept;
 
 	//! Sets the X coordinate
 	/*!
 	  \param x The x coordinate
 	 */
-	void SetX(float x);
+	constexpr void SetX(const float x) noexcept;
 
 	//! Gets the Y coordinate
 	/*!
 	  \return The y coordinate
 	 */
-	float GetY(void) const;
+	[[nodiscard]] constexpr float GetY() const noexcept;
 
 	//! Sets the Y coordinate
 	/*!
 	  \param y The y coordinate
 	 */
-	void SetY(float y);
+	constexpr void SetY(const float y) noexcept;
 
 	//! Gets the Z coordinate
 	/*!
 	  \return The z coordinate
 	 */
-	float GetZ(void) const;
+	[[nodiscard]] constexpr float GetZ() const noexcept;
 
 	//! Sets the Z coordinate
 	/*!
 	  \param z The z coordinate
 	 */
-	void SetZ(float z);
-
+	constexpr void SetZ(const float z) noexcept;
 
 	// MARK: Member Functions
 
@@ -89,72 +87,70 @@ public:
 	/*!
 	  \return The scalar length of the vector
 	 */
-	float Length(void) const;
+	[[nodiscard]] float Length() const;
 
 	//! Gets the squared length of a vector
 	/*!
 	  \return The squared length of a vector
 	 */
-	float SquaredLength(void) const;
+	[[nodiscard]] constexpr float SquaredLength() const noexcept;
 
 	//! Returns the dot product of the vector dotted with another vector
 	/*!
 	  \param vec The second vector
 	  \return The dot product of the two vectors
 	 */
-	float DotProduct(const Vector3& vec) const;
+	[[nodiscard]] constexpr float DotProduct(const Vector3& vec) const noexcept;
 
 	//! Returns the cross product of the vector crossed with another vector
 	/*!
 	  \param vec The second vector
 	  \return The cross product of the two vectors
 	 */
-	Vector3 CrossProduct(const Vector3& vec) const;
+	[[nodiscard]] constexpr Vector3 CrossProduct(const Vector3& vec) const noexcept;
 
 	//! Unitize the vector
 	/*!
 	  \returns The current vector
 	 */
-	NiPoint3 Unitize(void) const;
-
+	[[nodiscard]] NiPoint3 Unitize() const;
 
 	// MARK: Operators
 
 	//! Operator to check for equality
-	bool operator==(const NiPoint3& point) const;
+	constexpr bool operator==(const NiPoint3& point) const noexcept;
 
 	//! Operator to check for inequality
-	bool operator!=(const NiPoint3& point) const;
+	constexpr bool operator!=(const NiPoint3& point) const noexcept;
 
 	//! Operator for subscripting
-	float& operator[](int i);
+	constexpr float& operator[](const int i) noexcept;
 
 	//! Operator for subscripting
-	const float& operator[](int i) const;
+	constexpr const float& operator[](const int i) const noexcept;
 
 	//! Operator for addition of vectors
-	NiPoint3 operator+(const NiPoint3& point) const;
+	constexpr NiPoint3 operator+(const NiPoint3& point) const noexcept;
 
 	//! Operator for addition of vectors
-	NiPoint3& operator+=(const NiPoint3& point);
+	constexpr NiPoint3& operator+=(const NiPoint3& point) noexcept;
 
-	NiPoint3& operator*=(const float scalar);
+	constexpr NiPoint3& operator*=(const float scalar) noexcept;
 
 	//! Operator for subtraction of vectors
-	NiPoint3 operator-(const NiPoint3& point) const;
+	constexpr NiPoint3 operator-(const NiPoint3& point) const noexcept;
 
 	//! Operator for addition of a scalar on all vector components
-	NiPoint3 operator+(float fScalar) const;
+	constexpr NiPoint3 operator+(const float fScalar) const noexcept;
 
 	//! Operator for subtraction of a scalar on all vector components
-	NiPoint3 operator-(float fScalar) const;
+	constexpr NiPoint3 operator-(const float fScalar) const noexcept;
 
 	//! Operator for scalar multiplication of a vector
-	NiPoint3 operator*(float fScalar) const;
+	constexpr NiPoint3 operator*(const float fScalar) const noexcept;
 
 	//! Operator for scalar division of a vector
-	NiPoint3 operator/(float fScalar) const;
-
+	constexpr NiPoint3 operator/(const float fScalar) const noexcept;
 
 	// MARK: Helper Functions
 
@@ -164,14 +160,14 @@ public:
 	  \param maxPoint The maximum point of the bounding box
 	  \return Whether or not this point lies within the box
 	 */
-	bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint);
+	[[nodiscard]] constexpr bool IsWithinAxisAlignedBox(const NiPoint3& minPoint, const NiPoint3& maxPoint) noexcept;
 
 	//! Checks to see if the point (or vector) is within a sphere
 	/*!
 	  \param sphereCenter The sphere center
 	  \param radius The radius
 	 */
-	bool IsWithinSpehere(const NiPoint3& sphereCenter, float radius);
+	[[nodiscard]] constexpr bool IsWithinSphere(const NiPoint3& sphereCenter, const float radius) noexcept;
 
 	/*!
 	  \param a Start of line
@@ -179,15 +175,30 @@ public:
 	  \param p Refrence point
 	  \return The point of line AB which is closest to P
 	*/
-	static NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p);
+	[[nodiscard]] static constexpr NiPoint3 ClosestPointOnLine(const NiPoint3& a, const NiPoint3& b, const NiPoint3& p) noexcept;
 
-	static float Angle(const NiPoint3& a, const NiPoint3& b);
+	[[nodiscard]] static float Angle(const NiPoint3& a, const NiPoint3& b);
 
-	static float Distance(const NiPoint3& a, const NiPoint3& b);
+	[[nodiscard]] static float Distance(const NiPoint3& a, const NiPoint3& b);
 
-	static float DistanceSquared(const NiPoint3& a, const NiPoint3& b);
+	[[nodiscard]] static constexpr float DistanceSquared(const NiPoint3& a, const NiPoint3& b) noexcept;
 
-	static NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, float maxDistanceDelta);
+	[[nodiscard]] static NiPoint3 MoveTowards(const NiPoint3& current, const NiPoint3& target, const float maxDistanceDelta);
 
-	NiPoint3 RotateByQuaternion(const NiQuaternion& rotation);
+	//This code is yoinked from the MS XNA code, so it should be right, even if it's horrible.
+	[[nodiscard]] constexpr NiPoint3 RotateByQuaternion(const NiQuaternion& rotation) noexcept;
 };
+
+// Static Variables
+namespace NiPoint3Constant {
+	constexpr NiPoint3 ZERO(0.0f, 0.0f, 0.0f);
+	constexpr NiPoint3 UNIT_X(1.0f, 0.0f, 0.0f);
+	constexpr NiPoint3 UNIT_Y(0.0f, 1.0f, 0.0f);
+	constexpr NiPoint3 UNIT_Z(0.0f, 0.0f, 1.0f);
+	constexpr NiPoint3 UNIT_ALL(1.0f, 1.0f, 1.0f);
+}
+
+// .inl file needed for code organization and to circumvent circular dependency issues
+#include "NiPoint3.inl"
+
+#endif // !__NIPOINT3_H__

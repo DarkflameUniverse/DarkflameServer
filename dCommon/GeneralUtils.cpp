@@ -53,7 +53,7 @@ bool _IsSuffixChar(uint8_t c) {
 bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 	size_t rem = slice.length();
 	if (slice.empty()) return false;
-	const uint8_t* bytes = (const uint8_t*)&slice.front();
+	const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&slice.front());
 	if (rem > 0) {
 		uint8_t first = bytes[0];
 		if (first < 0x80) { // 1 byte character
@@ -294,32 +294,50 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream* inStream) {
 
 std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::string& folder) {
 	// Because we dont know how large the initial number before the first _ is we need to make it a map like so.
-    std::map<uint32_t, std::string> filenames{};
+	std::map<uint32_t, std::string> filenames{};
 	for (auto& t : std::filesystem::directory_iterator(folder)) {
-        auto filename = t.path().filename().string();
-        auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
-        filenames.insert(std::make_pair(index, filename));
+		auto filename = t.path().filename().string();
+		auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
+		filenames.insert(std::make_pair(index, filename));
 	}
 
 	// Now sort the map by the oldest migration.
 	std::vector<std::string> sortedFiles{};
-    auto fileIterator = filenames.begin();
-    std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
-    while (!filenames.empty()) {
+	auto fileIterator = filenames.begin();
+	std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
+	while (!filenames.empty()) {
 		if (fileIterator == filenames.end()) {
-            sortedFiles.push_back(oldest->second);
-            filenames.erase(oldest);
-            fileIterator = filenames.begin();
-            oldest = filenames.begin();
-            continue;
+			sortedFiles.push_back(oldest->second);
+			filenames.erase(oldest);
+			fileIterator = filenames.begin();
+			oldest = filenames.begin();
+			continue;
 		}
-        if (oldest->first > fileIterator->first) oldest = fileIterator;
-        fileIterator++;
+		if (oldest->first > fileIterator->first) oldest = fileIterator;
+		fileIterator++;
 	}
 
 	return sortedFiles;
 }
 
-bool GeneralUtils::TryParse(const std::string& x, const std::string& y, const std::string& z, NiPoint3& dst) {
-	return TryParse<float>(x.c_str(), dst.x) && TryParse<float>(y.c_str(), dst.y) && TryParse<float>(z.c_str(), dst.z);
+#ifdef DARKFLAME_PLATFORM_MACOS
+
+// MacOS floating-point parse function specializations
+namespace GeneralUtils::details {
+	template <>
+	[[nodiscard]] float _parse<float>(const std::string_view str, size_t& parseNum) {
+		return std::stof(std::string{ str }, &parseNum);
+	}
+
+	template <>
+	[[nodiscard]] double _parse<double>(const std::string_view str, size_t& parseNum) {
+		return std::stod(std::string{ str }, &parseNum);
+	}
+
+	template <>
+	[[nodiscard]] long double _parse<long double>(const std::string_view str, size_t& parseNum) {
+		return std::stold(std::string{ str }, &parseNum);
+	}
 }
+
+#endif

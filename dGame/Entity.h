@@ -31,6 +31,7 @@ class Component;
 class Item;
 class Character;
 class EntityCallbackTimer;
+class PositionUpdate;
 enum class eTriggerEventType;
 enum class eGameMasterLevel : uint8_t;
 enum class eReplicaComponentType : uint32_t;
@@ -46,10 +47,10 @@ namespace CppScripts {
  */
 class Entity {
 public:
-	explicit Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity = nullptr);
-	virtual ~Entity();
+	explicit Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser = nullptr, Entity* parentEntity = nullptr);
+	~Entity();
 
-	virtual void Initialize();
+	void Initialize();
 
 	bool operator==(const Entity& other) const;
 	bool operator!=(const Entity& other) const;
@@ -66,7 +67,7 @@ public:
 
 	eGameMasterLevel GetGMLevel() const { return m_GMLevel; }
 
-	uint8_t GetCollectibleID() const { return uint8_t(m_CollectibleID); }
+	uint8_t GetCollectibleID() const;
 
 	Entity* GetParentEntity() const { return m_ParentEntity; }
 
@@ -103,9 +104,7 @@ public:
 
 	const NiQuaternion& GetRotation() const;
 
-	virtual User* GetParentUser() const;
-
-	virtual SystemAddress GetSystemAddress() const { return UNASSIGNED_SYSTEM_ADDRESS; };
+	const SystemAddress& GetSystemAddress() const;
 
 	/**
 	 * Setters
@@ -123,15 +122,13 @@ public:
 
 	void SetNetworkId(uint16_t id);
 
-	void SetPosition(NiPoint3 position);
+	void SetPosition(const NiPoint3& position);
 
-	void SetRotation(NiQuaternion rotation);
+	void SetRotation(const NiQuaternion& rotation);
 
-	virtual void SetRespawnPos(NiPoint3 position) {}
+	void SetRespawnPos(const NiPoint3& position);
 
-	virtual void SetRespawnRot(NiQuaternion rotation) {}
-
-	virtual void SetSystemAddress(const SystemAddress& value) {};
+	void SetRespawnRot(const NiQuaternion& rotation);
 
 	/**
 	 * Component management
@@ -160,6 +157,8 @@ public:
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 	void RemoveParent();
+
+	// Adds a timer to start next frame with the given name and time.
 	void AddTimer(std::string name, float time);
 	void AddCallbackTimer(float time, std::function<void()> callback);
 	bool HasTimer(const std::string& name);
@@ -210,8 +209,8 @@ public:
 	void RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled);
 
 	void Smash(const LWOOBJID source = LWOOBJID_EMPTY, const eKillType killType = eKillType::VIOLENT, const std::u16string& deathType = u"");
-	void Kill(Entity* murderer = nullptr);
-	void AddRebuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
+	void Kill(Entity* murderer = nullptr, const eKillType killType = eKillType::SILENT);
+	void AddQuickBuildCompleteCallback(const std::function<void(Entity* user)>& callback) const;
 	void AddCollisionPhantomCallback(const std::function<void(Entity* target)>& callback);
 	void AddDieCallback(const std::function<void()>& callback);
 	void Resurrect();
@@ -226,8 +225,8 @@ public:
 	void TriggerEvent(eTriggerEventType event, Entity* optionalTarget = nullptr);
 	void ScheduleDestructionAfterUpdate() { m_ShouldDestroyAfterUpdate = true; }
 
-	virtual NiPoint3 GetRespawnPosition() const { return NiPoint3::ZERO; }
-	virtual NiQuaternion GetRespawnRotation() const { return NiQuaternion::IDENTITY; }
+	const NiPoint3& GetRespawnPosition() const;
+	const NiQuaternion& GetRespawnRotation() const;
 
 	void Sleep();
 	void Wake();
@@ -274,6 +273,9 @@ public:
 	template<typename T>
 	T GetVarAs(const std::u16string& name) const;
 
+	template<typename ComponentType, typename... VaArgs>
+	ComponentType* AddComponent(VaArgs... args);
+
 	/**
 	 * Get the LDF data.
 	 */
@@ -287,9 +289,11 @@ public:
 	/*
 	 * Collision
 	 */
-	std::vector<LWOOBJID>& GetTargetsInPhantom();
+	std::vector<LWOOBJID> GetTargetsInPhantom();
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
+
+	void ProcessPositionUpdate(PositionUpdate& update);
 
 protected:
 	LWOOBJID m_ObjectID;
@@ -321,9 +325,10 @@ protected:
 	std::vector<std::function<void(Entity* target)>> m_PhantomCollisionCallbacks;
 
 	std::unordered_map<eReplicaComponentType, Component*> m_Components;
-	std::vector<EntityTimer*> m_Timers;
-	std::vector<EntityTimer*> m_PendingTimers;
-	std::vector<EntityCallbackTimer*> m_CallbackTimers;
+	std::vector<EntityTimer> m_Timers;
+	std::vector<EntityTimer> m_PendingTimers;
+	std::vector<EntityCallbackTimer> m_CallbackTimers;
+	std::vector<EntityCallbackTimer> m_PendingCallbackTimers;
 
 	bool m_ShouldDestroyAfterUpdate = false;
 
@@ -390,14 +395,8 @@ const T& Entity::GetVar(const std::u16string& name) const {
 template<typename T>
 T Entity::GetVarAs(const std::u16string& name) const {
 	const auto data = GetVarAsString(name);
-
-	T value;
-
-	if (!GeneralUtils::TryParse(data, value)) {
-		return LDFData<T>::Default;
-	}
-
-	return value;
+	
+	return GeneralUtils::TryParse<T>(data).value_or(LDFData<T>::Default);
 }
 
 template<typename T>
@@ -500,4 +499,37 @@ T Entity::GetNetworkVar(const std::u16string& name) {
 	}
 
 	return LDFData<T>::Default;
+}
+
+/**
+ * @brief Adds a component of type ComponentType to this entity and forwards the arguments to the constructor.
+ *
+ * @tparam ComponentType The component class type to add. Must derive from Component.
+ * @tparam VaArgs The argument types to forward to the constructor.
+ * @param args The arguments to forward to the constructor. The first argument passed to the ComponentType constructor will be this entity.
+ * @return ComponentType* The added component. Will never return null.
+ */
+template<typename ComponentType, typename... VaArgs>
+inline ComponentType* Entity::AddComponent(VaArgs... args) {
+	static_assert(std::is_base_of_v<Component, ComponentType>, "ComponentType must be a Component");
+
+	// Get the component if it already exists, or default construct a nullptr
+	auto*& componentToReturn = m_Components[ComponentType::ComponentType];
+
+	// If it doesn't exist, create it and forward the arguments to the constructor
+	if (!componentToReturn) {
+		componentToReturn = new ComponentType(this, std::forward<VaArgs>(args)...);
+	} else {
+		// In this case the block is already allocated and ready for use
+		// so we use a placement new to construct the component again as was requested by the caller.
+		// Placement new means we already have memory allocated for the object, so this just calls its constructor again.
+		// This is useful for when we want to create a new object in the same memory location as an old one.
+		componentToReturn->~Component();
+		new(componentToReturn) ComponentType(this, std::forward<VaArgs>(args)...);
+	}
+
+	// Finally return the created or already existing component.
+	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function
+	// To allow a static cast here instead of a dynamic one.
+	return dynamic_cast<ComponentType*>(componentToReturn);
 }

@@ -2,12 +2,12 @@
 
 #include <sstream>
 
-#include "../dWorldServer/ObjectIDManager.h"
+#include "ObjectIDManager.h"
 #include "GeneralUtils.h"
 #include "GameMessages.h"
 #include "Entity.h"
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "EntityManager.h"
 #include "RenderComponent.h"
 #include "PossessableComponent.h"
@@ -19,6 +19,8 @@
 #include "eObjectBits.h"
 #include "eReplicaComponentType.h"
 #include "eUseItemResponse.h"
+#include "dZoneManager.h"
+#include "ChatPackets.h"
 
 #include "CDBrickIDTableTable.h"
 #include "CDObjectSkillsTable.h"
@@ -98,7 +100,7 @@ Item::Item(
 	if (isModMoveAndEquip) {
 		Equip();
 
-		Game::logger->Log("Item", "Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
+		LOG("Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
 		Game::entityManager->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
@@ -245,11 +247,11 @@ bool Item::IsEquipped() const {
 }
 
 bool Item::Consume() {
-	auto* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+	auto* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 
-	auto skills = skillsTable->Query([=](const CDObjectSkills entry) {
+	auto skills = skillsTable->Query([this](const CDObjectSkills entry) {
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
-		});
+	});
 
 	auto success = false;
 
@@ -260,7 +262,7 @@ bool Item::Consume() {
 		}
 	}
 
-	Game::logger->LogDebug("Item", "Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
+	LOG_DEBUG("Consumed LOT (%i) itemID (%llu).  Success=(%d)", lot, id, success);
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
@@ -274,42 +276,49 @@ bool Item::Consume() {
 void Item::UseNonEquip(Item* item) {
 	LOT thisLot = this->GetLot();
 	if (!GetInventory()) {
-		Game::logger->LogDebug("Item", "item %i has no inventory??", this->GetLot());
+		LOG_DEBUG("item %i has no inventory??", this->GetLot());
 		return;
 	}
 
 	auto* playerInventoryComponent = GetInventory()->GetComponent();
 	if (!playerInventoryComponent) {
-		Game::logger->LogDebug("Item", "no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
+		LOG_DEBUG("no inventory component attached to item id %llu lot %i", this->GetId(), this->GetLot());
 		return;
 	}
 
 	auto* playerEntity = playerInventoryComponent->GetParent();
 	if (!playerEntity) {
-		Game::logger->LogDebug("Item", "no player entity attached to inventory? item id is %llu", this->GetId());
+		LOG_DEBUG("no player entity attached to inventory? item id is %llu", this->GetId());
 		return;
 	}
 
 	const auto type = static_cast<eItemType>(info->itemType);
 	if (type == eItemType::MOUNT) {
-		playerInventoryComponent->HandlePossession(this);
-		// TODO Check if mounts are allowed to be spawned
+		if (Game::zoneManager->GetMountsAllowed()) {
+			playerInventoryComponent->HandlePossession(this);
+		} else {
+			ChatPackets::SendSystemMessage(playerEntity->GetSystemAddress(), u"Mounts are not allowed in this zone");
+		}
 	} else if (type == eItemType::PET_INVENTORY_ITEM && subKey != LWOOBJID_EMPTY) {
-		const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
-		if (databasePet.lot != LOT_NULL) {
-			playerInventoryComponent->SpawnPet(this);
+		if (Game::zoneManager->GetPetsAllowed()) {
+			const auto& databasePet = playerInventoryComponent->GetDatabasePet(subKey);
+			if (databasePet.lot != LOT_NULL) {
+				playerInventoryComponent->SpawnPet(this);
+			}
+		} else {
+			ChatPackets::SendSystemMessage(playerEntity->GetSystemAddress(), u"Pets are not allowed in this zone");
 		}
 		// This precondition response is taken care of in SpawnPet().
 	} else {
 		bool success = false;
 		auto inventory = item->GetInventory();
 		if (inventory && inventory->GetType() == eInventoryType::ITEMS) {
-			auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+			auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 			const auto packageComponentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::PACKAGE);
 
 			if (packageComponentId == 0) return;
 
-			auto* packCompTable = CDClientManager::Instance().GetTable<CDPackageComponentTable>();
+			auto* packCompTable = CDClientManager::GetTable<CDPackageComponentTable>();
 			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
 			auto success = !packages.empty();
@@ -319,7 +328,7 @@ void Item::UseNonEquip(Item* item) {
 					// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
 					std::unordered_map<LOT, int32_t> rolledLoot{};
 					for (auto& pack : packages) {
-						auto thisPackage = LootGenerator::Instance().RollLootMatrix(entityParent, pack.LootMatrixIndex);
+						auto thisPackage = Loot::RollLootMatrix(entityParent, pack.LootMatrixIndex);
 						for (auto& loot : thisPackage) {
 							// If we already rolled this lot, add it to the existing one, otherwise create a new entry.
 							auto existingLoot = rolledLoot.find(loot.first);
@@ -331,7 +340,7 @@ void Item::UseNonEquip(Item* item) {
 						}
 					}
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
-						LootGenerator::Instance().GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
+						Loot::GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
 					} else {
 						success = false;
@@ -346,7 +355,7 @@ void Item::UseNonEquip(Item* item) {
 				}
 			}
 		}
-		Game::logger->LogDebug("Item", "Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
+		LOG_DEBUG("Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
 		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
 	}
 }
@@ -386,14 +395,13 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 	}
 }
 
-void Item::DisassembleModel() {
-	auto* table = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+void Item::DisassembleModel(uint32_t numToDismantle) {
+	auto* table = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	const auto componentId = table->GetByIDAndType(GetLot(), eReplicaComponentType::RENDER);
 
-	auto query = CDClientDatabase::CreatePreppedStmt(
-		"SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
-	query.bind(1, (int)componentId);
+	auto query = CDClientDatabase::CreatePreppedStmt("SELECT render_asset, LXFMLFolder FROM RenderComponent WHERE id = ?;");
+	query.bind(1, static_cast<int>(componentId));
 
 	auto result = query.execQuery();
 
@@ -402,83 +410,89 @@ void Item::DisassembleModel() {
 	}
 
 	std::string renderAsset = std::string(result.getStringField(0));
-	std::string lxfmlFolderName = std::string(result.getStringField(1));
 
-	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '\\');
-	if (renderAssetSplit.size() == 0) return;
-
-	std::string lxfmlPath = "BrickModels/" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
-	auto buffer = Game::assetManager->GetFileAsBuffer(lxfmlPath.c_str());
-
-	if (!buffer.m_Success) {
-		Game::logger->Log("Item", "Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
-		return;
+	// normalize path slashes
+	for (auto& c : renderAsset) {
+		if (c == '\\') c = '/';
 	}
 
-	std::istream file(&buffer);
+	std::string lxfmlFolderName = std::string(result.getStringField(1));
+	if (!lxfmlFolderName.empty()) lxfmlFolderName.insert(0, "/");
 
-	result.finalize();
+	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '/');
+	if (renderAssetSplit.empty()) return;
 
-	if (!file.good()) {
-		buffer.close();
+	std::string lxfmlPath = "BrickModels" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	auto file = Game::assetManager->GetFile(lxfmlPath.c_str());
+
+	if (!file) {
+		LOG("Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
 		return;
 	}
 
 	std::stringstream data;
 	data << file.rdbuf();
 
-	buffer.close();
+	uint32_t fileSize;
+	file.seekg(0, std::ios::end);
+	fileSize = static_cast<uint32_t>(file.tellg());
+	file.seekg(0, std::ios::beg);
 
-	if (data.str().empty()) {
+	if (fileSize == 0) return;
+
+	tinyxml2::XMLDocument doc;
+
+	if (doc.Parse(data.str().c_str(), data.str().size()) != tinyxml2::XML_SUCCESS) {
 		return;
 	}
 
-	auto* doc = new tinyxml2::XMLDocument();
-
-	if (!doc) {
-		return;
-	}
-
-	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {
-		return;
-	}
-
-	std::vector<int> parts;
-
-	auto* lxfml = doc->FirstChildElement("LXFML");
+	auto* lxfml = doc.FirstChildElement("LXFML");
+	if (!lxfml) return;
 	auto* bricks = lxfml->FirstChildElement("Bricks");
 	std::string searchTerm = "Brick";
 
 	if (!bricks) {
 		searchTerm = "Part";
-		bricks = lxfml->FirstChildElement("Scene")->FirstChildElement("Model")->FirstChildElement("Group");
+		auto* scene = lxfml->FirstChildElement("Scene");
+		if (!scene) return;
 
-		if (!bricks) {
-			return;
-		}
+		auto* model = scene->FirstChildElement("Model");
+		if (!model) return;
+
+		bricks = model->FirstChildElement("Group");
+		if (!bricks) return;
 	}
 
 	auto* currentBrick = bricks->FirstChildElement(searchTerm.c_str());
+
+	// First iteration gets the count
+	std::map<int32_t, int32_t> parts;
 	while (currentBrick) {
-		if (currentBrick->Attribute("designID") != nullptr) {
-			parts.push_back(std::stoi(currentBrick->Attribute("designID")));
+		const char* const designID = currentBrick->Attribute("designID");
+		if (designID) {
+			const auto designId = GeneralUtils::TryParse<uint32_t>(designID);
+			if (!designId) {
+				LOG("Failed to parse designID %s", designID);
+				continue;
+			}
+			parts[designId.value()]++;
 		}
 
 		currentBrick = currentBrick->NextSiblingElement(searchTerm.c_str());
 	}
 
-	auto* brickIDTable = CDClientManager::Instance().GetTable<CDBrickIDTableTable>();
+	auto* brickIDTable = CDClientManager::GetTable<CDBrickIDTableTable>();
 
-	for (unsigned int part : parts) {
-		const auto brickID = brickIDTable->Query([=](const CDBrickIDTable& entry) {
-			return entry.LEGOBrickID == part;
+	// Second iteration actually distributes the bricks
+	for (const auto& [part, count] : parts) {
+		const auto partLocal = part;
+		const auto brickID = brickIDTable->Query([&](const CDBrickIDTable& entry) {
+			return entry.LEGOBrickID == partLocal;
 			});
 
-		if (brickID.empty()) {
-			continue;
-		}
+		if (brickID.empty()) continue;
 
-		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, 1, eLootSourceType::DELETION);
+		GetInventory()->GetComponent()->AddItem(brickID[0].NDObjectID, count * numToDismantle, eLootSourceType::DELETION);
 	}
 }
 

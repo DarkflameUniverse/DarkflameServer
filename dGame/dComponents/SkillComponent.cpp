@@ -15,7 +15,7 @@
 #include "dServer.h"
 #include "EntityManager.h"
 #include "Game.h"
-#include "PacketUtils.h"
+#include "BitStreamUtils.h"
 #include "BaseCombatAIComponent.h"
 #include "ScriptComponent.h"
 #include "BuffComponent.h"
@@ -55,7 +55,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill with uid (%i)!", skillUid, syncId);
+		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
@@ -80,7 +80,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	}
 
 	if (index == -1) {
-		Game::logger->Log("SkillComponent", "Failed to find projectile id (%llu)!", projectileId);
+		LOG("Failed to find projectile id (%llu)!", projectileId);
 
 		return;
 	}
@@ -89,12 +89,12 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	query.bind(1, (int)sync_entry.lot);
+	query.bind(1, static_cast<int>(sync_entry.lot));
 
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", sync_entry.lot);
+		LOG("Failed to find skill id for (%i)!", sync_entry.lot);
 
 		return;
 	}
@@ -234,7 +234,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 	// if it's not in the cache look it up and cache it
 	if (pair == m_skillBehaviorCache.end()) {
-		auto skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		auto skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 		behaviorId = skillTable->GetSkillByID(skillId).behaviorID;
 		m_skillBehaviorCache.insert_or_assign(skillId, behaviorId);
 	} else {
@@ -243,7 +243,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 	// check to see if we got back a valid behavior
 	if (behaviorId == -1) {
-		Game::logger->LogDebug("SkillComponent", "Tried to cast skill %i but found no behavior", skillId);
+		LOG_DEBUG("Tried to cast skill %i but found no behavior", skillId);
 		return false;
 	}
 
@@ -299,12 +299,12 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		}
 		//start.optionalTargetID = target;
 
-		start.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
+		start.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
 
 		// Write message
 		RakNet::BitStream message;
 
-		PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
@@ -401,7 +401,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {
-			Game::logger->Log("SkillComponent", "Invalid projectile target (%llu)!", entry.branchContext.target);
+			LOG("Invalid projectile target (%llu)!", entry.branchContext.target);
 		}
 
 		return;
@@ -409,11 +409,11 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT behaviorID FROM SkillBehavior WHERE skillID = (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	query.bind(1, (int)entry.lot);
+	query.bind(1, static_cast<int>(entry.lot));
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		Game::logger->Log("SkillComponent", "Failed to find skill id for (%i)!", entry.lot);
+		LOG("Failed to find skill id for (%i)!", entry.lot);
 
 		return;
 	}
@@ -430,14 +430,14 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	DoClientProjectileImpact projectileImpact;
 
-	projectileImpact.sBitStream.assign((char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
+	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
 
 	RakNet::BitStream message;
 
-	PacketUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 

@@ -11,10 +11,10 @@
 /**
  * Represents the launch pad that's used to select and browse properties
  */
-class PropertyEntranceComponent : public Component {
+class PropertyEntranceComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
-	explicit PropertyEntranceComponent(uint32_t componentID, Entity* parent);
+	explicit PropertyEntranceComponent(Entity* parent, uint32_t componentID);
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_ENTRANCE;
 
 	/**
 	 * Handles an OnUse request for some other entity, rendering the property browse menu

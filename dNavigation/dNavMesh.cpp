@@ -3,7 +3,7 @@
 #include "RawFile.h"
 
 #include "Game.h"
-#include "dLogger.h"
+#include "Logger.h"
 #include "dPlatforms.h"
 #include "NiPoint3.h"
 #include "BinaryIO.h"
@@ -11,6 +11,7 @@
 
 #include "dZoneManager.h"
 #include "DluAssert.h"
+#include "DetourExtensions.h"
 
 dNavMesh::dNavMesh(uint32_t zoneId) {
 	m_ZoneId = zoneId;
@@ -21,25 +22,17 @@ dNavMesh::dNavMesh(uint32_t zoneId) {
 		m_NavQuery = dtAllocNavMeshQuery();
 		m_NavQuery->init(m_NavMesh, 2048);
 
-		Game::logger->Log("dNavMesh", "Navmesh loaded successfully!");
+		LOG("Navmesh loaded successfully!");
 	} else {
-		Game::logger->Log("dNavMesh", "Navmesh loading failed (This may be intended).");
+		LOG("Navmesh loading failed (This may be intended).");
 	}
 }
 
 dNavMesh::~dNavMesh() {
 	// Clean up Recast information
 
-	if (m_Solid) rcFreeHeightField(m_Solid);
-	if (m_CHF) rcFreeCompactHeightfield(m_CHF);
-	if (m_CSet) rcFreeContourSet(m_CSet);
-	if (m_PMesh) rcFreePolyMesh(m_PMesh);
-	if (m_PMDMesh) rcFreePolyMeshDetail(m_PMDMesh);
 	if (m_NavMesh) dtFreeNavMesh(m_NavMesh);
 	if (m_NavQuery) dtFreeNavMeshQuery(m_NavQuery);
-
-	if (m_Ctx) delete m_Ctx;
-	if (m_Triareas) delete[] m_Triareas;
 }
 
 
@@ -105,7 +98,7 @@ void dNavMesh::LoadNavmesh() {
 		if (!tileHeader.tileRef || !tileHeader.dataSize)
 			break;
 
-		unsigned char* data = (unsigned char*)dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM);
+		unsigned char* data = static_cast<unsigned char*>(dtAlloc(tileHeader.dataSize, DT_ALLOC_PERM));
 		if (!data) break;
 		memset(data, 0, tileHeader.dataSize);
 		readLen = fread(data, tileHeader.dataSize, 1, fp);
@@ -131,7 +124,7 @@ float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExten
 	pos[2] = location.z;
 
 	dtPolyRef nearestRef = 0;
-	float polyPickExt[3] = { 0.0f, halfExtentsHeight, 0.0f };
+	float polyPickExt[3] = { 32.0f, halfExtentsHeight, 32.0f };
 	float nearestPoint[3] = { 0.0f, 0.0f, 0.0f };
 	dtQueryFilter filter{};
 

@@ -10,9 +10,9 @@
  * same as having said items in your inventory (the subkey for this component) this component is the one that
  * renders the entity into the world.
  */
-class ModuleAssemblyComponent : public Component {
+class ModuleAssemblyComponent final : public Component {
 public:
-	static const eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
 	ModuleAssemblyComponent(Entity* parent);
 	~ModuleAssemblyComponent() override;

@@ -2,21 +2,22 @@
 
 #include "Amf3.h"
 
-StripUiPosition::StripUiPosition() {
-	xPosition = 0.0;
-	yPosition = 0.0;
-}
-
-StripUiPosition::StripUiPosition(AMFArrayValue* arguments, std::string uiKeyName) {
-	xPosition = 0.0;
-	yPosition = 0.0;
-	auto* uiArray = arguments->GetArray(uiKeyName);
+StripUiPosition::StripUiPosition(const AMFArrayValue* arguments, const std::string& uiKeyName) {
+	const auto* const uiArray = arguments->GetArray(uiKeyName);
 	if (!uiArray) return;
 
-	auto* xPositionValue = uiArray->Get<double>("x");
-	auto* yPositionValue = uiArray->Get<double>("y");
-	if (!xPositionValue || !yPositionValue) return;
+	const auto* const xPositionValue = uiArray->Get<double>("x");
+	if (!xPositionValue) return;
 
-	yPosition = yPositionValue->GetValue();
-	xPosition = xPositionValue->GetValue();
+	const auto* const yPositionValue = uiArray->Get<double>("y");
+	if (!yPositionValue) return;
+
+	m_YPosition = yPositionValue->GetValue();
+	m_XPosition = xPositionValue->GetValue();
+}
+
+void StripUiPosition::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
+	auto* const uiArgs = args.InsertArray("ui");
+	uiArgs->Insert("x", m_XPosition);
+	uiArgs->Insert("y", m_YPosition);
 }

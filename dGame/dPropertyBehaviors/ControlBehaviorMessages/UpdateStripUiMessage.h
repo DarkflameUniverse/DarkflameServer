@@ -13,12 +13,15 @@ class AMFArrayValue;
  */
 class UpdateStripUiMessage : public BehaviorMessageBase {
 public:
-	UpdateStripUiMessage(AMFArrayValue* arguments);
-	StripUiPosition GetPosition() { return position; };
-	ActionContext GetActionContext() { return actionContext; };
+	UpdateStripUiMessage(const AMFArrayValue* arguments);
+
+	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_Position; };
+
+	[[nodiscard]] const ActionContext& GetActionContext() const noexcept { return m_ActionContext; };
+
 private:
-	StripUiPosition position;
-	ActionContext actionContext;
+	StripUiPosition m_Position;
+	ActionContext m_ActionContext;
 };
 
 #endif  //!__UPDATESTRIPUIMESSAGE__H__

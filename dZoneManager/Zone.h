@@ -154,6 +154,8 @@ struct PropertyPath {
 	float repMultiplier;
 	PropertyRentalPeriod rentalPeriod;
 	PropertyAchievmentRequired achievementRequired;
+
+	// Player respawn coordinates in the main zone (not the property zone)
 	NiPoint3 playerZoneCoords;
 	float maxBuildHeight;
 };
@@ -214,7 +216,6 @@ public:
 	void AddRevision(LWOSCENEID sceneID, uint32_t revision);
 	const LWOZONEID& GetZoneID() const { return m_ZoneID; }
 	const uint32_t GetChecksum() const { return m_CheckSum; }
-	const void PrintAllGameObjects();
 	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
 	const Path* GetPath(std::string name) const;
 
@@ -232,7 +233,6 @@ public:
 private:
 	LWOZONEID m_ZoneID;
 	std::string m_ZoneFilePath;
-	uint32_t m_NumberOfScenesLoaded;
 	uint32_t m_NumberOfObjectsLoaded;
 	uint32_t m_NumberOfSceneTransitionsLoaded;
 	FileFormatVersion m_FileFormatVersion;
@@ -247,18 +247,17 @@ private:
 	std::string m_ZoneDesc; //Description of the zone by a level designer
 	std::string m_ZoneRawPath; //Path to the .raw file of this zone.
 
-	std::map<LWOSCENEID, SceneRef, mapCompareLwoSceneIDs> m_Scenes;
+	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
 
 	uint32_t m_PathDataLength;
 	uint32_t m_PathChunkVersion;
 	std::vector<Path> m_Paths;
 
-	std::map<LWOSCENEID, uint32_t, mapCompareLwoSceneIDs> m_MapRevisions; //rhs is the revision!
-
+	std::map<LWOSCENEID, uint32_t> m_MapRevisions; //rhs is the revision!
 	//private ("helper") functions:
 	void LoadScene(std::istream& file);
-	std::vector<LUTriggers::Trigger*> LoadLUTriggers(std::string triggerFile, LWOSCENEID sceneID);
+	void LoadLUTriggers(std::string triggerFile, SceneRef& scene);
 	void LoadSceneTransition(std::istream& file);
 	SceneTransitionInfo LoadSceneTransitionInfo(std::istream& file);
 	void LoadPath(std::istream& file);
