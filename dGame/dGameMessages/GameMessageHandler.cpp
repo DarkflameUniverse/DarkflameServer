@@ -333,7 +333,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
 			echoStartSkill.Serialize(&bitStreamLocal);
 
-			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
+			Game::server->Send(bitStreamLocal, entity->GetSystemAddress(), true);
 		}
 	} break;
 
@@ -370,7 +370,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 		echo.Serialize(&bitStreamLocal);
 
-		Game::server->Send(&bitStreamLocal, sysAddr, true);
+		Game::server->Send(bitStreamLocal, sysAddr, true);
 	} break;
 
 	case eGameMessageType::REQUEST_SMASH_PLAYER:

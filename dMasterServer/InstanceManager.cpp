@@ -181,7 +181,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	bitStream.Write(request.id);
 
-	Game::server->Send(&bitStream, instance->GetSysAddr(), false);
+	Game::server->Send(bitStream, instance->GetSysAddr(), false);
 
 	LOG("Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
@@ -361,7 +361,7 @@ void Instance::Shutdown() {
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 
-	Game::server->Send(&bitStream, this->m_SysAddr, false);
+	Game::server->Send(bitStream, this->m_SysAddr, false);
 
 	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }

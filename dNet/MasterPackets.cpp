@@ -12,7 +12,7 @@ void MasterPackets::SendPersistentIDRequest(dServer* server, uint64_t requestID)
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_PERSISTENT_ID);
 	bitStream.Write(requestID);
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }
 
 void MasterPackets::SendPersistentIDResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, uint32_t objID) {
@@ -22,7 +22,7 @@ void MasterPackets::SendPersistentIDResponse(dServer* server, const SystemAddres
 	bitStream.Write(requestID);
 	bitStream.Write(objID);
 
-	server->Send(&bitStream, sysAddr, false);
+	server->Send(bitStream, sysAddr, false);
 }
 
 void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID) {
@@ -34,7 +34,7 @@ void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID,
 	bitStream.Write(zoneID);
 	bitStream.Write(cloneID);
 
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }
 
 void MasterPackets::SendZoneCreatePrivate(dServer* server, uint32_t zoneID, uint32_t cloneID, const std::string& password) {
@@ -49,7 +49,7 @@ void MasterPackets::SendZoneCreatePrivate(dServer* server, uint32_t zoneID, uint
 		bitStream.Write<char>(character);
 	}
 
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }
 
 void MasterPackets::SendZoneRequestPrivate(dServer* server, uint64_t requestID, bool mythranShift, const std::string& password) {
@@ -64,7 +64,7 @@ void MasterPackets::SendZoneRequestPrivate(dServer* server, uint64_t requestID, 
 		bitStream.Write<char>(character);
 	}
 
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }
 
 void MasterPackets::SendWorldReady(dServer* server, LWOMAPID zoneId, LWOINSTANCEID instanceId) {
@@ -74,7 +74,7 @@ void MasterPackets::SendWorldReady(dServer* server, LWOMAPID zoneId, LWOINSTANCE
 	bitStream.Write(zoneId);
 	bitStream.Write(instanceId);
 
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }
 
 void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, const std::string& serverIP, uint32_t serverPort) {
@@ -89,7 +89,7 @@ void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddres
 	bitStream.Write<uint16_t>(serverPort);
 	bitStream.Write(LUString(serverIP, 255));
 
-	server->Send(&bitStream, sysAddr, false);
+	server->Send(bitStream, sysAddr, false);
 }
 
 void MasterPackets::HandleServerInfo(Packet* packet) {
@@ -119,5 +119,5 @@ void MasterPackets::SendServerInfo(dServer* server, Packet* packet) {
 	bitStream.Write(server->GetServerType());
 	bitStream.Write(LUString(server->GetIP()));
 
-	server->SendToMaster(&bitStream);
+	server->SendToMaster(bitStream);
 }

@@ -308,7 +308,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(&message);
 
-		Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
+		Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
 	}
 
 	context->ExecuteUpdates();
@@ -441,7 +441,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(&message);
 
-	Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
 
 	entry.context->ExecuteUpdates();
 
