@@ -38,7 +38,7 @@ protected:
 		}
 		return readFile;
 	}
-	AMFArrayValue* ReadArrayFromBitStream(RakNet::BitStream* inStream) {
+	AMFArrayValue* ReadArrayFromBitStream(RakNet::BitStream& inStream) {
 		AMFDeserialize des;
 		AMFBaseValue* readArray = des.Read(inStream);
 		EXPECT_EQ(readArray->GetValueType(), eAmf::Array);
@@ -88,7 +88,7 @@ TEST_F(GameMessageTests, SendBlueprintLoadItemResponse) {
 TEST_F(GameMessageTests, ControlBehaviorAddStrip) {
 	auto data = ReadFromFile("addStrip");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	AddStripMessage addStrip(ReadArrayFromBitStream(&inStream));
+	AddStripMessage addStrip(ReadArrayFromBitStream(inStream));
 	ASSERT_FLOAT_EQ(addStrip.GetPosition().GetX(), 50.65);
 	ASSERT_FLOAT_EQ(addStrip.GetPosition().GetY(), 178.05);
 	ASSERT_EQ(addStrip.GetActionContext().GetStripId(), 0);
@@ -103,7 +103,7 @@ TEST_F(GameMessageTests, ControlBehaviorAddStrip) {
 TEST_F(GameMessageTests, ControlBehaviorRemoveStrip) {
 	auto data = ReadFromFile("removeStrip");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	RemoveStripMessage removeStrip(ReadArrayFromBitStream(&inStream));
+	RemoveStripMessage removeStrip(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(static_cast<int32_t>(removeStrip.GetActionContext().GetStripId()), 1);
 	ASSERT_EQ(static_cast<int32_t>(removeStrip.GetActionContext().GetStateId()), 0);
 	ASSERT_EQ(removeStrip.GetBehaviorId(), -1);
@@ -112,7 +112,7 @@ TEST_F(GameMessageTests, ControlBehaviorRemoveStrip) {
 TEST_F(GameMessageTests, ControlBehaviorMergeStrips) {
 	auto data = ReadFromFile("mergeStrips");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	MergeStripsMessage mergeStrips(ReadArrayFromBitStream(&inStream));
+	MergeStripsMessage mergeStrips(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(mergeStrips.GetSourceActionContext().GetStripId(), 2);
 	ASSERT_EQ(mergeStrips.GetDestinationActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(mergeStrips.GetSourceActionContext().GetStateId()), 0);
@@ -124,7 +124,7 @@ TEST_F(GameMessageTests, ControlBehaviorMergeStrips) {
 TEST_F(GameMessageTests, ControlBehaviorSplitStrip) {
 	auto data = ReadFromFile("splitStrip");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	SplitStripMessage splitStrip(ReadArrayFromBitStream(&inStream));
+	SplitStripMessage splitStrip(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(splitStrip.GetBehaviorId(), -1);
 
 	ASSERT_FLOAT_EQ(splitStrip.GetPosition().GetX(), 275.65);
@@ -139,7 +139,7 @@ TEST_F(GameMessageTests, ControlBehaviorSplitStrip) {
 TEST_F(GameMessageTests, ControlBehaviorUpdateStripUI) {
 	auto data = ReadFromFile("updateStripUI");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	UpdateStripUiMessage updateStripUi(ReadArrayFromBitStream(&inStream));
+	UpdateStripUiMessage updateStripUi(ReadArrayFromBitStream(inStream));
 	ASSERT_FLOAT_EQ(updateStripUi.GetPosition().GetX(), 116.65);
 	ASSERT_FLOAT_EQ(updateStripUi.GetPosition().GetY(), 35.35);
 	ASSERT_EQ(updateStripUi.GetActionContext().GetStripId(), 0);
@@ -150,7 +150,7 @@ TEST_F(GameMessageTests, ControlBehaviorUpdateStripUI) {
 TEST_F(GameMessageTests, ControlBehaviorAddAction) {
 	auto data = ReadFromFile("addAction");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	AddActionMessage addAction(ReadArrayFromBitStream(&inStream));
+	AddActionMessage addAction(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(addAction.GetActionIndex(), 3);
 	ASSERT_EQ(addAction.GetActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(addAction.GetActionContext().GetStateId()), 0);
@@ -164,7 +164,7 @@ TEST_F(GameMessageTests, ControlBehaviorAddAction) {
 TEST_F(GameMessageTests, ControlBehaviorMigrateActions) {
 	auto data = ReadFromFile("migrateActions");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	MigrateActionsMessage migrateActions(ReadArrayFromBitStream(&inStream));
+	MigrateActionsMessage migrateActions(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(migrateActions.GetSrcActionIndex(), 1);
 	ASSERT_EQ(migrateActions.GetDstActionIndex(), 2);
 	ASSERT_EQ(migrateActions.GetSourceActionContext().GetStripId(), 1);
@@ -177,7 +177,7 @@ TEST_F(GameMessageTests, ControlBehaviorMigrateActions) {
 TEST_F(GameMessageTests, ControlBehaviorRearrangeStrip) {
 	auto data = ReadFromFile("rearrangeStrip");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	RearrangeStripMessage rearrangeStrip(ReadArrayFromBitStream(&inStream));
+	RearrangeStripMessage rearrangeStrip(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(rearrangeStrip.GetSrcActionIndex(), 2);
 	ASSERT_EQ(rearrangeStrip.GetDstActionIndex(), 1);
 	ASSERT_EQ(rearrangeStrip.GetActionContext().GetStripId(), 0);
@@ -188,7 +188,7 @@ TEST_F(GameMessageTests, ControlBehaviorRearrangeStrip) {
 TEST_F(GameMessageTests, ControlBehaviorAdd) {
 	auto data = ReadFromFile("add");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	AddMessage add(ReadArrayFromBitStream(&inStream));
+	AddMessage add(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(add.GetBehaviorId(), 10446);
 	ASSERT_EQ(add.GetBehaviorIndex(), 0);
 }
@@ -196,7 +196,7 @@ TEST_F(GameMessageTests, ControlBehaviorAdd) {
 TEST_F(GameMessageTests, ControlBehaviorRemoveActions) {
 	auto data = ReadFromFile("removeActions");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	RemoveActionsMessage removeActions(ReadArrayFromBitStream(&inStream));
+	RemoveActionsMessage removeActions(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(removeActions.GetBehaviorId(), -1);
 	ASSERT_EQ(removeActions.GetActionIndex(), 1);
 	ASSERT_EQ(removeActions.GetActionContext().GetStripId(), 0);
@@ -206,7 +206,7 @@ TEST_F(GameMessageTests, ControlBehaviorRemoveActions) {
 TEST_F(GameMessageTests, ControlBehaviorRename) {
 	auto data = ReadFromFile("rename");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	RenameMessage rename(ReadArrayFromBitStream(&inStream));
+	RenameMessage rename(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(rename.GetName(), "test");
 	ASSERT_EQ(rename.GetBehaviorId(), -1);
 }
@@ -214,7 +214,7 @@ TEST_F(GameMessageTests, ControlBehaviorRename) {
 TEST_F(GameMessageTests, ControlBehaviorUpdateAction) {
 	auto data = ReadFromFile("updateAction");
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
-	UpdateActionMessage updateAction(ReadArrayFromBitStream(&inStream));
+	UpdateActionMessage updateAction(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(updateAction.GetAction().GetType(), "FlyDown");
 	ASSERT_EQ(updateAction.GetAction().GetValueParameterName(), "Distance");
 	ASSERT_EQ(updateAction.GetAction().GetValueParameterString(), "");

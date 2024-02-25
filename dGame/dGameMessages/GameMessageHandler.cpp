@@ -39,7 +39,7 @@
 #include "GhostComponent.h"
 #include "StringifiedEnum.h"
 
-void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
+void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;
 
