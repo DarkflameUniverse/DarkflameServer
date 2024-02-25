@@ -1665,7 +1665,7 @@ void GameMessages::SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, 
 	bitStream.Write(objectID);
 	bitStream.Write(eGameMessageType::SEND_ACTIVITY_SUMMARY_LEADERBOARD_DATA);
 
-	leaderboard->Serialize(&bitStream);
+	leaderboard->Serialize(bitStream);
 	SEND_PACKET;
 }
 
