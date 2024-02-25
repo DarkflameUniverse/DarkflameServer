@@ -79,7 +79,6 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 		entries.push_back(entry);
 		tableData.nextRow();
 	}
-	std::ranges::sort(entries, [](const CDMissions& lhs, const CDMissions& rhs) { return lhs.id < rhs.id; });
 	tableData.finalize();
 
 	Default.id = -1;
