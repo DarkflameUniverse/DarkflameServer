@@ -248,6 +248,7 @@ public:
 	template <typename ValueType>
 	[[maybe_unused]] inline AMFValue<ValueType>* Push(const ValueType value) {
 		return Insert(m_Dense.size(), value).first;
+		return Insert(m_Dense.size(), value).first;
 	}
 
 	/**
@@ -258,8 +259,8 @@ public:
 	 * @param key The key to remove from the associative portion
 	 */
 	void Remove(const std::string& key, const bool deleteValue = true) {
-		AMFAssociative::iterator it = m_Associative.find(key);
-		if (it != m_Associative.end()) {
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		if (it != m_Associative.cend()) {
 			if (deleteValue) m_Associative.erase(it);
 		}
 	}
@@ -269,7 +270,7 @@ public:
 	 */
 	void Remove(const size_t index) {
 		if (!m_Dense.empty() && index < m_Dense.size()) {
-			const auto itr = m_Dense.begin() + index;
+			const auto itr = m_Dense.cbegin() + index;
 			m_Dense.erase(itr);
 		}
 	}
@@ -279,15 +280,12 @@ public:
 	}
 
 	[[nodiscard]] AMFArrayValue* GetArray(const std::string_view key) const {
-		AMFAssociative::const_iterator it = m_Associative.find(key);
-		if (it != m_Associative.end()) {
-			return dynamic_cast<AMFArrayValue*>(it->second.get());
-		}
-		return nullptr;
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ? dynamic_cast<AMFArrayValue*>(it->second.get()) : nullptr;
 	}
 
 	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) const {
-		return index >= m_Dense.size() ? nullptr : dynamic_cast<AMFArrayValue*>(m_Dense.at(index).get());
+		return index < m_Dense.size() ? dynamic_cast<AMFArrayValue*>(m_Dense.at(index).get()) : nullptr;
 	}
 
 	[[maybe_unused]] inline AMFArrayValue* InsertArray(const std::string_view key) {
@@ -313,16 +311,16 @@ public:
 	 */
 	template <typename AmfType>
 	[[nodiscard]] AMFValue<AmfType>* Get(const std::string_view key) const {
-		AMFAssociative::const_iterator it = m_Associative.find(key);
-		return it != m_Associative.end() ?
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ?
 			dynamic_cast<AMFValue<AmfType>*>(it->second.get()) :
 			nullptr;
 	}
 
 	// Get from the array but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const std::string_view key) const {
-		AMFAssociative::const_iterator it = m_Associative.find(key);
-		return it != m_Associative.end() ? it->second.get() : nullptr;
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ? it->second.get() : nullptr;
 	}
 
 	/**
