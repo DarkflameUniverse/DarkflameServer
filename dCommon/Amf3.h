@@ -142,7 +142,7 @@ public:
 		const auto element = m_Associative.find(key);
 		AMFValue<ValueType>* val = nullptr;
 		bool found = true;
-		if (element == m_Associative.end()) {
+		if (element == m_Associative.cend()) {
 			auto newVal = std::make_unique<AMFValue<ValueType>>(value);
 			val = newVal.get();
 			m_Associative.emplace(key, std::move(newVal));
@@ -158,7 +158,7 @@ public:
 		const auto element = m_Associative.find(key);
 		AMFArrayValue* val = nullptr;
 		bool found = true;
-		if (element == m_Associative.end()) {
+		if (element == m_Associative.cend()) {
 			auto newVal = std::make_unique<AMFArrayValue>();
 			val = newVal.get();
 			m_Associative.emplace(key, std::move(newVal));
@@ -212,7 +212,7 @@ public:
 	 */
 	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
 		const auto element = m_Associative.find(key);
-		if (element != m_Associative.end() && element->second) {
+		if (element != m_Associative.cend() && element->second) {
 			element->second = std::move(value);
 		} else {
 			m_Associative.emplace(key, std::move(value));
