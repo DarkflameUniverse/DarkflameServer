@@ -9,7 +9,7 @@
 #include "UserManager.h"
 #include "CDMissionsTable.h"
 
-bool AchievementVendorComponent::SellsItem(Entity* buyer, const LOT lot) const {
+bool AchievementVendorComponent::SellsItem(Entity* buyer, const LOT lot) {
 	auto* missionComponent = buyer->GetComponent<MissionComponent>();
 	if (!missionComponent) return false;
 
