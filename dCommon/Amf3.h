@@ -41,12 +41,13 @@ template <typename ValueType>
 class AMFValue : public AMFBaseValue {
 public:
 	AMFValue() = default;
-	AMFValue(const ValueType value) { m_Data = value; }
+	AMFValue(const ValueType value) : m_Data{ value } {}
 	virtual ~AMFValue() override = default;
 
 	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override;
 
 	[[nodiscard]] const ValueType& GetValue() const { return m_Data; }
+
 	void SetValue(const ValueType value) { m_Data = value; }
 
 protected:
@@ -54,7 +55,7 @@ protected:
 };
 
 // Explicit template class instantiations
-template class AMFValue<std::nullptr_t>; 
+template class AMFValue<std::nullptr_t>;
 template class AMFValue<bool>;
 template class AMFValue<int32_t>;
 template class AMFValue<uint32_t>;
@@ -110,7 +111,7 @@ public:
 	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::Array; }
 
 	~AMFArrayValue() override {
-		for (auto valueToDelete : GetDense()) {
+		for (const auto* valueToDelete : GetDense()) {
 			if (valueToDelete) {
 				delete valueToDelete;
 				valueToDelete = nullptr;
@@ -127,12 +128,12 @@ public:
 	/**
 	 * Returns the Associative portion of the object
 	 */
-	[[nodiscard]] inline const AMFAssociative& GetAssociative() const noexcept { return this->associative; }
+	[[nodiscard]] inline const AMFAssociative& GetAssociative() const noexcept { return m_Associative; }
 
 	/**
 	 * Returns the dense portion of the object
 	 */
-	[[nodiscard]] inline const AMFDense& GetDense() const noexcept { return this->dense; }
+	[[nodiscard]] inline const AMFDense& GetDense() const noexcept { return m_Dense; }
 
 	/**
 	 * Inserts an AMFValue into the associative portion with the given key.
@@ -150,12 +151,12 @@ public:
 	 */
 	template <typename ValueType>
 	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const std::string& key, const ValueType value) {
-		auto element = associative.find(key);
+		const auto element = m_Associative.find(key);
 		AMFValue<ValueType>* val = nullptr;
 		bool found = true;
-		if (element == associative.end()) {
+		if (element == m_Associative.cend()) {
 			val = new AMFValue<ValueType>(value);
-			associative.insert(std::make_pair(key, val));
+			m_Associative.emplace(key, val);
 		} else {
 			val = dynamic_cast<AMFValue<ValueType>*>(element->second);
 			found = false;
@@ -165,12 +166,12 @@ public:
 
 	// Associates an array with a string key
 	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const std::string& key) {
-		auto element = associative.find(key);
+		const auto element = m_Associative.find(key);
 		AMFArrayValue* val = nullptr;
 		bool found = true;
-		if (element == associative.end()) {
+		if (element == m_Associative.cend()) {
 			val = new AMFArrayValue();
-			associative.insert(std::make_pair(key, val));
+			m_Associative.emplace(key, val);
 		} else {
 			val = dynamic_cast<AMFArrayValue*>(element->second);
 			found = false;
@@ -182,13 +183,13 @@ public:
 	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const size_t index) {
 		AMFArrayValue* val = nullptr;
 		bool inserted = false;
-		if (index >= dense.size()) {
-			dense.resize(index + 1);
+		if (index >= m_Dense.size()) {
+			m_Dense.resize(index + 1);
 			val = new AMFArrayValue();
-			dense.at(index) = val;
+			m_Dense.at(index) = val;
 			inserted = true;
 		}
-		return std::make_pair(dynamic_cast<AMFArrayValue*>(dense.at(index)), inserted);
+		return std::make_pair(dynamic_cast<AMFArrayValue*>(m_Dense.at(index)), inserted);
 	}
 
 	/**
@@ -205,13 +206,13 @@ public:
 	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const size_t index, const ValueType value) {
 		AMFValue<ValueType>* val = nullptr;
 		bool inserted = false;
-		if (index >= this->dense.size()) {
-			this->dense.resize(index + 1);
+		if (index >= m_Dense.size()) {
+			m_Dense.resize(index + 1);
 			val = new AMFValue<ValueType>(value);
-			this->dense.at(index) = val;
+			m_Dense.at(index) = val;
 			inserted = true;
 		}
-		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(this->dense.at(index)), inserted);
+		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(m_Dense.at(index)), inserted);
 	}
 
 	/**
@@ -224,12 +225,12 @@ public:
 	 * @param value The value to insert
 	 */
 	void Insert(const std::string& key, AMFBaseValue* const value) {
-		auto element = associative.find(key);
-		if (element != associative.end() && element->second) {
+		const auto element = m_Associative.find(key);
+		if (element != m_Associative.cend() && element->second) {
 			delete element->second;
 			element->second = value;
 		} else {
-			associative.insert(std::make_pair(key, value));
+			m_Associative.emplace(key, value);
 		}
 	}
 
@@ -243,13 +244,13 @@ public:
 	 * @param value The value to insert
 	 */
 	void Insert(const size_t index, AMFBaseValue* const value) {
-		if (index < dense.size()) {
-			AMFDense::iterator itr = dense.begin() + index;
-			if (*itr) delete dense.at(index);
+		if (index < m_Dense.size()) {
+			const AMFDense::const_iterator itr = m_Dense.cbegin() + index;
+			if (*itr) delete m_Dense.at(index);
 		} else {
-			dense.resize(index + 1);
+			m_Dense.resize(index + 1);
 		}
-		dense.at(index) = value;
+		m_Dense.at(index) = value;
 	}
 
 	/**
@@ -264,7 +265,7 @@ public:
 	 */
 	template <typename ValueType>
 	[[maybe_unused]] inline AMFValue<ValueType>* Push(const ValueType value) {
-		return Insert(this->dense.size(), value).first;
+		return Insert(m_Dense.size(), value).first;
 	}
 
 	/**
@@ -275,10 +276,10 @@ public:
 	 * @param key The key to remove from the associative portion
 	 */
 	void Remove(const std::string& key, const bool deleteValue = true) {
-		AMFAssociative::iterator it = this->associative.find(key);
-		if (it != this->associative.end()) {
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		if (it != m_Associative.cend()) {
 			if (deleteValue) delete it->second;
-			this->associative.erase(it);
+			m_Associative.erase(it);
 		}
 	}
 
@@ -286,27 +287,24 @@ public:
 	 * Pops the last element in the dense portion, deleting it in the process.
 	 */
 	void Remove(const size_t index) {
-		if (!this->dense.empty() && index < this->dense.size()) {
-			auto itr = this->dense.begin() + index;
+		if (!m_Dense.empty() && index < m_Dense.size()) {
+			const auto itr = m_Dense.cbegin() + index;
 			if (*itr) delete (*itr);
-			this->dense.erase(itr);
+			m_Dense.erase(itr);
 		}
 	}
 
 	void Pop() {
-		if (!this->dense.empty()) Remove(this->dense.size() - 1);
+		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 	}
 
 	[[nodiscard]] AMFArrayValue* GetArray(const std::string& key) const {
-		AMFAssociative::const_iterator it = this->associative.find(key);
-		if (it != this->associative.end()) {
-			return dynamic_cast<AMFArrayValue*>(it->second);
-		}
-		return nullptr;
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ? dynamic_cast<AMFArrayValue*>(it->second) : nullptr;
 	}
 
 	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) const {
-		return index >= this->dense.size() ? nullptr : dynamic_cast<AMFArrayValue*>(this->dense.at(index));
+		return index < m_Dense.size() ? dynamic_cast<AMFArrayValue*>(m_Dense.at(index)) : nullptr;
 	}
 
 	[[maybe_unused]] inline AMFArrayValue* InsertArray(const std::string& key) {
@@ -318,7 +316,7 @@ public:
 	}
 
 	[[maybe_unused]] inline AMFArrayValue* PushArray() {
-		return static_cast<AMFArrayValue*>(Insert(this->dense.size()).first);
+		return static_cast<AMFArrayValue*>(Insert(m_Dense.size()).first);
 	}
 
 	/**
@@ -332,16 +330,16 @@ public:
 	 */
 	template <typename AmfType>
 	[[nodiscard]] AMFValue<AmfType>* Get(const std::string& key) const {
-		AMFAssociative::const_iterator it = this->associative.find(key);
-		return it != this->associative.end() ?
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ?
 			dynamic_cast<AMFValue<AmfType>*>(it->second) :
 			nullptr;
 	}
 
 	// Get from the array but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const std::string& key) const {
-		AMFAssociative::const_iterator it = this->associative.find(key);
-		return it != this->associative.end() ? it->second : nullptr;
+		const AMFAssociative::const_iterator it = m_Associative.find(key);
+		return it != m_Associative.cend() ? it->second : nullptr;
 	}
 
 	/**
@@ -355,27 +353,27 @@ public:
 	 */
 	template <typename AmfType>
 	[[nodiscard]] AMFValue<AmfType>* Get(const size_t index) const {
-		return index < this->dense.size() ?
-			dynamic_cast<AMFValue<AmfType>*>(this->dense.at(index)) :
+		return index < m_Dense.size() ?
+			dynamic_cast<AMFValue<AmfType>*>(m_Dense.at(index)) :
 			nullptr;
 	}
 
 	// Get from the dense but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const size_t index) const {
-		return index < this->dense.size() ? this->dense.at(index) : nullptr;
+		return index < m_Dense.size() ? m_Dense.at(index) : nullptr;
 	}
 
 private:
 	/**
 	 * The associative portion.  These values are key'd with strings to an AMFValue.
 	 */
-	AMFAssociative associative;
+	AMFAssociative m_Associative;
 
 	/**
 	 * The dense portion.  These AMFValue's are stored one after
 	 * another with the most recent addition being at the back.
 	 */
-	AMFDense dense;
+	AMFDense m_Dense;
 };
 
 #endif  //!__AMF3__H__
