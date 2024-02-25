@@ -224,7 +224,7 @@ public:
 	 * Sets a path to follow for the AI
 	 * @param path the path to follow
 	 */
-	void SetPath(std::vector<NiPoint3> path, bool startsInReverse = false);
+	void SetPath(const std::vector<NiPoint3>& path, bool startsInReverse = false);
 
 	// Advance the path waypoint index and return if there is a next waypoint
 	bool AdvancePathWaypointIndex();

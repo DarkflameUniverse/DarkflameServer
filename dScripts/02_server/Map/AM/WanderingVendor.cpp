@@ -18,7 +18,7 @@ void WanderingVendor::OnProximityUpdate(Entity* self, Entity* entering, std::str
 	} else if (status == "LEAVE") {
 		auto* proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
 		if (!proximityMonitorComponent) {
-			Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandRemoveNPC", "Proximity monitor component not found!");
+			LOG("Proximity monitor component not found!");
 			return;
 		}
 		const auto proxObjs = proximityMonitorComponent->GetProximityObjects("playermonitor");

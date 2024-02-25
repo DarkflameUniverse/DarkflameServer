@@ -61,17 +61,17 @@ bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID 
 }
 
 void ProximityMonitorComponent::Update(float deltaTime) {
-	for (const auto& [name, dpentity] : m_ProximitiesData) {
-		if (!dpentity) continue;
-		dpentity->SetPosition(m_Parent->GetPosition());
+	for (const auto& prox : m_ProximitiesData) {
+		if (!prox.second) continue;
+		prox.second->SetPosition(m_Parent->GetPosition());
 		//Process enter events
-		for (auto* en : dpentity->GetNewObjects()) {
-			m_Parent->OnCollisionProximity(en->GetObjectID(), name, "ENTER");
+		for (auto* en : prox.second->GetNewObjects()) {
+			m_Parent->OnCollisionProximity(en->GetObjectID(), prox.first, "ENTER");
 		}
 
 		//Process exit events
-		for (auto* en : dpentity->GetRemovedObjects()) {
-			m_Parent->OnCollisionProximity(en->GetObjectID(), name, "LEAVE");
+		for (auto* en : prox.second->GetRemovedObjects()) {
+			m_Parent->OnCollisionProximity(en->GetObjectID(), prox.first, "LEAVE");
 		}
 	}
 }

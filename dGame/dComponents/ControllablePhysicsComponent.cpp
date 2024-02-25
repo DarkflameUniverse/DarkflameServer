@@ -22,7 +22,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 	m_IsOnGround = true;
 	m_IsOnRail = false;
 	m_DirtyVelocity = true;
-	m_DirtyAngularVelocity = true;
 	m_dpEntity = nullptr;
 	m_Static = false;
 	m_SpeedMultiplier = 1;
@@ -68,7 +67,7 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
-	if (m_Velocity == NiPoint3::ZERO) return;
+	if (m_Velocity == NiPoint3Constant::ZERO) return;
 	SetPosition(m_Position + (m_Velocity * deltaTime));
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -117,8 +116,8 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
 	
-	bool isVelocityZero = m_Velocity != NiPoint3::ZERO;
-	bool isAngularVelocityZero = m_AngularVelocity != NiPoint3::ZERO;
+	bool isVelocityZero = m_Velocity != NiPoint3Constant::ZERO;
+	bool isAngularVelocityZero = m_AngularVelocity != NiPoint3Constant::ZERO;
 	bool shouldWriteFrameStats = m_DirtyPosition || bIsInitialUpdate || isVelocityZero || isAngularVelocityZero;
 	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
 	if (m_DirtyPosition || bIsInitialUpdate) {

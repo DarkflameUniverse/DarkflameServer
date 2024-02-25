@@ -73,30 +73,30 @@ float MovementAIComponent::GetCurrentPathWaypointSpeed() const {
 
 void MovementAIComponent::SetupPath(const std::string& pathname) {
 	std::string path = pathname;
-	if (path.empty()) path = m_Parent->GetVarAsString(u"attached_path");
 	if (path.empty()) {
-		Game::logger->Log("MovementAIComponent", "No path to load for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
-		return;
+		path = m_Parent->GetVarAsString(u"attached_path");
+		if (path.empty()) {
+			LOG("No path to load for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
+			return;
+		}
 	}
 	const Path* pathData = Game::zoneManager->GetZone()->GetPath(path);
 	if (pathData) {
-		Game::logger->Log("MovementAIComponent", "found path %i %s", m_Parent->GetLOT(), path.c_str());
+		LOG("found path %i %s", m_Parent->GetLOT(), path.c_str());
 		m_Path = pathData;
 		if (!HasAttachedPathStart() && m_Parent->HasVar(u"attached_path_start")) m_StartingWaypointIndex = m_Parent->GetVar<uint32_t>(u"attached_path_start");
 		if (m_Path && HasAttachedPathStart() && (m_StartingWaypointIndex < 0 || m_StartingWaypointIndex >= m_Path->pathWaypoints.size())) {
-			Game::logger->Log(
-				"MovementAIComponent",
-				"WARNING: attached path start is out of bounds for %i:%llu, defaulting path start to 0",
+			LOG("WARNING: attached path start is out of bounds for %i:%llu, defaulting path start to 0",
 				m_Parent->GetLOT(), m_Parent->GetObjectID());
 			m_StartingWaypointIndex = 0;
 		}
 		std::vector<NiPoint3> waypoints;
-		for (auto& waypoint : m_Path->pathWaypoints) {
+		for (const auto& waypoint : m_Path->pathWaypoints) {
 			waypoints.push_back(waypoint.position);
 		}
 		SetPath(waypoints);
 	} else {
-		Game::logger->Log("MovementAIComponent", "No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
+		LOG("No path found for %i:%llu", m_Parent->GetLOT(), m_Parent->GetObjectID());
 	}
 }
 
@@ -270,7 +270,7 @@ bool MovementAIComponent::Warp(const NiPoint3& point) {
 void MovementAIComponent::Pause() {
 	if (AtFinalWaypoint() || IsPaused()) return;
 	SetPosition(ApproximateLocation());
-	SetVelocity(NiPoint3::ZERO);
+	SetVelocity(NiPoint3Constant::ZERO);
 
 	// Clear this as we may be somewhere else when we resume movement.
 	m_InterpolatedWaypoints.clear();
@@ -325,7 +325,7 @@ const NiPoint3& MovementAIComponent::GetCurrentPathWaypoint() const {
 	return m_CurrentPath.at(m_CurrentPathWaypointIndex);
 }
 
-void MovementAIComponent::SetPath(std::vector<NiPoint3> path, bool startInReverse) {
+void MovementAIComponent::SetPath(const std::vector<NiPoint3>& path, bool startInReverse) {
 	if (path.empty()) return;
 	m_CurrentPath = path;
 	m_IsInReverse = startInReverse;
@@ -549,11 +549,11 @@ void MovementAIComponent::HandleWaypointArrived(uint32_t commandIndex) {
 		GameMessages::SendPlayNDAudioEmitter(m_Parent, UNASSIGNED_SYSTEM_ADDRESS, data);
 		break;
 	case eWaypointCommandType::BOUNCE:
-		Game::logger->LogDebug("MovementAIComponent", "Unable to process bounce waypoint command server side!");
+		LOG("Unable to process bounce waypoint command server side!");
 		break;
 	case eWaypointCommandType::INVALID:
 	default:
-		Game::logger->LogDebug("MovementAIComponent", "Got invalid waypoint command %i", command);
+		LOG("Got invalid waypoint command %i", command);
 		break;
 	}
 
@@ -583,20 +583,18 @@ void MovementAIComponent::HandleWaypointCommandCastSkill(const std::string& data
 	if (data.empty()) return;
 	auto* skillComponent = m_Parent->GetComponent<SkillComponent>();
 	if (!skillComponent) {
-		Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandCastSkill", "Skill component not found!");
+		LOG("Skill component not found!");
 		return;
 	}
-	uint32_t skillId = 0;
-	if (!GeneralUtils::TryParse<uint32_t>(data, skillId)) return;
-	if (skillId != 0) skillComponent->CastSkill(skillId);
-	return;
+	auto skillId = GeneralUtils::TryParse<uint32_t>(data);
+	if (skillId && skillId != 0) skillComponent->CastSkill(skillId.value());
 }
 
 void MovementAIComponent::HandleWaypointCommandEquipInventory(const std::string& data) {
 	if (data.empty()) return;
 	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) {
-		Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandEquipInventory", "Inventory component not found!");
+		LOG("Inventory component not found!");
 		return;
 	}
 	// the client says use slot 0 of items
@@ -611,7 +609,7 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(const std::strin
 	if (data.empty()) return;
 	auto* inventoryComponent = m_Parent->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) {
-		Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandEquipInventory", "Inventory component not found!");
+		LOG("Inventory component not found!");
 		return;
 	}
 	// the client says use slot 0 of items
@@ -623,35 +621,50 @@ void MovementAIComponent::HandleWaypointCommandUnequipInventory(const std::strin
 }
 
 float MovementAIComponent::HandleWaypointCommandDelay(const std::string& data) {
-	float delay = 0.0f;
-	std::string delayString = data;
-	if (!GeneralUtils::TryParse<float>(delayString, delay)) {
-		Game::logger->LogDebug("MovementAIComponentAronwk", "Failed to parse delay %s", data.c_str());
+	auto delay = GeneralUtils::TryParse<float>(data);
+	if (!delay) {
+		LOG("Failed to parse delay %s", data.c_str());
 	}
-	return delay;
+	return delay.value_or(0.0f);
 }
 
 void MovementAIComponent::HandleWaypointCommandTeleport(const std::string& data) {
 	auto posString = GeneralUtils::SplitString(data, ',');
 	if (posString.size() == 0) return;
 	auto newPos = NiPoint3();
-	if (posString.size() == 1 && !GeneralUtils::TryParse<float>(posString.at(0), newPos.x)) return;
-	if (posString.size() == 2 && !GeneralUtils::TryParse<float>(posString.at(1), newPos.y)) return;
-	if (posString.size() == 3 && !GeneralUtils::TryParse<float>(posString.at(2), newPos.z)) return;
-	GameMessages::SendTeleport(m_Parent->GetObjectID(), newPos, NiQuaternion::IDENTITY, UNASSIGNED_SYSTEM_ADDRESS);
+	std::optional<float> intermediate;
+	if (posString.size() >= 1) {
+		intermediate = GeneralUtils::TryParse<float>(posString.at(0));
+		if (!intermediate) return;
+
+		newPos.x = intermediate.value();
+		if (posString.size() >= 2) {
+			intermediate = GeneralUtils::TryParse<float>(posString.at(1));
+			if (!intermediate) return;
+
+			newPos.y = intermediate.value();
+			if (posString.size() >= 3) {
+				intermediate = GeneralUtils::TryParse<float>(posString.at(2));
+				if (!intermediate) return;
+
+				newPos.z = intermediate.value();
+			}
+		}
+	}
+	GameMessages::SendTeleport(m_Parent->GetObjectID(), newPos, NiQuaternionConstant::IDENTITY, UNASSIGNED_SYSTEM_ADDRESS);
 }
 
 void MovementAIComponent::HandleWaypointCommandPathSpeed(const std::string& data) {
-	float speed = 0.0;
-	if (!GeneralUtils::TryParse<float>(data, speed)) return;
-	SetMaxSpeed(speed);
+	auto speed = GeneralUtils::TryParse<float>(data);
+	if (!speed) return;
+	SetMaxSpeed(speed.value());
 }
 
 void MovementAIComponent::HandleWaypointCommandRemoveNPC(const std::string& data) {
 	if (data.empty()) return;
 	auto* proximityMonitorComponent = m_Parent->GetComponent<ProximityMonitorComponent>();
 	if (!proximityMonitorComponent) {
-		Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandRemoveNPC", "Proximity monitor component not found!");
+		LOG("Proximity monitor component not found!");
 		return;
 	}
 	const auto foundObjs = proximityMonitorComponent->GetProximityObjects("KillOBJS");
@@ -660,11 +673,13 @@ void MovementAIComponent::HandleWaypointCommandRemoveNPC(const std::string& data
 		if (!entity) return;
 		auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) {
-			Game::logger->LogDebug("MovementAIComponent::HandleWaypointCommandRemoveNPC", "Destroyable component not found!");
+			LOG("Destroyable component not found!");
 			return;
 		}
-		uint32_t factionID = -1;
-		if (!GeneralUtils::TryParse<uint32_t>(data, factionID)) return;
+		int32_t factionID = -1;
+		auto parsed = GeneralUtils::TryParse<uint32_t>(data);
+		if (!parsed) return;
+		factionID = parsed.value();
 		if (destroyableComponent->BelongsToFaction(factionID)) m_Parent->Kill();
 	}
 }
@@ -676,7 +691,9 @@ void MovementAIComponent::HandleWaypointCommandChangeWaypoint(const std::string&
 	if (data.find(",") != std::string::npos) {
 		auto datas = GeneralUtils::SplitString(data, ',');
 		path_string = datas.at(0);
-		if (!GeneralUtils::TryParse(datas.at(1), index)) return;
+		auto parsed = GeneralUtils::TryParse<int32_t>(datas.at(1));
+		if (!parsed) return;
+		index = parsed.value();
 	} else path_string = data;
 
 	if (path_string != "") {
@@ -687,7 +704,9 @@ void MovementAIComponent::HandleWaypointCommandChangeWaypoint(const std::string&
 
 void MovementAIComponent::HandleWaypointCommandSpawnObject(const std::string& data) {
 	LOT newObjectLOT = 0;
-	if (!GeneralUtils::TryParse(data, newObjectLOT)) return;
+	auto parsed = GeneralUtils::TryParse<LOT>(data);
+	if (!parsed) return;
+	newObjectLOT = parsed.value();
 	EntityInfo info{};
 	info.lot = newObjectLOT;
 	info.pos = m_Parent->GetPosition();

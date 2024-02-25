@@ -67,7 +67,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_IsOnGround);
 		outBitStream->Write(m_IsOnRail);
 
-		bool isVelocityZero = m_Velocity == NiPoint3::ZERO;
+		bool isVelocityZero = m_Velocity == NiPoint3Constant::ZERO;
 
 		outBitStream->Write(isVelocityZero);
 		if (isVelocityZero) {
@@ -76,7 +76,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 			outBitStream->Write(m_Velocity.z);
 		}
 
-		bool isAngularVelocityZero = m_AngularVelocity == NiPoint3::ZERO;
+		bool isAngularVelocityZero = m_AngularVelocity == NiPoint3Constant::ZERO;
 		outBitStream->Write(isAngularVelocityZero);
 		if (isAngularVelocityZero) {
 			outBitStream->Write(m_AngularVelocity.x);

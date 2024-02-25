@@ -420,7 +420,7 @@ void Zone::LoadPath(std::istream& file) {
 
 		if (path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
-			BinaryIO::BinaryRead(file, waypoint.speed);
+			BinaryIO::BinaryRead(file, waypoint.movingPlatform.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
 			if (path.pathVersion >= 13) {
 				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.departSound, BinaryIO::ReadType::WideString);
@@ -439,7 +439,7 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
 			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		} else if (path.pathType == PathType::Rail) {
-			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.speed);
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
 		}
 
 		// object LDF configs
@@ -460,7 +460,7 @@ void Zone::LoadPath(std::istream& file) {
 					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
 					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
 					if (waypointCommand != eWaypointCommandType::INVALID) waypoint.commands.push_back(WaypointCommand(waypointCommand, value));
-					else Game::logger->Log("Zone", "Tried to load invalid waypoint command '%s'", parameter.c_str());
+					else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
 					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
 					if (ldfConfig) waypoint.config.push_back(ldfConfig);

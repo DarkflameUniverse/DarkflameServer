@@ -227,9 +227,9 @@ void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::stri
 	if (!movementAIComponent) return;
 	movementAIComponent->SetupPath(argArray.at(0));
 	if (argArray.size() >= 2) {
-		int32_t index = 0;
-		if (!GeneralUtils::TryParse(argArray.at(1), index)) return;
-		movementAIComponent->SetPathStartingWaypointIndex(index);
+		auto index = GeneralUtils::TryParse<int32_t>(argArray.at(1));
+		if (!index) return;
+		movementAIComponent->SetPathStartingWaypointIndex(index.value());
 	}
 	if (argArray.size() >= 3 && argArray.at(2) == "1") movementAIComponent->ReversePath();
 }

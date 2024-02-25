@@ -162,7 +162,7 @@ void MovingPlatformComponent::StartPathing() {
 		const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
 
 		subComponent->mPosition = currentWaypoint.position;
-		subComponent->mSpeed = currentWaypoint.speed;
+		subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
 		subComponent->mWaitTime = currentWaypoint.movingPlatform.wait;
 
 		targetPosition = nextWaypoint.position;
@@ -213,7 +213,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
 
 		subComponent->mPosition = currentWaypoint.position;
-		subComponent->mSpeed = currentWaypoint.speed;
+		subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
 		subComponent->mWaitTime = currentWaypoint.movingPlatform.wait; // + 2;
 
 		pathSize = m_Path->pathWaypoints.size() - 1;
