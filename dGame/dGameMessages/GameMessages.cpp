@@ -78,6 +78,7 @@
 #include "LevelProgressionComponent.h"
 #include "DonationVendorComponent.h"
 #include "GhostComponent.h"
+#include "AchievementVendorComponent.h"
 
 // Message includes:
 #include "dZoneManager.h"
@@ -97,6 +98,7 @@
 #include "ePetAbilityType.h"
 #include "ActivityManager.h"
 #include "PlayerManager.h"
+#include "eVendorTransactionResult.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -1323,15 +1325,14 @@ void GameMessages::SendVendorStatusUpdate(Entity* entity, const SystemAddress& s
 	SEND_PACKET;
 }
 
-void GameMessages::SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr) {
+void GameMessages::SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result) {
 	CBITSTREAM;
 	CMSGHEADER;
 
-	int iResult = 0x02; // success, seems to be the only relevant one
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::VENDOR_TRANSACTION_RESULT);
-	bitStream.Write(iResult);
+	bitStream.Write(result);
 
 	SEND_PACKET;
 }
@@ -4664,94 +4665,27 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* enti
 	if (!user) return;
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
+	
+	// handle buying normal items
+	auto* vendorComponent = entity->GetComponent<VendorComponent>();
+	if (vendorComponent) {
+		vendorComponent->Buy(player, item, count);
+		return;
+	}
 
-	auto* propertyVendorComponent = static_cast<PropertyVendorComponent*>(entity->GetComponent(eReplicaComponentType::PROPERTY_VENDOR));
+	// handle buying achievement items
+	auto* achievementVendorComponent = entity->GetComponent<AchievementVendorComponent>();
+	if (achievementVendorComponent) {
+		achievementVendorComponent->Buy(player, item, count);
+		return;
+	}
 
-	if (propertyVendorComponent != nullptr) {
+	// Handle buying properties
+	auto* propertyVendorComponent = entity->GetComponent<PropertyVendorComponent>();
+	if (propertyVendorComponent) {
 		propertyVendorComponent->OnBuyFromVendor(player, bConfirmed, item, count);
-
 		return;
 	}
-
-	const auto isCommendationVendor = entity->GetLOT() == 13806;
-
-	auto* vend = entity->GetComponent<VendorComponent>();
-	if (!vend && !isCommendationVendor) return;
-
-	auto* inv = player->GetComponent<InventoryComponent>();
-	if (!inv) return;
-
-	if (!isCommendationVendor && !vend->SellsItem(item)) {
-		LOG("User %llu %s tried to buy an item %i from a vendor when they do not sell said item", player->GetObjectID(), user->GetUsername().c_str(), item);
-		return;
-	}
-
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
-
-	int itemCompID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM);
-	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
-
-	Character* character = player->GetCharacter();
-	if (!character) return;
-
-	// Extra currency that needs to be deducted in case of crafting
-	auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
-	for (const auto& craftingCurrency : craftingCurrencies) {
-		inv->RemoveItem(craftingCurrency.first, craftingCurrency.second * count);
-	}
-
-	if (isCommendationVendor) {
-		if (itemComp.commendationLOT != 13763) {
-			return;
-		}
-
-		auto* missionComponent = player->GetComponent<MissionComponent>();
-
-		if (missionComponent == nullptr) {
-			return;
-		}
-
-		LOT tokenId = -1;
-
-		if (missionComponent->GetMissionState(545) == eMissionState::COMPLETE) tokenId = 8318; // "Assembly Token"
-		if (missionComponent->GetMissionState(556) == eMissionState::COMPLETE) tokenId = 8321; // "Venture League Token"
-		if (missionComponent->GetMissionState(567) == eMissionState::COMPLETE) tokenId = 8319; // "Sentinels Token"
-		if (missionComponent->GetMissionState(578) == eMissionState::COMPLETE) tokenId = 8320; // "Paradox Token"
-
-		const uint32_t altCurrencyCost = itemComp.commendationCost * count;
-
-		if (inv->GetLotCount(tokenId) < altCurrencyCost) {
-			return;
-		}
-
-		inv->RemoveItem(tokenId, altCurrencyCost);
-
-		inv->AddItem(item, count, eLootSourceType::VENDOR);
-	} else {
-		float buyScalar = vend->GetBuyScalar();
-
-		const auto coinCost = static_cast<uint32_t>(std::floor((itemComp.baseValue * buyScalar) * count));
-
-		if (character->GetCoins() < coinCost) {
-			return;
-		}
-
-		if (Inventory::IsValidItem(itemComp.currencyLOT)) {
-			const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * buyScalar) * count;
-
-			if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
-				return;
-			}
-
-			inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
-		}
-
-		character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR);
-		inv->AddItem(item, count, eLootSourceType::VENDOR);
-	}
-
-	GameMessages::SendVendorTransactionResult(entity, sysAddr);
 }
 
 void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4785,7 +4719,10 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 
 	// Items with a base value of 0 or max int are special items that should not be sold if they're not sub items
-	if (itemComp.baseValue == 0 || itemComp.baseValue == UINT_MAX) return;
+	if (itemComp.baseValue == 0 || itemComp.baseValue == UINT_MAX) {
+		GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::SELL_FAIL);
+		return;
+	}
 
 	float sellScalar = vend->GetSellScalar();
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
@@ -4793,11 +4730,9 @@ void GameMessages::HandleSellToVendor(RakNet::BitStream* inStream, Entity* entit
 		inv->AddItem(itemComp.currencyLOT, std::floor(altCurrency), eLootSourceType::VENDOR); // Return alt currencies like faction tokens.
 	}
 
-	//inv->RemoveItem(count, -1, iObjID);
 	inv->MoveItemToInventory(item, eInventoryType::VENDOR_BUYBACK, count, true, false, true);
 	character->SetCoins(std::floor(character->GetCoins() + (static_cast<uint32_t>(itemComp.baseValue * sellScalar) * count)), eLootSourceType::VENDOR);
-	//Game::entityManager->SerializeEntity(player); // so inventory updates
-	GameMessages::SendVendorTransactionResult(entity, sysAddr);
+	GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::SELL_SUCCESS);
 }
 
 void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4839,16 +4774,16 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	const auto cost = static_cast<uint32_t>(std::floor(((itemComp.baseValue * sellScalar) * count)));
 
 	if (character->GetCoins() < cost) {
+		GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * sellScalar) * count;
-
 		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
+			GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
-
 		inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 	}
 
@@ -4856,7 +4791,7 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* 
 	inv->MoveItemToInventory(item, Inventory::FindInventoryTypeForLot(item->GetLot()), count, true, false);
 	character->SetCoins(character->GetCoins() - cost, eLootSourceType::VENDOR);
 	//Game::entityManager->SerializeEntity(player); // so inventory updates
-	GameMessages::SendVendorTransactionResult(entity, sysAddr);
+	GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_SUCCESS);
 }
 
 void GameMessages::HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr) {

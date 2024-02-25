@@ -82,6 +82,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "GhostComponent.h"
+#include "AchievementVendorComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -615,6 +616,8 @@ void Entity::Initialize() {
 		AddComponent<VendorComponent>();
 	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1) != -1)) {
 		AddComponent<DonationVendorComponent>();
+	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1) != -1)) {
+		AddComponent<AchievementVendorComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
@@ -1189,6 +1192,11 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	DonationVendorComponent* donationVendorComponent;
 	if (TryGetComponent(eReplicaComponentType::DONATION_VENDOR, donationVendorComponent)) {
 		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
+	AchievementVendorComponent* achievementVendorComponent;
+	if (TryGetComponent(eReplicaComponentType::ACHIEVEMENT_VENDOR, achievementVendorComponent)) {
+		achievementVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
 	BouncerComponent* bouncerComponent;
