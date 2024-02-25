@@ -153,7 +153,7 @@ public:
 		return std::make_pair(val, found);
 	}
 
-	// Associates an array with a string keys
+	// Associates an array with a string key
 	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const std::string_view key) {
 		const auto element = m_Associative.find(key);
 		AMFArrayValue* val = nullptr;
@@ -211,7 +211,7 @@ public:
 	 * @param value The value to insert
 	 */
 	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
-		auto element = m_Associative.find(key);
+		const auto element = m_Associative.find(key);
 		if (element != m_Associative.end() && element->second) {
 			element->second = std::move(value);
 		} else {
@@ -275,7 +275,6 @@ public:
 	}
 
 	void Pop() {
-		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 	}
 
