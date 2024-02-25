@@ -248,7 +248,6 @@ public:
 	template <typename ValueType>
 	[[maybe_unused]] inline AMFValue<ValueType>* Push(const ValueType value) {
 		return Insert(m_Dense.size(), value).first;
-		return Insert(m_Dense.size(), value).first;
 	}
 
 	/**
@@ -276,6 +275,7 @@ public:
 	}
 
 	void Pop() {
+		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 	}
 
