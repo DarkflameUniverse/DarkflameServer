@@ -95,39 +95,39 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 }
 
 //Because we need it:
-std::string ReadWStringAsString(RakNet::BitStream* bitStream, uint32_t size) {
+std::string ReadWStringAsString(RakNet::BitStream& bitStream, uint32_t size) {
 	std::string toReturn = "";
 	uint8_t buffer;
 	bool isFinishedReading = false;
 
 	for (uint32_t i = 0; i < size; ++i) {
-		bitStream->Read(buffer);
+		bitStream.Read(buffer);
 		if (!isFinishedReading) toReturn.push_back(buffer);
 		if (buffer == '\0') isFinishedReading = true; //so we don't continue to read garbage as part of the string.
-		bitStream->Read(buffer); //Read the null term
+		bitStream.Read(buffer); //Read the null term
 	}
 
 	return toReturn;
 }
 
-void WriteStringAsWString(RakNet::BitStream* bitStream, std::string str, uint32_t size) {
+void WriteStringAsWString(RakNet::BitStream& bitStream, std::string str, uint32_t size) {
 	uint32_t sizeToFill = size - str.size();
 
 	for (uint32_t i = 0; i < str.size(); ++i) {
-		bitStream->Write(str[i]);
-		bitStream->Write(uint8_t(0));
+		bitStream.Write(str[i]);
+		bitStream.Write(uint8_t(0));
 	}
 
 	for (uint32_t i = 0; i < sizeToFill; ++i) {
-		bitStream->Write(uint16_t(0));
+		bitStream.Write(uint16_t(0));
 	}
 }
 
-void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* entity) {
+void Mail::HandleMailStuff(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
 	int mailStuffID = 0;
-	packet->Read(mailStuffID);
+	packet.Read(mailStuffID);
 
-	auto returnVal = std::async(std::launch::async, [packet, &sysAddr, entity, mailStuffID]() {
+	auto returnVal = std::async(std::launch::async, [&packet, &sysAddr, entity, mailStuffID]() {
 		Mail::MailMessageID stuffID = MailMessageID(mailStuffID);
 		switch (stuffID) {
 		case MailMessageID::AttachmentCollect:
@@ -154,7 +154,7 @@ void Mail::HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAd
 		});
 }
 
-void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* entity) {
+void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
 	//std::string subject = GeneralUtils::WStringToString(ReadFromPacket(packet, 50));
 	//std::string body = GeneralUtils::WStringToString(ReadFromPacket(packet, 400));
 	//std::string recipient = GeneralUtils::WStringToString(ReadFromPacket(packet, 32));
@@ -186,9 +186,9 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	LWOOBJID attachmentID;
 	uint16_t attachmentCount;
 
-	packet->Read(unknown64);
-	packet->Read(attachmentID);
-	packet->Read(attachmentCount); //We don't care about the rest of the packet.
+	packet.Read(unknown64);
+	packet.Read(attachmentID);
+	packet.Read(attachmentCount); //We don't care about the rest of the packet.
 	uint32_t itemID = static_cast<uint32_t>(attachmentID);
 	LOT itemLOT = 0;
 	//Inventory::InventoryType itemType;
@@ -261,7 +261,7 @@ void Mail::HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAdd
 	character->SaveXMLToDatabase();
 }
 
-void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {
+void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
 	auto playerMail = Database::Get()->GetMailForPlayer(player->GetCharacter()->GetID(), 20);
 
 	RakNet::BitStream bitStream;
@@ -275,9 +275,9 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	for (const auto& mail : playerMail) {
 		bitStream.Write(mail.id); //MailID
 
-		WriteStringAsWString(&bitStream, mail.subject.c_str(), 50); //subject
-		WriteStringAsWString(&bitStream, mail.body.c_str(), 400); //body
-		WriteStringAsWString(&bitStream, mail.senderUsername.c_str(), 32); //sender
+		WriteStringAsWString(bitStream, mail.subject.c_str(), 50); //subject
+		WriteStringAsWString(bitStream, mail.body.c_str(), 400); //body
+		WriteStringAsWString(bitStream, mail.senderUsername.c_str(), 32); //sender
 
 		bitStream.Write(uint32_t(0));
 		bitStream.Write(uint64_t(0));
@@ -306,13 +306,13 @@ void Mail::HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sys
 	Game::server->Send(&bitStream, sysAddr, false);
 }
 
-void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player) {
+void Mail::HandleAttachmentCollect(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
 	int unknown;
 	uint64_t mailID;
 	LWOOBJID playerID;
-	packet->Read(unknown);
-	packet->Read(mailID);
-	packet->Read(playerID);
+	packet.Read(unknown);
+	packet.Read(mailID);
+	packet.Read(playerID);
 
 	if (mailID > 0 && playerID == player->GetObjectID()) {
 		auto playerMail = Database::Get()->GetMail(mailID);
@@ -336,22 +336,22 @@ void Mail::HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddres
 	}
 }
 
-void Mail::HandleMailDelete(RakNet::BitStream* packet, const SystemAddress& sysAddr) {
+void Mail::HandleMailDelete(RakNet::BitStream& packet, const SystemAddress& sysAddr) {
 	int unknown;
 	uint64_t mailID;
 	LWOOBJID playerID;
-	packet->Read(unknown);
-	packet->Read(mailID);
-	packet->Read(playerID);
+	packet.Read(unknown);
+	packet.Read(mailID);
+	packet.Read(playerID);
 
 	if (mailID > 0) Mail::SendDeleteConfirm(sysAddr, mailID, playerID);
 }
 
-void Mail::HandleMailRead(RakNet::BitStream* packet, const SystemAddress& sysAddr) {
+void Mail::HandleMailRead(RakNet::BitStream& packet, const SystemAddress& sysAddr) {
 	int unknown;
 	uint64_t mailID;
-	packet->Read(unknown);
-	packet->Read(mailID);
+	packet.Read(unknown);
+	packet.Read(mailID);
 
 	if (mailID > 0) Mail::SendReadConfirm(sysAddr, mailID);
 }
