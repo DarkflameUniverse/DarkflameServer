@@ -295,6 +295,8 @@ public:
 
 	void ProcessPositionUpdate(PositionUpdate& update);
 
+	void SetScale(const float scale);
+
 protected:
 	LWOOBJID m_ObjectID;
 
