@@ -327,7 +327,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.sBitStream = startSkill.sBitStream;
 			echoStartSkill.skillID = startSkill.skillID;
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-			echoStartSkill.Serialize(&bitStreamLocal);
+			echoStartSkill.Serialize(bitStreamLocal);
 
 			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
 		}
