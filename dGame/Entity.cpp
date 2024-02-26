@@ -943,7 +943,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 			for (LDFBaseData* data : m_Settings) {
 				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
@@ -963,7 +963,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			settingStream.Write<uint32_t>(ldfData.size());
 			for (LDFBaseData* data : ldfData) {
 				if (data) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
