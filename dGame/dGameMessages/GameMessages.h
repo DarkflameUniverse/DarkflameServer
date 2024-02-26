@@ -38,6 +38,7 @@ enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
 enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
+enum class eVendorTransactionResult : uint32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -135,7 +136,7 @@ namespace GameMessages {
 
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
 	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
-	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr);
+	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result);
 
 	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);
 	void SendConsumeClientItem(Entity* entity, bool bSuccess, LWOOBJID item);
