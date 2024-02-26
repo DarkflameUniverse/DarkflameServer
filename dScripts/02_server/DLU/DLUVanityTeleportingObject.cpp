@@ -5,20 +5,17 @@
 #include "RenderComponent.h"
 
 void DLUVanityTeleportingObject::OnStartup(Entity* self) {
-	if (!self->HasVar(u"npcName") || !self->HasVar(u"teleport")) return;
-	m_Object = VanityUtilities::GetObject(self->GetVarAsString(u"npcName"));
+	if (!self->HasVar(u"npcName")) return;
 
+	m_Object = VanityUtilities::GetObject(self->GetVarAsString(u"npcName"));
 	if (!m_Object) return;
 	if (self->HasVar(u"teleportInterval")) m_TeleportInterval = self->GetVar<float>(u"teleportInterval");
 
-	if (self->GetVar<bool>(u"teleport")) {
-		self->AddTimer("setupTeleport", m_TeleportInterval);
-	}
+	self->AddTimer("setupTeleport", m_TeleportInterval);
 }
 
 void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "setupTeleport") {
-		RenderComponent::PlayAnimation(self, u"interact");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
 
@@ -40,7 +37,6 @@ void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName
 
 		self->SetPosition(newLocation.m_Position);
 		self->SetRotation(newLocation.m_Rotation);
-		self->SetScale(newLocation.m_Scale);
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportBeam", "teleportBeam");
 		GameMessages::SendPlayFXEffect(self->GetObjectID(), 6478, u"teleportRings", "teleportRings");
 		self->AddTimer("stopFX", 2.0f);
