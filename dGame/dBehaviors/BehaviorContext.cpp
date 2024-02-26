@@ -256,7 +256,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 
 			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
-			echo.Serialize(&message);
+			echo.Serialize(message);
 
 			Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}

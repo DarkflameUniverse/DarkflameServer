@@ -362,7 +362,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
 		echo.uiSkillHandle = sync.uiSkillHandle;
 
-		echo.Serialize(&bitStreamLocal);
+		echo.Serialize(bitStreamLocal);
 
 		Game::server->Send(&bitStreamLocal, sysAddr, true);
 	} break;
