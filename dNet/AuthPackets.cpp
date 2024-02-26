@@ -28,10 +28,10 @@ namespace {
 	std::vector<uint32_t> claimCodes;
 }
 
-void Stamp::Serialize(RakNet::BitStream* outBitStream){
-	outBitStream->Write(type);
-	outBitStream->Write(value);
-	outBitStream->Write(timestamp);
+void Stamp::Serialize(RakNet::BitStream& outBitStream){
+	outBitStream.Write(type);
+	outBitStream.Write(value);
+	outBitStream.Write(timestamp);
 };
 
 void AuthPackets::LoadClaimCodes() {
@@ -291,7 +291,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, 1);
 
 	loginResponse.Write<uint32_t>((sizeof(Stamp) * stamps.size()) + sizeof(uint32_t));
-	for (auto& stamp : stamps) stamp.Serialize(&loginResponse);
+	for (auto& stamp : stamps) stamp.Serialize(loginResponse);
 
 	server->Send(&loginResponse, sysAddr, false);
 	//Inform the master server that we've created a session for this user:
