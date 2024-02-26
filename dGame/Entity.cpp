@@ -734,7 +734,7 @@ void Entity::Initialize() {
 		if (path->pathType == PathType::MovingPlatform) {
 			AddComponent<MovingPlatformComponent>(pathName);
 		} else if (path->pathType == PathType::Movement) {
-			AddComponent<MovementAIComponent>(MovementAIInfo())->SetupPath(pathName);
+			AddComponent<MovementAIComponent>(MovementAIInfo{})->SetupPath(pathName);
 		}
 	} else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path

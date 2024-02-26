@@ -68,7 +68,7 @@ float MovementAIComponent::GetCurrentPathWaypointSpeed() const {
 	if (!m_Path || m_CurrentPathWaypointIndex >= m_CurrentPath.size() || m_CurrentPathWaypointIndex < 0) {
 		return 1.0f;
 	}
-	return m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).speed;
+	return m_Path->pathWaypoints.at(m_CurrentPathWaypointIndex).movingPlatform.speed;
 }
 
 void MovementAIComponent::SetupPath(const std::string& pathname) {
