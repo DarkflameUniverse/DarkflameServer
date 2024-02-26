@@ -21,8 +21,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 	m_InJetpackMode = false;
 	m_IsOnGround = true;
 	m_IsOnRail = false;
-	m_DirtyVelocity = true;
-	m_DirtyAngularVelocity = true;
 	m_dpEntity = nullptr;
 	m_Static = false;
 	m_SpeedMultiplier = 1;
@@ -135,26 +133,28 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bo
 		outBitStream->Write(m_IsOnGround);
 		outBitStream->Write(m_IsOnRail);
 
-		outBitStream->Write(m_DirtyVelocity);
-		if (m_DirtyVelocity) {
+		bool isNotZero = m_Velocity != NiPoint3Constant::ZERO;
+		outBitStream->Write(isNotZero);
+		if (isNotZero) {
 			outBitStream->Write(m_Velocity.x);
 			outBitStream->Write(m_Velocity.y);
 			outBitStream->Write(m_Velocity.z);
 		}
 
-		outBitStream->Write(m_DirtyAngularVelocity);
-		if (m_DirtyAngularVelocity) {
+		isNotZero = m_AngularVelocity != NiPoint3Constant::ZERO;
+		outBitStream->Write(isNotZero);
+		if (isNotZero) {
 			outBitStream->Write(m_AngularVelocity.x);
 			outBitStream->Write(m_AngularVelocity.y);
 			outBitStream->Write(m_AngularVelocity.z);
 		}
 
 		outBitStream->Write0();
-	}
-
-	if (!bIsInitialUpdate) {
-		outBitStream->Write(m_IsTeleporting);
-		m_IsTeleporting = false;
+		if (!bIsInitialUpdate) {
+			m_DirtyPosition = false;
+			outBitStream->Write(m_IsTeleporting);
+			m_IsTeleporting = false;
+		}
 	}
 }
 
@@ -211,33 +211,29 @@ void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
 }
 
 void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
-	if (m_Static) {
-		return;
-	}
+	if (m_Static || m_Velocity == vel) return;
 
 	m_Velocity = vel;
 	m_DirtyPosition = true;
-	m_DirtyVelocity = true;
 
 	if (m_dpEntity) m_dpEntity->SetVelocity(vel);
 }
 
 void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
-	if (m_Static) {
-		return;
-	}
+	if (m_Static || m_AngularVelocity == vel) return;
 
 	m_AngularVelocity = vel;
 	m_DirtyPosition = true;
-	m_DirtyAngularVelocity = true;
 }
 
 void ControllablePhysicsComponent::SetIsOnGround(bool val) {
+	if (m_IsOnGround == val) return;
 	m_DirtyPosition = true;
 	m_IsOnGround = val;
 }
 
 void ControllablePhysicsComponent::SetIsOnRail(bool val) {
+	if (m_IsOnRail == val) return;
 	m_DirtyPosition = true;
 	m_IsOnRail = val;
 }
@@ -245,15 +241,6 @@ void ControllablePhysicsComponent::SetIsOnRail(bool val) {
 void ControllablePhysicsComponent::SetDirtyPosition(bool val) {
 	m_DirtyPosition = val;
 }
-
-void ControllablePhysicsComponent::SetDirtyVelocity(bool val) {
-	m_DirtyVelocity = val;
-}
-
-void ControllablePhysicsComponent::SetDirtyAngularVelocity(bool val) {
-	m_DirtyAngularVelocity = val;
-}
-
 void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
 	m_ActivePickupRadiusScales.push_back(value);
 	if (value > m_PickupRadius) {
@@ -309,7 +296,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims){
+void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {
 	if (m_IsInBubble) {
 		LOG("Already in bubble");
 		return;
@@ -321,7 +308,7 @@ void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bo
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ControllablePhysicsComponent::DeactivateBubbleBuff(){
+void ControllablePhysicsComponent::DeactivateBubbleBuff() {
 	m_DirtyBubble = true;
 	m_IsInBubble = false;
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -336,9 +323,9 @@ void ControllablePhysicsComponent::SetStunImmunity(
 	const bool bImmuneToStunJump,
 	const bool bImmuneToStunMove,
 	const bool bImmuneToStunTurn,
-	const bool bImmuneToStunUseItem){
+	const bool bImmuneToStunUseItem) {
 
-	if (state == eStateChangeType::POP){
+	if (state == eStateChangeType::POP) {
 		if (bImmuneToStunAttack && m_ImmuneToStunAttackCount > 0) 		m_ImmuneToStunAttackCount -= 1;
 		if (bImmuneToStunEquip && m_ImmuneToStunEquipCount > 0) 		m_ImmuneToStunEquipCount -= 1;
 		if (bImmuneToStunInteract && m_ImmuneToStunInteractCount > 0) 	m_ImmuneToStunInteractCount -= 1;

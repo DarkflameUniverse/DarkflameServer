@@ -17,8 +17,6 @@ public:
 
 	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
 
-	void Update(float deltaTime) override;
-
 	/**
 	 * Sets the velocity
 	 * @param vel the new velocity
@@ -67,22 +65,16 @@ public:
 	 */
 	const bool GetIsOnRail() const { return m_IsOnRail; }
 
-	void SetDirtyPosition(bool val);
-	void SetDirtyVelocity(bool val);
-	void SetDirtyAngularVelocity(bool val);
 	void SetRemoteInputInfo(const RemoteInputInfo&);
 
 private:
-	bool m_DirtyVelocity;
 	NiPoint3 m_Velocity;
-
-	bool m_DirtyAngularVelocity;
 	NiPoint3 m_AngularVelocity;
+
 	bool m_IsOnGround;
 	bool m_IsOnRail;
 
 	float m_SoftUpdate = 0;
 	uint32_t m_EndBehavior;
 	RemoteInputInfo m_RemoteInputInfo;
-	bool m_DirtyRemoteInput;
 };
