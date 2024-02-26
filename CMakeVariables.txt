@@ -19,7 +19,7 @@ INCLUDE_BACKTRACE=0
 COMPILE_BACKTRACE=0
 
 # Set to the number of jobs (make -j equivalent) to compile the mariadbconn files with.
-MARIADB_CONNECTOR_COMPILE_JOBS=
+MARIADB_CONNECTOR_COMPILE_JOBS=1
 
 # When set to 1 and uncommented, compiling and linking testing folders and libraries will be done.
 ENABLE_TESTING=1
