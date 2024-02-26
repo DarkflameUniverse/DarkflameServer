@@ -1,6 +1,6 @@
 #include "MigrateActionsMessage.h"
 
-MigrateActionsMessage::MigrateActionsMessage(const AMFArrayValue* arguments)
+MigrateActionsMessage::MigrateActionsMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_SrcActionIndex{ GetActionIndexFromArgument(arguments, "srcActionIndex") }
 	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }

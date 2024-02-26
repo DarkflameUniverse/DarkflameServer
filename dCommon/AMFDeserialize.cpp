@@ -129,10 +129,10 @@ AMFBaseValue* AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
 	auto arrayValue = new AMFArrayValue();
 
 	// Read size of dense array
-	auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
+	const auto sizeOfDenseArray = (ReadU29(inStream) >> 1);
 	// Then read associative portion
 	while (true) {
-		auto key = ReadString(inStream);
+		const auto key = ReadString(inStream);
 		// No more associative values when we encounter an empty string key
 		if (key.size() == 0) break;
 		arrayValue->Insert(key, Read(inStream));

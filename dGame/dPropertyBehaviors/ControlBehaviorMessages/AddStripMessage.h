@@ -18,7 +18,7 @@ class AMFArrayValue;
  */
 class AddStripMessage : public BehaviorMessageBase {
 public:
-	AddStripMessage(const AMFArrayValue* arguments);
+	AddStripMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] const StripUiPosition& GetPosition() const noexcept { return m_Position; }
 

@@ -61,7 +61,7 @@ public:
 	 * @param args the arguments of the message to be deserialized
 	 */
 	template<typename Msg>
-	void HandleControlBehaviorsMsg(AMFArrayValue* args) {
+	void HandleControlBehaviorsMsg(const AMFArrayValue& args) {
 		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
 		Msg msg(args);
 		for (auto& behavior : m_Behaviors) {

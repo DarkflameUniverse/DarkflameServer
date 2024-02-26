@@ -1,6 +1,6 @@
 #include "RemoveActionsMessage.h"
 
-RemoveActionsMessage::RemoveActionsMessage(const AMFArrayValue* arguments)
+RemoveActionsMessage::RemoveActionsMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_ActionIndex{ GetActionIndexFromArgument(arguments) }
 	, m_ActionContext{ arguments } {
