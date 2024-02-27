@@ -52,8 +52,8 @@ public:
 	Packet* Receive();
 	void DeallocatePacket(Packet* packet);
 	void DeallocateMasterPacket(Packet* packet);
-	virtual void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
-	void SendToMaster(RakNet::BitStream* bitStream);
+	virtual void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast);
+	void SendToMaster(RakNet::BitStream& bitStream);
 
 	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 

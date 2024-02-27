@@ -5,7 +5,7 @@
 class ChangeOrientationBehavior final : public Behavior {
 public:
 	explicit ChangeOrientationBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {}
-	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 	void Load() override;
 private:
 	bool m_orientCaster;

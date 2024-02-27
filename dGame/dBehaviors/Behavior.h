@@ -68,9 +68,9 @@ public:
 	virtual void Load();
 
 	// Player side
-	virtual void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
-	virtual void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	virtual void UnCast(BehaviorContext* context, BehaviorBranchContext branch);
 
@@ -79,9 +79,9 @@ public:
 	virtual void End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second);
 
 	// Npc side
-	virtual void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
-	virtual void SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	/*
 	 * Creations/destruction

@@ -93,7 +93,7 @@ struct BehaviorContext
 
 	void ExecuteUpdates();
 
-	void SyncBehavior(uint32_t syncId, RakNet::BitStream* bitStream);
+	void SyncBehavior(uint32_t syncId, RakNet::BitStream& bitStream);
 
 	void Update(float deltaTime);
 

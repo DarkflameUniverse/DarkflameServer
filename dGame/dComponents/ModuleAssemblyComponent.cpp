@@ -46,20 +46,20 @@ const std::u16string& ModuleAssemblyComponent::GetAssemblyPartsLOTs() const {
 	return m_AssemblyPartsLOTs;
 }
 
-void ModuleAssemblyComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void ModuleAssemblyComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
-		outBitStream->Write1();
+		outBitStream.Write1();
 
-		outBitStream->Write(m_SubKey != LWOOBJID_EMPTY);
+		outBitStream.Write(m_SubKey != LWOOBJID_EMPTY);
 		if (m_SubKey != LWOOBJID_EMPTY) {
-			outBitStream->Write(m_SubKey);
+			outBitStream.Write(m_SubKey);
 		}
 
-		outBitStream->Write(m_UseOptionalParts);
+		outBitStream.Write(m_UseOptionalParts);
 
-		outBitStream->Write<uint16_t>(m_AssemblyPartsLOTs.size());
+		outBitStream.Write<uint16_t>(m_AssemblyPartsLOTs.size());
 		for (char16_t character : m_AssemblyPartsLOTs) {
-			outBitStream->Write(character);
+			outBitStream.Write(character);
 		}
 	}
 }

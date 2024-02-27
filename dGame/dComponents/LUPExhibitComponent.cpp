@@ -15,10 +15,10 @@ void LUPExhibitComponent::NextLUPExhibit() {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void LUPExhibitComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyLUPExhibit);
+void LUPExhibitComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyLUPExhibit);
 	if (m_DirtyLUPExhibit) {
-		outBitStream->Write(m_LUPExhibits[m_LUPExhibitIndex % m_LUPExhibits.size()]);
+		outBitStream.Write(m_LUPExhibits[m_LUPExhibitIndex % m_LUPExhibits.size()]);
 		if (!bIsInitialUpdate) m_DirtyLUPExhibit = false;
 	}
 }

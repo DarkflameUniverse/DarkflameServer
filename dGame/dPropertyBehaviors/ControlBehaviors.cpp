@@ -71,7 +71,7 @@ void ControlBehaviors::SendBehaviorBlocksToClient(ControlBehaviorContext& contex
 	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorBlocks", behavior);
 }
 
-void ControlBehaviors::UpdateAction(const AMFArrayValue* arguments) {
+void ControlBehaviors::UpdateAction(const AMFArrayValue& arguments) {
 	UpdateActionMessage updateActionMessage{ arguments };
 	auto blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
@@ -95,8 +95,8 @@ void ControlBehaviors::UpdateAction(const AMFArrayValue* arguments) {
 	}
 }
 
-void ControlBehaviors::ProcessCommand(Entity* modelEntity, AMFArrayValue* arguments, std::string& command, Entity* modelOwner) {
-	if (!isInitialized || !modelEntity || !modelOwner || !arguments) return;
+void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string& command, Entity* const modelOwner) {
+	if (!isInitialized || !modelEntity || !modelOwner) return;
 	auto* const modelComponent = modelEntity->GetComponent<ModelComponent>();
 
 	if (!modelComponent) return;
@@ -106,7 +106,7 @@ void ControlBehaviors::ProcessCommand(Entity* modelEntity, AMFArrayValue* argume
 	if (command == "sendBehaviorListToClient") {
 		SendBehaviorListToClient(context);
 	} else if (command == "modelTypeChanged") {
-		auto* const modelType = arguments->Get<double>("ModelType");
+		const auto* const modelType = arguments.Get<double>("ModelType");
 		if (!modelType) return;
 
 		modelEntity->SetVar<int>(u"modelType", modelType->GetValue());

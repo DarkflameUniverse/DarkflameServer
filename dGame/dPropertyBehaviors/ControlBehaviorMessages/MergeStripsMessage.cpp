@@ -1,6 +1,6 @@
 #include "MergeStripsMessage.h"
 
-MergeStripsMessage::MergeStripsMessage(const AMFArrayValue* arguments)
+MergeStripsMessage::MergeStripsMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }
 	, m_SourceActionContext{ arguments, "srcStateID", "srcStripID" }

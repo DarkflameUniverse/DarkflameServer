@@ -577,7 +577,7 @@ void HandlePacket(Packet* packet) {
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
-					Game::server->Send(&bitStream, packet->systemAddress, false);
+					Game::server->Send(bitStream, packet->systemAddress, false);
 					break;
 				}
 			}
@@ -787,7 +787,7 @@ int ShutdownSequence(int32_t signal) {
 	{
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
-		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}
 

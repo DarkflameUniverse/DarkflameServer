@@ -90,15 +90,15 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 	}
 }
 
-void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyActivityInfo);
+void ActivityComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyActivityInfo);
 	if (m_DirtyActivityInfo) {
-		outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
+		outBitStream.Write<uint32_t>(m_ActivityPlayers.size());
 		if (!m_ActivityPlayers.empty()) {
 			for (const auto& activityPlayer : m_ActivityPlayers) {
-				outBitStream->Write<LWOOBJID>(activityPlayer->playerID);
+				outBitStream.Write<LWOOBJID>(activityPlayer->playerID);
 				for (const auto& activityValue : activityPlayer->values) {
-					outBitStream->Write<float_t>(activityValue);
+					outBitStream.Write<float_t>(activityValue);
 				}
 			}
 		}

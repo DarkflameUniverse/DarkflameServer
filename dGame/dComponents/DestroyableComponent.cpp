@@ -122,61 +122,61 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 	}
 }
 
-void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void DestroyableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
-		outBitStream->Write1(); // always write these on construction
-		outBitStream->Write(m_ImmuneToBasicAttackCount);
-		outBitStream->Write(m_ImmuneToDamageOverTimeCount);
-		outBitStream->Write(m_ImmuneToKnockbackCount);
-		outBitStream->Write(m_ImmuneToInterruptCount);
-		outBitStream->Write(m_ImmuneToSpeedCount);
-		outBitStream->Write(m_ImmuneToImaginationGainCount);
-		outBitStream->Write(m_ImmuneToImaginationLossCount);
-		outBitStream->Write(m_ImmuneToQuickbuildInterruptCount);
-		outBitStream->Write(m_ImmuneToPullToPointCount);
+		outBitStream.Write1(); // always write these on construction
+		outBitStream.Write(m_ImmuneToBasicAttackCount);
+		outBitStream.Write(m_ImmuneToDamageOverTimeCount);
+		outBitStream.Write(m_ImmuneToKnockbackCount);
+		outBitStream.Write(m_ImmuneToInterruptCount);
+		outBitStream.Write(m_ImmuneToSpeedCount);
+		outBitStream.Write(m_ImmuneToImaginationGainCount);
+		outBitStream.Write(m_ImmuneToImaginationLossCount);
+		outBitStream.Write(m_ImmuneToQuickbuildInterruptCount);
+		outBitStream.Write(m_ImmuneToPullToPointCount);
 	}
 
-	outBitStream->Write(m_DirtyHealth || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyHealth || bIsInitialUpdate);
 	if (m_DirtyHealth || bIsInitialUpdate) {
-		outBitStream->Write(m_iHealth);
-		outBitStream->Write(m_fMaxHealth);
-		outBitStream->Write(m_iArmor);
-		outBitStream->Write(m_fMaxArmor);
-		outBitStream->Write(m_iImagination);
-		outBitStream->Write(m_fMaxImagination);
+		outBitStream.Write(m_iHealth);
+		outBitStream.Write(m_fMaxHealth);
+		outBitStream.Write(m_iArmor);
+		outBitStream.Write(m_fMaxArmor);
+		outBitStream.Write(m_iImagination);
+		outBitStream.Write(m_fMaxImagination);
 
-		outBitStream->Write(m_DamageToAbsorb);
-		outBitStream->Write(IsImmune());
-		outBitStream->Write(m_IsGMImmune);
-		outBitStream->Write(m_IsShielded);
+		outBitStream.Write(m_DamageToAbsorb);
+		outBitStream.Write(IsImmune());
+		outBitStream.Write(m_IsGMImmune);
+		outBitStream.Write(m_IsShielded);
 
-		outBitStream->Write(m_fMaxHealth);
-		outBitStream->Write(m_fMaxArmor);
-		outBitStream->Write(m_fMaxImagination);
+		outBitStream.Write(m_fMaxHealth);
+		outBitStream.Write(m_fMaxArmor);
+		outBitStream.Write(m_fMaxImagination);
 
-		outBitStream->Write<uint32_t>(m_FactionIDs.size());
+		outBitStream.Write<uint32_t>(m_FactionIDs.size());
 		for (size_t i = 0; i < m_FactionIDs.size(); ++i) {
-			outBitStream->Write(m_FactionIDs[i]);
+			outBitStream.Write(m_FactionIDs[i]);
 		}
 
-		outBitStream->Write(m_IsSmashable);
+		outBitStream.Write(m_IsSmashable);
 
 		if (bIsInitialUpdate) {
-			outBitStream->Write(m_IsDead);
-			outBitStream->Write(m_IsSmashed);
+			outBitStream.Write(m_IsDead);
+			outBitStream.Write(m_IsSmashed);
 
 			if (m_IsSmashable) {
-				outBitStream->Write(m_IsModuleAssembly);
-				outBitStream->Write(m_ExplodeFactor != 1.0f);
-				if (m_ExplodeFactor != 1.0f) outBitStream->Write(m_ExplodeFactor);
+				outBitStream.Write(m_IsModuleAssembly);
+				outBitStream.Write(m_ExplodeFactor != 1.0f);
+				if (m_ExplodeFactor != 1.0f) outBitStream.Write(m_ExplodeFactor);
 			}
 		}
 		m_DirtyHealth = false;
 	}
 
-	outBitStream->Write(m_DirtyThreatList || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyThreatList || bIsInitialUpdate);
 	if (m_DirtyThreatList || bIsInitialUpdate) {
-		outBitStream->Write(m_HasThreats);
+		outBitStream.Write(m_HasThreats);
 		m_DirtyThreatList = false;
 	}
 }

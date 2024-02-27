@@ -87,13 +87,13 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 	std::unique_ptr<LDFData<int32_t>> chatmode(new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(gm)));
 	std::unique_ptr<LDFData<int64_t>> reputationLdf(new LDFData<int64_t>(u"reputation", reputation));
 
-	objid->WriteToPacket(&data);
-	lot->WriteToPacket(&data);
-	name->WriteToPacket(&data);
-	gmlevel->WriteToPacket(&data);
-	chatmode->WriteToPacket(&data);
-	xmlConfigData->WriteToPacket(&data);
-	reputationLdf->WriteToPacket(&data);
+	objid->WriteToPacket(data);
+	lot->WriteToPacket(data);
+	name->WriteToPacket(data);
+	gmlevel->WriteToPacket(data);
+	chatmode->WriteToPacket(data);
+	xmlConfigData->WriteToPacket(data);
+	reputationLdf->WriteToPacket(data);
 
 	//Compress the data before sending:
     const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
