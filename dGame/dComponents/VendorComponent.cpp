@@ -8,6 +8,11 @@
 #include "CDLootMatrixTable.h"
 #include "CDLootTableTable.h"
 #include "CDItemComponentTable.h"
+#include "InventoryComponent.h"
+#include "Character.h"
+#include "eVendorTransactionResult.h"
+#include "UserManager.h"
+#include "CheatDetection.h"
 
 VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
 	m_HasStandardCostItems = false;
@@ -150,4 +155,61 @@ void VendorComponent::HandleMrReeCameras(){
 		}
 		m_Inventory.push_back(SoldItem(camera, 0));
 	}
+}
+
+
+void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
+
+	if (!SellsItem(lot)) {
+		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
+		CheatDetection::ReportCheat(user, buyer->GetSystemAddress(), "Attempted to buy item %i from achievement vendor %i that is not purchasable", lot, m_Parent->GetLOT());
+		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
+
+	auto* inventoryComponent = buyer->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) {
+		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	int itemCompID = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::ITEM);
+	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
+
+	// Extra currency that needs to be deducted in case of crafting
+	auto craftingCurrencies = CDItemComponentTable::ParseCraftingCurrencies(itemComp);
+	for (const auto& [crafintCurrencyLOT, crafintCurrencyCount]: craftingCurrencies) {
+		if (inventoryComponent->GetLotCount(crafintCurrencyLOT) < (crafintCurrencyCount * count)) {
+			GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+			return;
+		}
+	}
+	for (const auto& [crafintCurrencyLOT, crafintCurrencyCount]: craftingCurrencies) {
+		inventoryComponent->RemoveItem(crafintCurrencyLOT, crafintCurrencyCount * count);
+	}
+
+
+	float buyScalar = GetBuyScalar();
+	const auto coinCost = static_cast<uint32_t>(std::floor((itemComp.baseValue * buyScalar) * count));
+
+	Character* character = buyer->GetCharacter();
+	if (!character || character->GetCoins() < coinCost) {
+		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+		return;
+	}
+
+	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
+		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * buyScalar) * count;
+		if (inventoryComponent->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
+			GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
+			return;
+		}
+		inventoryComponent->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
+	}
+
+	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR);
+	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
+	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
+
 }

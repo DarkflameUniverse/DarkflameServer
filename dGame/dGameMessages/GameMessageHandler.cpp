@@ -39,7 +39,7 @@
 #include "GhostComponent.h"
 #include "StringifiedEnum.h"
 
-void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
+void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;
 
@@ -269,9 +269,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		auto* skill_component = entity->GetComponent<SkillComponent>();
 
 		if (skill_component != nullptr) {
-			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(message.sBitStream.c_str())), message.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&message.sBitStream[0]), message.sBitStream.size(), false);
 
-			skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
+			skill_component->SyncPlayerProjectile(message.i64LocalID, &bs, message.i64TargetID);
 		}
 
 		break;
@@ -294,11 +294,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		bool success = false;
 
 		if (behaviorId > 0) {
-			RakNet::BitStream bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(startSkill.sBitStream.c_str())), startSkill.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&startSkill.sBitStream[0]), startSkill.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
+			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, &bs, startSkill.optionalTargetID, startSkill.skillID);
 
 			if (success && entity->GetCharacter()) {
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
@@ -327,7 +327,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.sBitStream = startSkill.sBitStream;
 			echoStartSkill.skillID = startSkill.skillID;
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-			echoStartSkill.Serialize(&bitStreamLocal);
+			echoStartSkill.Serialize(bitStreamLocal);
 
 			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
 		}
@@ -349,11 +349,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		if (usr != nullptr) {
-			RakNet::BitStream bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(sync.sBitStream.c_str())), sync.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&sync.sBitStream[0]), sync.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
+			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, &bs);
 		}
 
 		EchoSyncSkill echo = EchoSyncSkill();
@@ -362,7 +362,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
 		echo.uiSkillHandle = sync.uiSkillHandle;
 
-		echo.Serialize(&bitStreamLocal);
+		echo.Serialize(bitStreamLocal);
 
 		Game::server->Send(&bitStreamLocal, sysAddr, true);
 	} break;

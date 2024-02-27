@@ -200,9 +200,6 @@ void Level::ReadFileInfoChunk(std::istream& file, Header& header) {
 	BinaryIO::BinaryRead(file, header.fileInfo.enviromentChunkStart);
 	BinaryIO::BinaryRead(file, header.fileInfo.objectChunkStart);
 	BinaryIO::BinaryRead(file, header.fileInfo.particleChunkStart);
-
-	//PATCH FOR AG: (messed up file?)
-	if (header.fileInfo.revision == 0xCDCDCDCD && m_ParentZone->GetZoneID().GetMapID() == 1100) header.fileInfo.revision = 26;
 }
 
 void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {

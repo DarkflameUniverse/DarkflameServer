@@ -31,7 +31,7 @@ void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 			ldfData.Write<uint32_t>(networkSettings.size());
 
 			for (auto* networkSetting : networkSettings) {
-				networkSetting->WriteToPacket(&ldfData);
+				networkSetting->WriteToPacket(ldfData);
 			}
 
 			// Finally write everything to the stream

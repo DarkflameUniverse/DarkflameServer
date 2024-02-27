@@ -246,7 +246,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		RakNet::BitStream bitStream{};
 
 		// Calculate sync
-		entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
+		entry.behavior->SyncCalculation(this, &bitStream, entry.branchContext);
 
 		if (!clientInitalized) {
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
@@ -256,7 +256,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 
 			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
-			echo.Serialize(&message);
+			echo.Serialize(message);
 
 			Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
