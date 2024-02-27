@@ -4,11 +4,11 @@
 #include "Game.h"
 #include "Logger.h"
 
-void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	uint32_t handle{};
 
-	if (!bitStream->Read(handle)) {
-		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(handle)) {
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -17,10 +17,10 @@ void AttackDelayBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	}
 }
 
-void AttackDelayBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void AttackDelayBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	const auto handle = context->GetUniqueSkillId();
 
-	bitStream->Write(handle);
+	bitStream.Write(handle);
 
 	context->foundTarget = true;
 
@@ -31,11 +31,11 @@ void AttackDelayBehavior::Calculate(BehaviorContext* context, RakNet::BitStream*
 	}
 }
 
-void AttackDelayBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void AttackDelayBehavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	this->m_action->Handle(context, bitStream, branch);
 }
 
-void AttackDelayBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void AttackDelayBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	PlayFx(u"cast", context->originator);
 
 	this->m_action->Calculate(context, bitStream, branch);

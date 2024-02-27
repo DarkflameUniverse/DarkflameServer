@@ -178,8 +178,8 @@ void EntityManager::SerializeEntities() {
 		stream.Write<char>(ID_REPLICA_MANAGER_SERIALIZE);
 		stream.Write<unsigned short>(entity->GetNetworkId());
 
-		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
-		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteBaseReplicaData(stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteComponents(stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
@@ -359,8 +359,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	stream.Write(true);
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
-	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
-	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteBaseReplicaData(stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteComponents(stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		if (skipChecks) {

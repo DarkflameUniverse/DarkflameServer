@@ -899,34 +899,34 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
-void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
 	if (packetType == eReplicaPacketType::CONSTRUCTION) {
-		outBitStream->Write(m_ObjectID);
-		outBitStream->Write(m_TemplateID);
+		outBitStream.Write(m_ObjectID);
+		outBitStream.Write(m_TemplateID);
 
 		if (IsPlayer()) {
 			std::string name = m_Character != nullptr ? m_Character->GetName() : "Invalid";
-			outBitStream->Write<uint8_t>(uint8_t(name.size()));
+			outBitStream.Write<uint8_t>(uint8_t(name.size()));
 
 			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream->Write<uint16_t>(name[i]);
+				outBitStream.Write<uint16_t>(name[i]);
 			}
 		} else {
 			const auto& name = GetVar<std::string>(u"npcName");
-			outBitStream->Write<uint8_t>(uint8_t(name.size()));
+			outBitStream.Write<uint8_t>(uint8_t(name.size()));
 
 			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream->Write<uint16_t>(name[i]);
+				outBitStream.Write<uint16_t>(name[i]);
 			}
 		}
 
-		outBitStream->Write<uint32_t>(0); //Time since created on server
+		outBitStream.Write<uint32_t>(0); //Time since created on server
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
 		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
-			outBitStream->Write1(); //ldf data
+			outBitStream.Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
 			int32_t numberOfValidKeys = m_Settings.size();
@@ -947,9 +947,9 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 				}
 			}
 
-			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream->Write<uint8_t>(0); //no compression used
-			outBitStream->Write(settingStream);
+			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
+			outBitStream.Write<uint8_t>(0); //no compression used
+			outBitStream.Write(settingStream);
 		} else if (!syncLDF.empty()) {
 			std::vector<LDFBaseData*> ldfData;
 
@@ -957,7 +957,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 				ldfData.push_back(GetVarData(data));
 			}
 
-			outBitStream->Write1(); //ldf data
+			outBitStream.Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
 			settingStream.Write<uint32_t>(ldfData.size());
@@ -967,69 +967,69 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 				}
 			}
 
-			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream->Write<uint8_t>(0); //no compression used
-			outBitStream->Write(settingStream);
+			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
+			outBitStream.Write<uint8_t>(0); //no compression used
+			outBitStream.Write(settingStream);
 		} else {
-			outBitStream->Write0(); //No ldf data
+			outBitStream.Write0(); //No ldf data
 		}
 
 		TriggerComponent* triggerComponent;
 		if (TryGetComponent(eReplicaComponentType::TRIGGER, triggerComponent)) {
 			// has trigger component, check to see if we have events to handle
 			auto* trigger = triggerComponent->GetTrigger();
-			outBitStream->Write<bool>(trigger && trigger->events.size() > 0);
+			outBitStream.Write<bool>(trigger && trigger->events.size() > 0);
 		} else { // no trigger componenet, so definitely no triggers
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
-			outBitStream->Write1();
-			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
-			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
-			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
-		} else outBitStream->Write0();
+			outBitStream.Write1();
+			if (m_ParentEntity != nullptr) outBitStream.Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
+			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream.Write(m_SpawnerID);
+			else outBitStream.Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
+		} else outBitStream.Write0();
 
-		outBitStream->Write(m_HasSpawnerNodeID);
-		if (m_HasSpawnerNodeID) outBitStream->Write(m_SpawnerNodeID);
+		outBitStream.Write(m_HasSpawnerNodeID);
+		if (m_HasSpawnerNodeID) outBitStream.Write(m_SpawnerNodeID);
 
-		//outBitStream->Write0(); //Spawner node id
+		//outBitStream.Write0(); //Spawner node id
 
-		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream->Write0();
+		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream.Write0();
 		else {
-			outBitStream->Write1();
-			outBitStream->Write(m_Scale);
+			outBitStream.Write1();
+			outBitStream.Write(m_Scale);
 		}
 
-		outBitStream->Write0(); //ObjectWorldState
+		outBitStream.Write0(); //ObjectWorldState
 
 		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
-			outBitStream->Write1();
-			outBitStream->Write(m_GMLevel);
-		} else outBitStream->Write0(); //No GM Level
+			outBitStream.Write1();
+			outBitStream.Write(m_GMLevel);
+		} else outBitStream.Write0(); //No GM Level
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream->Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
+	outBitStream.Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
 	if (m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION) {
 		m_IsParentChildDirty = false;
-		outBitStream->Write(m_ParentEntity != nullptr);
+		outBitStream.Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
-			outBitStream->Write(m_ParentEntity->GetObjectID());
-			outBitStream->Write0();
+			outBitStream.Write(m_ParentEntity->GetObjectID());
+			outBitStream.Write0();
 		}
-		outBitStream->Write(m_ChildEntities.size() > 0);
+		outBitStream.Write(m_ChildEntities.size() > 0);
 		if (m_ChildEntities.size() > 0) {
-			outBitStream->Write<uint16_t>(m_ChildEntities.size());
+			outBitStream.Write<uint16_t>(m_ChildEntities.size());
 			for (Entity* child : m_ChildEntities) {
-				outBitStream->Write<uint64_t>(child->GetObjectID());
+				outBitStream.Write<uint64_t>(child->GetObjectID());
 			}
 		}
 	}
 }
 
-void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
 
 	/**
 	 * This has to be done in a specific order.
@@ -1117,7 +1117,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			possessorComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		LevelProgressionComponent* levelProgressionComponent;
@@ -1125,7 +1125,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		PlayerForcedMovementComponent* playerForcedMovementComponent;
@@ -1133,7 +1133,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate);
@@ -1250,7 +1250,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	// BBB Component, unused currently
 	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
-	outBitStream->Write0();
+	outBitStream.Write0();
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {

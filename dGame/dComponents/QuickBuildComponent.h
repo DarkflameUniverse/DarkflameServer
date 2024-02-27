@@ -27,7 +27,7 @@ public:
 	QuickBuildComponent(Entity* const entity);
 	~QuickBuildComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**

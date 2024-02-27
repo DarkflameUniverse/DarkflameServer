@@ -71,89 +71,89 @@ void ControllablePhysicsComponent::Update(float deltaTime) {
 
 }
 
-void ControllablePhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	//If this is a creation, then we assume the position is dirty, even when it isn't.
 	//This is because new clients will still need to receive the position.
 	//if (bIsInitialUpdate) m_DirtyPosition = true;
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(m_InJetpackMode);
+		outBitStream.Write(m_InJetpackMode);
 		if (m_InJetpackMode) {
-			outBitStream->Write(m_JetpackEffectID);
-			outBitStream->Write(m_JetpackFlying);
-			outBitStream->Write(m_JetpackBypassChecks);
+			outBitStream.Write(m_JetpackEffectID);
+			outBitStream.Write(m_JetpackFlying);
+			outBitStream.Write(m_JetpackBypassChecks);
 		}
 
-		outBitStream->Write1(); // always write these on construction
-		outBitStream->Write(m_ImmuneToStunMoveCount);
-		outBitStream->Write(m_ImmuneToStunJumpCount);
-		outBitStream->Write(m_ImmuneToStunTurnCount);
-		outBitStream->Write(m_ImmuneToStunAttackCount);
-		outBitStream->Write(m_ImmuneToStunUseItemCount);
-		outBitStream->Write(m_ImmuneToStunEquipCount);
-		outBitStream->Write(m_ImmuneToStunInteractCount);
+		outBitStream.Write1(); // always write these on construction
+		outBitStream.Write(m_ImmuneToStunMoveCount);
+		outBitStream.Write(m_ImmuneToStunJumpCount);
+		outBitStream.Write(m_ImmuneToStunTurnCount);
+		outBitStream.Write(m_ImmuneToStunAttackCount);
+		outBitStream.Write(m_ImmuneToStunUseItemCount);
+		outBitStream.Write(m_ImmuneToStunEquipCount);
+		outBitStream.Write(m_ImmuneToStunInteractCount);
 	}
 
 	if (m_IgnoreMultipliers) m_DirtyCheats = false;
 
-	outBitStream->Write(m_DirtyCheats);
+	outBitStream.Write(m_DirtyCheats);
 	if (m_DirtyCheats) {
-		outBitStream->Write(m_GravityScale);
-		outBitStream->Write(m_SpeedMultiplier);
+		outBitStream.Write(m_GravityScale);
+		outBitStream.Write(m_SpeedMultiplier);
 
 		m_DirtyCheats = false;
 	}
 
-	outBitStream->Write(m_DirtyEquippedItemInfo);
+	outBitStream.Write(m_DirtyEquippedItemInfo);
 	if (m_DirtyEquippedItemInfo) {
-		outBitStream->Write(m_PickupRadius);
-		outBitStream->Write(m_InJetpackMode);
+		outBitStream.Write(m_PickupRadius);
+		outBitStream.Write(m_InJetpackMode);
 		m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream->Write(m_DirtyBubble);
+	outBitStream.Write(m_DirtyBubble);
 	if (m_DirtyBubble) {
-		outBitStream->Write(m_IsInBubble);
+		outBitStream.Write(m_IsInBubble);
 		if (m_IsInBubble) {
-			outBitStream->Write(m_BubbleType);
-			outBitStream->Write(m_SpecialAnims);
+			outBitStream.Write(m_BubbleType);
+			outBitStream.Write(m_SpecialAnims);
 		}
 		m_DirtyBubble = false;
 	}
 
-	outBitStream->Write(m_DirtyPosition || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyPosition || bIsInitialUpdate);
 	if (m_DirtyPosition || bIsInitialUpdate) {
-		outBitStream->Write(m_Position.x);
-		outBitStream->Write(m_Position.y);
-		outBitStream->Write(m_Position.z);
+		outBitStream.Write(m_Position.x);
+		outBitStream.Write(m_Position.y);
+		outBitStream.Write(m_Position.z);
 
-		outBitStream->Write(m_Rotation.x);
-		outBitStream->Write(m_Rotation.y);
-		outBitStream->Write(m_Rotation.z);
-		outBitStream->Write(m_Rotation.w);
+		outBitStream.Write(m_Rotation.x);
+		outBitStream.Write(m_Rotation.y);
+		outBitStream.Write(m_Rotation.z);
+		outBitStream.Write(m_Rotation.w);
 
-		outBitStream->Write(m_IsOnGround);
-		outBitStream->Write(m_IsOnRail);
+		outBitStream.Write(m_IsOnGround);
+		outBitStream.Write(m_IsOnRail);
 
-		outBitStream->Write(m_DirtyVelocity);
+		outBitStream.Write(m_DirtyVelocity);
 		if (m_DirtyVelocity) {
-			outBitStream->Write(m_Velocity.x);
-			outBitStream->Write(m_Velocity.y);
-			outBitStream->Write(m_Velocity.z);
+			outBitStream.Write(m_Velocity.x);
+			outBitStream.Write(m_Velocity.y);
+			outBitStream.Write(m_Velocity.z);
 		}
 
-		outBitStream->Write(m_DirtyAngularVelocity);
+		outBitStream.Write(m_DirtyAngularVelocity);
 		if (m_DirtyAngularVelocity) {
-			outBitStream->Write(m_AngularVelocity.x);
-			outBitStream->Write(m_AngularVelocity.y);
-			outBitStream->Write(m_AngularVelocity.z);
+			outBitStream.Write(m_AngularVelocity.x);
+			outBitStream.Write(m_AngularVelocity.y);
+			outBitStream.Write(m_AngularVelocity.z);
 		}
 
-		outBitStream->Write0();
+		outBitStream.Write0();
 	}
 
 	if (!bIsInitialUpdate) {
-		outBitStream->Write(m_IsTeleporting);
+		outBitStream.Write(m_IsTeleporting);
 		m_IsTeleporting = false;
 	}
 }

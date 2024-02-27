@@ -264,30 +264,30 @@ void PhantomPhysicsComponent::CreatePhysics() {
 	m_HasCreatedPhysics = true;
 }
 
-void PhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void PhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 
-	outBitStream->Write(m_EffectInfoDirty || bIsInitialUpdate);
+	outBitStream.Write(m_EffectInfoDirty || bIsInitialUpdate);
 	if (m_EffectInfoDirty || bIsInitialUpdate) {
-		outBitStream->Write(m_IsPhysicsEffectActive);
+		outBitStream.Write(m_IsPhysicsEffectActive);
 
 		if (m_IsPhysicsEffectActive) {
-			outBitStream->Write(m_EffectType);
-			outBitStream->Write(m_DirectionalMultiplier);
+			outBitStream.Write(m_EffectType);
+			outBitStream.Write(m_DirectionalMultiplier);
 
 			// forgive me father for i have sinned
-			outBitStream->Write0();
-			//outBitStream->Write(m_MinMax);
+			outBitStream.Write0();
+			//outBitStream.Write(m_MinMax);
 			//if (m_MinMax) {
-				//outBitStream->Write(m_Min);
-				//outBitStream->Write(m_Max);
+				//outBitStream.Write(m_Min);
+				//outBitStream.Write(m_Max);
 			//}
 
-			outBitStream->Write(m_IsDirectional);
+			outBitStream.Write(m_IsDirectional);
 			if (m_IsDirectional) {
-				outBitStream->Write(m_Direction.x);
-				outBitStream->Write(m_Direction.y);
-				outBitStream->Write(m_Direction.z);
+				outBitStream.Write(m_Direction.x);
+				outBitStream.Write(m_Direction.y);
+				outBitStream.Write(m_Direction.z);
 			}
 		}
 

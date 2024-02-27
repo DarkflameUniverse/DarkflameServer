@@ -31,7 +31,7 @@ ProjectileSyncEntry::ProjectileSyncEntry() {
 
 std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
-bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream* bitStream, const LWOOBJID target, uint32_t skillID) {
+bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream& bitStream, const LWOOBJID target, uint32_t skillID) {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
 
 	context->caster = m_Parent->GetObjectID();
@@ -51,7 +51,7 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 	return !context->failed;
 }
 
-void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syncId, RakNet::BitStream* bitStream) {
+void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syncId, RakNet::BitStream& bitStream) {
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
@@ -66,7 +66,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 }
 
 
-void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::BitStream* bitStream, const LWOOBJID target) {
+void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::BitStream& bitStream, const LWOOBJID target) {
 	auto index = -1;
 
 	for (auto i = 0u; i < this->m_managedProjectiles.size(); ++i) {
@@ -266,7 +266,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
 
-	behavior->Calculate(context, &bitStream, { target, 0 });
+	behavior->Calculate(context, bitStream, { target, 0 });
 
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
 		script->OnSkillCast(m_Parent, skillId);
@@ -423,7 +423,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream bitStream{};
 
-	behavior->Calculate(entry.context, &bitStream, entry.branchContext);
+	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
 	DoClientProjectileImpact projectileImpact;
 
@@ -453,7 +453,7 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 
 	RakNet::BitStream bitStream{};
 
-	behavior->Handle(&context, &bitStream, { target });
+	behavior->Handle(&context, bitStream, { target });
 }
 
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target) {
@@ -474,8 +474,8 @@ SkillComponent::~SkillComponent() {
 	Reset();
 }
 
-void SkillComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	if (bIsInitialUpdate) outBitStream->Write0();
+void SkillComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	if (bIsInitialUpdate) outBitStream.Write0();
 }
 
 /// <summary>

@@ -21,7 +21,7 @@ public:
 	 */
 	LevelProgressionComponent(Entity* parent);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Save data from this componennt to character XML

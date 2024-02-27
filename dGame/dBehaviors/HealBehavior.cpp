@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 
 
-void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
@@ -28,7 +28,7 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_strea
 }
 
 
-void HealBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void HealBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 

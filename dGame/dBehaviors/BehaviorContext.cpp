@@ -105,7 +105,7 @@ void BehaviorContext::ExecuteUpdates() {
 	this->scheduledUpdates.clear();
 }
 
-void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bitStream) {
+void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bitStream) {
 	BehaviorSyncEntry entry;
 	auto found = false;
 
@@ -246,7 +246,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		RakNet::BitStream bitStream{};
 
 		// Calculate sync
-		entry.behavior->SyncCalculation(this, &bitStream, entry.branchContext);
+		entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
 
 		if (!clientInitalized) {
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());

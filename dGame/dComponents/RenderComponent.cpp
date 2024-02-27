@@ -45,25 +45,25 @@ RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t compo
 	result.finalize();
 }
 
-void RenderComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void RenderComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (!bIsInitialUpdate) return;
 
-	outBitStream->Write<uint32_t>(m_Effects.size());
+	outBitStream.Write<uint32_t>(m_Effects.size());
 
 	for (auto& eff : m_Effects) {
-		outBitStream->Write<uint8_t>(eff.name.size());
+		outBitStream.Write<uint8_t>(eff.name.size());
 		// if there is no name, then we don't write anything else
 		if (eff.name.empty()) continue;
 
-		for (const auto& value : eff.name) outBitStream->Write<uint8_t>(value);
+		for (const auto& value : eff.name) outBitStream.Write<uint8_t>(value);
 
-		outBitStream->Write(eff.effectID);
+		outBitStream.Write(eff.effectID);
 
-		outBitStream->Write<uint8_t>(eff.type.size());
-		for (const auto& value : eff.type) outBitStream->Write<uint16_t>(value);
+		outBitStream.Write<uint8_t>(eff.type.size());
+		for (const auto& value : eff.type) outBitStream.Write<uint16_t>(value);
 
-		outBitStream->Write<float_t>(eff.priority);
-		outBitStream->Write<int64_t>(eff.secondary);
+		outBitStream.Write<float_t>(eff.priority);
+		outBitStream.Write<int64_t>(eff.secondary);
 	}
 }
 
