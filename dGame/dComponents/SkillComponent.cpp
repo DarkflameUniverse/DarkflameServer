@@ -266,7 +266,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
 
-	behavior->Calculate(context, &bitStream, { target, 0 });
+	behavior->Calculate(context, bitStream, { target, 0 });
 
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
 		script->OnSkillCast(m_Parent, skillId);
@@ -423,7 +423,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream bitStream{};
 
-	behavior->Calculate(entry.context, &bitStream, entry.branchContext);
+	behavior->Calculate(entry.context, bitStream, entry.branchContext);
 
 	DoClientProjectileImpact projectileImpact;
 
@@ -453,11 +453,7 @@ void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID t
 
 	RakNet::BitStream bitStream{};
 
-	behavior->Handle(context, bitStream, { target });
-
-	delete bitStream;
-
-	delete context;
+	behavior->Handle(&context, bitStream, { target });
 }
 
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target) {

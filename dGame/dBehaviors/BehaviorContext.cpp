@@ -246,7 +246,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		RakNet::BitStream bitStream{};
 
 		// Calculate sync
-		entry.behavior->SyncCalculation(this, &bitStream, entry.branchContext);
+		entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
 
 		if (!clientInitalized) {
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
