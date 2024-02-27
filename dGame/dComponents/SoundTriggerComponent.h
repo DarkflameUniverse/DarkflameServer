@@ -17,7 +17,7 @@ struct MusicCue {
 		this->boredomTime = boredomTime;
 	};
 
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 };
 
 struct MusicParameter {
@@ -29,7 +29,7 @@ struct MusicParameter {
 		this->value = value;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 };
 
 struct GUIDResults{
@@ -41,7 +41,7 @@ struct GUIDResults{
 		this->result = result;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 };
 
 struct MixerProgram {
@@ -53,7 +53,7 @@ struct MixerProgram {
 		this->result = result;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 };
 
 
@@ -61,7 +61,7 @@ class SoundTriggerComponent : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SOUND_TRIGGER;
 	explicit SoundTriggerComponent(Entity* parent);
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void ActivateMusicCue(const std::string& name, float bordemTime = -1.0);
 	void DeactivateMusicCue(const std::string& name);
 

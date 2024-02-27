@@ -10,14 +10,14 @@
 #include "eReplicaComponentType.h"
 
 
-void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	if (this->m_stunCaster || branch.target == context->originator) {
 		return;
 	}
 
 	bool blocked{};
-	if (!bitStream->Read(blocked)) {
-		LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(blocked)) {
+		LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -42,7 +42,7 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream
 	combatAiComponent->Stun(branch.duration);
 }
 
-void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	if (this->m_stunCaster || branch.target == context->originator) {
 		auto* self = Game::entityManager->GetEntity(context->originator);
 
@@ -79,7 +79,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStr
 		}
 	}
 
-	bitStream->Write(blocked);
+	bitStream.Write(blocked);
 
 	if (target == nullptr) {
 		LOG("Failed to find target (%llu)!", branch.target);

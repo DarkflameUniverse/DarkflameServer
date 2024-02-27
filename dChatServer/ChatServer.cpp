@@ -211,7 +211,7 @@ void HandlePacket(Packet* packet) {
 		case eChatInternalMessageType::ANNOUNCEMENT: {
 			//we just forward this packet to every connected server
 			CINSTREAM;
-			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
+			Game::server->Send(inStream, packet->systemAddress, true); //send to everyone except origin
 			break;
 		}
 

@@ -9,12 +9,11 @@
  * AMF3 Deserializer written by EmosewaMC
  */
 
-std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream* inStream) {
-	if (!inStream) return nullptr;
+std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream& inStream) {
 	std::unique_ptr<AMFBaseValue> returnValue = nullptr;
 	// Read in the value type from the bitStream
 	eAmf marker;
-	inStream->Read(marker);
+	inStream.Read(marker);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
 	case eAmf::Undefined: {
@@ -79,13 +78,13 @@ std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream* inStream) 
 	return returnValue;
 }
 
-uint32_t AMFDeserialize::ReadU29(RakNet::BitStream* inStream) {
+uint32_t AMFDeserialize::ReadU29(RakNet::BitStream& inStream) {
 	bool byteFlag = true;
 	uint32_t actualNumber{};
 	uint8_t numberOfBytesRead{};
 	while (byteFlag && numberOfBytesRead < 4) {
 		uint8_t byte{};
-		inStream->Read(byte);
+		inStream.Read(byte);
 		// Parse the byte
 		if (numberOfBytesRead < 3) {
 			byteFlag = byte & static_cast<uint8_t>(1 << 7);
@@ -101,7 +100,7 @@ uint32_t AMFDeserialize::ReadU29(RakNet::BitStream* inStream) {
 	return actualNumber;
 }
 
-const std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
+const std::string AMFDeserialize::ReadString(RakNet::BitStream& inStream) {
 	auto length = ReadU29(inStream);
 	// Check if this is a reference
 	bool isReference = length % 2 == 1;
@@ -109,7 +108,7 @@ const std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 	length = length >> 1;
 	if (isReference) {
 		std::string value(length, 0);
-		inStream->Read(&value[0], length);
+		inStream.Read(&value[0], length);
 		// Empty strings are never sent by reference
 		if (!value.empty()) accessedElements.push_back(value);
 		return value;
@@ -119,13 +118,13 @@ const std::string AMFDeserialize::ReadString(RakNet::BitStream* inStream) {
 	}
 }
 
-std::unique_ptr<AMFDoubleValue> AMFDeserialize::ReadAmfDouble(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFDoubleValue> AMFDeserialize::ReadAmfDouble(RakNet::BitStream& inStream) {
 	double value;
-	inStream->Read<double>(value);
+	inStream.Read<double>(value);
 	return std::make_unique<AMFDoubleValue>(value);
 }
 
-std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream& inStream) {
 	auto arrayValue = std::make_unique<AMFArrayValue>();
 
 	// Read size of dense array
@@ -144,10 +143,10 @@ std::unique_ptr<AMFArrayValue> AMFDeserialize::ReadAmfArray(RakNet::BitStream* i
 	return arrayValue;
 }
 
-std::unique_ptr<AMFStringValue> AMFDeserialize::ReadAmfString(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFStringValue> AMFDeserialize::ReadAmfString(RakNet::BitStream& inStream) {
 	return std::make_unique<AMFStringValue>(ReadString(inStream));
 }
 
-std::unique_ptr<AMFIntValue> AMFDeserialize::ReadAmfInteger(RakNet::BitStream* inStream) {
+std::unique_ptr<AMFIntValue> AMFDeserialize::ReadAmfInteger(RakNet::BitStream& inStream) {
 	return std::make_unique<AMFIntValue>(ReadU29(inStream)); // NOTE: NARROWING CONVERSION FROM UINT TO INT. IS THIS INTENDED?
 }

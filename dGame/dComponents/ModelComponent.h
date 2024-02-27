@@ -28,7 +28,7 @@ public:
 
 	ModelComponent(Entity* parent);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the original position of the model

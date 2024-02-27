@@ -21,39 +21,39 @@ public:
 		uiSkillHandle = _uiSkillHandle;
 	}
 
-	SyncSkill(RakNet::BitStream* stream) : SyncSkill() {
+	SyncSkill(RakNet::BitStream& stream) : SyncSkill() {
 		Deserialize(stream);
 	}
 
 	~SyncSkill() {
 	}
 
-	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(eGameMessageType::SYNC_SKILL);
+	void Serialize(RakNet::BitStream& stream) {
+		stream.Write(eGameMessageType::SYNC_SKILL);
 
-		stream->Write(bDone);
+		stream.Write(bDone);
 		uint32_t sBitStreamLength = sBitStream.length();
-		stream->Write(sBitStreamLength);
+		stream.Write(sBitStreamLength);
 		for (unsigned int k = 0; k < sBitStreamLength; k++) {
-			stream->Write(sBitStream[k]);
+			stream.Write(sBitStream[k]);
 		}
 
-		stream->Write(uiBehaviorHandle);
-		stream->Write(uiSkillHandle);
+		stream.Write(uiBehaviorHandle);
+		stream.Write(uiSkillHandle);
 	}
 
-	bool Deserialize(RakNet::BitStream* stream) {
-		stream->Read(bDone);
+	bool Deserialize(RakNet::BitStream& stream) {
+		stream.Read(bDone);
 		uint32_t sBitStreamLength{};
-		stream->Read(sBitStreamLength);
+		stream.Read(sBitStreamLength);
 		for (uint32_t k = 0; k < sBitStreamLength; k++) {
 			unsigned char character;
-			stream->Read(character);
+			stream.Read(character);
 			sBitStream.push_back(character);
 		}
 
-		stream->Read(uiBehaviorHandle);
-		stream->Read(uiSkillHandle);
+		stream.Read(uiBehaviorHandle);
+		stream.Read(uiSkillHandle);
 
 		return true;
 	}

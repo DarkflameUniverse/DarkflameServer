@@ -43,7 +43,7 @@ public:
 	 * @param command The command to perform
 	 * @param modelOwner The owner of the model which sent this command
 	 */
-	void ProcessCommand(Entity* modelEntity, const AMFArrayValue& arguments, std::string_view command, Entity* modelOwner);
+	void ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string_view command, Entity* const modelOwner);
 
 	/**
 	 * @brief Gets a blocks parameter values by the name

@@ -7,7 +7,7 @@
 #include "Logger.h"
 #include "DestroyableComponent.h"
 
-void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto target = context->originator;
 
 	auto* entity = Game::entityManager->GetEntity(target);
@@ -33,7 +33,7 @@ void BlockBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	}
 }
 
-void BlockBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BlockBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

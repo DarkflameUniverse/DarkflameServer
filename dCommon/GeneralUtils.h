@@ -116,7 +116,7 @@ namespace GeneralUtils {
 
 	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
 
-	std::u16string ReadWString(RakNet::BitStream* inStream);
+	std::u16string ReadWString(RakNet::BitStream& inStream);
 
 	std::vector<std::wstring> SplitString(std::wstring& str, wchar_t delimiter);
 

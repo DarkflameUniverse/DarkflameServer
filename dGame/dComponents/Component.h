@@ -42,7 +42,7 @@ public:
 	 */
 	virtual void LoadFromXml(tinyxml2::XMLDocument* doc);
 
-	virtual void Serialize(RakNet::BitStream* outBitStream, bool isConstruction);
+	virtual void Serialize(RakNet::BitStream& outBitStream, bool isConstruction);
 
 protected:
 

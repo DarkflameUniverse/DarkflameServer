@@ -278,14 +278,14 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string& str, char 
 	return vector;
 }
 
-std::u16string GeneralUtils::ReadWString(RakNet::BitStream* inStream) {
+std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
 	uint32_t length;
-	inStream->Read<uint32_t>(length);
+	inStream.Read<uint32_t>(length);
 
 	std::u16string string;
 	for (auto i = 0; i < length; i++) {
 		uint16_t c;
-		inStream->Read(c);
+		inStream.Read(c);
 		string.push_back(c);
 	}
 

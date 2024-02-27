@@ -95,7 +95,7 @@ void ControlBehaviors::UpdateAction(const AMFArrayValue& arguments) {
 	}
 }
 
-void ControlBehaviors::ProcessCommand(Entity* modelEntity, const AMFArrayValue& arguments, const std::string_view command, Entity* const modelOwner) {
+void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string_view command, Entity* const modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner) return;
 	auto* const modelComponent = modelEntity->GetComponent<ModelComponent>();
 

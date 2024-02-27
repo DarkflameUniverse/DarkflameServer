@@ -61,7 +61,7 @@ public:
 
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	void Update(float deltaTime) override;
 
@@ -141,7 +141,7 @@ private:
 	std::map<int32_t, Buff> m_Buffs;
 
 	// Buffs to remove at the end of the update frame.
-	std::vector<int32_t> m_BuffsToRemove;
+	std::set<int32_t> m_BuffsToRemove;
 
 	/**
 	 * Parameters (=effects) for each buff

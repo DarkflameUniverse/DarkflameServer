@@ -150,7 +150,7 @@ void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	bitStream.Write(player);
 	bitStream.Write(time);
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 TeamData* PlayerContainer::CreateLocalTeam(std::vector<LWOOBJID> members) {
@@ -365,7 +365,7 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 		}
 	}
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {
