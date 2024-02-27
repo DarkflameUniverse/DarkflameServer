@@ -22,142 +22,12 @@
 
 #include <fstream>
 
-std::vector<VanityNPC> VanityUtilities::m_NPCs = {};
-std::vector<VanityParty> VanityUtilities::m_Parties = {};
-std::vector<std::string> VanityUtilities::m_PartyPhrases = {};
+std::vector<VanityObject> VanityUtilities::m_Objects = {};
+std::set<std::string> VanityUtilities::m_LoadedFiles = {};
+
 
 void VanityUtilities::SpawnVanity() {
-	if (Game::config->GetValue("disable_vanity") == "1") {
-		return;
-	}
-
 	const uint32_t zoneID = Game::server->GetZoneID();
-
-	for (const auto& npc : m_NPCs) {
-		if (npc.m_ID == LWOOBJID_EMPTY) continue;
-		if (npc.m_LOT == 176){
-			Game::zoneManager->RemoveSpawner(npc.m_ID);
-		} else{
-			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
-			if (!entity) continue;
-			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
-		}
-	}
-
-	m_NPCs.clear();
-	m_Parties.clear();
-	m_PartyPhrases.clear();
-
-	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/NPC.xml").string());
-
-	// Loop through all parties
-	for (const auto& party : m_Parties) {
-		const auto chance = party.m_Chance;
-		const auto zone = party.m_Zone;
-
-		if (zone != Game::server->GetZoneID()) {
-			continue;
-		}
-
-		float rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
-		if (chance < rate) {
-			continue;
-		}
-
-		// Copy m_NPCs into a new vector
-		std::vector<VanityNPC> npcList = m_NPCs;
-		std::vector<uint32_t> taken = {};
-
-		LOG("Spawning party with %i locations", party.m_Locations.size());
-
-		// Loop through all locations
-		for (const auto& location : party.m_Locations) {
-		rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
-			if (0.75f < rate) {
-				continue;
-			}
-
-			// Get a random NPC
-			auto npcIndex = GeneralUtils::GenerateRandomNumber<uint32_t>(0, npcList.size() - 1);
-
-			while (std::find(taken.begin(), taken.end(), npcIndex) != taken.end()) {
-				npcIndex = GeneralUtils::GenerateRandomNumber<uint32_t>(0, npcList.size() - 1);
-			}
-
-			auto& npc = npcList[npcIndex];
-			// Skip spawners
-			if (npc.m_LOT == 176) continue;
-			
-			taken.push_back(npcIndex);
-
-			LOG("ldf size is %i", npc.ldf.size());
-			if (npc.ldf.empty()) {
-				npc.ldf = {
-					new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
-					new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
-				};
-			}
-
-			// Spawn the NPC
-			if (npc.m_LOT == 176){
-				npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
-			} else {
-				auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-				if (!npc.m_Phrases.empty()) {
-					npcEntity->SetVar<std::vector<std::string>>(u"chats", m_PartyPhrases);
-					SetupNPCTalk(npcEntity);
-				}
-			}
-		}
-		return;
-	}
-
-	// Loop through all NPCs
-	for (auto& npc : m_NPCs) {
-		if (npc.m_Locations.find(Game::server->GetZoneID()) == npc.m_Locations.end())
-			continue;
-
-		const std::vector<VanityNPCLocation>& locations = npc.m_Locations.at(Game::server->GetZoneID());
-
-		// Pick a random location
-		const auto& location = locations[GeneralUtils::GenerateRandomNumber<int>(
-			static_cast<size_t>(0), static_cast<size_t>(locations.size() - 1))];
-
-		float rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
-		if (location.m_Chance < rate) {
-			continue;
-		}
-
-		if (npc.ldf.empty()) {
-			npc.ldf = {
-				new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
-				new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
-			};
-		}
-		if (npc.m_LOT == 176){
-			npc.m_ID = SpawnSpawner(npc.m_LOT, location.m_Position, location.m_Rotation, npc.ldf);
-		} else {
-			// Spawn the NPC
-			auto* npcEntity = SpawnNPC(npc.m_LOT, npc.m_Name, location.m_Position, location.m_Rotation, npc.m_Equipment, npc.ldf);
-			if (!npcEntity) continue;
-			npc.m_ID = npcEntity->GetObjectID();
-			if (!npc.m_Phrases.empty()){
-				npcEntity->SetVar<std::vector<std::string>>(u"chats", npc.m_Phrases);
-
-				auto* scriptComponent = npcEntity->GetComponent<ScriptComponent>();
-
-				if (scriptComponent && !npc.m_Script.empty()) {
-					scriptComponent->SetScript(npc.m_Script);
-					scriptComponent->SetSerialized(false);
-
-					for (const auto& npc : npc.m_Flags) {
-						npcEntity->SetVar<bool>(GeneralUtils::ASCIIToUTF16(npc.first), npc.second);
-					}
-				}
-				SetupNPCTalk(npcEntity);
-			}
-		}
-	}
 
 	if (zoneID == 1200) {
 		{
@@ -175,38 +45,99 @@ void VanityUtilities::SpawnVanity() {
 			Game::entityManager->ConstructEntity(entity);
 		}
 	}
+
+	if (Game::config->GetValue("disable_vanity") == "1") {
+		return;
+	}
+
+	for (const auto& npc : m_Objects) {
+		if (npc.m_ID == LWOOBJID_EMPTY) continue;
+		if (npc.m_LOT == 176){
+			Game::zoneManager->RemoveSpawner(npc.m_ID);
+		} else{
+			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
+			if (!entity) continue;
+			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
+		}
+	}
+
+	m_Objects.clear();
+	m_LoadedFiles.clear();
+
+	ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity/root.xml").string());
+
+	// Loop through all objects
+	for (auto& object : m_Objects) {
+		if (object.m_Locations.find(Game::server->GetZoneID()) == object.m_Locations.end()) continue;
+
+		const std::vector<VanityObjectLocation>& locations = object.m_Locations.at(Game::server->GetZoneID());
+
+		// Pick a random location
+		const auto& location = locations[GeneralUtils::GenerateRandomNumber<int>(
+			static_cast<size_t>(0), static_cast<size_t>(locations.size() - 1))];
+
+		float rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
+		if (location.m_Chance < rate) continue;
+
+		if (object.m_Config.empty()) {
+			object.m_Config = {
+				new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+				new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+			};
+		}
+		if (object.m_LOT == 176){
+			object.m_ID = SpawnSpawner(object, location);
+		} else {
+			// Spawn the NPC
+			auto* objectEntity = SpawnObject(object, location);
+			if (!objectEntity) continue;
+			object.m_ID = objectEntity->GetObjectID();
+			if (!object.m_Phrases.empty()){
+				objectEntity->SetVar<std::vector<std::string>>(u"chats", object.m_Phrases);
+
+				auto* scriptComponent = objectEntity->GetComponent<ScriptComponent>();
+
+				if (scriptComponent && !object.m_Script.empty()) {
+					scriptComponent->SetScript(object.m_Script);
+					scriptComponent->SetSerialized(false);
+				}
+				SetupNPCTalk(objectEntity);
+			}
+		}
+	}
 }
 
-LWOOBJID VanityUtilities::SpawnSpawner(LOT lot, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LDFBaseData*>& ldf){
+LWOOBJID VanityUtilities::SpawnSpawner(const VanityObject& object, const VanityObjectLocation& location) {
 	SceneObject obj;
-	obj.lot = lot;
+	obj.lot = object.m_LOT;
 	// guratantee we have no collisions
 	do {
 		obj.id = ObjectIDManager::GenerateObjectID();
 	} while(Game::zoneManager->GetSpawner(obj.id));
-	obj.position = position;
-	obj.rotation = rotation;
-	obj.settings = ldf;
+	obj.position = location.m_Position;
+	obj.rotation = location.m_Rotation;
+	obj.settings = object.m_Config;
 	Level::MakeSpawner(obj);
 	return obj.id;
 }
 
-Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoint3& position, const NiQuaternion& rotation, const std::vector<LOT>& inventory, const std::vector<LDFBaseData*>& ldf) {
+Entity* VanityUtilities::SpawnObject(const VanityObject& object, const VanityObjectLocation& location) {
 	EntityInfo info;
-	info.lot = lot;
-	info.pos = position;
-	info.rot = rotation;
+	info.lot = object.m_LOT;
+	info.pos = location.m_Position;
+	info.rot = location.m_Rotation;
+	info.scale = location.m_Scale;
 	info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
-	info.settings = ldf;
+	info.settings = object.m_Config;
 
 	auto* entity = Game::entityManager->CreateEntity(info);
-	entity->SetVar(u"npcName", name);
+	entity->SetVar(u"npcName", object.m_Name);
 	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
-	if (inventoryComponent && !inventory.empty()) {
-		inventoryComponent->SetNPCItems(inventory);
+	if (inventoryComponent && !object.m_Equipment.empty()) {
+		inventoryComponent->SetNPCItems(object.m_Equipment);
 	}
 
 	auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
@@ -223,6 +154,11 @@ Entity* VanityUtilities::SpawnNPC(LOT lot, const std::string& name, const NiPoin
 }
 
 void VanityUtilities::ParseXML(const std::string& file) {
+	if (m_LoadedFiles.contains(file)){
+		LOG("Trying to load vanity file %s twice!!!", file.c_str());
+		return;
+	}
+	m_LoadedFiles.insert(file);
 	// Read the entire file
 	std::ifstream xmlFile(file);
 	std::string xml((std::istreambuf_iterator<char>(xmlFile)), std::istreambuf_iterator<char>());
@@ -231,210 +167,112 @@ void VanityUtilities::ParseXML(const std::string& file) {
 	tinyxml2::XMLDocument doc;
 	doc.Parse(xml.c_str(), xml.size());
 
-	// Read the NPCs
-	auto* npcs = doc.FirstChildElement("npcs");
-
-	if (npcs == nullptr) {
-		LOG("Failed to parse NPCs");
-		return;
-	}
-
-	for (auto* party = npcs->FirstChildElement("party"); party != nullptr; party = party->NextSiblingElement("party")) {
-		// Get 'zone' as uint32_t and 'chance' as float
-		uint32_t zone = 0;
-		float chance = 0.0f;
-
-		if (party->Attribute("zone") != nullptr) {
-			zone = std::stoul(party->Attribute("zone"));
-		}
-
-		if (party->Attribute("chance") != nullptr) {
-			chance = std::stof(party->Attribute("chance"));
-		}
-
-		VanityParty partyInfo;
-		partyInfo.m_Zone = zone;
-		partyInfo.m_Chance = chance;
-
-		auto* locations = party->FirstChildElement("locations");
-
-		if (locations == nullptr) {
-			LOG("Failed to parse party locations");
-			continue;
-		}
-
-		for (auto* location = locations->FirstChildElement("location"); location != nullptr;
-			location = location->NextSiblingElement("location")) {
-			// Get the location data
-			auto* x = location->Attribute("x");
-			auto* y = location->Attribute("y");
-			auto* z = location->Attribute("z");
-			auto* rw = location->Attribute("rw");
-			auto* rx = location->Attribute("rx");
-			auto* ry = location->Attribute("ry");
-			auto* rz = location->Attribute("rz");
-
-			if (x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
-				|| rz == nullptr) {
-				LOG("Failed to parse party location data");
+	// Read the objects
+	auto* files = doc.FirstChildElement("files");
+	if (files) {
+		for (auto* file = files->FirstChildElement("file"); file != nullptr; file = file->NextSiblingElement("file")) {
+			std::string enabled = file->Attribute("enabled");
+			std::string filename = file->Attribute("name");
+			if (enabled != "1") {
 				continue;
 			}
-
-			VanityNPCLocation locationData;
-			locationData.m_Position = { std::stof(x), std::stof(y), std::stof(z) };
-			locationData.m_Rotation = { std::stof(rw), std::stof(rx), std::stof(ry), std::stof(rz) };
-			locationData.m_Chance = 1.0f;
-
-			partyInfo.m_Locations.push_back(locationData);
-		}
-
-		m_Parties.push_back(partyInfo);
-	}
-
-	auto* partyPhrases = npcs->FirstChildElement("partyphrases");
-
-	if (partyPhrases == nullptr) {
-		LOG("No party phrases found");
-	} else {
-		for (auto* phrase = partyPhrases->FirstChildElement("phrase"); phrase != nullptr;
-			phrase = phrase->NextSiblingElement("phrase")) {
-			// Get the phrase
-			auto* text = phrase->GetText();
-	
-			if (text == nullptr) {
-				LOG("Failed to parse party phrase");
-				continue;
-			}
-	
-			m_PartyPhrases.push_back(text);
+			ParseXML((BinaryPathFinder::GetBinaryDir() / "vanity" / filename).string());
 		}
 	}
 
-	for (auto* npc = npcs->FirstChildElement("npc"); npc != nullptr; npc = npc->NextSiblingElement("npc")) {
-		// Get the NPC name
-		auto* name = npc->Attribute("name");
+	// Read the objects
+	auto* objects = doc.FirstChildElement("objects");
 
-		if (!name) name = "";
+	if (objects) {
+		for (auto* object = objects->FirstChildElement("object"); object != nullptr; object = object->NextSiblingElement("object")) {
+			// Get the NPC name
+			auto* name = object->Attribute("name");
 
-		// Get the NPC lot
-		auto* lot = npc->Attribute("lot");
+			if (!name) name = "";
 
-		if (lot == nullptr) {
-			LOG("Failed to parse NPC lot");
-			continue;
-		}
+			// Get the NPC lot
+			auto* lot = object->Attribute("lot");
 
-		// Get the equipment
-		auto* equipment = npc->FirstChildElement("equipment");
-		std::vector<LOT> inventory;
-
-		if (equipment) {
-			auto* text = equipment->GetText();
-
-			if (text != nullptr) {
-				std::string equipmentString(text);
-
-				std::vector<std::string> splitEquipment = GeneralUtils::SplitString(equipmentString, ',');
-
-				for (auto& item : splitEquipment) {
-					inventory.push_back(std::stoi(item));
-				}
-			}
-		}
-
-
-		// Get the phrases
-		auto* phrases = npc->FirstChildElement("phrases");
-
-		std::vector<std::string> phraseList = {};
-
-		if (phrases) {
-			for (auto* phrase = phrases->FirstChildElement("phrase"); phrase != nullptr;
-				phrase = phrase->NextSiblingElement("phrase")) {
-				// Get the phrase
-				auto* text = phrase->GetText();
-				if (text == nullptr) {
-					LOG("Failed to parse NPC phrase");
-					continue;
-				}
-				phraseList.push_back(text);
-			}
-		}
-
-		// Get the script
-		auto* scriptElement = npc->FirstChildElement("script");
-
-		std::string scriptName = "";
-
-		if (scriptElement != nullptr) {
-			auto* scriptNameAttribute = scriptElement->Attribute("name");
-			if (scriptNameAttribute) scriptName = scriptNameAttribute;
-		}
-
-		auto* ldfElement = npc->FirstChildElement("ldf");
-		std::vector<std::u16string> keys = {};
-
-		std::vector<LDFBaseData*> ldf = {};
-		if(ldfElement) {
-			for (auto* entry = ldfElement->FirstChildElement("entry"); entry != nullptr;
-				entry = entry->NextSiblingElement("entry")) {
-				// Get the ldf data
-				auto* data = entry->Attribute("data");
-				if (!data) continue;
-
-				LDFBaseData* ldfData = LDFBaseData::DataFromString(data);
-				keys.push_back(ldfData->GetKey());
-				ldf.push_back(ldfData);
-			}
-		}
-		if (!keys.empty()) ldf.push_back(new LDFData<std::vector<std::u16string>>(u"syncLDF", keys));
-
-		VanityNPC npcData;
-		npcData.m_Name = name;
-		npcData.m_LOT = std::stoi(lot);
-		npcData.m_Equipment = inventory;
-		npcData.m_Phrases = phraseList;
-		npcData.m_Script = scriptName;
-		npcData.ldf = ldf;
-
-		// Get flags
-		auto* flags = npc->FirstChildElement("flags");
-
-		if (flags != nullptr) {
-			for (auto* flag = flags->FirstChildElement("flag"); flag != nullptr;
-				flag = flag->NextSiblingElement("flag")) {
-				// Get the flag name
-				auto* name = flag->Attribute("name");
-
-				if (name == nullptr) {
-					LOG("Failed to parse NPC flag name");
-					continue;
-				}
-
-				// Get the flag value
-				auto* value = flag->Attribute("value");
-
-				if (value == nullptr) {
-					LOG("Failed to parse NPC flag value");
-					continue;
-				}
-
-				npcData.m_Flags[name] = std::stoi(value);
-			}
-		}
-
-		// Get the zones
-		for (auto* zone = npc->FirstChildElement("zone"); zone != nullptr; zone = zone->NextSiblingElement("zone")) {
-			// Get the zone ID
-			auto* zoneID = zone->Attribute("id");
-
-			if (zoneID == nullptr) {
-				LOG("Failed to parse NPC zone ID");
+			if (lot == nullptr) {
+				LOG("Failed to parse object lot");
 				continue;
 			}
+
+			// Get the equipment
+			auto* equipment = object->FirstChildElement("equipment");
+			std::vector<LOT> inventory;
+
+			if (equipment) {
+				auto* text = equipment->GetText();
+
+				if (text != nullptr) {
+					std::string equipmentString(text);
+
+					std::vector<std::string> splitEquipment = GeneralUtils::SplitString(equipmentString, ',');
+
+					for (auto& item : splitEquipment) {
+						inventory.push_back(std::stoi(item));
+					}
+				}
+			}
+
+
+			// Get the phrases
+			auto* phrases = object->FirstChildElement("phrases");
+
+			std::vector<std::string> phraseList = {};
+
+			if (phrases) {
+				for (auto* phrase = phrases->FirstChildElement("phrase"); phrase != nullptr;
+					phrase = phrase->NextSiblingElement("phrase")) {
+					// Get the phrase
+					auto* text = phrase->GetText();
+					if (text == nullptr) {
+						LOG("Failed to parse NPC phrase");
+						continue;
+					}
+					phraseList.push_back(text);
+				}
+			}
+
+			// Get the script
+			auto* scriptElement = object->FirstChildElement("script");
+
+			std::string scriptName = "";
+
+			if (scriptElement != nullptr) {
+				auto* scriptNameAttribute = scriptElement->Attribute("name");
+				if (scriptNameAttribute) scriptName = scriptNameAttribute;
+			}
+
+			auto* configElement = object->FirstChildElement("config");
+			std::vector<std::u16string> keys = {};
+
+			std::vector<LDFBaseData*> config = {};
+			if(configElement) {
+				for (auto* key = configElement->FirstChildElement("key"); key != nullptr;
+					key = key->NextSiblingElement("key")) {
+					// Get the config data
+					auto* data = key->Attribute("data");
+					if (!data) continue;
+
+					LDFBaseData* configData = LDFBaseData::DataFromString(data);
+					keys.push_back(configData->GetKey());
+					config.push_back(configData);
+				}
+			}
+			if (!keys.empty()) config.push_back(new LDFData<std::vector<std::u16string>>(u"syncLDF", keys));
+
+			VanityObject objectData;
+			objectData.m_Name = name;
+			objectData.m_LOT = std::stoi(lot);
+			objectData.m_Equipment = inventory;
+			objectData.m_Phrases = phraseList;
+			objectData.m_Script = scriptName;
+			objectData.m_Config = config;
 
 			// Get the locations
-			auto* locations = zone->FirstChildElement("locations");
+			auto* locations = object->FirstChildElement("locations");
 
 			if (locations == nullptr) {
 				LOG("Failed to parse NPC locations");
@@ -443,7 +281,9 @@ void VanityUtilities::ParseXML(const std::string& file) {
 
 			for (auto* location = locations->FirstChildElement("location"); location != nullptr;
 				location = location->NextSiblingElement("location")) {
+				
 				// Get the location data
+				auto* zoneID = location->Attribute("zone");
 				auto* x = location->Attribute("x");
 				auto* y = location->Attribute("y");
 				auto* z = location->Attribute("z");
@@ -452,41 +292,52 @@ void VanityUtilities::ParseXML(const std::string& file) {
 				auto* ry = location->Attribute("ry");
 				auto* rz = location->Attribute("rz");
 
-				if (x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
+				if (zoneID == nullptr || x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
 					|| rz == nullptr) {
 					LOG("Failed to parse NPC location data");
 					continue;
 				}
 
-				VanityNPCLocation locationData;
+				VanityObjectLocation locationData;
 				locationData.m_Position = { std::stof(x), std::stof(y), std::stof(z) };
 				locationData.m_Rotation = { std::stof(rw), std::stof(rx), std::stof(ry), std::stof(rz) };
 				locationData.m_Chance = 1.0f;
 
-				if (location->Attribute("chance") != nullptr) {
+				if (location->Attribute("chance")) {
 					locationData.m_Chance = std::stof(location->Attribute("chance"));
 				}
 
-				const auto& it = npcData.m_Locations.find(std::stoi(zoneID));
+				if (location->Attribute("scale")) {
+					locationData.m_Scale = std::stof(location->Attribute("scale"));
+				}
 
-				if (it != npcData.m_Locations.end()) {
+
+				const auto& it = objectData.m_Locations.find(std::stoi(zoneID));
+
+				if (it != objectData.m_Locations.end()) {
 					it->second.push_back(locationData);
 				} else {
-					std::vector<VanityNPCLocation> locations;
+					std::vector<VanityObjectLocation> locations;
 					locations.push_back(locationData);
-					npcData.m_Locations.insert(std::make_pair(std::stoi(zoneID), locations));
+					objectData.m_Locations.insert(std::make_pair(std::stoi(zoneID), locations));
+				}
+
+				if (!(std::find(keys.begin(), keys.end(), u"teleport") != keys.end())) {
+					m_Objects.push_back(objectData);
+					objectData.m_Locations.clear();
 				}
 			}
+			if (std::find(keys.begin(), keys.end(), u"teleport") != keys.end()) {
+				m_Objects.push_back(objectData);
+			}	
 		}
-
-		m_NPCs.push_back(npcData);
 	}
 }
 
-VanityNPC* VanityUtilities::GetNPC(const std::string& name) {
-	for (size_t i = 0; i < m_NPCs.size(); i++) {
-		if (m_NPCs[i].m_Name == name) {
-			return &m_NPCs[i];
+VanityObject* VanityUtilities::GetObject(const std::string& name) {
+	for (size_t i = 0; i < m_Objects.size(); i++) {
+		if (m_Objects[i].m_Name == name) {
+			return &m_Objects[i];
 		}
 	}
 
@@ -498,10 +349,13 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 
 	// Read the file into a string
 	std::ifstream t(file);
-
+	std::stringstream output;
 	// If the file does not exist, return an empty string.
 	if (!t.good()) {
-		return "";
+		output << "File ";
+		output << file.substr(file.rfind("/") + 1);
+		output << " not found!\nContact your DarkflameServer admin\nor find the server source at https://github.com/DarkflameUniverse/DarkflameServer";
+		return output.str();
 	}
 
 	std::stringstream buffer;
@@ -511,7 +365,6 @@ std::string VanityUtilities::ParseMarkdown(const std::string& file) {
 	// Loop through all lines in the file.
 	// Replace all instances of the markdown syntax with the corresponding HTML.
 	// Only care about headers
-	std::stringstream output;
 	std::string line;
 	std::stringstream ss;
 	ss << fileContents;

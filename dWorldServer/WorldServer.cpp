@@ -950,7 +950,7 @@ void HandlePacket(Packet* packet) {
 			static_cast<int32_t>(messageID)
 		);
 
-		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
@@ -1177,7 +1177,7 @@ void HandlePacket(Packet* packet) {
 		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
 		bitStream.Read(space);
-		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::HandleMailStuff(bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 

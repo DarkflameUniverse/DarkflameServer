@@ -252,7 +252,7 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 
 
 SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, const uint32_t behaviorId, const LWOOBJID target, const bool ignoreTarget, const bool clientInitalized, const LWOOBJID originatorOverride) {
-	auto* bitStream = new RakNet::BitStream();
+	RakNet::BitStream bitStream{};
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
@@ -266,14 +266,13 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 	context->foundTarget = target != LWOOBJID_EMPTY || ignoreTarget || clientInitalized;
 
-	behavior->Calculate(context, bitStream, { target, 0 });
+	behavior->Calculate(context, &bitStream, { target, 0 });
 
 	for (auto* script : CppScripts::GetEntityScripts(m_Parent)) {
 		script->OnSkillCast(m_Parent, skillId);
 	}
 
 	if (!context->foundTarget) {
-		delete bitStream;
 		delete context;
 
 		// Invalid attack
@@ -299,21 +298,19 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		}
 		//start.optionalTargetID = target;
 
-		start.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
+		start.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
 		// Write message
 		RakNet::BitStream message;
 
 		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
-		start.Serialize(&message);
+		start.Serialize(message);
 
 		Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 	}
 
 	context->ExecuteUpdates();
-
-	delete bitStream;
 
 	// Valid attack
 	return { true, context->skillTime };
@@ -424,13 +421,13 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-	auto* bitStream = new RakNet::BitStream();
+	RakNet::BitStream bitStream{};
 
-	behavior->Calculate(entry.context, bitStream, entry.branchContext);
+	behavior->Calculate(entry.context, &bitStream, entry.branchContext);
 
 	DoClientProjectileImpact projectileImpact;
 
-	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
+	projectileImpact.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 	projectileImpact.i64OwnerID = this->m_Parent->GetObjectID();
 	projectileImpact.i64OrgID = entry.id;
 	projectileImpact.i64TargetID = entry.branchContext.target;
@@ -439,42 +436,34 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
-	projectileImpact.Serialize(&message);
+	projectileImpact.Serialize(message);
 
 	Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
 
 	entry.context->ExecuteUpdates();
-
-	delete bitStream;
 }
 
 void SkillComponent::HandleUnmanaged(const uint32_t behaviorId, const LWOOBJID target, LWOOBJID source) {
-	auto* context = new BehaviorContext(source);
+	BehaviorContext context{ source };
 
-	context->unmanaged = true;
-	context->caster = target;
+	context.unmanaged = true;
+	context.caster = target;
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-	auto* bitStream = new RakNet::BitStream();
+	RakNet::BitStream bitStream{};
 
-	behavior->Handle(context, bitStream, { target });
-
-	delete bitStream;
-
-	delete context;
+	behavior->Handle(&context, &bitStream, { target });
 }
 
 void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID target) {
-	auto* context = new BehaviorContext(target);
+	BehaviorContext context{ target };
 
-	context->caster = target;
+	context.caster = target;
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-	behavior->UnCast(context, { target });
-
-	delete context;
+	behavior->UnCast(&context, { target });
 }
 
 SkillComponent::SkillComponent(Entity* parent): Component(parent) {

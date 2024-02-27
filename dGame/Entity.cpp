@@ -943,7 +943,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 			for (LDFBaseData* data : m_Settings) {
 				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
@@ -963,7 +963,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 			settingStream.Write<uint32_t>(ldfData.size());
 			for (LDFBaseData* data : ldfData) {
 				if (data) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
@@ -2196,4 +2196,10 @@ void Entity::SetRespawnPos(const NiPoint3& position) {
 void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
+}
+
+void Entity::SetScale(const float scale) {
+	if (scale == m_Scale) return;
+	m_Scale = scale;
+	Game::entityManager->SerializeEntity(this);
 }
