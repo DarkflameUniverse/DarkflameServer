@@ -79,7 +79,6 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 		entries.push_back(entry);
 		tableData.nextRow();
 	}
-
 	tableData.finalize();
 
 	Default.id = -1;
@@ -118,3 +117,12 @@ const CDMissions& CDMissionsTable::GetByMissionID(uint32_t missionID, bool& foun
 	return Default;
 }
 
+const std::set<int32_t> CDMissionsTable::GetMissionsForReward(LOT lot) {
+	std::set<int32_t> toReturn {};
+	for (const auto& entry : GetEntries()) {
+		if (lot == entry.reward_item1 || lot == entry.reward_item2 || lot == entry.reward_item3 || lot == entry.reward_item4) {
+			toReturn.insert(entry.id);
+		}
+	}
+	return toReturn;
+}

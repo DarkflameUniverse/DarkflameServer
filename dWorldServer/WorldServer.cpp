@@ -950,7 +950,7 @@ void HandlePacket(Packet* packet) {
 			static_cast<int32_t>(messageID)
 		);
 
-		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 

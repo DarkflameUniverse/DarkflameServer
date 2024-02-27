@@ -31,7 +31,7 @@ public:
 
 	virtual ~LDFBaseData() {}
 
-	virtual void WriteToPacket(RakNet::BitStream* packet) = 0;
+	virtual void WriteToPacket(RakNet::BitStream& packet) = 0;
 
 	virtual const std::u16string& GetKey() = 0;
 
@@ -62,17 +62,17 @@ private:
 	T value;
 
 	//! Writes the key to the packet
-	void WriteKey(RakNet::BitStream* packet) {
-		packet->Write<uint8_t>(this->key.length() * sizeof(uint16_t));
+	void WriteKey(RakNet::BitStream& packet) {
+		packet.Write<uint8_t>(this->key.length() * sizeof(uint16_t));
 		for (uint32_t i = 0; i < this->key.length(); ++i) {
-			packet->Write<uint16_t>(this->key[i]);
+			packet.Write<uint16_t>(this->key[i]);
 		}
 	}
 
 	//! Writes the value to the packet
-	void WriteValue(RakNet::BitStream* packet) {
-		packet->Write<uint8_t>(this->GetValueType());
-		packet->Write(this->value);
+	void WriteValue(RakNet::BitStream& packet) {
+		packet.Write<uint8_t>(this->GetValueType());
+		packet.Write(this->value);
 	}
 
 public:
@@ -108,7 +108,7 @@ public:
 	/*!
 	  \param packet The packet
 	 */
-	void WriteToPacket(RakNet::BitStream* packet) override {
+	void WriteToPacket(RakNet::BitStream& packet) override {
 		this->WriteKey(packet);
 		this->WriteValue(packet);
 	}
@@ -178,31 +178,31 @@ template<> inline eLDFType LDFData<std::string>::GetValueType(void) { return LDF
 
 // The specialized version for std::u16string (UTF-16)
 template<>
-inline void LDFData<std::u16string>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write<uint8_t>(this->GetValueType());
+inline void LDFData<std::u16string>::WriteValue(RakNet::BitStream& packet) {
+	packet.Write<uint8_t>(this->GetValueType());
 
-	packet->Write<uint32_t>(this->value.length());
+	packet.Write<uint32_t>(this->value.length());
 	for (uint32_t i = 0; i < this->value.length(); ++i) {
-		packet->Write<uint16_t>(this->value[i]);
+		packet.Write<uint16_t>(this->value[i]);
 	}
 }
 
 // The specialized version for bool
 template<>
-inline void LDFData<bool>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write<uint8_t>(this->GetValueType());
+inline void LDFData<bool>::WriteValue(RakNet::BitStream& packet) {
+	packet.Write<uint8_t>(this->GetValueType());
 
-	packet->Write<uint8_t>(this->value);
+	packet.Write<uint8_t>(this->value);
 }
 
 // The specialized version for std::string (UTF-8)
 template<>
-inline void LDFData<std::string>::WriteValue(RakNet::BitStream* packet) {
-	packet->Write<uint8_t>(this->GetValueType());
+inline void LDFData<std::string>::WriteValue(RakNet::BitStream& packet) {
+	packet.Write<uint8_t>(this->GetValueType());
 
-	packet->Write<uint32_t>(this->value.length());
+	packet.Write<uint32_t>(this->value.length());
 	for (uint32_t i = 0; i < this->value.length(); ++i) {
-		packet->Write<uint8_t>(this->value[i]);
+		packet.Write<uint8_t>(this->value[i]);
 	}
 }
 

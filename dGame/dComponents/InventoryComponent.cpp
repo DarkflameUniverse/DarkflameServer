@@ -730,10 +730,10 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 						std::string newRocketStr = data->GetValueAsString() + ";";
 						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
 						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
-						ldf_data->WriteToPacket(&ldfStream);
+						ldf_data->WriteToPacket(ldfStream);
 						delete ldf_data;
 					} else {
-						data->WriteToPacket(&ldfStream);
+						data->WriteToPacket(ldfStream);
 					}
 				}
 				outBitStream->Write(ldfStream.GetNumberOfBytesUsed() + 1);
