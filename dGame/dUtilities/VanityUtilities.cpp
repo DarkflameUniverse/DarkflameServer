@@ -174,7 +174,7 @@ void ParseXml(const std::string& file) {
 
 	// Read the objects
 	auto* objects = doc.FirstChildElement("objects");
-
+	const uint32_t currentZoneID = Game::server->GetZoneID();
 	if (objects) {
 		for (auto* object = objects->FirstChildElement("object"); object != nullptr; object = object->NextSiblingElement("object")) {
 			// for use later when adding to the vector of VanityObjects
@@ -205,7 +205,10 @@ void ParseXml(const std::string& file) {
 					std::vector<std::string> splitEquipment = GeneralUtils::SplitString(equipmentString, ',');
 
 					for (auto& item : splitEquipment) {
-						inventory.push_back(std::stoi(item));
+						// remove spaces for tryParse to work
+						item.erase(remove_if(item.begin(), item.end(), isspace), item.end());
+						auto itemInt = GeneralUtils::TryParse<uint32_t>(item);
+						if (itemInt.has_value()) inventory.push_back(itemInt.value());
 					}
 				}
 			}
@@ -253,7 +256,7 @@ void ParseXml(const std::string& file) {
 
 			VanityObject objectData {
 				.m_Name = name,
-				.m_LOT = std::stoi(lot),
+				.m_LOT = GeneralUtils::TryParse<LOT>(lot).value_or(LOT_NULL),
 				.m_Equipment = inventory,
 				.m_Phrases = phraseList,
 				.m_Config = config
@@ -271,42 +274,46 @@ void ParseXml(const std::string& file) {
 				location = location->NextSiblingElement("location")) {
 				
 				// Get the location data
-				auto* zoneID = location->Attribute("zone");
-				auto* x = location->Attribute("x");
-				auto* y = location->Attribute("y");
-				auto* z = location->Attribute("z");
-				auto* rw = location->Attribute("rw");
-				auto* rx = location->Attribute("rx");
-				auto* ry = location->Attribute("ry");
-				auto* rz = location->Attribute("rz");
+				auto zoneID = GeneralUtils::TryParse<uint32_t>(location->Attribute("zone"));
+				auto x = GeneralUtils::TryParse<float>(location->Attribute("x"));
+				auto y = GeneralUtils::TryParse<float>(location->Attribute("y"));
+				auto z = GeneralUtils::TryParse<float>(location->Attribute("z"));
+				auto rw = GeneralUtils::TryParse<float>(location->Attribute("rw"));
+				auto rx = GeneralUtils::TryParse<float>(location->Attribute("rx"));
+				auto ry = GeneralUtils::TryParse<float>(location->Attribute("ry"));
+				auto rz = GeneralUtils::TryParse<float>(location->Attribute("rz"));
 
-				if (zoneID == nullptr || x == nullptr || y == nullptr || z == nullptr || rw == nullptr || rx == nullptr || ry == nullptr
-					|| rz == nullptr) {
+				if (!zoneID.has_value() || !x.has_value() || !y.has_value() || !z.has_value() || !rw.has_value() || !rx.has_value() || !ry.has_value() || !rz.has_value()) {
 					LOG("Failed to parse NPC location data");
 					continue;
 				}
 
+				if (zoneID.value() != currentZoneID) {
+					LOG_DEBUG("Skipping location because it is in %i and not the current zone (%i)", zoneID.value(), currentZoneID);
+					continue;
+				}
+
 				VanityObjectLocation locationData {
-					.m_Position = { std::stof(x), std::stof(y), std::stof(z) },
-					.m_Rotation = { std::stof(rw), std::stof(rx), std::stof(ry), std::stof(rz) },
+					.m_Position = { x.value(), y.value(), z.value() },
+					.m_Rotation = { rw.value(), rx.value(), ry.value(), rz.value() },
 				};
 
 				if (location->Attribute("chance")) {
-					locationData.m_Chance = std::stof(location->Attribute("chance"));
+					locationData.m_Chance = GeneralUtils::TryParse<float>(location->Attribute("chance")).value_or(1.0f);
 				}
 
 				if (location->Attribute("scale")) {
-					locationData.m_Scale = std::stof(location->Attribute("scale"));
+					locationData.m_Scale = GeneralUtils::TryParse<float>(location->Attribute("scale")).value_or(1.0f);
 				}
 
-				const auto& it = objectData.m_Locations.find(std::stoi(zoneID));
+				const auto& it = objectData.m_Locations.find(zoneID.value());
 
 				if (it != objectData.m_Locations.end()) {
 					it->second.push_back(locationData);
 				} else {
 					std::vector<VanityObjectLocation> locations;
 					locations.push_back(locationData);
-					objectData.m_Locations.insert(std::make_pair(std::stoi(zoneID), locations));
+					objectData.m_Locations.insert(std::make_pair(zoneID.value(), locations));
 				}
 
 				if (!useLocationsAsRandomSpawnPoint) {
@@ -315,7 +322,7 @@ void ParseXml(const std::string& file) {
 				}
 			}
 
-			if (useLocationsAsRandomSpawnPoint) {
+			if (useLocationsAsRandomSpawnPoint && !objectData.m_Locations.empty()) {
 				m_Objects.push_back(objectData);
 			}
 		}
