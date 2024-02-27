@@ -303,7 +303,7 @@ void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sys
 		bitStream.Write(uint32_t(0));
 	}
 
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::HandleAttachmentCollect(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
@@ -367,7 +367,7 @@ void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse respo
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::SendResponse));
 	bitStream.Write(int(response));
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
@@ -386,7 +386,7 @@ void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 	bitStream.Write(s4);
 	bitStream.Write(mailCount);
 	bitStream.Write(int(0)); //Unknown
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
@@ -395,7 +395,7 @@ void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t ma
 	bitStream.Write(int(MailMessageID::AttachmentCollectConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID) {
@@ -404,7 +404,7 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 	bitStream.Write(int(MailMessageID::MailDeleteConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 
 	Database::Get()->DeleteMail(mailID);
 }
@@ -415,7 +415,7 @@ void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	bitStream.Write(int(MailMessageID::MailReadConfirm));
 	bitStream.Write(int(0)); //unknown
 	bitStream.Write(mailID);
-	Game::server->Send(&bitStream, sysAddr, false);
+	Game::server->Send(bitStream, sysAddr, false);
 
 	Database::Get()->MarkMailRead(mailID);
 }

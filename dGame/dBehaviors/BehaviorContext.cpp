@@ -258,7 +258,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			message.Write(this->originator);
 			echo.Serialize(message);
 
-			Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 
 		ExecuteUpdates();
