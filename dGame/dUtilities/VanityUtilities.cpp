@@ -185,9 +185,9 @@ void ParseXml(const std::string& file) {
 			if (!name) name = "";
 
 			// Get the NPC lot
-			auto* lot = object->Attribute("lot");
+			auto lot = GeneralUtils::TryParse<LOT>(object->Attribute("lot")).value_or(LOT_NULL);
 
-			if (lot == nullptr) {
+			if (lot == LOT_NULL) {
 				LOG("Failed to parse object lot");
 				continue;
 			}
@@ -208,7 +208,7 @@ void ParseXml(const std::string& file) {
 						// remove spaces for tryParse to work
 						item.erase(remove_if(item.begin(), item.end(), isspace), item.end());
 						auto itemInt = GeneralUtils::TryParse<uint32_t>(item);
-						if (itemInt.has_value()) inventory.push_back(itemInt.value());
+						if (itemInt) inventory.push_back(itemInt.value());
 					}
 				}
 			}
@@ -256,7 +256,7 @@ void ParseXml(const std::string& file) {
 
 			VanityObject objectData {
 				.m_Name = name,
-				.m_LOT = GeneralUtils::TryParse<LOT>(lot).value_or(LOT_NULL),
+				.m_LOT = lot,
 				.m_Equipment = inventory,
 				.m_Phrases = phraseList,
 				.m_Config = config
@@ -283,7 +283,7 @@ void ParseXml(const std::string& file) {
 				auto ry = GeneralUtils::TryParse<float>(location->Attribute("ry"));
 				auto rz = GeneralUtils::TryParse<float>(location->Attribute("rz"));
 
-				if (!zoneID.has_value() || !x.has_value() || !y.has_value() || !z.has_value() || !rw.has_value() || !rx.has_value() || !ry.has_value() || !rz.has_value()) {
+				if (!zoneID || !x || !y || !z || !rw || !rx || !ry || !rz) {
 					LOG("Failed to parse NPC location data");
 					continue;
 				}
