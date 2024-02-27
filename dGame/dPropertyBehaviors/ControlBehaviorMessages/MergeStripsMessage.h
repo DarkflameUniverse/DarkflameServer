@@ -13,7 +13,7 @@ class AMFArrayValue;
  */
 class MergeStripsMessage : public BehaviorMessageBase {
 public:
-	MergeStripsMessage(const AMFArrayValue* arguments);
+	MergeStripsMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] int32_t GetDstActionIndex() const noexcept { return m_DstActionIndex; }
 

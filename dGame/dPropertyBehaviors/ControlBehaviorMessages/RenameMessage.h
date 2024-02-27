@@ -10,7 +10,7 @@ class AMFArrayValue;
  */
 class RenameMessage : public BehaviorMessageBase {
 public:
-	RenameMessage(const AMFArrayValue* arguments);
+	RenameMessage(const AMFArrayValue& arguments);
 	[[nodiscard]] const std::string& GetName() const { return m_Name; };
 
 private:

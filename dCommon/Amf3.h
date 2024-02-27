@@ -42,6 +42,7 @@ class AMFValue : public AMFBaseValue {
 public:
 	AMFValue() = default;
 	AMFValue(const ValueType value) : m_Data{ value } {}
+
 	virtual ~AMFValue() override = default;
 
 	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override;

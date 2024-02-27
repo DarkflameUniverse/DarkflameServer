@@ -38,11 +38,11 @@ protected:
 		}
 		return readFile;
 	}
-	AMFArrayValue* ReadArrayFromBitStream(RakNet::BitStream& inStream) {
+	const AMFArrayValue& ReadArrayFromBitStream(RakNet::BitStream& inStream) {
 		AMFDeserialize des;
 		AMFBaseValue* readArray = des.Read(inStream);
 		EXPECT_EQ(readArray->GetValueType(), eAmf::Array);
-		return static_cast<AMFArrayValue*>(readArray);
+		return static_cast<AMFArrayValue&>(*readArray);
 	}
 };
 
@@ -93,7 +93,7 @@ TEST_F(GameMessageTests, ControlBehaviorAddStrip) {
 	ASSERT_FLOAT_EQ(addStrip.GetPosition().GetY(), 178.05);
 	ASSERT_EQ(addStrip.GetActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(addStrip.GetActionContext().GetStateId()), 0);
-	ASSERT_EQ(addStrip.GetBehaviorId(), -1);
+	ASSERT_EQ(addStrip.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 	ASSERT_EQ(addStrip.GetActionsToAdd().front().GetType(), "DropImagination");
 	ASSERT_EQ(addStrip.GetActionsToAdd().front().GetValueParameterName(), "Amount");
 	ASSERT_EQ(addStrip.GetActionsToAdd().front().GetValueParameterString(), "");
@@ -106,7 +106,7 @@ TEST_F(GameMessageTests, ControlBehaviorRemoveStrip) {
 	RemoveStripMessage removeStrip(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(static_cast<int32_t>(removeStrip.GetActionContext().GetStripId()), 1);
 	ASSERT_EQ(static_cast<int32_t>(removeStrip.GetActionContext().GetStateId()), 0);
-	ASSERT_EQ(removeStrip.GetBehaviorId(), -1);
+	ASSERT_EQ(removeStrip.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorMergeStrips) {
@@ -118,7 +118,7 @@ TEST_F(GameMessageTests, ControlBehaviorMergeStrips) {
 	ASSERT_EQ(static_cast<uint32_t>(mergeStrips.GetSourceActionContext().GetStateId()), 0);
 	ASSERT_EQ(static_cast<uint32_t>(mergeStrips.GetDestinationActionContext().GetStateId()), 0);
 	ASSERT_EQ(mergeStrips.GetDstActionIndex(), 0);
-	ASSERT_EQ(mergeStrips.GetBehaviorId(), -1);
+	ASSERT_EQ(mergeStrips.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorSplitStrip) {
@@ -144,7 +144,7 @@ TEST_F(GameMessageTests, ControlBehaviorUpdateStripUI) {
 	ASSERT_FLOAT_EQ(updateStripUi.GetPosition().GetY(), 35.35);
 	ASSERT_EQ(updateStripUi.GetActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(updateStripUi.GetActionContext().GetStateId()), 0);
-	ASSERT_EQ(updateStripUi.GetBehaviorId(), -1);
+	ASSERT_EQ(updateStripUi.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorAddAction) {
@@ -158,7 +158,7 @@ TEST_F(GameMessageTests, ControlBehaviorAddAction) {
 	ASSERT_EQ(addAction.GetAction().GetValueParameterName(), "");
 	ASSERT_EQ(addAction.GetAction().GetValueParameterString(), "");
 	ASSERT_EQ(addAction.GetAction().GetValueParameterDouble(), 0.0);
-	ASSERT_EQ(addAction.GetBehaviorId(), -1);
+	ASSERT_EQ(addAction.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorMigrateActions) {
@@ -171,7 +171,7 @@ TEST_F(GameMessageTests, ControlBehaviorMigrateActions) {
 	ASSERT_EQ(migrateActions.GetDestinationActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(migrateActions.GetSourceActionContext().GetStateId()), 0);
 	ASSERT_EQ(static_cast<uint32_t>(migrateActions.GetDestinationActionContext().GetStateId()), 0);
-	ASSERT_EQ(migrateActions.GetBehaviorId(), -1);
+	ASSERT_EQ(migrateActions.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorRearrangeStrip) {
@@ -181,7 +181,7 @@ TEST_F(GameMessageTests, ControlBehaviorRearrangeStrip) {
 	ASSERT_EQ(rearrangeStrip.GetSrcActionIndex(), 2);
 	ASSERT_EQ(rearrangeStrip.GetDstActionIndex(), 1);
 	ASSERT_EQ(rearrangeStrip.GetActionContext().GetStripId(), 0);
-	ASSERT_EQ(rearrangeStrip.GetBehaviorId(), -1);
+	ASSERT_EQ(rearrangeStrip.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 	ASSERT_EQ(static_cast<uint32_t>(rearrangeStrip.GetActionContext().GetStateId()), 0);
 }
 
@@ -208,7 +208,7 @@ TEST_F(GameMessageTests, ControlBehaviorRename) {
 	RakNet::BitStream inStream((unsigned char*)data.c_str(), data.length(), true);
 	RenameMessage rename(ReadArrayFromBitStream(inStream));
 	ASSERT_EQ(rename.GetName(), "test");
-	ASSERT_EQ(rename.GetBehaviorId(), -1);
+	ASSERT_EQ(rename.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 }
 
 TEST_F(GameMessageTests, ControlBehaviorUpdateAction) {
@@ -219,7 +219,7 @@ TEST_F(GameMessageTests, ControlBehaviorUpdateAction) {
 	ASSERT_EQ(updateAction.GetAction().GetValueParameterName(), "Distance");
 	ASSERT_EQ(updateAction.GetAction().GetValueParameterString(), "");
 	ASSERT_EQ(updateAction.GetAction().GetValueParameterDouble(), 50.0);
-	ASSERT_EQ(updateAction.GetBehaviorId(), -1);
+	ASSERT_EQ(updateAction.GetBehaviorId(), BehaviorMessageBase::DefaultBehaviorId);
 	ASSERT_EQ(updateAction.GetActionIndex(), 1);
 	ASSERT_EQ(updateAction.GetActionContext().GetStripId(), 0);
 	ASSERT_EQ(static_cast<uint32_t>(updateAction.GetActionContext().GetStateId()), 0);

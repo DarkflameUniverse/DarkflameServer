@@ -1,8 +1,8 @@
 #include "Action.h"
 #include "Amf3.h"
 
-Action::Action(const AMFArrayValue* arguments) {
-	for (const auto& [paramName, paramValue] : arguments->GetAssociative()) {
+Action::Action(const AMFArrayValue& arguments) {
+	for (const auto& [paramName, paramValue] : arguments.GetAssociative()) {
 		if (paramName == "Type") {
 			if (paramValue->GetValueType() != eAmf::String) continue;
 			m_Type = static_cast<AMFStringValue*>(paramValue)->GetValue();

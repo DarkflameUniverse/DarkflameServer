@@ -23,7 +23,7 @@ private:
 	 * @param inStream bitstream to read data from
 	 * @return The number as an unsigned 29 bit integer
 	 */
-	uint32_t ReadU29(RakNet::BitStream& inStream);
+	static uint32_t ReadU29(RakNet::BitStream& inStream);
 
 	/**
 	 * @brief Reads a string from a bitstream

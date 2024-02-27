@@ -2489,23 +2489,24 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFBaseValue> amfArguments(reader.Read(inStream));
+	std::unique_ptr<AMFArrayValue> amfArguments{ static_cast<AMFArrayValue*>(reader.Read(inStream)) };
 	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};
 	inStream.Read(commandLength);
 
 	std::string command;
-	for (uint32_t i = 0; i < commandLength; i++) {
+	command.reserve(commandLength);
+	for (uint32_t i = 0; i < commandLength; ++i) {
 		unsigned char character;
 		inStream.Read(character);
 		command.push_back(character);
 	}
 
-	auto owner = PropertyManagementComponent::Instance()->GetOwner();
+	auto* const owner = PropertyManagementComponent::Instance()->GetOwner();
 	if (!owner) return;
 
-	ControlBehaviors::Instance().ProcessCommand(entity, static_cast<AMFArrayValue*>(amfArguments.get()), command, owner);
+	ControlBehaviors::Instance().ProcessCommand(entity, *amfArguments, command, owner);
 }
 
 void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {

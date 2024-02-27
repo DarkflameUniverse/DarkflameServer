@@ -1,6 +1,6 @@
 #include "RearrangeStripMessage.h"
 
-RearrangeStripMessage::RearrangeStripMessage(const AMFArrayValue* arguments)
+RearrangeStripMessage::RearrangeStripMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_SrcActionIndex{ GetActionIndexFromArgument(arguments, "srcActionIndex") }
 	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }

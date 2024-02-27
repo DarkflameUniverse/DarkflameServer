@@ -10,7 +10,7 @@
  */
 class RearrangeStripMessage : public BehaviorMessageBase {
 public:
-	RearrangeStripMessage(const AMFArrayValue* arguments);
+	RearrangeStripMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
 	[[nodiscard]] int32_t GetDstActionIndex() const noexcept { return m_DstActionIndex; }
