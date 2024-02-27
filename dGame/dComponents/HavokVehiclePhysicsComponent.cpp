@@ -78,7 +78,7 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 		// This structure only has this bool flag set to false if a ptr to the peVehicle is null, which we don't have
 		// therefore, this will always be 1, even if all the values in the structure are 0.
 		outBitStream.Write1(); // has remote_input_info
-		outBitStream.>Write(m_RemoteInputInfo.m_RemoteInputX);
+		outBitStream.Write(m_RemoteInputInfo.m_RemoteInputX);
 		outBitStream.Write(m_RemoteInputInfo.m_RemoteInputY);
 		outBitStream.Write(m_RemoteInputInfo.m_IsPowersliding);
 		outBitStream.Write(m_RemoteInputInfo.m_IsModified);
