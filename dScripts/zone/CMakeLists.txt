@@ -22,6 +22,7 @@ add_library(dScriptsZone STATIC ${DSCRIPTS_SOURCES_ZONE})
 target_include_directories(dScriptsZone PUBLIC "."
 	"AG"
 	"LUPs"
+	"LUPs/RobotCity_Intro"
 	"PROPERTY"
 	"PROPERTY/FV"
 	"PROPERTY/GF"
