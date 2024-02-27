@@ -159,13 +159,13 @@ void dServer::DeallocateMasterPacket(Packet* packet) {
 	mMasterPeer->DeallocatePacket(packet);
 }
 
-void dServer::Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) {
-	mPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
+void dServer::Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) {
+	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
 }
 
-void dServer::SendToMaster(RakNet::BitStream* bitStream) {
+void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 	if (!mMasterConnectionActive) ConnectToMaster();
-	mMasterPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
+	mMasterPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
 }
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {

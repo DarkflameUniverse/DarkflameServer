@@ -3,13 +3,13 @@
 #include "BehaviorContext.h"
 
 
-void ClearTargetBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ClearTargetBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	branch.target = LWOOBJID_EMPTY;
 
 	this->m_action->Handle(context, bitStream, branch);
 }
 
-void ClearTargetBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ClearTargetBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	branch.target = LWOOBJID_EMPTY;
 
 	this->m_action->Calculate(context, bitStream, branch);

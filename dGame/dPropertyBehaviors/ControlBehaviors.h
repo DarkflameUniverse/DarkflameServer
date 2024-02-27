@@ -19,15 +19,15 @@ class SystemAddress;
 typedef std::string BlockName;					//! A block name
 
 struct ControlBehaviorContext {
-	ControlBehaviorContext(AMFArrayValue* args, ModelComponent* modelComponent, Entity* modelOwner) noexcept
+	ControlBehaviorContext(const AMFArrayValue& args, ModelComponent* modelComponent, Entity* modelOwner) noexcept
 		: arguments{ args }, modelComponent{ modelComponent }, modelOwner{ modelOwner } {
 	};
 
 	operator bool() const {
-		return arguments != nullptr && modelComponent != nullptr && modelOwner != nullptr;
+		return modelComponent != nullptr && modelOwner != nullptr;
 	}
 
-	AMFArrayValue* arguments;
+	std::reference_wrapper<const AMFArrayValue> arguments;
 	ModelComponent* modelComponent;
 	Entity* modelOwner;
 };
@@ -43,7 +43,7 @@ public:
 	 * @param command The command to perform
 	 * @param modelOwner The owner of the model which sent this command
 	 */
-	void ProcessCommand(Entity* modelEntity, AMFArrayValue* arguments, std::string& command, Entity* modelOwner);
+	void ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string& command, Entity* const modelOwner);
 
 	/**
 	 * @brief Gets a blocks parameter values by the name
@@ -58,7 +58,7 @@ private:
 	void RequestUpdatedID(ControlBehaviorContext& context);
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);
 	void SendBehaviorBlocksToClient(ControlBehaviorContext& context);
-	void UpdateAction(const AMFArrayValue* arguments);
+	void UpdateAction(const AMFArrayValue& arguments);
 	std::map<BlockName, BlockDefinition, std::less<>> blockTypes{};
 
 	// If false, property behaviors will not be able to be edited.

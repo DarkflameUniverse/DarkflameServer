@@ -13,7 +13,7 @@ class AMFArrayValue;
  */
 class MigrateActionsMessage : public BehaviorMessageBase {
 public:
-	MigrateActionsMessage(const AMFArrayValue* arguments);
+	MigrateActionsMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
 

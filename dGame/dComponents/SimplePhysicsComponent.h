@@ -33,7 +33,7 @@ public:
 	SimplePhysicsComponent(Entity* parent, uint32_t componentID);
 	~SimplePhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the velocity of this entity

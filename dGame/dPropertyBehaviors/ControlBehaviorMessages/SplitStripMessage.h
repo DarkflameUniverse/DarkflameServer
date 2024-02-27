@@ -14,7 +14,7 @@ class AMFArrayValue;
  */
 class SplitStripMessage : public BehaviorMessageBase {
 public:
-	SplitStripMessage(const AMFArrayValue* arguments);
+	SplitStripMessage(const AMFArrayValue& arguments);
 	
 	[[nodiscard]] int32_t GetSrcActionIndex() const noexcept { return m_SrcActionIndex; }
 

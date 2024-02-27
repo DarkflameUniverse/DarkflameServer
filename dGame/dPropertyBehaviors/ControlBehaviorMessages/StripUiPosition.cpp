@@ -2,8 +2,8 @@
 
 #include "Amf3.h"
 
-StripUiPosition::StripUiPosition(const AMFArrayValue* arguments, const std::string& uiKeyName) {
-	const auto* const uiArray = arguments->GetArray(uiKeyName);
+StripUiPosition::StripUiPosition(const AMFArrayValue& arguments, const std::string& uiKeyName) {
+	const auto* const uiArray = arguments.GetArray(uiKeyName);
 	if (!uiArray) return;
 
 	const auto* const xPositionValue = uiArray->Get<double>("x");

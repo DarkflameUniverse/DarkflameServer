@@ -5,7 +5,7 @@
 #include "BuffComponent.h"
 
 
-void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ApplyBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target == LWOOBJID_EMPTY ? context->originator : branch.target);
 
 	if (entity == nullptr) return;
@@ -30,7 +30,7 @@ void ApplyBuffBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext b
 	buffComponent->RemoveBuff(m_BuffId);
 }
 
-void ApplyBuffBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ApplyBuffBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

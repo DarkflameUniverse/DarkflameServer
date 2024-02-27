@@ -27,17 +27,17 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 	result.finalize();
 }
 
-void PossessableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyPossessable || bIsInitialUpdate);
+void PossessableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyPossessable || bIsInitialUpdate);
 	if (m_DirtyPossessable || bIsInitialUpdate) {
 		m_DirtyPossessable = false; // reset flag
-		outBitStream->Write(m_Possessor != LWOOBJID_EMPTY);
-		if (m_Possessor != LWOOBJID_EMPTY) outBitStream->Write(m_Possessor);
+		outBitStream.Write(m_Possessor != LWOOBJID_EMPTY);
+		if (m_Possessor != LWOOBJID_EMPTY) outBitStream.Write(m_Possessor);
 
-		outBitStream->Write(m_AnimationFlag != eAnimationFlags::IDLE_NONE);
-		if (m_AnimationFlag != eAnimationFlags::IDLE_NONE) outBitStream->Write(m_AnimationFlag);
+		outBitStream.Write(m_AnimationFlag != eAnimationFlags::IDLE_NONE);
+		if (m_AnimationFlag != eAnimationFlags::IDLE_NONE) outBitStream.Write(m_AnimationFlag);
 
-		outBitStream->Write(m_ImmediatelyDepossess);
+		outBitStream.Write(m_ImmediatelyDepossess);
 		m_ImmediatelyDepossess = false; // reset flag
 	}
 }

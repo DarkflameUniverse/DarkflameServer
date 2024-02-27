@@ -12,7 +12,7 @@ class AMFArrayValue;
 class Action {
 public:
 	Action() = default;
-	Action(const AMFArrayValue* arguments);
+	Action(const AMFArrayValue& arguments);
 	[[nodiscard]] const std::string& GetType() const { return m_Type; };
 	[[nodiscard]] const std::string& GetValueParameterName() const { return m_ValueParameterName; };
 	[[nodiscard]] const std::string& GetValueParameterString() const { return m_ValueParameterString; };

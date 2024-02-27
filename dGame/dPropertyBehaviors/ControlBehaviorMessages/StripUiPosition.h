@@ -10,7 +10,7 @@ class AMFArrayValue;
 class StripUiPosition {
 public:
 	StripUiPosition() noexcept = default;
-	StripUiPosition(const AMFArrayValue* arguments, const std::string& uiKeyName = "ui");
+	StripUiPosition(const AMFArrayValue& arguments, const std::string& uiKeyName = "ui");
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 	[[nodiscard]] double GetX() const noexcept { return m_XPosition; }
 	[[nodiscard]] double GetY() const noexcept { return m_YPosition; }

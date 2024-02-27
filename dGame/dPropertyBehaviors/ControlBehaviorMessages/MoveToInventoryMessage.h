@@ -11,7 +11,7 @@ class AMFArrayValue;
 #pragma warning("This Control Behavior Message does not have a test yet. Non-developers can ignore this warning.")
 class MoveToInventoryMessage : public BehaviorMessageBase {
 public:
-	MoveToInventoryMessage(const AMFArrayValue* arguments);
+	MoveToInventoryMessage(const AMFArrayValue& arguments);
 	[[nodiscard]] uint32_t GetBehaviorIndex() const noexcept { return m_BehaviorIndex; };
 
 private:

@@ -25,7 +25,7 @@ public:
 
 	Entity* GetParentEntity() const;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Sets whether the switch is on or off.

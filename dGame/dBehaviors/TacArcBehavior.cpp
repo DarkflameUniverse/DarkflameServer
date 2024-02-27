@@ -11,7 +11,7 @@
 
 #include <vector>
 
-void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	std::vector<Entity*> targets = {};
 
 	if (this->m_usePickedTarget && branch.target != LWOOBJID_EMPTY) {
@@ -28,16 +28,16 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	}
 
 	bool hasTargets = false;
-	if (!bitStream->Read(hasTargets)) {
-		LOG("Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(hasTargets)) {
+		LOG("Unable to read hasTargets from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
 	if (this->m_checkEnv) {
 		bool blocked = false;
 
-		if (!bitStream->Read(blocked)) {
-			LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		if (!bitStream.Read(blocked)) {
+			LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -49,8 +49,8 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 
 	if (hasTargets) {
 		uint32_t count = 0;
-		if (!bitStream->Read(count)) {
-			LOG("Unable to read count from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		if (!bitStream.Read(count)) {
+			LOG("Unable to read count from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -62,8 +62,8 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 		for (auto i = 0u; i < count; i++) {
 			LWOOBJID id{};
 
-			if (!bitStream->Read(id)) {
-				LOG("Unable to read id from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+			if (!bitStream.Read(id)) {
+				LOG("Unable to read id from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 				return;
 			};
 
@@ -82,7 +82,7 @@ void TacArcBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	} else this->m_missAction->Handle(context, bitStream, branch);
 }
 
-void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* self = Game::entityManager->GetEntity(context->originator);
 	if (self == nullptr) {
 		LOG("Invalid self for (%llu)!", context->originator);
@@ -155,11 +155,11 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		});
 
 	const auto hit = !targets.empty();
-	bitStream->Write(hit);
+	bitStream.Write(hit);
 
 	if (this->m_checkEnv) {
 		const auto blocked = false; // TODO
-		bitStream->Write(blocked);
+		bitStream.Write(blocked);
 	}
 
 	if (hit) {
@@ -168,9 +168,9 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 		context->foundTarget = true; // We want to continue with this behavior
 		const auto count = static_cast<uint32_t>(targets.size());
 
-		bitStream->Write(count);
+		bitStream.Write(count);
 		for (auto* target : targets) {
-			bitStream->Write(target->GetObjectID());
+			bitStream.Write(target->GetObjectID());
 		}
 
 		for (auto* target : targets) {

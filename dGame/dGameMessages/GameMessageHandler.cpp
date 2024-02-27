@@ -39,7 +39,7 @@
 #include "GhostComponent.h"
 #include "StringifiedEnum.h"
 
-void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
+void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;
 
@@ -271,7 +271,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		if (skill_component != nullptr) {
 			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&message.sBitStream[0]), message.sBitStream.size(), false);
 
-			skill_component->SyncPlayerProjectile(message.i64LocalID, &bs, message.i64TargetID);
+			skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
 		}
 
 		break;
@@ -298,7 +298,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, &bs, startSkill.optionalTargetID, startSkill.skillID);
+			success = skillComponent->CastPlayerSkill(behaviorId, startSkill.uiSkillHandle, bs, startSkill.optionalTargetID, startSkill.skillID);
 
 			if (success && entity->GetCharacter()) {
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
@@ -327,9 +327,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.sBitStream = startSkill.sBitStream;
 			echoStartSkill.skillID = startSkill.skillID;
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-			echoStartSkill.Serialize(&bitStreamLocal);
+			echoStartSkill.Serialize(bitStreamLocal);
 
-			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
+			Game::server->Send(bitStreamLocal, entity->GetSystemAddress(), true);
 		}
 	} break;
 
@@ -353,7 +353,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
-			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, &bs);
+			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
 		}
 
 		EchoSyncSkill echo = EchoSyncSkill();
@@ -362,9 +362,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
 		echo.uiSkillHandle = sync.uiSkillHandle;
 
-		echo.Serialize(&bitStreamLocal);
+		echo.Serialize(bitStreamLocal);
 
-		Game::server->Send(&bitStreamLocal, sysAddr, true);
+		Game::server->Send(bitStreamLocal, sysAddr, true);
 	} break;
 
 	case eGameMessageType::REQUEST_SMASH_PLAYER:

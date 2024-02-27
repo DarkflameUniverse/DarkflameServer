@@ -1,6 +1,6 @@
 #include "UpdateStripUiMessage.h"
 
-UpdateStripUiMessage::UpdateStripUiMessage(const AMFArrayValue* arguments)
+UpdateStripUiMessage::UpdateStripUiMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments } 
 	, m_Position{ arguments }
 	, m_ActionContext{ arguments } {

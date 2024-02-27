@@ -9,7 +9,7 @@
 #include "BehaviorContext.h"
 #include "eBasicAttackSuccessTypes.h"
 
-void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	if (context->unmanaged) {
 		auto* entity = Game::entityManager->GetEntity(branch.target);
 
@@ -30,22 +30,22 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 		return;
 	}
 
-	bitStream->AlignReadToByteBoundary();
+	bitStream.AlignReadToByteBoundary();
 
 	uint16_t allocatedBits{};
-	if (!bitStream->Read(allocatedBits) || allocatedBits == 0) {
+	if (!bitStream.Read(allocatedBits) || allocatedBits == 0) {
 		LOG_DEBUG("No allocated bits");
 		return;
 	}
 	LOG_DEBUG("Number of allocated bits %i", allocatedBits);
-	const auto baseAddress = bitStream->GetReadOffset();
+	const auto baseAddress = bitStream.GetReadOffset();
 
 	DoHandleBehavior(context, bitStream, branch);
 
-	bitStream->SetReadOffset(baseAddress + allocatedBits);
+	bitStream.SetReadOffset(baseAddress + allocatedBits);
 }
 
-void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
 		LOG("Target targetEntity %llu not found.", branch.target);
@@ -62,7 +62,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	bool isImmune{};
 	bool isSuccess{};
 
-	if (!bitStream->Read(isBlocked)) {
+	if (!bitStream.Read(isBlocked)) {
 		LOG("Unable to read isBlocked");
 		return;
 	}
@@ -74,7 +74,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		return;
 	}
 
-	if (!bitStream->Read(isImmune)) {
+	if (!bitStream.Read(isImmune)) {
 		LOG("Unable to read isImmune");
 		return;
 	}
@@ -85,20 +85,20 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		return;
 	}
 
-	if (!bitStream->Read(isSuccess)) {
+	if (!bitStream.Read(isSuccess)) {
 		LOG("failed to read success from bitstream");
 		return;
 	}
 
 	if (isSuccess) {
 		uint32_t armorDamageDealt{};
-		if (!bitStream->Read(armorDamageDealt)) {
+		if (!bitStream.Read(armorDamageDealt)) {
 			LOG("Unable to read armorDamageDealt");
 			return;
 		}
 
 		uint32_t healthDamageDealt{};
-		if (!bitStream->Read(healthDamageDealt)) {
+		if (!bitStream.Read(healthDamageDealt)) {
 			LOG("Unable to read healthDamageDealt");
 			return;
 		}
@@ -111,7 +111,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		}
 
 		bool died{};
-		if (!bitStream->Read(died)) {
+		if (!bitStream.Read(died)) {
 			LOG("Unable to read died");
 			return;
 		}
@@ -122,7 +122,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 
 	uint8_t successState{};
-	if (!bitStream->Read(successState)) {
+	if (!bitStream.Read(successState)) {
 		LOG("Unable to read success state");
 		return;
 	}
@@ -144,26 +144,26 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	}
 }
 
-void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	bitStream->AlignWriteToByteBoundary();
+void BasicAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
+	bitStream.AlignWriteToByteBoundary();
 
-	const auto allocatedAddress = bitStream->GetWriteOffset();
+	const auto allocatedAddress = bitStream.GetWriteOffset();
 
-	bitStream->Write<uint16_t>(0);
+	bitStream.Write<uint16_t>(0);
 
-	const auto startAddress = bitStream->GetWriteOffset();
+	const auto startAddress = bitStream.GetWriteOffset();
 
 	DoBehaviorCalculation(context, bitStream, branch);
 
-	const auto endAddress = bitStream->GetWriteOffset();
+	const auto endAddress = bitStream.GetWriteOffset();
 	const uint16_t allocate = endAddress - startAddress;
 
-	bitStream->SetWriteOffset(allocatedAddress);
-	bitStream->Write(allocate);
-	bitStream->SetWriteOffset(startAddress + allocate);
+	bitStream.SetWriteOffset(allocatedAddress);
+	bitStream.Write(allocate);
+	bitStream.SetWriteOffset(startAddress + allocate);
 }
 
-void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
 		LOG("Target entity %llu is null!", branch.target);
@@ -178,7 +178,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 	const bool isBlocking = destroyableComponent->GetAttacksToBlock() > 0;
 
-	bitStream->Write(isBlocking);
+	bitStream.Write(isBlocking);
 
 	if (isBlocking) {
 		destroyableComponent->SetAttacksToBlock(destroyableComponent->GetAttacksToBlock() - 1);
@@ -188,7 +188,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	}
 
 	const bool isImmune = destroyableComponent->IsImmune() || destroyableComponent->IsCooldownImmune();
-	bitStream->Write(isImmune);
+	bitStream.Write(isImmune);
 
 	if (isImmune) {
 		LOG_DEBUG("Target targetEntity %llu is immune!", branch.target);
@@ -210,7 +210,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 	const uint32_t healthDamageDealt = previousHealth - destroyableComponent->GetHealth();
 	isSuccess = armorDamageDealt > 0 || healthDamageDealt > 0 || (armorDamageDealt + healthDamageDealt) > 0;
 
-	bitStream->Write(isSuccess);
+	bitStream.Write(isSuccess);
 
 	//Handle player damage cooldown
 	if (isSuccess && targetEntity->IsPlayer() && !this->m_DontApplyImmune) {
@@ -225,12 +225,12 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 			successState = this->m_OnFailArmor->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY ? eBasicAttackSuccessTypes::FAILIMMUNE : eBasicAttackSuccessTypes::FAILARMOR;
 		}
 
-		bitStream->Write(armorDamageDealt);
-		bitStream->Write(healthDamageDealt);
-		bitStream->Write(targetEntity->GetIsDead());
+		bitStream.Write(armorDamageDealt);
+		bitStream.Write(healthDamageDealt);
+		bitStream.Write(targetEntity->GetIsDead());
 	}
 
-	bitStream->Write(successState);
+	bitStream.Write(successState);
 
 	switch (static_cast<eBasicAttackSuccessTypes>(successState)) {
 	case eBasicAttackSuccessTypes::SUCCESS:

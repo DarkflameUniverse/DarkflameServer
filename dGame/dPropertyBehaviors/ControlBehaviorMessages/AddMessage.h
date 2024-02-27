@@ -9,7 +9,7 @@
  */
 class AddMessage : public BehaviorMessageBase {
 public:
-	AddMessage(const AMFArrayValue* arguments);
+	AddMessage(const AMFArrayValue& arguments);
 	[[nodiscard]] uint32_t GetBehaviorIndex() const noexcept { return m_BehaviorIndex; };
 
 private:

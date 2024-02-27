@@ -15,7 +15,7 @@ public:
 
 	HavokVehiclePhysicsComponent(Entity* parentEntity);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Sets the velocity
