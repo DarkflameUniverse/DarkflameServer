@@ -15,7 +15,9 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmSkullkinDrillStand.cpp"
 	"AmSkullkinTower.cpp"
 	"AmBlueX.cpp"
-	"AmTeapotServer.cpp")
+	"AmTeapotServer.cpp"
+	"WanderingVendor.cpp"
+	)
 
 add_library(dScriptsServerMapAM ${DSCRIPTS_SOURCES_02_SERVER_MAP_AM})
 target_include_directories(dScriptsServerMapAM PUBLIC ".")
