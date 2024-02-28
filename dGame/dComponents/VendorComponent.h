@@ -51,6 +51,7 @@ public:
 
 private:
 	void HandleMrReeCameras();
+	bool SetupItem(LOT item);
 	float m_BuyScalar = 0.0f;
 	float m_SellScalar = 0.0f;
 	float m_RefreshTimeSeconds = 0.0f;
