@@ -125,7 +125,7 @@ Entity* SpawnObject(const VanityObject& object, const VanityObjectLocation& loca
 	info.settings = object.m_Config;
 
 	auto* entity = Game::entityManager->CreateEntity(info);
-	entity->SetVar(u"npcName", object.m_Name);
+	if (!object.m_Name.empty()) entity->SetVar(u"npcName", object.m_Name);
 	if (entity->GetVar<bool>(u"noGhosting")) entity->SetIsGhostingCandidate(false);
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
@@ -213,12 +213,9 @@ void ParseXml(const std::string& file) {
 				}
 			}
 
-
 			// Get the phrases
 			auto* phrases = object->FirstChildElement("phrases");
-
 			std::vector<std::string> phraseList = {};
-
 			if (phrases) {
 				for (auto* phrase = phrases->FirstChildElement("phrase"); phrase != nullptr;
 					phrase = phrase->NextSiblingElement("phrase")) {
@@ -234,7 +231,6 @@ void ParseXml(const std::string& file) {
 
 			auto* configElement = object->FirstChildElement("config");
 			std::vector<std::u16string> keys = {};
-
 			std::vector<LDFBaseData*> config = {};
 			if(configElement) {
 				for (auto* key = configElement->FirstChildElement("key"); key != nullptr;
