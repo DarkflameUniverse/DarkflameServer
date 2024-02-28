@@ -24,8 +24,8 @@
 
 
 namespace {
-	std::vector<VanityObject> Objects;
-	std::set<std::string> LoadedFiles;
+	std::vector<VanityObject> objects;
+	std::set<std::string> loadedFiles;
 }
 
 void SetupNPCTalk(Entity* npc);
@@ -57,7 +57,7 @@ void VanityUtilities::SpawnVanity() {
 
 	if (Game::config->GetValue("disable_vanity") == "1") return;
 
-	for (const auto& npc : Objects) {
+	for (const auto& npc : objects) {
 		if (npc.m_ID == LWOOBJID_EMPTY) continue;
 		if (npc.m_LOT == 176){
 			Game::zoneManager->RemoveSpawner(npc.m_ID);
@@ -68,13 +68,13 @@ void VanityUtilities::SpawnVanity() {
 		}
 	}
 
-	Objects.clear();
-	LoadedFiles.clear();
+	objects.clear();
+	loadedFiles.clear();
 
 	ParseXml((BinaryPathFinder::GetBinaryDir() / "vanity/root.xml").string());
 
 	// Loop through all objects
-	for (auto& object : Objects) {
+	for (auto& object : objects) {
 		if (object.m_Locations.find(Game::server->GetZoneID()) == object.m_Locations.end()) continue;
 
 		const std::vector<VanityObjectLocation>& locations = object.m_Locations.at(Game::server->GetZoneID());
@@ -146,11 +146,11 @@ Entity* SpawnObject(const VanityObject& object, const VanityObjectLocation& loca
 }
 
 void ParseXml(const std::string& file) {
-	if (LoadedFiles.contains(file)){
+	if (loadedFiles.contains(file)){
 		LOG("Trying to load vanity file %s twice!!!", file.c_str());
 		return;
 	}
-	LoadedFiles.insert(file);
+	loadedFiles.insert(file);
 	// Read the entire file
 	std::ifstream xmlFile(file);
 	std::string xml((std::istreambuf_iterator<char>(xmlFile)), std::istreambuf_iterator<char>());
@@ -173,10 +173,10 @@ void ParseXml(const std::string& file) {
 	}
 
 	// Read the objects
-	auto* objects = doc.FirstChildElement("objects");
+	auto* objectsElement = doc.FirstChildElement("objects");
 	const uint32_t currentZoneID = Game::server->GetZoneID();
-	if (objects) {
-		for (auto* object = objects->FirstChildElement("object"); object != nullptr; object = object->NextSiblingElement("object")) {
+	if (objectsElement) {
+		for (auto* object = objectsElement->FirstChildElement("object"); object != nullptr; object = object->NextSiblingElement("object")) {
 			// for use later when adding to the vector of VanityObjects
 			bool useLocationsAsRandomSpawnPoint = false;
 			// Get the NPC name
@@ -313,22 +313,22 @@ void ParseXml(const std::string& file) {
 				}
 
 				if (!useLocationsAsRandomSpawnPoint) {
-					Objects.push_back(objectData);
+					objects.push_back(objectData);
 					objectData.m_Locations.clear();
 				}
 			}
 
 			if (useLocationsAsRandomSpawnPoint && !objectData.m_Locations.empty()) {
-				Objects.push_back(objectData);
+				objects.push_back(objectData);
 			}
 		}
 	}
 }
 
 VanityObject* VanityUtilities::GetObject(const std::string& name) {
-	for (size_t i = 0; i < Objects.size(); i++) {
-		if (Objects[i].m_Name == name) {
-			return &Objects[i];
+	for (size_t i = 0; i < objects.size(); i++) {
+		if (objects[i].m_Name == name) {
+			return &objects[i];
 		}
 	}
 	return nullptr;
