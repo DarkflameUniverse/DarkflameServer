@@ -430,6 +430,7 @@
 		</phrases>
 		<config>
 			<key>custom_script_client=0:scripts\ai\SPEC\MISSION_MINIGAME_CLIENT.lua</key>
+			<key>vendorInvOverride=0:11909,7785,12764,12241</key>
 		</config>
 		<locations>
 			<location zone="1201" x="197.709" y="179.335" z="-8.05284" rw="0.544424" rx="0" ry="-0.83881" rz="0" />

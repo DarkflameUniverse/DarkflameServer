@@ -40,9 +40,31 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	SetHasMultiCostItems(false);
 	m_Inventory.clear();
 
-	// Custom code for Max vanity NPC and Mr.Ree cameras
-	if(isCreation && m_Parent->GetLOT() == 9749 && Game::server->GetZoneID() == 1201) {
-		SetupMaxCustomVendor();
+	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	
+	// Custom code for Vanity Vendor Invetory Override
+	if(m_Parent->HasVar(u"vendorInvOverride")) {
+		std::vector<std::string> items = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"vendorInvOverride"), ',');
+		uint32_t sortPriority = -1;
+		for (auto& itemString : items) {
+			itemString.erase(remove_if(itemString.begin(), itemString.end(), isspace), itemString.end());
+			auto item = GeneralUtils::TryParse<uint32_t>(itemString);
+			if (!item) continue;
+
+			if (!m_HasStandardCostItems || !m_HasMultiCostItems) {
+				auto itemComponentID = compRegistryTable->GetByIDAndType(item.value(), eReplicaComponentType::ITEM, -1);
+				if (itemComponentID == -1) {
+					LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+					continue;
+				}
+				auto itemComponent = itemComponentTable->GetItemComponentByID(itemComponentID);
+				if (!m_HasStandardCostItems && itemComponent.baseValue != -1) SetHasStandardCostItems(true);
+				if (!m_HasMultiCostItems && !itemComponent.currencyCosts.empty()) SetHasMultiCostItems(true);
+			}
+			sortPriority++;
+			m_Inventory.push_back(SoldItem(item.value(), sortPriority));
+		}
 		return;
 	}
 
@@ -52,8 +74,6 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 	if (lootMatrices.empty()) return;
 
 	auto* lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
-	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
-	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	for (const auto& lootMatrix : lootMatrices) {
 		auto vendorItems = lootTableTable->GetTable(lootMatrix.LootTableIndex);
@@ -124,15 +144,6 @@ bool VendorComponent::SellsItem(const LOT item) const {
 	return std::count_if(m_Inventory.begin(), m_Inventory.end(), [item](const SoldItem& lhs) {
 		return lhs.lot == item;
 		}) > 0;
-}
-
-
-void VendorComponent::SetupMaxCustomVendor(){
-	SetHasStandardCostItems(true);
-	m_Inventory.push_back(SoldItem(11909, 0)); // Top hat w frog
-	m_Inventory.push_back(SoldItem(7785, 0));  // Flash bulb
-	m_Inventory.push_back(SoldItem(12764, 0)); // Big fountain soda
-	m_Inventory.push_back(SoldItem(12241, 0)); // Hot cocoa (from fb)
 }
 
 void VendorComponent::HandleMrReeCameras(){
@@ -211,5 +222,4 @@ void VendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	character->SetCoins(character->GetCoins() - (coinCost), eLootSourceType::VENDOR);
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
 	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
-
 }
