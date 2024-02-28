@@ -24,8 +24,8 @@
 
 
 namespace {
-	std::vector<VanityObject> m_Objects;
-	std::set<std::string> m_LoadedFiles;
+	std::vector<VanityObject> Objects;
+	std::set<std::string> LoadedFiles;
 }
 
 void SetupNPCTalk(Entity* npc);
@@ -57,7 +57,7 @@ void VanityUtilities::SpawnVanity() {
 
 	if (Game::config->GetValue("disable_vanity") == "1") return;
 
-	for (const auto& npc : m_Objects) {
+	for (const auto& npc : Objects) {
 		if (npc.m_ID == LWOOBJID_EMPTY) continue;
 		if (npc.m_LOT == 176){
 			Game::zoneManager->RemoveSpawner(npc.m_ID);
@@ -68,13 +68,13 @@ void VanityUtilities::SpawnVanity() {
 		}
 	}
 
-	m_Objects.clear();
-	m_LoadedFiles.clear();
+	Objects.clear();
+	LoadedFiles.clear();
 
 	ParseXml((BinaryPathFinder::GetBinaryDir() / "vanity/root.xml").string());
 
 	// Loop through all objects
-	for (auto& object : m_Objects) {
+	for (auto& object : Objects) {
 		if (object.m_Locations.find(Game::server->GetZoneID()) == object.m_Locations.end()) continue;
 
 		const std::vector<VanityObjectLocation>& locations = object.m_Locations.at(Game::server->GetZoneID());
@@ -146,11 +146,11 @@ Entity* SpawnObject(const VanityObject& object, const VanityObjectLocation& loca
 }
 
 void ParseXml(const std::string& file) {
-	if (m_LoadedFiles.contains(file)){
+	if (LoadedFiles.contains(file)){
 		LOG("Trying to load vanity file %s twice!!!", file.c_str());
 		return;
 	}
-	m_LoadedFiles.insert(file);
+	LoadedFiles.insert(file);
 	// Read the entire file
 	std::ifstream xmlFile(file);
 	std::string xml((std::istreambuf_iterator<char>(xmlFile)), std::istreambuf_iterator<char>());
@@ -317,22 +317,22 @@ void ParseXml(const std::string& file) {
 				}
 
 				if (!useLocationsAsRandomSpawnPoint) {
-					m_Objects.push_back(objectData);
+					Objects.push_back(objectData);
 					objectData.m_Locations.clear();
 				}
 			}
 
 			if (useLocationsAsRandomSpawnPoint && !objectData.m_Locations.empty()) {
-				m_Objects.push_back(objectData);
+				Objects.push_back(objectData);
 			}
 		}
 	}
 }
 
 VanityObject* VanityUtilities::GetObject(const std::string& name) {
-	for (size_t i = 0; i < m_Objects.size(); i++) {
-		if (m_Objects[i].m_Name == name) {
-			return &m_Objects[i];
+	for (size_t i = 0; i < Objects.size(); i++) {
+		if (Objects[i].m_Name == name) {
+			return &Objects[i];
 		}
 	}
 	return nullptr;
