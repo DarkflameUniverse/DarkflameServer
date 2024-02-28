@@ -8,11 +8,11 @@
 #include "ObjectIDManager.h"
 #include "eObjectBits.h"
 
-void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	LWOOBJID target{};
 
-	if (!bitStream->Read(target)) {
-		LOG("Unable to read target from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(target)) {
+		LOG("Unable to read target from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
@@ -34,8 +34,8 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 
 	if (m_useMouseposit && !branch.isSync) {
 		NiPoint3 targetPosition = NiPoint3Constant::ZERO;
-		if (!bitStream->Read(targetPosition)) {
-			LOG("Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		if (!bitStream.Read(targetPosition)) {
+			LOG("Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 	}
@@ -45,8 +45,8 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	for (auto i = 0u; i < this->m_projectileCount; ++i) {
 		LWOOBJID projectileId{};
 
-		if (!bitStream->Read(projectileId)) {
-			LOG("Unable to read projectileId from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		if (!bitStream.Read(projectileId)) {
+			LOG("Unable to read projectileId from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -58,8 +58,8 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	}
 }
 
-void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
-	bitStream->Write(branch.target);
+void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
+	bitStream.Write(branch.target);
 
 	auto* entity = Game::entityManager->GetEntity(context->originator);
 
@@ -110,7 +110,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 		GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
 
-		bitStream->Write(id);
+		bitStream.Write(id);
 
 		auto eulerAngles = rotation.GetEulerAngles();
 

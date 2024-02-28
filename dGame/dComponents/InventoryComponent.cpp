@@ -694,11 +694,11 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate) {
+void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool bIsInitialUpdate) {
 	if (bIsInitialUpdate || m_Dirty) {
-		outBitStream->Write(true);
+		outBitStream.Write(true);
 
-		outBitStream->Write<uint32_t>(m_Equipped.size());
+		outBitStream.Write<uint32_t>(m_Equipped.size());
 
 		for (const auto& pair : m_Equipped) {
 			const auto item = pair.second;
@@ -707,21 +707,21 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 				AddItemSkills(item.lot);
 			}
 
-			outBitStream->Write(item.id);
-			outBitStream->Write(item.lot);
+			outBitStream.Write(item.id);
+			outBitStream.Write(item.lot);
 
-			outBitStream->Write0();
+			outBitStream.Write0();
 
-			outBitStream->Write(item.count > 0);
-			if (item.count > 0) outBitStream->Write(item.count);
+			outBitStream.Write(item.count > 0);
+			if (item.count > 0) outBitStream.Write(item.count);
 
-			outBitStream->Write(item.slot != 0);
-			if (item.slot != 0) outBitStream->Write<uint16_t>(item.slot);
+			outBitStream.Write(item.slot != 0);
+			if (item.slot != 0) outBitStream.Write<uint16_t>(item.slot);
 
-			outBitStream->Write0();
+			outBitStream.Write0();
 
 			bool flag = !item.config.empty();
-			outBitStream->Write(flag);
+			outBitStream.Write(flag);
 			if (flag) {
 				RakNet::BitStream ldfStream;
 				ldfStream.Write<int32_t>(item.config.size()); // Key count
@@ -730,26 +730,26 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 						std::string newRocketStr = data->GetValueAsString() + ";";
 						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
 						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
-						ldf_data->WriteToPacket(&ldfStream);
+						ldf_data->WriteToPacket(ldfStream);
 						delete ldf_data;
 					} else {
-						data->WriteToPacket(&ldfStream);
+						data->WriteToPacket(ldfStream);
 					}
 				}
-				outBitStream->Write(ldfStream.GetNumberOfBytesUsed() + 1);
-				outBitStream->Write<uint8_t>(0); // Don't compress
-				outBitStream->Write(ldfStream);
+				outBitStream.Write(ldfStream.GetNumberOfBytesUsed() + 1);
+				outBitStream.Write<uint8_t>(0); // Don't compress
+				outBitStream.Write(ldfStream);
 			}
 
-			outBitStream->Write1();
+			outBitStream.Write1();
 		}
 
 		m_Dirty = false;
 	} else {
-		outBitStream->Write(false);
+		outBitStream.Write(false);
 	}
 
-	outBitStream->Write(false);
+	outBitStream.Write(false);
 }
 
 void InventoryComponent::Update(float deltaTime) {

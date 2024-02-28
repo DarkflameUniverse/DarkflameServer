@@ -6,7 +6,7 @@
 #include "EntityManager.h"
 #include "BehaviorContext.h"
 
-void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
@@ -25,7 +25,7 @@ void DarkInspirationBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	}
 }
 
-void DarkInspirationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void DarkInspirationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {

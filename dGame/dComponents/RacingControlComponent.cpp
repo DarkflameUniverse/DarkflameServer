@@ -433,83 +433,83 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 	}
 }
 
-void RacingControlComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void RacingControlComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	// BEGIN Scripted Activity
-	outBitStream->Write1();
+	outBitStream.Write1();
 
-	outBitStream->Write<uint32_t>(m_RacingPlayers.size());
+	outBitStream.Write<uint32_t>(m_RacingPlayers.size());
 	for (const auto& player : m_RacingPlayers) {
-		outBitStream->Write(player.playerID);
+		outBitStream.Write(player.playerID);
 
-		outBitStream->Write(player.data[0]);
-		if (player.finished != 0) outBitStream->Write<float>(player.raceTime);
-		else outBitStream->Write(player.data[1]);
-		if (player.finished != 0) outBitStream->Write<float>(player.bestLapTime);
-		else outBitStream->Write(player.data[2]);
-		if (player.finished == 1) outBitStream->Write<float>(1.0f);
-		else outBitStream->Write(player.data[3]);
-		outBitStream->Write(player.data[4]);
-		outBitStream->Write(player.data[5]);
-		outBitStream->Write(player.data[6]);
-		outBitStream->Write(player.data[7]);
-		outBitStream->Write(player.data[8]);
-		outBitStream->Write(player.data[9]);
+		outBitStream.Write(player.data[0]);
+		if (player.finished != 0) outBitStream.Write<float>(player.raceTime);
+		else outBitStream.Write(player.data[1]);
+		if (player.finished != 0) outBitStream.Write<float>(player.bestLapTime);
+		else outBitStream.Write(player.data[2]);
+		if (player.finished == 1) outBitStream.Write<float>(1.0f);
+		else outBitStream.Write(player.data[3]);
+		outBitStream.Write(player.data[4]);
+		outBitStream.Write(player.data[5]);
+		outBitStream.Write(player.data[6]);
+		outBitStream.Write(player.data[7]);
+		outBitStream.Write(player.data[8]);
+		outBitStream.Write(player.data[9]);
 	}
 
 	// END Scripted Activity
 
-	outBitStream->Write1();
-	outBitStream->Write<uint16_t>(m_RacingPlayers.size());
+	outBitStream.Write1();
+	outBitStream.Write<uint16_t>(m_RacingPlayers.size());
 
-	outBitStream->Write(!m_AllPlayersReady);
+	outBitStream.Write(!m_AllPlayersReady);
 	if (!m_AllPlayersReady) {
 		int32_t numReady = 0;
 		for (const auto& player : m_RacingPlayers) {
-			outBitStream->Write1(); // Has more player data
-			outBitStream->Write(player.playerID);
-			outBitStream->Write(player.vehicleID);
-			outBitStream->Write(player.playerIndex);
-			outBitStream->Write(player.playerLoaded);
+			outBitStream.Write1(); // Has more player data
+			outBitStream.Write(player.playerID);
+			outBitStream.Write(player.vehicleID);
+			outBitStream.Write(player.playerIndex);
+			outBitStream.Write(player.playerLoaded);
 			if (player.playerLoaded) numReady++;
 		}
 
-		outBitStream->Write0(); // No more data
+		outBitStream.Write0(); // No more data
 		if (numReady == m_RacingPlayers.size()) m_AllPlayersReady = true;
 	}
 
-	outBitStream->Write(!m_RacingPlayers.empty());
+	outBitStream.Write(!m_RacingPlayers.empty());
 	if (!m_RacingPlayers.empty()) {
 		for (const auto& player : m_RacingPlayers) {
 			if (player.finished == 0) continue;
-			outBitStream->Write1(); // Has more date
+			outBitStream.Write1(); // Has more date
 
-			outBitStream->Write(player.playerID);
-			outBitStream->Write(player.finished);
+			outBitStream.Write(player.playerID);
+			outBitStream.Write(player.finished);
 		}
 
-		outBitStream->Write0(); // No more data
+		outBitStream.Write0(); // No more data
 	}
 
-	outBitStream->Write(bIsInitialUpdate);
+	outBitStream.Write(bIsInitialUpdate);
 	if (bIsInitialUpdate) {
-		outBitStream->Write(m_RemainingLaps);
-		outBitStream->Write<uint16_t>(m_PathName.size());
+		outBitStream.Write(m_RemainingLaps);
+		outBitStream.Write<uint16_t>(m_PathName.size());
 		for (const auto character : m_PathName) {
-			outBitStream->Write(character);
+			outBitStream.Write(character);
 		}
 	}
 
-	outBitStream->Write(!m_RacingPlayers.empty());
+	outBitStream.Write(!m_RacingPlayers.empty());
 	if (!m_RacingPlayers.empty()) {
 		for (const auto& player : m_RacingPlayers) {
 			if (player.finished == 0) continue;
-			outBitStream->Write1(); // Has more data
-			outBitStream->Write(player.playerID);
-			outBitStream->Write<float>(player.bestLapTime);
-			outBitStream->Write<float>(player.raceTime);
+			outBitStream.Write1(); // Has more data
+			outBitStream.Write(player.playerID);
+			outBitStream.Write<float>(player.bestLapTime);
+			outBitStream.Write<float>(player.raceTime);
 		}
 
-		outBitStream->Write0(); // No more data
+		outBitStream.Write0(); // No more data
 	}
 }
 

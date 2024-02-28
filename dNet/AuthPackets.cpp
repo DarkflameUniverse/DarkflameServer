@@ -28,10 +28,10 @@ namespace {
 	std::vector<uint32_t> claimCodes;
 }
 
-void Stamp::Serialize(RakNet::BitStream* outBitStream){
-	outBitStream->Write(type);
-	outBitStream->Write(value);
-	outBitStream->Write(timestamp);
+void Stamp::Serialize(RakNet::BitStream& outBitStream){
+	outBitStream.Write(type);
+	outBitStream.Write(value);
+	outBitStream.Write(timestamp);
 };
 
 void AuthPackets::LoadClaimCodes() {
@@ -84,7 +84,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	else bitStream.Write(ServiceId::General);
 	bitStream.Write<uint64_t>(215523405360);
 
-	server->Send(&bitStream, sysAddr, false);
+	server->Send(bitStream, sysAddr, false);
 }
 
 void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
@@ -291,16 +291,16 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH, 1);
 
 	loginResponse.Write<uint32_t>((sizeof(Stamp) * stamps.size()) + sizeof(uint32_t));
-	for (auto& stamp : stamps) stamp.Serialize(&loginResponse);
+	for (auto& stamp : stamps) stamp.Serialize(loginResponse);
 
-	server->Send(&loginResponse, sysAddr, false);
+	server->Send(loginResponse, sysAddr, false);
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		bitStream.Write(LUString(username));
-		server->SendToMaster(&bitStream);
+		server->SendToMaster(bitStream);
 
 		LOG("Set sessionKey: %i for user %s", sessionKey, username.c_str());
 	}

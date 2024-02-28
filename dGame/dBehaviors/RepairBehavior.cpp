@@ -7,7 +7,7 @@
 #include "Game.h"
 #include "eReplicaComponentType.h"
 
-void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
@@ -27,7 +27,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_str
 	destroyable->Repair(this->m_armor);
 }
 
-void RepairBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void RepairBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 

@@ -27,7 +27,7 @@ public:
 	~ControllablePhysicsComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
@@ -103,18 +103,6 @@ public:
 	 * @param val whether or not the position is dirty
 	 */
 	void SetDirtyPosition(bool val);
-
-	/**
-	 * Mark the velocity as dirty, forcing a serializtion update next tick
-	 * @param val whether or not the velocity is dirty
-	 */
-	void SetDirtyVelocity(bool val);
-
-	/**
-	 * Mark the angular velocity as dirty, forcing a serialization update next tick
-	 * @param val whether or not the angular velocity is dirty
-	 */
-	void SetDirtyAngularVelocity(bool val);
 
 	/**
 	 * Sets whether or not the entity is currently wearing a jetpack
@@ -311,19 +299,9 @@ private:
 	dpEntity* m_dpEntity;
 
 	/**
-	 * Whether or not the velocity is dirty, forcing a serialization of the velocity
-	 */
-	bool m_DirtyVelocity;
-
-	/**
 	 * The current velocity of the entity
 	 */
 	NiPoint3 m_Velocity;
-
-	/**
-	 * Whether or not the angular velocity is dirty, forcing a serialization
-	 */
-	bool m_DirtyAngularVelocity;
 
 	/**
 	 * The current angular velocity of the entity

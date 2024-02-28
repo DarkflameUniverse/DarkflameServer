@@ -13,7 +13,7 @@ class AMFArrayValue;
  */
 class AddActionMessage : public BehaviorMessageBase {
 public:
-	AddActionMessage(const AMFArrayValue* arguments);
+	AddActionMessage(const AMFArrayValue& arguments);
 
 	[[nodiscard]] int32_t GetActionIndex() const noexcept { return m_ActionIndex; };
 

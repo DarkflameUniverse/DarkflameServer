@@ -730,7 +730,7 @@ void HandleMasterPacket(Packet* packet) {
 				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
 				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 				bitStream.Write((LWOINSTANCEID)instanceID);
-				Game::server->SendToMaster(&bitStream);
+				Game::server->SendToMaster(bitStream);
 			}
 		}
 
@@ -746,7 +746,7 @@ void HandleMasterPacket(Packet* packet) {
 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
 		bitStream.Write(requestID);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		break;
 	}
@@ -832,7 +832,7 @@ void HandlePacket(Packet* packet) {
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
 		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
 		bitStream.Write((LWOINSTANCEID)instanceID);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 	}
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
@@ -895,7 +895,7 @@ void HandlePacket(Packet* packet) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
 		bitStream.Write(username);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		//Insert info into our pending list
 		tempSessionInfo info;
@@ -950,7 +950,7 @@ void HandlePacket(Packet* packet) {
 			static_cast<int32_t>(messageID)
 		);
 
-		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
@@ -1177,7 +1177,7 @@ void HandlePacket(Packet* packet) {
 		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
 		bitStream.Read(space);
-		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::HandleMailStuff(bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 
@@ -1461,5 +1461,5 @@ void FinalizeShutdown() {
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
-	Game::server->SendToMaster(&bitStream);
+	Game::server->SendToMaster(bitStream);
 }

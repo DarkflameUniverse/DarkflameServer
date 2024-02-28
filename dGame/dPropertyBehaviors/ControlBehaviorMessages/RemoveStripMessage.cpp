@@ -1,6 +1,6 @@
 #include "RemoveStripMessage.h"
 
-RemoveStripMessage::RemoveStripMessage(const AMFArrayValue* arguments)
+RemoveStripMessage::RemoveStripMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_ActionContext{ arguments } {
 

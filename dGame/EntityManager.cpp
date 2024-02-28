@@ -178,18 +178,18 @@ void EntityManager::SerializeEntities() {
 		stream.Write<char>(ID_REPLICA_MANAGER_SERIALIZE);
 		stream.Write<unsigned short>(entity->GetNetworkId());
 
-		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
-		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteBaseReplicaData(stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteComponents(stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
 				auto* ghostComponent = player->GetComponent<GhostComponent>();
 				if (ghostComponent && ghostComponent->IsObserved(toSerialize)) {
-					Game::server->Send(&stream, player->GetSystemAddress(), false);
+					Game::server->Send(stream, player->GetSystemAddress(), false);
 				}
 			}
 		} else {
-			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 	}
 	m_EntitiesToSerialize.clear();
@@ -359,16 +359,16 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	stream.Write(true);
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
-	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
-	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteBaseReplicaData(stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteComponents(stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		if (skipChecks) {
-			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		} else {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->GetPlayerReadyForUpdates()) {
-					Game::server->Send(&stream, player->GetSystemAddress(), false);
+					Game::server->Send(stream, player->GetSystemAddress(), false);
 				} else {
 					auto* ghostComponent = player->GetComponent<GhostComponent>();
 					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
@@ -376,7 +376,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 			}
 		}
 	} else {
-		Game::server->Send(&stream, sysAddr, false);
+		Game::server->Send(stream, sysAddr, false);
 	}
 
 	if (entity->IsPlayer()) {
@@ -407,7 +407,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	stream.Write<uint8_t>(ID_REPLICA_MANAGER_DESTRUCTION);
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
-	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+	Game::server->Send(stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {

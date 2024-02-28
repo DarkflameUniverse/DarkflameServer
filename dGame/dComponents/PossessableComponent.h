@@ -18,7 +18,7 @@ public:
 
 	PossessableComponent(Entity* parentEntity, uint32_t componentId);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief mounts the Entity

@@ -21,8 +21,8 @@ SwitchComponent::~SwitchComponent() {
 	}
 }
 
-void SwitchComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_Active);
+void SwitchComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_Active);
 }
 
 void SwitchComponent::SetActive(bool active) {

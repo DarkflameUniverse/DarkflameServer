@@ -1,6 +1,6 @@
 #include "SplitStripMessage.h"
 
-SplitStripMessage::SplitStripMessage(const AMFArrayValue* arguments)
+SplitStripMessage::SplitStripMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_SrcActionIndex{ GetActionIndexFromArgument(arguments, "srcActionIndex") }
 	, m_SourceActionContext{ arguments, "srcStateID", "srcStripID" }

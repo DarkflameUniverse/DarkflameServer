@@ -12,7 +12,7 @@ public:
 	 * is then offset to after the allocated bits for this stream.
 	 *
 	 */
-	void DoHandleBehavior(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	void DoHandleBehavior(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	/**
 	 * @brief Handles a client initialized Basic Attack Behavior cast to be deserialized and verified on the server.
@@ -22,14 +22,14 @@ public:
 	 * and will fail gracefully if an overread is detected.
 	 * @param branch The context of this specific branch of the Skill Behavior.  Changes based on which branch you are going down.
 	 */
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 
 	/**
 	 * @brief Writes a 16bit short to the bitStream and when the actual behavior calculation finishes with all of its branches, the number
 	 * of bits used is then written to where the 16bit short initially was.
 	 *
 	 */
-	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 
 	/**
 	 * @brief Calculates a server initialized Basic Attack Behavior cast to be serialized to the client
@@ -38,7 +38,7 @@ public:
 	 * @param bitStream The bitStream to serialize to.
 	 * @param branch The context of this specific branch of the Skill Behavior.  Changes based on which branch you are going down.
 	 */
-	void DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	void DoBehaviorCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	/**
 	 * @brief Loads this Behaviors parameters from the database.  For this behavior specifically:

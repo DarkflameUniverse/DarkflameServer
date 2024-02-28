@@ -14,7 +14,7 @@ public:
 	PhysicsComponent(Entity* parent);
 	virtual ~PhysicsComponent() = default;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	const NiPoint3& GetPosition() const { return m_Position; }
 	virtual void SetPosition(const NiPoint3& pos) { if (m_Position == pos) return; m_Position = pos; m_DirtyPosition = true; }
