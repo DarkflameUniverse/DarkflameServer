@@ -2191,9 +2191,3 @@ void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
 }
-
-void Entity::SetScale(const float scale) {
-	if (scale == m_Scale) return;
-	m_Scale = scale;
-	Game::entityManager->SerializeEntity(this);
-}

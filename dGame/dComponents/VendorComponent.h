@@ -50,8 +50,8 @@ public:
 	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
 private:
-	void SetupMaxCustomVendor();
 	void HandleMrReeCameras();
+	bool SetupItem(LOT item);
 	float m_BuyScalar = 0.0f;
 	float m_SellScalar = 0.0f;
 	float m_RefreshTimeSeconds = 0.0f;
