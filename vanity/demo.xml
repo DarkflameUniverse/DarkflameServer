@@ -1,4 +1,15 @@
 <objects>
+	<!--A story plaque with custom text-->
+	<!--Font color can be set but you must encode the `<` as &lt; and `>` as &gt; >-->
+	<object lot="8139">
+		<config>
+			<key>customText=13:This story plaque has custom text that is defined by DLU's vanity system. Check out &lt;font color="#000000" &gt;vanity/demo.xml&lt;/font&gt; to see how this works!</key>
+		  </config>
+		<locations>
+			<location zone="1200" x="-26.281" y="288.896" z="-77.484" rw="0.997534" rx="0.00" ry="-0.070190" rz="0.00" />
+		</locations>
+	</object>
+
 	<!--A tree spawned at two locations with different positions, rotations, and scales-->
 	<!--Positions and rotations are easily gotten by typing /loc or /pos, and /rot into the in-game chat-->
 	<object lot="3248">
