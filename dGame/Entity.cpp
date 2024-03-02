@@ -841,11 +841,9 @@ bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 
 std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	std::vector<ScriptComponent*> comps;
-	for (std::pair<eReplicaComponentType, void*> p : m_Components) {
-		if (p.first == eReplicaComponentType::SCRIPT) {
-			comps.push_back(static_cast<ScriptComponent*>(p.second));
-		}
-	}
+
+	auto* scriptComponent = GetComponent<ScriptComponent>();
+	if (scriptComponent) comps.push_back(scriptComponent);
 
 	return comps;
 }
