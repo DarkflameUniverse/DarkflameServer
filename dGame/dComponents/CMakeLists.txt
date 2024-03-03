@@ -48,6 +48,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"HavokVehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp"
 	"MiniGameControlComponent.cpp"
+	"ScriptComponent.cpp"
 )
 
 add_library(dComponents STATIC ${DGAME_DCOMPONENTS_SOURCES})

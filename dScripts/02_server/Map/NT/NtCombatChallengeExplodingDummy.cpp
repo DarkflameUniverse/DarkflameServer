@@ -9,9 +9,7 @@ void NtCombatChallengeExplodingDummy::OnDie(Entity* self, Entity* killer) {
 	auto* challengeObject = Game::entityManager->GetEntity(challengeObjectID);
 
 	if (challengeObject != nullptr) {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(challengeObject)) {
-			script->OnDie(challengeObject, killer);
-		}
+		challengeObject->GetScript()->OnDie(challengeObject, killer);
 	}
 }
 
@@ -32,9 +30,7 @@ void NtCombatChallengeExplodingDummy::OnHitOrHealResult(Entity* self, Entity* at
 	auto* challengeObject = Game::entityManager->GetEntity(challengeObjectID);
 
 	if (challengeObject != nullptr) {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(challengeObject)) {
-			script->OnHitOrHealResult(challengeObject, attacker, damage);
-		}
+		challengeObject->GetScript()->OnHitOrHealResult(challengeObject, attacker, damage);
 	}
 	auto skillComponent = self->GetComponent<SkillComponent>();
 	if (skillComponent != nullptr) {

@@ -30,7 +30,7 @@ public:
 	 * Returns the script that's attached to this entity
 	 * @return the script that's attached to this entity
 	 */
-	CppScripts::Script* GetScript();
+	CppScripts::Script* const GetScript();
 
 	/**
 	 * Sets whether the entity should be serialized, unused

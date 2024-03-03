@@ -5083,9 +5083,7 @@ void GameMessages::HandleRespondToMission(RakNet::BitStream& inStream, Entity* e
 		return;
 	}
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(offerer)) {
-		script->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
-	}
+	offerer->GetScript()->OnRespondToMission(offerer, missionID, Game::entityManager->GetEntity(playerID), reward);
 }
 
 void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* entity) {
@@ -5101,9 +5099,7 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* en
 	inStream.Read(responder);
 	player = Game::entityManager->GetEntity(responder);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-		script->OnMissionDialogueOK(entity, player, missionID, iMissionState);
-	}
+	if (entity) entity->GetScript()->OnMissionDialogueOK(entity, player, missionID, iMissionState);
 
 	// Get the player's mission component
 	MissionComponent* missionComponent = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
@@ -5556,9 +5552,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 
 			ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
 
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(entity)) {
-				script->OnModularBuildExit(entity, character, count >= 3, modList);
-			}
+			entity->GetScript()->OnModularBuildExit(entity, character, count >= 3, modList);
 
 			// Move remaining temp models back to models
 			std::vector<Item*> items;
@@ -5734,16 +5728,14 @@ void GameMessages::HandleResurrect(RakNet::BitStream& inStream, Entity* entity) 
 	bool immediate = inStream.ReadBit();
 
 	Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-		script->OnPlayerResurrected(zoneControl, entity);
+	if (zoneControl) {
+		zoneControl->GetScript()->OnPlayerResurrected(zoneControl, entity);
 	}
 
 	std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 	for (Entity* scriptEntity : scriptedActs) {
 		if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-				script->OnPlayerResurrected(scriptEntity, entity);
-			}
+			scriptEntity->GetScript()->OnPlayerResurrected(scriptEntity, entity);
 		}
 	}
 }
@@ -5977,9 +5969,7 @@ void GameMessages::HandlePlayerRailArrivedNotification(RakNet::BitStream& inStre
 
 	const auto possibleRails = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RAIL_ACTIVATOR);
 	for (auto* possibleRail : possibleRails) {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(possibleRail)) {
-			script->OnPlayerRailArrived(possibleRail, entity, pathName, waypointNumber);
-		}
+		if (possibleRail) possibleRail->GetScript()->OnPlayerRailArrived(possibleRail, entity, pathName, waypointNumber);
 	}
 }
 

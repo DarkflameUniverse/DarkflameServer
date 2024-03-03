@@ -13,7 +13,8 @@
 #include "SkillComponent.h"
 #include "eEndBehavior.h"
 #include "PlayerManager.h"
-
+#include "Game.h"
+#include "EntityManager.h"
 
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
 	m_Parent = parent;
@@ -182,9 +183,7 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 }
 
 void TriggerComponent::HandleFireEvent(Entity* targetEntity, std::string args) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(targetEntity)) {
-		script->OnFireEventServerSide(targetEntity, m_Parent, args, 0, 0, 0);
-	}
+	m_Parent->GetScript()->OnFireEventServerSide(targetEntity, m_Parent, args, 0, 0, 0);
 }
 
 void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args){

@@ -357,6 +357,8 @@ namespace CppScripts {
 		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
 	};
 
-	Script* GetScript(Entity* parent, const std::string& scriptName);
-	std::vector<Script*> GetEntityScripts(Entity* entity);
+	Script* const GetScript(Entity* parent, const std::string& scriptName);
+
+	// This function only exists so there isn't a circular dependency between Entity and CppScripts
+	Script* const GetInvalidScript();
 };

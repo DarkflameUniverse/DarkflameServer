@@ -11,13 +11,12 @@ set(DSCRIPTS_SOURCES
 	"InvalidScript.cpp"
 	"NPCAddRemoveItem.cpp"
 	"NtFactionSpyServer.cpp"
-	"ScriptComponent.cpp"
 	"ScriptedPowerupSpawner.cpp"
 	"SpawnPetBaseServer.cpp")
 
 link_libraries(dDatabase dPhysics)
 
-add_library(dScriptsBase STATIC ${DSCRIPTS_SOURCES})
+add_library(dScriptsBase OBJECT ${DSCRIPTS_SOURCES})
 target_include_directories(dScriptsBase PUBLIC .)
 target_link_libraries(dScriptsBase
 	INTERFACE dGameBase)
@@ -37,11 +36,10 @@ add_subdirectory(EquipmentScripts)
 add_subdirectory(EquipmentTriggers)
 add_subdirectory(zone)
 
-add_library(dScripts STATIC "CppScripts.cpp")
+add_library(dScripts STATIC "CppScripts.cpp" $<TARGET_OBJECTS:dScriptsBase>)
 target_precompile_headers(dScripts REUSE_FROM dScriptsBase)
 target_include_directories(dScripts PUBLIC ".")
 target_link_libraries(dScripts
-	dScriptsBase
 	dScriptsServer
 	dScriptsAI
 	dScriptsClient
