@@ -81,7 +81,7 @@ DestroyableComponent::~DestroyableComponent() {
 }
 
 void DestroyableComponent::Reinitialize(LOT templateID) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	int32_t buffComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::BUFF);
 	int32_t collectibleComponentID = compRegistryTable->GetByIDAndType(templateID, eReplicaComponentType::COLLECTIBLE);
@@ -92,7 +92,7 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	if (componentID > 0) {
@@ -122,61 +122,61 @@ void DestroyableComponent::Reinitialize(LOT templateID) {
 	}
 }
 
-void DestroyableComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void DestroyableComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
-		outBitStream->Write1(); // always write these on construction
-		outBitStream->Write(m_ImmuneToBasicAttackCount);
-		outBitStream->Write(m_ImmuneToDamageOverTimeCount);
-		outBitStream->Write(m_ImmuneToKnockbackCount);
-		outBitStream->Write(m_ImmuneToInterruptCount);
-		outBitStream->Write(m_ImmuneToSpeedCount);
-		outBitStream->Write(m_ImmuneToImaginationGainCount);
-		outBitStream->Write(m_ImmuneToImaginationLossCount);
-		outBitStream->Write(m_ImmuneToQuickbuildInterruptCount);
-		outBitStream->Write(m_ImmuneToPullToPointCount);
+		outBitStream.Write1(); // always write these on construction
+		outBitStream.Write(m_ImmuneToBasicAttackCount);
+		outBitStream.Write(m_ImmuneToDamageOverTimeCount);
+		outBitStream.Write(m_ImmuneToKnockbackCount);
+		outBitStream.Write(m_ImmuneToInterruptCount);
+		outBitStream.Write(m_ImmuneToSpeedCount);
+		outBitStream.Write(m_ImmuneToImaginationGainCount);
+		outBitStream.Write(m_ImmuneToImaginationLossCount);
+		outBitStream.Write(m_ImmuneToQuickbuildInterruptCount);
+		outBitStream.Write(m_ImmuneToPullToPointCount);
 	}
 
-	outBitStream->Write(m_DirtyHealth || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyHealth || bIsInitialUpdate);
 	if (m_DirtyHealth || bIsInitialUpdate) {
-		outBitStream->Write(m_iHealth);
-		outBitStream->Write(m_fMaxHealth);
-		outBitStream->Write(m_iArmor);
-		outBitStream->Write(m_fMaxArmor);
-		outBitStream->Write(m_iImagination);
-		outBitStream->Write(m_fMaxImagination);
+		outBitStream.Write(m_iHealth);
+		outBitStream.Write(m_fMaxHealth);
+		outBitStream.Write(m_iArmor);
+		outBitStream.Write(m_fMaxArmor);
+		outBitStream.Write(m_iImagination);
+		outBitStream.Write(m_fMaxImagination);
 
-		outBitStream->Write(m_DamageToAbsorb);
-		outBitStream->Write(IsImmune());
-		outBitStream->Write(m_IsGMImmune);
-		outBitStream->Write(m_IsShielded);
+		outBitStream.Write(m_DamageToAbsorb);
+		outBitStream.Write(IsImmune());
+		outBitStream.Write(m_IsGMImmune);
+		outBitStream.Write(m_IsShielded);
 
-		outBitStream->Write(m_fMaxHealth);
-		outBitStream->Write(m_fMaxArmor);
-		outBitStream->Write(m_fMaxImagination);
+		outBitStream.Write(m_fMaxHealth);
+		outBitStream.Write(m_fMaxArmor);
+		outBitStream.Write(m_fMaxImagination);
 
-		outBitStream->Write<uint32_t>(m_FactionIDs.size());
+		outBitStream.Write<uint32_t>(m_FactionIDs.size());
 		for (size_t i = 0; i < m_FactionIDs.size(); ++i) {
-			outBitStream->Write(m_FactionIDs[i]);
+			outBitStream.Write(m_FactionIDs[i]);
 		}
 
-		outBitStream->Write(m_IsSmashable);
+		outBitStream.Write(m_IsSmashable);
 
 		if (bIsInitialUpdate) {
-			outBitStream->Write(m_IsDead);
-			outBitStream->Write(m_IsSmashed);
+			outBitStream.Write(m_IsDead);
+			outBitStream.Write(m_IsSmashed);
 
 			if (m_IsSmashable) {
-				outBitStream->Write(m_IsModuleAssembly);
-				outBitStream->Write(m_ExplodeFactor != 1.0f);
-				if (m_ExplodeFactor != 1.0f) outBitStream->Write(m_ExplodeFactor);
+				outBitStream.Write(m_IsModuleAssembly);
+				outBitStream.Write(m_ExplodeFactor != 1.0f);
+				if (m_ExplodeFactor != 1.0f) outBitStream.Write(m_ExplodeFactor);
 			}
 		}
 		m_DirtyHealth = false;
 	}
 
-	outBitStream->Write(m_DirtyThreatList || bIsInitialUpdate);
+	outBitStream.Write(m_DirtyThreatList || bIsInitialUpdate);
 	if (m_DirtyThreatList || bIsInitialUpdate) {
-		outBitStream->Write(m_HasThreats);
+		outBitStream.Write(m_HasThreats);
 		m_DirtyThreatList = false;
 	}
 }
@@ -251,13 +251,14 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "health");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -292,13 +293,14 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(value));
 		args.Insert("type", "armor");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -332,13 +334,14 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 
 	if (playAnim) {
 		// Now update the player bar
-		if (!m_Parent->GetParentUser()) return;
+		auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (!characterComponent) return;
 
 		AMFArrayValue args;
 		args.Insert("amount", std::to_string(difference));
 		args.Insert("type", "imagination");
 
-		GameMessages::SendUIMessageServerToSingleClient(m_Parent, m_Parent->GetParentUser()->GetSystemAddress(), "MaxPlayerBarUpdate", args);
+		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
 }

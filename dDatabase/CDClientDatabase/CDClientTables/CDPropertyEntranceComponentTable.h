@@ -9,15 +9,9 @@ struct CDPropertyEntranceComponent {
 	std::string groupType;
 };
 
-class CDPropertyEntranceComponentTable : public CDTable<CDPropertyEntranceComponentTable> {
+class CDPropertyEntranceComponentTable : public CDTable<CDPropertyEntranceComponentTable, std::vector<CDPropertyEntranceComponent>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	CDPropertyEntranceComponent GetByID(uint32_t id);
-
-	// Gets all the entries in the table
-	[[nodiscard]] const std::vector<CDPropertyEntranceComponent>& GetEntries() const { return entries; }
-private:
-	std::vector<CDPropertyEntranceComponent> entries{};
-	CDPropertyEntranceComponent defaultEntry{};
 };

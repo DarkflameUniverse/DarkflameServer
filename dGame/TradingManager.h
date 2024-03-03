@@ -30,7 +30,7 @@ public:
 	void SetAccepted(LWOOBJID participant, bool value);
 
 	void Complete();
-	void Cancel();
+	void Cancel(const LWOOBJID canceller);
 
 	void SendUpdateToOther(LWOOBJID participant);
 
@@ -66,7 +66,7 @@ public:
 
 	Trade* GetTrade(LWOOBJID tradeId) const;
 	Trade* GetPlayerTrade(LWOOBJID playerId) const;
-	void CancelTrade(LWOOBJID tradeId);
+	void CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, const bool sendCancelMessage = true);
 	Trade* NewTrade(LWOOBJID participantA, LWOOBJID participantB);
 
 private:

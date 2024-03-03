@@ -56,7 +56,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 				4,
 				0,
 				-1,
-				NiPoint3::ZERO,
+				NiPoint3Constant::ZERO,
 				0
 			);
 		} else {

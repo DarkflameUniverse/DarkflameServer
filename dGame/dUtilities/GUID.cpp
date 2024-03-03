@@ -13,12 +13,12 @@ GUID::GUID(const std::string& guid) {
 		&this->data4[4], &this->data4[5], &this->data4[6], &this->data4[7]);
 }
 
-void GUID::Serialize(RakNet::BitStream* outBitStream) {
-	outBitStream->Write(GetData1());
-	outBitStream->Write(GetData2());
-	outBitStream->Write(GetData3());
+void GUID::Serialize(RakNet::BitStream& outBitStream) {
+	outBitStream.Write(GetData1());
+	outBitStream.Write(GetData2());
+	outBitStream.Write(GetData3());
 	for (const auto& guidSubPart : GetData4()) {
-		outBitStream->Write(guidSubPart);
+		outBitStream.Write(guidSubPart);
 	}
 }
 

@@ -14,7 +14,8 @@ void CDObjectSkillsTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ObjectSkills");
@@ -25,7 +26,7 @@ void CDObjectSkillsTable::LoadValuesFromDatabase() {
 		entry.castOnType = tableData.getIntField("castOnType", -1);
 		entry.AICombatWeight = tableData.getIntField("AICombatWeight", -1);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -34,13 +35,9 @@ void CDObjectSkillsTable::LoadValuesFromDatabase() {
 
 std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObjectSkills)> predicate) {
 
-	std::vector<CDObjectSkills> data = cpplinq::from(this->entries)
+	std::vector<CDObjectSkills> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
-}
-
-const std::vector<CDObjectSkills>& CDObjectSkillsTable::GetEntries() const {
-	return this->entries;
 }

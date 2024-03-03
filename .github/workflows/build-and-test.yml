@@ -13,7 +13,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-22.04, macos-11 ]
+        os: [ windows-2022, ubuntu-22.04, macos-13 ]
 
     steps:
     - uses: actions/checkout@v3
@@ -25,9 +25,11 @@ jobs:
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
-    - name: Install libssl (Mac Only)
-      if: ${{ matrix.os == 'macos-11' }}
-      run: brew install openssl@3
+    - name: Install libssl and switch to XCode 15.2 (Mac Only)
+      if: ${{ matrix.os == 'macos-13' }}
+      run: |
+        brew install openssl@3
+        sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
     - name: cmake
       uses: lukka/run-cmake@v10
       with:

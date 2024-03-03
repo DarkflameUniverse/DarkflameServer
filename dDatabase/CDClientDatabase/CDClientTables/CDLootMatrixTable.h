@@ -16,7 +16,7 @@ struct CDLootMatrix {
 typedef uint32_t LootMatrixIndex;
 typedef std::vector<CDLootMatrix> LootMatrixEntries;
 
-class CDLootMatrixTable : public CDTable<CDLootMatrixTable> {
+class CDLootMatrixTable : public CDTable<CDLootMatrixTable, std::unordered_map<LootMatrixIndex, LootMatrixEntries>> {
 public:
 	void LoadValuesFromDatabase();
 
@@ -24,6 +24,5 @@ public:
 	const LootMatrixEntries& GetMatrix(uint32_t matrixId);
 private:
 	CDLootMatrix ReadRow(CppSQLite3Query& tableData) const;
-	std::unordered_map<LootMatrixIndex, LootMatrixEntries> entries;
 };
 

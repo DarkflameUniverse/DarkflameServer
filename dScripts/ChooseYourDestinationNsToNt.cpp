@@ -41,11 +41,9 @@ void ChooseYourDestinationNsToNt::SetDestination(Entity* self, Entity* player) {
 void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) {
 	if (button != -1) {
 		const auto newMapStr = GeneralUtils::UTF16ToWTF8(buttonIdentifier).substr(7, -1);
-
-		int32_t newMap = 0;
-		if (!GeneralUtils::TryParse(newMapStr, newMap)) {
-			return;
-		}
+		const auto newMap = GeneralUtils::TryParse<int32_t>(newMapStr);
+		
+		if (!newMap) return;
 
 		std::u16string strText = u"";
 
@@ -56,7 +54,7 @@ void ChooseYourDestinationNsToNt::BaseChoiceBoxRespond(Entity* self, Entity* sen
 		}
 
 		self->SetVar(u"teleportString", strText);
-		self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap));
+		self->SetVar(u"transferZoneID", GeneralUtils::to_u16string(newMap.value()));
 
 		GameMessages::SendDisplayMessageBox(sender->GetObjectID(), true, self->GetObjectID(), u"TransferBox", 0, strText, u"", sender->GetSystemAddress());
 	} else {

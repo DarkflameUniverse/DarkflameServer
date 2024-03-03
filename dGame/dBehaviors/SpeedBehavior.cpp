@@ -6,7 +6,7 @@
 #include "Logger.h"
 
 
-void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	if (m_AffectsCaster) branch.target = context->caster;
 
 	auto* target = Game::entityManager->GetEntity(branch.target);
@@ -25,7 +25,7 @@ void SpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	}
 }
 
-void SpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

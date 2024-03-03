@@ -14,7 +14,8 @@ void CDItemSetsTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM ItemSets");
@@ -36,7 +37,7 @@ void CDItemSetsTable::LoadValuesFromDatabase() {
 		entry.kitID = tableData.getIntField("kitID", -1);
 		entry.priority = tableData.getFloatField("priority", -1.0f);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -45,14 +46,9 @@ void CDItemSetsTable::LoadValuesFromDatabase() {
 
 std::vector<CDItemSets> CDItemSetsTable::Query(std::function<bool(CDItemSets)> predicate) {
 
-	std::vector<CDItemSets> data = cpplinq::from(this->entries)
+	std::vector<CDItemSets> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDItemSets>& CDItemSetsTable::GetEntries() const {
-	return this->entries;
-}
-

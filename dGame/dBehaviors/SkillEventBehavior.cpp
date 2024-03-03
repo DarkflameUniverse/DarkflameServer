@@ -4,7 +4,7 @@
 #include "EntityManager.h"
 #include "CppScripts.h"
 
-void SkillEventBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SkillEventBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 	auto* caster = Game::entityManager->GetEntity(context->originator);
 
@@ -16,7 +16,7 @@ void SkillEventBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit
 }
 
 void
-SkillEventBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+SkillEventBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 	auto* caster = Game::entityManager->GetEntity(context->originator);
 

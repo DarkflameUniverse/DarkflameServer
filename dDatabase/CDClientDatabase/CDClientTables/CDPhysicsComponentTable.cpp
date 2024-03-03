@@ -2,6 +2,7 @@
 
 void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PhysicsComponent");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDPhysicsComponent entry;
 		entry.id = tableData.getIntField("id", -1);
@@ -21,7 +22,7 @@ void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 		UNUSED(entry->friction = tableData.getFloatField("friction"));
 		UNUSED(entry->gravityVolumeAsset = tableData.getStringField("gravityVolumeAsset"));
 
-		m_entries.insert(std::make_pair(entry.id, entry));
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
@@ -29,7 +30,8 @@ void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 }
 
 CDPhysicsComponent* CDPhysicsComponentTable::GetByID(uint32_t componentID) {
-	auto itr = m_entries.find(componentID);
-	return itr != m_entries.end() ? &itr->second : nullptr;
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(componentID);
+	return itr != entries.end() ? &itr->second : nullptr;
 }
 

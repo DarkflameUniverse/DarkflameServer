@@ -33,7 +33,7 @@ public:
 	SimplePhysicsComponent(Entity* parent, uint32_t componentID);
 	~SimplePhysicsComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Returns the velocity of this entity
@@ -87,12 +87,12 @@ private:
 	/**
 	 * The current velocity of the entity
 	 */
-	NiPoint3 m_Velocity = NiPoint3::ZERO;
+	NiPoint3 m_Velocity = NiPoint3Constant::ZERO;
 
 	/**
 	 * The current angular velocity of the entity
 	 */
-	NiPoint3 m_AngularVelocity = NiPoint3::ZERO;
+	NiPoint3 m_AngularVelocity = NiPoint3Constant::ZERO;
 
 	/**
 	 * Whether or not the velocity has changed

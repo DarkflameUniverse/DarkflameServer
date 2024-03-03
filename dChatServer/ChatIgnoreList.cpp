@@ -59,7 +59,7 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 		bitStream.Write(LUWString(ignoredPlayer.playerName, 36));
 	}
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }
 
 void ChatIgnoreList::AddIgnore(Packet* packet) {
@@ -131,7 +131,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	bitStream.Write(playerNameSend);
 	bitStream.Write(ignoredPlayerId);
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }
 
 void ChatIgnoreList::RemoveIgnore(Packet* packet) {
@@ -167,5 +167,5 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	LUWString playerNameSend(removedIgnoreStr, 33);
 	bitStream.Write(playerNameSend);
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }

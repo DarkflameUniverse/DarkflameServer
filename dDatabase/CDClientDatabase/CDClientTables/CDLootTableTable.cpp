@@ -6,8 +6,8 @@
 
 // Sort the tables by their rarity so the highest rarity items are first.
 void SortTable(LootTableEntries& table) {
-	auto* componentsRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
-	auto* itemComponentTable = CDClientManager::Instance().GetTable<CDItemComponentTable>();
+	auto* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	auto* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
 	// We modify the table in place so the outer loop keeps track of what is sorted
 	// and the inner loop finds the highest rarity item and swaps it with the current position
 	// of the outer loop.
@@ -49,7 +49,8 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 	}
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LootTable");
@@ -57,17 +58,18 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 		CDLootTable entry;
 		uint32_t lootTableIndex = tableData.getIntField("LootTableIndex", -1);
 
-		this->entries[lootTableIndex].push_back(ReadRow(tableData));
+		entries[lootTableIndex].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
-	for (auto& [id, table] : this->entries) {
+	for (auto& [id, table] : entries) {
 		SortTable(table);
 	}
 }
 
 const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
-	auto itr = this->entries.find(tableId);
-	if (itr != this->entries.end()) {
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(tableId);
+	if (itr != entries.end()) {
 		return itr->second;
 	}
 
@@ -77,10 +79,10 @@ const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
 
 	while (!tableData.eof()) {
 		CDLootTable entry;
-		this->entries[tableId].push_back(ReadRow(tableData));
+		entries[tableId].push_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
-	SortTable(this->entries[tableId]);
+	SortTable(entries[tableId]);
 
-	return this->entries[tableId];
+	return entries[tableId];
 }

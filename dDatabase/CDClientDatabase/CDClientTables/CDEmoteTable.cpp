@@ -2,6 +2,7 @@
 
 void CDEmoteTableTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Emotes");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDEmoteTable entry;
 		entry.ID = tableData.getIntField("id", -1);
@@ -21,6 +22,7 @@ void CDEmoteTableTable::LoadValuesFromDatabase() {
 }
 
 CDEmoteTable* CDEmoteTableTable::GetEmote(int32_t id) {
+	auto& entries = GetEntriesMutable();
 	auto itr = entries.find(id);
 	return itr != entries.end() ? &itr->second : nullptr;
 }

@@ -11,13 +11,9 @@ struct CDRewards {
 	int32_t count;
 };
 
-class CDRewardsTable : public CDTable<CDRewardsTable> {
+class CDRewardsTable : public CDTable<CDRewardsTable, std::map<uint32_t, CDRewards>> {
 public:
 	void LoadValuesFromDatabase();
 
-	static const std::string GetTableName() { return "Rewards"; };
 	std::vector<CDRewards> GetByLevelID(uint32_t levelID);
-
-private:
-	std::map<uint32_t, CDRewards> m_entries;
 };

@@ -13,7 +13,7 @@ void AgLaserSensorServer::OnStartup(Entity* self) {
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::REPULSE);
 	phantomPhysicsComponent->SetDirectionalMultiplier(repelForce);
-	phantomPhysicsComponent->SetDirection(NiPoint3::UNIT_Y);
+	phantomPhysicsComponent->SetDirection(NiPoint3Constant::UNIT_Y);
 }
 
 

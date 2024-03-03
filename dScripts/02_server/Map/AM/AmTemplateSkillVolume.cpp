@@ -12,12 +12,9 @@ void AmTemplateSkillVolume::OnSkillEventFired(Entity* self, Entity* caster, cons
 	const auto missionIDs = GeneralUtils::SplitString(missionIDsVariable, '_');
 
 	for (const auto& missionIDStr : missionIDs) {
-		int32_t missionID = 0;
+		const auto missionID = GeneralUtils::TryParse<uint32_t>(missionIDStr);
+		if (!missionID) continue;
 
-		if (!GeneralUtils::TryParse(missionIDStr, missionID)) {
-			continue;
-		}
-
-		missionComponent->ForceProgressTaskType(missionID, 1, 1, false);
+		missionComponent->ForceProgressTaskType(missionID.value(), 1, 1, false);
 	}
 }

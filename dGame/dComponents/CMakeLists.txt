@@ -1,4 +1,5 @@
 set(DGAME_DCOMPONENTS_SOURCES
+	"AchievementVendorComponent.cpp"
 	"ActivityComponent.cpp"
 	"BaseCombatAIComponent.cpp"
 	"BouncerComponent.cpp"
@@ -27,7 +28,6 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"PlayerForcedMovementComponent.cpp"
 	"PossessableComponent.cpp"
 	"PossessorComponent.cpp"
-	"PropertyComponent.cpp"
 	"PropertyEntranceComponent.cpp"
 	"PropertyManagementComponent.cpp"
 	"PropertyVendorComponent.cpp"

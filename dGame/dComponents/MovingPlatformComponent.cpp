@@ -32,25 +32,25 @@ MoverSubComponent::MoverSubComponent(const NiPoint3& startPos) {
 
 MoverSubComponent::~MoverSubComponent() = default;
 
-void MoverSubComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write<bool>(true);
+void MoverSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write<bool>(true);
 
-	outBitStream->Write(mState);
-	outBitStream->Write<int32_t>(mDesiredWaypointIndex);
-	outBitStream->Write(mShouldStopAtDesiredWaypoint);
-	outBitStream->Write(mInReverse);
+	outBitStream.Write(mState);
+	outBitStream.Write<int32_t>(mDesiredWaypointIndex);
+	outBitStream.Write(mShouldStopAtDesiredWaypoint);
+	outBitStream.Write(mInReverse);
 
-	outBitStream->Write<float_t>(mPercentBetweenPoints);
+	outBitStream.Write<float_t>(mPercentBetweenPoints);
 
-	outBitStream->Write<float_t>(mPosition.x);
-	outBitStream->Write<float_t>(mPosition.y);
-	outBitStream->Write<float_t>(mPosition.z);
+	outBitStream.Write<float_t>(mPosition.x);
+	outBitStream.Write<float_t>(mPosition.y);
+	outBitStream.Write<float_t>(mPosition.z);
 
-	outBitStream->Write<uint32_t>(mCurrentWaypointIndex);
-	outBitStream->Write<uint32_t>(mNextWaypointIndex);
+	outBitStream.Write<uint32_t>(mCurrentWaypointIndex);
+	outBitStream.Write<uint32_t>(mNextWaypointIndex);
 
-	outBitStream->Write<float_t>(mIdleTimeElapsed);
-	outBitStream->Write<float_t>(0.0f); // Move time elapsed
+	outBitStream.Write<float_t>(mIdleTimeElapsed);
+	outBitStream.Write<float_t>(0.0f); // Move time elapsed
 }
 
 //------------- MovingPlatformComponent below --------------
@@ -71,43 +71,43 @@ MovingPlatformComponent::~MovingPlatformComponent() {
 	delete static_cast<MoverSubComponent*>(m_MoverSubComponent);
 }
 
-void MovingPlatformComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void MovingPlatformComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	// Here we don't serialize the moving platform to let the client simulate the movement
 
 	if (!m_Serialize) {
-		outBitStream->Write<bool>(false);
-		outBitStream->Write<bool>(false);
+		outBitStream.Write<bool>(false);
+		outBitStream.Write<bool>(false);
 
 		return;
 	}
 
-	outBitStream->Write<bool>(true);
+	outBitStream.Write<bool>(true);
 
 	auto hasPath = !m_PathingStopped && !m_PathName.empty();
-	outBitStream->Write(hasPath);
+	outBitStream.Write(hasPath);
 
 	if (hasPath) {
 		// Is on rail
-		outBitStream->Write1();
+		outBitStream.Write1();
 
-		outBitStream->Write<uint16_t>(m_PathName.size());
+		outBitStream.Write<uint16_t>(m_PathName.size());
 		for (const auto& c : m_PathName) {
-			outBitStream->Write<uint16_t>(c);
+			outBitStream.Write<uint16_t>(c);
 		}
 
 		// Starting point
-		outBitStream->Write<uint32_t>(0);
+		outBitStream.Write<uint32_t>(0);
 
 		// Reverse
-		outBitStream->Write<bool>(false);
+		outBitStream.Write<bool>(false);
 	}
 
 	const auto hasPlatform = m_MoverSubComponent != nullptr;
-	outBitStream->Write<bool>(hasPlatform);
+	outBitStream.Write<bool>(hasPlatform);
 
 	if (hasPlatform) {
 		auto* mover = static_cast<MoverSubComponent*>(m_MoverSubComponent);
-		outBitStream->Write(m_MoverSubComponentType);
+		outBitStream.Write(m_MoverSubComponentType);
 
 		if (m_MoverSubComponentType == eMoverSubComponentType::simpleMover) {
 			// TODO
@@ -162,7 +162,7 @@ void MovingPlatformComponent::StartPathing() {
 		const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
 
 		subComponent->mPosition = currentWaypoint.position;
-		subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
+		subComponent->mSpeed = currentWaypoint.speed;
 		subComponent->mWaitTime = currentWaypoint.movingPlatform.wait;
 
 		targetPosition = nextWaypoint.position;
@@ -213,7 +213,7 @@ void MovingPlatformComponent::ContinuePathing() {
 		const auto& nextWaypoint = m_Path->pathWaypoints[subComponent->mNextWaypointIndex];
 
 		subComponent->mPosition = currentWaypoint.position;
-		subComponent->mSpeed = currentWaypoint.movingPlatform.speed;
+		subComponent->mSpeed = currentWaypoint.speed;
 		subComponent->mWaitTime = currentWaypoint.movingPlatform.wait; // + 2;
 
 		pathSize = m_Path->pathWaypoints.size() - 1;

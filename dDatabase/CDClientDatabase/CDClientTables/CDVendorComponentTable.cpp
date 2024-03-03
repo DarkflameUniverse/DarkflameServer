@@ -14,7 +14,8 @@ void CDVendorComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM VendorComponent");
@@ -26,7 +27,7 @@ void CDVendorComponentTable::LoadValuesFromDatabase() {
 		entry.refreshTimeSeconds = tableData.getFloatField("refreshTimeSeconds", -1.0f);
 		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -36,15 +37,9 @@ void CDVendorComponentTable::LoadValuesFromDatabase() {
 //! Queries the table with a custom "where" clause
 std::vector<CDVendorComponent> CDVendorComponentTable::Query(std::function<bool(CDVendorComponent)> predicate) {
 
-	std::vector<CDVendorComponent> data = cpplinq::from(this->entries)
+	std::vector<CDVendorComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-//! Gets all the entries in the table
-const std::vector<CDVendorComponent>& CDVendorComponentTable::GetEntries() const {
-	return this->entries;
-}
-

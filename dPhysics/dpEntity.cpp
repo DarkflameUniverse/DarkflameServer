@@ -76,7 +76,7 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		return;
 	}
 
-	bool wasFound = (m_CurrentlyCollidingObjects.find(other->GetObjectID()) != m_CurrentlyCollidingObjects.end());
+	bool wasFound = m_CurrentlyCollidingObjects.contains(other->GetObjectID());
 
 	bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
