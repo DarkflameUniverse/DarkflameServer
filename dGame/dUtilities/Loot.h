@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dCommonVars.h"
-#include "eLootSourceType.h"
 #include <unordered_map>
 
 class Entity;

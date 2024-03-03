@@ -8,7 +8,7 @@
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
 #include "GeneralUtils.h"
-#include "dClient/ClientVersion.h"
+#include "ClientVersion.h"
 
 #include <bcrypt/BCrypt.hpp>
 
