@@ -5,7 +5,6 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
-#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -14,6 +13,8 @@
 #include "Loot.h"
 
 enum class eGameActivity : uint32_t;
+
+class Item;
 
 /**
  * The statistics that can be achieved per zone
