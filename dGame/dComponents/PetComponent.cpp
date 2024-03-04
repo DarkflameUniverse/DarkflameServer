@@ -343,13 +343,15 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	// Remove "left behind" pets
+	// Remove "left behind" pets and handle failing pet taming minigame
 	if (m_Owner != LWOOBJID_EMPTY) {
 		const Entity* const owner = GetOwner();
 		if (!owner) {
 			m_Parent->Kill();
 			return;
 		}
+	} else {
+		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
 	}
 
 	if (HasFlag(SPAWNING)) OnSpawn();
@@ -381,28 +383,6 @@ void PetComponent::Update(float deltaTime) {
 	default:
 		LOG_DEBUG("Unknown state: %d!", m_Flags);
 		break;
-	}
-}
-
-void PetComponent::UpdateUnowned(float deltaTime) { //TODO: CURRENTLY UNUSED
-	if (m_Tamer != LWOOBJID_EMPTY) {
-		if (m_Timer > 0) {
-			m_Timer -= deltaTime;
-
-			if (m_Timer <= 0) {
-				m_Timer = 0;
-
-				ClientFailTamingMinigame();
-			}
-		}
-	} else {
-		if (m_Timer > 0) {
-			m_Timer -= deltaTime;
-
-			if (m_Timer <= 0) Wander();
-		} else {
-			m_Timer = 5;
-		}
 	}
 }
 
@@ -894,7 +874,7 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 	SetInteractType(PetInteractType::none);
 	SetAbility(petAbility);
 	SetPetAiState(PetAiState::follow);
-	SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
+	SetOnlyFlag(IDLE);
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
@@ -1071,7 +1051,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 
 	auto* const inventoryComponent = item->GetInventory()->GetComponent();
 
-	if (inventoryComponent == nullptr) return;
+	if (!inventoryComponent) return;
 
 	inventoryComponent->DespawnPet();
 
