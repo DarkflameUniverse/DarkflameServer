@@ -5,7 +5,7 @@ CDMissions CDMissionsTable::Default = {};
 void CDMissionsTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Missions");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -16,12 +16,13 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	m_Entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Missions");
 	while (!tableData.eof()) {
-		auto& entry = m_Entries.emplace_back();
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.defined_type = tableData.getStringField("defined_type", "");
 		entry.defined_subtype = tableData.getStringField("defined_subtype", "");
@@ -77,25 +78,22 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 
 		tableData.nextRow();
 	}
+	tableData.finalize();
 
 	Default.id = -1;
 }
 
 std::vector<CDMissions> CDMissionsTable::Query(std::function<bool(CDMissions)> predicate) {
 
-	std::vector<CDMissions> data = cpplinq::from(m_Entries)
+	std::vector<CDMissions> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
 
-const std::vector<CDMissions>& CDMissionsTable::GetEntries(void) const {
-	return m_Entries;
-}
-
-const CDMissions* CDMissionsTable::GetPtrByMissionID(const uint32_t missionID) const {
-	for (const auto& entry : m_Entries) {
+const CDMissions* CDMissionsTable::GetPtrByMissionID(uint32_t missionID) const {
+	for (const auto& entry : GetEntries()) {
 		if (entry.id == missionID) {
 			return const_cast<CDMissions*>(&entry);
 		}
@@ -104,8 +102,8 @@ const CDMissions* CDMissionsTable::GetPtrByMissionID(const uint32_t missionID) c
 	return &Default;
 }
 
-const CDMissions& CDMissionsTable::GetByMissionID(const uint32_t missionID, bool& found) const {
-	for (const auto& entry : m_Entries) {
+const CDMissions& CDMissionsTable::GetByMissionID(uint32_t missionID, bool& found) const {
+	for (const auto& entry : GetEntries()) {
 		if (entry.id == missionID) {
 			found = true;
 
@@ -116,4 +114,14 @@ const CDMissions& CDMissionsTable::GetByMissionID(const uint32_t missionID, bool
 	found = false;
 
 	return Default;
+}
+
+const std::set<int32_t> CDMissionsTable::GetMissionsForReward(LOT lot) {
+	std::set<int32_t> toReturn {};
+	for (const auto& entry : GetEntries()) {
+		if (lot == entry.reward_item1 || lot == entry.reward_item2 || lot == entry.reward_item3 || lot == entry.reward_item4) {
+			toReturn.insert(entry.id);
+		}
+	}
+	return toReturn;
 }

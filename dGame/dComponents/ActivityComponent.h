@@ -152,8 +152,10 @@ class ActivityComponent : public Component {
 public:
 	ActivityComponent(Entity* parent, int32_t activityID);
 
+	void LoadActivityData(const int32_t activityId);
+
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Makes some entity join the minigame, if it's a lobbied one, the entity will be placed in the lobby

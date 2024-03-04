@@ -23,10 +23,12 @@ namespace {
 
 void CDPetComponentTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PetComponent");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		const uint32_t componentID = tableData.getIntField("id", defaultEntry.id);
 
-		auto& entry = m_Entries[componentID];
+		auto& entry = entries[componentID];
+
 		entry.id = componentID;
 		UNUSED_COLUMN(entry.minTameUpdateTime = tableData.getFloatField("minTameUpdateTime", defaultEntry.minTameUpdateTime));
 		UNUSED_COLUMN(entry.maxTameUpdateTime = tableData.getFloatField("maxTameUpdateTime", defaultEntry.maxTameUpdateTime));
@@ -48,12 +50,13 @@ void CDPetComponentTable::LoadValuesFromDatabase() {
 }
 
 void CDPetComponentTable::LoadValuesFromDefaults() {
-	m_Entries.insert(std::make_pair(defaultEntry.id, defaultEntry));
+	GetEntriesMutable().insert(std::make_pair(defaultEntry.id, defaultEntry));
 }
 
 CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {
-	auto itr = m_Entries.find(componentID);
-	if (itr == m_Entries.end()) {
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(componentID);
+	if (itr == entries.end()) {
 		LOG("Unable to load pet component (ID %i) values from database! Using default values instead.", componentID);
 		return defaultEntry;
 	}

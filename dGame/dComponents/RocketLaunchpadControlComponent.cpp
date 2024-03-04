@@ -139,7 +139,7 @@ void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
 	bitStream.Write(zoneID);
-	Game::server->SendToMaster(&bitStream);
+	Game::server->SendToMaster(bitStream);
 }
 
 

@@ -40,10 +40,8 @@ Precondition::Precondition(const uint32_t condition) {
 		std::string token;
 
 		while (std::getline(stream, token, ',')) {
-			uint32_t value;
-			if (GeneralUtils::TryParse(token, value)) {
-				this->values.push_back(value);
-			}
+			const auto validToken = GeneralUtils::TryParse<uint32_t>(token);
+			if (validToken) this->values.push_back(validToken.value());
 		}
 	}
 

@@ -6,7 +6,7 @@
 
 class RacingStatsComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RACING_STATS;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_STATS;
 
 	RacingStatsComponent(Entity* parent) : Component(parent) {}
 };

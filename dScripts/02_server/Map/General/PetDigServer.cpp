@@ -107,7 +107,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 		return;
 
 	auto* playerEntity = Game::entityManager->GetEntity(playerID);
-	if (!playerEntity || !playerEntity->GetParentUser() || !playerEntity->GetParentUser()->GetLastUsedChar())
+	if (!playerEntity || !playerEntity->GetCharacter())
 		return;
 
 	auto* player = playerEntity->GetCharacter();

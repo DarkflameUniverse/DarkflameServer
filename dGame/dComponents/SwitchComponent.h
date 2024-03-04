@@ -14,9 +14,9 @@
 /**
  * A component for switches in game, including pet triggered switches.
  */
-class SwitchComponent : public Component {
+class SwitchComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
 	SwitchComponent(Entity* parent);
 	~SwitchComponent() override;
@@ -25,7 +25,7 @@ public:
 
 	Entity* GetParentEntity() const;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Sets whether the switch is on or off.

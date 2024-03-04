@@ -2,7 +2,6 @@
 #include "PlayerContainer.h"
 #include "eChatInternalMessageType.h"
 #include "BitStreamUtils.h"
-#include "PacketUtils.h"
 #include "Game.h"
 #include "Logger.h"
 #include "eObjectBits.h"
@@ -60,7 +59,7 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 		bitStream.Write(LUWString(ignoredPlayer.playerName, 36));
 	}
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }
 
 void ChatIgnoreList::AddIgnore(Packet* packet) {
@@ -82,7 +81,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
-	LUWString toIgnoreName(33);
+	LUWString toIgnoreName;
 	inStream.Read(toIgnoreName);
 	std::string toIgnoreStr = toIgnoreName.GetAsString();
 
@@ -132,7 +131,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	bitStream.Write(playerNameSend);
 	bitStream.Write(ignoredPlayerId);
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }
 
 void ChatIgnoreList::RemoveIgnore(Packet* packet) {
@@ -148,7 +147,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 
 	inStream.IgnoreBytes(4); // ignore some garbage zeros idk
 
-	LUWString removedIgnoreName(33);
+	LUWString removedIgnoreName;
 	inStream.Read(removedIgnoreName);
 	std::string removedIgnoreStr = removedIgnoreName.GetAsString();
 
@@ -168,5 +167,5 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	LUWString playerNameSend(removedIgnoreStr, 33);
 	bitStream.Write(playerNameSend);
 
-	Game::server->Send(&bitStream, packet->systemAddress, false);
+	Game::server->Send(bitStream, packet->systemAddress, false);
 }

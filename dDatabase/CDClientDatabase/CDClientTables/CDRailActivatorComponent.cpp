@@ -3,6 +3,7 @@
 
 void CDRailActivatorComponentTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM RailActivatorComponent;");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		CDRailActivatorComponent entry;
 
@@ -36,7 +37,7 @@ void CDRailActivatorComponentTable::LoadValuesFromDatabase() {
 
 		entry.showNameBillboard = tableData.getIntField("ShowNameBillboard", 0);
 
-		m_Entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -44,16 +45,12 @@ void CDRailActivatorComponentTable::LoadValuesFromDatabase() {
 }
 
 CDRailActivatorComponent CDRailActivatorComponentTable::GetEntryByID(int32_t id) const {
-	for (const auto& entry : m_Entries) {
+	for (const auto& entry : GetEntries()) {
 		if (entry.id == id)
 			return entry;
 	}
 
 	return {};
-}
-
-const std::vector<CDRailActivatorComponent>& CDRailActivatorComponentTable::GetEntries() const {
-	return m_Entries;
 }
 
 std::pair<uint32_t, std::u16string> CDRailActivatorComponentTable::EffectPairFromString(std::string& str) {

@@ -1,12 +1,28 @@
 #include "CDObjectsTable.h"
 
+namespace {
+	CDObjects objDefault;
+};
+
 void CDObjectsTable::LoadValuesFromDatabase() {
+	// First, get the size of the table
+	uint32_t size = 0;
+	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM Objects");
+	while (!tableSize.eof()) {
+		size = tableSize.getIntField(0, 0);
+
+		tableSize.nextRow();
+	}
+
+	tableSize.finalize();
+
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Objects");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		const uint32_t LOT = tableData.getIntField("id", 0);
 
-		auto& entry = m_Entries[LOT];
+		auto& entry = entries[LOT];
 		entry.id = LOT;
 		entry.name = tableData.getStringField("name", "");
 		UNUSED_COLUMN(entry.placeable = tableData.getIntField("placeable", -1);)
@@ -25,12 +41,13 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 		tableData.nextRow();
 	}
 
-	m_Default.id = 0;
+	objDefault.id = 0;
 }
 
 const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
-	const auto& it = m_Entries.find(LOT);
-	if (it != m_Entries.end()) {
+	auto& entries = GetEntriesMutable();
+	const auto& it = entries.find(LOT);
+	if (it != entries.end()) {
 		return it->second;
 	}
 
@@ -39,15 +56,15 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
 
 	auto tableData = query.execQuery();
 	if (tableData.eof()) {
-		m_Entries.insert(std::make_pair(LOT, m_Default));
-		return m_Default;
+		entries.emplace(LOT, objDefault);
+		return objDefault;
 	}
 
 	// Now get the data
 	while (!tableData.eof()) {
 		const uint32_t LOT = tableData.getIntField("id", 0);
 
-		auto& entry = m_Entries[LOT];
+		auto& entry = entries[LOT];
 		entry.id = LOT;
 		entry.name = tableData.getStringField("name", "");
 		UNUSED(entry.placeable = tableData.getIntField("placeable", -1));
@@ -68,10 +85,10 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
 
 	tableData.finalize();
 
-	const auto& it2 = m_Entries.find(LOT);
-	if (it2 != m_Entries.end()) {
+	const auto& it2 = entries.find(LOT);
+	if (it2 != entries.end()) {
 		return it2->second;
 	}
 
-	return m_Default;
+	return objDefault;
 }

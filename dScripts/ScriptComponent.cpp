@@ -17,11 +17,11 @@ ScriptComponent::~ScriptComponent() {
 
 }
 
-void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		const auto& networkSettings = m_Parent->GetNetworkSettings();
 		auto hasNetworkSettings = !networkSettings.empty();
-		outBitStream->Write(hasNetworkSettings);
+		outBitStream.Write(hasNetworkSettings);
 
 		if (hasNetworkSettings) {
 
@@ -31,12 +31,12 @@ void ScriptComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitial
 			ldfData.Write<uint32_t>(networkSettings.size());
 
 			for (auto* networkSetting : networkSettings) {
-				networkSetting->WriteToPacket(&ldfData);
+				networkSetting->WriteToPacket(ldfData);
 			}
 
 			// Finally write everything to the stream
-			outBitStream->Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
-			outBitStream->Write(ldfData);
+			outBitStream.Write<uint32_t>(ldfData.GetNumberOfBytesUsed());
+			outBitStream.Write(ldfData);
 		}
 	}
 }
@@ -46,11 +46,7 @@ CppScripts::Script* ScriptComponent::GetScript() {
 }
 
 void ScriptComponent::SetScript(const std::string& scriptName) {
-	//we don't need to delete the script because others may be using it :)
-	/*if (m_Client) {
-		m_Script = new InvalidScript();
-		return;
-	}*/
-
+	// Scripts are managed by the CppScripts class and are effecitvely singletons
+	// and they may also be used by other script components so DON'T delete them.
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
 }

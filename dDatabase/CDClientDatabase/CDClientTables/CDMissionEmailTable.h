@@ -17,14 +17,9 @@ struct CDMissionEmail {
 };
 
 
-class CDMissionEmailTable : public CDTable<CDMissionEmailTable> {
-private:
-	std::vector<CDMissionEmail> m_Entries;
-
+class CDMissionEmailTable : public CDTable<CDMissionEmailTable, std::vector<CDMissionEmail>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionEmail> Query(std::function<bool(CDMissionEmail)> predicate);
-
-	const std::vector<CDMissionEmail>& GetEntries() const;
 };

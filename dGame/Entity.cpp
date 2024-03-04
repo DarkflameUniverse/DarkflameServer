@@ -3,7 +3,6 @@
 #include "CDClientManager.h"
 #include "Game.h"
 #include "Logger.h"
-#include "PacketUtils.h"
 #include <functional>
 #include "CDDestructibleComponentTable.h"
 #include "CDClientDatabase.h"
@@ -16,7 +15,6 @@
 #include "Spawner.h"
 #include "UserManager.h"
 #include "dpWorld.h"
-#include "Player.h"
 #include "LUTriggers.h"
 #include "User.h"
 #include "EntityTimer.h"
@@ -25,6 +23,9 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
+#include "PositionUpdate.h"
+#include "eChatMessageType.h"
+#include "PlayerManager.h"
 
 //Component includes:
 #include "Component.h"
@@ -80,6 +81,8 @@
 #include "RacingStatsComponent.h"
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
+#include "GhostComponent.h"
+#include "AchievementVendorComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -93,7 +96,7 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
-Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) {
+Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -122,9 +125,42 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, Entity* parentEntity) 
 	m_SpawnerNodeID = info.spawnerNodeID;
 
 	if (info.lot != 1) m_PlayerIsReadyForUpdates = true;
+	if (parentUser) {
+		m_Character = parentUser->GetLastUsedChar();
+		parentUser->SetLoggedInChar(objectID);
+		m_GMLevel = m_Character->GetGMLevel();
+
+		m_Character->SetEntity(this);
+
+		PlayerManager::AddPlayer(this);
+	}
 }
 
 Entity::~Entity() {
+	if (IsPlayer()) {
+		LOG("Deleted player");
+
+		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
+		if (!PlayerManager::RemovePlayer(this)) {
+			LOG("Unable to find player to remove from manager.");
+			return;
+		}
+
+		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
+		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
+			script->OnPlayerExit(zoneControl, this);
+		}
+
+		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
+		for (Entity* scriptEntity : scriptedActs) {
+			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
+					script->OnPlayerExit(scriptEntity, this);
+				}
+			}
+		}
+	}
+
 	if (m_Character) {
 		m_Character->SaveXMLToDatabase();
 	}
@@ -180,7 +216,7 @@ void Entity::Initialize() {
 	}
 
 	// Get the registry table
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	/**
 	 * Special case for BBB models. They have components not corresponding to the registry.
@@ -210,7 +246,7 @@ void Entity::Initialize() {
 	 * Not all components are implemented. Some are represented by a nullptr, as they hold no data.
 	 */
 
-	if (GetParentUser()) {
+	if (m_Character && m_Character->GetParentUser()) {
 		AddComponent<MissionComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
@@ -334,7 +370,7 @@ void Entity::Initialize() {
 	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::Instance().GetTable<CDDestructibleComponentTable>();
+	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
 	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
@@ -369,7 +405,7 @@ void Entity::Initialize() {
 					uint32_t npcMinLevel = destCompData[0].level;
 					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
 
-					CDCurrencyTableTable* currencyTable = CDClientManager::Instance().GetTable<CDCurrencyTableTable>();
+					CDCurrencyTableTable* currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
 					std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
 
 					if (currencyValues.size() > 0) {
@@ -417,10 +453,10 @@ void Entity::Initialize() {
 		if (!setFaction.empty()) {
 			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
 			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
-			int32_t factionToAdd;
 			for (const auto faction : factionsToAdd) {
-				if (GeneralUtils::TryParse(faction, factionToAdd)) {
-					comp->AddFaction(factionToAdd, true);
+				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
+				if (factionToAdd) {
+					comp->AddFaction(factionToAdd.value(), true);
 				}
 			}
 		}
@@ -435,7 +471,10 @@ void Entity::Initialize() {
 
 		AddComponent<PlayerForcedMovementComponent>();
 
-		AddComponent<CharacterComponent>(m_Character)->LoadFromXml(m_Character->GetXMLDoc());
+		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+		AddComponent<CharacterComponent>(m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
+
+		AddComponent<GhostComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
@@ -451,7 +490,7 @@ void Entity::Initialize() {
 	 * This is a bit of a mess
 	 */
 
-	CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+	CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
 
 	std::string scriptName = "";
@@ -500,7 +539,7 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+		CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 		const auto zoneID = Game::zoneManager->GetZoneID();
 		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
 
@@ -523,7 +562,7 @@ void Entity::Initialize() {
 	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
 		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
 
-		CDRebuildComponentTable* rebCompTable = CDClientManager::Instance().GetTable<CDRebuildComponentTable>();
+		CDRebuildComponentTable* rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
 		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
 		if (rebCompData.size() > 0) {
@@ -577,6 +616,8 @@ void Entity::Initialize() {
 		AddComponent<VendorComponent>();
 	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::DONATION_VENDOR, -1) != -1)) {
 		AddComponent<DonationVendorComponent>();
+	} else if ((compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ACHIEVEMENT_VENDOR, -1) != -1)) {
+		AddComponent<AchievementVendorComponent>();
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY_VENDOR, -1) != -1) {
@@ -647,7 +688,7 @@ void Entity::Initialize() {
 
 	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
 	if (movementAIID > 0) {
-		CDMovementAIComponentTable* moveAITable = CDClientManager::Instance().GetTable<CDMovementAIComponentTable>();
+		CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
 		if (moveAIComp.size() > 0) {
@@ -711,7 +752,7 @@ void Entity::Initialize() {
 
 	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
-		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::Instance().GetTable<CDProximityMonitorComponentTable>();
+		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
 		std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
 		if (proxCompData.size() > 0) {
 			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
@@ -784,14 +825,6 @@ bool Entity::operator!=(const Entity& other) const {
 	return other.m_ObjectID != m_ObjectID;
 }
 
-User* Entity::GetParentUser() const {
-	if (!IsPlayer()) {
-		return nullptr;
-	}
-
-	return static_cast<const Player*>(this)->GetParentUser();
-}
-
 Component* Entity::GetComponent(eReplicaComponentType componentID) const {
 	const auto& index = m_Components.find(componentID);
 
@@ -846,48 +879,54 @@ void Entity::SetProximityRadius(dpEntity* entity, std::string name) {
 
 void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
-	if (GetParentUser()) {
-		Character* character = GetParentUser()->GetLastUsedChar();
+	if (m_Character) m_Character->SetGMLevel(value);
 
-		if (character) {
-			character->SetGMLevel(value);
-		}
-	}
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
 
-	CharacterComponent* character = GetComponent<CharacterComponent>();
-	if (character) character->SetGMLevel(value);
+	characterComponent->SetGMLevel(value);
 
 	GameMessages::SendGMLevelBroadcast(m_ObjectID, value);
+
+	// Update the chat server of our GM Level
+	{
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		bitStream.Write(m_ObjectID);
+		bitStream.Write(m_GMLevel);
+
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
 }
 
-void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
 	if (packetType == eReplicaPacketType::CONSTRUCTION) {
-		outBitStream->Write(m_ObjectID);
-		outBitStream->Write(m_TemplateID);
+		outBitStream.Write(m_ObjectID);
+		outBitStream.Write(m_TemplateID);
 
 		if (IsPlayer()) {
 			std::string name = m_Character != nullptr ? m_Character->GetName() : "Invalid";
-			outBitStream->Write<uint8_t>(uint8_t(name.size()));
+			outBitStream.Write<uint8_t>(uint8_t(name.size()));
 
 			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream->Write<uint16_t>(name[i]);
+				outBitStream.Write<uint16_t>(name[i]);
 			}
 		} else {
 			const auto& name = GetVar<std::string>(u"npcName");
-			outBitStream->Write<uint8_t>(uint8_t(name.size()));
+			outBitStream.Write<uint8_t>(uint8_t(name.size()));
 
 			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream->Write<uint16_t>(name[i]);
+				outBitStream.Write<uint16_t>(name[i]);
 			}
 		}
 
-		outBitStream->Write<uint32_t>(0); //Time since created on server
+		outBitStream.Write<uint32_t>(0); //Time since created on server
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
 		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
-			outBitStream->Write1(); //ldf data
+			outBitStream.Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
 			int32_t numberOfValidKeys = m_Settings.size();
@@ -904,13 +943,13 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 
 			for (LDFBaseData* data : m_Settings) {
 				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
-			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream->Write<uint8_t>(0); //no compression used
-			outBitStream->Write(settingStream);
+			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
+			outBitStream.Write<uint8_t>(0); //no compression used
+			outBitStream.Write(settingStream);
 		} else if (!syncLDF.empty()) {
 			std::vector<LDFBaseData*> ldfData;
 
@@ -918,79 +957,79 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream* outBitStream, eReplicaPacke
 				ldfData.push_back(GetVarData(data));
 			}
 
-			outBitStream->Write1(); //ldf data
+			outBitStream.Write1(); //ldf data
 
 			RakNet::BitStream settingStream;
 			settingStream.Write<uint32_t>(ldfData.size());
 			for (LDFBaseData* data : ldfData) {
 				if (data) {
-					data->WriteToPacket(&settingStream);
+					data->WriteToPacket(settingStream);
 				}
 			}
 
-			outBitStream->Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream->Write<uint8_t>(0); //no compression used
-			outBitStream->Write(settingStream);
+			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
+			outBitStream.Write<uint8_t>(0); //no compression used
+			outBitStream.Write(settingStream);
 		} else {
-			outBitStream->Write0(); //No ldf data
+			outBitStream.Write0(); //No ldf data
 		}
 
 		TriggerComponent* triggerComponent;
 		if (TryGetComponent(eReplicaComponentType::TRIGGER, triggerComponent)) {
 			// has trigger component, check to see if we have events to handle
 			auto* trigger = triggerComponent->GetTrigger();
-			outBitStream->Write<bool>(trigger && trigger->events.size() > 0);
+			outBitStream.Write<bool>(trigger && trigger->events.size() > 0);
 		} else { // no trigger componenet, so definitely no triggers
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 
 		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
-			outBitStream->Write1();
-			if (m_ParentEntity != nullptr) outBitStream->Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
-			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream->Write(m_SpawnerID);
-			else outBitStream->Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
-		} else outBitStream->Write0();
+			outBitStream.Write1();
+			if (m_ParentEntity != nullptr) outBitStream.Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
+			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream.Write(m_SpawnerID);
+			else outBitStream.Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
+		} else outBitStream.Write0();
 
-		outBitStream->Write(m_HasSpawnerNodeID);
-		if (m_HasSpawnerNodeID) outBitStream->Write(m_SpawnerNodeID);
+		outBitStream.Write(m_HasSpawnerNodeID);
+		if (m_HasSpawnerNodeID) outBitStream.Write(m_SpawnerNodeID);
 
-		//outBitStream->Write0(); //Spawner node id
+		//outBitStream.Write0(); //Spawner node id
 
-		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream->Write0();
+		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream.Write0();
 		else {
-			outBitStream->Write1();
-			outBitStream->Write(m_Scale);
+			outBitStream.Write1();
+			outBitStream.Write(m_Scale);
 		}
 
-		outBitStream->Write0(); //ObjectWorldState
+		outBitStream.Write0(); //ObjectWorldState
 
 		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
-			outBitStream->Write1();
-			outBitStream->Write(m_GMLevel);
-		} else outBitStream->Write0(); //No GM Level
+			outBitStream.Write1();
+			outBitStream.Write(m_GMLevel);
+		} else outBitStream.Write0(); //No GM Level
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream->Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
+	outBitStream.Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
 	if (m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION) {
 		m_IsParentChildDirty = false;
-		outBitStream->Write(m_ParentEntity != nullptr);
+		outBitStream.Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
-			outBitStream->Write(m_ParentEntity->GetObjectID());
-			outBitStream->Write0();
+			outBitStream.Write(m_ParentEntity->GetObjectID());
+			outBitStream.Write0();
 		}
-		outBitStream->Write(m_ChildEntities.size() > 0);
+		outBitStream.Write(m_ChildEntities.size() > 0);
 		if (m_ChildEntities.size() > 0) {
-			outBitStream->Write<uint16_t>(m_ChildEntities.size());
+			outBitStream.Write<uint16_t>(m_ChildEntities.size());
 			for (Entity* child : m_ChildEntities) {
-				outBitStream->Write<uint64_t>(child->GetObjectID());
+				outBitStream.Write<uint64_t>(child->GetObjectID());
 			}
 		}
 	}
 }
 
-void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
 
 	/**
 	 * This has to be done in a specific order.
@@ -1078,7 +1117,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			possessorComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		LevelProgressionComponent* levelProgressionComponent;
@@ -1086,7 +1125,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			levelProgressionComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		PlayerForcedMovementComponent* playerForcedMovementComponent;
@@ -1094,7 +1133,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 			playerForcedMovementComponent->Serialize(outBitStream, bIsInitialUpdate);
 		} else {
 			// Should never happen, but just to be safe
-			outBitStream->Write0();
+			outBitStream.Write0();
 		}
 
 		characterComponent->Serialize(outBitStream, bIsInitialUpdate);
@@ -1155,6 +1194,11 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 		donationVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
 	}
 
+	AchievementVendorComponent* achievementVendorComponent;
+	if (TryGetComponent(eReplicaComponentType::ACHIEVEMENT_VENDOR, achievementVendorComponent)) {
+		achievementVendorComponent->Serialize(outBitStream, bIsInitialUpdate);
+	}
+
 	BouncerComponent* bouncerComponent;
 	if (TryGetComponent(eReplicaComponentType::BOUNCER, bouncerComponent)) {
 		bouncerComponent->Serialize(outBitStream, bIsInitialUpdate);
@@ -1206,7 +1250,7 @@ void Entity::WriteComponents(RakNet::BitStream* outBitStream, eReplicaPacketType
 	// BBB Component, unused currently
 	// Need to to write0 so that is serialized correctly
 	// TODO: Implement BBB Component
-	outBitStream->Write0();
+	outBitStream.Write0();
 }
 
 void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
@@ -1222,39 +1266,56 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
 
 void Entity::Update(const float deltaTime) {
 	uint32_t timerPosition;
-	timerPosition = 0;
-	while (timerPosition < m_Timers.size()) {
-		m_Timers[timerPosition]->Update(deltaTime);
-		if (m_Timers[timerPosition]->GetTime() <= 0) {
-			const auto timerName = m_Timers[timerPosition]->GetName();
-
-			delete m_Timers[timerPosition];
+	for (timerPosition = 0; timerPosition < m_Timers.size();) {
+		auto& timer = m_Timers[timerPosition];
+		timer.Update(deltaTime);
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		if (timer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
+			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
-
 			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
 				script->OnTimerDone(this, timerName);
 			}
+
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
+		} else {
+			// If the timer isnt expired, go to the next timer.
+			timerPosition++;
+		}
+	}
+
+	for (timerPosition = 0; timerPosition < m_CallbackTimers.size(); ) {
+		// If the timer is expired, erase it and dont increment the position because the next timer will be at the same position.
+		// Before: [0, 1, 2, 3, ..., n]
+		// timerPosition  ^
+		// After:  [0, 1, 3, ..., n]
+		// timerPosition  ^
+		auto& callbackTimer = m_CallbackTimers[timerPosition];
+		callbackTimer.Update(deltaTime);
+		if (callbackTimer.GetTime() <= 0) {
+			// Remove the timer from the list of timers first so that callbacks can remove timers without causing iterator invalidation
+			auto callback = callbackTimer.GetCallback();
+			m_CallbackTimers.erase(m_CallbackTimers.begin() + timerPosition);
+			callback();
 		} else {
 			timerPosition++;
 		}
 	}
 
-	for (int i = 0; i < m_CallbackTimers.size(); i++) {
-		m_CallbackTimers[i]->Update(deltaTime);
-		if (m_CallbackTimers[i]->GetTime() <= 0) {
-			m_CallbackTimers[i]->GetCallback()();
-			delete m_CallbackTimers[i];
-			m_CallbackTimers.erase(m_CallbackTimers.begin() + i);
-		}
+	// Add pending timers to the list of timers so they start next tick.
+	if (!m_PendingTimers.empty()) {
+		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
+		m_PendingTimers.clear();
 	}
 
-	// Add pending timers to the list of timers so they start next tick.
-	if (m_PendingTimers.size() > 0) {
-		for (auto namedTimer : m_PendingTimers) {
-			m_Timers.push_back(namedTimer);
-		}
-		m_PendingTimers.clear();
+	if (!m_PendingCallbackTimers.empty()) {
+		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
+		m_PendingCallbackTimers.clear();
 	}
 
 	if (IsSleeping()) {
@@ -1325,16 +1386,10 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	}
 
 	if (!other->GetIsDead()) {
-		auto* combat = GetComponent<BaseCombatAIComponent>();
-
-		if (combat != nullptr) {
+		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
-
-			const auto valid = combat->IsEnemy(otherEntity);
-
-			if (!valid) return;
 
 			m_TargetsInPhantom.push_back(otherEntity);
 		}
@@ -1604,18 +1659,23 @@ bool Entity::GetIsDead() const {
 
 void Entity::AddLootItem(const Loot::Info& info) {
 	if (!IsPlayer()) return;
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot.insert(std::make_pair(info.id, info));
 }
 
 void Entity::PickupItem(const LWOOBJID& objectID) {
 	if (!IsPlayer()) return;
 	InventoryComponent* inv = GetComponent<InventoryComponent>();
-	if (!inv) return;
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!inv || !characterComponent) return;
 
-	CDObjectsTable* objectsTable = CDClientManager::Instance().GetTable<CDObjectsTable>();
+	CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
-	auto& droppedLoot = static_cast<Player*>(this)->GetDroppedLoot();
+	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
 	for (const auto& p : droppedLoot) {
 		if (p.first == objectID) {
@@ -1626,13 +1686,13 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 			const CDObjects& object = objectsTable->GetByID(p.second.lot);
 			if (object.id != 0 && object.type == "Powerup") {
-				CDObjectSkillsTable* skillsTable = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
-					CDSkillBehavior behaviorData = skillBehTable->GetSkillByID(skill.skillID);
+					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 
-					SkillComponent::HandleUnmanaged(behaviorData.behaviorID, GetObjectID());
+					auto* skillComponent = GetComponent<SkillComponent>();
+					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID());
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
@@ -1651,22 +1711,28 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 
 bool Entity::CanPickupCoins(uint64_t count) {
 	if (!IsPlayer()) return false;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return false;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	if (count > droppedCoins) {
 		return false;
 	} else {
-		player->SetDroppedCoins(droppedCoins - count);
+		characterComponent->SetDroppedCoins(droppedCoins - count);
 		return true;
 	}
 }
 
 void Entity::RegisterCoinDrop(uint64_t count) {
 	if (!IsPlayer()) return;
-	auto* player = static_cast<Player*>(this);
-	auto droppedCoins = player->GetDroppedCoins();
+
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (!characterComponent) return;
+
+	auto droppedCoins = characterComponent->GetDroppedCoins();
 	droppedCoins += count;
-	player->SetDroppedCoins(droppedCoins);
+	characterComponent->SetDroppedCoins(droppedCoins);
 }
 
 void Entity::AddChild(Entity* child) {
@@ -1692,31 +1758,20 @@ void Entity::RemoveParent() {
 }
 
 void Entity::AddTimer(std::string name, float time) {
-	EntityTimer* timer = new EntityTimer(name, time);
-	m_PendingTimers.push_back(timer);
+	m_PendingTimers.emplace_back(name, time);
 }
 
 void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
-	EntityCallbackTimer* timer = new EntityCallbackTimer(time, callback);
-	m_CallbackTimers.push_back(timer);
+	m_PendingCallbackTimers.emplace_back(time, callback);
 }
 
 bool Entity::HasTimer(const std::string& name) {
-	for (auto* timer : m_Timers) {
-		if (timer->GetName() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return std::find(m_Timers.begin(), m_Timers.end(), name) != m_Timers.end();
 }
 
 void Entity::CancelCallbackTimers() {
-	for (auto* callback : m_CallbackTimers) {
-		delete callback;
-	}
-
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
@@ -1728,8 +1783,8 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 
 void Entity::CancelTimer(const std::string& name) {
 	for (int i = 0; i < m_Timers.size(); i++) {
-		if (m_Timers[i]->GetName() == name) {
-			delete m_Timers[i];
+		auto& timer = m_Timers[i];
+		if (timer == name) {
 			m_Timers.erase(m_Timers.begin() + i);
 			return;
 		}
@@ -1737,21 +1792,10 @@ void Entity::CancelTimer(const std::string& name) {
 }
 
 void Entity::CancelAllTimers() {
-	/*for (auto timer : m_Timers) {
-		if (timer) delete timer;
-	}*/
-
-	for (auto* timer : m_Timers) {
-		delete timer;
-	}
-
 	m_Timers.clear();
-
-	for (auto* callBackTimer : m_CallbackTimers) {
-		delete callBackTimer;
-	}
-
+	m_PendingTimers.clear();
 	m_CallbackTimers.clear();
+	m_PendingCallbackTimers.clear();
 }
 
 bool Entity::IsPlayer() const {
@@ -1853,7 +1897,7 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
-	return NiPoint3::ZERO;
+	return NiPoint3Constant::ZERO;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
@@ -1881,10 +1925,10 @@ const NiQuaternion& Entity::GetRotation() const {
 		return vehicel->GetRotation();
 	}
 
-	return NiQuaternion::IDENTITY;
+	return NiQuaternionConstant::IDENTITY;
 }
 
-void Entity::SetPosition(NiPoint3 position) {
+void Entity::SetPosition(const NiPoint3& position) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1912,7 +1956,7 @@ void Entity::SetPosition(NiPoint3 position) {
 	Game::entityManager->SerializeEntity(this);
 }
 
-void Entity::SetRotation(NiQuaternion rotation) {
+void Entity::SetRotation(const NiQuaternion& rotation) {
 	auto* controllable = GetComponent<ControllablePhysicsComponent>();
 
 	if (controllable != nullptr) {
@@ -1982,25 +2026,21 @@ void Entity::SetNetworkId(const uint16_t id) {
 	m_NetworkID = id;
 }
 
-std::vector<LWOOBJID>& Entity::GetTargetsInPhantom() {
-	std::vector<LWOOBJID> valid;
-
+std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	for (auto i = 0u; i < m_TargetsInPhantom.size(); ++i) {
-		const auto id = m_TargetsInPhantom.at(i);
+	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+		return !Game::entityManager->GetEntity(id);
+		}), m_TargetsInPhantom.end());
 
-		auto* entity = Game::entityManager->GetEntity(id);
+	std::vector<LWOOBJID> enemies;
+	for (const auto id : m_TargetsInPhantom) {
+		auto* combat = GetComponent<BaseCombatAIComponent>();
+		if (!combat || !combat->IsEnemy(id)) continue;
 
-		if (entity == nullptr) {
-			continue;
-		}
-
-		valid.push_back(id);
+		enemies.push_back(id);
 	}
 
-	m_TargetsInPhantom = valid;
-
-	return m_TargetsInPhantom;
+	return enemies;
 }
 
 void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAddr) {
@@ -2060,4 +2100,106 @@ void Entity::RetroactiveVaultSize() {
 uint8_t Entity::GetCollectibleID() const {
 	auto* collectible = GetComponent<CollectibleComponent>();
 	return collectible ? collectible->GetCollectibleId() : 0;
+}
+
+void Entity::ProcessPositionUpdate(PositionUpdate& update) {
+	if (!IsPlayer()) return;
+	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
+	if (!controllablePhysicsComponent) return;
+
+	auto* possessorComponent = GetComponent<PossessorComponent>();
+	bool updateChar = true;
+
+	if (possessorComponent) {
+		auto* possassableEntity = Game::entityManager->GetEntity(possessorComponent->GetPossessable());
+
+		if (possassableEntity) {
+			auto* possessableComponent = possassableEntity->GetComponent<PossessableComponent>();
+
+			// While possessing something, only update char if we are attached to the thing we are possessing
+			updateChar = possessableComponent && possessableComponent->GetPossessionType() == ePossessionType::ATTACHED_VISIBLE;
+
+			auto* havokVehiclePhysicsComponent = possassableEntity->GetComponent<HavokVehiclePhysicsComponent>();
+			if (havokVehiclePhysicsComponent) {
+				havokVehiclePhysicsComponent->SetPosition(update.position);
+				havokVehiclePhysicsComponent->SetRotation(update.rotation);
+				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
+				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
+				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
+				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
+				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
+				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
+			} else {
+				// Need to get the mount's controllable physics
+				auto* possessedControllablePhysicsComponent = possassableEntity->GetComponent<ControllablePhysicsComponent>();
+				if (!possessedControllablePhysicsComponent) return;
+				possessedControllablePhysicsComponent->SetPosition(update.position);
+				possessedControllablePhysicsComponent->SetRotation(update.rotation);
+				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
+				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
+				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
+				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
+				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
+			}
+			Game::entityManager->SerializeEntity(possassableEntity);
+		}
+	}
+
+	if (!updateChar) {
+		update.velocity = NiPoint3Constant::ZERO;
+		update.angularVelocity = NiPoint3Constant::ZERO;
+	}
+
+	// Handle statistics
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) {
+		characterComponent->TrackPositionUpdate(update.position);
+	}
+
+	controllablePhysicsComponent->SetPosition(update.position);
+	controllablePhysicsComponent->SetRotation(update.rotation);
+	controllablePhysicsComponent->SetIsOnGround(update.onGround);
+	controllablePhysicsComponent->SetIsOnRail(update.onRail);
+	controllablePhysicsComponent->SetVelocity(update.velocity);
+	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
+	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
+	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
+
+	auto* ghostComponent = GetComponent<GhostComponent>();
+	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
+	Game::entityManager->QueueGhostUpdate(GetObjectID());
+
+	if (updateChar) Game::entityManager->SerializeEntity(this);
+}
+
+const SystemAddress& Entity::GetSystemAddress() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
+}
+
+const NiPoint3& Entity::GetRespawnPosition() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnPosition() : NiPoint3Constant::ZERO;
+}
+
+const NiQuaternion& Entity::GetRespawnRotation() const {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
+}
+
+void Entity::SetRespawnPos(const NiPoint3& position) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnPos(position);
+}
+void Entity::SetRespawnRot(const NiQuaternion& rotation) {
+	auto* characterComponent = GetComponent<CharacterComponent>();
+	if (characterComponent) characterComponent->SetRespawnRot(rotation);
+}
+
+void Entity::SetScale(const float scale) {
+	if (scale == m_Scale) return;
+	m_Scale = scale;
+	Game::entityManager->SerializeEntity(this);
 }

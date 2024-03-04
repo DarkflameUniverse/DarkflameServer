@@ -4,19 +4,15 @@
 #include "CDTable.h"
 
 struct CDScriptComponent {
-	unsigned int id;                        //!< The component ID
+	uint32_t id;                        //!< The component ID
 	std::string script_name;           //!< The script name
 	std::string client_script_name;    //!< The client script name
 };
 
-class CDScriptComponentTable : public CDTable<CDScriptComponentTable> {
-private:
-	std::map<unsigned int, CDScriptComponent> entries;
-	CDScriptComponent m_ToReturnWhenNoneFound;
-
+class CDScriptComponentTable : public CDTable<CDScriptComponentTable, std::map<uint32_t, CDScriptComponent>> {
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by scriptID
-	const CDScriptComponent& GetByID(unsigned int id);
+	const CDScriptComponent& GetByID(uint32_t id);
 };
 

@@ -348,12 +348,44 @@ certutil -hashfile <file> SHA1
 Known good *SHA1* checksum of the Darkflame Universe client:
 - `91498e09b83ce69f46baf9e521d48f23fe502985` (packed client, zip compressed)
 
+
 # Docker
 
-## Standalone
+The Darkflame Server is automatically built and published as a Docker Container / [OCI](https://opencontainers.org/) Image to the GitHub Container Registry at:
+[`ghcr.io/darkflameuniverse/darkflameserver`](https://github.com/DarkflameUniverse/DarkflameServer/pkgs/container/darkflameserver).
 
-For standalone deployment, you can use the image provided via Github's Container Repository:
-`ghcr.io/darkflameuniverse/darkflameserver`
+## Compose
+
+> [!WARNING]
+> It seems that Docker Desktop on Windows with the WSL 2 backend has some issues with MariaDB (c.f. [mariadb-docker#331](https://github.com/MariaDB/mariadb-docker/issues/331)) triggered by NexusDashboard
+> migrations, so this setup may not work for you. If that is the case, please tell us about your setup in [NexusDashboard#92](https://github.com/DarkflameUniverse/NexusDashboard/issues/92).
+
+You can use the `docker-compose` tool to [setup a MariaDB database](#database-setup), run the Darkflame Server and manage it with [Nexus Dashboard](https://github.com/DarkflameUniverse/NexusDashboard) all
+at once. For that:
+
+- [Install Docker Desktop](https://docs.docker.com/get-docker/)
+- Open the directory that contains your LU Client
+  - If the `legouniverse.exe` is in a subfolder called `client`, you're good to go. There may also be a folder `versions`.
+  - Otherwise, create a new `client` folder and move the exe and everything else (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
+- Download the [docker-compose.yml](docker-compose.yml) file and place it next to `client`.
+- Download the [.env.example](.env.example) file and place it next to `client` with the file name `.env`
+  - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions ("File name extensions" in the "View" tab on Windows).
+  - Update the `ACCOUNT_MANAGER_SECRET` and `MARIADB_PASSWORD` with strong random passwords.
+    - Use a password generator like <https://keygen.io>
+    - Avoid `:` and `@` characters
+    - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
+  - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
+- Open a terminal in the folder with the `docker-compose.yml` and `client`
+- Run `docker compose up -d`
+  - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
+- Run `docker exec -it dlu-darkflameserver-1 /app/MasterServer -a` and follow the instructions to create the initial admin account
+- Open <http://localhost:8000> to access Nexus Dashboard with the admin account to create normal users
+- Set `AUTHSERVERIP=0:localhost` in `client/boot.cfg`
+  - Replace `localhost` with the value of `EXTERNAL_IP` if you changed that earlier.
+  - Also make sure `UGCUSE3DSERVICES=7:` is set to `0`
+- Launch `legouniverse.exe`
+
+## Standalone
 
 This assumes that you have a database deployed to your host or in another docker container.
 
@@ -375,14 +407,6 @@ ghcr.io/darkflameuniverse/darkflameserver:latest
 You will need to replace the `/path/to/`'s to reflect the paths on your host.
 
 Any config option in the `.ini`'s can be overridden with environmental variables: Ex: `log_to_console=1` from `shared_config.ini` would be overidden like  `-e LOG_TO_CONSOLE=0`
-
-## Compose
-
-See the [compose](docker-compose.yml) file in the root of the repo.
-
-This compose file is for a full deployment: MariaDB, DarkflameServer, and Nexus Dashboard.
-
-All of the environmental options are listed in the compose file so the can be pass through, or you can edit the compose file to suit your specific needs
 
 # Development Documentation
 This is a Work in Progress, but below are some quick links to documentaion for systems and structs in the server

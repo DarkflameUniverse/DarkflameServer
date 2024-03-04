@@ -14,7 +14,6 @@
 #include "Character.h"
 #include "EntityManager.h"
 #include "ItemSet.h"
-#include "Player.h"
 #include "PetComponent.h"
 #include "PossessorComponent.h"
 #include "PossessableComponent.h"
@@ -31,6 +30,7 @@
 #include "eMissionTaskType.h"
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
+#include "Mail.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -55,10 +55,10 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 		return;
 	}
 
-	auto* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	const auto componentId = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::INVENTORY);
 
-	auto* inventoryComponentTable = CDClientManager::Instance().GetTable<CDInventoryComponentTable>();
+	auto* inventoryComponentTable = CDClientManager::GetTable<CDInventoryComponentTable>();
 	auto items = inventoryComponentTable->Query([=](const CDInventoryComponent entry) { return entry.id == componentId; });
 
 	auto slot = 0u;
@@ -264,17 +264,11 @@ void InventoryComponent::AddItem(
 		}
 
 		if (slot == -1) {
-			auto* player = dynamic_cast<Player*>(GetParent());
-
-			if (player == nullptr) {
-				return;
-			}
-
 			outOfSpace += size;
 
 			switch (sourceType) {
 			case 0:
-				player->SendMail(LWOOBJID_EMPTY, "Darkflame Universe", "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
 				break;
 
 			case 1:
@@ -700,11 +694,11 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool bIsInitialUpdate) {
+void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool bIsInitialUpdate) {
 	if (bIsInitialUpdate || m_Dirty) {
-		outBitStream->Write(true);
+		outBitStream.Write(true);
 
-		outBitStream->Write<uint32_t>(m_Equipped.size());
+		outBitStream.Write<uint32_t>(m_Equipped.size());
 
 		for (const auto& pair : m_Equipped) {
 			const auto item = pair.second;
@@ -713,21 +707,21 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 				AddItemSkills(item.lot);
 			}
 
-			outBitStream->Write(item.id);
-			outBitStream->Write(item.lot);
+			outBitStream.Write(item.id);
+			outBitStream.Write(item.lot);
 
-			outBitStream->Write0();
+			outBitStream.Write0();
 
-			outBitStream->Write(item.count > 0);
-			if (item.count > 0) outBitStream->Write(item.count);
+			outBitStream.Write(item.count > 0);
+			if (item.count > 0) outBitStream.Write(item.count);
 
-			outBitStream->Write(item.slot != 0);
-			if (item.slot != 0) outBitStream->Write<uint16_t>(item.slot);
+			outBitStream.Write(item.slot != 0);
+			if (item.slot != 0) outBitStream.Write<uint16_t>(item.slot);
 
-			outBitStream->Write0();
+			outBitStream.Write0();
 
 			bool flag = !item.config.empty();
-			outBitStream->Write(flag);
+			outBitStream.Write(flag);
 			if (flag) {
 				RakNet::BitStream ldfStream;
 				ldfStream.Write<int32_t>(item.config.size()); // Key count
@@ -736,26 +730,26 @@ void InventoryComponent::Serialize(RakNet::BitStream* outBitStream, const bool b
 						std::string newRocketStr = data->GetValueAsString() + ";";
 						GeneralUtils::ReplaceInString(newRocketStr, "+", ";");
 						LDFData<std::u16string>* ldf_data = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(newRocketStr));
-						ldf_data->WriteToPacket(&ldfStream);
+						ldf_data->WriteToPacket(ldfStream);
 						delete ldf_data;
 					} else {
-						data->WriteToPacket(&ldfStream);
+						data->WriteToPacket(ldfStream);
 					}
 				}
-				outBitStream->Write(ldfStream.GetNumberOfBytesUsed() + 1);
-				outBitStream->Write<uint8_t>(0); // Don't compress
-				outBitStream->Write(ldfStream);
+				outBitStream.Write(ldfStream.GetNumberOfBytesUsed() + 1);
+				outBitStream.Write<uint8_t>(0); // Don't compress
+				outBitStream.Write(ldfStream);
 			}
 
-			outBitStream->Write1();
+			outBitStream.Write1();
 		}
 
 		m_Dirty = false;
 	} else {
-		outBitStream->Write(false);
+		outBitStream.Write(false);
 	}
 
-	outBitStream->Write(false);
+	outBitStream.Write(false);
 }
 
 void InventoryComponent::Update(float deltaTime) {
@@ -915,11 +909,11 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 
 void InventoryComponent::EquipScripts(Item* equippedItem) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	if (!compRegistryTable) return;
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(equippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
-		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+		CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
@@ -930,11 +924,11 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 }
 
 void InventoryComponent::UnequipScripts(Item* unequippedItem) {
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::Instance().GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	if (!compRegistryTable) return;
 	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(unequippedItem->GetLot(), eReplicaComponentType::SCRIPT, -1);
 	if (scriptComponentID > -1) {
-		CDScriptComponentTable* scriptCompTable = CDClientManager::Instance().GetTable<CDScriptComponentTable>();
+		CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
 		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
 		if (!itemScript) {
@@ -1228,7 +1222,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	EntityInfo info{};
 	info.lot = item->GetLot();
 	info.pos = m_Parent->GetPosition();
-	info.rot = NiQuaternion::IDENTITY;
+	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = m_Parent->GetObjectID();
 
 	auto* pet = Game::entityManager->CreateEntity(info);
@@ -1286,7 +1280,7 @@ bool InventoryComponent::IsTransferInventory(eInventoryType type) {
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {
-	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
+	auto* table = CDClientManager::GetTable<CDObjectSkillsTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(lot);
@@ -1304,8 +1298,8 @@ uint32_t InventoryComponent::FindSkill(const LOT lot) {
 std::vector<uint32_t> InventoryComponent::FindBuffs(Item* item, bool castOnEquip) const {
 	std::vector<uint32_t> buffs;
 	if (item == nullptr) return buffs;
-	auto* table = CDClientManager::Instance().GetTable<CDObjectSkillsTable>();
-	auto* behaviors = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+	auto* table = CDClientManager::GetTable<CDObjectSkillsTable>();
+	auto* behaviors = CDClientManager::GetTable<CDSkillBehaviorTable>();
 
 	const auto results = table->Query([=](const CDObjectSkills& entry) {
 		return entry.objectTemplate == static_cast<unsigned int>(item->GetLot());

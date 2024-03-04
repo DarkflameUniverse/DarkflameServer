@@ -7,8 +7,10 @@
 #include "dServer.h"
 #include <unordered_map>
 
+enum class eGameMasterLevel : uint8_t;
+
 struct IgnoreData {
-	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName(name), playerId(id) {}
+	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName{ name }, playerId{ id } {}
 	inline bool operator==(const std::string& other) const noexcept {
 		return playerName == other;
 	}
@@ -42,6 +44,8 @@ struct PlayerData {
 	std::string playerName;
 	std::vector<FriendData> friends;
 	std::vector<IgnoreData> ignoredPlayers;
+	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0); // CIVILLIAN
+	bool isFTP = false;
 };
 
 struct TeamData {
@@ -56,8 +60,6 @@ struct TeamData {
 
 class PlayerContainer {
 public:
-	~PlayerContainer();
-
 	void Initialize();
 	void InsertPlayer(Packet* packet);
 	void RemovePlayer(Packet* packet);

@@ -14,12 +14,13 @@ void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	m_Entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MovementAIComponent");
 	while (!tableData.eof()) {
-		auto& entry = m_Entries.emplace_back();
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.MovementType = tableData.getStringField("MovementType", "");
 		entry.WanderChance = tableData.getFloatField("WanderChance", -1.0f);
@@ -35,13 +36,9 @@ void CDMovementAIComponentTable::LoadValuesFromDatabase() {
 
 std::vector<CDMovementAIComponent> CDMovementAIComponentTable::Query(std::function<bool(CDMovementAIComponent)> predicate) {
 
-	std::vector<CDMovementAIComponent> data = cpplinq::from(m_Entries)
+	std::vector<CDMovementAIComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
-}
-
-const std::vector<CDMovementAIComponent>& CDMovementAIComponentTable::GetEntries(void) const {
-	return m_Entries;
 }

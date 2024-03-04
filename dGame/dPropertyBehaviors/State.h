@@ -7,11 +7,12 @@ class AMFArrayValue;
 
 class State {
 public:
-	template<typename Msg>
+	template <typename Msg>
 	void HandleMsg(Msg& msg);
 
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 	bool IsEmpty() const;
+
 private:
 	std::vector<Strip> m_Strips;
 };

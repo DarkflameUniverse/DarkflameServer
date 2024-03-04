@@ -11,7 +11,6 @@
 #include "WorldPackets.h"
 #include "Character.h"
 #include "BitStream.h"
-#include "PacketUtils.h"
 #include "ObjectIDManager.h"
 #include "Logger.h"
 #include "GeneralUtils.h"
@@ -216,30 +215,92 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 		chars.push_back(character);
 	}
 
-	WorldPackets::SendCharacterList(sysAddr, u);
+	RakNet::BitStream bitStream;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
+
+	std::vector<Character*> characters = u->GetCharacters();
+	bitStream.Write<uint8_t>(characters.size());
+	bitStream.Write<uint8_t>(0); //TODO: Pick the most recent played index.  character index in front, just picking 0
+
+	for (uint32_t i = 0; i < characters.size(); ++i) {
+		bitStream.Write(characters[i]->GetObjectID());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write(LUWString(characters[i]->GetName()));
+		bitStream.Write(LUWString(characters[i]->GetUnapprovedName()));
+
+		bitStream.Write<uint8_t>(characters[i]->GetNameRejected());
+		bitStream.Write<uint8_t>(false);
+
+		bitStream.Write(LUString("", 10));
+
+		bitStream.Write(characters[i]->GetShirtColor());
+		bitStream.Write(characters[i]->GetShirtStyle());
+		bitStream.Write(characters[i]->GetPantsColor());
+		bitStream.Write(characters[i]->GetHairStyle());
+		bitStream.Write(characters[i]->GetHairColor());
+		bitStream.Write(characters[i]->GetLeftHand());
+		bitStream.Write(characters[i]->GetRightHand());
+		bitStream.Write(characters[i]->GetEyebrows());
+		bitStream.Write(characters[i]->GetEyes());
+		bitStream.Write(characters[i]->GetMouth());
+		bitStream.Write<uint32_t>(0);
+
+		bitStream.Write<uint16_t>(characters[i]->GetZoneID());
+		bitStream.Write<uint16_t>(characters[i]->GetZoneInstance());
+		bitStream.Write(characters[i]->GetZoneClone());
+
+		bitStream.Write(characters[i]->GetLastLogin());
+
+		const auto& equippedItems = characters[i]->GetEquippedItems();
+		bitStream.Write<uint16_t>(equippedItems.size());
+
+		for (uint32_t j = 0; j < equippedItems.size(); ++j) {
+			bitStream.Write(equippedItems[j]);
+		}
+	}
+
+	SEND_PACKET;
 }
 
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
+	
+	LUWString LUWStringName;
+	uint32_t firstNameIndex;
+	uint32_t middleNameIndex;
+	uint32_t lastNameIndex;
+	uint32_t shirtColor;
+	uint32_t shirtStyle;
+	uint32_t pantsColor;
+	uint32_t hairStyle;
+	uint32_t hairColor;
+	uint32_t lh;
+	uint32_t rh;
+	uint32_t eyebrows;
+	uint32_t eyes;
+	uint32_t mouth;
 
-	std::string name = PacketUtils::ReadString(8, packet, true);
+	CINSTREAM_SKIP_HEADER;
+	inStream.Read(LUWStringName);
+	inStream.Read(firstNameIndex);
+	inStream.Read(middleNameIndex);
+	inStream.Read(lastNameIndex);
+	inStream.IgnoreBytes(9);
+	inStream.Read(shirtColor);
+	inStream.Read(shirtStyle);
+	inStream.Read(pantsColor);
+	inStream.Read(hairStyle);
+	inStream.Read(hairColor);
+	inStream.Read(lh);
+	inStream.Read(rh);
+	inStream.Read(eyebrows);
+	inStream.Read(eyes);
+	inStream.Read(mouth);
 
-	uint32_t firstNameIndex = PacketUtils::ReadU32(74, packet);
-	uint32_t middleNameIndex = PacketUtils::ReadU32(78, packet);
-	uint32_t lastNameIndex = PacketUtils::ReadU32(82, packet);
+	const auto name = LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
-
-	uint32_t shirtColor = PacketUtils::ReadU32(95, packet);
-	uint32_t shirtStyle = PacketUtils::ReadU32(99, packet);
-	uint32_t pantsColor = PacketUtils::ReadU32(103, packet);
-	uint32_t hairStyle = PacketUtils::ReadU32(107, packet);
-	uint32_t hairColor = PacketUtils::ReadU32(111, packet);
-	uint32_t lh = PacketUtils::ReadU32(115, packet);
-	uint32_t rh = PacketUtils::ReadU32(119, packet);
-	uint32_t eyebrows = PacketUtils::ReadU32(123, packet);
-	uint32_t eyes = PacketUtils::ReadU32(127, packet);
-	uint32_t mouth = PacketUtils::ReadU32(131, packet);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
@@ -263,7 +324,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
+	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) mutable {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
@@ -306,6 +367,14 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		bool nameOk = IsNamePreapproved(name);
 		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
+		// If predefined name is invalid, change it to be their object id
+		// that way more than one player can create characters if the predefined name files are not provided
+		if (predefinedName == "INVALID") {
+			std::stringstream nameObjID;
+			nameObjID << "minifig" << objectID;
+			predefinedName = nameObjID.str();
+		}
+
 		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
 		std::string pendingName = !name.empty() && !nameOk ? name : "";
 
@@ -322,7 +391,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
 		UserManager::RequestCharacterList(sysAddr);
-	});
+		});
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
@@ -332,7 +401,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
 	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
@@ -366,14 +437,18 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	LWOOBJID objectID = PacketUtils::ReadS64(8, packet);
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID objectID;
+	inStream.Read(objectID);	
 	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
 	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
 
-	std::string newName = PacketUtils::ReadString(16, packet, true);
+	LUWString LUWStringName;
+	inStream.Read(LUWStringName);
+	const auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
 
@@ -385,7 +460,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		"User %i tried to rename a character that it does not own!",
 		u->GetAccountID());
 
-	std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
+	auto unusedItr = std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
 		if (c->GetID() == charID) {
 			character = c;
 			return true;

@@ -43,9 +43,9 @@ inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t&
 	leaderboard << "\nResult[0].Row[" << index << "]." << data->GetString();
 }
 
-void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
-	bitStream->Write(gameID);
-	bitStream->Write(infoType);
+void Leaderboard::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(gameID);
+	bitStream.Write(infoType);
 
 	std::ostringstream leaderboard;
 
@@ -64,12 +64,12 @@ void Leaderboard::Serialize(RakNet::BitStream* bitStream) const {
 
 	// Serialize the thing to a BitStream
 	uint32_t leaderboardSize = leaderboard.tellp();
-	bitStream->Write<uint32_t>(leaderboardSize);
+	bitStream.Write<uint32_t>(leaderboardSize);
 	// Doing this all in 1 call so there is no possbility of a dangling pointer.
-	bitStream->WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboardSize * sizeof(char16_t));
-	if (leaderboardSize > 0) bitStream->Write<uint16_t>(0);
-	bitStream->Write0();
-	bitStream->Write0();
+	bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(GeneralUtils::ASCIIToUTF16(leaderboard.str()).c_str()), leaderboardSize * sizeof(char16_t));
+	if (leaderboardSize > 0) bitStream.Write<uint16_t>(0);
+	bitStream.Write0();
+	bitStream.Write0();
 }
 
 void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
@@ -402,7 +402,7 @@ Leaderboard::Type LeaderboardManager::GetLeaderboardType(const GameID gameID) {
 	auto lookup = leaderboardCache.find(gameID);
 	if (lookup != leaderboardCache.end()) return lookup->second;
 
-	auto* activitiesTable = CDClientManager::Instance().GetTable<CDActivitiesTable>();
+	auto* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([gameID](const CDActivities& entry) {
 		return entry.ActivityID == gameID;
 		});

@@ -3,7 +3,7 @@
 void CDLevelProgressionLookupTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM LevelProgressionLookup");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -14,7 +14,8 @@ void CDLevelProgressionLookupTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM LevelProgressionLookup");
@@ -24,7 +25,7 @@ void CDLevelProgressionLookupTable::LoadValuesFromDatabase() {
 		entry.requiredUScore = tableData.getIntField("requiredUScore", -1);
 		entry.BehaviorEffect = tableData.getStringField("BehaviorEffect", "");
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -33,14 +34,9 @@ void CDLevelProgressionLookupTable::LoadValuesFromDatabase() {
 
 std::vector<CDLevelProgressionLookup> CDLevelProgressionLookupTable::Query(std::function<bool(CDLevelProgressionLookup)> predicate) {
 
-	std::vector<CDLevelProgressionLookup> data = cpplinq::from(this->entries)
+	std::vector<CDLevelProgressionLookup> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDLevelProgressionLookup>& CDLevelProgressionLookupTable::GetEntries() const {
-	return this->entries;
-}
-

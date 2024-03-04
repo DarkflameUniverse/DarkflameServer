@@ -1,11 +1,11 @@
 #include "MergeStripsMessage.h"
 
-MergeStripsMessage::MergeStripsMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	sourceActionContext = ActionContext(arguments, "srcStateID", "srcStripID");
+MergeStripsMessage::MergeStripsMessage(const AMFArrayValue& arguments)
+	: BehaviorMessageBase{ arguments }
+	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }
+	, m_SourceActionContext{ arguments, "srcStateID", "srcStripID" }
+	, m_DestinationActionContext{ arguments, "dstStateID", "dstStripID" } {
 
-	destinationActionContext = ActionContext(arguments, "dstStateID", "dstStripID");
-	dstActionIndex = GetActionIndexFromArgument(arguments, "dstActionIndex");
-
-	LOG_DEBUG("srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", sourceActionContext.GetStripId(), destinationActionContext.GetStripId(), sourceActionContext.GetStateId(), destinationActionContext.GetStateId(), dstActionIndex, behaviorId);
+	LOG_DEBUG("srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", m_SourceActionContext.GetStripId(), m_DestinationActionContext.GetStripId(), m_SourceActionContext.GetStateId(), m_DestinationActionContext.GetStateId(), m_DstActionIndex, m_BehaviorId);
 }
 

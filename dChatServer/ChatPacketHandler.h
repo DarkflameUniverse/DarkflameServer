@@ -7,14 +7,53 @@ struct PlayerData;
 
 enum class eAddFriendResponseType : uint8_t;
 
+enum class eChatChannel : uint8_t {
+	SYSTEMNOTIFY = 0,
+	SYSTEMWARNING,
+	SYSTEMERROR,
+	BROADCAST,
+	LOCAL,
+	LOCALNOANIM,
+	EMOTE,
+	PRIVATE_CHAT,
+	TEAM,
+	TEAMLOCAL,
+	GUILD,
+	GUILDNOTIFY,
+	PROPERTY,
+	ADMIN,
+	COMBATDAMAGE,
+	COMBATHEALING,
+	COMBATLOOT,
+	COMBATEXP,
+	COMBATDEATH,
+	GENERAL,
+	TRADE,
+	LFG,
+	USER
+};
+
+
+enum class eChatMessageResponseCode : uint8_t {
+    SENT = 0,
+    NOTONLINE,
+    GENERALERROR,
+    RECEIVEDNEWWHISPER,
+    NOTFRIENDS,
+    SENDERFREETRIAL,
+    RECEIVERFREETRIAL,
+};
+
 namespace ChatPacketHandler {
 	void HandleFriendlistRequest(Packet* packet);
 	void HandleFriendRequest(Packet* packet);
 	void HandleFriendResponse(Packet* packet);
 	void HandleRemoveFriend(Packet* packet);
+	void HandleGMLevelUpdate(Packet* packet);
 
 	void HandleChatMessage(Packet* packet);
 	void HandlePrivateChatMessage(Packet* packet);
+	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode);
 
 	void HandleTeamInvite(Packet* packet);
 	void HandleTeamInviteResponse(Packet* packet);

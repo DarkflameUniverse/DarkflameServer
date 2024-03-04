@@ -55,9 +55,9 @@ struct MovementAIInfo {
  * Component that handles the movement settings of an entity. Not to be confused with the BaseCombatAI component that
  * actually handles attackig and following enemy entities.
  */
-class MovementAIComponent : public Component {
+class MovementAIComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 

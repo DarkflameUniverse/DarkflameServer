@@ -457,6 +457,8 @@ public:
 
 	void SetBillboardVisible(bool visible);
 
+	User* GetParentUser() const { return m_ParentUser; }
+
 private:
 	void UpdateInfoFromDatabase();
 	/**

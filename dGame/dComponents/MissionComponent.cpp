@@ -266,7 +266,7 @@ void MissionComponent::ForceProgressValue(uint32_t missionId, uint32_t taskType,
 }
 
 bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
-	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
 
 	const auto missions = missionsTable->Query([=](const CDMissions& entry) {
 		return entry.id == static_cast<int>(missionId);
@@ -320,8 +320,8 @@ const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskTy
 
 	return acceptedAchievements;
 #else
-	auto* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
-	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* missionTasksTable = CDClientManager::GetTable<CDMissionTasksTable>();
+	auto* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
 
 	auto tasks = missionTasksTable->Query([=](const CDMissionTasks& entry) {
 		return entry.taskType == static_cast<unsigned>(type);
@@ -407,8 +407,8 @@ const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskTyp
 	}
 
 	// Find relevent tables
-	auto* missionTasksTable = CDClientManager::Instance().GetTable<CDMissionTasksTable>();
-	auto* missionsTable = CDClientManager::Instance().GetTable<CDMissionsTable>();
+	auto* missionTasksTable = CDClientManager::GetTable<CDMissionTasksTable>();
+	auto* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
 
 	std::vector<uint32_t> result;
 

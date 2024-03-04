@@ -16,6 +16,14 @@ enum class ServerType : uint32_t {
 	World
 };
 
+enum class ServiceId : uint32_t{
+	General = 0,
+	Auth = 1,
+	Chat = 2,
+	World = 4,
+	Client = 5,
+};
+
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;
 }
@@ -44,8 +52,8 @@ public:
 	Packet* Receive();
 	void DeallocatePacket(Packet* packet);
 	void DeallocateMasterPacket(Packet* packet);
-	virtual void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast);
-	void SendToMaster(RakNet::BitStream* bitStream);
+	virtual void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast);
+	void SendToMaster(RakNet::BitStream& bitStream);
 
 	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 

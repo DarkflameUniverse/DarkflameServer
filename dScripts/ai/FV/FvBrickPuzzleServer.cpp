@@ -7,10 +7,8 @@
 void FvBrickPuzzleServer::OnStartup(Entity* self) {
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
-	int32_t pipeNum = 0;
-	if (!GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1), pipeNum)) {
-		return;
-	}
+	const auto pipeNum = GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1));
+	if (!pipeNum) return;
 
 	if (pipeNum != 1) {
 		self->AddTimer("reset", 30);
@@ -20,14 +18,12 @@ void FvBrickPuzzleServer::OnStartup(Entity* self) {
 void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 	const auto myGroup = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"spawner_name"));
 
-	int32_t pipeNum = 0;
-	if (!GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1), pipeNum)) {
-		return;
-	}
+	const auto pipeNum = GeneralUtils::TryParse<int32_t>(myGroup.substr(10, 1));
+	if (!pipeNum) return;
 
 	const auto pipeGroup = myGroup.substr(0, 10);
 
-	const auto nextPipeNum = pipeNum + 1;
+	const auto nextPipeNum = pipeNum.value() + 1;
 
 	const auto samePipeSpawners = Game::zoneManager->GetSpawnersByName(myGroup);
 
@@ -37,7 +33,7 @@ void FvBrickPuzzleServer::OnDie(Entity* self, Entity* killer) {
 		samePipeSpawners[0]->Deactivate();
 	}
 
-	if (killer != nullptr && killer->IsPlayer()) {
+	if (killer && killer->IsPlayer()) {
 		const auto nextPipe = pipeGroup + std::to_string(nextPipeNum);
 
 		const auto nextPipeSpawners = Game::zoneManager->GetSpawnersByName(nextPipe);

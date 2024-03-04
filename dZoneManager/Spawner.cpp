@@ -25,16 +25,6 @@ Spawner::Spawner(const SpawnerInfo info) {
 
 	m_Start = m_Info.noTimedSpawn;
 
-	//ssssh...
-	if (m_EntityInfo.lot == 14718) { //AG - MAELSTROM SAMPLE
-		m_Info.groups.emplace_back("MaelstromSamples");
-	}
-
-	if (m_EntityInfo.lot == 14375) //AG - SPIDER BOSS EGG
-	{
-		m_Info.groups.emplace_back("EGG");
-	}
-
 	int timerCount = m_Info.amountMaintained;
 
 	if (m_Info.amountMaintained > m_Info.nodes.size()) {

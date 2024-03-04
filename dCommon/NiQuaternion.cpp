@@ -3,88 +3,7 @@
 // C++
 #include <cmath>
 
-// Static Variables
-const NiQuaternion NiQuaternion::IDENTITY(1, 0, 0, 0);
-
-//! The initializer
-NiQuaternion::NiQuaternion(void) {
-	this->w = 1;
-	this->x = 0;
-	this->y = 0;
-	this->z = 0;
-}
-
-//! The initializer
-NiQuaternion::NiQuaternion(float w, float x, float y, float z) {
-	this->w = w;
-	this->x = x;
-	this->y = y;
-	this->z = z;
-}
-
-//! Destructor
-NiQuaternion::~NiQuaternion(void) {}
-
-
-// MARK: Setters / Getters
-
-//! Gets the W coordinate
-float NiQuaternion::GetW(void) const {
-	return this->w;
-}
-
-//! Sets the W coordinate
-void NiQuaternion::SetW(float w) {
-	this->w = w;
-}
-
-//! Gets the X coordinate
-float NiQuaternion::GetX(void) const {
-	return this->x;
-}
-
-//! Sets the X coordinate
-void NiQuaternion::SetX(float x) {
-	this->x = x;
-}
-
-//! Gets the Y coordinate
-float NiQuaternion::GetY(void) const {
-	return this->y;
-}
-
-//! Sets the Y coordinate
-void NiQuaternion::SetY(float y) {
-	this->y = y;
-}
-
-//! Gets the Z coordinate
-float NiQuaternion::GetZ(void) const {
-	return this->z;
-}
-
-//! Sets the Z coordinate
-void NiQuaternion::SetZ(float z) {
-	this->z = z;
-}
-
-
 // MARK: Member Functions
-
-//! Returns the forward vector from the quaternion
-Vector3 NiQuaternion::GetForwardVector(void) const {
-	return Vector3(2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y));
-}
-
-//! Returns the up vector from the quaternion
-Vector3 NiQuaternion::GetUpVector(void) const {
-	return Vector3(2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x));
-}
-
-//! Returns the right vector from the quaternion
-Vector3 NiQuaternion::GetRightVector(void) const {
-	return Vector3(1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y));
-}
 
 Vector3 NiQuaternion::GetEulerAngles() const {
 	Vector3 angles;
@@ -111,22 +30,9 @@ Vector3 NiQuaternion::GetEulerAngles() const {
 	return angles;
 }
 
-// MARK: Operators
-
-//! Operator to check for equality
-bool NiQuaternion::operator==(const NiQuaternion& rot) const {
-	return rot.x == this->x && rot.y == this->y && rot.z == this->z && rot.w == this->w;
-}
-
-//! Operator to check for inequality
-bool NiQuaternion::operator!=(const NiQuaternion& rot) const {
-	return !(*this == rot);
-}
-
-
 // MARK: Helper Functions
 
-//! Look from a specific point in space to another point in space
+//! Look from a specific point in space to another point in space (Y-locked)
 NiQuaternion NiQuaternion::LookAt(const NiPoint3& sourcePoint, const NiPoint3& destPoint) {
 	//To make sure we don't orient around the X/Z axis:
 	NiPoint3 source = sourcePoint;
@@ -136,7 +42,7 @@ NiQuaternion NiQuaternion::LookAt(const NiPoint3& sourcePoint, const NiPoint3& d
 
 	NiPoint3 forwardVector = NiPoint3(dest - source).Unitize();
 
-	NiPoint3 posZ = NiPoint3::UNIT_Z;
+	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
 	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
 	float dot = posZ.DotProduct(forwardVector);
@@ -148,10 +54,11 @@ NiQuaternion NiQuaternion::LookAt(const NiPoint3& sourcePoint, const NiPoint3& d
 	return NiQuaternion::CreateFromAxisAngle(vecA, rotAngle);
 }
 
+//! Look from a specific point in space to another point in space
 NiQuaternion NiQuaternion::LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint) {
 	NiPoint3 forwardVector = NiPoint3(destPoint - sourcePoint).Unitize();
 
-	NiPoint3 posZ = NiPoint3::UNIT_Z;
+	NiPoint3 posZ = NiPoint3Constant::UNIT_Z;
 	NiPoint3 vecA = posZ.CrossProduct(forwardVector).Unitize();
 
 	float dot = posZ.DotProduct(forwardVector);

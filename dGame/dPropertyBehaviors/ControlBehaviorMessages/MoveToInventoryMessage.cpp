@@ -1,9 +1,9 @@
 #include "MoveToInventoryMessage.h"
 
-MoveToInventoryMessage::MoveToInventoryMessage(AMFArrayValue* arguments) : BehaviorMessageBase(arguments) {
-	auto* behaviorIndexValue = arguments->Get<double>("BehaviorIndex");
+MoveToInventoryMessage::MoveToInventoryMessage(const AMFArrayValue& arguments) : BehaviorMessageBase{ arguments } {
+	const auto* const behaviorIndexValue = arguments.Get<double>("BehaviorIndex");
 	if (!behaviorIndexValue) return;
 
-	behaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	LOG_DEBUG("behaviorId %i behaviorIndex %i", behaviorId, behaviorIndex);
+	m_BehaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
+	LOG_DEBUG("behaviorId %i behaviorIndex %i", m_BehaviorId, m_BehaviorIndex);
 }

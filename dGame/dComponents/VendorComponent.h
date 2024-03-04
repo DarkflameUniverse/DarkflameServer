@@ -20,10 +20,10 @@ struct SoldItem {
 
 class VendorComponent : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::VENDOR;
 	VendorComponent(Entity* parent);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	void OnUse(Entity* originator) override;
 	void RefreshInventory(bool isCreation = false);
@@ -47,6 +47,7 @@ public:
 		m_DirtyVendor = true;
 	}
 
+	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
 private:
 	void SetupMaxCustomVendor();

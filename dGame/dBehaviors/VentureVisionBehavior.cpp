@@ -3,7 +3,7 @@
 #include "CharacterComponent.h"
 #include "BehaviorContext.h"
 
-void VentureVisionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void VentureVisionBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 
 	const auto targetEntity = Game::entityManager->GetEntity(branch.target);
 

@@ -8,24 +8,14 @@ dpGrid::dpGrid(int numCells, int cellSize) {
 	CELL_SIZE = cellSize;
 	m_DeleteGrid = true;
 
-	//fill x
-	for (int i = 0; i < NUM_CELLS; i++) {
-		m_Cells.push_back(std::vector<std::forward_list<dpEntity*>>());
-	}
-
-	//fill z
-	for (int i = 0; i < NUM_CELLS; i++) {
-		for (int i = 0; i < NUM_CELLS; i++) {
-			m_Cells[i].push_back(std::forward_list<dpEntity*>());
-		}
-	}
+	m_Cells.resize(NUM_CELLS, std::vector<std::vector<dpEntity*>>(NUM_CELLS));
 }
 
 dpGrid::~dpGrid() {
 	if (!this->m_DeleteGrid) return;
 	for (auto& x : m_Cells) { //x
-		for (auto& y : x) { //y
-			for (auto en : y) {
+		for (auto& z : x) { //y
+			for (auto en : z) {
 				if (!en) continue;
 				delete en;
 				en = nullptr;
@@ -39,13 +29,12 @@ void dpGrid::Add(dpEntity* entity) {
 	int cellX = (int)std::round(entity->m_Position.x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 	int cellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
-	if (cellX < 0) cellX = 0;
-	if (cellZ < 0) cellZ = 0;
-	if (cellX >= NUM_CELLS) cellX = NUM_CELLS - 1;
-	if (cellZ >= NUM_CELLS) cellZ = NUM_CELLS - 1;
+	// Clamp values to the range [0, NUM_CELLS - 1]
+	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
+	cellZ = std::clamp(cellZ, 0, NUM_CELLS - 1);
 
 	//Add to cell:
-	m_Cells[cellX][cellZ].push_front(entity);
+	m_Cells[cellX][cellZ].push_back(entity);
 
 	//To verify that the object isn't gargantuan:
 	if (entity->GetScale() >= CELL_SIZE * 2 || entity->GetIsGargantuan())
@@ -59,23 +48,27 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 	int cellX = (int)std::round(x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 	int cellZ = (int)std::round(z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
-	if (cellX < 0) cellX = 0;
-	if (cellZ < 0) cellZ = 0;
-	if (cellX >= NUM_CELLS) cellX = NUM_CELLS - 1;
-	if (cellZ >= NUM_CELLS) cellZ = NUM_CELLS - 1;
+	// Clamp values to the range [0, NUM_CELLS - 1]
+	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
+	cellZ = std::clamp(cellZ, 0, NUM_CELLS - 1);
 
-	if (oldCellX < 0) oldCellX = 0;
-	if (oldCellZ < 0) oldCellZ = 0;
-	if (oldCellX >= NUM_CELLS) oldCellX = NUM_CELLS - 1;
-	if (oldCellZ >= NUM_CELLS) oldCellZ = NUM_CELLS - 1;
+	oldCellX = std::clamp(oldCellX, 0, NUM_CELLS - 1);
+	oldCellZ = std::clamp(oldCellZ, 0, NUM_CELLS - 1);
 
 	if (oldCellX == cellX && oldCellZ == cellZ) return;
 
-	//Remove from perv cell:
-	m_Cells[oldCellX][oldCellZ].remove(entity);
+	//Remove from prev cell:
+	auto& cell = m_Cells[oldCellX][oldCellZ];
+	
+	// For speed, find the single match and swap it with the last element, then pop_back.
+	auto toRemove = std::find(cell.begin(), cell.end(), entity);
+	if (toRemove != cell.end()) {
+		*toRemove = cell.back();
+		cell.pop_back();
+	}
 
 	//Add to the new cell
-	m_Cells[cellX][cellZ].push_front(entity);
+	m_Cells[cellX][cellZ].push_back(entity);
 }
 
 void dpGrid::Delete(dpEntity* entity) {
@@ -83,15 +76,18 @@ void dpGrid::Delete(dpEntity* entity) {
 	int oldCellX = (int)std::round(entity->m_Position.x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 	int oldCellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
-	if (oldCellX < 0) oldCellX = 0;
-	if (oldCellZ < 0) oldCellZ = 0;
-	if (oldCellX >= NUM_CELLS) oldCellX = NUM_CELLS - 1;
-	if (oldCellZ >= NUM_CELLS) oldCellZ = NUM_CELLS - 1;
+	// Clamp values to the range [0, NUM_CELLS - 1]
+	oldCellX = std::clamp(oldCellX, 0, NUM_CELLS - 1);
+	oldCellZ = std::clamp(oldCellZ, 0, NUM_CELLS - 1);
 
-	m_Cells[oldCellX][oldCellZ].remove(entity);
+	auto& cell = m_Cells[oldCellX][oldCellZ];
+	auto toRemove = std::find(cell.begin(), cell.end(), entity);
+	if (toRemove != cell.end()) {
+		*toRemove = cell.back();
+		cell.pop_back();
+	}
 
-	if (m_GargantuanObjects.find(entity->m_ObjectID) != m_GargantuanObjects.end())
-		m_GargantuanObjects.erase(entity->m_ObjectID);
+	m_GargantuanObjects.erase(entity->m_ObjectID);
 
 	if (entity) delete entity;
 	entity = nullptr;
@@ -100,8 +96,8 @@ void dpGrid::Delete(dpEntity* entity) {
 void dpGrid::Update(float deltaTime) {
 	//Pre-update:
 	for (auto& x : m_Cells) { //x
-		for (auto& y : x) { //y
-			for (auto en : y) {
+		for (auto& z : x) { //y
+			for (auto en : z) {
 				if (!en) continue;
 				en->PreUpdate();
 			}
@@ -110,8 +106,8 @@ void dpGrid::Update(float deltaTime) {
 
 	//Actual collision detection update:
 	for (int x = 0; x < NUM_CELLS; x++) {
-		for (int y = 0; y < NUM_CELLS; y++) {
-			HandleCell(x, y, deltaTime);
+		for (int z = 0; z < NUM_CELLS; z++) {
+			HandleCell(x, z, deltaTime);
 		}
 	}
 }
@@ -157,7 +153,7 @@ void dpGrid::HandleCell(int x, int z, float deltaTime) {
 				HandleEntity(en, other);
 		}
 
-		for (auto other : m_GargantuanObjects)
-			HandleEntity(en, other.second);
+		for (auto& [id, entity] : m_GargantuanObjects)
+			HandleEntity(en, entity);
 	}
 }

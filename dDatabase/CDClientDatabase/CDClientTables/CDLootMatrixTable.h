@@ -4,19 +4,19 @@
 #include "CDTable.h"
 
 struct CDLootMatrix {
-	unsigned int LootTableIndex;            //!< The Loot Table Index
-	unsigned int RarityTableIndex;          //!< The Rarity Table Index
+	uint32_t LootTableIndex;            //!< The Loot Table Index
+	uint32_t RarityTableIndex;          //!< The Rarity Table Index
 	float percent;                   //!< The percent that this matrix is used?
-	unsigned int minToDrop;                 //!< The minimum amount of loot from this matrix to drop
-	unsigned int maxToDrop;                 //!< The maximum amount of loot from this matrix to drop
-	unsigned int flagID;                    //!< ???
+	uint32_t minToDrop;                 //!< The minimum amount of loot from this matrix to drop
+	uint32_t maxToDrop;                 //!< The maximum amount of loot from this matrix to drop
+	uint32_t flagID;                    //!< ???
 	UNUSED(std::string gate_version);          //!< The Gate Version
 };
 
 typedef uint32_t LootMatrixIndex;
 typedef std::vector<CDLootMatrix> LootMatrixEntries;
 
-class CDLootMatrixTable : public CDTable<CDLootMatrixTable> {
+class CDLootMatrixTable : public CDTable<CDLootMatrixTable, std::unordered_map<LootMatrixIndex, LootMatrixEntries>> {
 public:
 	void LoadValuesFromDatabase();
 
@@ -24,6 +24,5 @@ public:
 	const LootMatrixEntries& GetMatrix(uint32_t matrixId);
 private:
 	CDLootMatrix ReadRow(CppSQLite3Query& tableData) const;
-	std::unordered_map<LootMatrixIndex, LootMatrixEntries> entries;
 };
 

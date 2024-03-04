@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __NIQUATERNION_H__
+#define __NIQUATERNION_H__
 
 // Custom Classes
 #include "NiPoint3.h"
@@ -14,14 +15,14 @@ typedef NiQuaternion Quaternion;        //!< A typedef for a shorthand version o
 //! A class that defines a rotation in space
 class NiQuaternion {
 public:
-	float w;            //!< The w coordinate
-	float x;            //!< The x coordinate
-	float y;            //!< The y coordinate
-	float z;            //!< The z coordinate
+	float w{ 1 };            //!< The w coordinate
+	float x{ 0 };            //!< The x coordinate
+	float y{ 0 };            //!< The y coordinate
+	float z{ 0 };            //!< The z coordinate
 
 
 	//! The initializer
-	NiQuaternion(void);
+	constexpr NiQuaternion() = default;
 
 	//! The initializer
 	/*!
@@ -30,13 +31,12 @@ public:
 	  \param y The y coordinate
 	  \param z The z coordinate
 	 */
-	NiQuaternion(float w, float x, float y, float z);
-
-	//! Destructor
-	~NiQuaternion(void);
-
-	// MARK: Constants
-	static const NiQuaternion IDENTITY;         //!< Quaternion(1, 0, 0, 0)
+	constexpr NiQuaternion(const float w, const float x, const float y, const float z) noexcept
+		: w{ w }
+		, x{ x }
+		, y{ y }
+		, z{ z } {
+	}
 
 	// MARK: Setters / Getters
 
@@ -44,50 +44,49 @@ public:
 	/*!
 	  \return The w coordinate
 	 */
-	float GetW(void) const;
+	[[nodiscard]] constexpr float GetW() const noexcept;
 
 	//! Sets the W coordinate
 	/*!
 	  \param w The w coordinate
 	 */
-	void SetW(float w);
+	constexpr void SetW(const float w) noexcept;
 
 	//! Gets the X coordinate
 	/*!
 	  \return The x coordinate
 	 */
-	float GetX(void) const;
+	[[nodiscard]] constexpr float GetX() const noexcept;
 
 	//! Sets the X coordinate
 	/*!
 	  \param x The x coordinate
 	 */
-	void SetX(float x);
+	constexpr void SetX(const float x) noexcept;
 
 	//! Gets the Y coordinate
 	/*!
 	  \return The y coordinate
 	 */
-	float GetY(void) const;
+	[[nodiscard]] constexpr float GetY() const noexcept;
 
 	//! Sets the Y coordinate
 	/*!
 	  \param y The y coordinate
 	 */
-	void SetY(float y);
+	constexpr void SetY(const float y) noexcept;
 
 	//! Gets the Z coordinate
 	/*!
 	  \return The z coordinate
 	 */
-	float GetZ(void) const;
+	[[nodiscard]] constexpr float GetZ() const noexcept;
 
 	//! Sets the Z coordinate
 	/*!
 	  \param z The z coordinate
 	 */
-	void SetZ(float z);
-
+	constexpr void SetZ(const float z) noexcept;
 
 	// MARK: Member Functions
 
@@ -95,31 +94,29 @@ public:
 	/*!
 	  \return The forward vector of the quaternion
 	 */
-	Vector3 GetForwardVector(void) const;
+	[[nodiscard]] constexpr Vector3 GetForwardVector() const noexcept;
 
 	//! Returns the up vector from the quaternion
 	/*!
 	  \return The up vector fo the quaternion
 	 */
-	Vector3 GetUpVector(void) const;
+	[[nodiscard]] constexpr Vector3 GetUpVector() const noexcept;
 
 	//! Returns the right vector from the quaternion
 	/*!
 	  \return The right vector of the quaternion
 	 */
-	Vector3 GetRightVector(void) const;
+	[[nodiscard]] constexpr Vector3 GetRightVector() const noexcept;
 
-	Vector3 GetEulerAngles() const;
-
+	[[nodiscard]] Vector3 GetEulerAngles() const;
 
 	// MARK: Operators
 
 	//! Operator to check for equality
-	bool operator==(const NiQuaternion& rot) const;
+	constexpr bool operator==(const NiQuaternion& rot) const noexcept;
 
 	//! Operator to check for inequality
-	bool operator!=(const NiQuaternion& rot) const;
-
+	constexpr bool operator!=(const NiQuaternion& rot) const noexcept;
 
 	// MARK: Helper Functions
 
@@ -129,7 +126,7 @@ public:
 	  \param destPoint The destination location
 	  \return The Quaternion with the rotation towards the destination
 	 */
-	static NiQuaternion LookAt(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
+	[[nodiscard]] static NiQuaternion LookAt(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
 
 	//! Look from a specific point in space to another point in space
 	/*!
@@ -137,7 +134,7 @@ public:
 	  \param destPoint The destination location
 	  \return The Quaternion with the rotation towards the destination
 	 */
-	static NiQuaternion LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
+	[[nodiscard]] static NiQuaternion LookAtUnlocked(const NiPoint3& sourcePoint, const NiPoint3& destPoint);
 
 	//! Creates a Quaternion from a specific axis and angle relative to that axis
 	/*!
@@ -145,7 +142,17 @@ public:
 	  \param angle The angle relative to this axis
 	  \return A quaternion created from the axis and angle
 	 */
-	static NiQuaternion CreateFromAxisAngle(const Vector3& axis, float angle);
+	[[nodiscard]] static NiQuaternion CreateFromAxisAngle(const Vector3& axis, float angle);
 
-	static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
+	[[nodiscard]] static NiQuaternion FromEulerAngles(const NiPoint3& eulerAngles);
 };
+
+// Static Variables
+namespace NiQuaternionConstant {
+	constexpr NiQuaternion IDENTITY(1, 0, 0, 0);
+}
+
+// Include constexpr and inline function definitions in a seperate file for readability
+#include "NiQuaternion.inl"
+
+#endif // !__NIQUATERNION_H__

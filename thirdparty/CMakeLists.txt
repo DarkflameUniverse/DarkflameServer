@@ -57,3 +57,5 @@ if(UNIX AND NOT APPLE)
 		include_directories(${backtrace_SOURCE_DIR})
 	endif()
 endif()
+
+add_subdirectory(MD5)

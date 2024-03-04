@@ -101,7 +101,7 @@ TEST(LUString33Test, SerializeReadTestNew) {
     std::string testString;
     for (int i = 0; i < 33; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));
-	LUString result(33);
+	LUString result;
 	ASSERT_EQ(result.size, 33);
 	ASSERT_TRUE(bitStream.Read(result));
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 0);
@@ -113,7 +113,7 @@ TEST(LUString33Test, SerializeReadTestNewPartial) {
     std::string testString;
     for (int i = 0; i < 15; i++) testString += "a";
     bitStream.Write(LUString(testString, 33));
-	LUString result(33);
+	LUString result;
 	ASSERT_EQ(result.size, 33);
 	ASSERT_TRUE(bitStream.Read(result));
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 0);

@@ -4,7 +4,7 @@
 #include <string>
 
 struct CDPhysicsComponent {
-	uint32_t id;
+	int32_t id;
 	bool bStatic;
 	std::string physicsAsset;
 	UNUSED(bool jump);
@@ -22,12 +22,10 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
+class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable, std::map<uint32_t, CDPhysicsComponent>> {
 public:
 	void LoadValuesFromDatabase();
 
+	static const std::string GetTableName() { return "PhysicsComponent"; };
 	CDPhysicsComponent* GetByID(const uint32_t componentID);
-
-private:
-	std::map<uint32_t, CDPhysicsComponent> m_Entries;
 };

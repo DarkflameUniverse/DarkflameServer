@@ -12,7 +12,7 @@ struct LUString {
 	std::string string;
 	uint32_t size;
 
-	LUString(uint32_t size) {
+	LUString(uint32_t size = 33) {
 		this->size = size;
 	};
 	LUString(std::string string, uint32_t size = 33) {
@@ -28,7 +28,7 @@ struct LUWString {
 	std::u16string string;
 	uint32_t size;
 
-	LUWString(uint32_t size) {
+	LUWString(uint32_t size = 33) {
 		this->size = size;
 	};
 	LUWString(std::u16string string, uint32_t size = 33) {

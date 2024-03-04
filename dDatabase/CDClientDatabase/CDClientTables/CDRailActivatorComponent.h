@@ -20,13 +20,10 @@ struct CDRailActivatorComponent {
 	bool showNameBillboard;
 };
 
-class CDRailActivatorComponentTable : public CDTable<CDRailActivatorComponentTable> {
+class CDRailActivatorComponentTable : public CDTable<CDRailActivatorComponentTable, std::vector<CDRailActivatorComponent>> {
 public:
 	void LoadValuesFromDatabase();
-	static const std::string GetTableName() { return "RailActivatorComponent"; };
 	[[nodiscard]] CDRailActivatorComponent GetEntryByID(int32_t id) const;
-	[[nodiscard]] const std::vector<CDRailActivatorComponent>& GetEntries() const;
 private:
 	static std::pair<uint32_t, std::u16string> EffectPairFromString(std::string& str);
-	std::vector<CDRailActivatorComponent> m_Entries{};
 };

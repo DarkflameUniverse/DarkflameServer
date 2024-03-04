@@ -3,7 +3,7 @@
 void CDInventoryComponentTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM InventoryComponent");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -14,7 +14,8 @@ void CDInventoryComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM InventoryComponent");
@@ -25,7 +26,7 @@ void CDInventoryComponentTable::LoadValuesFromDatabase() {
 		entry.count = tableData.getIntField("count", -1);
 		entry.equip = tableData.getIntField("equip", -1) == 1 ? true : false;
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -33,15 +34,9 @@ void CDInventoryComponentTable::LoadValuesFromDatabase() {
 }
 
 std::vector<CDInventoryComponent> CDInventoryComponentTable::Query(std::function<bool(CDInventoryComponent)> predicate) {
-
-	std::vector<CDInventoryComponent> data = cpplinq::from(this->entries)
+	std::vector<CDInventoryComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDInventoryComponent>& CDInventoryComponentTable::GetEntries() const {
-	return this->entries;
-}
-

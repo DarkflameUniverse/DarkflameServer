@@ -14,12 +14,13 @@ void CDMissionNPCComponentTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	m_Entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MissionNPCComponent");
 	while (!tableData.eof()) {
-		auto& entry = m_Entries.emplace_back();
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.missionID = tableData.getIntField("missionID", -1);
 		entry.offersMission = tableData.getIntField("offersMission", -1) == 1 ? true : false;
@@ -33,14 +34,9 @@ void CDMissionNPCComponentTable::LoadValuesFromDatabase() {
 //! Queries the table with a custom "where" clause
 std::vector<CDMissionNPCComponent> CDMissionNPCComponentTable::Query(std::function<bool(CDMissionNPCComponent)> predicate) {
 
-	std::vector<CDMissionNPCComponent> data = cpplinq::from(m_Entries)
+	std::vector<CDMissionNPCComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
-}
-
-//! Gets all the entries in the table
-const std::vector<CDMissionNPCComponent>& CDMissionNPCComponentTable::GetEntries() const {
-	return m_Entries;
 }

@@ -17,9 +17,9 @@
   * Utility component for detecting how close entities are to named proximities for this entity. Allows you to store
   * proximity checks for multiple ojects.
   */
-class ProximityMonitorComponent : public Component {
+class ProximityMonitorComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROXIMITY_MONITOR;
 
 	ProximityMonitorComponent(Entity* parentEntity, int smallRadius = -1, int largeRadius = -1);
 	~ProximityMonitorComponent() override;

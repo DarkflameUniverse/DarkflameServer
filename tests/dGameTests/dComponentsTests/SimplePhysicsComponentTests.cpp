@@ -30,7 +30,7 @@ protected:
 };
 
 TEST_F(SimplePhysicsTest, SimplePhysicsSerializeTest) {
-	simplePhysicsComponent->Serialize(&bitStream, false);
+	simplePhysicsComponent->Serialize(bitStream, false);
 	constexpr uint32_t sizeOfStream = 3 + BYTES_TO_BITS(3 * sizeof(NiPoint3)) + BYTES_TO_BITS(1 * sizeof(NiQuaternion)) + 1 * BYTES_TO_BITS(sizeof(uint32_t));
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), sizeOfStream);
 	
@@ -77,7 +77,7 @@ TEST_F(SimplePhysicsTest, SimplePhysicsSerializeTest) {
 }
 
 TEST_F(SimplePhysicsTest, SimplePhysicsConstructionTest) {
-	simplePhysicsComponent->Serialize(&bitStream, true);
+	simplePhysicsComponent->Serialize(bitStream, true);
 	constexpr uint32_t sizeOfStream = 4 + BYTES_TO_BITS(1 * sizeof(int32_t)) + BYTES_TO_BITS(3 * sizeof(NiPoint3)) + BYTES_TO_BITS(1 * sizeof(NiQuaternion)) + 1 * BYTES_TO_BITS(sizeof(uint32_t));
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), sizeOfStream);
 

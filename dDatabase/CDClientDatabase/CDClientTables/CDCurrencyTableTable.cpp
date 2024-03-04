@@ -4,7 +4,7 @@
 void CDCurrencyTableTable::LoadValuesFromDatabase() {
 
 	// First, get the size of the table
-	unsigned int size = 0;
+	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM CurrencyTable");
 	while (!tableSize.eof()) {
 		size = tableSize.getIntField(0, 0);
@@ -15,7 +15,8 @@ void CDCurrencyTableTable::LoadValuesFromDatabase() {
 	tableSize.finalize();
 
 	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM CurrencyTable");
@@ -27,7 +28,7 @@ void CDCurrencyTableTable::LoadValuesFromDatabase() {
 		entry.maxvalue = tableData.getIntField("maxvalue", -1);
 		entry.id = tableData.getIntField("id", -1);
 
-		this->entries.push_back(entry);
+		entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -35,15 +36,9 @@ void CDCurrencyTableTable::LoadValuesFromDatabase() {
 }
 
 std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCurrencyTable)> predicate) {
-
-	std::vector<CDCurrencyTable> data = cpplinq::from(this->entries)
+	std::vector<CDCurrencyTable> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-const std::vector<CDCurrencyTable>& CDCurrencyTableTable::GetEntries() const {
-	return this->entries;
-}
-

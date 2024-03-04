@@ -20,9 +20,11 @@
 #include "Database.h"
 #include "CDRewardCodesTable.h"
 #include "Mail.h"
+#include "ZoneInstanceManager.h"
+#include "WorldPackets.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character) : Component(parent) {
+CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
 	m_Character = character;
 
 	m_IsRacing = false;
@@ -44,6 +46,7 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character) : C
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
+	m_SystemAddress = systemAddress;
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -75,94 +78,94 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 CharacterComponent::~CharacterComponent() {
 }
 
-void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(m_ClaimCodes[0] != 0);
-		if (m_ClaimCodes[0] != 0) outBitStream->Write(m_ClaimCodes[0]);
-		outBitStream->Write(m_ClaimCodes[1] != 0);
-		if (m_ClaimCodes[1] != 0) outBitStream->Write(m_ClaimCodes[1]);
-		outBitStream->Write(m_ClaimCodes[2] != 0);
-		if (m_ClaimCodes[2] != 0) outBitStream->Write(m_ClaimCodes[2]);
-		outBitStream->Write(m_ClaimCodes[3] != 0);
-		if (m_ClaimCodes[3] != 0) outBitStream->Write(m_ClaimCodes[3]);
+		outBitStream.Write(m_ClaimCodes[0] != 0);
+		if (m_ClaimCodes[0] != 0) outBitStream.Write(m_ClaimCodes[0]);
+		outBitStream.Write(m_ClaimCodes[1] != 0);
+		if (m_ClaimCodes[1] != 0) outBitStream.Write(m_ClaimCodes[1]);
+		outBitStream.Write(m_ClaimCodes[2] != 0);
+		if (m_ClaimCodes[2] != 0) outBitStream.Write(m_ClaimCodes[2]);
+		outBitStream.Write(m_ClaimCodes[3] != 0);
+		if (m_ClaimCodes[3] != 0) outBitStream.Write(m_ClaimCodes[3]);
 
-		outBitStream->Write(m_Character->GetHairColor());
-		outBitStream->Write(m_Character->GetHairStyle());
-		outBitStream->Write<uint32_t>(0); //Default "head"
-		outBitStream->Write(m_Character->GetShirtColor());
-		outBitStream->Write(m_Character->GetPantsColor());
-		outBitStream->Write(m_Character->GetShirtStyle());
-		outBitStream->Write<uint32_t>(0); //Default "head color"
-		outBitStream->Write(m_Character->GetEyebrows());
-		outBitStream->Write(m_Character->GetEyes());
-		outBitStream->Write(m_Character->GetMouth());
-		outBitStream->Write<uint64_t>(0); //AccountID, trying out if 0 works.
-		outBitStream->Write(m_Character->GetLastLogin()); //Last login
-		outBitStream->Write<uint64_t>(0); //"prop mod last display time"
-		outBitStream->Write<uint64_t>(m_Uscore); //u-score
-		outBitStream->Write0(); //Not free-to-play (disabled in DLU)
+		outBitStream.Write(m_Character->GetHairColor());
+		outBitStream.Write(m_Character->GetHairStyle());
+		outBitStream.Write<uint32_t>(0); //Default "head"
+		outBitStream.Write(m_Character->GetShirtColor());
+		outBitStream.Write(m_Character->GetPantsColor());
+		outBitStream.Write(m_Character->GetShirtStyle());
+		outBitStream.Write<uint32_t>(0); //Default "head color"
+		outBitStream.Write(m_Character->GetEyebrows());
+		outBitStream.Write(m_Character->GetEyes());
+		outBitStream.Write(m_Character->GetMouth());
+		outBitStream.Write<uint64_t>(0); //AccountID, trying out if 0 works.
+		outBitStream.Write(m_Character->GetLastLogin()); //Last login
+		outBitStream.Write<uint64_t>(0); //"prop mod last display time"
+		outBitStream.Write<uint64_t>(m_Uscore); //u-score
+		outBitStream.Write0(); //Not free-to-play (disabled in DLU)
 
 		//Stats:
-		outBitStream->Write(m_CurrencyCollected);
-		outBitStream->Write(m_BricksCollected);
-		outBitStream->Write(m_SmashablesSmashed);
-		outBitStream->Write(m_QuickBuildsCompleted);
-		outBitStream->Write(m_EnemiesSmashed);
-		outBitStream->Write(m_RocketsUsed);
-		outBitStream->Write(m_MissionsCompleted);
-		outBitStream->Write(m_PetsTamed);
-		outBitStream->Write(m_ImaginationPowerUpsCollected);
-		outBitStream->Write(m_LifePowerUpsCollected);
-		outBitStream->Write(m_ArmorPowerUpsCollected);
-		outBitStream->Write(m_MetersTraveled);
-		outBitStream->Write(m_TimesSmashed);
-		outBitStream->Write(m_TotalDamageTaken);
-		outBitStream->Write(m_TotalDamageHealed);
-		outBitStream->Write(m_TotalArmorRepaired);
-		outBitStream->Write(m_TotalImaginationRestored);
-		outBitStream->Write(m_TotalImaginationUsed);
-		outBitStream->Write(m_DistanceDriven);
-		outBitStream->Write(m_TimeAirborneInCar);
-		outBitStream->Write(m_RacingImaginationPowerUpsCollected);
-		outBitStream->Write(m_RacingImaginationCratesSmashed);
-		outBitStream->Write(m_RacingCarBoostsActivated);
-		outBitStream->Write(m_RacingTimesWrecked);
-		outBitStream->Write(m_RacingSmashablesSmashed);
-		outBitStream->Write(m_RacesFinished);
-		outBitStream->Write(m_FirstPlaceRaceFinishes);
+		outBitStream.Write(m_CurrencyCollected);
+		outBitStream.Write(m_BricksCollected);
+		outBitStream.Write(m_SmashablesSmashed);
+		outBitStream.Write(m_QuickBuildsCompleted);
+		outBitStream.Write(m_EnemiesSmashed);
+		outBitStream.Write(m_RocketsUsed);
+		outBitStream.Write(m_MissionsCompleted);
+		outBitStream.Write(m_PetsTamed);
+		outBitStream.Write(m_ImaginationPowerUpsCollected);
+		outBitStream.Write(m_LifePowerUpsCollected);
+		outBitStream.Write(m_ArmorPowerUpsCollected);
+		outBitStream.Write(m_MetersTraveled);
+		outBitStream.Write(m_TimesSmashed);
+		outBitStream.Write(m_TotalDamageTaken);
+		outBitStream.Write(m_TotalDamageHealed);
+		outBitStream.Write(m_TotalArmorRepaired);
+		outBitStream.Write(m_TotalImaginationRestored);
+		outBitStream.Write(m_TotalImaginationUsed);
+		outBitStream.Write(m_DistanceDriven);
+		outBitStream.Write(m_TimeAirborneInCar);
+		outBitStream.Write(m_RacingImaginationPowerUpsCollected);
+		outBitStream.Write(m_RacingImaginationCratesSmashed);
+		outBitStream.Write(m_RacingCarBoostsActivated);
+		outBitStream.Write(m_RacingTimesWrecked);
+		outBitStream.Write(m_RacingSmashablesSmashed);
+		outBitStream.Write(m_RacesFinished);
+		outBitStream.Write(m_FirstPlaceRaceFinishes);
 
-		outBitStream->Write0();
-		outBitStream->Write(m_IsLanding);
+		outBitStream.Write0();
+		outBitStream.Write(m_IsLanding);
 		if (m_IsLanding) {
-			outBitStream->Write<uint16_t>(m_LastRocketConfig.size());
+			outBitStream.Write<uint16_t>(m_LastRocketConfig.size());
 			for (uint16_t character : m_LastRocketConfig) {
-				outBitStream->Write(character);
+				outBitStream.Write(character);
 			}
 		}
 	}
 
-	outBitStream->Write(m_DirtyGMInfo);
+	outBitStream.Write(m_DirtyGMInfo);
 	if (m_DirtyGMInfo) {
-		outBitStream->Write(m_PvpEnabled);
-		outBitStream->Write(m_IsGM);
-		outBitStream->Write(m_GMLevel);
-		outBitStream->Write(m_EditorEnabled);
-		outBitStream->Write(m_EditorLevel);
+		outBitStream.Write(m_PvpEnabled);
+		outBitStream.Write(m_IsGM);
+		outBitStream.Write(m_GMLevel);
+		outBitStream.Write(m_EditorEnabled);
+		outBitStream.Write(m_EditorLevel);
 	}
 
-	outBitStream->Write(m_DirtyCurrentActivity);
-	if (m_DirtyCurrentActivity) outBitStream->Write(m_CurrentActivity);
+	outBitStream.Write(m_DirtyCurrentActivity);
+	if (m_DirtyCurrentActivity) outBitStream.Write(m_CurrentActivity);
 
-	outBitStream->Write(m_DirtySocialInfo);
+	outBitStream.Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
-		outBitStream->Write(m_GuildID);
-		outBitStream->Write<unsigned char>(m_GuildName.size());
+		outBitStream.Write(m_GuildID);
+		outBitStream.Write<unsigned char>(m_GuildName.size());
 		if (!m_GuildName.empty())
-			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
+			outBitStream.WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
 
-		outBitStream->Write(m_IsLEGOClubMember);
-		outBitStream->Write(m_CountryCode);
+		outBitStream.Write(m_IsLEGOClubMember);
+		outBitStream.Write(m_CountryCode);
 	}
 }
 
@@ -760,15 +763,15 @@ void CharacterComponent::UpdateClientMinimap(bool showFaction, std::string ventu
 }
 
 void CharacterComponent::AwardClaimCodes() {
-	if (!m_Parent) return;
-	auto* user = m_Parent->GetParentUser();
+	if (!m_Parent || !m_Parent->GetCharacter()) return;
+	auto* user = m_Parent->GetCharacter()->GetParentUser();
 	if (!user) return;
-	
+
 	auto rewardCodes = Database::Get()->GetRewardCodesByAccountID(user->GetAccountID());
 	if (rewardCodes.empty()) return;
 
-	auto* cdrewardCodes = CDClientManager::Instance().GetTable<CDRewardCodesTable>();
-	for (auto const rewardCode: rewardCodes){
+	auto* cdrewardCodes = CDClientManager::GetTable<CDRewardCodesTable>();
+	for (auto const rewardCode : rewardCodes) {
 		LOG_DEBUG("Processing RewardCode %i", rewardCode);
 		const uint32_t rewardCodeIndex = rewardCode >> 6;
 		const uint32_t bitIndex = rewardCode % 64;
@@ -785,4 +788,50 @@ void CharacterComponent::AwardClaimCodes() {
 		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
 		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
 	}
+}
+
+void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
+	const auto objid = m_Parent->GetObjectID();
+
+	ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneId, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+		auto* entity = Game::entityManager->GetEntity(objid);
+
+		if (!entity) return;
+
+		const auto sysAddr = entity->GetSystemAddress();
+
+		auto* character = entity->GetCharacter();
+		auto* characterComponent = entity->GetComponent<CharacterComponent>();
+
+		if (character && characterComponent) {
+			character->SetZoneID(zoneID);
+			character->SetZoneInstance(zoneInstance);
+			character->SetZoneClone(zoneClone);
+
+			characterComponent->SetLastRocketConfig(u"");
+
+			character->SaveXMLToDatabase();
+		}
+
+		WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+
+		Game::entityManager->DestructEntity(entity);
+		});
+}
+
+const SystemAddress& CharacterComponent::GetSystemAddress() const {
+	return m_SystemAddress;
+}
+
+void CharacterComponent::SetRespawnPos(const NiPoint3& position) {
+	if (!m_Character) return;
+
+	m_respawnPos = position;
+
+	m_Character->SetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID(), position);
+
+}
+
+void CharacterComponent::SetRespawnRot(const NiQuaternion& rotation) {
+	m_respawnRot = rotation;
 }

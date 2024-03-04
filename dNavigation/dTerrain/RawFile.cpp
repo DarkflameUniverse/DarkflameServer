@@ -20,7 +20,7 @@ RawFile::RawFile(std::string fileName) {
 
 
 	if (m_Version < 0x20) {
-		return; // Version too crusty to handle
+		return; // Version is too old to be supported
 	}
 
 	// Read in chunks

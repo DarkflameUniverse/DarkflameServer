@@ -18,7 +18,7 @@ ProximityMonitorComponent::~ProximityMonitorComponent() {
 	for (const auto& en : m_ProximitiesData) {
 		if (!en.second) continue;
 
-		dpWorld::Instance().RemoveEntity(en.second);
+		dpWorld::RemoveEntity(en.second);
 	}
 
 	m_ProximitiesData.clear();
@@ -28,12 +28,12 @@ void ProximityMonitorComponent::SetProximityRadius(float proxRadius, const std::
 	dpEntity* en = new dpEntity(m_Parent->GetObjectID(), proxRadius);
 	en->SetPosition(m_Parent->GetPosition());
 
-	dpWorld::Instance().AddEntity(en);
+	dpWorld::AddEntity(en);
 	m_ProximitiesData.insert(std::make_pair(name, en));
 }
 
 void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::string& name) {
-	dpWorld::Instance().AddEntity(entity);
+	dpWorld::AddEntity(entity);
 	entity->SetPosition(m_Parent->GetPosition());
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }

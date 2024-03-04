@@ -2,10 +2,11 @@
 
 void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PhysicsComponent");
+	auto& entries = GetEntriesMutable();
 	while (!tableData.eof()) {
 		const uint32_t componentID = tableData.getIntField("id", -1);
 
-		auto& entry = m_Entries[componentID];
+		auto& entry = entries[componentID];
 		entry.id = componentID,
 		entry.bStatic = tableData.getIntField("static", -1) != 0,
 		entry.physicsAsset = tableData.getStringField("physics_asset", ""),
@@ -28,7 +29,8 @@ void CDPhysicsComponentTable::LoadValuesFromDatabase() {
 }
 
 CDPhysicsComponent* CDPhysicsComponentTable::GetByID(const uint32_t componentID) {
-	auto itr = m_Entries.find(componentID);
-	return itr != m_Entries.end() ? &itr->second : nullptr;
+	auto& entries = GetEntriesMutable();
+	auto itr = entries.find(componentID);
+	return itr != entries.end() ? &itr->second : nullptr;
 }
 

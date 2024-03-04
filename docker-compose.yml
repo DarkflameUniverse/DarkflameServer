@@ -1,58 +1,73 @@
 version: "3"
+name: dlu
 
 services:
   darkflamedb:
-    image: mariadb:latest
-    environment:
-      - MARIADB_USER=${MARIADB_USER:-darkflame}
-      - MARIADB_PASSWORD=${MARIADB_PASSWORD:-darkflame}
-      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-darkflame}
-      - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
     networks:
       - darkflame
+    image: mariadb:latest
+    volumes:
+      - ${DB_DATA_DIR:-./db/data}:/var/lib/mysql
+    environment:
+      - MARIADB_RANDOM_ROOT_PASSWORD=1
+      - MARIADB_USER=${MARIADB_USER:-darkflame}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD:?error}
+      - MARIADB_DATABASE=${MARIADB_DATABASE:-darkflame}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   darkflameserver:
     networks:
       - darkflame
     image: ghcr.io/darkflameuniverse/darkflameserver:latest
     volumes:
-      - $HOST_CONFIG_DIR:/app/configs/
-      - $HOST_CLIENT_LOCATION:$CLIENT_LOCATION:ro
-      - $HOST_RESSERVER_LOCATION:/app/resServer/
-      - $HOST_DUMP_FOLDER:$DUMP_FOLDER
-      - $HOST_LOGS_DIR:/app/logs/
+      - ${HOST_CONFIG_DIR:-./server/config}:/app/configs/
+      - ${CLIENT_PATH:-./client}:/app/luclient:ro
+      - ${HOST_RESSERVER_LOCATION:-./server/res}:/app/resServer/
+      - ${HOST_DUMP_FOLDER:-./server/dump}:/app/dump/
+      - ${HOST_LOGS_DIR:-./server/logs}:/app/logs/
     environment:
+      - CLIENT_LOCATION=/app/luclient
       - DLU_CONFIG_DIR=/app/configs
+      - DUMP_FOLDER=/app/dump
       - MYSQL_HOST=darkflamedb
       - MYSQL_DATABASE=${MARIADB_DATABASE:-darkflame}
       - MYSQL_USERNAME=${MARIADB_USER:-darkflame}
-      - MYSQL_PASSWORD=${MARIADB_PASSWORD:-darkflame}
+      - MYSQL_PASSWORD=${MARIADB_PASSWORD:?error}
       - EXTERNAL_IP=${EXTERNAL_IP:-localhost}
-      - DUMP_FOLDER=$DUMP_FOLDER
-      - CLIENT_LOCATION=$CLIENT_LOCATION
+      - CLIENT_NET_VERSION=${CLIENT_NET_VERSION:-171022}
     depends_on:
       - darkflamedb
     ports:
       - "1001:1001/udp"
       - "2005:2005/udp"
       - "3000-3300:3000-3300/udp"
+    healthcheck:
+      test: ["CMD", "ls", "/app/resServer/CDServer.sqlite"]
 
   darkflameweb:
     networks:
       - darkflame
     image: ghcr.io/darkflameuniverse/nexusdashboard:latest
     volumes:
-      - $HOST_CLIENT_LOCATION:/app/luclient:ro
-      - $HOST_CACHE_LOCATION:/app/cache
-      - $HOST_CD_SQLITE_LOCATION:/app/cdclient:ro
+      - ${CLIENT_PATH:-./client}:/app/luclient:ro
+      - ${HOST_CACHE_LOCATION:-./web/cache}:/app/cache
+      - ${HOST_RESSERVER_LOCATION:-./server/res}:/app/cdclient:ro
+      - ${HOST_ND_LOGS_LOCATION:-./web/logs}:/logs
     environment:
-      - APP_SECRET_KEY=$APP_SECRET_KEY
-      - APP_DATABASE_URI=mysql+pymysql://${MARIADB_USER:-darkflame}:${MARIADB_PASSWORD:-darkflame}@darkflamedb:3306/${MARIADB_DATABASE:-darkflame}
-      - CLIENT_LOCATION=/app/luclient
-      - CACHE_LOCATION=/app/cache
-      - CD_SQLITE_LOCATION=/app/cdclient
+      - APP_SECRET_KEY=${ACCOUNT_MANAGER_SECRET:?error}
+      - APP_DATABASE_URI=mysql+pymysql://${MARIADB_USER:-darkflame}:${MARIADB_PASSWORD:?error}@darkflamedb:3306/${MARIADB_DATABASE:-darkflame}
+      - CLIENT_LOCATION=/app/luclient/
+      - CACHE_LOCATION=/app/cache/
+      - CD_SQLITE_LOCATION=/app/cdclient/
+      - USER_ENABLE_REGISTER=1 # "0" is _not_ false, to disable, remove this line
     depends_on:
       - darkflamedb
+      - darkflameserver
     ports:
       - 8000:8000
     healthcheck:

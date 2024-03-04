@@ -11,7 +11,7 @@
 
 #include "CDSkillBehaviorTable.h"
 
-void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto originator = context->originator;
 
 	auto* entity = Game::entityManager->GetEntity(originator);
@@ -33,7 +33,7 @@ void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	}
 }
 
-void OverTimeBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void OverTimeBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 
 }
 
@@ -41,7 +41,7 @@ void OverTimeBehavior::Load() {
 	m_Action = GetInt("action");
 	// Since m_Action is a skillID and not a behavior, get is correlated behaviorID.
 
-	CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+	CDSkillBehaviorTable* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 	m_ActionBehaviorId = skillTable->GetSkillByID(m_Action).behaviorID;
 
 	m_Delay = GetFloat("delay");

@@ -10,7 +10,6 @@
 #include "eServerMessageType.h"
 #include "eMasterMessageType.h"
 
-#include "PacketUtils.h"
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
@@ -127,8 +126,7 @@ Packet* dServer::ReceiveFromMaster() {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 				switch (static_cast<eMasterMessageType>(packet->data[3])) {
 				case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
-					uint64_t requestID = PacketUtils::ReadU64(8, packet);
-					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(requestID, packet);
+					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(packet);
 					break;
 				}
 				case eMasterMessageType::SHUTDOWN:
@@ -161,13 +159,13 @@ void dServer::DeallocateMasterPacket(Packet* packet) {
 	mMasterPeer->DeallocatePacket(packet);
 }
 
-void dServer::Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) {
-	mPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
+void dServer::Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) {
+	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, broadcast);
 }
 
-void dServer::SendToMaster(RakNet::BitStream* bitStream) {
+void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 	if (!mMasterConnectionActive) ConnectToMaster();
-	mMasterPeer->Send(bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
+	mMasterPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
 }
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {

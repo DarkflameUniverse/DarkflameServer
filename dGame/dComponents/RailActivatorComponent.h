@@ -15,7 +15,7 @@ public:
 	explicit RailActivatorComponent(Entity* parent, int32_t componentID);
 	~RailActivatorComponent() override;
 
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
 
 	/**
 	 * Handles the OnUse event from some entity, initiates the rail movement

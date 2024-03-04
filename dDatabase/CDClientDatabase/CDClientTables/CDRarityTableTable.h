@@ -5,16 +5,14 @@
 
 struct CDRarityTable {
 	float randmax;
-	unsigned int rarity;
+	uint32_t rarity;
+
+	typedef uint32_t Index;
 };
 
 typedef std::vector<CDRarityTable> RarityTable;
 
-class CDRarityTableTable : public CDTable<CDRarityTableTable> {
-private:
-	typedef uint32_t RarityTableIndex;
-	std::unordered_map<RarityTableIndex, std::vector<CDRarityTable>> entries;
-
+class CDRarityTableTable : public CDTable<CDRarityTableTable, std::unordered_map<CDRarityTable::Index, std::vector<CDRarityTable>>> {
 public:
 	void LoadValuesFromDatabase();
 

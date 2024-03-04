@@ -22,11 +22,7 @@ struct CDObjects {
 	UNUSED(uint32_t HQ_valid);                      //!< Probably used for the Nexus HQ database on LEGOUniverse.com
 };
 
-class CDObjectsTable : public CDTable<CDObjectsTable> {
-private:
-	std::map<uint32_t, CDObjects> m_Entries;
-	CDObjects m_Default;
-
+class CDObjectsTable : public CDTable<CDObjectsTable, std::map<uint32_t, CDObjects>> {
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by ID

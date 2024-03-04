@@ -2,7 +2,6 @@
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
-#include "Player.h"
 #include "Character.h"
 #include "ShootingGalleryComponent.h"
 #include "PossessorComponent.h"
@@ -453,16 +452,12 @@ void SGCannon::SpawnNewModel(Entity* self) {
 
 void SGCannon::RemovePlayer(LWOOBJID playerID) {
 	auto* player = Game::entityManager->GetEntity(playerID);
-	if (player == nullptr)
-		return;
+	if (!player) return;
 
-	auto* playerObject = dynamic_cast<Player*>(player);
-	if (playerObject == nullptr)
-		return;
-
-	auto* character = playerObject->GetCharacter();
-	if (character != nullptr) {
-		playerObject->SendToZone(character->GetLastNonInstanceZoneID());
+	auto* character = player->GetCharacter();
+	auto* characterComponent = player->GetComponent<CharacterComponent>();
+	if (characterComponent && character) {
+		characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 	}
 }
 

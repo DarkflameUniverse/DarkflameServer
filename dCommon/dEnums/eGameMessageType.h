@@ -629,7 +629,7 @@ enum class eGameMessageType : uint16_t {
 	GET_INSTRUCTION_COUNT = 676,
 	GET_IS_NPC = 677,
 	ACTIVATE_BUBBLE_BUFF = 678,
-	DECTIVATE_BUBBLE_BUFF = 679, // thanks netdevil
+	DECTIVATE_BUBBLE_BUFF = 679, // This is spelled wrong in the client, so we misspell it here.
 	EXHIBIT_VOTE = 680,
 	ADD_PET_TO_PLAYER = 681,
 	REMOVE_PET_FROM_PLAYER = 682,
