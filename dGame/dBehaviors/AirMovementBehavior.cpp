@@ -5,35 +5,35 @@
 #include "Game.h"
 #include "Logger.h"
 
-void AirMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void AirMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	uint32_t handle{};
 
-	if (!bitStream->Read(handle)) {
-		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(handle)) {
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
 	context->RegisterSyncBehavior(handle, this, branch, this->m_Timeout);
 }
 
-void AirMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void AirMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto handle = context->GetUniqueSkillId();
 
-	bitStream->Write(handle);
+	bitStream.Write(handle);
 }
 
-void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void AirMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	uint32_t behaviorId{};
 
-	if (!bitStream->Read(behaviorId)) {
-		LOG("Unable to read behaviorId from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(behaviorId)) {
+		LOG("Unable to read behaviorId from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
 	LWOOBJID target{};
 
-	if (!bitStream->Read(target)) {
-		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(target)) {
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 

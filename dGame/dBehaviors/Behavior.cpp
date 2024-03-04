@@ -487,10 +487,10 @@ std::map<std::string, float> Behavior::GetParameterNames() const {
 void Behavior::Load() {
 }
 
-void Behavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void Behavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 }
 
-void Behavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void Behavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 }
 
 void Behavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
@@ -502,10 +502,10 @@ void Behavior::Timer(BehaviorContext* context, BehaviorBranchContext branch, LWO
 void Behavior::End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second) {
 }
 
-void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 }
 
-void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 }
 
 Behavior::~Behavior() {

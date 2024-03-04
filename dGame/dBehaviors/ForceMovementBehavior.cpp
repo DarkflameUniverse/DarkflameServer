@@ -6,29 +6,29 @@
 #include "Game.h"
 #include "Logger.h"
 
-void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	if (this->m_hitAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitEnemyAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitFactionAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
 		return;
 	}
 
 	uint32_t handle{};
-	if (!bitStream->Read(handle)) {
-		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(handle)) {
+		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 	context->RegisterSyncBehavior(handle, this, branch, this->m_Duration);
 }
 
-void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	uint32_t next{};
-	if (!bitStream->Read(next)) {
-		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(next)) {
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
 	LWOOBJID target{};
-	if (!bitStream->Read(target)) {
-		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(target)) {
+		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -37,7 +37,7 @@ void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bi
 	behavior->Handle(context, bitStream, branch);
 }
 
-void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	if (this->m_hitAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitEnemyAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY && this->m_hitFactionAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
 		return;
 	}
@@ -56,7 +56,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 	}
 
 	const auto skillHandle = context->GetUniqueSkillId();
-	bitStream->Write(skillHandle);
+	bitStream.Write(skillHandle);
 
 	context->SyncCalculation(skillHandle, this->m_Duration, this, branch);
 }
@@ -71,7 +71,7 @@ void ForceMovementBehavior::Load() {
 	this->m_Yaw = GetFloat("yaw");
 }
 
-void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ForceMovementBehavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* casterEntity = Game::entityManager->GetEntity(context->caster);
 	if (casterEntity != nullptr) {
 		auto* controllablePhysicsComponent = casterEntity->GetComponent<ControllablePhysicsComponent>();

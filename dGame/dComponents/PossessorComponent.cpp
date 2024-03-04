@@ -26,15 +26,15 @@ PossessorComponent::~PossessorComponent() {
 	}
 }
 
-void PossessorComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyPossesor || bIsInitialUpdate);
+void PossessorComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyPossesor || bIsInitialUpdate);
 	if (m_DirtyPossesor || bIsInitialUpdate) {
 		m_DirtyPossesor = false;
-		outBitStream->Write(m_Possessable != LWOOBJID_EMPTY);
+		outBitStream.Write(m_Possessable != LWOOBJID_EMPTY);
 		if (m_Possessable != LWOOBJID_EMPTY) {
-			outBitStream->Write(m_Possessable);
+			outBitStream.Write(m_Possessable);
 		}
-		outBitStream->Write(m_PossessableType);
+		outBitStream.Write(m_PossessableType);
 	}
 }
 

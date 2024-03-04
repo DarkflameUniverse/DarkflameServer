@@ -29,6 +29,6 @@ void Component::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 }
 
-void Component::Serialize(RakNet::BitStream* outBitStream, bool isConstruction) {
+void Component::Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {
 
 }

@@ -70,6 +70,9 @@ public:
 
 	const CDMissions& GetByMissionID(uint32_t missionID, bool& found) const;
 
+	const std::set<int32_t> GetMissionsForReward(LOT lot);
+
+
 	static CDMissions Default;
 };
 

@@ -11,7 +11,7 @@
 
 #include "CDSkillBehaviorTable.h"
 
-void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto originator = context->originator;
 
 	auto* entity = Game::entityManager->GetEntity(originator);
@@ -33,7 +33,7 @@ void OverTimeBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	}
 }
 
-void OverTimeBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void OverTimeBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 
 }
 

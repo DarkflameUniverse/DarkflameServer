@@ -18,7 +18,7 @@ public:
 
 	LUPExhibitComponent(Entity* parent) : Component(parent) {};
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void NextLUPExhibit();
 private:
 	float m_UpdateTimer = 0.0f;

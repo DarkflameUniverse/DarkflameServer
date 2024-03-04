@@ -3,9 +3,9 @@
 #include "Game.h"
 #include "Logger.h"
 
-void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	uint32_t movementType{};
-	if (!bitStream->Read(movementType)) {
+	if (!bitStream.Read(movementType)) {
 		if (this->m_groundAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 			this->m_jumpAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
 			this->m_fallingAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY &&
@@ -15,7 +15,7 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream*
 			this->m_movingAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
 			return;
 		}
-		LOG("Unable to read movementType from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		LOG("Unable to read movementType from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 

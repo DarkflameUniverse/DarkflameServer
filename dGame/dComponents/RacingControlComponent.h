@@ -110,7 +110,7 @@ public:
 	RacingControlComponent(Entity* parentEntity);
 	~RacingControlComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**

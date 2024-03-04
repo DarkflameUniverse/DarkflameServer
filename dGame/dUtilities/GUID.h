@@ -7,7 +7,7 @@ class GUID {
 public:
 	explicit GUID();
 	explicit GUID(const std::string& guid);
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 
 	uint32_t GetData1() const {
 		return data1;

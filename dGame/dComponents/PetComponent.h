@@ -85,7 +85,7 @@ public:
 	 * @param outBitStream The output bitstream
 	 * @param bIsInitialUpdate Boolean value of whether this is the initial update
 	*/
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Sets the AI state of the pet

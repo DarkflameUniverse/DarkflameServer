@@ -41,7 +41,7 @@ public:
 	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void LoadXml(tinyxml2::XMLDocument* document);
 	void UpdateXml(tinyxml2::XMLDocument* document) override;
 

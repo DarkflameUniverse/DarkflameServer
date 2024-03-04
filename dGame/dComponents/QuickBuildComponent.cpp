@@ -55,55 +55,55 @@ QuickBuildComponent::~QuickBuildComponent() {
 	DespawnActivator();
 }
 
-void QuickBuildComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (m_Parent->GetComponent(eReplicaComponentType::DESTROYABLE) == nullptr) {
 		if (bIsInitialUpdate) {
-			outBitStream->Write(false);
+			outBitStream.Write(false);
 		}
 
-		outBitStream->Write(false);
+		outBitStream.Write(false);
 
-		outBitStream->Write(false);
+		outBitStream.Write(false);
 	}
 	// If build state is completed and we've already serialized once in the completed state,
 	// don't serializing this component anymore as this will cause the build to jump again.
 	// If state changes, serialization will begin again.
 	if (!m_StateDirty && m_State == eQuickBuildState::COMPLETED) {
-		outBitStream->Write0();
-		outBitStream->Write0();
+		outBitStream.Write0();
+		outBitStream.Write0();
 		return;
 	}
 	// BEGIN Scripted Activity
-	outBitStream->Write1();
+	outBitStream.Write1();
 
 	Entity* builder = GetBuilder();
 
 	if (builder) {
-		outBitStream->Write<uint32_t>(1);
-		outBitStream->Write(builder->GetObjectID());
+		outBitStream.Write<uint32_t>(1);
+		outBitStream.Write(builder->GetObjectID());
 
 		for (int i = 0; i < 10; i++) {
-			outBitStream->Write(0.0f);
+			outBitStream.Write(0.0f);
 		}
 	} else {
-		outBitStream->Write<uint32_t>(0);
+		outBitStream.Write<uint32_t>(0);
 	}
 	// END Scripted Activity
 
-	outBitStream->Write1();
+	outBitStream.Write1();
 
-	outBitStream->Write(m_State);
+	outBitStream.Write(m_State);
 
-	outBitStream->Write(m_ShowResetEffect);
-	outBitStream->Write(m_Activator != nullptr);
+	outBitStream.Write(m_ShowResetEffect);
+	outBitStream.Write(m_Activator != nullptr);
 
-	outBitStream->Write(m_Timer);
-	outBitStream->Write(m_TimerIncomplete);
+	outBitStream.Write(m_Timer);
+	outBitStream.Write(m_TimerIncomplete);
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(false);
-		outBitStream->Write(m_ActivatorPosition);
-		outBitStream->Write(m_RepositionPlayer);
+		outBitStream.Write(false);
+		outBitStream.Write(m_ActivatorPosition);
+		outBitStream.Write(m_RepositionPlayer);
 	}
 	m_StateDirty = false;
 }

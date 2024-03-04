@@ -77,7 +77,7 @@ public:
 
 	explicit ShootingGalleryComponent(Entity* parent);
 	~ShootingGalleryComponent();
-	void Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) override;
 
 	/**
 	 * Returns the static params for the shooting gallery

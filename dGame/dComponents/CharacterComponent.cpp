@@ -78,94 +78,94 @@ bool CharacterComponent::LandingAnimDisabled(int zoneID) {
 CharacterComponent::~CharacterComponent() {
 }
 
-void CharacterComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(m_ClaimCodes[0] != 0);
-		if (m_ClaimCodes[0] != 0) outBitStream->Write(m_ClaimCodes[0]);
-		outBitStream->Write(m_ClaimCodes[1] != 0);
-		if (m_ClaimCodes[1] != 0) outBitStream->Write(m_ClaimCodes[1]);
-		outBitStream->Write(m_ClaimCodes[2] != 0);
-		if (m_ClaimCodes[2] != 0) outBitStream->Write(m_ClaimCodes[2]);
-		outBitStream->Write(m_ClaimCodes[3] != 0);
-		if (m_ClaimCodes[3] != 0) outBitStream->Write(m_ClaimCodes[3]);
+		outBitStream.Write(m_ClaimCodes[0] != 0);
+		if (m_ClaimCodes[0] != 0) outBitStream.Write(m_ClaimCodes[0]);
+		outBitStream.Write(m_ClaimCodes[1] != 0);
+		if (m_ClaimCodes[1] != 0) outBitStream.Write(m_ClaimCodes[1]);
+		outBitStream.Write(m_ClaimCodes[2] != 0);
+		if (m_ClaimCodes[2] != 0) outBitStream.Write(m_ClaimCodes[2]);
+		outBitStream.Write(m_ClaimCodes[3] != 0);
+		if (m_ClaimCodes[3] != 0) outBitStream.Write(m_ClaimCodes[3]);
 
-		outBitStream->Write(m_Character->GetHairColor());
-		outBitStream->Write(m_Character->GetHairStyle());
-		outBitStream->Write<uint32_t>(0); //Default "head"
-		outBitStream->Write(m_Character->GetShirtColor());
-		outBitStream->Write(m_Character->GetPantsColor());
-		outBitStream->Write(m_Character->GetShirtStyle());
-		outBitStream->Write<uint32_t>(0); //Default "head color"
-		outBitStream->Write(m_Character->GetEyebrows());
-		outBitStream->Write(m_Character->GetEyes());
-		outBitStream->Write(m_Character->GetMouth());
-		outBitStream->Write<uint64_t>(0); //AccountID, trying out if 0 works.
-		outBitStream->Write(m_Character->GetLastLogin()); //Last login
-		outBitStream->Write<uint64_t>(0); //"prop mod last display time"
-		outBitStream->Write<uint64_t>(m_Uscore); //u-score
-		outBitStream->Write0(); //Not free-to-play (disabled in DLU)
+		outBitStream.Write(m_Character->GetHairColor());
+		outBitStream.Write(m_Character->GetHairStyle());
+		outBitStream.Write<uint32_t>(0); //Default "head"
+		outBitStream.Write(m_Character->GetShirtColor());
+		outBitStream.Write(m_Character->GetPantsColor());
+		outBitStream.Write(m_Character->GetShirtStyle());
+		outBitStream.Write<uint32_t>(0); //Default "head color"
+		outBitStream.Write(m_Character->GetEyebrows());
+		outBitStream.Write(m_Character->GetEyes());
+		outBitStream.Write(m_Character->GetMouth());
+		outBitStream.Write<uint64_t>(0); //AccountID, trying out if 0 works.
+		outBitStream.Write(m_Character->GetLastLogin()); //Last login
+		outBitStream.Write<uint64_t>(0); //"prop mod last display time"
+		outBitStream.Write<uint64_t>(m_Uscore); //u-score
+		outBitStream.Write0(); //Not free-to-play (disabled in DLU)
 
 		//Stats:
-		outBitStream->Write(m_CurrencyCollected);
-		outBitStream->Write(m_BricksCollected);
-		outBitStream->Write(m_SmashablesSmashed);
-		outBitStream->Write(m_QuickBuildsCompleted);
-		outBitStream->Write(m_EnemiesSmashed);
-		outBitStream->Write(m_RocketsUsed);
-		outBitStream->Write(m_MissionsCompleted);
-		outBitStream->Write(m_PetsTamed);
-		outBitStream->Write(m_ImaginationPowerUpsCollected);
-		outBitStream->Write(m_LifePowerUpsCollected);
-		outBitStream->Write(m_ArmorPowerUpsCollected);
-		outBitStream->Write(m_MetersTraveled);
-		outBitStream->Write(m_TimesSmashed);
-		outBitStream->Write(m_TotalDamageTaken);
-		outBitStream->Write(m_TotalDamageHealed);
-		outBitStream->Write(m_TotalArmorRepaired);
-		outBitStream->Write(m_TotalImaginationRestored);
-		outBitStream->Write(m_TotalImaginationUsed);
-		outBitStream->Write(m_DistanceDriven);
-		outBitStream->Write(m_TimeAirborneInCar);
-		outBitStream->Write(m_RacingImaginationPowerUpsCollected);
-		outBitStream->Write(m_RacingImaginationCratesSmashed);
-		outBitStream->Write(m_RacingCarBoostsActivated);
-		outBitStream->Write(m_RacingTimesWrecked);
-		outBitStream->Write(m_RacingSmashablesSmashed);
-		outBitStream->Write(m_RacesFinished);
-		outBitStream->Write(m_FirstPlaceRaceFinishes);
+		outBitStream.Write(m_CurrencyCollected);
+		outBitStream.Write(m_BricksCollected);
+		outBitStream.Write(m_SmashablesSmashed);
+		outBitStream.Write(m_QuickBuildsCompleted);
+		outBitStream.Write(m_EnemiesSmashed);
+		outBitStream.Write(m_RocketsUsed);
+		outBitStream.Write(m_MissionsCompleted);
+		outBitStream.Write(m_PetsTamed);
+		outBitStream.Write(m_ImaginationPowerUpsCollected);
+		outBitStream.Write(m_LifePowerUpsCollected);
+		outBitStream.Write(m_ArmorPowerUpsCollected);
+		outBitStream.Write(m_MetersTraveled);
+		outBitStream.Write(m_TimesSmashed);
+		outBitStream.Write(m_TotalDamageTaken);
+		outBitStream.Write(m_TotalDamageHealed);
+		outBitStream.Write(m_TotalArmorRepaired);
+		outBitStream.Write(m_TotalImaginationRestored);
+		outBitStream.Write(m_TotalImaginationUsed);
+		outBitStream.Write(m_DistanceDriven);
+		outBitStream.Write(m_TimeAirborneInCar);
+		outBitStream.Write(m_RacingImaginationPowerUpsCollected);
+		outBitStream.Write(m_RacingImaginationCratesSmashed);
+		outBitStream.Write(m_RacingCarBoostsActivated);
+		outBitStream.Write(m_RacingTimesWrecked);
+		outBitStream.Write(m_RacingSmashablesSmashed);
+		outBitStream.Write(m_RacesFinished);
+		outBitStream.Write(m_FirstPlaceRaceFinishes);
 
-		outBitStream->Write0();
-		outBitStream->Write(m_IsLanding);
+		outBitStream.Write0();
+		outBitStream.Write(m_IsLanding);
 		if (m_IsLanding) {
-			outBitStream->Write<uint16_t>(m_LastRocketConfig.size());
+			outBitStream.Write<uint16_t>(m_LastRocketConfig.size());
 			for (uint16_t character : m_LastRocketConfig) {
-				outBitStream->Write(character);
+				outBitStream.Write(character);
 			}
 		}
 	}
 
-	outBitStream->Write(m_DirtyGMInfo);
+	outBitStream.Write(m_DirtyGMInfo);
 	if (m_DirtyGMInfo) {
-		outBitStream->Write(m_PvpEnabled);
-		outBitStream->Write(m_IsGM);
-		outBitStream->Write(m_GMLevel);
-		outBitStream->Write(m_EditorEnabled);
-		outBitStream->Write(m_EditorLevel);
+		outBitStream.Write(m_PvpEnabled);
+		outBitStream.Write(m_IsGM);
+		outBitStream.Write(m_GMLevel);
+		outBitStream.Write(m_EditorEnabled);
+		outBitStream.Write(m_EditorLevel);
 	}
 
-	outBitStream->Write(m_DirtyCurrentActivity);
-	if (m_DirtyCurrentActivity) outBitStream->Write(m_CurrentActivity);
+	outBitStream.Write(m_DirtyCurrentActivity);
+	if (m_DirtyCurrentActivity) outBitStream.Write(m_CurrentActivity);
 
-	outBitStream->Write(m_DirtySocialInfo);
+	outBitStream.Write(m_DirtySocialInfo);
 	if (m_DirtySocialInfo) {
-		outBitStream->Write(m_GuildID);
-		outBitStream->Write<unsigned char>(m_GuildName.size());
+		outBitStream.Write(m_GuildID);
+		outBitStream.Write<unsigned char>(m_GuildName.size());
 		if (!m_GuildName.empty())
-			outBitStream->WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
+			outBitStream.WriteBits(reinterpret_cast<const unsigned char*>(m_GuildName.c_str()), static_cast<unsigned char>(m_GuildName.size()) * sizeof(wchar_t) * 8);
 
-		outBitStream->Write(m_IsLEGOClubMember);
-		outBitStream->Write(m_CountryCode);
+		outBitStream.Write(m_IsLEGOClubMember);
+		outBitStream.Write(m_CountryCode);
 	}
 }
 

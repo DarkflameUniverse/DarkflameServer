@@ -11,7 +11,7 @@
 #include "EntityInfo.h"
 #include "eReplicaComponentType.h"
 
-void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* origin = Game::entityManager->GetEntity(context->originator);
 
 	if (origin == nullptr) {
@@ -74,7 +74,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 		});
 }
 
-void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SpawnBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

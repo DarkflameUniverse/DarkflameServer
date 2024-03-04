@@ -6,12 +6,12 @@
 #include "BehaviorContext.h"
 #include "BuffComponent.h"
 
-void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	auto state = true;
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
-		if (!bitStream->Read(state)) {
-			LOG("Unable to read state from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+		if (!bitStream.Read(state)) {
+			LOG("Unable to read state from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 	}
@@ -37,7 +37,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStre
 	}
 }
 
-void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto state = true;
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
@@ -53,7 +53,7 @@ void SwitchBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 			}
 		}
 
-		bitStream->Write(state);
+		bitStream.Write(state);
 	}
 
 	if (state) {

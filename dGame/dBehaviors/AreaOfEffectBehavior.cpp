@@ -12,11 +12,11 @@
 #include "Game.h"
 #include "Logger.h"
 
-void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	uint32_t targetCount{};
 
-	if (!bitStream->Read(targetCount)) {
-		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream->GetNumberOfUnreadBits());
+	if (!bitStream.Read(targetCount)) {
+		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -40,7 +40,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 
 	for (auto i = 0u; i < targetCount; ++i) {
 		LWOOBJID target{};
-		if (!bitStream->Read(target)) {
+		if (!bitStream.Read(target)) {
 			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
 		};
 		targets.push_back(target);
@@ -54,7 +54,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream* b
 	PlayFx(u"cast", context->originator);
 }
 
-void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* caster = Game::entityManager->GetEntity(context->caster);
 	if (!caster) return;
 
@@ -83,7 +83,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 	// resize if we have more than max targets allows
 	if (targets.size() > this->m_maxTargets) targets.resize(this->m_maxTargets);
 
-	bitStream->Write<uint32_t>(targets.size());
+	bitStream.Write<uint32_t>(targets.size());
 
 	if (targets.size() == 0) {
 		PlayFx(u"miss", context->originator);
@@ -92,7 +92,7 @@ void AreaOfEffectBehavior::Calculate(BehaviorContext* context, RakNet::BitStream
 		context->foundTarget = true;
 		// write all the targets to the bitstream
 		for (auto* target : targets) {
-			bitStream->Write(target->GetObjectID());
+			bitStream.Write(target->GetObjectID());
 		}
 
 		// then cast all the actions

@@ -3,7 +3,7 @@
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
 
-void ChangeIdleFlagsBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ChangeIdleFlagsBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	const auto target = branch.target != LWOOBJID_EMPTY ? branch.target : context->originator;
 	if (!target) return;
 
@@ -16,7 +16,7 @@ void ChangeIdleFlagsBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	}
 }
 
-void ChangeIdleFlagsBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ChangeIdleFlagsBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 
