@@ -23,14 +23,14 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	set(MARIADB_CONNECTOR_CPP_MSI "mariadb-connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}-win64.msi")
 	
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}" )
-		message("Downloading mariadb connector/c")
+		message(STATUS "Downloading mariadb connector/c")
 		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_C_BUCKET}/Connectors/c/connector-c-${MARIADB_CONNECTOR_C_VERSION}/${MARIADB_CONNECTOR_C_MSI}
 			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}"
 			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_C_MD5})
 	endif()
 
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}" )
-		message("Downloading mariadb connector/c++")
+		message(STATUS "Downloading mariadb connector/c++")
 		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_CPP_BUCKET}/Connectors/cpp/connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}/${MARIADB_CONNECTOR_CPP_MSI}
 			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}"
 			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_CPP_MD5})
@@ -87,7 +87,7 @@ else() # Build from source
 	endif()
 
 	set(MARIADBCPP_INSTALL_DIR ${PROJECT_BINARY_DIR}/prefix)
-	message("MariaDB C/C++ install prefix: " ${MARIADBCPP_INSTALL_DIR})
+	message(STATUS "MariaDB C/C++ install prefix: " ${MARIADBCPP_INSTALL_DIR})
 	set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
 	set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_LIBRARY_DIR}/plugin)
 	set(MARIADBCPP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp)
@@ -124,14 +124,12 @@ else() # Build from source
 	set(MARIADBCPP_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
 	if(WIN32)
 		set(MARIADBC_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/libmariadb.lib")
-	#elseif(UNIX)
-	#	set(MARIADBC_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/libmariadb.so.3")
 	endif()
 endif()
 
 # Create mariadb connector library object
-message("libmariadb: ${MARIADBC_SHARED_LIBRARY_LOCATION}")
-message("libmariadbcpp: ${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
+message(STATUS "libmariadb: ${MARIADBC_SHARED_LIBRARY_LOCATION}")
+message(STATUS "libmariadbcpp: ${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
 add_library(MariaDB::ConnCpp SHARED IMPORTED GLOBAL)
 add_dependencies(MariaDB::ConnCpp mariadb_connector_cpp)
 set_target_properties(MariaDB::ConnCpp PROPERTIES
