@@ -359,6 +359,8 @@ namespace CppScripts {
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);
 
-	// This function only exists so there isn't a circular dependency between Entity and CppScripts
+	// Get the invalid script.  Would be a static variable of the namespace, but that would be
+	// more cluttery to use.  Also this allows us to control where this invalid script is defined and initialized
+	// since we dont want anyone externally modifying it.
 	Script* const GetInvalidScript();
 };
