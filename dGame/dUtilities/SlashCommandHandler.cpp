@@ -710,17 +710,18 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 	}
 
 	// Pet status utility
-	if (chatCommand == "setpetstatus" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+	if (chatCommand == "setpetflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		if (args.size() == 0) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
 			return;
 		}
 
-		const auto petStatus = GeneralUtils::TryParse<uint32_t>(args[0]);
-		if (!petStatus) {
+		const auto petFlagInput = GeneralUtils::TryParse<std::underlying_type_t<PetFlag>>(args[0]);
+		if (!petFlagInput) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
 			return;
 		}
+		const PetFlag petFlag = static_cast<PetFlag>(1 << petFlagInput.value());
 
 		// Determine if player has a pet summoned
 		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
@@ -729,10 +730,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			return;
 		}
 
-		petComponent->SetStatus(petStatus.value());
-		//Game::entityManager->SerializeEntity(petComponent->GetParentEntity());
+		petComponent->SetFlag(petFlag);
 
-		std::u16string msg = u"Set pet status to " + (GeneralUtils::to_u16string(petStatus.value()));
+		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(petFlag));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 

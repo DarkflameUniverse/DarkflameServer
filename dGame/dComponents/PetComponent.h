@@ -38,6 +38,7 @@ enum PetInteractType : uint8_t {
 enum PetFlag : uint32_t {
 	NONE,
 	IDLE = 1 << 0,			//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
+	UNKNOWN2 = 1 << 1,		//0x02,
 	UNKNOWN4 = 1 << 2,		//0x04 - FOLLOWING(?)
 	BEING_TAMED = 1 << 4, 	//0x10,
 	NOT_WAITING = 1 << 5, 	//0x20,
@@ -297,13 +298,13 @@ public:
 	 * bit map
 	 * @return the status of this pet
 	 */
-	uint32_t GetStatus() const;
+	/*uint32_t GetStatus() const;*/
 
 	/**
 	 * Sets the current status of the pet
 	 * @param value the current status of the pet to set
 	 */
-	void SetStatus(uint32_t value);
+	/*void SetStatus(uint32_t value);*/
 
 	/**
 	 * Returns an ability the pet may perform, currently unused
@@ -585,7 +586,6 @@ private:
 
 	/**
 	 * Pet information loaded from the CDClientDatabase
-	 * TODO: Switch to a reference when safe to do so
 	 */
 	CDPetComponent m_PetInfo;
 };

@@ -97,6 +97,10 @@ These commands are primarily for development and testing. The usage of many of t
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag (value) <flag id>`|Sets the given inventory or health flag to the given value, where value can be one of "on" or "off". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`).|8|
+|setpetaccel|`/setpetaccel (value) <pet acceleration>`|Sets the acceleration of the owner's pet to the given value.|8|
+|setpetflag|`/setpetflag (value) <pet flag id>`|Sets the pet flag to the given value, where the value is one of the bitshift values specified in the PetFlags enum.|8|
+|setpetmaxspeed|`/setpetmaxspeed (value) <pet max speed>`|Sets the maximum speed of the owner's pet to the given value.|8|
+|setpethalt|`/setpethalt (value) <pet halting distance>`|Sets the halting distance of the owner's pet to the given value.|8|
 |setinventorysize|`/setinventorysize <size> (inventory)` or <br> `/setinvsize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
 |spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
