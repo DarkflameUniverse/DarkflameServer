@@ -87,7 +87,6 @@ else() # Build from source
 	endif()
 
 	set(MARIADBCPP_INSTALL_DIR ${PROJECT_BINARY_DIR}/prefix)
-	message(STATUS "MariaDB C/C++ install prefix: " ${MARIADBCPP_INSTALL_DIR})
 	set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
 	set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_LIBRARY_DIR}/plugin)
 	set(MARIADBCPP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp)
@@ -128,8 +127,6 @@ else() # Build from source
 endif()
 
 # Create mariadb connector library object
-message(STATUS "libmariadb: ${MARIADBC_SHARED_LIBRARY_LOCATION}")
-message(STATUS "libmariadbcpp: ${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
 add_library(MariaDB::ConnCpp SHARED IMPORTED GLOBAL)
 add_dependencies(MariaDB::ConnCpp mariadb_connector_cpp)
 set_target_properties(MariaDB::ConnCpp PROPERTIES

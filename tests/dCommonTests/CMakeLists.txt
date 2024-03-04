@@ -19,6 +19,7 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
 add_dependencies(dCommonTests conncpp_tests)
 
+# Apple needs some special linkage for the mariadb connector for tests.
 if(APPLE)
 add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -l dCommonTests
