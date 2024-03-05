@@ -237,6 +237,7 @@ set(INCLUDED_DIRECTORIES
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
+# TODO: Should probably not do this.
 if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
