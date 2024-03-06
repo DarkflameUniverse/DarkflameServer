@@ -1,7 +1,7 @@
 #include "CDObjectsTable.h"
 
 namespace {
-	CDObjects objDefault;
+	CDObjects ObjDefault;
 };
 
 void CDObjectsTable::LoadValuesFromDatabase() {
@@ -41,7 +41,7 @@ void CDObjectsTable::LoadValuesFromDatabase() {
 		tableData.nextRow();
 	}
 
-	objDefault.id = 0;
+	ObjDefault.id = 0;
 }
 
 const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
@@ -56,8 +56,8 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
 
 	auto tableData = query.execQuery();
 	if (tableData.eof()) {
-		entries.emplace(LOT, objDefault);
-		return objDefault;
+		entries.emplace(LOT, ObjDefault);
+		return ObjDefault;
 	}
 
 	// Now get the data
@@ -90,5 +90,5 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t LOT) {
 		return it2->second;
 	}
 
-	return objDefault;
+	return ObjDefault;
 }

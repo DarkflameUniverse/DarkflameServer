@@ -48,7 +48,7 @@ std::vector<CDMissionTasks> CDMissionTasksTable::Query(std::function<bool(CDMiss
 	return data;
 }
 
-std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(uint32_t missionID) {
+std::vector<CDMissionTasks*> CDMissionTasksTable::GetByMissionID(const uint32_t missionID) {
 	std::vector<CDMissionTasks*> tasks;
 
 	// TODO: this should not be linear(?) and also shouldnt need to be a pointer
