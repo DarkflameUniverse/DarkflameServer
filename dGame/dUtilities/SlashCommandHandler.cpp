@@ -732,7 +732,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		petComponent->SetFlag(petFlag);
 
-		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(petFlag));
+		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(GeneralUtils::CastUnderlyingType(petFlag)));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 

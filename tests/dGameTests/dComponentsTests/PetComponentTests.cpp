@@ -32,6 +32,8 @@ protected:
 };
 
 TEST_F(PetTest, PlacementNewAddComponentTest) {
+	using enum PetFlag;
+
 	// Test adding component
 	ASSERT_NE(petComponent, nullptr);
 	baseEntity->AddComponent<PetComponent>(1);
@@ -48,6 +50,8 @@ TEST_F(PetTest, PlacementNewAddComponentTest) {
  * Test bitset pet flags
 */
 TEST_F(PetTest, PetComponentFlagTest) {
+	using enum PetFlag;
+
 	// Test setting and reading single flags, exclusively
 	petComponent->SetOnlyFlag(NONE);
 	ASSERT_TRUE(petComponent->HasOnlyFlag(NONE));

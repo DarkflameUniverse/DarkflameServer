@@ -26,7 +26,7 @@ enum class PetAiState : uint8_t {
 /*
 * The type of object the pet is interacting with
 */
-enum PetInteractType : uint8_t {
+enum class PetInteractType : uint8_t {
 	none,		// Not interacting
 	treasure,	// Treasure dig
 	bouncer		// Bouncer switch
@@ -35,7 +35,7 @@ enum PetInteractType : uint8_t {
 /**
  * The flags governing the status of the pet: Governs the icon above their head and the interactions available
 */
-enum PetFlag : uint32_t {
+enum class PetFlag : uint32_t {
 	NONE,
 	IDLE = 1 << 0,			//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
 	UNKNOWN2 = 1 << 1,		//0x02,
@@ -49,14 +49,36 @@ enum PetFlag : uint32_t {
 	TAMEABLE = 1 << 26		//0x4000000
 };
 
-/*
-132 = 128 + 4
+/**
+ * Define bitwise operators for PetFlag (TODO: Encapsulate into proper class)
 */
+constexpr PetFlag operator|(const PetFlag lhs, const PetFlag rhs) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(static_cast<underlying_type>(lhs) | static_cast<underlying_type>(rhs));
+}
+
+constexpr PetFlag& operator|=(PetFlag& lhs, const PetFlag rhs) {
+    return lhs = lhs | rhs;
+}
+
+constexpr PetFlag operator&(const PetFlag lhs, const PetFlag rhs) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(static_cast<underlying_type>(lhs) & static_cast<underlying_type>(rhs));
+}
+
+constexpr PetFlag& operator&=(PetFlag& lhs, const PetFlag rhs) {
+    return lhs = lhs & rhs;
+}
+
+constexpr PetFlag operator~(const PetFlag flag) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(~static_cast<underlying_type>(flag));
+}
 
 /**
  * The pet emote animation ids that can used in PetComponent::Command()
 */
-enum PetEmote : int32_t {
+enum class PetEmote : int32_t {
 	ActivateSwitch = 201,
 	DigTreasure,
 	Bounce
@@ -96,42 +118,52 @@ public:
 	/**
 	 * Gets the AI state of the pet
 	*/
-	PetAiState GetPetAiState() { return m_State; };
+	PetAiState GetPetAiState() const { return m_State; }
 
 	/**
 	 * Sets one or more pet flags
 	 * @param flag PetFlag(s) to set
 	*/
 	template <typename... varArg>
-	void SetFlag(varArg... flag) { m_Flags |= (static_cast<uint32_t>(flag) | ...); };
+	void SetFlag(varArg... flag) {
+		m_Flags |= (flag | ...); 
+	}
 
 	/**
 	 * Sets the pet to ONLY have the specified flag(s), clearing all others
 	 * @param flag PetFlag(s) to set exclusively
 	*/
 	template <typename... varArg>
-	void SetOnlyFlag(varArg... flag) { m_Flags = (static_cast<uint32_t>(flag) | ...); };
+	void SetOnlyFlag(varArg... flag) {
+		m_Flags = (flag | ...);
+	}
 
 	/**
 	 * Unsets one or more pet flags
 	 * @param flag PetFlag(s) to unset
 	*/
 	template <typename... varArg>
-	void UnsetFlag(varArg... flag) { m_Flags &= ~(static_cast<uint32_t>(flag) | ...); };
+	void UnsetFlag(varArg... flag) {
+		m_Flags &= ~(flag | ...);
+	}
 
 	/**
 	 * Returns true if the pet has all the specified flag(s)
 	 * @param flag PetFlag(s) to check
 	*/
 	template <typename... varArg>
-	const bool HasFlag(varArg... flag) { return (m_Flags & (static_cast<uint32_t>(flag) | ...)) == (static_cast<uint32_t>(flag) | ...); };
+	bool HasFlag(varArg... flag) const {
+		return (m_Flags & (flag | ...)) == (flag | ...);
+	}
 
 	/**
 	 * Returns true if the pet has ONLY the specified flag(s)
 	 * @param flag PetFlag(s) to check if the pet has exclusively
 	*/
 	template <typename... varArg>
-	const bool HasOnlyFlag(varArg... flag) { return m_Flags == (static_cast<uint32_t>(flag) | ...); };
+	bool HasOnlyFlag(varArg... flag) const {
+		return m_Flags == (flag | ...);
+	}
 
 	/**
 	 * Governs the pet update loop
@@ -526,7 +558,7 @@ private:
 	/**
 	 * The current flags of the pet (e.g. tamable, tamed, etc).
 	 */
-	uint32_t m_Flags;
+	PetFlag m_Flags;
 
 	/**
 	 * The current state of the pet AI
