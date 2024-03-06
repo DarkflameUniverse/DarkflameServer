@@ -82,7 +82,7 @@ const LootTableEntries& CDLootTableTable::GetTable(const uint32_t tableId) {
 		entries[tableId].emplace_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
-	SortTable(entries.at(tableId));
+	SortTable(entries[tableId]);
 
 	return entries.at(tableId);
 }
