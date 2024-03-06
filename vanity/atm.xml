@@ -1,23 +1,40 @@
 <objects>
-    <object lot="13538">
-        <config>
-            <key data="CheckPrecondition=0:168"/>
-        </config>
-        <locations>
-            <location zone="1100" x="248.792" y="381.869" z="-181.114" rw="0.782761" rx="0.00" ry="-0.622322" rz="0.00" />
-            <location zone="1100" x="471.545" y="413.979" z="27.176" rw="0.874378" rx="0.00" ry="-0.485246" rz="0.00" />
-            <location zone="1200" x="51.663" y="291.371" z="-74.650" rw="-0.446235" rx="0.00" ry="0.894916" rz="0.00" />
-            <location zone="1200" x="203.348" y="259.136" z="-543.400" rw="0.481554" rx="0.00" ry="0.876416" rz="0.00" />
-            <location zone="1201" x="46.537" y="233.137" z="-311.395" rw="0.780747" rx="0.00" ry="-0.624847" rz="0.00" />
-            <location zone="1260" x="-255.991" y="535.731" z="322.299" rw="0.683777" rx="0.00" ry="-0.729691" rz="0.00" />
-            <location zone="1600" x="85.210" y="1526.810" z="314.816" rw="-0.159486" rx="0.00" ry="0.987200" rz="0.00" />
-            <location zone="1700" x="-256.293" y="1035.092" z="109.761" rw="0.00" rx="0.00" ry="1" rz="0.00" />
-            <location zone="1300" x="-199.258" y="246.874" z="-101.174" rw="-0.219711" rx="0.00" ry="0.975565" rz="0.00" />
-            <location zone="1300" x="51.848" y="329.0" z="561.114" rw="-0.277656" rx="0.00" ry="0.960681" rz="0.00" />
-            <location zone="1300" x="363.259" y="259.367" z="-210.834" rw="0.961918" rx="0.00" ry="-0.273340" rz="0.00" />
-            <location zone="1400" x="-194.288" y="381.275" z="-93.292" rw="0.935135" rx="0.00" ry="0.354292" rz="0.00" />
-            <location zone="1400" x="-696.957" y="-3.206" z="-452.441" rw="0.884105" rx="0.00" ry="0.467288" rz="0.00" />
-            <location zone="1800" x="-222.634" y="92.693" z="568.392" rw="-0.435024" rx="0.00" ry="0.900419" rz="0.00" />
-        </locations>
-    </object>
+	<object lot="13538">
+		<config>
+			<!--Precondition 168 means the player must complete mission 1203 before being able to use an ATM-->
+			<key>CheckPrecondition=0:168</key>
+		</config>
+		<locations>
+			<!--AG Sentinel Base Camp-->
+			<location zone="1100" x="248.792" y="381.781" z="-181.114" rw="0.782761" rx="0.00" ry="-0.622322" rz="0.00" />
+			<!--AG Picnic Area-->
+			<location zone="1100" x="471.545" y="413.719" z="27.176" rw="0.874378" rx="0.00" ry="-0.485246" rz="0.00" />
+			<!--NS Nimbus Plaza-->
+			<location zone="1200" x="51.663" y="291.371" z="-74.650" rw="-0.446235" rx="0.00" ry="0.894916" rz="0.00" />
+			<!--NS Red Blocks-->
+			<location zone="1200" x="203.348" y="259.0" z="-543.400" rw="0.481554" rx="0.00" ry="0.876416" rz="0.00" />
+			<!--PC by Lighthouse-->
+			<location zone="1201" x="46.537" y="232.958" z="-311.395" rw="0.780747" rx="0.00" ry="-0.624847" rz="0.00" />
+			<!--Frostburgh-->
+			<location zone="1260" x="-255.991" y="535.731" z="322.299" rw="0.683777" rx="0.00" ry="-0.729691" rz="0.00" />
+			<!--Starbase 3001-->
+			<location zone="1600" x="93.572" y="1526.970" z="311.905" rw="-0.159486" rx="0.00" ry="0.987200" rz="0.00" />
+			<!--LEGO Club-->
+			<location zone="1700" x="-256.293" y="1035.092" z="109.761" rw="0.00" rx="0.00" ry="1" rz="0.00" />
+			<!--GF Ravine-->
+			<location zone="1300" x="-199.258" y="246.874" z="-101.174" rw="-0.219711" rx="0.00" ry="0.975565" rz="0.00" />
+			<!--GF Race Place-->
+			<location zone="1300" x="51.848" y="329.0" z="561.114" rw="-0.277656" rx="0.00" ry="0.960681" rz="0.00" />
+			<!--GF Pirate Camp-->
+			<location zone="1300" x="363.259" y="259.367" z="-210.834" rw="0.961918" rx="0.00" ry="-0.273340" rz="0.00" />
+			<!--FV Great Tree-->
+			<location zone="1400" x="-194.288" y="381.275" z="-93.292" rw="0.935135" rx="0.00" ry="0.354292" rz="0.00" />
+			<!--FV Paradox Refinery-->
+			<location zone="1400" x="-696.957" y="-3.206" z="-452.441" rw="0.884105" rx="0.00" ry="0.467288" rz="0.00" />
+			<!--CP Sentinel Point Zeta-->
+			<location zone="1800" x="-222.634" y="92.373" z="568.392" rw="-0.435024" rx="0.00" ry="0.900419" rz="0.00" />
+			<!--NJ Monastery Courtyard-->
+			<location zone="2000" x="-63.487" y="208.270" z="379.195" rw="0.00" rx="0.00" ry="1" rz="0.00" />
+		</locations>
+	</object>
 </objects>

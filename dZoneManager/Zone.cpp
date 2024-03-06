@@ -419,7 +419,7 @@ void Zone::LoadPath(std::istream& file) {
 
 		if (path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
-			BinaryIO::BinaryRead(file, waypoint.movingPlatform.speed);
+			BinaryIO::BinaryRead(file, waypoint.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
 			if (path.pathVersion >= 13) {
 				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.departSound, BinaryIO::ReadType::WideString);
@@ -438,7 +438,7 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
 			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		} else if (path.pathType == PathType::Rail) {
-			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.speed);
 		}
 
 		// object LDF configs
