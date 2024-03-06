@@ -841,11 +841,9 @@ bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 
 std::vector<ScriptComponent*> Entity::GetScriptComponents() {
 	std::vector<ScriptComponent*> comps;
-	for (std::pair<eReplicaComponentType, void*> p : m_Components) {
-		if (p.first == eReplicaComponentType::SCRIPT) {
-			comps.push_back(static_cast<ScriptComponent*>(p.second));
-		}
-	}
+
+	auto* scriptComponent = GetComponent<ScriptComponent>();
+	if (scriptComponent) comps.push_back(scriptComponent);
 
 	return comps;
 }
@@ -2126,9 +2124,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
 				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
 				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
-				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
@@ -2139,9 +2135,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
 				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
 				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
-				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 			}
 			Game::entityManager->SerializeEntity(possassableEntity);
 		}
@@ -2163,9 +2157,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetIsOnGround(update.onGround);
 	controllablePhysicsComponent->SetIsOnRail(update.onRail);
 	controllablePhysicsComponent->SetVelocity(update.velocity);
-	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
 	auto* ghostComponent = GetComponent<GhostComponent>();
 	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
@@ -2196,10 +2188,4 @@ void Entity::SetRespawnPos(const NiPoint3& position) {
 void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
-}
-
-void Entity::SetScale(const float scale) {
-	if (scale == m_Scale) return;
-	m_Scale = scale;
-	Game::entityManager->SerializeEntity(this);
 }

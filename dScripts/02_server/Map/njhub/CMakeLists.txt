@@ -28,7 +28,7 @@ foreach(file ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB_BOSS_INSTANCE})
 	set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB} "boss_instance/${file}")
 endforeach()
 
-add_library(dScriptsServerMapNJHub ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB})
+add_library(dScriptsServerMapNJHub OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB})
 target_include_directories(dScriptsServerMapNJHub PUBLIC "." "boss_instance")
 target_link_libraries(dScriptsServerMapNJHub
 	dScriptsServerPets 
