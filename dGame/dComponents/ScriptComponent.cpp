@@ -41,7 +41,7 @@ void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 	}
 }
 
-CppScripts::Script* ScriptComponent::GetScript() {
+CppScripts::Script* const ScriptComponent::GetScript() {
 	return m_Script;
 }
 

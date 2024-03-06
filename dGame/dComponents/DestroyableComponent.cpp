@@ -785,16 +785,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerDied(zoneControl, m_Parent);
-		}
+		if (zoneControl) zoneControl->GetScript()->OnPlayerDied(zoneControl, m_Parent);
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerDied(scriptEntity, m_Parent);
-				}
+				scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_Parent);
 			}
 		}
 	}
