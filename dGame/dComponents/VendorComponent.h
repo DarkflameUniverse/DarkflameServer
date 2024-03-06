@@ -49,7 +49,7 @@ public:
 
 	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
-protected:
+private:
 	void HandleMrReeCameras();
 	bool SetupItem(LOT item);
 	float m_BuyScalar = 0.0f;
