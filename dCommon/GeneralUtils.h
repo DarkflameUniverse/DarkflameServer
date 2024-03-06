@@ -264,8 +264,8 @@ namespace GeneralUtils {
 	 * @returns The enum entry's value in its underlying type
 	*/
 	template <Enum eType>
-	constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) noexcept {
-		return static_cast<typename std::underlying_type_t<eType>>(entry);
+	constexpr std::underlying_type_t<eType> ToUnderlying(const eType entry) noexcept {
+		return static_cast<std::underlying_type_t<eType>>(entry);
 	}
 
 	// on Windows we need to undef these or else they conflict with our numeric limits calls
