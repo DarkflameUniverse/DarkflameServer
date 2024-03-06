@@ -18,7 +18,7 @@ foreach(file ${DSCRIPTS_SOURCES_ZONE_PROPERTY})
 	set(DSCRIPTS_SOURCES_ZONE ${DSCRIPTS_SOURCES_ZONE} "PROPERTY/${file}")
 endforeach()
 
-add_library(dScriptsZone STATIC ${DSCRIPTS_SOURCES_ZONE})
+add_library(dScriptsZone OBJECT ${DSCRIPTS_SOURCES_ZONE})
 target_include_directories(dScriptsZone PUBLIC "."
 	"AG"
 	"LUPs"
