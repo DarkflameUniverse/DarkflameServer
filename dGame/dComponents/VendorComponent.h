@@ -26,7 +26,7 @@ public:
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	void OnUse(Entity* originator) override;
-	void RefreshInventory(bool isCreation = false);
+	virtual void RefreshInventory(bool isCreation = false);
 	void SetupConstants();
 	bool SellsItem(const LOT item) const;
 	float GetBuyScalar() const { return m_BuyScalar; }
@@ -49,7 +49,7 @@ public:
 
 	void Buy(Entity* buyer, LOT lot, uint32_t count);
 
-private:
+protected:
 	void HandleMrReeCameras();
 	bool SetupItem(LOT item);
 	float m_BuyScalar = 0.0f;
