@@ -77,7 +77,7 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
-#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, serializes everything
+#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, forces all libraries to be built in series, which will slow down the build process
 
 # TODO make this not have to override the build type directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
@@ -215,12 +215,9 @@ add_subdirectory(thirdparty)
 
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
-	"dChatFilter"
-
 	"dPhysics"
 
 	"dNavigation"
-	"dNavigation/dTerrain"
 
 	"dNet"
 
@@ -240,6 +237,7 @@ set(INCLUDED_DIRECTORIES
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
+# TODO: Should probably not do this.
 if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
@@ -250,7 +248,6 @@ foreach(dir ${INCLUDED_DIRECTORIES})
 endforeach()
 
 # Add linking directories:
-# link_directories(${PROJECT_BINARY_DIR})
 if (UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()

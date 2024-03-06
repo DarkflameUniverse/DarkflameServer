@@ -14,6 +14,7 @@ file(COPY ${GAMEMESSAGE_TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(dGameTests ${DGAMETEST_SOURCES})
 add_dependencies(dGameTests conncpp_tests)
 
+# Apple needs some special linkage for the mariadb connector for tests.
 if(APPLE)
 add_custom_command(TARGET dGameTests POST_BUILD
 	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests

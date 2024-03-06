@@ -75,13 +75,8 @@ target_include_directories(dComponents PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct Loot.h
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # via BouncerComponent.cpp, ActivityComponent.cpp
+	"${PROJECT_SOURCE_DIR}/dChatFilter" # via PetComponent.cpp
 )
 target_precompile_headers(dComponents REUSE_FROM dGameBase)
-
-# INTERFACE link w/o dependency
-#set_property(TARGET dComponents APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-#	dUtilities dCommon dBehaviors dChatFilter dMission dInventory
-#	dPhysics
-#)
 
 target_link_libraries(dComponents INTERFACE dBehaviors)
