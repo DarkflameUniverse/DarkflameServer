@@ -26,6 +26,6 @@ class CDObjectsTable : public CDTable<CDObjectsTable, std::map<uint32_t, CDObjec
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by ID
-	const CDObjects& GetByID(const uint32_t LOT);
+	const CDObjects& GetByID(const uint32_t lot);
 };
 
