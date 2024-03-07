@@ -299,8 +299,6 @@
 
 // WBL scripts
 #include "WblGenericZone.h"
-#include "LupGenericInteract.h"
-#include "WblRobotCitizen.h"
 
 // Alpha Scripts
 #include "TriggerGas.h"
@@ -320,6 +318,8 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 #include "VisToggleNotifierServer.h"
+#include "LupGenericInteract.h"
+#include "WblRobotCitizen.h"
 
 namespace {
 	// This is in the translation unit instead of the header to prevent wierd linker errors
