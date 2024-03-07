@@ -649,8 +649,6 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
 		script = new ActMine();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua")
-		script = new WanderingVendor();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -897,10 +895,6 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 	// WBL
 	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
 		script = new WblGenericZone();
-	else if (scriptName == "scripts\\ai\\WILD\\L_LUP_generic_interact.lua")
-		script = new LupGenericInteract();
-	else if (scriptName.rfind("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizen", 0) == 0)
-		script = new WblRobotCitizen();
 
 	// Alpha
 	if (scriptName == "scripts\\ai\\FV\\L_TRIGGER_GAS.lua")
