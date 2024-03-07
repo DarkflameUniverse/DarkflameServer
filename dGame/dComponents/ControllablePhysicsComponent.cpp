@@ -21,7 +21,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 	m_InJetpackMode = false;
 	m_IsOnGround = true;
 	m_IsOnRail = false;
-	m_DirtyVelocity = true;
 	m_dpEntity = nullptr;
 	m_Static = false;
 	m_SpeedMultiplier = 1;
@@ -137,21 +136,23 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 		outBitStream.Write(m_IsOnGround);
 		outBitStream.Write(m_IsOnRail);
 
-		outBitStream.Write(isVelocityZero);
-		if (isVelocityZero) {
+		bool isNotZero = m_Velocity != NiPoint3Constant::ZERO;
+		outBitStream.Write(isNotZero);
+		if (isNotZero) {
 			outBitStream.Write(m_Velocity.x);
 			outBitStream.Write(m_Velocity.y);
 			outBitStream.Write(m_Velocity.z);
 		}
 
-		outBitStream.Write(isAngularVelocityZero);
-		if (isAngularVelocityZero) {
+		isNotZero = m_AngularVelocity != NiPoint3Constant::ZERO;
+		outBitStream.Write(isNotZero);
+		if (isNotZero) {
 			outBitStream.Write(m_AngularVelocity.x);
 			outBitStream.Write(m_AngularVelocity.y);
 			outBitStream.Write(m_AngularVelocity.z);
 		}
 
-		outBitStream.Write0(); // LocalSpaceInfo
+		outBitStream.Write0();
 		if (!bIsInitialUpdate) {
 			m_DirtyPosition = false;
 			outBitStream.Write(m_IsTeleporting);
@@ -213,9 +214,7 @@ void ControllablePhysicsComponent::SetRotation(const NiQuaternion& rot) {
 }
 
 void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
-	if (m_Static || m_Velocity == vel) {
-		return;
-	}
+	if (m_Static || m_Velocity == vel) return;
 
 	m_Velocity = vel;
 	m_DirtyPosition = true;
@@ -224,22 +223,20 @@ void ControllablePhysicsComponent::SetVelocity(const NiPoint3& vel) {
 }
 
 void ControllablePhysicsComponent::SetAngularVelocity(const NiPoint3& vel) {
-	if (m_Static || m_AngularVelocity == vel) {
-		return;
-	}
+	if (m_Static || m_AngularVelocity == vel) return;
 
 	m_AngularVelocity = vel;
 	m_DirtyPosition = true;
 }
 
 void ControllablePhysicsComponent::SetIsOnGround(bool val) {
-	if (val == m_IsOnGround) return;
+	if (m_IsOnGround == val) return;
 	m_DirtyPosition = true;
 	m_IsOnGround = val;
 }
 
 void ControllablePhysicsComponent::SetIsOnRail(bool val) {
-	if (val == m_IsOnRail) return;
+	if (m_IsOnRail == val) return;
 	m_DirtyPosition = true;
 	m_IsOnRail = val;
 }

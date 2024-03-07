@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMissionTasks {
 	uint32_t id;                //!< The Mission ID that the task belongs to
 	UNUSED(uint32_t locStatus);         //!< ???
@@ -25,7 +27,7 @@ public:
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionTasks> Query(std::function<bool(CDMissionTasks)> predicate);
 
-	std::vector<CDMissionTasks*> GetByMissionID(uint32_t missionID);
+	std::vector<CDMissionTasks*> GetByMissionID(const uint32_t missionID);
 
 	// TODO: Remove this and replace it with a proper lookup function.
 	const CDTable::StorageType& GetEntries() const;

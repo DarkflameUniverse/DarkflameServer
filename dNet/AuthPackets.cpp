@@ -8,7 +8,7 @@
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
 #include "GeneralUtils.h"
-#include "ClientVersion.h"
+#include "dClient/ClientVersion.h"
 
 #include <bcrypt/BCrypt.hpp>
 
@@ -229,7 +229,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	RakNet::BitStream loginResponse;
 	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
 
-	loginResponse.Write<uint8_t>(GeneralUtils::CastUnderlyingType(responseCode));
+	loginResponse.Write(responseCode);
 
 	// Event Gating
 	loginResponse.Write(LUString(Game::config->GetValue("event_1")));

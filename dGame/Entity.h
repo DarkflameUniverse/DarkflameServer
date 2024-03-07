@@ -146,7 +146,8 @@ public:
 
 	void AddComponent(eReplicaComponentType componentId, Component* component);
 
-	std::vector<ScriptComponent*> GetScriptComponents();
+	// This is expceted to never return nullptr, an assert checks this.
+	CppScripts::Script* const GetScript();
 
 	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
@@ -295,7 +296,8 @@ public:
 
 	void ProcessPositionUpdate(PositionUpdate& update);
 
-	void SetScale(const float scale);
+	// Scale will only be communicated to the client when the construction packet is sent
+	void SetScale(const float scale) { m_Scale = scale; };
 
 protected:
 	LWOOBJID m_ObjectID;

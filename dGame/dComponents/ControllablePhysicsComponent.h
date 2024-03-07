@@ -299,11 +299,6 @@ private:
 	dpEntity* m_dpEntity;
 
 	/**
-	 * Whether or not the velocity is dirty, forcing a serialization of the velocity
-	 */
-	bool m_DirtyVelocity;
-
-	/**
 	 * The current velocity of the entity
 	 */
 	NiPoint3 m_Velocity;

@@ -58,7 +58,7 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 		CDLootTable entry;
 		uint32_t lootTableIndex = tableData.getIntField("LootTableIndex", -1);
 
-		entries[lootTableIndex].push_back(ReadRow(tableData));
+		entries[lootTableIndex].emplace_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 	for (auto& [id, table] : entries) {
@@ -66,7 +66,7 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 	}
 }
 
-const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
+const LootTableEntries& CDLootTableTable::GetTable(const uint32_t tableId) {
 	auto& entries = GetEntriesMutable();
 	auto itr = entries.find(tableId);
 	if (itr != entries.end()) {
@@ -79,7 +79,7 @@ const LootTableEntries& CDLootTableTable::GetTable(uint32_t tableId) {
 
 	while (!tableData.eof()) {
 		CDLootTable entry;
-		entries[tableId].push_back(ReadRow(tableData));
+		entries[tableId].emplace_back(ReadRow(tableData));
 		tableData.nextRow();
 	}
 	SortTable(entries[tableId]);

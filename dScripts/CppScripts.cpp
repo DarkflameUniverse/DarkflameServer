@@ -320,18 +320,22 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 #include "VisToggleNotifierServer.h"
+#include "LupGenericInteract.h"
+#include "WblRobotCitizen.h"
 
 namespace {
-	InvalidScript* invalidToReturn = new InvalidScript();
+	// This is in the translation unit instead of the header to prevent wierd linker errors
+	InvalidScript* const InvalidToReturn = new InvalidScript();
 	std::map<std::string, CppScripts::Script*> m_Scripts;
 };
 
-CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-	if (m_Scripts.find(scriptName) != m_Scripts.end()) {
-		return m_Scripts[scriptName];
+CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
+	auto itr = m_Scripts.find(scriptName);
+	if (itr != m_Scripts.end()) {
+		return itr->second;
 	}
 
-	Script* script = invalidToReturn;
+	Script* script = InvalidToReturn;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -550,7 +554,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	//PR:
 	else if (scriptName == "scripts\\client\\ai\\PR\\L_PR_WHISTLE.lua")
 		script = new PrWhistle();
-	else if (scriptName == "scripts\\02_server\\Map\\PR\\L_PR_SEAGULL_FLY.lua")
+	if (scriptName == "scripts\\02_server\\Map\\PR\\L_PR_SEAGULL_FLY.lua")
 		script = new PrSeagullFly();
 	else if (scriptName == "scripts\\ai\\PETS\\L_HYDRANT_SMASHABLE.lua")
 		script = new HydrantSmashable();
@@ -645,6 +649,8 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
 		script = new ActMine();
+	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua")
+		script = new WanderingVendor();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -729,7 +735,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new NTNaomiDirtServer();
 
 	//AM:
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
+	if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
 		script = new AmConsoleTeleportServer();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_FIN.lua")
 		script = new RandomSpawnerFin();
@@ -811,7 +817,7 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new Lieutenant();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_RAIN_OF_ARROWS.lua")
 		script = new RainOfArrows();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_CAVE_PRISON_CAGE.lua")
+	if (scriptName == "scripts\\02_server\\Map\\njhub\\L_CAVE_PRISON_CAGE.lua")
 		script = new CavePrisonCage();
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MONASTERY_BOSS_INSTANCE_SERVER.lua")
 		script = new NjMonastryBossInstance();
@@ -947,10 +953,14 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 		script = new WildNinjaStudent();
 	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
 		script = new WildNinjaSensei();
+	else if (scriptName == "scripts\\ai\\WILD\\L_LUP_generic_interact.lua")
+		script = new LupGenericInteract();
+	else if (scriptName.rfind("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizen", 0) == 0)
+		script = new WblRobotCitizen();
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
-	else if (script == invalidToReturn) {
+	else if (script == InvalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
 			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
@@ -963,13 +973,6 @@ CppScripts::Script* CppScripts::GetScript(Entity* parent, const std::string& scr
 	return script;
 }
 
-std::vector<CppScripts::Script*> CppScripts::GetEntityScripts(Entity* entity) {
-	std::vector<CppScripts::Script*> scripts;
-	std::vector<ScriptComponent*> comps = entity->GetScriptComponents();
-	for (ScriptComponent* scriptComp : comps) {
-		if (scriptComp != nullptr) {
-			scripts.push_back(scriptComp->GetScript());
-		}
-	}
-	return scripts;
+CppScripts::Script* const CppScripts::GetInvalidScript() {
+	return InvalidToReturn;
 }

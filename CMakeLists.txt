@@ -4,6 +4,8 @@ include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) # Set CMAKE visibility policy to NEW on project and subprojects
+set(CMAKE_CXX_VISIBILITY_PRESET hidden) # Set C++ symbol visibility to default to hidden
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file
@@ -77,6 +79,7 @@ endif()
 
 # Our output dir
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
+#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, forces all libraries to be built in series, which will slow down the build process
 
 # TODO make this not have to override the build type directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
@@ -89,6 +92,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+find_package(MariaDB)
 
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
@@ -179,7 +184,7 @@ file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PRO
 file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
-set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "root.xml" "dev-tribute.xml" "atm.xml")
+set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "root.xml" "dev-tribute.xml" "atm.xml" "demo.xml")
 
 foreach(file ${VANITY_FILES})
 	configure_file("${CMAKE_SOURCE_DIR}/vanity/${file}" "${CMAKE_BINARY_DIR}/vanity/${file}" COPYONLY)
@@ -202,39 +207,19 @@ foreach(file ${SQL_FILES})
 	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
+# Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
+if (APPLE)
+	include_directories("/usr/local/include/")
+endif()
+
+# Load all of our third party directories
+add_subdirectory(thirdparty)
+
 # Create our list of include directories
 set(INCLUDED_DIRECTORIES
-	"dCommon"
-	"dCommon/dClient"
-	"dCommon/dEnums"
-
-	"dChatFilter"
-
-	"dGame"
-	"dGame/dBehaviors"
-	"dGame/dComponents"
-	"dGame/dGameMessages"
-	"dGame/dInventory"
-	"dGame/dMission"
-	"dGame/dEntity"
-	"dGame/dPropertyBehaviors"
-	"dGame/dPropertyBehaviors/ControlBehaviorMessages"
-	"dGame/dUtilities"
-
 	"dPhysics"
 
 	"dNavigation"
-	"dNavigation/dTerrain"
-
-	"dZoneManager"
-
-	"dDatabase"
-	"dDatabase/CDClientDatabase"
-	"dDatabase/CDClientDatabase/CDClientTables"
-	"dDatabase/GameDatabase"
-	"dDatabase/GameDatabase/ITables"
-	"dDatabase/GameDatabase/MySQL"
-	"dDatabase/GameDatabase/MySQL/Tables"
 
 	"dNet"
 
@@ -254,6 +239,7 @@ set(INCLUDED_DIRECTORIES
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
+# TODO: Should probably not do this.
 if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
@@ -263,30 +249,10 @@ foreach(dir ${INCLUDED_DIRECTORIES})
 	include_directories(${PROJECT_SOURCE_DIR}/${dir})
 endforeach()
 
-if(NOT WIN32)
-	include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include/bcrypt")
-endif()
-
-include_directories("${PROJECT_SOURCE_DIR}/thirdparty/libbcrypt/include")
-
 # Add linking directories:
-link_directories(${PROJECT_BINARY_DIR})
-
-# Load all of our third party directories
-add_subdirectory(thirdparty)
 if (UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
-# Glob together all headers that need to be precompiled
-file(
-	GLOB HEADERS_DDATABASE
-	LIST_DIRECTORIES false
-	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables/*.h
-	${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables/*.h
-	${PROJECT_SOURCE_DIR}/thirdparty/SQLite/*.h
-)
-
 file(
 	GLOB HEADERS_DZONEMANAGER
 	LIST_DIRECTORIES false
@@ -321,7 +287,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "mariadbConnCpp" "magic_enum" "MD5")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "MariaDB::ConnCpp" "magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)
@@ -341,12 +307,6 @@ add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the ot
 target_precompile_headers(
 	dZoneManager PRIVATE
 	${HEADERS_DZONEMANAGER}
-)
-
-# Need to specify to use the CXX compiler language here or else we get errors including <string>.
-target_precompile_headers(
-	dDatabase PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${HEADERS_DDATABASE}>"
 )
 
 target_precompile_headers(

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __WANDERINGVENDOR__H__
+#define __WANDERINGVENDOR__H__
+
 #include "CppScripts.h"
 
 class WanderingVendor : public CppScripts::Script {
@@ -8,3 +10,4 @@ public:
 	void OnTimerDone(Entity* self, std::string timerName) override;
 };
 
+#endif  //!__WANDERINGVENDOR__H__

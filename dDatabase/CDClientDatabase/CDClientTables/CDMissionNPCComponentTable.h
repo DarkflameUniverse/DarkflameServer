@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMissionNPCComponent {
 	uint32_t id;                //!< The ID
 	uint32_t missionID;         //!< The Mission ID
@@ -17,4 +19,3 @@ public:
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionNPCComponent> Query(std::function<bool(CDMissionNPCComponent)> predicate);
 };
-
