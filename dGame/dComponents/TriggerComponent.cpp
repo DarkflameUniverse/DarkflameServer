@@ -177,19 +177,25 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 	std::vector<Entity*> entities = {};
 
 	if (command->target == "self") entities.push_back(m_Parent);
-	else if (command->target == "zone") { /*TODO*/ } else if (command->target == "target" && optionalTarget) entities.push_back(optionalTarget);
-	else if (command->target == "targetTeam" && optionalTarget) {
+	else if (command->target == "zone") {
+		/*TODO*/
+	} else if (command->target == "target" && optionalTarget) {
+		entities.push_back(optionalTarget);
+	} else if (command->target == "targetTeam" && optionalTarget) {
 		auto* team = TeamManager::Instance()->GetTeam(optionalTarget->GetObjectID());
 		for (const auto memberId : team->members) {
 			auto* member = Game::entityManager->GetEntity(memberId);
 			if (member) entities.push_back(member);
 		}
-	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
-	else if (command->target == "allPlayers") {
+	} else if (command->target == "objGroup") {
+		entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
+	} else if (command->target == "allPlayers") {
 		for (auto* player : PlayerManager::GetAllPlayers()) {
 			entities.push_back(player);
 		}
-	} else if (command->target == "allNPCs") { /*UNUSED*/ }
+	} else if (command->target == "allNPCs") {
+		/*UNUSED*/
+	}
 
 	return entities;
 }
