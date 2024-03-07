@@ -17,6 +17,7 @@
 
 #include "eTriggerCommandType.h"
 #include "eTriggerEventType.h"
+#include "eWaypointCommandType.h"
 #include "dNavMesh.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
@@ -452,15 +453,23 @@ void Zone::LoadPath(std::istream& file) {
 				std::string value;
 				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
 
-				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+					// cause NetDevil puts spaces in things that don't need spaces
+					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
+					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
+					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
+					if (waypointCommand != eWaypointCommandType::INVALID) {
+						auto& command = waypoint.commands.emplace_back();
+						command.command = waypointCommand;
+						command.data = value;
+					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+					waypoint.config.emplace_back(LDFBaseData::DataFromString(parameter + "=" + value));
 				}
-				if (ldfConfig) waypoint.config.push_back(ldfConfig);
+
 			}
 		}
+
 		// We verify the waypoint heights against the navmesh because in many movement paths,
 		// the waypoint is located near 0 height, 
 		if (path.pathType == PathType::Movement) {
