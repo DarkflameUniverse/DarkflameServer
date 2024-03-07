@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMissionEmail {
 	uint32_t ID;
 	uint32_t messageType;

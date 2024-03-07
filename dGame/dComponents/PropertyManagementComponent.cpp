@@ -214,9 +214,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 	Database::Get()->InsertNewProperty(info, templateId, worldId);
 
 	auto* zoneControlObject = Game::zoneManager->GetZoneControlObject();
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControlObject)) {
-		script->OnZonePropertyRented(zoneControlObject, entity);
-	}
+	if (zoneControlObject) zoneControlObject->GetScript()->OnZonePropertyRented(zoneControlObject, entity);
 	return true;
 }
 

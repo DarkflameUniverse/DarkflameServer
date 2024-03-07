@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDObjects {
 	uint32_t id;                            //!< The LOT of the object
 	std::string name;                      //!< The internal name of the object
@@ -24,6 +26,6 @@ class CDObjectsTable : public CDTable<CDObjectsTable, std::map<uint32_t, CDObjec
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by ID
-	const CDObjects& GetByID(uint32_t LOT);
+	const CDObjects& GetByID(const uint32_t lot);
 };
 
