@@ -183,9 +183,7 @@ void MovingPlatformComponent::StartPathing() {
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
 	m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
-		}
+		this->m_Parent->GetScript()->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
 		});
 
 	m_Parent->AddCallbackTimer(travelNext, [this] {
@@ -295,9 +293,7 @@ void MovingPlatformComponent::ContinuePathing() {
 	const auto travelNext = subComponent->mWaitTime + travelTime;
 
 	m_Parent->AddCallbackTimer(travelTime, [subComponent, this] {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-			script->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
-		}
+		this->m_Parent->GetScript()->OnWaypointReached(m_Parent, subComponent->mNextWaypointIndex);
 		});
 
 	m_Parent->AddCallbackTimer(travelNext, [this] {

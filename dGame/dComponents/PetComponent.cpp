@@ -306,9 +306,7 @@ void PetComponent::OnUse(Entity* originator) {
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
 	// Notify the start of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 }
 
 void PetComponent::Update(float deltaTime) {
@@ -690,9 +688,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 	m_Tamer = LWOOBJID_EMPTY;
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
 }
 
 void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
@@ -731,9 +727,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
 }
 
 void PetComponent::StartTimer() {
@@ -782,9 +776,7 @@ void PetComponent::ClientFailTamingMinigame() {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
 }
 
 void PetComponent::Wander() {
