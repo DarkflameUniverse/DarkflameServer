@@ -320,8 +320,6 @@
 #include "WildNinjaSensei.h"
 #include "WildNinjaBricks.h"
 #include "VisToggleNotifierServer.h"
-#include "LupGenericInteract.h"
-#include "WblRobotCitizen.h"
 
 namespace {
 	// This is in the translation unit instead of the header to prevent wierd linker errors
@@ -649,6 +647,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 		script = new MailBoxServer();
 	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
 		script = new ActMine();
+	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua")
+		script = new WanderingVendor();
 
 	//Racing:
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
@@ -779,8 +779,6 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 		script = new AmBlueX();
 	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua")
 		script = new AmTeapotServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua")
-		script = new WanderingVendor();
 
 	// Ninjago
 	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua")
