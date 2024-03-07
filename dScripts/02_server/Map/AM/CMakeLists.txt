@@ -1,4 +1,4 @@
-set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
+set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM 
 	"AmConsoleTeleportServer.cpp"
 	"RandomSpawnerFin.cpp"
 	"RandomSpawnerPit.cpp"
@@ -17,7 +17,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_AM
 	"AmBlueX.cpp"
 	"AmTeapotServer.cpp"
 	"WanderingVendor.cpp"
-)
+	)
 
 add_library(dScriptsServerMapAM OBJECT ${DSCRIPTS_SOURCES_02_SERVER_MAP_AM})
 target_include_directories(dScriptsServerMapAM PUBLIC ".")
