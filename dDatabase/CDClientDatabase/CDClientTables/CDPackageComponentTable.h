@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDPackageComponent {
 	uint32_t id;
 	uint32_t LootMatrixIndex;

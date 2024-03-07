@@ -22,7 +22,7 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Missions");
 	while (!tableData.eof()) {
-		CDMissions entry;
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.defined_type = tableData.getStringField("defined_type", "");
 		entry.defined_subtype = tableData.getStringField("defined_subtype", "");
@@ -76,7 +76,6 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
 		entry.reward_bankinventory = tableData.getIntField("reward_bankinventory", -1);
 
-		entries.push_back(entry);
 		tableData.nextRow();
 	}
 	tableData.finalize();

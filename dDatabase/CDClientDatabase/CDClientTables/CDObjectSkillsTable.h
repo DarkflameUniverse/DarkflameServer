@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDObjectSkills {
 	uint32_t objectTemplate;        //!< The LOT of the item
 	uint32_t skillID;               //!< The Skill ID of the object

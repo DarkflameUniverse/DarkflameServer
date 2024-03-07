@@ -353,7 +353,6 @@ private:
 
 	/**
 	 * Pet information loaded from the CDClientDatabase
-	 * TODO: Switch to a reference when safe to do so
 	 */
 	CDPetComponent m_PetInfo;
 };
