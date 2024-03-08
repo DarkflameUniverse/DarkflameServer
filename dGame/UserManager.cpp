@@ -45,7 +45,7 @@ void UserManager::Initialize() {
 
 	auto fnStream = Game::assetManager->GetFile("names/minifigname_first.txt");
 	if (!fnStream) {
-		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string().c_str());
+		Log::Warn("Failed to load {:s}", (Game::assetManager->GetResPath() / "names/minifigname_first.txt").string());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 
@@ -57,7 +57,7 @@ void UserManager::Initialize() {
 
 	auto mnStream = Game::assetManager->GetFile("names/minifigname_middle.txt");
 	if (!mnStream) {
-		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string().c_str());
+		Log::Warn("Failed to load {:s}", (Game::assetManager->GetResPath() / "names/minifigname_middle.txt").string());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 
@@ -69,7 +69,7 @@ void UserManager::Initialize() {
 
 	auto lnStream = Game::assetManager->GetFile("names/minifigname_last.txt");
 	if (!lnStream) {
-		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string().c_str());
+		Log::Warn("Failed to load {:s}", (Game::assetManager->GetResPath() / "names/minifigname_last.txt").string());
 		throw std::runtime_error("Aborting initialization due to missing minifigure name file.");
 	}
 
@@ -82,7 +82,7 @@ void UserManager::Initialize() {
 	// Load our pre-approved names:
 	auto chatListStream = Game::assetManager->GetFile("chatplus_en_us.txt");
 	if (!chatListStream) {
-		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
+		Log::Warn("Failed to load {:s}", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string());
 		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
 	}
 
@@ -145,7 +145,7 @@ bool UserManager::DeleteUser(const SystemAddress& sysAddr) {
 
 void UserManager::DeletePendingRemovals() {
 	for (auto* user : m_UsersToDelete) {
-		LOG("Deleted user %i", user->GetAccountID());
+		Log::Info("Deleted user {:d}", user->GetAccountID());
 
 		delete user;
 	}
@@ -306,27 +306,27 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
 	if (!name.empty() && Database::Get()->GetCharacterInfo(name)) {
-		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
+		Log::Info("AccountID: {:d} chose unavailable name: {:s}", u->GetAccountID(), name);
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
 	if (Database::Get()->GetCharacterInfo(predefinedName)) {
-		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		Log::Info("AccountID: {:d} chose unavailable predefined name: {:s}", u->GetAccountID(), predefinedName);
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
 	}
 
 	if (name.empty()) {
-		LOG("AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
+		Log::Info("AccountID: {:d} is creating a character with predefined name: {:s}", u->GetAccountID(), predefinedName);
 	} else {
-		LOG("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
+		Log::Info("AccountID: {:d} is creating a character with name: {:s} (temporary: {:s})", u->GetAccountID(), name, predefinedName);
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
 	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) mutable {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
-			LOG("Character object id unavailable, check object_id_tracker!");
+			Log::Warn("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
 			return;
 		}
@@ -397,7 +397,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		LOG("Couldn't get user to delete character");
+		Log::Warn("Couldn't get user to delete character");
 		return;
 	}
 
@@ -406,7 +406,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	inStream.Read(objectID);
 	uint32_t charID = static_cast<uint32_t>(objectID);
 
-	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
+	Log::Info("Received char delete req for ID: {:d} ({:d})", objectID, charID);
 
 	bool hasCharacter = CheatDetection::VerifyLwoobjidIsSender(
 		objectID,
@@ -418,7 +418,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	if (!hasCharacter) {
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
-		LOG("Deleting character %i", charID);
+		Log::Info("Deleting character {:d}", charID);
 		Database::Get()->DeleteCharacter(charID);
 
 		CBITSTREAM;
@@ -433,7 +433,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		LOG("Couldn't get user to delete character");
+		Log::Warn("Couldn't get user to delete character");
 		return;
 	}
 
@@ -444,7 +444,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
 	uint32_t charID = static_cast<uint32_t>(objectID);
-	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
+	Log::Info("Received char rename request for ID: {:d} ({:d})", objectID, charID);
 
 	LUWString LUWStringName;
 	inStream.Read(LUWStringName);
@@ -479,12 +479,12 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		if (!Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(charID, newName);
-				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
+				Log::Info("Character {:s} now known as {:s}", character->GetName(), newName);
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
 				Database::Get()->SetPendingCharacterName(charID, newName);
-				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
+				Log::Info("Character {:s} has been renamed to {:s} and is pending approval by a moderator.", character->GetName(), newName);
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			}
@@ -492,7 +492,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
 		}
 	} else {
-		LOG("Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
+		Log::Warn("Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	}
 }
@@ -500,7 +500,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
-		LOG("Couldn't get user to log in character");
+		Log::Warn("Couldn't get user to log in character");
 		return;
 	}
 
@@ -519,7 +519,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		if (zoneID == LWOZONEID_INVALID) zoneID = 1000; //Send char to VE
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Log::Info("Transferring {:s} to Zone {:d} (Instance {:d} | Clone {:d} | Mythran Shift: {:s}) with IP {:s} and Port {:d}", character->GetName(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP, serverPort);
 			if (character) {
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
@@ -529,7 +529,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 			return;
 			});
 	} else {
-		LOG("Unknown error occurred when logging in a character, either hasCharacter or character variable != true.");
+		Log::Warn("Unknown error occurred when logging in a character, either hasCharacter or character variable != true.");
 	}
 }
 
@@ -546,7 +546,7 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 		tableData.finalize();
 		return shirtLOT;
 	} catch (const std::exception& ex) {
-		LOG("Could not look up shirt %i %i: %s", shirtColor, shirtStyle, ex.what());
+		Log::Warn("Could not look up shirt {:d} {:d}: {:s}", shirtColor, shirtStyle, ex.what());
 		// in case of no shirt found in CDServer, return problematic red vest.
 		return 4069;
 	}
@@ -564,7 +564,7 @@ uint32_t FindCharPantsID(uint32_t pantsColor) {
 		tableData.finalize();
 		return pantsLOT;
 	} catch (const std::exception& ex) {
-		LOG("Could not look up pants %i: %s", pantsColor, ex.what());
+		Log::Warn("Could not look up pants {:d}: {:s}", pantsColor, ex.what());
 		// in case of no pants color found in CDServer, return red pants.
 		return 2508;
 	}

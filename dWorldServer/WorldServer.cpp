@@ -150,9 +150,9 @@ int main(int argc, char** argv) {
 	Server::SetupLogger("WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(instanceID));
 	if (!Game::logger) return EXIT_FAILURE;
 
-	LOG("Starting World server...");
-	LOG("Version: %s", Game::projectVersion.c_str());
-	LOG("Compiled on: %s", __TIMESTAMP__);
+	Log::Info("Starting World server...");
+	Log::Info("Version: {:s}", Game::projectVersion);
+	Log::Info("Compiled on: {:s}", __TIMESTAMP__);
 
 	if (Game::config->GetValue("disable_chat") == "1") chatDisabled = true;
 
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
 		}
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		LOG("Got an error while setting up assets: %s", ex.what());
+		Log::Warn("Got an error while setting up assets: {:s}", ex.what());
 
 		return EXIT_FAILURE;
 	}
@@ -174,9 +174,9 @@ int main(int argc, char** argv) {
 	try {
 		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
-		LOG("Unable to connect to CDServer SQLite Database");
-		LOG("Error: %s", e.errorMessage());
-		LOG("Error Code: %i", e.errorCode());
+		Log::Warn("Unable to connect to CDServer SQLite Database");
+		Log::Warn("Error: {:s}", e.errorMessage());
+		Log::Warn("Error Code: %i", e.errorCode());
 		return EXIT_FAILURE;
 	}
 
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		LOG("Got an error while connecting to the database: %s", ex.what());
+		Log::Warn("Got an error while connecting to the database: {:s}", ex.what());
 		return EXIT_FAILURE;
 	}
 
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
 
 		delete md5;
 
-		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
+		Log::Info("FDB Checksum calculated as: {:s}", databaseChecksum);
 	}
 
 	uint32_t currentFrameDelta = highFrameDelta;
@@ -335,10 +335,10 @@ int main(int argc, char** argv) {
 
 		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
-			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			float_t ratioBeforeToAfter = static_cast<float>(currentFrameDelta) / static_cast<float>(newFrameDelta);
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
-			LOG_DEBUG("Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
+			Log::Debug("Framerate for zone/instance/clone {:d}/{:d}/{:d} is now {:d}", zoneID, instanceID, cloneID, currentFramerate);
 			logFlushTime = 15 * currentFramerate; // 15 seconds in frames
 			framesSinceLastFlush *= ratioBeforeToAfter;
 			shutdownTimeout = 10 * 60 * currentFramerate; // 10 minutes in frames
@@ -357,7 +357,7 @@ int main(int argc, char** argv) {
 
 		//Warning if we ran slow
 		if (deltaTime > currentFrameDelta) {
-			LOG("We're running behind, dT: %f > %f (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
+			Log::Info("We're running behind, dT: {:f} > {:d} (framerate {:d})", deltaTime, currentFrameDelta, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
@@ -365,7 +365,7 @@ int main(int argc, char** argv) {
 			framesSinceMasterDisconnect++;
 
 			if (framesSinceMasterDisconnect >= noMasterConnectionTimeout && !Game::ShouldShutdown()) {
-				LOG("Game loop running but no connection to master for %d frames, shutting down", noMasterConnectionTimeout);
+				Log::Warn("Game loop running but no connection to master for {:d} frames, shutting down!", noMasterConnectionTimeout);
 				Game::lastSignal = -1;
 			}
 		} else framesSinceMasterDisconnect = 0;
@@ -506,7 +506,7 @@ int main(int argc, char** argv) {
 			framesSinceMasterStatus++;
 
 			if (framesSinceMasterStatus >= 200) {
-				LOG("Finished loading world with zone (%i), ready up!", Game::server->GetZoneID());
+				Log::Info("Finished loading world with zone ({:d}), ready up!", Game::server->GetZoneID());
 
 				MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
 
@@ -528,13 +528,13 @@ int main(int argc, char** argv) {
 
 void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		LOG("Lost our connection to chat, zone(%i), instance(%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+		Log::Info("Lost our connection to chat, zone({:d}), instance({:d})", Game::server->GetZoneID(), Game::server->GetInstanceID());
 
 		chatConnected = false;
 	}
 
 	if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-		LOG("Established connection to chat, zone(%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+		Log::Info("Established connection to chat, zone({:d}), instance ({:d})", Game::server->GetZoneID(), Game::server->GetInstanceID());
 		Game::chatSysAddr = packet->systemAddress;
 
 		chatConnected = true;
@@ -630,20 +630,20 @@ void HandlePacketChat(Packet* packet) {
 				if (deleteTeam) {
 					TeamManager::Instance()->DeleteTeam(teamID);
 
-					LOG("Deleting team (%llu)", teamID);
+					Log::Info("Deleting team (%llu)", teamID);
 
 					break;
 				}
 
 				inStream.Read(lootOption);
 				inStream.Read(memberCount);
-				LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+				Log::Info("Updating team (%llu), ({:d}), ({:d})", teamID, lootOption, memberCount);
 				for (char i = 0; i < memberCount; i++) {
 					LWOOBJID member = LWOOBJID_EMPTY;
 					inStream.Read(member);
 					members.push_back(member);
 
-					LOG("Updating team member (%llu)", member);
+					Log::Info("Updating team member (%llu)", member);
 				}
 
 				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
@@ -652,7 +652,7 @@ void HandlePacketChat(Packet* packet) {
 			}
 
 			default:
-				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
+				Log::Info("Received an unknown chat internal: {:d}", static_cast<unsigned int>(packet->data[3]));
 			}
 		}
 	}
@@ -690,11 +690,11 @@ void HandleMasterPacket(Packet* packet) {
 
 		//Verify it:
 		if (userHash != it->second.hash) {
-			LOG("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
+			Log::Info("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: {:s} != master: {:s}", userHash, it->second.hash);
 			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		} else {
-			LOG("User %s authenticated with correct key.", username.GetAsString().c_str());
+			Log::Info("User {:s} authenticated with correct key.", username.GetAsString());
 
 			UserManager::Instance()->DeleteUser(packet->systemAddress);
 
@@ -740,7 +740,7 @@ void HandleMasterPacket(Packet* packet) {
 		CINSTREAM_SKIP_HEADER;
 		uint64_t requestID;
 		inStream.Read(requestID);
-		LOG("Got affirmation request of transfer %llu", requestID);
+		Log::Info("Got affirmation request of transfer %llu", requestID);
 
 		CBITSTREAM;
 
@@ -753,7 +753,7 @@ void HandleMasterPacket(Packet* packet) {
 
 	case eMasterMessageType::SHUTDOWN: {
 		Game::lastSignal = -1;
-		LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
+		Log::Info("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 		break;
 	}
 
@@ -763,24 +763,24 @@ void HandleMasterPacket(Packet* packet) {
 
 		LUString username;
 		inStream.Read(username);
-		LOG("Got new session alert for user %s", username.string.c_str());
+		Log::Info("Got new session alert for user {:s}", username.string);
 		//Find them:
-		User* user = UserManager::Instance()->GetUser(username.string.c_str());
+		User* user = UserManager::Instance()->GetUser(username.string);
 		if (!user) {
-			LOG("But they're not logged in?");
+			Log::Info("But they're not logged in?");
 			return;
 		}
 
 		//Check the key:
 		if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
-			LOG("But the session key is invalid!", username.string.c_str());
+			Log::Info("But the session key is invalid!", username.string.c_str());
 			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
 			return;
 		}
 		break;
 	}
 	default:
-		LOG("Unknown packet ID from master %i", int(packet->data[3]));
+		Log::Info("Unknown packet ID from master %i", int(packet->data[3]));
 	}
 }
 
@@ -810,7 +810,7 @@ void HandlePacket(Packet* packet) {
 
 			entity->GetCharacter()->SaveXMLToDatabase();
 
-			LOG("Deleting player %llu", entity->GetObjectID());
+			Log::Info("Deleting player %llu", entity->GetObjectID());
 
 			Game::entityManager->DestroyEntity(entity);
 		}
@@ -860,7 +860,7 @@ void HandlePacket(Packet* packet) {
 		if (Game::config->GetValue("check_fdb") == "1" && !databaseChecksum.empty()) {
 			auto accountInfo = Database::Get()->GetAccountInfo(username.GetAsString());
 			if (!accountInfo) {
-				LOG("Client's account does not exist in the database, aborting connection.");
+				Log::Info("Client's account does not exist in the database, aborting connection.");
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
 				return;
 			}
@@ -869,7 +869,7 @@ void HandlePacket(Packet* packet) {
 			if (clientDatabaseChecksum.string != databaseChecksum) {
 
 				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
-					LOG("Client's database checksum does not match the server's, aborting connection.");
+					Log::Info("Client's database checksum does not match the server's, aborting connection.");
 					std::vector<Stamp> stamps;
 
 					// Using the LoginResponse here since the UI is still in the login screen state
@@ -885,8 +885,8 @@ void HandlePacket(Packet* packet) {
 					args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
 
 					GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, packet->systemAddress);
-					LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
-						, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
+					Log::Info("Account ({:s}) with GmLevel ({:s}) does not have a matching FDB, but is a developer and will skip this check."
+						, username.GetAsString(), StringifiedEnum::ToString(accountInfo->maxGmLevel));
 				}
 			}
 		}
@@ -1008,7 +1008,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case eWorldMessageType::LEVEL_LOAD_COMPLETE: {
-		LOG("Received level load complete from user.");
+		Log::Info("Received level load complete from user.");
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (user) {
 			Character* c = user->GetLastUsedChar();
@@ -1047,15 +1047,15 @@ void HandlePacket(Packet* packet) {
 				case eCharacterVersion::RELEASE:
 					// TODO: Implement, super low priority
 				case eCharacterVersion::LIVE:
-					LOG("Updating Character Flags");
+					Log::Info("Updating Character Flags");
 					c->SetRetroactiveFlags();
 					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
 				case eCharacterVersion::PLAYER_FACTION_FLAGS:
-					LOG("Updating Vault Size");
+					Log::Info("Updating Vault Size");
 					player->RetroactiveVaultSize();
 					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
 				case eCharacterVersion::VAULT_SIZE:
-					LOG("Updaing Speedbase");
+					Log::Info("Updaing Speedbase");
 					levelComponent->SetRetroactiveBaseSpeed();
 					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 				case eCharacterVersion::UP_TO_DATE:
@@ -1084,11 +1084,11 @@ void HandlePacket(Packet* packet) {
 					LWOOBJID propertyId = LWOOBJID_EMPTY;
 					if (propertyInfo) propertyId = propertyInfo->id;
 					else {
-						LOG("Couldn't find property ID for zone %i, clone %i", zoneId, cloneId);
+						Log::Info("Couldn't find property ID for zone %i, clone %i", zoneId, cloneId);
 						goto noBBB;
 					}
 					for (auto& bbbModel : Database::Get()->GetUgcModels(propertyId)) {
-						LOG("Getting lxfml ugcID: %llu", bbbModel.id);
+						Log::Info("Getting lxfml ugcID: %llu", bbbModel.id);
 
 						bbbModel.lxfmlData.seekg(0, std::ios::end);
 						size_t lxfmlSize = bbbModel.lxfmlData.tellg();
@@ -1149,11 +1149,11 @@ void HandlePacket(Packet* packet) {
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 				}
 			} else {
-				LOG("Couldn't find character to log in with for user %s (%i)!", user->GetUsername().c_str(), user->GetAccountID());
+				Log::Warn("Couldn't find character to log in with for user {:s} (%i)!", user->GetUsername(), user->GetAccountID());
 				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
 			}
 		} else {
-			LOG("Couldn't get user for level load complete!");
+			Log::Warn("Couldn't get user for level load complete!");
 		}
 		break;
 	}
@@ -1163,7 +1163,7 @@ void HandlePacket(Packet* packet) {
 
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) {
-			LOG("Unable to get user to parse position update");
+			Log::Warn("Unable to get user to parse position update");
 			return;
 		}
 
@@ -1188,7 +1188,7 @@ void HandlePacket(Packet* packet) {
 		inStream.Read(size);
 
 		if (size > 20000) {
-			LOG("Tried to route a packet with a read size > 20000, so likely a false packet.");
+			Log::Warn("Tried to route a packet with a read size > 20000, so likely a false packet.");
 			return;
 		}
 
@@ -1221,14 +1221,14 @@ void HandlePacket(Packet* packet) {
 		// TODO: Find a good home for the logic in this case.
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) {
-			LOG("Unable to get user to parse chat moderation request");
+			Log::Warn("Unable to get user to parse chat moderation request");
 			return;
 		}
 
 		auto* entity = PlayerManager::GetPlayer(packet->systemAddress);
 
 		if (entity == nullptr) {
-			LOG("Unable to get player to parse chat moderation request");
+			Log::Warn("Unable to get player to parse chat moderation request");
 			return;
 		}
 
@@ -1296,7 +1296,7 @@ void HandlePacket(Packet* packet) {
 			// TODO: Find a good home for the logic in this case.
 			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 			if (!user) {
-				LOG("Unable to get user to parse chat message");
+				Log::Warn("Unable to get user to parse chat message");
 				return;
 			}
 
@@ -1307,12 +1307,12 @@ void HandlePacket(Packet* packet) {
 			std::string playerName = user->GetLastUsedChar()->GetName();
 			bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
 			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastUsedChar()->GetGMLevel()).empty();
-			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
+			Log::Debug("Msg: {:s} was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastChatMessageApproved());
 			if (!isOk) return;
 			if (!isOk && !isMythran) return;
 
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
-			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
+			Log::Info("{:s}: {:s}", playerName, sMessage);
 			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
 		}
 
@@ -1374,39 +1374,39 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const auto messageId = *reinterpret_cast<eWorldMessageType*>(&packet->data[3]);
-		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
-		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
+		const auto& messageId = reinterpret_cast<eWorldMessageType&>(packet->data[3]);
+		const auto messageIdString = StringifiedEnum::ToString(messageId);
+		Log::Info("Unknown world packet received: {:4d}, {:s}", GeneralUtils::ToUnderlying(messageId), messageIdString);
 	}
 }
 
 void WorldShutdownProcess(uint32_t zoneId) {
-	LOG("Saving map %i instance %i", zoneId, instanceID);
+	Log::Info("Saving map %i instance %i", zoneId, instanceID);
 	for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
 
 		auto* entity = PlayerManager::GetPlayer(player);
-		LOG("Saving data!");
+		Log::Info("Saving data!");
 		if (entity != nullptr && entity->GetCharacter() != nullptr) {
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			if (skillComponent != nullptr) {
 				skillComponent->Reset();
 			}
-			LOG("Saving character %s...", entity->GetCharacter()->GetName().c_str());
+			Log::Info("Saving character {:s}...", entity->GetCharacter()->GetName());
 			entity->GetCharacter()->SaveXMLToDatabase();
-			LOG("Character data for %s was saved!", entity->GetCharacter()->GetName().c_str());
+			Log::Info("Character data for {:s} was saved!", entity->GetCharacter()->GetName());
 		}
 	}
 
 	if (PropertyManagementComponent::Instance() != nullptr) {
-		LOG("Saving ALL property data for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+		Log::Info("Saving ALL property data for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 		PropertyManagementComponent::Instance()->Save();
 		Database::Get()->RemoveUnreferencedUgcModels();
-		LOG("ALL property data saved for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
+		Log::Info("ALL property data saved for zone %i clone %i!", zoneId, PropertyManagementComponent::Instance()->GetCloneId());
 	}
 
-	LOG("ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!", zoneId, instanceID);
+	Log::Info("ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!", zoneId, instanceID);
 
 	while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
@@ -1428,13 +1428,13 @@ void WorldShutdownSequence() {
 
 	if (!Game::logger) return;
 
-	LOG("Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
+	Log::Info("Zone (%i) instance (%i) shutting down outside of main loop!", Game::server->GetZoneID(), instanceID);
 	WorldShutdownProcess(Game::server->GetZoneID());
 	FinalizeShutdown();
 }
 
 void FinalizeShutdown() {
-	LOG("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
+	Log::Info("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), instanceID);
 
 	//Delete our objects here:
 	Metrics::Clear();

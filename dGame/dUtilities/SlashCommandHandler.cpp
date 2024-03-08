@@ -145,7 +145,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 			WorldPackets::SendGMLevelChange(sysAddr, success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
 			entity->SetGMLevel(level);
-			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
+			Log::Info("User {:s} ({:d}) has changed their GM level to {:d} for charID {:d}", user->GetUsername(), user->GetAccountID(), GeneralUtils::ToUnderlying(level), entity->GetObjectID());
 		}
 	}
 

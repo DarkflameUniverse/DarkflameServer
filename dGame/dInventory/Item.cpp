@@ -100,7 +100,7 @@ Item::Item(
 	if (isModMoveAndEquip) {
 		Equip();
 
-		LOG("Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
+		Log::Info("Move and equipped ({:d}) from ({:d})", this->lot, GeneralUtils::ToUnderlying(this->inventory->GetType()));
 
 		Game::entityManager->SerializeEntity(inventory->GetComponent()->GetParent());
 	}
@@ -355,7 +355,7 @@ void Item::UseNonEquip(Item* item) {
 				}
 			}
 		}
-		LOG_DEBUG("Player %llu %s used item %i", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
+		Log::Debug("Player {:d} {:s} used item {:d}", playerEntity->GetObjectID(), success ? "successfully" : "unsuccessfully", thisLot);
 		GameMessages::SendUseItemResult(playerInventoryComponent->GetParent(), thisLot, success);
 	}
 }
@@ -426,7 +426,7 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	auto file = Game::assetManager->GetFile(lxfmlPath.c_str());
 
 	if (!file) {
-		LOG("Failed to load %s to disassemble model into bricks, check that this file exists", lxfmlPath.c_str());
+		Log::Warn("Failed to load {:s} to disassemble model into bricks, check that this file exists", lxfmlPath);
 		return;
 	}
 
@@ -472,7 +472,7 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 		if (designID) {
 			const auto designId = GeneralUtils::TryParse<uint32_t>(designID);
 			if (!designId) {
-				LOG("Failed to parse designID %s", designID);
+				Log::Warn("Failed to parse designID {:s}", designID);
 				continue;
 			}
 			parts[designId.value()]++;

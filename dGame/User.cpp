@@ -38,7 +38,7 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 			Character* character = new Character(lastUsedCharacterId, this);
 			character->UpdateFromDatabase();
 			m_Characters.push_back(character);
-			LOG("Loaded %i as it is the last used char", lastUsedCharacterId);
+			Log::Info("Loaded {:d} as it is the last used char", lastUsedCharacterId);
 		}
 	}
 }
@@ -106,7 +106,7 @@ void User::UserOutOfSync() {
 	m_AmountOfTimesOutOfSync++;
 	if (m_AmountOfTimesOutOfSync > m_MaxDesyncAllowed) {
 		//YEET
-		LOG("User %s was out of sync %i times out of %i, disconnecting for suspected speedhacking.", m_Username.c_str(), m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
+		Log::Warn("User {:s} was out of sync {:d} times out of {:d}, disconnecting for suspected speedhacking.", m_Username, m_AmountOfTimesOutOfSync, m_MaxDesyncAllowed);
 		Game::server->Disconnect(this->m_SystemAddress, eServerDisconnectIdentifiers::PLAY_SCHEDULE_TIME_DONE);
 	}
 }

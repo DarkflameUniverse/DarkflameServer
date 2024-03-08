@@ -82,28 +82,28 @@ int main(int argc, char** argv) {
 	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
-	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
-	if (!dConfig::Exists("chatconfig.ini")) LOG("Could not find chatconfig.ini, using default settings");
-	if (!dConfig::Exists("masterconfig.ini")) LOG("Could not find masterconfig.ini, using default settings");
-	if (!dConfig::Exists("sharedconfig.ini")) LOG("Could not find sharedconfig.ini, using default settings");
-	if (!dConfig::Exists("worldconfig.ini")) LOG("Could not find worldconfig.ini, using default settings");
+	if (!dConfig::Exists("authconfig.ini")) Log::Info("Could not find authconfig.ini, using default settings");
+	if (!dConfig::Exists("chatconfig.ini")) Log::Info("Could not find chatconfig.ini, using default settings");
+	if (!dConfig::Exists("masterconfig.ini")) Log::Info("Could not find masterconfig.ini, using default settings");
+	if (!dConfig::Exists("sharedconfig.ini")) Log::Info("Could not find sharedconfig.ini, using default settings");
+	if (!dConfig::Exists("worldconfig.ini")) Log::Info("Could not find worldconfig.ini, using default settings");
 
 
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
 	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
-	LOG("Using net version %i", clientNetVersion);
+	Log::Info("Using net version {:d}", clientNetVersion);
 
-	LOG("Starting Master server...");
-	LOG("Version: %s", PROJECT_VERSION);
-	LOG("Compiled on: %s", __TIMESTAMP__);
+	Log::Info("Starting Master server...");
+	Log::Info("Version: {:s}", PROJECT_VERSION);
+	Log::Info("Compiled on: {:s}", __TIMESTAMP__);
 
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		LOG("Got an error while connecting to the database: %s", ex.what());
-		LOG("Migrations not run");
+		Log::Warn("Got an error while connecting to the database: {:s}", ex.what());
+		Log::Warn("Migrations not run");
 		return EXIT_FAILURE;
 	}
 
@@ -117,8 +117,8 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		LOG("Got an error while setting up assets: %s", ex.what());
-		LOG("Is the provided client_location in Windows Onedrive? If so, remove it from Onedrive.");
+		Log::Warn("Got an error while setting up assets: {:s}", ex.what());
+		Log::Warn("Is the provided client_location in Windows Onedrive? If so, remove it from Onedrive.");
 		return EXIT_FAILURE;
 	}
 
@@ -130,9 +130,9 @@ int main(int argc, char** argv) {
 	const bool resServerPathExists = std::filesystem::is_directory(resServerPath);
 
 	if (!resServerPathExists) {
-		LOG("%s does not exist, creating it.", (resServerPath).c_str());
+		Log::Info("{:s} does not exist, creating it.", (resServerPath).string());
 		if (!std::filesystem::create_directories(resServerPath)) {
-			LOG("Failed to create %s", (resServerPath).string().c_str());
+			Log::Warn("Failed to create {:s}", (resServerPath).string());
 			return EXIT_FAILURE;
 		}
 	}
@@ -140,24 +140,24 @@ int main(int argc, char** argv) {
 	if (!cdServerExists) {
 		if (oldCDServerExists) {
 			// If the file doesn't exist in the new CDServer location, copy it there.  We copy because we may not have write permissions from the previous directory.
-			LOG("CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
+			Log::Info("CDServer.sqlite is not located at resServer, but is located at res path.  Copying file...");
 			std::filesystem::copy_file(Game::assetManager->GetResPath() / "CDServer.sqlite", resServerPath / "CDServer.sqlite");
 		} else {
-			LOG("%s could not be found in resServer or res. Looking for %s to convert to sqlite.",
-				(resServerPath / "CDServer.sqlite").string().c_str(),
-				(Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
+			Log::Info("{:s} could not be found in resServer or res. Looking for {:s} to convert to sqlite.",
+				(resServerPath / "CDServer.sqlite").string(),
+				(Game::assetManager->GetResPath() / "cdclient.fdb").string());
 
 			auto cdclientStream = Game::assetManager->GetFile("cdclient.fdb");
 			if (!cdclientStream) {
-				LOG("Failed to load %s", (Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
+				Log::Warn("Failed to load {:s}", (Game::assetManager->GetResPath() / "cdclient.fdb").string());
 				throw std::runtime_error("Aborting initialization due to missing cdclient.fdb.");
 			}
 
-			LOG("Found %s.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").string().c_str());
+			Log::Info("Found {:s}.  Converting to SQLite", (Game::assetManager->GetResPath() / "cdclient.fdb").string());
 			Game::logger->Flush();
 
 			if (FdbToSqlite::Convert(resServerPath.string()).ConvertDatabase(cdclientStream) == false) {
-				LOG("Failed to convert fdb to sqlite.");
+				Log::Warn("Failed to convert fdb to sqlite.");
 				return EXIT_FAILURE;
 			}
 		}
@@ -167,9 +167,9 @@ int main(int argc, char** argv) {
 	try {
 		CDClientDatabase::Connect((BinaryPathFinder::GetBinaryDir() / "resServer" / "CDServer.sqlite").string());
 	} catch (CppSQLite3Exception& e) {
-		LOG("Unable to connect to CDServer SQLite Database");
-		LOG("Error: %s", e.errorMessage());
-		LOG("Error Code: %i", e.errorCode());
+		Log::Warn("Unable to connect to CDServer SQLite Database");
+		Log::Warn("Error: {:s}", e.errorMessage());
+		Log::Warn("Error Code: {:d}", e.errorCode());
 		return EXIT_FAILURE;
 	}
 
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
 
 		auto accountId = Database::Get()->GetAccountInfo(username);
 		if (accountId) {
-			LOG("Account with name \"%s\" already exists", username.c_str());
+			Log::Info("Account with name \"{:s}\" already exists", username);
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
@@ -215,9 +215,9 @@ int main(int argc, char** argv) {
 
 				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
-				LOG("Account \"%s\" password updated successfully!", username.c_str());
+				Log::Info("Account \"{:s}\" password updated successfully!", username);
 			} else {
-				LOG("Account \"%s\" was not updated.", username.c_str());
+				Log::Info("Account \"{:s}\" was not updated.", username);
 			}
 			return EXIT_SUCCESS;
 		}
@@ -244,11 +244,11 @@ int main(int argc, char** argv) {
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
 		} catch (sql::SQLException& e) {
-			LOG("A SQL error occurred!:\n %s", e.what());
+			Log::Warn("A SQL error occurred!:\n {:s}", e.what());
 			return EXIT_FAILURE;
 		}
 
-		LOG("Account created successfully!");
+		Log::Info("Account created successfully!");
 		return EXIT_SUCCESS;
 	}
 
@@ -383,14 +383,14 @@ int main(int argc, char** argv) {
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
-		LOG("A server has disconnected");
+		Log::Info("A server has disconnected");
 
 		//Since this disconnection is intentional, we'll just delete it as
 		//we'll start a new one anyway if needed:
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
-			LOG("Actually disconnected from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			Log::Info("Actually disconnected from zone {:d} clone {:d} instance {:d} port {:d}", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			Game::im->RemoveInstance(instance); //Delete the old
 		}
 
@@ -406,7 +406,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_CONNECTION_LOST) {
-		LOG("A server has lost the connection");
+		Log::Info("A server has lost the connection");
 
 		Instance* instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
@@ -431,7 +431,7 @@ void HandlePacket(Packet* packet) {
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 		switch (static_cast<eMasterMessageType>(packet->data[3])) {
 		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
-			LOG("A persistent ID req");
+			Log::Info("A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint64_t requestID = 0;
@@ -443,7 +443,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
-			LOG("Received zone transfer req");
+			Log::Info("Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 			uint64_t requestID = 0;
@@ -456,24 +456,24 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(zoneID);
 			inStream.Read(zoneClone);
 			if (shutdownSequenceStarted) {
-				LOG("Shutdown sequence has been started.  Not creating a new zone.");
+				Log::Info("Shutdown sequence has been started.  Not creating a new zone.");
 				break;
 			}
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				LOG("Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
+				Log::Info("Instance: {:d}/{:d}/{:d} -> {:d}", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
 			}
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
 			{
 				in->GetPendingRequests().push_back({ requestID, static_cast<bool>(mythranShift), packet->systemAddress });
-				LOG("Server not ready, adding pending request %llu %i %i", requestID, zoneID, zoneClone);
+				Log::Info("Server not ready, adding pending request {:d} {:d} {:d}", requestID, zoneID, zoneClone);
 				break;
 			}
 
 			//Instance is ready, transfer
-			LOG("Responding to transfer request %llu for zone %i %i", requestID, zoneID, zoneClone);
+			Log::Info("Responding to transfer request {:d} for zone {:d} {:d}", requestID, zoneID, zoneClone);
 			Game::im->RequestAffirmation(in, { requestID, static_cast<bool>(mythranShift), packet->systemAddress });
 			break;
 		}
@@ -534,7 +534,7 @@ void HandlePacket(Packet* packet) {
 				authServerMasterPeerSysAddr = copy;
 			}
 
-			LOG("Received server info, instance: %i port: %i", theirInstanceID, theirPort);
+			Log::Info("Received server info, instance: {:d} port: {:d}", theirInstanceID, theirPort);
 
 			break;
 		}
@@ -561,7 +561,7 @@ void HandlePacket(Packet* packet) {
 			}
 
 			activeSessions.insert(std::make_pair(sessionKey, username.string));
-			LOG("Got sessionKey %i for user %s", sessionKey, username.string.c_str());
+			Log::Info("Got sessionKey {:d} for user {:s}", sessionKey, username.string);
 			break;
 		}
 
@@ -569,7 +569,7 @@ void HandlePacket(Packet* packet) {
 			CINSTREAM_SKIP_HEADER;
 			LUWString username;
 			inStream.Read(username);
-			LOG("Requesting session key for %s", username.GetAsString().c_str());
+			Log::Info("Requesting session key for {:s}", username.GetAsString());
 			for (auto key : activeSessions) {
 				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
@@ -640,7 +640,7 @@ void HandlePacket(Packet* packet) {
 				password += character;
 			}
 
-			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			Game::im->CreatePrivateInstance(mapId, cloneId, password);
 
 			break;
 		}
@@ -665,9 +665,9 @@ void HandlePacket(Packet* packet) {
 				password += character;
 			}
 
-			auto* instance = Game::im->FindPrivateInstance(password.c_str());
+			auto* instance = Game::im->FindPrivateInstance(password);
 
-			LOG("Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
+			Log::Info("Join private zone: {:d} {:d} {:s} {:p}", requestID, mythranShift, password, fmt::ptr(instance));
 
 			if (instance == nullptr) {
 				return;
@@ -690,16 +690,16 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(zoneID);
 			inStream.Read(instanceID);
 
-			LOG("Got world ready %i %i", zoneID, instanceID);
+			Log::Info("Got world ready {:d} {:d}", zoneID, instanceID);
 
 			auto* instance = Game::im->FindInstance(zoneID, instanceID);
 
 			if (instance == nullptr) {
-				LOG("Failed to find zone to ready");
+				Log::Warn("Failed to find zone to ready");
 				return;
 			}
 
-			LOG("Ready zone %i", zoneID);
+			Log::Info("Ready zone {:d}", zoneID);
 			Game::im->ReadyInstance(instance);
 			break;
 		}
@@ -711,10 +711,10 @@ void HandlePacket(Packet* packet) {
 			int32_t zoneID;
 			inStream.Read(zoneID);
 			if (shutdownSequenceStarted) {
-				LOG("Shutdown sequence has been started.  Not prepping a new zone.");
+				Log::Info("Shutdown sequence has been started.  Not prepping a new zone.");
 				break;
 			} else {
-				LOG("Prepping zone %i", zoneID);
+				Log::Info("Prepping zone {:d}", zoneID);
 				Game::im->GetInstance(zoneID, false, 0);
 			}
 			break;
@@ -728,7 +728,7 @@ void HandlePacket(Packet* packet) {
 
 			inStream.Read(requestID);
 
-			LOG("Got affirmation of transfer %llu", requestID);
+			Log::Info("Got affirmation of transfer {:d}", requestID);
 
 			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
@@ -736,7 +736,7 @@ void HandlePacket(Packet* packet) {
 				return;
 
 			Game::im->AffirmTransfer(instance, requestID);
-			LOG("Affirmation complete %llu", requestID);
+			Log::Info("Affirmation complete {:d}", requestID);
 			break;
 		}
 
@@ -750,28 +750,28 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			LOG("Got shutdown response from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
+			Log::Info("Got shutdown response from zone {:d} clone {:d} instance {:d} port {:d}", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
 			instance->SetIsShuttingDown(true);
 			break;
 		}
 
 		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
-			LOG("Received shutdown universe command, shutting down in 10 minutes.");
+			Log::Info("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::universeShutdownRequested = true;
 			break;
 		}
 
 		default:
-			LOG("Unknown master packet ID from server: %i", packet->data[3]);
+			Log::Info("Unknown master packet ID from server: {:d}", packet->data[3]);
 		}
 	}
 }
 
 int ShutdownSequence(int32_t signal) {
 	if (!Game::logger) return -1;
-	LOG("Recieved Signal %d", signal);
+	Log::Info("Recieved Signal {:d}", signal);
 	if (shutdownSequenceStarted) {
-		LOG("Duplicate Shutdown Sequence");
+		Log::Info("Duplicate Shutdown Sequence");
 		return -1;
 	}
 
@@ -787,11 +787,11 @@ int ShutdownSequence(int32_t signal) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-		LOG("Triggered master shutdown");
+		Log::Info("Triggered master shutdown");
 	}
 
 	PersistentIDManager::SaveToDatabase();
-	LOG("Saved ObjectIDTracker to DB");
+	Log::Info("Saved ObjectIDTracker to DB");
 
 	// A server might not be finished spinning up yet, remove all of those here.
 	for (auto* instance : Game::im->GetInstances()) {
@@ -804,7 +804,7 @@ int ShutdownSequence(int32_t signal) {
 		instance->SetIsShuttingDown(true);
 	}
 
-	LOG("Attempting to shutdown instances, max 60 seconds...");
+	Log::Info("Attempting to shutdown instances, max 60 seconds...");
 
 	auto t = std::chrono::high_resolution_clock::now();
 	uint32_t framesSinceShutdownStart = 0;
@@ -832,7 +832,7 @@ int ShutdownSequence(int32_t signal) {
 		}
 
 		if (allInstancesShutdown && authServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS && chatServerMasterPeerSysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-			LOG("Finished shutting down MasterServer!");
+			Log::Info("Finished shutting down MasterServer!");
 			break;
 		}
 
@@ -842,7 +842,7 @@ int ShutdownSequence(int32_t signal) {
 		framesSinceShutdownStart++;
 
 		if (framesSinceShutdownStart == maxShutdownTime) {
-			LOG("Finished shutting down by timeout!");
+			Log::Info("Finished shutting down by timeout!");
 			break;
 		}
 	}

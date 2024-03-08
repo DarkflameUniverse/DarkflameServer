@@ -30,7 +30,7 @@ namespace sql {
 };
 
 #ifdef _DEBUG
-#  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (sql::SQLException& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
+#  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (sql::SQLException& ex) { Log::Warn("SQL Error: {:s}", ex.what()); throw; } } while(0)
 #else
 #  define DLU_SQL_TRY_CATCH_RETHROW(x) x
 #endif // _DEBUG

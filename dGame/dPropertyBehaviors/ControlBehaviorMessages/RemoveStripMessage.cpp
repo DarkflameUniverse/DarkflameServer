@@ -4,5 +4,5 @@ RemoveStripMessage::RemoveStripMessage(const AMFArrayValue& arguments)
 	: BehaviorMessageBase{ arguments }
 	, m_ActionContext{ arguments } {
 
-	LOG_DEBUG("stripId %i stateId %i behaviorId %i", m_ActionContext.GetStripId(), m_ActionContext.GetStateId(), m_BehaviorId);
+	Log::Debug("stripId {:d} stateId {:d} behaviorId {:d}", m_ActionContext.GetStripId(), GeneralUtils::ToUnderlying(m_ActionContext.GetStateId()), m_BehaviorId);
 }

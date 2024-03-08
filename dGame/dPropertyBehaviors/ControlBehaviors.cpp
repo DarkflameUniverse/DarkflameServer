@@ -190,14 +190,14 @@ ControlBehaviors::ControlBehaviors() {
 
 	auto ret = m_Doc.Parse(buffer.c_str());
 	if (ret == tinyxml2::XML_SUCCESS) {
-		LOG_DEBUG("Successfully parsed the blocksdef file!");
+		Log::Debug("Successfully parsed the blocksdef file!");
 	} else {
-		LOG("Failed to parse BlocksDef xmlData due to error %i!", ret);
+		Log::Warn("Failed to parse BlocksDef xmlData due to error {:d}!", GeneralUtils::ToUnderlying(ret));
 		return;
 	}
 	auto* blockLibrary = m_Doc.FirstChildElement();
 	if (!blockLibrary) {
-		LOG("No Block Library child element found.");
+		Log::Warn("No Block Library child element found.");
 		return;
 	}
 

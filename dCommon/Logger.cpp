@@ -29,7 +29,7 @@ void Writer::Flush() {
 
 FileWriter::FileWriter(const char* outpath) {
 	m_Outfile = fopen(outpath, "wt");
-	if (!m_Outfile) printf("Couldn't open %s for writing!\n", outpath);
+	if (!m_Outfile) fmt::println("Couldn't open {:s} for writing!", outpath);
 	m_Outpath = outpath;
 	m_IsConsoleWriter = false;
 }

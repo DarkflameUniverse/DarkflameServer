@@ -13,7 +13,7 @@ void KnockbackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitS
 	bool unknown{};
 
 	if (!bitStream.Read(unknown)) {
-		LOG("Unable to read unknown from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read unknown from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 }

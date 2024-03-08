@@ -13,7 +13,7 @@ void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream& 
 
 	uint32_t handle{};
 	if (!bitStream.Read(handle)) {
-		LOG("Unable to read handle from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read handle from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 	context->RegisterSyncBehavior(handle, this, branch, this->m_Duration);
@@ -22,13 +22,13 @@ void ForceMovementBehavior::Handle(BehaviorContext* context, RakNet::BitStream& 
 void ForceMovementBehavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	uint32_t next{};
 	if (!bitStream.Read(next)) {
-		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read target from bitStream, aborting Sync! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
 	LWOOBJID target{};
 	if (!bitStream.Read(target)) {
-		LOG("Unable to read target from bitStream, aborting Sync! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read target from bitStream, aborting Sync! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 

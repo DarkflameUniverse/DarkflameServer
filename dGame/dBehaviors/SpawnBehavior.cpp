@@ -45,7 +45,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	);
 
 	if (entity == nullptr) {
-		LOG("Failed to spawn entity (%i)!", this->m_lot);
+		Log::Warn("Failed to spawn entity ({:d})!", this->m_lot);
 
 		return;
 	}

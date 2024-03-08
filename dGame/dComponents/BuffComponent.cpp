@@ -110,7 +110,7 @@ void BuffComponent::Update(float deltaTime) {
 const std::string& GetFxName(const std::string& buffname) {
 	const auto& toReturn = BuffFx[buffname];
 	if (toReturn.empty()) {
-		LOG_DEBUG("No fx name for %s", buffname.c_str());
+		Log::Debug("No fx name for {:s}", buffname);
 	}
 	return toReturn;
 }
@@ -122,7 +122,7 @@ void BuffComponent::ApplyBuffFx(uint32_t buffId, const BuffParameter& buff) {
 	if (buffName.empty()) return;
 
 	fxToPlay += std::to_string(buffId);
-	LOG_DEBUG("Playing %s %i", fxToPlay.c_str(), buff.effectId);
+	Log::Debug("Playing {:s} {:d}", fxToPlay, buff.effectId);
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), buff.effectId, u"cast", fxToPlay, LWOOBJID_EMPTY, 1.07f, 1.0f, false);
 }
 
@@ -133,7 +133,7 @@ void BuffComponent::RemoveBuffFx(uint32_t buffId, const BuffParameter& buff) {
 	if (buffName.empty()) return;
 
 	fxToPlay += std::to_string(buffId);
-	LOG_DEBUG("Stopping %s", fxToPlay.c_str());
+	Log::Debug("Stopping {:s}", fxToPlay);
 	GameMessages::SendStopFXEffect(m_Parent, false, fxToPlay);
 }
 
@@ -460,7 +460,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 
 					param.values.push_back(value);
 				} catch (std::invalid_argument& exception) {
-					LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+					Log::Warn("Failed to parse value ({:s}): ({:s})!", token, exception.what());
 				}
 			}
 		}

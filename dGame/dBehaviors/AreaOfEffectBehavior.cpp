@@ -16,7 +16,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 	uint32_t targetCount{};
 
 	if (!bitStream.Read(targetCount)) {
-		LOG("Unable to read targetCount from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read targetCount from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	}
 
@@ -28,7 +28,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 	}
 
 	if (targetCount > this->m_maxTargets) {
-		LOG("Serialized size is greater than max targets! Size: %i, Max: %i", targetCount, this->m_maxTargets);
+		Log::Warn("Serialized size is greater than max targets! Size: {:d}, Max: {:d}", targetCount, this->m_maxTargets);
 		return;
 	}
 
@@ -41,7 +41,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 	for (auto i = 0u; i < targetCount; ++i) {
 		LWOOBJID target{};
 		if (!bitStream.Read(target)) {
-			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
+			Log::Warn("failed to read in target {:d} from bitStream, aborting target Handle!", i);
 		};
 		targets.push_back(target);
 	}

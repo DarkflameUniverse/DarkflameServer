@@ -60,9 +60,9 @@ int main(int argc, char** argv) {
 
 	//Read our config:
 
-	LOG("Starting Chat server...");
-	LOG("Version: %s", PROJECT_VERSION);
-	LOG("Compiled on: %s", __TIMESTAMP__);
+	Log::Info("Starting Chat server...");
+	Log::Info("Version: {:s}", PROJECT_VERSION);
+	Log::Info("Compiled on: {:s}", __TIMESTAMP__);
 
 	try {
 		std::string clientPathStr = Game::config->GetValue("client_location");
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
-		LOG("Got an error while setting up assets: %s", ex.what());
+		Log::Info("Got an error while setting up assets: {:s}", ex.what());
 
 		return EXIT_FAILURE;
 	}
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 	try {
 		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		LOG("Got an error while connecting to the database: %s", ex.what());
+		Log::Info("Got an error while connecting to the database: {:s}", ex.what());
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
@@ -181,11 +181,11 @@ int main(int argc, char** argv) {
 
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-		LOG("A server has disconnected, erasing their connected players from the list.");
+		Log::Info("A server has disconnected, erasing their connected players from the list.");
 	}
 
 	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
-		LOG("A server is connecting, awaiting user list.");
+		Log::Info("A server is connecting, awaiting user list.");
 	}
 
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
@@ -216,7 +216,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		default:
-			LOG("Unknown CHAT_INTERNAL id: %i", int(packet->data[3]));
+			Log::Info("Unknown CHAT_INTERNAL id: {:d}", static_cast<int>(packet->data[3]));
 		}
 	}
 
@@ -343,22 +343,22 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::PRG_CSR_COMMAND:
 		case eChatMessageType::HEARTBEAT_REQUEST_FROM_WORLD:
 		case eChatMessageType::UPDATE_FREE_TRIAL_STATUS:
-			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			Log::Info("Unhandled CHAT Message id: {:s} {:d}", StringifiedEnum::ToString(chat_message_type), GeneralUtils::ToUnderlying(chat_message_type));
 			break;
 		default:
-			LOG("Unknown CHAT Message id: %i", chat_message_type);
+			Log::Info("Unknown CHAT Message id: {:d}", GeneralUtils::ToUnderlying(chat_message_type));
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
 		switch (static_cast<eWorldMessageType>(packet->data[3])) {
 		case eWorldMessageType::ROUTE_PACKET: {
-			LOG("Routing packet from world");
+			Log::Info("Routing packet from world");
 			break;
 		}
 
 		default:
-			LOG("Unknown World id: %i", int(packet->data[3]));
+			Log::Info("Unknown World id: {:d}", static_cast<int>(packet->data[3]));
 		}
 	}
 }

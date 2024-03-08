@@ -6,6 +6,6 @@ MergeStripsMessage::MergeStripsMessage(const AMFArrayValue& arguments)
 	, m_SourceActionContext{ arguments, "srcStateID", "srcStripID" }
 	, m_DestinationActionContext{ arguments, "dstStateID", "dstStripID" } {
 
-	LOG_DEBUG("srcstripId %i dststripId %i srcstateId %i dststateId %i dstactionIndex %i behaviorId %i", m_SourceActionContext.GetStripId(), m_DestinationActionContext.GetStripId(), m_SourceActionContext.GetStateId(), m_DestinationActionContext.GetStateId(), m_DstActionIndex, m_BehaviorId);
+	Log::Debug("srcstripId {:d} dststripId {:d} srcstateId {:d} dststateId {:d} dstactionIndex {:d} behaviorId {:d}", m_SourceActionContext.GetStripId(), m_DestinationActionContext.GetStripId(), GeneralUtils::ToUnderlying(m_SourceActionContext.GetStateId()), GeneralUtils::ToUnderlying(m_DestinationActionContext.GetStateId()), m_DstActionIndex, m_BehaviorId);
 }
 

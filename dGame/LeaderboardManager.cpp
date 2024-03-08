@@ -236,7 +236,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 		baseLookup += std::to_string(static_cast<uint32_t>(this->relatedPlayer));
 	}
 	baseLookup += " LIMIT 1";
-	LOG_DEBUG("query is %s", baseLookup.c_str());
+	Log::Debug("query is {:s}", baseLookup);
 	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::Get()->CreatePreppedStmt(baseLookup));
 	baseQuery->setInt(1, this->gameID);
 	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
@@ -251,7 +251,7 @@ void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t r
 	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
 	DluAssert(res != -1);
 	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt(lookupBuffer.get()));
-	LOG_DEBUG("Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
+	Log::Debug("Query is {:s} vars are {:d} {:d} {:d}", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
 	query->setInt(1, this->gameID);
 	if (this->infoType == InfoType::Friends) {
 		query->setInt(2, this->relatedPlayer);
@@ -358,7 +358,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 		}
 		case Leaderboard::Type::None:
 		default:
-			LOG("Unknown leaderboard type %i for game %i. Cannot save score!", leaderboardType, activityId);
+			Log::Warn("Unknown leaderboard type {:d} for game {:d}. Cannot save score!", GeneralUtils::ToUnderlying(leaderboardType), activityId);
 			return;
 		}
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
@@ -377,7 +377,7 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 	} else {
 		saveQuery = FormatInsert(leaderboardType, newScore, false);
 	}
-	LOG("save query %s %i %i", saveQuery.c_str(), playerID, activityId);
+	Log::Info("save query {:s} {:d} {:d}", saveQuery, playerID, activityId);
 	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::Get()->CreatePreppedStmt(saveQuery));
 	saveStatement->setInt(1, playerID);
 	saveStatement->setInt(2, activityId);

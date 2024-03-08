@@ -182,7 +182,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 			m_Position.y -= (111.467964f * m_Scale) / 2;
 		} else {
-			// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
+			// Log::Debug("This one is supposed to have {:s}", info->physicsAsset);
 
 			//add fallback cube:
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);

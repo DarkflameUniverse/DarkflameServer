@@ -5,5 +5,5 @@ UpdateStripUiMessage::UpdateStripUiMessage(const AMFArrayValue& arguments)
 	, m_Position{ arguments }
 	, m_ActionContext{ arguments } {
 
-	LOG_DEBUG("xPosition %f yPosition %f stripId %i stateId %i behaviorId %i", m_Position.GetX(), m_Position.GetY(), m_ActionContext.GetStripId(), m_ActionContext.GetStateId(), m_BehaviorId);
+	Log::Debug("xPosition {:f} yPosition {:f} stripId {:d} stateId {:d} behaviorId {:d}", m_Position.GetX(), m_Position.GetY(), m_ActionContext.GetStripId(), GeneralUtils::ToUnderlying(m_ActionContext.GetStateId()), m_BehaviorId);
 }

@@ -154,7 +154,7 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 			case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
 			// DEPRECATED BLOCK END
 			default:
-				LOG_DEBUG("Event %i was not handled!", command->id);
+				Log::Debug("Event {:d} was not handled!", GeneralUtils::ToUnderlying(command->id));
 				break;
 		}
 	}
@@ -194,7 +194,7 @@ void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string arg
 void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
 	auto* triggerComponent = targetEntity->GetComponent<TriggerComponent>();
 	if (!triggerComponent) {
-		LOG_DEBUG("Trigger component not found!");
+		Log::Debug("Trigger component not found!");
 		return;
 	}
 	triggerComponent->SetTriggerEnabled(args == "1");
@@ -203,7 +203,7 @@ void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string arg
 void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
 	auto* quickBuildComponent = targetEntity->GetComponent<QuickBuildComponent>();
 	if (!quickBuildComponent) {
-		LOG_DEBUG("Rebuild component not found!");
+		Log::Debug("Rebuild component not found!");
 		return;
 	}
 	quickBuildComponent->ResetQuickBuild(args == "1");
@@ -233,7 +233,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		LOG_DEBUG("Phantom Physics component not found!");
+		Log::Debug("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
@@ -249,7 +249,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args){
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		LOG_DEBUG("Phantom Physics component not found!");
+		Log::Debug("Phantom Physics component not found!");
 		return;
 	}
 	const float forceMultiplier = GeneralUtils::TryParse<float>(args).value_or(1.0f);
@@ -272,7 +272,7 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 
 void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
 	if (argArray.size() != 2) {
-		LOG_DEBUG("Not enough variables!");
+		Log::Debug("Not enough variables!");
 		return;
 	}
 	const float time = GeneralUtils::TryParse<float>(argArray.at(1)).value_or(0.0f);
@@ -312,7 +312,7 @@ void TriggerComponent::HandlePlayCinematic(Entity* targetEntity, std::vector<std
 void TriggerComponent::HandleToggleBBB(Entity* targetEntity, std::string args) {
 	auto* character = targetEntity->GetCharacter();
 	if (!character) {
-		LOG_DEBUG("Character was not found!");
+		Log::Debug("Character was not found!");
 		return;
 	}
 	bool buildMode = !(character->GetBuildMode());
@@ -328,7 +328,7 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	if (argArray.at(0) != "exploretask") return;
 	MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
 	if (!missionComponent){
-		LOG_DEBUG("Mission component not found!");
+		Log::Debug("Mission component not found!");
 		return;
 	}
 	missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, argArray.at(4));
@@ -351,7 +351,7 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 	auto* skillComponent = targetEntity->GetComponent<SkillComponent>();
 	if (!skillComponent) {
-		LOG_DEBUG("Skill component not found!");
+		Log::Debug("Skill component not found!");
 		return;
 	}
 	const uint32_t skillId = GeneralUtils::TryParse<uint32_t>(args).value_or(0);
@@ -361,7 +361,7 @@ void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
 void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		LOG_DEBUG("Phantom Physics component not found!");
+		Log::Debug("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(true);
@@ -395,7 +395,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::string args) {
 	auto* phantomPhysicsComponent = targetEntity->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
-		LOG_DEBUG("Phantom Physics component not found!");
+		Log::Debug("Phantom Physics component not found!");
 		return;
 	}
 	phantomPhysicsComponent->SetPhysicsEffectActive(args == "On");
@@ -432,6 +432,6 @@ void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string a
 	} else if (args == "false"){
 		// TODO remove Phsyics entity if there is one
 	} else {
-		LOG_DEBUG("Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
+		Log::Debug("Invalid argument for ActivatePhysics Trigger: {:s}", args);
 	}
 }

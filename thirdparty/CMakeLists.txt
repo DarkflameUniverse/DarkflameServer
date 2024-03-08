@@ -1,6 +1,9 @@
 # Source Code for recast
 add_subdirectory(recastnavigation)
 
+# Add fmtlib
+add_subdirectory(fmt SYSTEM)
+
 # Turn off tinyxml2 testing
 set(tinyxml2_BUILD_TESTING OFF)
 # Source Code for tinyxml2

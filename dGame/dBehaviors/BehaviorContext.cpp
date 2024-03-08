@@ -126,7 +126,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bit
 	}
 
 	if (!found) {
-		LOG("Failed to find behavior sync entry with sync id (%i)!", syncId);
+		Log::Warn("Failed to find behavior sync entry with sync id ({:d})!", syncId);
 
 		return;
 	}
@@ -135,7 +135,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bit
 	const auto branch = entry.branchContext;
 
 	if (behavior == nullptr) {
-		LOG("Invalid behavior for sync id (%i)!", syncId);
+		Log::Warn("Invalid behavior for sync id ({:d})!", syncId);
 
 		return;
 	}
@@ -317,7 +317,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 	// if the caster is not there, return empty targets list
 	auto* caster = Game::entityManager->GetEntity(this->caster);
 	if (!caster) {
-		LOG_DEBUG("Invalid caster for (%llu)!", this->originator);
+		Log::Debug("Invalid caster for ({:d})!", this->originator);
 		targets.clear();
 		return;
 	}

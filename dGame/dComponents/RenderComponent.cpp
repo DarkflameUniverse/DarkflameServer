@@ -33,7 +33,7 @@ RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t compo
 				const auto groupIdInt = GeneralUtils::TryParse<int32_t>(groupId);
 
 				if (!groupIdInt) {
-					LOG("bad animation group Id %s", groupId.c_str());
+					Log::Warn("bad animation group Id {:s}", groupId);
 					continue;
 				}
 				
@@ -176,6 +176,6 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 		}
 	}
 	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
-	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation %s for lot %i in any group.", animation.c_str(), self->GetLOT());
+	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation {:s} for lot {:d} in any group.", animation, self->GetLOT());
 	return returnlength;
 }

@@ -15,7 +15,7 @@ void MovementSwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream&
 			this->m_movingAction->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY) {
 			return;
 		}
-		LOG("Unable to read movementType from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read movementType from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 

@@ -12,7 +12,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitS
 		bool unknown = false;
 
 		if (!bitStream.Read(unknown)) {
-			LOG("Unable to read unknown1 from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read unknown1 from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -23,7 +23,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitS
 		bool unknown = false;
 
 		if (!bitStream.Read(unknown)) {
-			LOG("Unable to read unknown2 from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read unknown2 from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 
@@ -35,7 +35,7 @@ void InterruptBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitS
 		bool unknown = false;
 
 		if (!bitStream.Read(unknown)) {
-			LOG("Unable to read unknown3 from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read unknown3 from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 	}

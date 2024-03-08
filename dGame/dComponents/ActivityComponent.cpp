@@ -524,7 +524,7 @@ void ActivityInstance::StartZone() {
 			if (player == nullptr)
 				return;
 
-			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Log::Info("Transferring {:s} to Zone {:d} (Instance {:d} | Clone {:d} | Mythran Shift: {:s}) with IP {:s} and Port {:d}", player->GetCharacter()->GetName(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP, serverPort);
 			if (player->GetCharacter()) {
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);

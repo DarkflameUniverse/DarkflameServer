@@ -1713,7 +1713,7 @@ void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream& inStream,
 
 	auto* assosiate = Game::entityManager->GetEntity(objectID);
 
-	LOG("%s [%i, %i] from %i to %i", GeneralUtils::UTF16ToWTF8(stringValue).c_str(), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
+	Log::Info("{:s} [{:d}, {:d}] from {:d} to {:d}", GeneralUtils::UTF16ToWTF8(stringValue), value1, value2, entity->GetLOT(), assosiate != nullptr ? assosiate->GetLOT() : 0);
 
 	std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SHOOTING_GALLERY);
 	for (Entity* scriptEntity : scriptedActs) {
@@ -3810,7 +3810,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity*
 		userData.push_back(character);
 	}
 
-	LOG("Button: %d; LOT: %u identifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(identifier).c_str(), GeneralUtils::UTF16ToWTF8(userData).c_str());
+	Log::Info("Button: {:d}; LOT: {:d} identifier: {:s}; userData: {:s}", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(identifier), GeneralUtils::UTF16ToWTF8(userData));
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -3866,7 +3866,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* e
 		identifier.push_back(character);
 	}
 
-	LOG("Button: %d; LOT: %u buttonIdentifier: %s; userData: %s", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(buttonIdentifier).c_str(), GeneralUtils::UTF16ToWTF8(identifier).c_str());
+	Log::Info("Button: {:d}; LOT: {:d} buttonIdentifier: {:s}; userData: {:s}", iButton, entity->GetLOT(), GeneralUtils::UTF16ToWTF8(buttonIdentifier), GeneralUtils::UTF16ToWTF8(identifier));
 
 	auto* user = UserManager::Instance()->GetUser(sysAddr);
 
@@ -4046,10 +4046,10 @@ void GameMessages::HandleAcknowledgePossession(RakNet::BitStream& inStream, Enti
 void GameMessages::HandleModuleAssemblyQueryData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	auto* moduleAssemblyComponent = entity->GetComponent<ModuleAssemblyComponent>();
 
-	LOG("Got Query from %i", entity->GetLOT());
+	Log::Info("Got Query from {:d}", entity->GetLOT());
 
 	if (moduleAssemblyComponent != nullptr) {
-		LOG("Returning assembly %s", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()).c_str());
+		Log::Info("Returning assembly {:s}", GeneralUtils::UTF16ToWTF8(moduleAssemblyComponent->GetAssemblyPartsLOTs()));
 
 		SendModuleAssemblyDBDataForClient(entity->GetObjectID(), moduleAssemblyComponent->GetSubKey(), moduleAssemblyComponent->GetAssemblyPartsLOTs(), UNASSIGNED_SYSTEM_ADDRESS);
 	}
@@ -4872,7 +4872,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 			mapId = Game::zoneManager->GetZoneID().GetMapID(); // Fallback to sending the player back to the same zone.
 		}
 
-		LOG("Player %llu has requested zone transfer to (%i, %i).", sender->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
+		Log::Info("Player {:d} has requested zone transfer to ({:d}, {:d}).", sender->GetObjectID(), static_cast<int>(mapId), static_cast<int>(cloneId));
 
 		auto* character = player->GetCharacter();
 
@@ -4881,7 +4881,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 		}
 
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, mapId, cloneId, false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
-			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
+			Log::Info("Transferring {:s} to Zone {:d} (Instance {:d} | Clone {:d} | Mythran Shift: {:s}) with IP {:s} and Port {:d}", character->GetName(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP, serverPort);
 
 			if (character) {
 				character->SetZoneID(zoneID);

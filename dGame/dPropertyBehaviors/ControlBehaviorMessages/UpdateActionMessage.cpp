@@ -12,5 +12,5 @@ UpdateActionMessage::UpdateActionMessage(const AMFArrayValue& arguments)
 	
 	m_Action = Action{ *actionValue };
 
-	LOG_DEBUG("type %s valueParameterName %s valueParameterString %s valueParameterDouble %f behaviorId %i actionIndex %i stripId %i stateId %i", m_Action.GetType().c_str(), m_Action.GetValueParameterName().c_str(), m_Action.GetValueParameterString().c_str(), m_Action.GetValueParameterDouble(), m_BehaviorId, m_ActionIndex, m_ActionContext.GetStripId(), m_ActionContext.GetStateId());
+	Log::Debug("type {:s} valueParameterName {:s} valueParameterString {:s} valueParameterDouble {:f} behaviorId {:d} actionIndex {:d} stripId {:d} stateId {:d}", m_Action.GetType(), m_Action.GetValueParameterName(), m_Action.GetValueParameterString(), m_Action.GetValueParameterDouble(), m_BehaviorId, m_ActionIndex, m_ActionContext.GetStripId(), GeneralUtils::ToUnderlying(m_ActionContext.GetStateId()));
 }

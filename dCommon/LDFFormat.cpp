@@ -48,7 +48,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	try {
 		type = static_cast<eLDFType>(strtol(ldfTypeAndValue.first.data(), &storage, 10));
 	} catch (std::exception) {
-		LOG("Attempted to process invalid ldf type (%s) from string (%s)", ldfTypeAndValue.first.data(), format.data());
+		Log::Warn("Attempted to process invalid ldf type ({:s}) from string ({:s})", ldfTypeAndValue.first, format);
 		return nullptr;
 	}
 
@@ -63,7 +63,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	case LDF_TYPE_S32: {
 		const auto data = GeneralUtils::TryParse<int32_t>(ldfTypeAndValue.second);
 		if (!data) {
-			LOG("Warning: Attempted to process invalid int32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			Log::Warn("Attempted to process invalid int32 value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 			return nullptr;
 		}
 		returnValue = new LDFData<int32_t>(key, data.value());
@@ -74,7 +74,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	case LDF_TYPE_FLOAT: {
 		const auto data = GeneralUtils::TryParse<float>(ldfTypeAndValue.second);
 		if (!data) {
-			LOG("Warning: Attempted to process invalid float value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			Log::Warn("Attempted to process invalid float value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 			return nullptr;
 		}
 		returnValue = new LDFData<float>(key, data.value());
@@ -84,7 +84,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	case LDF_TYPE_DOUBLE: {
 		const auto data = GeneralUtils::TryParse<double>(ldfTypeAndValue.second);
 		if (!data) {
-			LOG("Warning: Attempted to process invalid double value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			Log::Warn("Attempted to process invalid double value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 			return nullptr;
 		}
 		returnValue = new LDFData<double>(key, data.value());
@@ -102,7 +102,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 		} else {
 			const auto dataOptional = GeneralUtils::TryParse<uint32_t>(ldfTypeAndValue.second);
 			if (!dataOptional) {
-				LOG("Warning: Attempted to process invalid uint32 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+				Log::Warn("Attempted to process invalid uint32 value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 				return nullptr;
 			}
 			data = dataOptional.value();
@@ -122,7 +122,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 		} else {
 			const auto dataOptional = GeneralUtils::TryParse<bool>(ldfTypeAndValue.second);
 			if (!dataOptional) {
-				LOG("Warning: Attempted to process invalid bool value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+				Log::Warn("Attempted to process invalid bool value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 				return nullptr;
 			}
 			data = dataOptional.value();
@@ -135,7 +135,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	case LDF_TYPE_U64: {
 		const auto data = GeneralUtils::TryParse<uint64_t>(ldfTypeAndValue.second);
 		if (!data) {
-			LOG("Warning: Attempted to process invalid uint64 value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			Log::Warn("Attempted to process invalid uint64 value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 			return nullptr;
 		}
 		returnValue = new LDFData<uint64_t>(key, data.value());
@@ -145,7 +145,7 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	case LDF_TYPE_OBJID: {
 		const auto data = GeneralUtils::TryParse<LWOOBJID>(ldfTypeAndValue.second);
 		if (!data) {
-			LOG("Warning: Attempted to process invalid LWOOBJID value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+			Log::Warn("Attempted to process invalid LWOOBJID value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 			return nullptr;
 		}
 		returnValue = new LDFData<LWOOBJID>(key, data.value());
@@ -159,12 +159,12 @@ LDFBaseData* LDFBaseData::DataFromString(const std::string_view& format) {
 	}
 
 	case LDF_TYPE_UNKNOWN: {
-		LOG("Warning: Attempted to process invalid unknown value (%s) from string (%s)", ldfTypeAndValue.second.data(), format.data());
+		Log::Warn("Attempted to process invalid unknown value ({:s}) from string ({:s})", ldfTypeAndValue.second, format);
 		break;
 	}
 
 	default: {
-		LOG("Warning: Attempted to process invalid LDF type (%d) from string (%s)", type, format.data());
+		Log::Warn("Attempted to process invalid LDF type ({:d}) from string ({:s})", GeneralUtils::ToUnderlying(type), format);
 		break;
 	}
 	}

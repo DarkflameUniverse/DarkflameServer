@@ -42,7 +42,7 @@ bool FdbToSqlite::Convert::ConvertDatabase(AssetStream& buffer) {
 
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	} catch (CppSQLite3Exception& e) {
-		LOG("Encountered error %s converting FDB to SQLite", e.errorMessage());
+		Log::Warn("Encountered error {:s} converting FDB to SQLite", e.errorMessage());
 		return false;
 	}
 

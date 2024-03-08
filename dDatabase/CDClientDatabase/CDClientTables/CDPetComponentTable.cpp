@@ -57,7 +57,7 @@ CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {
 	auto& entries = GetEntriesMutable();
 	auto itr = entries.find(componentID);
 	if (itr == entries.end()) {
-		LOG("Unable to load pet component (ID %i) values from database! Using default values instead.", componentID);
+		Log::Warn("Unable to load pet component (ID {:d}) values from database! Using default values instead.", componentID);
 		return defaultEntry;
 	}
 	return itr->second;

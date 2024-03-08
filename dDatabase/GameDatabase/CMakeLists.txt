@@ -16,6 +16,7 @@ target_include_directories(dDatabaseGame PUBLIC "."
 )
 target_link_libraries(dDatabaseGame
 	PUBLIC MariaDB::ConnCpp
+	PRIVATE fmt
 	INTERFACE dCommon)
 
 # Glob together all headers that need to be precompiled

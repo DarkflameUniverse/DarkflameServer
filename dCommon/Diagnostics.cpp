@@ -28,7 +28,7 @@ void make_minidump(EXCEPTION_POINTERS* e) {
 			"_%4d%02d%02d_%02d%02d%02d.dmp",
 			t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
 	}
-	LOG("Creating crash dump %s", name);
+	Log::Info("Creating crash dump {:s}", name);
 	auto hFile = CreateFileA(name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return;
@@ -83,7 +83,7 @@ struct bt_ctx {
 
 static inline void Bt(struct backtrace_state* state) {
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	LOG("backtrace is enabled, crash dump located at %s", fileName.c_str());
+	Log::Info("backtrace is enabled, crash dump located at {:s}", fileName);
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
 		backtrace_print(state, 2, file);
@@ -95,13 +95,13 @@ static inline void Bt(struct backtrace_state* state) {
 
 static void ErrorCallback(void* data, const char* msg, int errnum) {
 	auto* ctx = (struct bt_ctx*)data;
-	fprintf(stderr, "ERROR: %s (%d)", msg, errnum);
+	fmt::print(stderr, "ERROR: {:s} ({:d})", msg, errnum);
 	ctx->error = 1;
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != nullptr) {
-		fprintf(file, "ERROR: %s (%d)", msg, errnum);
+		fmt::print(file, "ERROR: {:s} ({:d})", msg, errnum);
 		fclose(file);
 	}
 }
@@ -119,13 +119,13 @@ void CatchUnhandled(int sig) {
 	try {
 		if (eptr) std::rethrow_exception(eptr);
 	} catch(const std::exception& e) {
-		LOG("Caught exception: '%s'", e.what());
+		Log::Warn("Caught exception: '{:s}'", e.what());
 	}
 
 #ifndef INCLUDE_BACKTRACE
 
 	std::string fileName = Diagnostics::GetOutDirectory() + "crash_" + Diagnostics::GetProcessName() + "_" + std::to_string(getpid()) + ".log";
-	LOG("Encountered signal %i, creating crash dump %s", sig, fileName.c_str());
+	Log::Warn("Encountered signal {:d}, creating crash dump {:s}", sig, fileName);
 	if (Diagnostics::GetProduceMemoryDump()) {
 		GenerateDump();
 	}
@@ -143,7 +143,7 @@ void CatchUnhandled(int sig) {
 
 	FILE* file = fopen(fileName.c_str(), "w+");
 	if (file != NULL) {
-		fprintf(file, "Error: signal %d:\n", sig);
+		fmt::println(file, "Error: signal {:d}:", sig);
 	}
 	// Print the stack trace
 	for (size_t i = 0; i < size; i++) {
@@ -165,9 +165,9 @@ void CatchUnhandled(int sig) {
 			}
 		}
 
-		LOG("[%02zu] %s", i, functionName.c_str());
+		Log::Info("[{:02d}] {:s}", i, functionName);
 		if (file != NULL) {
-			fprintf(file, "[%02zu] %s\n", i, functionName.c_str());
+			fmt::println(file, "[{:02d}] {:s}", i, functionName);
 		}
 	}
 #  else // defined(__GNUG__)
@@ -208,7 +208,7 @@ void MakeBacktrace() {
 		sigaction(SIGFPE, &sigact, nullptr) != 0 ||
 		sigaction(SIGABRT, &sigact, nullptr) != 0 ||
 		sigaction(SIGILL, &sigact, nullptr) != 0) {
-		fprintf(stderr, "error setting signal handler for %d (%s)\n",
+		fmt::println(stderr, "error setting signal handler for {:d} ({:s})",
 			SIGSEGV,
 			strsignal(SIGSEGV));
 

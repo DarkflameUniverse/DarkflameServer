@@ -54,14 +54,14 @@ int main(int argc, char** argv) {
 	Server::SetupLogger("AuthServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
-	LOG("Starting Auth server...");
-	LOG("Version: %s", PROJECT_VERSION);
-	LOG("Compiled on: %s", __TIMESTAMP__);
+	Log::Info("Starting Auth server...");
+	Log::Info("Version: {:s}", PROJECT_VERSION);
+	Log::Info("Compiled on: {:s}", __TIMESTAMP__);
 
 	try {
 		Database::Connect();
 	} catch (sql::SQLException& ex) {
-		LOG("Got an error while connecting to the database: %s", ex.what());
+		Log::Info("Got an error while connecting to the database: {:s}", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
 		delete Game::logger;
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
 	}
-	LOG("Master is at %s:%d", masterIP.c_str(), masterPort);
+	Log::Info("Master is at {:s}:{:d}", masterIP, masterPort);
 
 	Game::randomEngine = std::mt19937(time(0));
 
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 			framesSinceMasterDisconnect++;
 
 			if (framesSinceMasterDisconnect >= authFramerate) {
-				LOG("No connection to master!");
+				Log::Info("No connection to master!");
 				break; //Exit our loop, shut down.
 			}
 		} else framesSinceMasterDisconnect = 0;
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 
-	LOG("Exited Main Loop! (signal %d)", Game::lastSignal);
+	Log::Info("Exited Main Loop! (signal {:d})", Game::lastSignal);
 	//Delete our objects here:
 	Database::Destroy("AuthServer");
 	delete Game::server;

@@ -54,14 +54,14 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					completeUncompressedModel.append(reinterpret_cast<char*>(uncompressedChunk.get()));
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
 				} else {
-					LOG("Failed to inflate chunk %i for model %llu.  Error: %i", chunkCount, model.id, err);
+					Log::Warn("Failed to inflate chunk {:d} for model %llu.  Error: {:d}", chunkCount, model.id, err);
 					break;
 				}
 				chunkCount++;
 			}
 			std::unique_ptr<tinyxml2::XMLDocument> document = std::make_unique<tinyxml2::XMLDocument>();
 			if (!document) {
-				LOG("Failed to initialize tinyxml document.  Aborting.");
+				Log::Warn("Failed to initialize tinyxml document.  Aborting.");
 				return 0;
 			}
 
@@ -121,11 +121,11 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 
 			try {
 				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
-				LOG("Updated model %i to sd0", model.id);
+				Log::Info("Updated model {:d} to sd0", model.id);
 				updatedModels++;
 			} catch (sql::SQLException exception) {
-				LOG("Failed to update model %i.  This model should be inspected manually to see why."
-					"The database error is %s", model.id, exception.what());
+				Log::Warn("Failed to update model {:d}.  This model should be inspected manually to see why."
+					"The database error is {:s}", model.id, exception.what());
 			}
 		}
 	}

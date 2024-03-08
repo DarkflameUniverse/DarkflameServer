@@ -157,7 +157,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 }
 
 void CDClientManager::LoadValuesFromDefaults() {
-	LOG("Loading default CDClient tables!");
+	Log::Info("Loading default CDClient tables!");
 
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
 }

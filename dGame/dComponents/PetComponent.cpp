@@ -229,7 +229,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	if (bricks.empty()) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
-		LOG("Couldn't find %s for minigame!", buildFile.c_str());
+		Log::Warn("Couldn't find {:s} for minigame!", buildFile);
 
 		return;
 	}
@@ -640,7 +640,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		return;
 	}
 
-	LOG("Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
+	Log::Info("Got set pet name ({:s})", GeneralUtils::UTF16ToWTF8(name));
 
 	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
 

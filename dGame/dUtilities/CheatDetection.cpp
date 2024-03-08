@@ -25,7 +25,7 @@ Entity* GetPossessedEntity(const LWOOBJID& objId) {
 
 void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIfNotSender, va_list args) {
 	if (!user) {
-		LOG("WARNING: User is null, using defaults.");
+		Log::Warn("User is null, using defaults.");
 	}
 
 	IPlayerCheatDetections::Info info;
@@ -42,7 +42,7 @@ void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIf
 
 	Database::Get()->InsertCheatDetection(info);
 
-	LOG("Anti-cheat message: %s", extraMsg);
+	Log::Info("Anti-cheat message: {:s}", extraMsg);
 }
 
 void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sysAddr, const CheckType checkType, const char* messageIfNotSender, va_list args) {
@@ -54,20 +54,20 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 		
 		// If player exists and entity exists in world, use both for logging info.
 		if (entity && player) {
-			LOG("Player (%s) (%llu) at system address (%s) with sending player (%s) (%llu) does not match their own.",
-				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
+			Log::Warn("Player ({:s}) ({:d}) at system address ({:s}) with sending player ({:s}) ({:d}) does not match their own.",
+				player->GetCharacter()->GetName(), player->GetObjectID(),
 				sysAddr.ToString(),
-				entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
+				entity->GetCharacter()->GetName(), entity->GetObjectID());
 			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
 		// In the case that the target entity id did not exist, just log the player info.
 		} else if (player) {
-			LOG("Player (%s) (%llu) at system address (%s) with sending player (%llu) does not match their own.",
-				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
+			Log::Warn("Player ({:s}) ({:d}) at system address ({:s}) with sending player ({:d}) does not match their own.",
+				player->GetCharacter()->GetName(), player->GetObjectID(),
 				sysAddr.ToString(), id);
 			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
 		// In the rare case that the player does not exist, just log the system address and who the target id was.
 		} else {
-			LOG("Player at system address (%s) with sending player (%llu) does not match their own.",
+			Log::Warn("Player at system address ({:s}) with sending player ({:d}) does not match their own.",
 				sysAddr.ToString(), id);
 		}
 		break;
@@ -76,11 +76,11 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 		auto* user = UserManager::Instance()->GetUser(sysAddr);
 		
 		if (user) {
-			LOG("User at system address (%s) (%s) (%llu) sent a packet as (%i) which is not an id they own.",
-				sysAddr.ToString(), user->GetLastUsedChar()->GetName().c_str(), user->GetLastUsedChar()->GetObjectID(), static_cast<int32_t>(id));
+			Log::Warn("User at system address ({:s}) ({:s}) ({:d}) sent a packet as ({:d}) which is not an id they own.",
+				sysAddr.ToString(), user->GetLastUsedChar()->GetName(), user->GetLastUsedChar()->GetObjectID(), id);
 		// Can't know sending player. Just log system address for IP banning.
 		} else {
-			LOG("No user found for system address (%s).", sysAddr.ToString());
+			Log::Warn("No user found for system address ({:s}).", sysAddr.ToString());
 		}
 		toReport = user;
 		break;
@@ -113,7 +113,7 @@ bool CheatDetection::VerifyLwoobjidIsSender(const LWOOBJID& id, const SystemAddr
 		// Check here if the system address has a character with id matching the lwoobjid after unsetting the flag bits.
 		auto* sendingUser = UserManager::Instance()->GetUser(sysAddr);
 		if (!sendingUser) {
-			LOG("No user found for system address (%s).", sysAddr.ToString());
+			Log::Warn("No user found for system address ({:s}).", sysAddr.ToString());
 			return false;
 		}
 		invalidPacket = true;

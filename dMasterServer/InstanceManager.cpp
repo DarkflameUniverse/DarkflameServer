@@ -30,13 +30,13 @@ InstanceManager::~InstanceManager() {
 }
 
 Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
-	LOG("Searching for an instance for mapID %i/%i", mapID, cloneID);
+	Log::Info("Searching for an instance for mapID {:d}/{:d}", mapID, cloneID);
 	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
 	// If we are shutting down, return a nullptr so a new instance is not created.
 	if (m_IsShuttingDown) {
-		LOG("Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
+		Log::Warn("Tried to create a new instance map/instance/clone {:d}/{:d}/{:d}, but Master is shutting down.",
 		mapID,
 		m_LastInstanceID + 1,
 		cloneID);
@@ -64,9 +64,11 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	m_Instances.push_back(instance);
 
 	if (instance) {
-		LOG("Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
+		Log::Info("Created new instance: {:d}/{:d}/{:d} with min/max {:d}/{:d}", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
 		return instance;
-	} else LOG("Failed to create a new instance!");
+	} else {
+		Log::Warn("Failed to create a new instance!");
+	}
 
 	return nullptr;
 }
@@ -154,7 +156,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 	for (const auto& request : pending) {
 		const auto& zoneId = instance->GetZoneID();
 
-		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
+		Log::Info("Responding to pending request {:d} -> {:d} ({:d})", request.id, zoneId.GetMapID(), zoneId.GetCloneID());
 
 		MasterPackets::SendZoneTransferResponse(
 			Game::server,

@@ -29,7 +29,7 @@ void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value) {
 		break;
 	}
 	default: {
-		LOG("Encountered unwritable AMFType %i!", type);
+		Log::Warn("Encountered unwritable AMFType {:d}!", GeneralUtils::ToUnderlying(type));
 	}
 	case eAmf::Undefined:
 	case eAmf::Null:

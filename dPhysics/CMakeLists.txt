@@ -12,5 +12,5 @@ target_include_directories(dPhysics PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 )
 target_link_libraries(dPhysics
-	PUBLIC Recast Detour
+	PUBLIC fmt Recast Detour
 	INTERFACE dNavigation dCommon)

@@ -45,7 +45,7 @@ void MigrationRunner::RunMigrations() {
 
 		if (Database::Get()->IsMigrationRun(migration.name)) continue;
 
-		LOG("Running migration: %s", migration.name.c_str());
+		Log::Info("Running migration: {:s}", migration.name);
 		if (migration.name == "dlu/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
@@ -56,7 +56,7 @@ void MigrationRunner::RunMigrations() {
 	}
 
 	if (finalSQL.empty() && !runSd0Migrations) {
-		LOG("Server database is up to date.");
+		Log::Info("Server database is up to date.");
 		return;
 	}
 
@@ -67,7 +67,7 @@ void MigrationRunner::RunMigrations() {
 				if (query.empty()) continue;
 				Database::Get()->ExecuteCustomQuery(query.c_str());
 			} catch (sql::SQLException& e) {
-				LOG("Encountered error running migration: %s", e.what());
+				Log::Info("Encountered error running migration: {:s}", e.what());
 			}
 		}
 	}
@@ -75,9 +75,9 @@ void MigrationRunner::RunMigrations() {
 	// Do this last on the off chance none of the other migrations have been run yet.
 	if (runSd0Migrations) {
 		uint32_t numberOfUpdatedModels = BrickByBrickFix::UpdateBrickByBrickModelsToSd0();
-		LOG("%i models were updated from zlib to sd0.", numberOfUpdatedModels);
+		Log::Info("{:d} models were updated from zlib to sd0.", numberOfUpdatedModels);
 		uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
-		LOG("%i models were truncated from the database.", numberOfTruncatedModels);
+		Log::Info("{:d} models were truncated from the database.", numberOfTruncatedModels);
 	}
 }
 
@@ -111,14 +111,14 @@ void MigrationRunner::RunSQLiteMigrations() {
 
 		// Doing these 1 migration at a time since one takes a long time and some may think it is crashing.
 		// This will at the least guarentee that the full migration needs to be run in order to be counted as "migrated".
-		LOG("Executing migration: %s.  This may take a while.  Do not shut down server.", migration.name.c_str());
+		Log::Info("Executing migration: {:s}.  This may take a while.  Do not shut down server.", migration.name);
 		CDClientDatabase::ExecuteQuery("BEGIN TRANSACTION;");
 		for (const auto& dml : GeneralUtils::SplitString(migration.data, ';')) {
 			if (dml.empty()) continue;
 			try {
 				CDClientDatabase::ExecuteDML(dml.c_str());
 			} catch (CppSQLite3Exception& e) {
-				LOG("Encountered error running DML command: (%i) : %s", e.errorCode(), e.errorMessage());
+				Log::Warn("Encountered error running DML command: ({:d}) : {:s}", e.errorCode(), e.errorMessage());
 			}
 		}
 
@@ -129,5 +129,5 @@ void MigrationRunner::RunSQLiteMigrations() {
 		CDClientDatabase::ExecuteQuery("COMMIT;");
 	}
 
-	LOG("CDServer database is up to date.");
+	Log::Info("CDServer database is up to date.");
 }

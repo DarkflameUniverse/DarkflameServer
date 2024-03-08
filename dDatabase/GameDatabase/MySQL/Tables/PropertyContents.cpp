@@ -38,8 +38,8 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 			0, // behavior 4.  TODO implement this.
 			0 // behavior 5.  TODO implement this.
 		);
-	} catch (sql::SQLException& e) {
-		LOG("Error inserting new property model: %s", e.what());
+	} catch (const sql::SQLException& e) {
+		Log::Warn("Error inserting new property model: {:s}", e.what());
 	}
 }
 

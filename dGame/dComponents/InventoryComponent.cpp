@@ -200,7 +200,7 @@ void InventoryComponent::AddItem(
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
-			LOG("Failed to find empty slot for inventory (%i)!", inventoryType);
+			Log::Warn("Failed to find empty slot for inventory ({:d})!", GeneralUtils::ToUnderlying(inventoryType));
 
 			return;
 		}
@@ -1379,7 +1379,7 @@ std::vector<Item*> InventoryComponent::GenerateProxies(Item* parent) {
 		try {
 			lots.push_back(std::stoi(segment));
 		} catch (std::invalid_argument& exception) {
-			LOG("Failed to parse proxy (%s): (%s)!", segment.c_str(), exception.what());
+			Log::Warn("Failed to parse proxy ({:s}): ({:s})!", segment, exception.what());
 		}
 	}
 

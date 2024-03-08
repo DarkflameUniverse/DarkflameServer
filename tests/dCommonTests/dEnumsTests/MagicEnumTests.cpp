@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "GeneralUtils.h"
 #include "StringifiedEnum.h"
 #include "Logger.h"
 #include "Game.h"
@@ -11,7 +12,7 @@
 #include "magic_enum.hpp"
 
 #define ENUM_EQ(e, y, z)\
-	LOG("%s %s", StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);\
+	Log::Info("{:s} {:s}", StringifiedEnum::ToString(static_cast<e>(y)), #z);\
 	ASSERT_STREQ(StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);
 
 #define ENUM_NE(e, y)\
@@ -64,10 +65,10 @@ TEST(MagicEnumTest, eWorldMessageTypeTest) {
 		volatile auto f = StringifiedEnum::ToString(static_cast<eWorldMessageType>(i)).data();
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
-		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
+		if (rand() % 100000 == 0) Log::Info("{:d}, {:s}", i, f);
 	}
 	auto end = std::chrono::high_resolution_clock::now();
-	LOG("Time: %lld", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
+	Log::Info("Time: {:d}", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
 
 	delete Game::logger;
 }
@@ -108,15 +109,15 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 		volatile auto f = StringifiedEnum::ToString(static_cast<eGameMessageType>(i)).data();
 
 		// To ensure the compiler doesn't optimize out the call, I print it at random intervals
-		if (rand() % 100000 == 0) LOG("%i, %s", i, f);
+		if (rand() % 100000 == 0) Log::Info("{:d}, {:s}", i, f);
 	}
 	auto end = std::chrono::high_resolution_clock::now();
-	LOG("Time: %lld", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
+	Log::Info("Time: {:d}", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
 
 	delete Game::logger;
 }
 
-#define LOG_EARRAY(EARRAY_VAR, INDICE, ENTRY) LOG(#EARRAY_VAR"[%i] = %i, %s", INDICE, ENTRY, magic_enum::enum_name(ENTRY).data());
+#define LOG_EARRAY(EARRAY_VAR, INDICE, ENTRY) Log::Info(#EARRAY_VAR"[{:d}] = {:d}, {:s}", INDICE, GeneralUtils::ToUnderlying(ENTRY), magic_enum::enum_name(ENTRY));
 
 namespace {
 	template <typename T>

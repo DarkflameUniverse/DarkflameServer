@@ -53,8 +53,8 @@ void MySQLDatabase::Connect() {
 void MySQLDatabase::Destroy(std::string source) {
 	if (!con) return;
 
-	if (source.empty()) LOG("Destroying MySQL connection!");
-	else LOG("Destroying MySQL connection from %s!", source.c_str());
+	if (source.empty()) Log::Info("Destroying MySQL connection!");
+	else Log::Info("Destroying MySQL connection from {:s}!", source);
 
 	con->close();
 	delete con;
@@ -68,7 +68,7 @@ void MySQLDatabase::ExecuteCustomQuery(const std::string_view query) {
 sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& query) {
 	if (!con) {
 		Connect();
-		LOG("Trying to reconnect to MySQL");
+		Log::Info("Trying to reconnect to MySQL");
 	}
 
 	if (!con->isValid() || con->isClosed()) {
@@ -77,7 +77,7 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 		con = nullptr;
 
 		Connect();
-		LOG("Trying to reconnect to MySQL from invalid or closed connection");
+		Log::Info("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 
 	return con->prepareStatement(sql::SQLString(query.c_str(), query.length()));

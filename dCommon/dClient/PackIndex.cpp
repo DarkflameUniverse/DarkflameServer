@@ -23,7 +23,7 @@ PackIndex::PackIndex(const std::filesystem::path& filePath) {
 		m_PackFileIndices.push_back(packFileIndex);
 	}
 
-	LOG("Loaded pack catalog with %i pack files and %i files", m_PackPaths.size(), m_PackFileIndices.size());
+	Log::Info("Loaded pack catalog with {:d} pack files and {:d} files", m_PackPaths.size(), m_PackFileIndices.size());
 
 	for (auto& item : m_PackPaths) {
 		std::replace(item.begin(), item.end(), '\\', '/');

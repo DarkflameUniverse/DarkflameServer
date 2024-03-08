@@ -6,5 +6,5 @@ RearrangeStripMessage::RearrangeStripMessage(const AMFArrayValue& arguments)
 	, m_DstActionIndex{ GetActionIndexFromArgument(arguments, "dstActionIndex") }
 	, m_ActionContext{ arguments } {
 
-	LOG_DEBUG("srcactionIndex %i dstactionIndex %i stripId %i behaviorId %i stateId %i", m_SrcActionIndex, m_DstActionIndex, m_ActionContext.GetStripId(), m_BehaviorId, m_ActionContext.GetStateId());
+	Log::Debug("srcactionIndex {:d} dstactionIndex {:d} stripId {:d} behaviorId {:d} stateId {:d}", m_SrcActionIndex, m_DstActionIndex, m_ActionContext.GetStripId(), m_BehaviorId, GeneralUtils::ToUnderlying(m_ActionContext.GetStateId()));
 }

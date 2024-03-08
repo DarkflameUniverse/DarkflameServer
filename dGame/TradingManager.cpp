@@ -125,7 +125,7 @@ void Trade::Complete() {
 
 	// First verify both players have the coins and items requested for the trade.
 	if (characterA->GetCoins() < m_CoinsA || characterB->GetCoins() < m_CoinsB) {
-		LOG("Possible coin trade cheating attempt! Aborting trade.");
+		Log::Warn("Possible coin trade cheating attempt! Aborting trade.");
 		return;
 	}
 
@@ -133,11 +133,11 @@ void Trade::Complete() {
 		auto* itemToRemove = inventoryA->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
-				LOG("Possible cheating attempt from %s in trading!!! Aborting trade", characterA->GetName().c_str());
+				Log::Warn("Possible cheating attempt from {:s} in trading!!! Aborting trade", characterA->GetName());
 				return;
 			}
 		} else {
-			LOG("Possible cheating attempt from %s in trading due to item not being available!!!", characterA->GetName().c_str());
+			Log::Warn("Possible cheating attempt from {:s} in trading due to item not being available!!!", characterA->GetName());
 			return;
 		}
 	}
@@ -146,11 +146,11 @@ void Trade::Complete() {
 		auto* itemToRemove = inventoryB->FindItemById(tradeItem.itemId);
 		if (itemToRemove) {
 			if (itemToRemove->GetCount() < tradeItem.itemCount) {
-				LOG("Possible cheating attempt from %s in trading!!! Aborting trade", characterB->GetName().c_str());
+				Log::Warn("Possible cheating attempt from {:s} in trading!!! Aborting trade", characterB->GetName());
 				return;
 			}
 		} else {
-			LOG("Possible cheating attempt from %s in trading due to item not being available!!!  Aborting trade", characterB->GetName().c_str());
+			Log::Warn("Possible cheating attempt from {:s} in trading due to item not being available!!!  Aborting trade", characterB->GetName());
 			return;
 		}
 	}

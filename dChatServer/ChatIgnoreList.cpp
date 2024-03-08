@@ -27,16 +27,16 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
-		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
+		Log::Info("Tried to get ignore list, but player {:d} not found in container", playerId);
 		return;
 	}
 
 	if (!receiver.ignoredPlayers.empty()) {
-		LOG_DEBUG("Player %llu already has an ignore list, but is requesting it again.", playerId);
+		Log::Debug("Player {:d} already has an ignore list, but is requesting it again.", playerId);
 	} else {
 		auto ignoreList = Database::Get()->GetIgnoreList(static_cast<uint32_t>(playerId));
 		if (ignoreList.empty()) {
-			LOG_DEBUG("Player %llu has no ignores", playerId);
+			Log::Debug("Player {:d} has no ignores", playerId);
 			return;
 		}
 
@@ -69,13 +69,13 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
-		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
+		Log::Info("Tried to get ignore list, but player {:d} not found in container", playerId);
 		return;
 	}
 
 	constexpr int32_t MAX_IGNORES = 32;
 	if (receiver.ignoredPlayers.size() > MAX_IGNORES) {
-		LOG_DEBUG("Player %llu has too many ignores", playerId);
+		Log::Debug("Player {:d} has too many ignores", playerId);
 		return;
 	}
 
@@ -91,11 +91,11 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	// Check if the player exists
 	LWOOBJID ignoredPlayerId = LWOOBJID_EMPTY;
 	if (toIgnoreStr == receiver.playerName || toIgnoreStr.find("[GM]") == 0) {
-		LOG_DEBUG("Player %llu tried to ignore themselves", playerId);
+		Log::Debug("Player {:d} tried to ignore themselves", playerId);
 
 		bitStream.Write(ChatIgnoreList::AddResponse::GENERAL_ERROR);
 	} else if (std::count(receiver.ignoredPlayers.begin(), receiver.ignoredPlayers.end(), toIgnoreStr) > 0) {
-		LOG_DEBUG("Player %llu is already ignoring %s", playerId, toIgnoreStr.c_str());
+		Log::Debug("Player {:d} is already ignoring {:s}", playerId, toIgnoreStr);
 
 		bitStream.Write(ChatIgnoreList::AddResponse::ALREADY_IGNORED);
 	} else {
@@ -105,7 +105,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 			// Fall back to query
 			auto player = Database::Get()->GetCharacterInfo(toIgnoreStr);
 			if (!player || player->name != toIgnoreStr) {
-				LOG_DEBUG("Player %s not found", toIgnoreStr.c_str());
+				Log::Debug("Player {:s} not found", toIgnoreStr);
 			} else {
 				ignoredPlayerId = player->id;
 			}
@@ -119,7 +119,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 			GeneralUtils::SetBit(ignoredPlayerId, eObjectBits::PERSISTENT);
 
 			receiver.ignoredPlayers.emplace_back(toIgnoreStr, ignoredPlayerId);
-			LOG_DEBUG("Player %llu is ignoring %s", playerId, toIgnoreStr.c_str());
+			Log::Debug("Player {:d} is ignoring {:s}", playerId, toIgnoreStr);
 
 			bitStream.Write(ChatIgnoreList::AddResponse::SUCCESS);
 		} else {
@@ -141,7 +141,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 
 	auto& receiver = Game::playerContainer.GetPlayerDataMutable(playerId);
 	if (!receiver) {
-		LOG("Tried to get ignore list, but player %llu not found in container", playerId);
+		Log::Info("Tried to get ignore list, but player {:d} not found in container", playerId);
 		return;
 	}
 
@@ -153,7 +153,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 
 	auto toRemove = std::remove(receiver.ignoredPlayers.begin(), receiver.ignoredPlayers.end(), removedIgnoreStr);
 	if (toRemove == receiver.ignoredPlayers.end()) {
-		LOG_DEBUG("Player %llu is not ignoring %s", playerId, removedIgnoreStr.c_str());
+		Log::Debug("Player {:d} is not ignoring {:s}", playerId, removedIgnoreStr);
 		return;
 	}
 

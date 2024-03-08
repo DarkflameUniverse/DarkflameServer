@@ -28,7 +28,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerId;
 	if (!inStream.Read(playerId)) {
-		LOG("Failed to read player ID");
+		Log::Warn("Failed to read player ID");
 		return;
 	}
 
@@ -50,7 +50,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
 
-	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
+	Log::Info("Added user: {:s} ({:d}), zone: {:d}", data.playerName, data.playerID, data.zoneID.GetMapID());
 
 	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
 }
@@ -64,7 +64,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 	const auto& player = GetPlayerData(playerID);
 
 	if (!player) {
-		LOG("Failed to find user: %llu", playerID);
+		Log::Info("Failed to find user: {:d}", playerID);
 		return;
 	}
 
@@ -87,7 +87,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		}
 	}
 
-	LOG("Removed user: %llu", playerID);
+	Log::Info("Removed user: {:d}", playerID);
 	m_Players.erase(playerID);
 
 	Database::Get()->UpdateActivityLog(playerID, eActivityType::PlayerLoggedOut, player.zoneID.GetMapID());
@@ -103,7 +103,7 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 	auto& player = this->GetPlayerDataMutable(playerID);
 
 	if (!player) {
-		LOG("Failed to find user: %llu", playerID);
+		Log::Warn("Failed to find user: {:d}", playerID);
 
 		return;
 	}
@@ -207,7 +207,7 @@ TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
 
 void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 	if (team->memberIDs.size() >= 4) {
-		LOG("Tried to add player to team that already had 4 players");
+		Log::Warn("Tried to add player to team that already had 4 players");
 		const auto& player = GetPlayerData(playerID);
 		if (!player) return;
 		ChatPackets::SendSystemMessage(player.sysAddr, u"The teams is full! You have not been added to a team!");

@@ -82,16 +82,16 @@ void Character::DoQuickXMLDataParse() {
 	if (!m_Doc) return;
 
 	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
+		Log::Info("Loaded xmlData for character {:s} ({:d})!", m_Name, m_ID);
 	} else {
-		LOG("Failed to load xmlData!");
+		Log::Warn("Failed to load xmlData!");
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
 
 	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
-		LOG("Failed to find mf tag!");
+		Log::Warn("Failed to find mf tag!");
 		return;
 	}
 
@@ -110,14 +110,14 @@ void Character::DoQuickXMLDataParse() {
 
 	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
-		LOG("Char has no inv!");
+		Log::Warn("Char has no inv!");
 		return;
 	}
 
 	tinyxml2::XMLElement* bag = inv->FirstChildElement("items")->FirstChildElement("in");
 
 	if (!bag) {
-		LOG("Couldn't find bag0!");
+		Log::Warn("Couldn't find bag0!");
 		return;
 	}
 
@@ -310,7 +310,7 @@ void Character::SaveXMLToDatabase() {
 
 	//Call upon the entity to update our xmlDoc:
 	if (!m_OurEntity) {
-		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		Log::Warn("{:d}:{:s} didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName());
 		return;
 	}
 
@@ -321,7 +321,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
+	Log::Info("{:d}:{:s} Saved character to Database in: {:f}s", this->GetID(), this->GetName(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -334,7 +334,7 @@ void Character::SetIsNewLogin() {
 		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
 			flags->DeleteChild(currentChild);
-			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
+			Log::Info("Removed isLoggedIn flag from character {:d}:{:s}, saving character to database", GetID(), GetName());
 			WriteToDatabase();
 		}
 		currentChild = nextChild;

@@ -93,7 +93,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	auto& requestor = Game::playerContainer.GetPlayerDataMutable(requestorPlayerID);
 	if (!requestor) {
-		LOG("No requestor player %llu sent to %s found.", requestorPlayerID, playerName.c_str());
+		Log::Info("No requestor player {:d} sent to {:s} found.", requestorPlayerID, playerName);
 		return;
 	}
 
@@ -376,7 +376,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	LUWString message(size);
 	inStream.Read(message);
 	
-	LOG("Got a message from (%s) via [%s]: %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
+	Log::Info("Got a message from ({:s}) via [{:s}]: {:s}", sender.playerName, StringifiedEnum::ToString(channel), message.GetAsString());
 
 	switch (channel) {
 	case eChatChannel::TEAM: {
@@ -391,7 +391,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 		break;
 	}
 	default:
-		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(channel).data());
+		Log::Info("Unhandled Chat channel [{:s}]", StringifiedEnum::ToString(channel));
 		break;
 	}
 }
@@ -412,7 +412,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
-	if (channel != eChatChannel::PRIVATE_CHAT) LOG("WARNING: Received Private chat with the wrong channel!");
+	if (channel != eChatChannel::PRIVATE_CHAT) Log::Info("WARNING: Received Private chat with the wrong channel!");
 
 	inStream.Read(size);
 	inStream.IgnoreBytes(77);
@@ -424,7 +424,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	LUWString message(size);
 	inStream.Read(message);
 	
-	LOG("Got a message from (%s) via [%s]: %s to %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str(), receiverName.c_str());
+	Log::Info("Got a message from ({:s}) via [{:s}]: {:s} to {:s}", sender.playerName, StringifiedEnum::ToString(channel), message.GetAsString(), receiverName);
 
 	const auto& receiver = Game::playerContainer.GetPlayerData(receiverName);
 	if (!receiver) {
@@ -506,13 +506,13 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	if (team->memberIDs.size() > 3) {
 		// no more teams greater than 4
 
-		LOG("Someone tried to invite a 5th player to a team");
+		Log::Info("Someone tried to invite a 5th player to a team");
 		return;
 	}
 
 	SendTeamInvite(other, player);
 
-	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.GetAsString().c_str());
+	Log::Info("Got team invite: {:d} -> {:s}", playerID, invitedPlayer.GetAsString());
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -526,7 +526,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	inStream.Read(leaderID);
 
-	LOG("Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
+	Log::Info("Accepted invite: {:d} -> {:d} ({:d})", playerID, leaderID, declined);
 
 	if (declined) {
 		return;
@@ -535,13 +535,13 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	auto* team = Game::playerContainer.GetTeam(leaderID);
 
 	if (team == nullptr) {
-		LOG("Failed to find team for leader (%llu)", leaderID);
+		Log::Info("Failed to find team for leader ({:d})", leaderID);
 
 		team = Game::playerContainer.GetTeam(playerID);
 	}
 
 	if (team == nullptr) {
-		LOG("Failed to find team for player (%llu)", playerID);
+		Log::Info("Failed to find team for player ({:d})", playerID);
 		return;
 	}
 
@@ -557,7 +557,7 @@ void ChatPacketHandler::HandleTeamLeave(Packet* packet) {
 
 	auto* team = Game::playerContainer.GetTeam(playerID);
 
-	LOG("(%llu) leaving team", playerID);
+	Log::Info("({:d}) leaving team", playerID);
 
 	if (team != nullptr) {
 		Game::playerContainer.RemoveMember(team, playerID, false, false, true);
@@ -575,7 +575,7 @@ void ChatPacketHandler::HandleTeamKick(Packet* packet) {
 	inStream.Read(kickedPlayer);
 
 
-	LOG("(%llu) kicking (%s) from team", playerID, kickedPlayer.GetAsString().c_str());
+	Log::Info("({:d}) kicking ({:s}) from team", playerID, kickedPlayer.GetAsString());
 
 	const auto& kicked = Game::playerContainer.GetPlayerData(kickedPlayer.GetAsString());
 
@@ -608,7 +608,7 @@ void ChatPacketHandler::HandleTeamPromote(Packet* packet) {
 	inStream.IgnoreBytes(4);
 	inStream.Read(promotedPlayer);
 
-	LOG("(%llu) promoting (%s) to team leader", playerID, promotedPlayer.GetAsString().c_str());
+	Log::Info("({:d}) promoting ({:s}) to team leader", playerID, promotedPlayer.GetAsString());
 
 	const auto& promoted = Game::playerContainer.GetPlayerData(promotedPlayer.GetAsString());
 

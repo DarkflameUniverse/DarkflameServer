@@ -281,12 +281,12 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	case BehaviorTemplates::BEHAVIOR_MOUNT: break;
 	case BehaviorTemplates::BEHAVIOR_SKILL_SET: break;
 	default:
-		//LOG("Failed to load behavior with invalid template id (%i)!", templateId);
+		//Log::Warn("Failed to load behavior with invalid template id ({:d})!", templateId);
 		break;
 	}
 
 	if (behavior == nullptr) {
-		//LOG("Failed to load unimplemented template id (%i)!", templateId);
+		//Log::Warn("Failed to load unimplemented template id ({:d})!", templateId);
 
 		behavior = new EmptyBehavior(behaviorId);
 	}
@@ -309,7 +309,7 @@ BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 	}
 
 	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
-		LOG("Failed to load behavior template with id (%i)!", behaviorId);
+		Log::Warn("Failed to load behavior template with id ({:d})!", behaviorId);
 	}
 
 	return templateID;
@@ -429,7 +429,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
 	if (templateInDatabase.behaviorID == 0) {
-		LOG("Failed to load behavior with id (%i)!", behaviorId);
+		Log::Warn("Failed to load behavior with id ({:d})!", behaviorId);
 
 		this->m_effectId = 0;
 		this->m_effectHandle = nullptr;

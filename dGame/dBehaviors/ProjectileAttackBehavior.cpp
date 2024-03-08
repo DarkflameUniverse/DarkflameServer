@@ -12,14 +12,14 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	LWOOBJID target{};
 
 	if (!bitStream.Read(target)) {
-		LOG("Unable to read target from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read target from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
 	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
-		LOG("Failed to find originator (%llu)!", context->originator);
+		Log::Warn("Failed to find originator ({:d})!", context->originator);
 
 		return;
 	}
@@ -27,7 +27,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
-		LOG("Failed to find skill component for (%llu)!", -context->originator);
+		Log::Warn("Failed to find skill component for ({:d})!", -context->originator);
 
 		return;
 	}
@@ -35,7 +35,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	if (m_useMouseposit && !branch.isSync) {
 		NiPoint3 targetPosition = NiPoint3Constant::ZERO;
 		if (!bitStream.Read(targetPosition)) {
-			LOG("Unable to read targetPosition from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read targetPosition from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 	}
@@ -46,7 +46,7 @@ void ProjectileAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 		LWOOBJID projectileId{};
 
 		if (!bitStream.Read(projectileId)) {
-			LOG("Unable to read projectileId from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read projectileId from bitStream, aborting Handle! {:d}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 

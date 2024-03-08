@@ -364,7 +364,7 @@ const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskTy
 						break;
 					}
 				} catch (std::invalid_argument& exception) {
-					LOG("Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
+					Log::Warn("Failed to parse target ({:s}): ({:s})!", token, exception.what());
 				}
 			}
 

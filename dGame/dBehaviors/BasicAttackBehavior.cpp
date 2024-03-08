@@ -34,10 +34,10 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bi
 
 	uint16_t allocatedBits{};
 	if (!bitStream.Read(allocatedBits) || allocatedBits == 0) {
-		LOG_DEBUG("No allocated bits");
+		Log::Debug("No allocated bits");
 		return;
 	}
-	LOG_DEBUG("Number of allocated bits %i", allocatedBits);
+	Log::Debug("Number of allocated bits {:d}", allocatedBits);
 	const auto baseAddress = bitStream.GetReadOffset();
 
 	DoHandleBehavior(context, bitStream, branch);
@@ -48,13 +48,13 @@ void BasicAttackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bi
 void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* targetEntity = Game::entityManager->GetEntity(branch.target);
 	if (!targetEntity) {
-		LOG("Target targetEntity %llu not found.", branch.target);
+		Log::Warn("Target targetEntity {:d} not found.", branch.target);
 		return;
 	}
 
 	auto* destroyableComponent = targetEntity->GetComponent<DestroyableComponent>();
 	if (!destroyableComponent) {
-		LOG("No destroyable found on the obj/lot %llu/%i", branch.target, targetEntity->GetLOT());
+		Log::Warn("No destroyable found on the obj/lot {:d}/{:d}", branch.target, targetEntity->GetLOT());
 		return;
 	}
 
@@ -63,7 +63,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 	bool isSuccess{};
 
 	if (!bitStream.Read(isBlocked)) {
-		LOG("Unable to read isBlocked");
+		Log::Warn("Unable to read isBlocked");
 		return;
 	}
 
@@ -136,7 +136,7 @@ void BasicAttackBehavior::DoHandleBehavior(BehaviorContext* context, RakNet::Bit
 		break;
 	default:
 		if (static_cast<eBasicAttackSuccessTypes>(successState) != eBasicAttackSuccessTypes::FAILIMMUNE) {
-			LOG("Unknown success state (%i)!", successState);
+			Log::Warn("Unknown success state ({:d})!", successState);
 			return;
 		}
 		this->m_OnFailImmune->Handle(context, bitStream, branch);
@@ -241,7 +241,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		break;
 	default:
 		if (static_cast<eBasicAttackSuccessTypes>(successState) != eBasicAttackSuccessTypes::FAILIMMUNE) {
-			LOG("Unknown success state (%i)!", successState);
+			Log::Warn("Unknown success state ({:d})!", GeneralUtils::ToUnderlying(successState));
 			break;
 		}
 		this->m_OnFailImmune->Calculate(context, bitStream, branch);

@@ -114,7 +114,7 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 			points.push_back(value);
 		} catch (std::invalid_argument& exception) {
-			LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
+			Log::Warn("Failed to parse value ({:s}): ({:s})!", token, exception.what());
 		}
 	}
 
