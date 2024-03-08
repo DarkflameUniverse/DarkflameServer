@@ -22,7 +22,7 @@ add_custom_command(TARGET dGameTests POST_BUILD
 	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
-target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
+target_link_libraries(dGameTests PRIVATE ${COMMON_LIBRARIES} GTest::gtest_main
 	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation)
 
 # Discover the tests

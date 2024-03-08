@@ -3,6 +3,8 @@ set(DSERVER_SOURCES
 
 add_library(dServer STATIC ${DSERVER_SOURCES})
 
+target_link_libraries(dServer PRIVATE fmt)
+
 target_include_directories(dServer PUBLIC ".")
 
 target_include_directories(dServer PRIVATE

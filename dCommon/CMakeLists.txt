@@ -70,5 +70,6 @@ else ()
 endif ()
 
 target_link_libraries(dCommon
+	PUBLIC fmt
 	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
 	INTERFACE dDatabase)

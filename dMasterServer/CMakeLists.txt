@@ -12,8 +12,8 @@ target_include_directories(dMasterServer PUBLIC "."
 	${PROJECT_SOURCE_DIR}/dServer/ # BinaryPathFinder.h
 )
 
-target_link_libraries(dMasterServer ${COMMON_LIBRARIES})
-target_link_libraries(MasterServer ${COMMON_LIBRARIES} bcrypt dMasterServer dServer)
+target_link_libraries(dMasterServer PRIVATE ${COMMON_LIBRARIES})
+target_link_libraries(MasterServer PRIVATE ${COMMON_LIBRARIES} bcrypt dMasterServer dServer)
 
 if(WIN32)
 	add_dependencies(MasterServer WorldServer AuthServer ChatServer)

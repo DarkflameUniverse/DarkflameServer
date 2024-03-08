@@ -1,6 +1,6 @@
 add_executable(AuthServer "AuthServer.cpp")
 
-target_link_libraries(AuthServer ${COMMON_LIBRARIES} dServer)
+target_link_libraries(AuthServer PRIVATE ${COMMON_LIBRARIES} dServer)
 
 target_include_directories(AuthServer PRIVATE ${PROJECT_SOURCE_DIR}/dServer)
 

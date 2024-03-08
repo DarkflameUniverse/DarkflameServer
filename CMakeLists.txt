@@ -287,7 +287,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "MariaDB::ConnCpp" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "fmt" "raknet" "MariaDB::ConnCpp" "magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)
