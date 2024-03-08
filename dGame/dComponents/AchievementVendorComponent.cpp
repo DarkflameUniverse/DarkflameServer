@@ -9,11 +9,15 @@
 #include "UserManager.h"
 #include "CDMissionsTable.h"
 
+AchievementVendorComponent::AchievementVendorComponent(Entity* parent) : VendorComponent(parent) {
+	RefreshInventory(true);
+};
+
 bool AchievementVendorComponent::SellsItem(Entity* buyer, const LOT lot) {
 	auto* missionComponent = buyer->GetComponent<MissionComponent>();
 	if (!missionComponent) return false;
 
-	if (m_PlayerPurchasableItems[buyer->GetObjectID()].contains(lot)){
+	if (m_PlayerPurchasableItems[buyer->GetObjectID()].contains(lot)) {
 		return true;
 	}
 
@@ -35,7 +39,7 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	int itemCompID = compRegistryTable->GetByIDAndType(lot, eReplicaComponentType::ITEM);
 	CDItemComponent itemComp = itemComponentTable->GetItemComponentByID(itemCompID);
 	uint32_t costLOT = itemComp.commendationLOT;
-	
+
 	if (costLOT == -1 || !SellsItem(buyer, lot)) {
 		auto* user = UserManager::Instance()->GetUser(buyer->GetSystemAddress());
 		CheatDetection::ReportCheat(user, buyer->GetSystemAddress(), "Attempted to buy item %i from achievement vendor %i that is not purchasable", lot, m_Parent->GetLOT());
@@ -44,7 +48,7 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	}
 
 	auto* inventoryComponent = buyer->GetComponent<InventoryComponent>();
-	if (!inventoryComponent)  {
+	if (!inventoryComponent) {
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
@@ -69,4 +73,9 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
 	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 
+}
+
+void AchievementVendorComponent::RefreshInventory(bool isCreation) {
+	SetHasStandardCostItems(true);
+	Game::entityManager->SerializeEntity(m_Parent);
 }

@@ -11,7 +11,6 @@ set(DSCRIPTS_SOURCES
 	"InvalidScript.cpp"
 	"NPCAddRemoveItem.cpp"
 	"NtFactionSpyServer.cpp"
-	"ScriptComponent.cpp"
 	"ScriptedPowerupSpawner.cpp"
 	"SpawnPetBaseServer.cpp")
 

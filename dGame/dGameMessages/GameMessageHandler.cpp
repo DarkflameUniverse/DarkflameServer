@@ -136,16 +136,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		}
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerLoaded(zoneControl, entity);
+		if (zoneControl) {
+			zoneControl->GetScript()->OnPlayerLoaded(zoneControl, entity);
 		}
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerLoaded(scriptEntity, entity);
-				}
+				scriptEntity->GetScript()->OnPlayerLoaded(scriptEntity, entity);
 			}
 		}
 
