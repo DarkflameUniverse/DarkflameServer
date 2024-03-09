@@ -65,10 +65,13 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 
 	if (mIsOkay) {
 		if (zoneID == 0)
-			LOG("%s Server is listening on %s:%i with encryption: %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption));
+			Log::Info("{:s} Server is listening on {:s}:{:d} with encryption: '{}'", StringifiedEnum::ToString(serverType), ip, port, useEncryption);
 		else
-			LOG("%s Server is listening on %s:%i with encryption: %i, running zone %i / %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	} else { LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
+			Log::Info("{:s} Server is listening on {:s}:{:d} with encryption: '{}' running zone {:d} / {:d}", StringifiedEnum::ToString(serverType), ip, port, useEncryption, zoneID, instanceID);
+	} else {
+		Log::Warn("FAILED TO START SERVER ON IP/PORT: {:s}:{:d}", ip, port);
+		return;
+	}
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
@@ -76,7 +79,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	if (serverType != ServerType::Master) {
 		SetupForMasterConnection();
 		if (!ConnectToMaster()) {
-			LOG("Failed ConnectToMaster!");
+			Log::Warn("Failed ConnectToMaster!");
 		}
 	}
 
@@ -110,13 +113,13 @@ Packet* dServer::ReceiveFromMaster() {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
 		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
-			LOG("Lost our connection to master, shutting DOWN!");
+			Log::Info("Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
 			//ConnectToMaster(); //We'll just shut down now
 		}
 
 		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
-			LOG("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
+			Log::Info("Established connection to master, zone ({:d}), instance ({:d})", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
@@ -238,11 +241,11 @@ void dServer::SetupForMasterConnection() {
 	mMasterSocketDescriptor = SocketDescriptor(uint16_t(mPort + 1), 0);
 	mMasterPeer = RakNetworkFactory::GetRakPeerInterface();
 	bool ret = mMasterPeer->Startup(1, 30, &mMasterSocketDescriptor, 1);
-	if (!ret) LOG("Failed MasterPeer Startup!");
+	if (!ret) Log::Warn("Failed MasterPeer Startup!");
 }
 
 bool dServer::ConnectToMaster() {
-	//LOG("Connection to Master %s:%d", mMasterIP.c_str(), mMasterPort);
+	//Log::Info("Connection to Master {:s}:{:d}", mMasterIP, mMasterPort);
 	return mMasterPeer->Connect(mMasterIP.c_str(), mMasterPort, "3.25 DARKFLAME1", 15);
 }
 

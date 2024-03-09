@@ -41,7 +41,7 @@ template <typename T>
 class location_wrapper {
 public:
 	// Constructor
-	template <std::convertible_to<T> U = T>
+	template <typename U = T>
 	consteval location_wrapper(const U val, const std::source_location loc = std::source_location::current())
 		: m_Obj(val)
 		, m_Loc(loc) {
@@ -67,12 +67,15 @@ protected:
 */
 namespace Log {
 	template <typename... Ts>
-	constexpr tm Time() { // TODO: Move?
+	[[nodiscard]] inline tm Time() { // TODO: Move?
 		return fmt::localtime(std::time(nullptr));
 	}
 
 	template <typename... Ts>
-	constexpr void Info(const location_wrapper<fmt::format_string<Ts...>> fmt_str, Ts&&... args) {
+	using FormatString = location_wrapper<fmt::format_string<Ts...>>;
+
+	template <typename... Ts>
+	inline void Info(const FormatString<Ts...> fmt_str, Ts&&... args) {
 		const auto filename = GetFileNameFromAbsolutePath(fmt_str.loc().file_name());
 
 		fmt::print("[{:%d-%m-%y %H:%M:%S} {:s}:{:d}] ", Time(), filename, fmt_str.loc().line());
@@ -80,7 +83,7 @@ namespace Log {
 	}
 
 	template <typename... Ts>
-	constexpr void Warn(const location_wrapper<fmt::format_string<Ts...>> fmt_str, Ts&&... args) {
+	inline void Warn(const FormatString<Ts...> fmt_str, Ts&&... args) {
 		const auto filename = GetFileNameFromAbsolutePath(fmt_str.loc().file_name());
 
 		fmt::print("[{:%d-%m-%y %H:%M:%S} {:s}:{:d}] Warning: ", Time(), filename, fmt_str.loc().line());
@@ -88,7 +91,7 @@ namespace Log {
 	}
 
 	template <typename... Ts>
-	constexpr void Debug(const location_wrapper<fmt::format_string<Ts...>> fmt_str, Ts&&... args) {
+	inline void Debug(const FormatString<Ts...> fmt_str, Ts&&... args) {
 		// if (!m_logDebugStatements) return;
 		Log::Info(fmt_str, std::forward<Ts>(args)...);
 	}

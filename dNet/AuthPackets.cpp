@@ -53,18 +53,18 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 
 	ServiceId serviceId;
 	inStream.Read(serviceId);
-	if (serviceId != ServiceId::Client) LOG("WARNING: Service ID is not a Client!");
+	if (serviceId != ServiceId::Client) Log::Warn("Service ID is not a Client!");
 
 	uint32_t processID;
 	inStream.Read(processID);
 
 	uint16_t port;
 	inStream.Read(port);
-	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over!");
+	if (port != packet->systemAddress.port) Log::Warn("Port written in packet does not match the port the client is connecting over!");
 
 	inStream.IgnoreBytes(33);
 	
-	LOG_DEBUG("Client Data [Version: %i, Service: %s, Process: %u, Port: %u, Sysaddr Port: %u]", clientVersion, StringifiedEnum::ToString(serviceId).data(), processID, port, packet->systemAddress.port);
+	Log::Debug("Client Data [Version: {:d}, Service: {:s}, Process: {:d}, Port: {:d}, Sysaddr Port: {:d}]", clientVersion, StringifiedEnum::ToString(serviceId), processID, port, packet->systemAddress.port);
 
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
 }
@@ -102,20 +102,20 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	LanguageCodeID locale_id;
 	inStream.Read(locale_id);
-	LOG_DEBUG("Locale ID: %s", StringifiedEnum::ToString(locale_id).data());
+	Log::Debug("Locale ID: {:s}", StringifiedEnum::ToString(locale_id));
 
 	ClientOS clientOS;
 	inStream.Read(clientOS);
-	LOG_DEBUG("Operating System: %s", StringifiedEnum::ToString(clientOS).data());
+	Log::Debug("Operating System: {:s}", StringifiedEnum::ToString(clientOS));
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_CLIENT_OS, 0);
 
 	LUWString memoryStats(256);
 	inStream.Read(memoryStats);
-	LOG_DEBUG("Memory Stats [%s]", memoryStats.GetAsString().c_str());
+	Log::Debug("Memory Stats {:s}", memoryStats.GetAsString());
 
 	LUWString videoCard(128);
 	inStream.Read(videoCard);
-	LOG_DEBUG("VideoCard Info: [%s]", videoCard.GetAsString().c_str());
+	Log::Debug("VideoCard Info: {:s}", videoCard.GetAsString());
 
 	// Processor/CPU info
 	uint32_t numOfProcessors;
@@ -126,7 +126,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	inStream.Read(processorLevel);
 	uint16_t processorRevision;
 	inStream.Read(processorRevision);
-	LOG_DEBUG("CPU Info: [#Processors: %i, Processor Type: %i, Processor Level: %i, Processor Revision: %i]", numOfProcessors, processorType, processorLevel, processorRevision);
+	Log::Debug("CPU Info: [#Processors: {:d}, Processor Type: {:d}, Processor Level: {:d}, Processor Revision: {:d}]", numOfProcessors, processorType, processorLevel, processorRevision);
 
 	// OS Info
 	uint32_t osVersionInfoSize;
@@ -139,13 +139,13 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	inStream.Read(buildNumber);
 	uint32_t platformID;
 	inStream.Read(platformID);
-	LOG_DEBUG("OS Info: [Size: %i, Major: %i, Minor %i, Buid#: %i, platformID: %i]", osVersionInfoSize, majorVersion, minorVersion, buildNumber, platformID);
+	Log::Debug("OS Info: [Size: {:d}, Major: {:d}, Minor {:d}, Buid#: {:d}, platformID: {:d}]", osVersionInfoSize, majorVersion, minorVersion, buildNumber, platformID);
 
 	// Fetch account details
 	auto accountInfo = Database::Get()->GetAccountInfo(username);
 
 	if (!accountInfo) {
-		LOG("No user by name %s found!", username.c_str());
+		Log::Info("No user by name {:s} found!", username);
 		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::INVALID_USER, "", "", 2001, username, stamps);
 		return;
@@ -164,7 +164,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		if (accountInfo->playKeyId == 0) {
 			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your account doesn't have a play key associated with it!", "", 2001, username, stamps);
-			LOG("User %s tried to log in, but they don't have a play key.", username.c_str());
+			Log::Info("User {:s} tried to log in, but they don't have a play key.", username);
 			return;
 		}
 
@@ -180,7 +180,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 		if (!playKeyStatus.value()) {
 			stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
 			AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "Your play key has been disabled.", "", 2001, username, stamps);
-			LOG("User %s tried to log in, but their play key was disabled", username.c_str());
+			Log::Info("User {:s} tried to log in, but their play key was disabled", username);
 			return;
 		}
 	} else if (Game::config->GetValue("dont_use_keys") == "1" || accountInfo->maxGmLevel > eGameMasterLevel::CIVILIAN){
@@ -204,7 +204,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	if (!loginSuccess) {
 		stamps.emplace_back(eStamps::PASSPORT_AUTH_ERROR, 1);
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::WRONG_PASS, "", "", 2001, username, stamps);
-		LOG("Wrong password used");
+		Log::Info("Wrong password used");
 	} else {
 		SystemAddress system = packet->systemAddress; //Copy the sysAddr before the Packet gets destroyed from main
 
@@ -302,6 +302,6 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);
 
-		LOG("Set sessionKey: %i for user %s", sessionKey, username.c_str());
+		Log::Info("Set sessionKey: {:d} for user {:s}", sessionKey, username);
 	}
 }

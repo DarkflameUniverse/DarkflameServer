@@ -18,7 +18,7 @@
 #include "ObjectIDManager.h"
 
 void dZoneManager::Initialize(const LWOZONEID& zoneID) {
-	LOG("Preparing zone: %i/%i/%i", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
+	Log::Info("Preparing zone: {:d}/{:d}/{:d}", zoneID.GetMapID(), zoneID.GetInstanceID(), zoneID.GetCloneID());
 
 	int64_t startTime = 0;
 	int64_t endTime = 0;
@@ -46,11 +46,11 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 		}
 	}
 
-	LOG("Creating zone control object %i", zoneControlTemplate);
+	Log::Info("Creating zone control object {:d}", zoneControlTemplate);
 
 	// Create ZoneControl object
 	if (!Game::entityManager) {
-		LOG("ERROR: No entity manager loaded. Cannot proceed.");
+		Log::Warn("ERROR: No entity manager loaded. Cannot proceed.");
 		throw std::invalid_argument("No entity manager loaded. Cannot proceed.");
 	}
 	Game::entityManager->Initialize();
@@ -66,7 +66,7 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 
 	LoadWorldConfig();
 
-	LOG("Zone prepared in: %llu ms", (endTime - startTime));
+	Log::Info("Zone prepared in: {:d} ms", (endTime - startTime));
 
 	VanityUtilities::SpawnVanity();
 }
@@ -148,7 +148,7 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 	auto* spawner = GetSpawner(id);
 
 	if (spawner == nullptr) {
-		LOG("Failed to find spawner (%llu)", id);
+		Log::Info("Failed to find spawner ({:d})", id);
 		return;
 	}
 
@@ -158,14 +158,14 @@ void dZoneManager::RemoveSpawner(const LWOOBJID id) {
 		entity->Kill();
 	} else {
 
-		LOG("Failed to find spawner entity (%llu)", id);
+		Log::Info("Failed to find spawner entity ({:d})", id);
 	}
 
 	spawner->DestroyAllEntities();
 
 	spawner->Deactivate();
 
-	LOG("Destroying spawner (%llu)", id);
+	Log::Info("Destroying spawner ({:d})", id);
 
 	m_Spawners.erase(id);
 
@@ -218,14 +218,14 @@ bool dZoneManager::CheckIfAccessibleZone(LWOMAPID zoneID) {
 }
 
 void dZoneManager::LoadWorldConfig() {
-	LOG("Loading WorldConfig into memory");
+	Log::Info("Loading WorldConfig into memory");
 
 	auto worldConfig = CDClientDatabase::ExecuteQuery("SELECT * FROM WorldConfig;");
 
 	if (!m_WorldConfig) m_WorldConfig = new WorldConfig();
 
 	if (worldConfig.eof()) {
-		LOG("WorldConfig table is empty.  Is this intended?");
+		Log::Info("WorldConfig table is empty.  Is this intended?");
 		return;
 	}
 
@@ -288,5 +288,5 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->characterVersion = worldConfig.getIntField("CharacterVersion");
 	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
 	worldConfig.finalize();
-	LOG("Loaded WorldConfig into memory");
+	Log::Info("Loaded WorldConfig into memory");
 }

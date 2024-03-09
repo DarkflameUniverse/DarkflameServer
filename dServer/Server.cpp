@@ -7,7 +7,7 @@
 
 void Server::SetupLogger(const std::string_view serviceName) {
 	if (Game::logger) {
-		LOG("A logger has already been setup, skipping.");
+		Log::Info("A logger has already been setup, skipping.");
 		return;
 	}
 

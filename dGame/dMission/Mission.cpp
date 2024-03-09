@@ -47,7 +47,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	info = *mis;
 
 	if (mis == &CDMissionsTable::Default) {
-		LOG("Failed to find mission (%i)!", missionId);
+		Log::Info("Failed to find mission ({:d})!", missionId);
 
 		return;
 	}

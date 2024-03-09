@@ -122,7 +122,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 
 	SEND_PACKET;
 	delete[] compressedData;
-	LOG("Sent CreateCharacter for ID: %llu", player);
+	Log::Info("Sent CreateCharacter for ID: {:d}", player);
 }
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
