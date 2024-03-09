@@ -59,6 +59,7 @@
 #include "dpShapeSphere.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "StringifiedEnum.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
@@ -81,6 +82,7 @@
 #include "eControlScheme.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "eHelpType.h"
 #include "eMasterMessageType.h"
 #include "PlayerManager.h"
 
@@ -674,6 +676,32 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	// Send packet to display help message pop-up
+	if (chatCommand == "helpmsg") {
+		if (entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+			const auto helpIdOpt = GeneralUtils::TryParse<eHelpType>(args[0]);
+			if (!helpIdOpt) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid help message id.");
+				return;
+			}
+
+			const eHelpType helpId = helpIdOpt.value();
+			GameMessages::SendHelp(entity->GetObjectID(), helpId, sysAddr);
+
+			// Convert and print enum string
+			const std::u16string msg = u"Sent help message '"
+				+ GeneralUtils::ASCIIToUTF16(StringifiedEnum::ToString(helpId))
+				+ u"' (id: "
+				+ GeneralUtils::to_u16string(GeneralUtils::ToUnderlying(helpId))
+				+ u')';
+			
+			ChatPackets::SendSystemMessage(sysAddr, msg);
+		} else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command invocation.");
+			return;
+		}
+	}
+
 	if (chatCommand == "setflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
 		const auto flagId = GeneralUtils::TryParse<int32_t>(args.at(0));
 
@@ -732,7 +760,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 		petComponent->SetFlag(petFlag);
 
-		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(GeneralUtils::CastUnderlyingType(petFlag)));
+		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(GeneralUtils::ToUnderlying(petFlag)));
 		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 

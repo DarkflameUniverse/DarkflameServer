@@ -79,6 +79,7 @@ These commands are primarily for development and testing. The usage of many of t
 |getnavmeshheight|`/getnavmeshheight`|Displays the navmesh height at your current position.|8|
 |giveuscore|`/giveuscore <uscore>`|Gives uscore.|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id.|8|
+|helpmsg|`/helpmsg <id> (help id)`|Display help message pop-up for a given id.|8|
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|

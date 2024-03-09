@@ -196,7 +196,7 @@ public:
 	 * successfully).
 	 * @param name the name of the pet to set
 	 */
-	void RequestSetPetName(std::u16string name);
+	void RequestSetPetName(const std::u16string& name);
 
 	/**
 	 * Handles a notification of the client that the taming entity is leaving the minigame, either voluntary or because
@@ -266,7 +266,7 @@ public:
 	/**
 	 * Despawns the pet
 	 */
-	void Deactivate();
+	void Deactivate(eHelpType msg = eHelpType::NONE);
 
 	/**
 	 * Removes the pet from the inventory

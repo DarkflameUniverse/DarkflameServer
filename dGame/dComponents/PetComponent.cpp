@@ -324,7 +324,7 @@ void PetComponent::OnUse(Entity* originator) {
 	GameMessages::SendNotifyPetTamingPuzzleSelected(originator->GetObjectID(), bricks, originator->GetSystemAddress());
 
 	m_Tamer = originator->GetObjectID();
-	SetFlag(PetFlag::IDLE, PetFlag::UNKNOWN4); //SetStatus(5);
+	SetFlag(PetFlag::IDLE, PetFlag::UNKNOWN4);
 
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
@@ -424,7 +424,7 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 	GameMessages::SendPetTamingTryBuildResult(m_Tamer, !clientFailed, numBricks, tamer->GetSystemAddress());
 }
 
-void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
+void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
 
 	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
@@ -527,7 +527,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	}
 }
 
-void PetComponent::RequestSetPetName(std::u16string name) {
+void PetComponent::RequestSetPetName(const std::u16string& name) {
 	if (m_Tamer == LWOOBJID_EMPTY) {
 		if (m_Owner != LWOOBJID_EMPTY) {
 			auto* owner = GetOwner();
@@ -630,7 +630,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	SetOnlyFlag(PetFlag::TAMEABLE); //SetStatus(PetFlag::TAMEABLE);
+	SetOnlyFlag(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -679,7 +679,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	SetOnlyFlag(PetFlag::TAMEABLE); //SetStatus(PetFlag::TAMEABLE);
+	SetOnlyFlag(PetFlag::TAMEABLE);
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -917,6 +917,7 @@ void PetComponent::StartInteractBouncer() {
 		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
 		return;
 	}
+	GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_TOOLTIP_1ST_PET_JUMPED_ON_SWITCH, user->GetSystemAddress());
 
 	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, user->GetSystemAddress());
 
@@ -954,7 +955,7 @@ void PetComponent::HandleInteractBouncer() {
 		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged"); //TODO: Check if the timing on this is right
 		// TODO: Need to freeze player movement until the bounce begins!
 
-		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::CastUnderlyingType(PetEmote::ActivateSwitch), true); // Plays 'jump on switch' animation
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::ActivateSwitch), true); // Plays 'jump on switch' animation
 		StopInteract();
 	}
 	m_Timer += 0.5f;
@@ -970,7 +971,7 @@ void PetComponent::SetupInteractTreasureDig() {
 
 	SetAbility(petAbility);
 	UnsetFlag(PetFlag::IDLE);
-	SetFlag(PetFlag::ON_SWITCH, PetFlag::NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	SetFlag(PetFlag::ON_SWITCH, PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
 	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
@@ -1007,7 +1008,7 @@ void PetComponent::StartInteractTreasureDig() {
 	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent);
 
-	Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::CastUnderlyingType(PetEmote::DigTreasure), true); // Plays 'dig' animation
+	Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::DigTreasure), true); // Plays 'dig' animation
 	m_Timer = 2.0f;
 }
 
@@ -1028,7 +1029,7 @@ void PetComponent::HandleInteractTreasureDig() {
 	}
 
 	if (m_TimerBounce <= 0.0f) {
-		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::CastUnderlyingType(PetEmote::Bounce), true); // Plays 'bounce' animation
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::Bounce), true); // Plays 'bounce' animation
 		m_TimerBounce = 1.0f;
 	}
 
@@ -1124,19 +1125,21 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 		}
 
 		// If we are out of imagination despawn the pet.
-		if (playerDestroyableComponent->GetImagination() == 0) {
-			this->Deactivate();
+		if (playerDestroyableComponent->GetImagination() < 1) {
+			this->Deactivate(eHelpType::PR_NO_IMAGINATION_HIBERNATE);
 			auto playerEntity = playerDestroyableComponent->GetParent();
 			if (!playerEntity) return;
-
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 		}
 
 		this->AddDrainImaginationTimer(item);
 		});
 }
 
-void PetComponent::Deactivate() {
+void PetComponent::Deactivate(const eHelpType msg) {
+	if (msg != eHelpType::NONE) {
+		GameMessages::SendHelp(m_Parent->GetObjectID(), msg, m_Parent->GetSystemAddress());
+	}
+
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "", LWOOBJID_EMPTY, 1, 1, true);
 
 	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());

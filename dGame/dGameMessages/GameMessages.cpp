@@ -3823,7 +3823,7 @@ void GameMessages::HandleDespawnPet(RakNet::BitStream& inStream, Entity* entity,
 	if (bDeletePet) {
 		petComponent->Release();
 	} else {
-		petComponent->Deactivate();
+		petComponent->Deactivate(eHelpType::PET_DESPAWN_BY_OWNER_HIBERNATE);
 	}
 }
 
