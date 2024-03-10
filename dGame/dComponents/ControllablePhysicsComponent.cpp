@@ -26,7 +26,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 	m_SpeedMultiplier = 1;
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
-	m_IgnoreMultipliers = false;
 
 	m_DirtyEquippedItemInfo = true;
 	m_PickupRadius = 0.0f;
@@ -152,7 +151,8 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			outBitStream.Write(m_AngularVelocity.z);
 		}
 
-		outBitStream.Write0();
+		outBitStream.Write0(); // local_space_info, always zero for now.
+
 		if (!bIsInitialUpdate) {
 			m_DirtyPosition = false;
 			outBitStream.Write(m_IsTeleporting);
