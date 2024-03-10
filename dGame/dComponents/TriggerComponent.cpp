@@ -353,36 +353,6 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	missionComponent->Progress(eMissionTaskType::EXPLORE, 0, 0, argArray.at(4));
 }
 
-void TriggerComponent::HandleTurnAroundOnPath(Entity* targetEntity){
-	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	if (!movementAIComponent) return;
-	movementAIComponent->ReversePath();
-}
-
-void TriggerComponent::HandleGoForwardOnPath(Entity* targetEntity){
-	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	if (!movementAIComponent) return;
-	if (movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
-}
-
-void TriggerComponent::HandleGoBackwardOnPath(Entity* targetEntity){
-	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	if (!movementAIComponent) return;
-	if (!movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
-}
-
-void TriggerComponent::HandleStopPathing(Entity* targetEntity){
-	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	if (!movementAIComponent) return;
-	movementAIComponent->Pause();
-}
-
-void TriggerComponent::HandleStartPathing(Entity* targetEntity){
-	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	if (!movementAIComponent) return;
-	movementAIComponent->Resume();
-}
-
 void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() < 3) return;
 	const auto effectID = GeneralUtils::TryParse<int32_t>(argArray.at(1));
