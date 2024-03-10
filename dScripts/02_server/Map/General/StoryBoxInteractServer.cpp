@@ -29,7 +29,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	if (!self->HasVar(u"storyText") || !self->HasVar(u"altFlagID")) return;
+	if (!self->HasVar(u"storyText")) return;
 	const auto storyText = self->GetVarAsString(u"storyText");
 	if (storyText.length() > 2) {
 		auto storyValue = GeneralUtils::TryParse<uint32_t>(storyText.substr(storyText.length() - 2));
