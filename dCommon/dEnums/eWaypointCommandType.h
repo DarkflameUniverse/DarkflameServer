@@ -1,3 +1,4 @@
+
 #ifndef __EWAYPOINTCOMMANDTYPES__H__
 #define __EWAYPOINTCOMMANDTYPES__H__
 
