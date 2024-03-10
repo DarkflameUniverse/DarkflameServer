@@ -14,14 +14,12 @@ namespace LUTriggers {
 class Level;
 
 enum class eWaypointCommandType : uint32_t;
+
 struct WaypointCommand {
 	eWaypointCommandType command;
 	std::string data;
-	WaypointCommand(eWaypointCommandType command, std::string data){
-		this->command = command;
-		this->data = data;
-	}
 };
+
 
 struct SceneRef {
 	std::string filename;

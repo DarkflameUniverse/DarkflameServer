@@ -453,18 +453,20 @@ void Zone::LoadPath(std::istream& file) {
 				std::string value;
 				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
 
-				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
 					// cause NetDevil puts spaces in things that don't need spaces
 					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
 					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
 					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
-					if (waypointCommand != eWaypointCommandType::INVALID) waypoint.commands.push_back(WaypointCommand(waypointCommand, value));
-					else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
+					if (waypointCommand != eWaypointCommandType::INVALID) {
+						auto& command = waypoint.commands.emplace_back();
+						command.command = waypointCommand;
+						command.data = value;
+					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
-					if (ldfConfig) waypoint.config.push_back(ldfConfig);
+					waypoint.config.emplace_back(LDFBaseData::DataFromString(parameter + "=" + value));
 				}
+
 			}
 		}
 
