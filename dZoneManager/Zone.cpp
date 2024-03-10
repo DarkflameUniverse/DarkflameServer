@@ -471,7 +471,7 @@ void Zone::LoadPath(std::istream& file) {
 		}
 
 		// We verify the waypoint heights against the navmesh because in many movement paths,
-		// the waypoint is located near 0 height,
+		// the waypoint is located near 0 height, 
 		if (path.pathType == PathType::Movement) {
 			if (dpWorld::IsLoaded()) {
 				// 2000 should be large enough for every world.
