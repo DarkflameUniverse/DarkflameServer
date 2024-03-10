@@ -65,9 +65,7 @@ ControllablePhysicsComponent::~ControllablePhysicsComponent() {
 }
 
 void ControllablePhysicsComponent::Update(float deltaTime) {
-	if (m_Velocity == NiPoint3Constant::ZERO) return;
-	SetPosition(m_Position + (m_Velocity * deltaTime));
-	Game::entityManager->SerializeEntity(m_Parent);
+
 }
 
 void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -243,7 +241,6 @@ void ControllablePhysicsComponent::SetIsOnRail(bool val) {
 void ControllablePhysicsComponent::SetDirtyPosition(bool val) {
 	m_DirtyPosition = val;
 }
-
 void ControllablePhysicsComponent::AddPickupRadiusScale(float value) {
 	m_ActivePickupRadiusScales.push_back(value);
 	if (value > m_PickupRadius) {
