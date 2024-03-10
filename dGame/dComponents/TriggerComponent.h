@@ -26,7 +26,6 @@ private:
 	void HandleDestroyObject(Entity* targetEntity, std::string args);
 	void HandleToggleTrigger(Entity* targetEntity, std::string args);
 	void HandleResetRebuild(Entity* targetEntity, std::string args);
-	void HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray);
@@ -36,11 +35,6 @@ private:
 	void HandlePlayCinematic(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleToggleBBB(Entity* targetEntity, std::string args);
 	void HandleUpdateMission(Entity* targetEntity, std::vector<std::string> argArray);
-	void HandleTurnAroundOnPath(Entity* targetEntity);
-	void HandleGoForwardOnPath(Entity* targetEntity);
-	void HandleGoBackwardOnPath(Entity* targetEntity);
-	void HandleStopPathing(Entity* targetEntity);
-	void HandleStartPathing(Entity* targetEntity);
 	void HandlePlayEffect(Entity* targetEntity, std::vector<std::string> argArray);
 	void HandleCastSkill(Entity* targetEntity, std::string args);
 	void HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::vector<std::string> argArray);
