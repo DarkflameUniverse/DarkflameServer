@@ -11,7 +11,6 @@
 #include "PhantomPhysicsComponent.h"
 #include "QuickBuildComponent.h"
 #include "SkillComponent.h"
-#include "MovementAIComponent.h"
 #include "eEndBehavior.h"
 #include "PlayerManager.h"
 #include "Game.h"
