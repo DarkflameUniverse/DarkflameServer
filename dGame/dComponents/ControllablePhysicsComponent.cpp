@@ -105,6 +105,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	if (m_DirtyEquippedItemInfo || bIsInitialUpdate) {
 		outBitStream.Write(m_PickupRadius);
 		outBitStream.Write(m_InJetpackMode);
+
 		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
 
@@ -115,12 +116,10 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			outBitStream.Write(m_BubbleType);
 			outBitStream.Write(m_SpecialAnims);
 		}
+
 		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
-	
-	bool isVelocityZero = m_Velocity != NiPoint3Constant::ZERO;
-	bool isAngularVelocityZero = m_AngularVelocity != NiPoint3Constant::ZERO;
-	bool shouldWriteFrameStats = m_DirtyPosition || bIsInitialUpdate || isVelocityZero || isAngularVelocityZero;
+
 	outBitStream.Write(m_DirtyPosition || bIsInitialUpdate);
 	if (m_DirtyPosition || bIsInitialUpdate) {
 		outBitStream.Write(m_Position.x);
