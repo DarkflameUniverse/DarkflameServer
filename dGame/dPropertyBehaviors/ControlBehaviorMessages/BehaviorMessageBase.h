@@ -22,7 +22,7 @@ public:
 
 protected:
 	[[nodiscard]] int32_t GetBehaviorIdFromArgument(const AMFArrayValue& arguments);
-	[[nodiscard]] int32_t GetActionIndexFromArgument(const AMFArrayValue& arguments, const std::string& keyName = "actionIndex") const;
+	[[nodiscard]] int32_t GetActionIndexFromArgument(const AMFArrayValue& arguments, const std::string_view keyName = "actionIndex") const;
 	int32_t m_BehaviorId{ DefaultBehaviorId };
 };
 

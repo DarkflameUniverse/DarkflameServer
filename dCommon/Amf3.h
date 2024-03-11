@@ -105,26 +105,13 @@ using AMFDoubleValue = AMFValue<double>;
  * and are not to be deleted by a caller.
  */
 class AMFArrayValue : public AMFBaseValue {
-	using AMFAssociative = std::unordered_map<std::string, AMFBaseValue*>;
-	using AMFDense = std::vector<AMFBaseValue*>;
+	using AMFAssociative =
+		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<>>;
+
+	using AMFDense = std::vector<std::unique_ptr<AMFBaseValue>>;
 
 public:
 	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::Array; }
-
-	~AMFArrayValue() override {
-		for (const auto* valueToDelete : GetDense()) {
-			if (valueToDelete) {
-				delete valueToDelete;
-				valueToDelete = nullptr;
-			}
-		}
-		for (auto valueToDelete : GetAssociative()) {
-			if (valueToDelete.second) {
-				delete valueToDelete.second;
-				valueToDelete.second = nullptr;
-			}
-		}
-	}
 
 	/**
 	 * Returns the Associative portion of the object
@@ -151,30 +138,32 @@ public:
 	 * or nullptr if a key existed and was not the same type
 	 */
 	template <typename ValueType>
-	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const std::string& key, const ValueType value) {
+	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const std::string_view key, const ValueType value) {
 		const auto element = m_Associative.find(key);
 		AMFValue<ValueType>* val = nullptr;
 		bool found = true;
 		if (element == m_Associative.cend()) {
-			val = new AMFValue<ValueType>(value);
-			m_Associative.emplace(key, val);
+			auto newVal = std::make_unique<AMFValue<ValueType>>(value);
+			val = newVal.get();
+			m_Associative.emplace(key, std::move(newVal));
 		} else {
-			val = dynamic_cast<AMFValue<ValueType>*>(element->second);
+			val = dynamic_cast<AMFValue<ValueType>*>(element->second.get());
 			found = false;
 		}
 		return std::make_pair(val, found);
 	}
 
 	// Associates an array with a string key
-	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const std::string& key) {
+	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const std::string_view key) {
 		const auto element = m_Associative.find(key);
 		AMFArrayValue* val = nullptr;
 		bool found = true;
 		if (element == m_Associative.cend()) {
-			val = new AMFArrayValue();
-			m_Associative.emplace(key, val);
+			auto newVal = std::make_unique<AMFArrayValue>();
+			val = newVal.get();
+			m_Associative.emplace(key, std::move(newVal));
 		} else {
-			val = dynamic_cast<AMFArrayValue*>(element->second);
+			val = dynamic_cast<AMFArrayValue*>(element->second.get());
 			found = false;
 		}
 		return std::make_pair(val, found);
@@ -182,15 +171,13 @@ public:
 
 	// Associates an array with an integer key
 	[[maybe_unused]] std::pair<AMFBaseValue*, bool> Insert(const size_t index) {
-		AMFArrayValue* val = nullptr;
 		bool inserted = false;
 		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
-			val = new AMFArrayValue();
-			m_Dense.at(index) = val;
+			m_Dense.at(index) = std::make_unique<AMFArrayValue>();
 			inserted = true;
 		}
-		return std::make_pair(dynamic_cast<AMFArrayValue*>(m_Dense.at(index)), inserted);
+		return std::make_pair(dynamic_cast<AMFArrayValue*>(m_Dense.at(index).get()), inserted);
 	}
 
 	/**
@@ -205,15 +192,13 @@ public:
 	 */
 	template <typename ValueType>
 	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const size_t index, const ValueType value) {
-		AMFValue<ValueType>* val = nullptr;
 		bool inserted = false;
 		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
-			val = new AMFValue<ValueType>(value);
-			m_Dense.at(index) = val;
+			m_Dense.at(index) = std::make_unique<AMFValue<ValueType>>(value);
 			inserted = true;
 		}
-		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(m_Dense.at(index)), inserted);
+		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(m_Dense.at(index).get()), inserted);
 	}
 
 	/**
@@ -225,13 +210,12 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const std::string& key, AMFBaseValue* const value) {
+	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
 		const auto element = m_Associative.find(key);
 		if (element != m_Associative.cend() && element->second) {
-			delete element->second;
-			element->second = value;
+			element->second = std::move(value);
 		} else {
-			m_Associative.emplace(key, value);
+			m_Associative.emplace(key, std::move(value));
 		}
 	}
 
@@ -244,14 +228,11 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const size_t index, AMFBaseValue* const value) {
-		if (index < m_Dense.size()) {
-			const AMFDense::const_iterator itr = m_Dense.cbegin() + index;
-			if (*itr) delete m_Dense.at(index);
-		} else {
+	void Insert(const size_t index, std::unique_ptr<AMFBaseValue> value) {
+		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
 		}
-		m_Dense.at(index) = value;
+		m_Dense.at(index) = std::move(value);
 	}
 
 	/**
@@ -279,8 +260,7 @@ public:
 	void Remove(const std::string& key, const bool deleteValue = true) {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
 		if (it != m_Associative.cend()) {
-			if (deleteValue) delete it->second;
-			m_Associative.erase(it);
+			if (deleteValue) m_Associative.erase(it);
 		}
 	}
 
@@ -290,7 +270,6 @@ public:
 	void Remove(const size_t index) {
 		if (!m_Dense.empty() && index < m_Dense.size()) {
 			const auto itr = m_Dense.cbegin() + index;
-			if (*itr) delete (*itr);
 			m_Dense.erase(itr);
 		}
 	}
@@ -299,16 +278,16 @@ public:
 		if (!m_Dense.empty()) Remove(m_Dense.size() - 1);
 	}
 
-	[[nodiscard]] AMFArrayValue* GetArray(const std::string& key) const {
+	[[nodiscard]] AMFArrayValue* GetArray(const std::string_view key) const {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
-		return it != m_Associative.cend() ? dynamic_cast<AMFArrayValue*>(it->second) : nullptr;
+		return it != m_Associative.cend() ? dynamic_cast<AMFArrayValue*>(it->second.get()) : nullptr;
 	}
 
 	[[nodiscard]] AMFArrayValue* GetArray(const size_t index) const {
-		return index < m_Dense.size() ? dynamic_cast<AMFArrayValue*>(m_Dense.at(index)) : nullptr;
+		return index < m_Dense.size() ? dynamic_cast<AMFArrayValue*>(m_Dense.at(index).get()) : nullptr;
 	}
 
-	[[maybe_unused]] inline AMFArrayValue* InsertArray(const std::string& key) {
+	[[maybe_unused]] inline AMFArrayValue* InsertArray(const std::string_view key) {
 		return static_cast<AMFArrayValue*>(Insert(key).first);
 	}
 
@@ -330,17 +309,17 @@ public:
 	 * @return The AMFValue
 	 */
 	template <typename AmfType>
-	[[nodiscard]] AMFValue<AmfType>* Get(const std::string& key) const {
+	[[nodiscard]] AMFValue<AmfType>* Get(const std::string_view key) const {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
 		return it != m_Associative.cend() ?
-			dynamic_cast<AMFValue<AmfType>*>(it->second) :
+			dynamic_cast<AMFValue<AmfType>*>(it->second.get()) :
 			nullptr;
 	}
 
 	// Get from the array but dont cast it
-	[[nodiscard]] AMFBaseValue* Get(const std::string& key) const {
+	[[nodiscard]] AMFBaseValue* Get(const std::string_view key) const {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
-		return it != m_Associative.cend() ? it->second : nullptr;
+		return it != m_Associative.cend() ? it->second.get() : nullptr;
 	}
 
 	/**
@@ -355,13 +334,13 @@ public:
 	template <typename AmfType>
 	[[nodiscard]] AMFValue<AmfType>* Get(const size_t index) const {
 		return index < m_Dense.size() ?
-			dynamic_cast<AMFValue<AmfType>*>(m_Dense.at(index)) :
+			dynamic_cast<AMFValue<AmfType>*>(m_Dense.at(index).get()) :
 			nullptr;
 	}
 
 	// Get from the dense but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const size_t index) const {
-		return index < m_Dense.size() ? m_Dense.at(index) : nullptr;
+		return index < m_Dense.size() ? m_Dense.at(index).get() : nullptr;
 	}
 
 private:

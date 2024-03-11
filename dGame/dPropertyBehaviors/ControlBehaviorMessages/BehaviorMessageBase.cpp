@@ -5,7 +5,7 @@
 #include "dCommonVars.h"
 
 int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue& arguments) {
-	static constexpr const char* key = "BehaviorID";
+	static constexpr std::string_view key = "BehaviorID";
 	const auto* const behaviorIDValue = arguments.Get<std::string>(key);
 	int32_t behaviorId = DefaultBehaviorId;
 
@@ -19,7 +19,7 @@ int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue& argu
 	return behaviorId;
 }
 
-int32_t BehaviorMessageBase::GetActionIndexFromArgument(const AMFArrayValue& arguments, const std::string& keyName) const {
+int32_t BehaviorMessageBase::GetActionIndexFromArgument(const AMFArrayValue& arguments, const std::string_view keyName) const {
 	const auto* const actionIndexAmf = arguments.Get<double>(keyName);
 	if (!actionIndexAmf) throw std::invalid_argument("Unable to find actionIndex");
 

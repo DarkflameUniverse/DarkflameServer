@@ -76,26 +76,26 @@ void ControlBehaviors::UpdateAction(const AMFArrayValue& arguments) {
 	auto blockDefinition = GetBlockInfo(updateActionMessage.GetAction().GetType());
 
 	if (!blockDefinition) {
-		LOG("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().c_str());
+		LOG("Received undefined block type %s. Ignoring.", updateActionMessage.GetAction().GetType().data());
 		return;
 	}
 
 	if (updateActionMessage.GetAction().GetValueParameterString().size() > 0) {
 		if (updateActionMessage.GetAction().GetValueParameterString().size() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterString().size() > blockDefinition->GetMaximumValue()) {
-			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().data());
 			return;
 		}
 	} else {
 		if (updateActionMessage.GetAction().GetValueParameterDouble() < blockDefinition->GetMinimumValue() ||
 			updateActionMessage.GetAction().GetValueParameterDouble() > blockDefinition->GetMaximumValue()) {
-			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().c_str());
+			LOG("Updated block %s is out of range. Ignoring update", updateActionMessage.GetAction().GetType().data());
 			return;
 		}
 	}
 }
 
-void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string& command, Entity* const modelOwner) {
+void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string_view command, Entity* const modelOwner) {
 	if (!isInitialized || !modelEntity || !modelOwner) return;
 	auto* const modelComponent = modelEntity->GetComponent<ModelComponent>();
 
@@ -157,7 +157,7 @@ void ControlBehaviors::ProcessCommand(Entity* const modelEntity, const AMFArrayV
 	} else if (command == "updateAction") {
 		context.modelComponent->HandleControlBehaviorsMsg<UpdateActionMessage>(arguments);
 	} else {
-		LOG("Unknown behavior command (%s)", command.c_str());
+		LOG("Unknown behavior command (%s)", command.data());
 	}
 }
 
@@ -279,11 +279,11 @@ ControlBehaviors::ControlBehaviors() {
 	isInitialized = true;
 	LOG_DEBUG("Created all base block classes");
 	for (auto& [name, block] : blockTypes) {
-		LOG_DEBUG("block name is %s default %s min %f max %f", name.c_str(), block.GetDefaultValue().c_str(), block.GetMinimumValue(), block.GetMaximumValue());
+		LOG_DEBUG("block name is %s default %s min %f max %f", name.data(), block.GetDefaultValue().data(), block.GetMinimumValue(), block.GetMaximumValue());
 	}
 }
 
-std::optional<BlockDefinition> ControlBehaviors::GetBlockInfo(const std::string& blockName) {
+std::optional<BlockDefinition> ControlBehaviors::GetBlockInfo(const std::string_view blockName) {
 	auto blockDefinition = blockTypes.find(blockName);
 	return blockDefinition != blockTypes.end() ? std::optional(blockDefinition->second) : std::nullopt;
 }

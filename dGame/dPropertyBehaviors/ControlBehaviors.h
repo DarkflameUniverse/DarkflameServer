@@ -43,7 +43,7 @@ public:
 	 * @param command The command to perform
 	 * @param modelOwner The owner of the model which sent this command
 	 */
-	void ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string& command, Entity* const modelOwner);
+	void ProcessCommand(Entity* const modelEntity, const AMFArrayValue& arguments, const std::string_view command, Entity* const modelOwner);
 
 	/**
 	 * @brief Gets a blocks parameter values by the name
@@ -53,7 +53,7 @@ public:
 	 * 
 	 * @return A pair of the block parameter name to its typing
 	 */
-	[[nodiscard]] std::optional<BlockDefinition> GetBlockInfo(const std::string& blockName);
+	[[nodiscard]] std::optional<BlockDefinition> GetBlockInfo(const std::string_view blockName);
 private:
 	void RequestUpdatedID(ControlBehaviorContext& context);
 	void SendBehaviorListToClient(const ControlBehaviorContext& context);

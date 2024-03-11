@@ -126,6 +126,29 @@ namespace GeneralUtils {
 
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
 
+	/**
+	 * Transparent string hasher - used to allow string_view key lookups for maps storing std::string keys
+	 * https://www.reddit.com/r/cpp_questions/comments/12xw3sn/find_stdstring_view_in_unordered_map_with/jhki225/
+	 * https://godbolt.org/z/789xv8Eeq
+	*/
+	template <typename... Bases>
+	struct overload : Bases... {
+		using is_transparent = void;
+		using Bases::operator() ... ;
+	};
+
+	struct char_pointer_hash {
+		auto operator()(const char* const ptr) const noexcept {
+			return std::hash<std::string_view>{}(ptr);
+		}
+	};
+
+	using transparent_string_hash = overload<
+		std::hash<std::string>,
+		std::hash<std::string_view>,
+		char_pointer_hash
+	>;
+
 	// Concept constraining to enum types
 	template <typename T>
 	concept Enum = std::is_enum_v<T>;
