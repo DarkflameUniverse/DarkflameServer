@@ -54,7 +54,7 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					completeUncompressedModel.append(reinterpret_cast<char*>(uncompressedChunk.get()));
 					completeUncompressedModel.resize(previousSize + actualUncompressedSize);
 				} else {
-					Log::Warn("Failed to inflate chunk {:d} for model %llu.  Error: {:d}", chunkCount, model.id, err);
+					Log::Warn("Failed to inflate chunk {} for model %llu.  Error: {}", chunkCount, model.id, err);
 					break;
 				}
 				chunkCount++;
@@ -70,13 +70,13 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 					"</LXFML>",
 					completeUncompressedModel.length() >= 15 ? completeUncompressedModel.length() - 15 : 0) == std::string::npos
 					) {
-					LOG("Brick-by-brick model %llu will be deleted!", model.id);
+					Log::Info("Brick-by-brick model {} will be deleted!", model.id);
 					Database::Get()->DeleteUgcModelData(model.id);
 					modelsTruncated++;
 				}
 			}
 		} else {
-			LOG("Brick-by-brick model %llu will be deleted!", model.id);
+			Log::Info("Brick-by-brick model {} will be deleted!", model.id);
 			Database::Get()->DeleteUgcModelData(model.id);
 			modelsTruncated++;
 		}
@@ -121,11 +121,11 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 
 			try {
 				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
-				Log::Info("Updated model {:d} to sd0", model.id);
+				Log::Info("Updated model {} to sd0", model.id);
 				updatedModels++;
 			} catch (sql::SQLException exception) {
-				Log::Warn("Failed to update model {:d}.  This model should be inspected manually to see why."
-					"The database error is {:s}", model.id, exception.what());
+				Log::Warn("Failed to update model {}.  This model should be inspected manually to see why."
+					"The database error is {}", model.id, exception.what());
 			}
 		}
 	}

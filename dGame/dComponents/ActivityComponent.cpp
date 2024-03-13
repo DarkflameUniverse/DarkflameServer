@@ -273,7 +273,7 @@ void ActivityComponent::Update(float deltaTime) {
 
 		// The timer has elapsed, start the instance
 		if (lobby->timer <= 0.0f) {
-			LOG("Setting up instance.");
+			Log::Info("Setting up instance.");
 			ActivityInstance* instance = NewInstance();
 			LoadPlayersIntoInstance(instance, lobby->players);
 			instance->StartZone();

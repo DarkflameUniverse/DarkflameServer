@@ -50,7 +50,7 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 		return;
 
 	if (entity->GetLOT() == 1) {
-		LOG("Using patch to load minifig physics");
+		Log::Info("Using patch to load minifig physics");
 
 		float radius = 1.5f;
 		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), radius, false);
@@ -161,7 +161,7 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		LOG("Failed to find char tag!");
+		Log::Warn("Failed to find char tag!");
 		return;
 	}
 
@@ -181,7 +181,7 @@ void ControllablePhysicsComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
-		LOG("Failed to find char tag while updating XML!");
+		Log::Warn("Failed to find char tag while updating XML!");
 		return;
 	}
 
@@ -298,7 +298,7 @@ void ControllablePhysicsComponent::RemoveSpeedboost(float value) {
 
 void ControllablePhysicsComponent::ActivateBubbleBuff(eBubbleType bubbleType, bool specialAnims) {
 	if (m_IsInBubble) {
-		LOG("Already in bubble");
+		Log::Warn("Already in bubble");
 		return;
 	}
 	m_BubbleType = bubbleType;

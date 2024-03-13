@@ -219,7 +219,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 			delete nameLookup;
 			nameLookup = nullptr;
 
-			LOG("Failed to find property owner name for %llu!", cloneId);
+			Log::Warn("Failed to find property owner name for {}!", cloneId);
 
 			continue;
 		} else {

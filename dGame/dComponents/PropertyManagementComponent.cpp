@@ -266,7 +266,7 @@ void PropertyManagementComponent::OnFinishBuilding() {
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
-	LOG("Placing model <%f, %f, %f>", position.x, position.y, position.z);
+	Log::Info("Placing model <{}, {}, {}>", position.x, position.y, position.z);
 
 	auto* entity = GetOwner();
 
@@ -283,7 +283,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 	auto* item = inventoryComponent->FindItemById(id);
 
 	if (item == nullptr) {
-		LOG("Failed to find item with id %d", id);
+		Log::Warn("Failed to find item with id {}", id);
 
 		return;
 	}
@@ -381,7 +381,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 }
 
 void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int deleteReason) {
-	LOG("Delete model: (%llu) (%i)", id, deleteReason);
+	Log::Info("Delete model: ({}) ({})", id, deleteReason);
 
 	auto* entity = GetOwner();
 
@@ -398,13 +398,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	auto* model = Game::entityManager->GetEntity(id);
 
 	if (model == nullptr) {
-		LOG("Failed to find model entity");
+		Log::Warn("Failed to find model entity");
 
 		return;
 	}
 
 	if (model->GetLOT() == 14 && deleteReason == 0) {
-		LOG("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
+		Log::Info("User is trying to pick up a BBB model, but this is not implemented, so we return to prevent the user from losing the model");
 
 		GameMessages::SendUGCEquipPostDeleteBasedOnEditMode(entity->GetObjectID(), entity->GetSystemAddress(), LWOOBJID_EMPTY, 0);
 
@@ -417,7 +417,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	const auto index = models.find(id);
 
 	if (index == models.end()) {
-		LOG("Failed to find model");
+		Log::Warn("Failed to find model");
 
 		return;
 	}
@@ -429,12 +429,12 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	models.erase(id);
 
 	if (spawner == nullptr) {
-		LOG("Failed to find spawner");
+		Log::Warn("Failed to find spawner");
 	}
 
 	Game::entityManager->DestructEntity(model);
 
-	LOG("Deleting model LOT %i", model->GetLOT());
+	Log::Info("Deleting model LOT {}", model->GetLOT());
 
 	if (model->GetLOT() == 14) {
 		//add it to the inv
@@ -517,13 +517,13 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	{
 		item->SetCount(item->GetCount() - 1);
 
-		LOG("DLU currently does not support breaking apart brick by brick models.");
+		Log::Info("DLU currently does not support breaking apart brick by brick models.");
 
 		break;
 	}
 	default:
 	{
-		LOG("Invalid delete reason");
+		Log::Warn("Invalid delete reason");
 	}
 	}
 
@@ -685,7 +685,7 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 	const auto zoneId = worldId.GetMapID();
 	const auto cloneId = worldId.GetCloneID();
 
-	LOG("Getting property info for %d", zoneId);
+	Log::Info("Getting property info for {}", zoneId);
 	GameMessages::PropertyDataMessage message = GameMessages::PropertyDataMessage(zoneId);
 
 	const auto isClaimed = GetOwnerId() != LWOOBJID_EMPTY;

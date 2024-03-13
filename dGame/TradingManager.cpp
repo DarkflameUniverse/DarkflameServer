@@ -67,7 +67,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 	if (participant == m_ParticipantA) {
 		m_AcceptedA = !value;
 
-		LOG("Accepted from A (%d), B: (%d)", value, m_AcceptedB);
+		Log::Info("Accepted from A ({}), B: ({})", value, m_AcceptedB);
 
 		auto* entityB = GetParticipantBEntity();
 
@@ -77,7 +77,7 @@ void Trade::SetAccepted(LWOOBJID participant, bool value) {
 	} else if (participant == m_ParticipantB) {
 		m_AcceptedB = !value;
 
-		LOG("Accepted from B (%d), A: (%d)", value, m_AcceptedA);
+		Log::Info("Accepted from B ({}), A: ({})", value, m_AcceptedA);
 
 		auto* entityA = GetParticipantAEntity();
 
@@ -194,7 +194,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 	uint64_t coins;
 	std::vector<TradeItem> itemIds;
 
-	LOG("Attempting to send trade update");
+	Log::Info("Attempting to send trade update");
 
 	if (participant == m_ParticipantA) {
 		other = GetParticipantBEntity();
@@ -228,7 +228,7 @@ void Trade::SendUpdateToOther(LWOOBJID participant) {
 		items.push_back(tradeItem);
 	}
 
-	LOG("Sending trade update");
+	Log::Info("Sending trade update");
 
 	GameMessages::SendServerTradeUpdate(other->GetObjectID(), coins, items, other->GetSystemAddress());
 }
@@ -281,7 +281,7 @@ Trade* TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
 
 	trades[tradeId] = trade;
 
-	LOG("Created new trade between (%llu) <-> (%llu)", participantA, participantB);
+	Log::Info("Created new trade between ({}) <-> ({})", participantA, participantB);
 
 	return trade;
 }

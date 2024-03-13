@@ -15,7 +15,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	auto* origin = Game::entityManager->GetEntity(context->originator);
 
 	if (origin == nullptr) {
-		LOG("Failed to find self entity (%llu)!", context->originator);
+		Log::Warn("Failed to find self entity ({})!", context->originator);
 
 		return;
 	}
@@ -45,7 +45,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	);
 
 	if (entity == nullptr) {
-		Log::Warn("Failed to spawn entity ({:d})!", this->m_lot);
+		Log::Warn("Failed to spawn entity ({})!", this->m_lot);
 
 		return;
 	}
@@ -82,7 +82,7 @@ void SpawnBehavior::Timer(BehaviorContext* context, const BehaviorBranchContext 
 	auto* entity = Game::entityManager->GetEntity(second);
 
 	if (entity == nullptr) {
-		LOG("Failed to find spawned entity (%llu)!", second);
+		Log::Warn("Failed to find spawned entity ({})!", second);
 
 		return;
 	}

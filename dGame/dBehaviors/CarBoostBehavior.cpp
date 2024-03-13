@@ -17,7 +17,7 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitSt
 		return;
 	}
 
-	LOG("Activating car boost!");
+	Log::Info("Activating car boost!");
 
 	auto* possessableComponent = entity->GetComponent<PossessableComponent>();
 	if (possessableComponent != nullptr) {
@@ -27,7 +27,7 @@ void CarBoostBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitSt
 
 			auto* characterComponent = possessor->GetComponent<CharacterComponent>();
 			if (characterComponent != nullptr) {
-				LOG("Tracking car boost!");
+				Log::Info("Tracking car boost!");
 				characterComponent->UpdatePlayerStatistic(RacingCarBoostsActivated);
 			}
 		}

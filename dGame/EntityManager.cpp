@@ -201,7 +201,7 @@ void EntityManager::KillEntities() {
 		auto* entity = GetEntity(toKill);
 
 		if (!entity) {
-			LOG("Attempting to kill null entity %llu", toKill);
+			Log::Warn("Attempting to kill null entity {}", toKill);
 			continue;
 		}
 
@@ -231,7 +231,7 @@ void EntityManager::DeleteEntities() {
 
 			if (ghostingToDelete != m_EntitiesToGhost.end()) m_EntitiesToGhost.erase(ghostingToDelete);
 		} else {
-			LOG("Attempted to delete non-existent entity %llu", toDelete);
+			Log::Warn("Attempted to delete non-existent entity {}", toDelete);
 		}
 		m_Entities.erase(toDelete);
 	}
@@ -322,7 +322,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 
 void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
 	if (!entity) {
-		LOG("Attempted to construct null entity");
+		Log::Warn("Attempted to construct null entity");
 		return;
 	}
 

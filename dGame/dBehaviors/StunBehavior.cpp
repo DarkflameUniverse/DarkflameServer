@@ -17,14 +17,14 @@ void StunBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream
 
 	bool blocked{};
 	if (!bitStream.Read(blocked)) {
-		LOG("Unable to read blocked from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read blocked from bitStream, aborting Handle! {}", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		LOG("Failed to find target (%llu)!", branch.target);
+		Log::Warn("Failed to find target ({})!", branch.target);
 
 		return;
 	}
@@ -47,7 +47,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStr
 		auto* self = Game::entityManager->GetEntity(context->originator);
 
 		if (self == nullptr) {
-			LOG("Invalid self entity (%llu)!", context->originator);
+			Log::Warn("Invalid self entity ({})!", context->originator);
 
 			return;
 		}
@@ -82,7 +82,7 @@ void StunBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStr
 	bitStream.Write(blocked);
 
 	if (target == nullptr) {
-		LOG("Failed to find target (%llu)!", branch.target);
+		Log::Warn("Failed to find target ({})!", branch.target);
 
 		return;
 	}

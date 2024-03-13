@@ -8,7 +8,7 @@ void ChargeUpBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitSt
 	uint32_t handle{};
 
 	if (!bitStream.Read(handle)) {
-		LOG("Unable to read handle from bitStream, aborting Handle! variable_type");
+		Log::Warn("Unable to read handle from bitStream, aborting Handle! variable_type");
 		return;
 	};
 

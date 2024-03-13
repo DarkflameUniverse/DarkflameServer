@@ -69,7 +69,7 @@ void MissionOfferComponent::OfferMissions(Entity* entity, const uint32_t specifi
 	auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 	if (!missionComponent) {
-		LOG("Unable to get mission component for Entity %llu", entity->GetObjectID());
+		Log::Warn("Unable to get mission component for Entity {}", entity->GetObjectID());
 		return;
 	}
 

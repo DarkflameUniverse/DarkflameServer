@@ -908,7 +908,7 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
 	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
 		if (!playerDestroyableComponent) {
-			LOG("No petComponent and/or no playerDestroyableComponent");
+			Log::Warn("No petComponent and/or no playerDestroyableComponent");
 			return;
 		}
 

@@ -13,7 +13,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitSt
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (!target) {
-		LOG("Failed to find target (%llu)!", branch.target);
+		Log::Warn("Failed to find target ({})!", branch.target);
 		return;
 	}
 
@@ -59,7 +59,7 @@ void ImmunityBehavior::Timer(BehaviorContext* context, BehaviorBranchContext bra
 	auto* target = Game::entityManager->GetEntity(second);
 
 	if (!target) {
-		LOG("Failed to find target (%llu)!", second);
+		Log::Warn("Failed to find target ({})!", second);
 		return;
 	}
 

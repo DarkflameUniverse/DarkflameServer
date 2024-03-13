@@ -138,11 +138,11 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Enti
 
 Entity::~Entity() {
 	if (IsPlayer()) {
-		LOG("Deleted player");
+		Log::Info("Deleted player");
 
 		// Make sure the player exists first.  Remove afterwards to prevent the OnPlayerExist functions from not being able to find the player.
 		if (!PlayerManager::RemovePlayer(this)) {
-			LOG("Unable to find player to remove from manager.");
+			Log::Warn("Unable to find player to remove from manager.");
 			return;
 		}
 

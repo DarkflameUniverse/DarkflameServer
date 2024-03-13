@@ -11,7 +11,7 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
-		LOG("Failed to find target (%llu)!", branch.target);
+		Log::Warn("Failed to find target ({})!", branch.target);
 
 		return;
 	}
@@ -37,7 +37,7 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 	auto* target = Game::entityManager->GetEntity(second);
 
 	if (target == nullptr) {
-		LOG("Failed to find target (%llu)!", second);
+		Log::Warn("Failed to find target ({})!", second);
 
 		return;
 	}

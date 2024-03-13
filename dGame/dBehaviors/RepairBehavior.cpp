@@ -11,7 +11,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_str
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
-		LOG("Failed to find entity for (%llu)!", branch.target);
+		Log::Warn("Failed to find entity for ({})!", branch.target);
 
 		return;
 	}
@@ -19,7 +19,7 @@ void RepairBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_str
 	auto* destroyable = static_cast<DestroyableComponent*>(entity->GetComponent(eReplicaComponentType::DESTROYABLE));
 
 	if (destroyable == nullptr) {
-		LOG("Failed to find destroyable component for %(llu)!", branch.target);
+		Log::Warn("Failed to find destroyable component for ({})!", branch.target);
 
 		return;
 	}

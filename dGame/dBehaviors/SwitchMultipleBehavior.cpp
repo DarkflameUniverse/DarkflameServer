@@ -13,7 +13,7 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream&
 	float value{};
 
 	if (!bitStream.Read(value)) {
-		LOG("Unable to read value from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+		Log::Warn("Unable to read value from bitStream, aborting Handle! {}", bitStream.GetNumberOfUnreadBits());
 		return;
 	};
 

@@ -361,10 +361,10 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
 void PhantomPhysicsComponent::SpawnVertices() {
 	if (!m_dpEntity) return;
 
-	LOG("%llu", m_Parent->GetObjectID());
+	Log::Info("{}", m_Parent->GetObjectID());
 	auto box = static_cast<dpShapeBox*>(m_dpEntity->GetShape());
 	for (auto vert : box->GetVertices()) {
-		LOG("%f, %f, %f", vert.x, vert.y, vert.z);
+		Log::Info("{}, {}, {}", vert.x, vert.y, vert.z);
 
 		EntityInfo info;
 		info.lot = 33;

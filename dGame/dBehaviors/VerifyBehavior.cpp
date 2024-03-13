@@ -18,7 +18,7 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		auto* self = Game::entityManager->GetEntity(context->originator);
 
 		if (self == nullptr) {
-			LOG("Invalid self for (%llu)", context->originator);
+			Log::Warn("Invalid self for ({})", context->originator);
 
 			return;
 		}

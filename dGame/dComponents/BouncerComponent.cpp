@@ -81,13 +81,13 @@ void BouncerComponent::LookupPetSwitch() {
 
 				Game::entityManager->SerializeEntity(m_Parent);
 
-				LOG("Loaded pet bouncer");
+				Log::Info("Loaded pet bouncer");
 			}
 		}
 	}
 
 	if (!m_PetSwitchLoaded) {
-		LOG("Failed to load pet bouncer");
+		Log::Warn("Failed to load pet bouncer");
 
 		m_Parent->AddCallbackTimer(0.5f, [this]() {
 			LookupPetSwitch();

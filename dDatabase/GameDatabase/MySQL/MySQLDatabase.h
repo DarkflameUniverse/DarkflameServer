@@ -147,91 +147,91 @@ private:
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::string_view param) {
-	// Log::Info("{:s}", param);
+	// Log::Info("{}", param);
 	stmt->setString(index, param.data());
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const char* param) {
-	// Log::Info("{:s}", param);
+	// Log::Info("{}", param);
 	stmt->setString(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::string param) {
-	// Log::Info("{:s}", param);
+	// Log::Info("{}", param);
 	stmt->setString(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int8_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setByte(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint8_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setByte(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int16_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setShort(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint16_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setShort(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint32_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setUInt(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int32_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setInt(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int64_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setInt64(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint64_t param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setUInt64(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const float param) {
-	// Log::Info({:f}", param);
+	// Log::Info({}", param);
 	stmt->setFloat(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const double param) {
-	// Log::Info("{:f}", param);
+	// Log::Info("{}", param);
 	stmt->setDouble(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const bool param) {
-	// Log::Info("{:d}", param);
+	// Log::Info("{}", param);
 	stmt->setBoolean(index, param);
 }
 
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::istream* param) {
-	// LOG("Blob");
+	// Log::Info("Blob");
 	// This is the one time you will ever see me use const_cast.
 	stmt->setBlob(index, const_cast<std::istream*>(param));
 }
@@ -239,7 +239,7 @@ inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::istr
 template<>
 inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::optional<uint32_t> param) {
 	if (param) {
-		// Log::Info("{:f}", param.value());
+		// Log::Info("{}", param.value());
 		stmt->setInt(index, param.value());
 	} else {
 		// Log::Info("Null");

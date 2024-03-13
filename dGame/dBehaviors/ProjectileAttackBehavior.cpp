@@ -64,7 +64,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	auto* entity = Game::entityManager->GetEntity(context->originator);
 
 	if (entity == nullptr) {
-		LOG("Failed to find originator (%llu)!", context->originator);
+		Log::Warn("Failed to find originator ({})!", context->originator);
 
 		return;
 	}
@@ -72,7 +72,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 	if (skillComponent == nullptr) {
-		LOG("Failed to find skill component for (%llu)!", context->originator);
+		Log::Warn("Failed to find skill component for ({})!", context->originator);
 
 		return;
 
@@ -81,7 +81,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 	auto* other = Game::entityManager->GetEntity(branch.target);
 
 	if (other == nullptr) {
-		LOG("Invalid projectile target (%llu)!", branch.target);
+		Log::Warn("Invalid projectile target ({})!", branch.target);
 
 		return;
 	}

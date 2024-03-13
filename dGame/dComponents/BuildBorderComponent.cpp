@@ -24,7 +24,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 		if (!entities.empty()) {
 			buildArea = entities[0]->GetObjectID();
 
-			LOG("Using PropertyPlaque");
+			Log::Info("Using PropertyPlaque");
 		}
 
 		auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
@@ -41,7 +41,7 @@ void BuildBorderComponent::OnUse(Entity* originator) {
 
 		inventoryComponent->PushEquippedItems();
 
-		LOG("Starting with %llu", buildArea);
+		Log::Info("Starting with {}", buildArea);
 
 		if (PropertyManagementComponent::Instance() != nullptr) {
 			GameMessages::SendStartArrangingWithItem(

@@ -188,7 +188,7 @@ void DestroyableComponent::Update(float deltaTime) {
 void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		LOG("Failed to find dest tag!");
+		Log::Warn("Failed to find dest tag!");
 		return;
 	}
 
@@ -210,7 +210,7 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
-		LOG("Failed to find dest tag!");
+		Log::Warn("Failed to find dest tag!");
 		return;
 	}
 

@@ -11,7 +11,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStre
 
 	if (this->m_imagination > 0 || !this->m_isEnemyFaction) {
 		if (!bitStream.Read(state)) {
-			LOG("Unable to read state from bitStream, aborting Handle! %i", bitStream.GetNumberOfUnreadBits());
+			Log::Warn("Unable to read state from bitStream, aborting Handle! {}", bitStream.GetNumberOfUnreadBits());
 			return;
 		};
 	}
@@ -28,7 +28,7 @@ void SwitchBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStre
 		return;
 	}
 
-	LOG_DEBUG("[%i] State: (%d), imagination: (%i) / (%f)", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
+	Log::Debug("[{}] State: ({}), imagination: ({}) / ({})", entity->GetLOT(), state, destroyableComponent->GetImagination(), destroyableComponent->GetMaxImagination());
 
 	if (state) {
 		this->m_actionTrue->Handle(context, bitStream, branch);
