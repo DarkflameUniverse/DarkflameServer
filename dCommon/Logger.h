@@ -25,7 +25,7 @@
 constexpr const char* GetFileNameFromAbsolutePath(const char* path) {
 	const char* file = path;
 	while (*path) {
-		char nextChar = *path++;
+		const char nextChar = *path++;
 		if (nextChar == '/' || nextChar == '\\') {
 			file = path;
 		}
@@ -42,24 +42,23 @@ class location_wrapper {
 public:
 	// Constructor
 	template <typename U = T>
-	consteval location_wrapper(const U val, const std::source_location loc = std::source_location::current())
-		: m_Obj(val)
-		, m_Loc(loc) {
+	consteval location_wrapper(const U& val, const std::source_location& loc = std::source_location::current())
+		: m_File(GetFileNameFromAbsolutePath(loc.file_name()))
+		, m_Loc(loc)
+		, m_Obj(val) {
 	}
 
 	// Methods
-	[[nodiscard]] constexpr const T& get() const noexcept { return m_Obj; }
+	[[nodiscard]] constexpr const char* file() const noexcept { return m_File; }
 
 	[[nodiscard]] constexpr const std::source_location& loc() const noexcept { return m_Loc; }
 
-	// Operator overloads
-	location_wrapper& operator=(const location_wrapper& other) = default;
-
-	constexpr operator T& () const noexcept { return get(); }
+	[[nodiscard]] constexpr const T& get() const noexcept { return m_Obj; }
 
 protected:
-	T m_Obj{};
+	const char* m_File{};
 	std::source_location m_Loc{};
+	T m_Obj{};
 };
 
 /**
@@ -76,17 +75,13 @@ namespace Log {
 
 	template <typename... Ts>
 	inline void Info(const FormatString<Ts...> fmt_str, Ts&&... args) {
-		const auto filename = GetFileNameFromAbsolutePath(fmt_str.loc().file_name());
-
-		fmt::print("[{:%d-%m-%y %H:%M:%S} {:s}:{:d}] ", Time(), filename, fmt_str.loc().line());
+		fmt::print("[{:%d-%m-%y %H:%M:%S} {}:{}] ", Time(), fmt_str.file(), fmt_str.loc().line());
 		fmt::println(fmt_str.get(), std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
 	inline void Warn(const FormatString<Ts...> fmt_str, Ts&&... args) {
-		const auto filename = GetFileNameFromAbsolutePath(fmt_str.loc().file_name());
-
-		fmt::print("[{:%d-%m-%y %H:%M:%S} {:s}:{:d}] Warning: ", Time(), filename, fmt_str.loc().line());
+		fmt::print("[{:%d-%m-%y %H:%M:%S} {}:{}] Warning: ", Time(), fmt_str.file(), fmt_str.loc().line());
 		fmt::println(fmt_str.get(), std::forward<Ts>(args)...);
 	}
 
@@ -106,10 +101,10 @@ namespace Log {
 	const auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now());\
 	fmt::println("[{:%d-%m-%y %H:%M:%S} {:s}] " message, now, FILENAME_AND_LINE, ##__VA_ARGS__);\
 } while(0)
-#define LOG(message, ...) Log::Info(message, ##__VA_ARGS__)
+#define LOG(message, ...) Log::Info(message __VA_OPT__(,) __VA_ARGS__)
 
 //#define LOG_DEBUG(message, ...) do { auto str = FILENAME_AND_LINE; Game::logger->LogDebug(str, message, ##__VA_ARGS__); } while(0)
-#define LOG_DEBUG(message, ...) Log::Debug(message, ##__VA_ARGS__)
+#define LOG_DEBUG(message, ...) Log::Debug(message __VA_OPT__(,) __VA_ARGS__)
 
 // Writer class for writing data to files.
 class Writer {
