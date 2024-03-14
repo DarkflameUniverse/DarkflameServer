@@ -244,11 +244,6 @@ if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-# Actually include the directories from our list
-#foreach(dir ${INCLUDED_DIRECTORIES})
-#	include_directories(${PROJECT_SOURCE_DIR}/${dir})
-#endforeach()
-
 # Add linking directories:
 if (UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") #-Werror
