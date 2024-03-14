@@ -19,7 +19,7 @@ void PropertyVendorComponent::OnUse(Entity* originator) {
 	OnQueryPropertyData(originator, originator->GetSystemAddress());
 
 	if (PropertyManagementComponent::Instance()->GetOwnerId() == LWOOBJID_EMPTY) {
-		LOG("Property vendor opening!");
+		Log::Info("Property vendor opening!");
 
 		GameMessages::SendOpenPropertyVendor(m_Parent->GetObjectID(), originator->GetSystemAddress());
 
@@ -37,7 +37,7 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 	if (PropertyManagementComponent::Instance() == nullptr) return;
 
 	if (PropertyManagementComponent::Instance()->Claim(originator->GetObjectID()) == false) {
-		LOG("FAILED TO CLAIM PROPERTY.  PLAYER ID IS %llu", originator->GetObjectID());
+		Log::Warn("FAILED TO CLAIM PROPERTY.  PLAYER ID IS {}", originator->GetObjectID());
 		return;
 	}
 
@@ -51,6 +51,5 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, originator->GetSystemAddress());
 
-	LOG("Fired event; (%d) (%i) (%i)", confirmed, lot, count);
+	Log::Info("Fired event; ({}) ({}) ({})", confirmed, lot, count);
 }
-

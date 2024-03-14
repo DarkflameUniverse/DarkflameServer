@@ -176,6 +176,6 @@ float RenderComponent::DoAnimation(Entity* self, const std::string& animation, b
 		}
 	}
 	if (sendAnimation) GameMessages::SendPlayAnimation(self, GeneralUtils::ASCIIToUTF16(animation), priority, scale);
-	if (returnlength == 0.0f) LOG("WARNING: Unable to find animation {:s} for lot {:d} in any group.", animation, self->GetLOT());
+	if (returnlength == 0.0f) Log::Warn("Unable to find animation {} for lot {} in any group.", animation, self->GetLOT());
 	return returnlength;
 }

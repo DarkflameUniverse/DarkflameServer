@@ -199,7 +199,7 @@ bool VendorComponent::SetupItem(LOT item) {
 
 	auto itemComponentID = compRegistryTable->GetByIDAndType(item, eReplicaComponentType::ITEM, -1);
 	if (itemComponentID == -1) {
-		LOG("Attempted to add item %i with ItemComponent ID -1 to vendor %i inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
+		Log::Warn("Attempted to add item {} with ItemComponent ID -1 to vendor {} inventory. Not adding item!", itemComponentID, m_Parent->GetLOT());
 		return false;
 	}
 

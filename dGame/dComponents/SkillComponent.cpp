@@ -55,7 +55,7 @@ void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syn
 	const auto index = this->m_managedBehaviors.find(skillUid);
 
 	if (index == this->m_managedBehaviors.end()) {
-		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
+		Log::Warn("Failed to find skill with uid ({})!", skillUid, syncId);
 
 		return;
 	}
@@ -80,7 +80,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	}
 
 	if (index == -1) {
-		LOG("Failed to find projectile id (%llu)!", projectileId);
+		Log::Warn("Failed to find projectile id ({})!", projectileId);
 
 		return;
 	}
@@ -94,7 +94,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		LOG("Failed to find skill id for (%i)!", sync_entry.lot);
+		Log::Warn("Failed to find skill id for ({})!", sync_entry.lot);
 
 		return;
 	}
@@ -396,7 +396,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	if (other == nullptr) {
 		if (entry.branchContext.target != LWOOBJID_EMPTY) {
-			LOG("Invalid projectile target (%llu)!", entry.branchContext.target);
+			Log::Warn("Invalid projectile target ({})!", entry.branchContext.target);
 		}
 
 		return;
@@ -408,7 +408,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 	auto result = query.execQuery();
 
 	if (result.eof()) {
-		LOG("Failed to find skill id for (%i)!", entry.lot);
+		Log::Warn("Failed to find skill id for ({})!", entry.lot);
 
 		return;
 	}

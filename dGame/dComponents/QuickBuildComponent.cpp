@@ -37,7 +37,7 @@ QuickBuildComponent::QuickBuildComponent(Entity* const entity) : Component{ enti
 	if (positionAsVector.size() == 3 && activatorPositionValid) {
 		m_ActivatorPosition = activatorPositionValid.value();
 	} else {
-		LOG("Failed to find activator position for lot %i.  Defaulting to parents position.", m_Parent->GetLOT());
+		Log::Info("Failed to find activator position for lot {}.  Defaulting to parent's position.", m_Parent->GetLOT());
 		m_ActivatorPosition = m_Parent->GetPosition();
 	}
 
@@ -432,7 +432,7 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		characterComponent->TrackQuickBuildComplete();
 	} else {
-		LOG("Some user tried to finish the rebuild but they didn't have a character somehow.");
+		Log::Warn("Some user tried to finish the rebuild but they didn't have a character somehow.");
 		return;
 	}
 
