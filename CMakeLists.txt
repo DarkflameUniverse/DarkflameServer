@@ -246,7 +246,7 @@ endif()
 
 # Add linking directories:
 if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") #-Werror
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") # Warning flags
 endif()
 file(
 	GLOB HEADERS_DZONEMANAGER
