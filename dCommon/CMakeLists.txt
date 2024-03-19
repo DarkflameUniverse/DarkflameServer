@@ -8,11 +8,9 @@ set(DCOMMON_SOURCES
 		"Game.cpp"
 		"GeneralUtils.cpp"
 		"LDFFormat.cpp"
-		"MD5.cpp"
 		"Metrics.cpp"
 		"NiPoint3.cpp"
 		"NiQuaternion.cpp"
-		"SHA512.cpp"
 		"Demangler.cpp"
 		"ZCompression.cpp"
 		"BrickByBrickFix.cpp"
@@ -20,17 +18,27 @@ set(DCOMMON_SOURCES
 		"FdbToSqlite.cpp"
 )
 
+# Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97185
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set_source_files_properties("FdbToSqlite.cpp" PROPERTIES COMPILE_FLAGS "-Wno-stringop-overflow")
+endif()
+
 add_subdirectory(dClient)
 
 foreach(file ${DCOMMON_DCLIENT_SOURCES})
 	set(DCOMMON_SOURCES ${DCOMMON_SOURCES} "dClient/${file}")
 endforeach()
 
-include_directories(${PROJECT_SOURCE_DIR}/dCommon/)
-
 add_library(dCommon STATIC ${DCOMMON_SOURCES})
-
-target_link_libraries(dCommon bcrypt dDatabase tinyxml2)
+target_include_directories(dCommon
+	PUBLIC "." "dClient" "dEnums"
+	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
+	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase"
+	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
+)
 
 if (UNIX)
 	find_package(ZLIB REQUIRED)
@@ -61,4 +69,6 @@ else ()
 	)
 endif ()
 
-target_link_libraries(dCommon ZLIB::ZLIB)
+target_link_libraries(dCommon
+	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
+	INTERFACE dDatabase)

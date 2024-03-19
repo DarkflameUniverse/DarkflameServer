@@ -30,6 +30,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
+#include "dNavMesh.h"
 
 std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
@@ -70,7 +71,7 @@ std::map<LOT, int32_t> PetComponent::petFlags = {
 };
 
 PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
-	m_PetInfo = CDClientManager::Instance().GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
+	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
 	m_ComponentId = componentId;
 
 	m_Interaction = LWOOBJID_EMPTY;
@@ -83,7 +84,7 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	m_DatabaseId = LWOOBJID_EMPTY;
 	m_Status = 67108866; // Tamable
 	m_Ability = ePetAbilityType::Invalid;
-	m_StartPosition = NiPoint3::ZERO;
+	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
 	m_TresureTime = 0;
 	m_Preconditions = nullptr;
@@ -95,42 +96,42 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	}
 }
 
-void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-	outBitStream->Write1(); // Always serialize as dirty for now
+	outBitStream.Write1(); // Always serialize as dirty for now
 
-	outBitStream->Write<uint32_t>(m_Status);
-	outBitStream->Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
+	outBitStream.Write<uint32_t>(m_Status);
+	outBitStream.Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
 
-	outBitStream->Write(interacting);
+	outBitStream.Write(interacting);
 	if (interacting) {
-		outBitStream->Write(m_Interaction);
+		outBitStream.Write(m_Interaction);
 	}
 
-	outBitStream->Write(tamed);
+	outBitStream.Write(tamed);
 	if (tamed) {
-		outBitStream->Write(m_Owner);
+		outBitStream.Write(m_Owner);
 	}
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(tamed);
+		outBitStream.Write(tamed);
 		if (tamed) {
-			outBitStream->Write(m_ModerationStatus);
+			outBitStream.Write(m_ModerationStatus);
 
 			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
 			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-			outBitStream->Write<uint8_t>(nameData.size());
+			outBitStream.Write<uint8_t>(nameData.size());
 			for (const auto c : nameData) {
-				outBitStream->Write(c);
+				outBitStream.Write(c);
 			}
 
-			outBitStream->Write<uint8_t>(ownerNameData.size());
+			outBitStream.Write<uint8_t>(ownerNameData.size());
 			for (const auto c : ownerNameData) {
-				outBitStream->Write(c);
+				outBitStream.Write(c);
 			}
 		}
 	}
@@ -250,17 +251,17 @@ void PetComponent::OnUse(Entity* originator) {
 	NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
 	forward.y = 0;
 
-	if (dpWorld::Instance().IsLoaded()) {
+	if (dpWorld::IsLoaded()) {
 		NiPoint3 attempt = petPosition + forward * interactionDistance;
 
-		float y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+		float y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 		while (std::abs(y - petPosition.y) > 4 && interactionDistance > 10) {
 			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
 
 			attempt = originatorPosition + forward * interactionDistance;
 
-			y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(attempt);
+			y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
 
 			interactionDistance -= 0.5f;
 		}
@@ -305,13 +306,11 @@ void PetComponent::OnUse(Entity* originator) {
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
 	// Notify the start of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 }
 
 void PetComponent::Update(float deltaTime) {
-	if (m_StartPosition == NiPoint3::ZERO) {
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
 		m_StartPosition = m_Parent->GetPosition();
 	}
 
@@ -446,7 +445,7 @@ void PetComponent::Update(float deltaTime) {
 		if (distance < 5 * 5) {
 			m_Interaction = closestTresure->GetObjectID();
 
-			Command(NiPoint3::ZERO, LWOOBJID_EMPTY, 1, 202, true);
+			Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
 
 			m_TresureTime = 2;
 		} else if (distance < 10 * 10) {
@@ -530,7 +529,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	EntityInfo info{};
 	info.lot = cached->second.puzzleModelLot;
 	info.pos = position;
-	info.rot = NiQuaternion::IDENTITY;
+	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
 
 	auto* modelEntity = Game::entityManager->CreateEntity(info);
@@ -590,9 +589,9 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		LWOOBJID_EMPTY,
 		false,
 		ePetTamingNotifyType::NAMINGPET,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -670,9 +669,9 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::SUCCESS,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -689,9 +688,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 	m_Tamer = LWOOBJID_EMPTY;
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
 }
 
 void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
@@ -711,9 +708,9 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::QUIT,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -730,9 +727,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
 }
 
 void PetComponent::StartTimer() {
@@ -762,9 +757,9 @@ void PetComponent::ClientFailTamingMinigame() {
 		m_Tamer,
 		false,
 		ePetTamingNotifyType::FAILED,
-		NiPoint3::ZERO,
-		NiPoint3::ZERO,
-		NiQuaternion::IDENTITY,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternionConstant::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -781,9 +776,7 @@ void PetComponent::ClientFailTamingMinigame() {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
 }
 
 void PetComponent::Wander() {
@@ -812,8 +805,8 @@ void PetComponent::Wander() {
 
 	auto destination = m_StartPosition + delta;
 
-	if (dpWorld::Instance().IsLoaded()) {
-		destination.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(destination);
+	if (dpWorld::IsLoaded()) {
+		destination.y = dpWorld::GetNavMesh()->GetHeightAtPoint(destination);
 	}
 
 	if (Vector3::DistanceSquared(destination, m_MovementAI->GetParent()->GetPosition()) < 2 * 2) {

@@ -1,5 +1,6 @@
 #pragma once
 #include "CDTable.h"
+#include <cstdint>
 #include <string>
 
 struct CDPhysicsComponent {
@@ -7,7 +8,7 @@ struct CDPhysicsComponent {
 	bool bStatic;
 	std::string physicsAsset;
 	UNUSED(bool jump);
-	UNUSED(bool doublejump);
+	UNUSED(bool doubleJump);
 	float speed;
 	UNUSED(float rotSpeed);
 	float playerHeight;
@@ -21,13 +22,10 @@ struct CDPhysicsComponent {
 	UNUSED(std::string gravityVolumeAsset);
 };
 
-class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable> {
+class CDPhysicsComponentTable : public CDTable<CDPhysicsComponentTable, std::map<uint32_t, CDPhysicsComponent>> {
 public:
 	void LoadValuesFromDatabase();
 
 	static const std::string GetTableName() { return "PhysicsComponent"; };
-	CDPhysicsComponent* GetByID(uint32_t componentID);
-
-private:
-	std::map<uint32_t, CDPhysicsComponent> m_entries;
+	CDPhysicsComponent* GetByID(const uint32_t componentID);
 };

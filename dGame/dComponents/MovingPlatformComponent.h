@@ -38,7 +38,7 @@ public:
 	MoverSubComponent(const NiPoint3& startPos);
 	~MoverSubComponent();
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate);
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate);
 
 	/**
 	 * The state the platform is currently in
@@ -104,14 +104,14 @@ public:
  * don't at all do what you expect them to as we don't instruct the client of changes made here.
  * ^^^ Trivia: This made the red blocks platform and property platforms a pain to implement.
  */
-class MovingPlatformComponent : public Component {
+class MovingPlatformComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVING_PLATFORM;
 
 	MovingPlatformComponent(Entity* parent, const std::string& pathName);
 	~MovingPlatformComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Stops all pathing, called when an entity starts a quick build associated with this platform

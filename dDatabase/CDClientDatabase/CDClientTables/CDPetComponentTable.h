@@ -21,7 +21,7 @@ struct CDPetComponent {
 	UNUSED_COLUMN(std::string buffIDs;)
 };
 
-class CDPetComponentTable : public CDTable<CDPetComponentTable> {
+class CDPetComponentTable : public CDTable<CDPetComponentTable, std::map<uint32_t, CDPetComponent>> {
 public:
 
 	/**
@@ -39,7 +39,4 @@ public:
 	 * @returns A reference to the corresponding table, or the default if one could not be found
 	*/
 	CDPetComponent& GetByID(const uint32_t componentID);
-	
-private:
-	std::map<uint32_t, CDPetComponent> m_Entries;
 };

@@ -3,73 +3,32 @@
 #include "dCommonVars.h"
 #include "Entity.h"
 #include <map>
+#include <set>
 
-struct VanityNPCLocation
-{
+struct VanityObjectLocation {
 	float m_Chance = 1.0f;
 	NiPoint3 m_Position;
 	NiQuaternion m_Rotation;
+	float m_Scale = 1.0f;
 };
 
-struct VanityNPC
-{
+struct VanityObject {
 	LWOOBJID m_ID = LWOOBJID_EMPTY;
 	std::string m_Name;
-	LOT m_LOT;
+	LOT m_LOT = LOT_NULL;
 	std::vector<LOT> m_Equipment;
 	std::vector<std::string> m_Phrases;
-	std::string m_Script;
-	std::map<std::string, bool> m_Flags;
-	std::map<uint32_t, std::vector<VanityNPCLocation>> m_Locations;
-	std::vector<LDFBaseData*> ldf;
+	std::map<uint32_t, std::vector<VanityObjectLocation>> m_Locations;
+	std::vector<LDFBaseData*> m_Config;
 };
 
-struct VanityParty
-{
-	uint32_t m_Zone;
-	float m_Chance = 1.0f;
-	std::vector<VanityNPCLocation> m_Locations;
-};
 
-class VanityUtilities
-{
-public:
-	static void SpawnVanity();
+namespace VanityUtilities {
+	void SpawnVanity();
 
-	static Entity* SpawnNPC(
-		LOT lot,
-		const std::string& name,
-		const NiPoint3& position,
-		const NiQuaternion& rotation,
-		const std::vector<LOT>& inventory,
-		const std::vector<LDFBaseData*>& ldf
-	);
+	VanityObject* GetObject(const std::string& name);
 
-	static LWOOBJID SpawnSpawner(
-		LOT lot,
-		const NiPoint3& position,
-		const NiQuaternion& rotation,
-		const std::vector<LDFBaseData*>& ldf
-	);
-
-	static std::string ParseMarkdown(
+	std::string ParseMarkdown(
 		const std::string& file
 	);
-
-	static void ParseXML(
-		const std::string& file
-	);
-
-	static VanityNPC* GetNPC(const std::string& name);
-
-private:
-	static void SetupNPCTalk(Entity* npc);
-
-	static void NPCTalk(Entity* npc);
-
-	static std::vector<VanityNPC> m_NPCs;
-
-	static std::vector<VanityParty> m_Parties;
-
-	static std::vector<std::string> m_PartyPhrases;
 };

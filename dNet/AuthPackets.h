@@ -63,7 +63,7 @@ struct Stamp {
 		this->timestamp = timestamp;
 	}
 
-	void Serialize(RakNet::BitStream* outBitStream);
+	void Serialize(RakNet::BitStream& outBitStream);
 };
 
 enum class ClientOS : uint8_t {

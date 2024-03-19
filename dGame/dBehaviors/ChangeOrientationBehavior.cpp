@@ -3,7 +3,7 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 
-void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Entity* sourceEntity;
 	if (this->m_orientCaster) sourceEntity = Game::entityManager->GetEntity(context->originator);
 	else sourceEntity = Game::entityManager->GetEntity(branch.target);

@@ -82,11 +82,11 @@ int main(int argc, char** argv) {
 	Game::randomEngine = std::mt19937(time(0));
 
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
-	uint32_t maxClients = 999;
-	uint32_t ourPort = 1001; //LU client is hardcoded to use this for auth port, so I'm making it the default.
 	std::string ourIP = "localhost";
-	GeneralUtils::TryParse(Game::config->GetValue("max_clients"), maxClients);
-	GeneralUtils::TryParse(Game::config->GetValue("auth_server_port"), ourPort);
+	const uint32_t maxClients = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_clients")).value_or(999);
+
+	//LU client is hardcoded to use this for auth port, so I'm making it the default.
+	const uint32_t ourPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("auth_server_port")).value_or(1001);
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 

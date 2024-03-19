@@ -6,7 +6,7 @@
 #include "Logger.h"
 
 
-void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
@@ -22,7 +22,7 @@ void TauntBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStrea
 	}
 }
 
-void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void TauntBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {

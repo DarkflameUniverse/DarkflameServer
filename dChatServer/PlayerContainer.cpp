@@ -14,16 +14,10 @@
 #include "dConfig.h"
 
 void PlayerContainer::Initialize() {
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends"), m_MaxNumberOfBestFriends);
-	GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends"), m_MaxNumberOfFriends);
-}
-
-PlayerContainer::~PlayerContainer() {
-	m_Players.clear();
-}
-
-PlayerData::PlayerData() {
-	gmLevel == eGameMasterLevel::CIVILIAN;
+	m_MaxNumberOfBestFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);
+	m_MaxNumberOfFriends =
+		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_friends")).value_or(m_MaxNumberOfFriends);
 }
 
 TeamData::TeamData() {
@@ -158,7 +152,7 @@ void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	bitStream.Write(player);
 	bitStream.Write(time);
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 TeamData* PlayerContainer::CreateLocalTeam(std::vector<LWOOBJID> members) {
@@ -369,7 +363,7 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 		}
 	}
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {

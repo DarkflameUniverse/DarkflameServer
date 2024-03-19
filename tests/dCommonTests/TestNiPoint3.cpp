@@ -8,9 +8,9 @@
  */
 TEST(dCommonTests, NiPoint3Test) {
 	// Check that Unitize works
-	ASSERT_EQ(NiPoint3(3, 0, 0).Unitize(), NiPoint3::UNIT_X);
+	ASSERT_EQ(NiPoint3(3, 0, 0).Unitize(), NiPoint3Constant::UNIT_X);
 	// Check what unitize does to a vector of length 0
-	ASSERT_EQ(NiPoint3::ZERO.Unitize(), NiPoint3::ZERO);
+	ASSERT_EQ(NiPoint3Constant::ZERO.Unitize(), NiPoint3Constant::ZERO);
 }
 
 TEST(dCommonTests, NiPoint3OperatorTest) {

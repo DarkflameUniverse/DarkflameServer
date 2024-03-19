@@ -1,14 +1,14 @@
 #include "GhostComponent.h"
 
 GhostComponent::GhostComponent(Entity* parent) : Component(parent) {
-	m_GhostReferencePoint = NiPoint3::ZERO;
-	m_GhostOverridePoint = NiPoint3::ZERO;
+	m_GhostReferencePoint = NiPoint3Constant::ZERO;
+	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
 }
 
 GhostComponent::~GhostComponent() {
 	for (auto& observedEntity : m_ObservedEntities) {
-		if (observedEntity == 0) continue;
+		if (observedEntity == LWOOBJID_EMPTY) continue;
 
 		auto* entity = Game::entityManager->GetGhostCandidate(observedEntity);
 		if (!entity) continue;
@@ -44,14 +44,14 @@ void GhostComponent::ConstructLimboEntities() {
 	m_LimboConstructions.clear();
 }
 
-void GhostComponent::ObserveEntity(int32_t id) {
+void GhostComponent::ObserveEntity(LWOOBJID id) {
 	m_ObservedEntities.insert(id);
 }
 
-bool GhostComponent::IsObserved(int32_t id) {
+bool GhostComponent::IsObserved(LWOOBJID id) {
 	return m_ObservedEntities.contains(id);
 }
 
-void GhostComponent::GhostEntity(int32_t id) {
+void GhostComponent::GhostEntity(LWOOBJID id) {
 	m_ObservedEntities.erase(id);
 }

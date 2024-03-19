@@ -8,9 +8,9 @@
  * Component that handles the LUP/WBL rocket launchpad that can be interacted with to travel to WBL worlds.
   *
  */
-class MultiZoneEntranceComponent : public Component {
+class MultiZoneEntranceComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MULTI_ZONE_ENTRANCE;
 
 	/**
 	 * Constructor for this component, builds the m_LUPWorlds vector

@@ -16,14 +16,9 @@ struct CDBrickIDTable {
 
 
 //! BrickIDTable table
-class CDBrickIDTableTable : public CDTable<CDBrickIDTableTable> {
-private:
-	std::vector<CDBrickIDTable> entries;
-
+class CDBrickIDTableTable : public CDTable<CDBrickIDTableTable, std::vector<CDBrickIDTable>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDBrickIDTable> Query(std::function<bool(CDBrickIDTable)> predicate);
-
-	const std::vector<CDBrickIDTable>& GetEntries() const;
 };

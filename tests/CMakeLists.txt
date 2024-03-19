@@ -1,20 +1,19 @@
-message (STATUS "Testing is enabled.  Fetching gtest...")
+message (STATUS "Testing is enabled.")
 enable_testing()
 
-include(FetchContent)
-FetchContent_Declare(
-	googletest
-	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG release-1.12.1
-)
-
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-FetchContent_MakeAvailable(GoogleTest)
+find_package(GoogleTest REQUIRED)
 include(GoogleTest)
 
-message(STATUS "gtest fetched and is now ready.")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
+if(APPLE)
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH True)
+	set(CMAKE_INSTALL_RPATH "@executable_path")
+endif()
+
+add_custom_target(conncpp_tests
+	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # Add the subdirectories
 add_subdirectory(dCommonTests)

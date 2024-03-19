@@ -18,7 +18,6 @@
 #include "Character.h"
 #include "ControllablePhysicsComponent.h"
 #include "dZoneManager.h"
-#include "Player.h"
 #include "CppScripts.h"
 
 #include "CDClientDatabase.h"
@@ -40,7 +39,7 @@
 #include "GhostComponent.h"
 #include "StringifiedEnum.h"
 
-void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
+void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID) {
 
 	CBITSTREAM;
 
@@ -137,16 +136,14 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerLoaded(zoneControl, entity);
+		if (zoneControl) {
+			zoneControl->GetScript()->OnPlayerLoaded(zoneControl, entity);
 		}
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPT);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerLoaded(scriptEntity, entity);
-				}
+				scriptEntity->GetScript()->OnPlayerLoaded(scriptEntity, entity);
 			}
 		}
 
@@ -270,11 +267,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		auto* skill_component = entity->GetComponent<SkillComponent>();
 
 		if (skill_component != nullptr) {
-			auto* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(message.sBitStream.c_str())), message.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&message.sBitStream[0]), message.sBitStream.size(), false);
 
 			skill_component->SyncPlayerProjectile(message.i64LocalID, bs, message.i64TargetID);
-
-			delete bs;
 		}
 
 		break;
@@ -291,13 +286,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			comp->Progress(eMissionTaskType::USE_SKILL, startSkill.skillID);
 		}
 
-		CDSkillBehaviorTable* skillTable = CDClientManager::Instance().GetTable<CDSkillBehaviorTable>();
+		CDSkillBehaviorTable* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
 		unsigned int behaviorId = skillTable->GetSkillByID(startSkill.skillID).behaviorID;
 
 		bool success = false;
 
 		if (behaviorId > 0) {
-			RakNet::BitStream* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(startSkill.sBitStream.c_str())), startSkill.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&startSkill.sBitStream[0]), startSkill.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
@@ -307,8 +302,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 				DestroyableComponent* destComp = entity->GetComponent<DestroyableComponent>();
 				destComp->SetImagination(destComp->GetImagination() - skillTable->GetSkillByID(startSkill.skillID).imaginationcost);
 			}
-
-			delete bs;
 		}
 
 		if (Game::server->GetZoneID() == 1302) {
@@ -332,9 +325,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 			echoStartSkill.sBitStream = startSkill.sBitStream;
 			echoStartSkill.skillID = startSkill.skillID;
 			echoStartSkill.uiSkillHandle = startSkill.uiSkillHandle;
-			echoStartSkill.Serialize(&bitStreamLocal);
+			echoStartSkill.Serialize(bitStreamLocal);
 
-			Game::server->Send(&bitStreamLocal, entity->GetSystemAddress(), true);
+			Game::server->Send(bitStreamLocal, entity->GetSystemAddress(), true);
 		}
 	} break;
 
@@ -354,13 +347,11 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		}
 
 		if (usr != nullptr) {
-			RakNet::BitStream* bs = new RakNet::BitStream(reinterpret_cast<unsigned char*>(const_cast<char*>(sync.sBitStream.c_str())), sync.sBitStream.size(), false);
+			auto bs = RakNet::BitStream(reinterpret_cast<unsigned char*>(&sync.sBitStream[0]), sync.sBitStream.size(), false);
 
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
 
 			skillComponent->SyncPlayerSkill(sync.uiSkillHandle, sync.uiBehaviorHandle, bs);
-
-			delete bs;
 		}
 
 		EchoSyncSkill echo = EchoSyncSkill();
@@ -369,9 +360,9 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream* inStream, const System
 		echo.uiBehaviorHandle = sync.uiBehaviorHandle;
 		echo.uiSkillHandle = sync.uiSkillHandle;
 
-		echo.Serialize(&bitStreamLocal);
+		echo.Serialize(bitStreamLocal);
 
-		Game::server->Send(&bitStreamLocal, sysAddr, true);
+		Game::server->Send(bitStreamLocal, sysAddr, true);
 	} break;
 
 	case eGameMessageType::REQUEST_SMASH_PLAYER:

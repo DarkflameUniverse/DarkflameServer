@@ -56,7 +56,6 @@
 #include "DestroyableComponent.h"
 #include "Game.h"
 #include "MasterPackets.h"
-#include "Player.h"
 #include "PropertyManagementComponent.h"
 #include "AssetManager.h"
 #include "LevelProgressionComponent.h"
@@ -79,11 +78,11 @@
 #include "Server.h"
 #include "PositionUpdate.h"
 #include "PlayerManager.h"
+#include "eLoginResponse.h"
 
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
-	dpWorld* physicsWorld = nullptr;
 	dChatFilter* chatFilter = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
@@ -181,7 +180,7 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	CDClientManager::Instance().LoadValuesFromDatabase();
+	CDClientManager::LoadValuesFromDatabase();
 
 	Diagnostics::SetProduceMemoryDump(Game::config->GetValue("generate_dump") == "1");
 
@@ -209,8 +208,7 @@ int main(int argc, char** argv) {
 
 	UserManager::Instance()->Initialize();
 
-	bool dontGenerateDCF = false;
-	GeneralUtils::TryParse(Game::config->GetValue("dont_generate_dcf"), dontGenerateDCF);
+	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
 	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
@@ -256,7 +254,7 @@ int main(int argc, char** argv) {
 	Game::zoneManager = new dZoneManager();
 	//Load our level:
 	if (zoneID != 0) {
-		dpWorld::Instance().Initialize(zoneID);
+		dpWorld::Initialize(zoneID);
 		Game::zoneManager->Initialize(LWOZONEID(zoneID, instanceID, cloneID));
 		g_CloneID = cloneID;
 
@@ -337,7 +335,7 @@ int main(int argc, char** argv) {
 
 		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
-			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			float_t ratioBeforeToAfter = static_cast<float>(currentFrameDelta) / static_cast<float>(newFrameDelta);
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
 			LOG_DEBUG("Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
@@ -387,7 +385,7 @@ int main(int argc, char** argv) {
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
 			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::Instance().StepWorld(deltaTime);
+			dpWorld::StepWorld(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
@@ -586,9 +584,10 @@ void HandlePacketChat(Packet* packet) {
 				inStream.Read(expire);
 
 				auto* entity = Game::entityManager->GetEntity(playerId);
-
-				if (entity != nullptr) {
-					entity->GetParentUser()->SetMuteExpire(expire);
+				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					user->SetMuteExpire(expire);
 
 					entity->GetCharacter()->SendMuteNotice();
 				}
@@ -732,9 +731,9 @@ void HandleMasterPacket(Packet* packet) {
 			{
 				CBITSTREAM;
 				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
-				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-				bitStream.Write((LWOINSTANCEID)instanceID);
-				Game::server->SendToMaster(&bitStream);
+				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+				bitStream.Write<LWOINSTANCEID>(instanceID);
+				Game::server->SendToMaster(bitStream);
 			}
 		}
 
@@ -750,7 +749,7 @@ void HandleMasterPacket(Packet* packet) {
 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
 		bitStream.Write(requestID);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		break;
 	}
@@ -834,9 +833,9 @@ void HandlePacket(Packet* packet) {
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
-		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-		bitStream.Write((LWOINSTANCEID)instanceID);
-		Game::server->SendToMaster(&bitStream);
+		bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+		bitStream.Write<LWOINSTANCEID>(instanceID);
+		Game::server->SendToMaster(bitStream);
 	}
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
@@ -870,10 +869,28 @@ void HandlePacket(Packet* packet) {
 			}
 
 			// Developers may skip this check
-			if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER && clientDatabaseChecksum.string != databaseChecksum) {
-				LOG("Client's database checksum does not match the server's, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::WRONG_GAME_VERSION);
-				return;
+			if (clientDatabaseChecksum.string != databaseChecksum) {
+
+				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
+					LOG("Client's database checksum does not match the server's, aborting connection.");
+					std::vector<Stamp> stamps;
+
+					// Using the LoginResponse here since the UI is still in the login screen state
+					// and we have a way to send a message about the client mismatch.
+					AuthPackets::SendLoginResponse(
+						Game::server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
+						Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
+					return;
+				} else {
+					AMFArrayValue args;
+
+					args.Insert("title", Game::config->GetValue("cdclient_mismatch_title"));
+					args.Insert("message", Game::config->GetValue("cdclient_mismatch_message"));
+
+					GameMessages::SendUIMessageServerToSingleClient("ToggleAnnounce", args, packet->systemAddress);
+					LOG("Account (%s) with GmLevel (%s) does not have a matching FDB, but is a developer and will skip this check."
+						, username.GetAsString().c_str(), StringifiedEnum::ToString(accountInfo->maxGmLevel).data());
+				}
 			}
 		}
 
@@ -881,7 +898,7 @@ void HandlePacket(Packet* packet) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
 		bitStream.Write(username);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		//Insert info into our pending list
 		tempSessionInfo info;
@@ -936,7 +953,7 @@ void HandlePacket(Packet* packet) {
 			static_cast<int32_t>(messageID)
 		);
 
-		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
@@ -1016,8 +1033,8 @@ void HandlePacket(Packet* packet) {
 
 				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
 
-				if (respawnPoint != NiPoint3::ZERO) {
-					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternion::IDENTITY);
+				if (respawnPoint != NiPoint3Constant::ZERO) {
+					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternionConstant::IDENTITY);
 				}
 
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);
@@ -1112,9 +1129,10 @@ void HandlePacket(Packet* packet) {
 				//Mail::HandleNotificationRequest(packet->systemAddress, player->GetObjectID());
 
 				//Notify chat that a player has loaded:
-				{
-					const auto& playerName = player->GetCharacter()->GetName();
-					//RakNet::RakString playerName(player->GetCharacter()->GetName().c_str());
+				auto* character = player->GetCharacter();
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					const auto& playerName = character->GetName();
 
 					CBITSTREAM;
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatMessageType::PLAYER_ADDED_NOTIFICATION);
@@ -1128,7 +1146,7 @@ void HandlePacket(Packet* packet) {
 					bitStream.Write(zone.GetMapID());
 					bitStream.Write(zone.GetInstanceID());
 					bitStream.Write(zone.GetCloneID());
-					bitStream.Write(player->GetParentUser()->GetMuteExpire());
+					bitStream.Write(user->GetMuteExpire());
 					bitStream.Write(player->GetGMLevel());
 
 					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
@@ -1162,7 +1180,7 @@ void HandlePacket(Packet* packet) {
 		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
 		bitStream.Read(space);
-		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::HandleMailStuff(bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 
@@ -1423,6 +1441,7 @@ void FinalizeShutdown() {
 
 	//Delete our objects here:
 	Metrics::Clear();
+	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;
 	Game::chatFilter = nullptr;
@@ -1445,5 +1464,5 @@ void FinalizeShutdown() {
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
-	Game::server->SendToMaster(&bitStream);
+	Game::server->SendToMaster(bitStream);
 }

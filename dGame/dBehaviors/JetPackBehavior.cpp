@@ -5,7 +5,7 @@
 
 #include "Character.h"
 
-void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	GameMessages::SendSetJetPackMode(entity, true, this->m_BypassChecks, this->m_EnableHover, this->m_effectId, this->m_Airspeed, this->m_MaxAirspeed, this->m_VerticalVelocity, this->m_WarningEffectID);
@@ -33,7 +33,7 @@ void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext bra
     }
 }
 
-void JetPackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void JetPackBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 

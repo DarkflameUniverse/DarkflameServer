@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMissionNPCComponent {
 	uint32_t id;                //!< The ID
 	uint32_t missionID;         //!< The Mission ID
@@ -11,17 +13,9 @@ struct CDMissionNPCComponent {
 	std::string gate_version;  //!< The gate version
 };
 
-class CDMissionNPCComponentTable : public CDTable<CDMissionNPCComponentTable> {
-private:
-	std::vector<CDMissionNPCComponent> entries;
-
+class CDMissionNPCComponentTable : public CDTable<CDMissionNPCComponentTable, std::vector<CDMissionNPCComponent>> {
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissionNPCComponent> Query(std::function<bool(CDMissionNPCComponent)> predicate);
-
-	// Gets all the entries in the table
-	const std::vector<CDMissionNPCComponent>& GetEntries() const;
-
 };
-

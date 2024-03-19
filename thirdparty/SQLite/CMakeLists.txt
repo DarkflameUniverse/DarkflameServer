@@ -10,5 +10,10 @@ if(UNIX)
 	target_link_libraries(sqlite3 pthread dl m)
 
 	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
-	target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
+	target_compile_options(sqlite3 PRIVATE)
+	if(NOT APPLE)
+		target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
+	else()
+		target_compile_options(sqlite3 PRIVATE "-Wno-return-stack-address" "-Wno-uninitialized" "-Wno-deprecated-declarations")
+	endif()
 endif()

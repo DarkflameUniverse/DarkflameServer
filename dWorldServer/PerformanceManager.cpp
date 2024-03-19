@@ -70,7 +70,7 @@ std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 
 void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 	// Try to get it from zoneTable
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 		if (zone) {

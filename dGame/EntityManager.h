@@ -45,19 +45,18 @@ public:
 	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SerializeEntity(Entity* entity);
+	void SerializeEntity(const Entity& entity);
 
 	void ConstructAllEntities(const SystemAddress& sysAddr);
 	void DestructAllEntities(const SystemAddress& sysAddr);
 
 	void SetGhostDistanceMax(float value);
-	float GetGhostDistanceMax() const;
 	void SetGhostDistanceMin(float value);
-	float GetGhostDistanceMin() const;
 	void QueueGhostUpdate(LWOOBJID playerID);
 	void UpdateGhosting();
-	void UpdateGhosting(Player* player);
+	void UpdateGhosting(Entity* player);
 	void CheckGhosting(Entity* entity);
-	Entity* GetGhostCandidate(int32_t id);
+	Entity* GetGhostCandidate(LWOOBJID id) const;
 	bool GetGhostingEnabled() const;
 
 	void ScheduleForKill(Entity* entity);

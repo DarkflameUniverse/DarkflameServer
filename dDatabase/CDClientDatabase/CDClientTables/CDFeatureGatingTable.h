@@ -17,10 +17,7 @@ struct CDFeatureGating {
 	}
 };
 
-class CDFeatureGatingTable : public CDTable<CDFeatureGatingTable> {
-private:
-	std::vector<CDFeatureGating> entries;
-
+class CDFeatureGatingTable : public CDTable<CDFeatureGatingTable, std::vector<CDFeatureGating>> {
 public:
 	void LoadValuesFromDatabase();
 
@@ -28,6 +25,4 @@ public:
 	std::vector<CDFeatureGating> Query(std::function<bool(CDFeatureGating)> predicate);
 
 	bool FeatureUnlocked(const CDFeatureGating& feature) const;
-
-	const std::vector<CDFeatureGating>& GetEntries(void) const;
 };

@@ -19,51 +19,51 @@ public:
 		sBitStream = _sBitStream;
 	}
 
-	DoClientProjectileImpact(RakNet::BitStream* stream) : DoClientProjectileImpact() {
+	DoClientProjectileImpact(RakNet::BitStream& stream) : DoClientProjectileImpact() {
 		Deserialize(stream);
 	}
 
 	~DoClientProjectileImpact() {
 	}
 
-	void Serialize(RakNet::BitStream* stream) {
-		stream->Write(eGameMessageType::DO_CLIENT_PROJECTILE_IMPACT);
+	void Serialize(RakNet::BitStream& stream) {
+		stream.Write(eGameMessageType::DO_CLIENT_PROJECTILE_IMPACT);
 
-		stream->Write(i64OrgID != LWOOBJID_EMPTY);
-		if (i64OrgID != LWOOBJID_EMPTY) stream->Write(i64OrgID);
+		stream.Write(i64OrgID != LWOOBJID_EMPTY);
+		if (i64OrgID != LWOOBJID_EMPTY) stream.Write(i64OrgID);
 
-		stream->Write(i64OwnerID != LWOOBJID_EMPTY);
-		if (i64OwnerID != LWOOBJID_EMPTY) stream->Write(i64OwnerID);
+		stream.Write(i64OwnerID != LWOOBJID_EMPTY);
+		if (i64OwnerID != LWOOBJID_EMPTY) stream.Write(i64OwnerID);
 
-		stream->Write(i64TargetID != LWOOBJID_EMPTY);
-		if (i64TargetID != LWOOBJID_EMPTY) stream->Write(i64TargetID);
+		stream.Write(i64TargetID != LWOOBJID_EMPTY);
+		if (i64TargetID != LWOOBJID_EMPTY) stream.Write(i64TargetID);
 
 		uint32_t sBitStreamLength = sBitStream.length();
-		stream->Write(sBitStreamLength);
+		stream.Write(sBitStreamLength);
 		for (uint32_t k = 0; k < sBitStreamLength; k++) {
-			stream->Write(sBitStream[k]);
+			stream.Write(sBitStream[k]);
 		}
 
 	}
 
-	bool Deserialize(RakNet::BitStream* stream) {
+	bool Deserialize(RakNet::BitStream& stream) {
 		bool i64OrgIDIsDefault{};
-		stream->Read(i64OrgIDIsDefault);
-		if (i64OrgIDIsDefault != 0) stream->Read(i64OrgID);
+		stream.Read(i64OrgIDIsDefault);
+		if (i64OrgIDIsDefault != 0) stream.Read(i64OrgID);
 
 		bool i64OwnerIDIsDefault{};
-		stream->Read(i64OwnerIDIsDefault);
-		if (i64OwnerIDIsDefault != 0) stream->Read(i64OwnerID);
+		stream.Read(i64OwnerIDIsDefault);
+		if (i64OwnerIDIsDefault != 0) stream.Read(i64OwnerID);
 
 		bool i64TargetIDIsDefault{};
-		stream->Read(i64TargetIDIsDefault);
-		if (i64TargetIDIsDefault != 0) stream->Read(i64TargetID);
+		stream.Read(i64TargetIDIsDefault);
+		if (i64TargetIDIsDefault != 0) stream.Read(i64TargetID);
 
 		uint32_t sBitStreamLength{};
-		stream->Read(sBitStreamLength);
+		stream.Read(sBitStreamLength);
 		for (uint32_t k = 0; k < sBitStreamLength; k++) {
 			unsigned char character;
-			stream->Read(character);
+			stream.Read(character);
 			sBitStream.push_back(character);
 		}
 

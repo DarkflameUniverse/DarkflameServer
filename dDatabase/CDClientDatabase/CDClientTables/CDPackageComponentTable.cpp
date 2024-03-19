@@ -13,18 +13,17 @@ void CDPackageComponentTable::LoadValuesFromDatabase() {
 
 	tableSize.finalize();
 
-	// Reserve the size
-	this->entries.reserve(size);
+	auto& entries = GetEntriesMutable();
+	entries.reserve(size);
 
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PackageComponent");
 	while (!tableData.eof()) {
-		CDPackageComponent entry;
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 		entry.packageType = tableData.getIntField("packageType", -1);
 
-		this->entries.push_back(entry);
 		tableData.nextRow();
 	}
 
@@ -34,15 +33,9 @@ void CDPackageComponentTable::LoadValuesFromDatabase() {
 //! Queries the table with a custom "where" clause
 std::vector<CDPackageComponent> CDPackageComponentTable::Query(std::function<bool(CDPackageComponent)> predicate) {
 
-	std::vector<CDPackageComponent> data = cpplinq::from(this->entries)
+	std::vector<CDPackageComponent> data = cpplinq::from(GetEntries())
 		>> cpplinq::where(predicate)
 		>> cpplinq::to_vector();
 
 	return data;
 }
-
-//! Gets all the entries in the table
-const std::vector<CDPackageComponent>& CDPackageComponentTable::GetEntries() const {
-	return this->entries;
-}
-

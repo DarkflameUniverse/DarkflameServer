@@ -6,7 +6,6 @@
 #include <string_view>
 #include <vector>
 
-#include "Singleton.h"
 #include "dCommonVars.h"
 #include "LDFFormat.h"
 
@@ -89,7 +88,7 @@ public:
 	 *
 	 * Expensive!  Leaderboards are very string intensive so be wary of performatnce calling this method.
 	 */
-	void Serialize(RakNet::BitStream* bitStream) const;
+	void Serialize(RakNet::BitStream& bitStream) const;
 
 	/**
 	 * Builds the leaderboard from the database based on the associated gameID

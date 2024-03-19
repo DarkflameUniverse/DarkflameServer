@@ -17,6 +17,8 @@
 
 #include "eTriggerCommandType.h"
 #include "eTriggerEventType.h"
+#include "eWaypointCommandType.h"
+#include "dNavMesh.h"
 
 Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
 	m_ZoneID(mapID, instanceID, cloneID) {
@@ -153,7 +155,7 @@ void Zone::LoadZoneIntoMemory() {
 
 std::string Zone::GetFilePathForZoneID() {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
 	if (zone != nullptr) {
 		std::string toReturn = "maps/" + zone->zoneName;
@@ -418,7 +420,7 @@ void Zone::LoadPath(std::istream& file) {
 
 		if (path.pathType == PathType::MovingPlatform) {
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.lockPlayer);
-			BinaryIO::BinaryRead(file, waypoint.movingPlatform.speed);
+			BinaryIO::BinaryRead(file, waypoint.speed);
 			BinaryIO::BinaryRead(file, waypoint.movingPlatform.wait);
 			if (path.pathVersion >= 13) {
 				BinaryIO::ReadString<uint8_t>(file, waypoint.movingPlatform.departSound, BinaryIO::ReadType::WideString);
@@ -437,7 +439,7 @@ void Zone::LoadPath(std::istream& file) {
 			BinaryIO::BinaryRead(file, waypoint.racing.planeHeight);
 			BinaryIO::BinaryRead(file, waypoint.racing.shortestDistanceToEnd);
 		} else if (path.pathType == PathType::Rail) {
-			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.rail.speed);
+			if (path.pathVersion > 16) BinaryIO::BinaryRead(file, waypoint.speed);
 		}
 
 		// object LDF configs
@@ -451,21 +453,29 @@ void Zone::LoadPath(std::istream& file) {
 				std::string value;
 				BinaryIO::ReadString<uint8_t>(file, value, BinaryIO::ReadType::WideString);
 
-				LDFBaseData* ldfConfig = nullptr;
 				if (path.pathType == PathType::Movement || path.pathType == PathType::Rail) {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=0:" + value);
+					// cause NetDevil puts spaces in things that don't need spaces
+					parameter.erase(std::remove_if(parameter.begin(), parameter.end(), ::isspace), parameter.end());
+					auto waypointCommand = WaypointCommandType::StringToWaypointCommandType(parameter);
+					if (waypointCommand == eWaypointCommandType::DELAY) value.erase(std::remove_if(value.begin(), value.end(), ::isspace), value.end());
+					if (waypointCommand != eWaypointCommandType::INVALID) {
+						auto& command = waypoint.commands.emplace_back();
+						command.command = waypointCommand;
+						command.data = value;
+					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
-					ldfConfig = LDFBaseData::DataFromString(parameter + "=" + value);
+					waypoint.config.emplace_back(LDFBaseData::DataFromString(parameter + "=" + value));
 				}
-				if (ldfConfig) waypoint.config.push_back(ldfConfig);
+
 			}
 		}
+
 		// We verify the waypoint heights against the navmesh because in many movement paths,
 		// the waypoint is located near 0 height, 
 		if (path.pathType == PathType::Movement) {
-			if (dpWorld::Instance().IsLoaded()) {
+			if (dpWorld::IsLoaded()) {
 				// 2000 should be large enough for every world.
-				waypoint.position.y = dpWorld::Instance().GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
+				waypoint.position.y = dpWorld::GetNavMesh()->GetHeightAtPoint(waypoint.position, 2000.0f);
 			}
 		}
 		path.pathWaypoints.push_back(waypoint);

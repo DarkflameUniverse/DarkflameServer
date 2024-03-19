@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDObjects {
 	uint32_t id;                            //!< The LOT of the object
 	std::string name;                      //!< The internal name of the object
@@ -20,14 +22,10 @@ struct CDObjects {
 	UNUSED(uint32_t HQ_valid);                      //!< Probably used for the Nexus HQ database on LEGOUniverse.com
 };
 
-class CDObjectsTable : public CDTable<CDObjectsTable> {
-private:
-	std::map<uint32_t, CDObjects> entries;
-	CDObjects m_default;
-
+class CDObjectsTable : public CDTable<CDObjectsTable, std::map<uint32_t, CDObjects>> {
 public:
 	void LoadValuesFromDatabase();
 	// Gets an entry by ID
-	const CDObjects& GetByID(uint32_t LOT);
+	const CDObjects& GetByID(const uint32_t lot);
 };
 

@@ -5,9 +5,9 @@
 #include "LUTriggers.h"
 #include "eReplicaComponentType.h"
 
-class TriggerComponent : public Component {
+class TriggerComponent final : public Component {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::TRIGGER;
 
 	explicit TriggerComponent(Entity* parent, const std::string triggerInfo);
 
@@ -44,6 +44,12 @@ private:
 	void HandleResetSpawnerNetwork(std::string args);
 	void HandleDestroySpawnerNetworkObjects(std::string args);
 	void HandleActivatePhysics(Entity* targetEntity, std::string args);
+	void HandleTurnAroundOnPath(Entity* targetEntity);
+	void HandleGoForwardOnPath(Entity* targetEntity);
+	void HandleGoBackwardOnPath(Entity* targetEntity);
+	void HandleStopPathing(Entity* targetEntity);
+	void HandleStartPathing(Entity* targetEntity);
+	void HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray);
 
 	LUTriggers::Trigger* m_Trigger;
 };

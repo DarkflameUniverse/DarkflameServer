@@ -13,15 +13,15 @@
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
  * to dig for treasure and activate pet bouncers.
  */
-class PetComponent : public Component
+class PetComponent final : public Component
 {
 public:
-	inline static const eReplicaComponentType ComponentType = eReplicaComponentType::PET;
+	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -353,7 +353,6 @@ private:
 
 	/**
 	 * Pet information loaded from the CDClientDatabase
-	 * TODO: Switch to a reference when safe to do so
 	 */
 	CDPetComponent m_PetInfo;
 };

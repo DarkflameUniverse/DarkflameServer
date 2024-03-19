@@ -17,7 +17,8 @@
 InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
 	mLogger = logger;
 	mExternalIP = externalIP;
-	GeneralUtils::TryParse(Game::config->GetValue("world_port_start"), m_LastPort);
+	m_LastPort =
+		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
 }
 
@@ -180,7 +181,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	bitStream.Write(request.id);
 
-	Game::server->Send(&bitStream, instance->GetSysAddr(), false);
+	Game::server->Send(bitStream, instance->GetSysAddr(), false);
 
 	LOG("Sent affirmation request %llu to %i/%i", request.id,
 		static_cast<int>(instance->GetZoneID().GetMapID()),
@@ -322,7 +323,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -335,7 +336,7 @@ int InstanceManager::GetSoftCap(LWOMAPID mapID) {
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::Instance().GetTable<CDZoneTableTable>();
+	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 	if (zoneTable) {
 		const CDZoneTable* zone = zoneTable->Query(mapID);
 
@@ -360,7 +361,7 @@ void Instance::Shutdown() {
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
 
-	Game::server->Send(&bitStream, this->m_SysAddr, false);
+	Game::server->Send(bitStream, this->m_SysAddr, false);
 
 	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }
