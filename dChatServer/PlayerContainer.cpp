@@ -12,6 +12,7 @@
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
+#include "eChatMessageType.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =

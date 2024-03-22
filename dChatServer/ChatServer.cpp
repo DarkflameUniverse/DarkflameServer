@@ -187,6 +187,7 @@ void HandlePacket(Packet* packet) {
 		LOG("A server is connecting, awaiting user list.");
 	}
 	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+
 	CINSTREAM;
 	inStream.SetReadOffset(BYTES_TO_BITS(1));
 
@@ -199,12 +200,10 @@ void HandlePacket(Packet* packet) {
 
 	switch (chatMessageID) {
 		case eChatMessageType::GM_MUTE:
-			// verif internal
 			Game::playerContainer.MuteUpdate(packet);
 			break;
 
 		case eChatMessageType::CREATE_TEAM:
-			// verif internal
 			Game::playerContainer.CreateTeamServer(packet);
 			break;
 		case eChatMessageType::GET_FRIENDS_LIST:
@@ -277,30 +276,24 @@ void HandlePacket(Packet* packet) {
 			ChatPacketHandler::HandleTeamLootOption(packet);
 			break;
 		case eChatMessageType::GMLEVEL_UPDATE:
-			// verify internal
 			ChatPacketHandler::HandleGMLevelUpdate(packet);
 			break;
 		case eChatMessageType::WHO:
-			// verify internal
 			ChatPacketHandler::HandleWho(packet);
 			break;
 		case eChatMessageType::SHOW_ALL:
-			// verify internal
 			ChatPacketHandler::HandleShowAll(packet);
 			break;
 		case eChatMessageType::LOGIN_SESSION_NOTIFY:
-			// verify internal
 			Game::playerContainer.InsertPlayer(packet);
 			break;
 		case eChatMessageType::GM_ANNOUNCE:{
-			// verify internal
 			//we just forward this packet to every connected server
 			CINSTREAM;
-			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
+			Game::server->Send(inStream, packet->systemAddress, true); //send to everyone except origin
 			}
 			break;
 		case eChatMessageType::UNEXPECTED_DISCONNECT:
-			// verify internal
 			Game::playerContainer.RemovePlayer(packet);
 			break;
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
@@ -346,14 +339,13 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::PRG_CSR_COMMAND:
 		case eChatMessageType::HEARTBEAT_REQUEST_FROM_WORLD:
 		case eChatMessageType::UPDATE_FREE_TRIAL_STATUS:
-			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chat_message_type).data(), chat_message_type);
+			LOG("Unhandled CHAT Message id: %s (%i)", StringifiedEnum::ToString(chatMessageID).data(), chatMessageID);
 			break;
 		default:
-			LOG("Unknown CHAT Message id: %i", chat_message_type);
-		}
+			LOG("Unknown CHAT Message id: %i", chatMessageID);
 	}
 
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::WORLD) {
+	if (connection == eConnectionType::WORLD) {
 		switch (static_cast<eWorldMessageType>(packet->data[3])) {
 		case eWorldMessageType::ROUTE_PACKET: {
 			LOG("Routing packet from world");

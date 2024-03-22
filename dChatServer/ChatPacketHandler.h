@@ -4,6 +4,7 @@
 #include "BitStream.h"
 
 struct PlayerData;
+struct TeamData;
 
 enum class eAddFriendResponseType : uint8_t;
 

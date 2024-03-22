@@ -21,6 +21,7 @@
 #include "eMissionTaskType.h"
 #include "eMatchUpdate.h"
 #include "eConnectionType.h"
+#include "eChatMessageType.h"
 
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
