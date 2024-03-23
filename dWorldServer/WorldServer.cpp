@@ -66,7 +66,7 @@
 #include "eObjectBits.h"
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "eWorldMessageType.h"
 #include "eMasterMessageType.h"
 #include "eGameMessageType.h"
@@ -541,30 +541,9 @@ void HandlePacketChat(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
-			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
-
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
-
-				auto sysAddr = player->GetSystemAddress();
-
-				//Write our stream outwards:
-				CBITSTREAM;
-				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
-				}
-
-				SEND_PACKET; //send routed packet to player
-
-				break;
-			}
-
-			case eChatInternalMessageType::ANNOUNCEMENT: {
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+			switch (static_cast<eChatMessageType>(packet->data[3])) {
+			case eChatMessageType::GM_ANNOUNCE: {
 				CINSTREAM_SKIP_HEADER;
 
 				std::string title;
@@ -597,7 +576,7 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case eChatInternalMessageType::MUTE_UPDATE: {
+			case eChatMessageType::GM_MUTE: {
 				CINSTREAM_SKIP_HEADER;
 				LWOOBJID playerId;
 				time_t expire = 0;
@@ -616,7 +595,7 @@ void HandlePacketChat(Packet* packet) {
 				break;
 			}
 
-			case eChatInternalMessageType::TEAM_UPDATE: {
+			case eChatMessageType::TEAM_GET_STATUS: {
 				CINSTREAM_SKIP_HEADER;
 
 				LWOOBJID teamID = 0;
@@ -653,6 +632,30 @@ void HandlePacketChat(Packet* packet) {
 
 			default:
 				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
+			}
+		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+			switch (static_cast<eChatMessageType>(packet->data[3])) {
+				case eChatMessageType::WORLD_ROUTE_PACKET: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerID;
+					inStream.Read(playerID);
+
+					auto player = Game::entityManager->GetEntity(playerID);
+					if (!player) return;
+
+					auto sysAddr = player->GetSystemAddress();
+
+					//Write our stream outwards:
+					CBITSTREAM;
+					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					}
+
+					SEND_PACKET; //send routed packet to player
+					break;
+				}
+				default:
+					LOG("Received an unknown chat message type: %i", int(packet->data[3]));
 			}
 		}
 	}
@@ -817,7 +820,7 @@ void HandlePacket(Packet* packet) {
 
 		{
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -986,7 +989,7 @@ void HandlePacket(Packet* packet) {
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
@@ -1132,7 +1135,7 @@ void HandlePacket(Packet* packet) {
 					const auto& playerName = character->GetName();
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::LOGIN_SESSION_NOTIFY);
 					bitStream.Write(player->GetObjectID());
 					bitStream.Write<uint32_t>(playerName.size());
 					for (size_t i = 0; i < playerName.size(); i++) {
