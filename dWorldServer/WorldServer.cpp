@@ -335,7 +335,7 @@ int main(int argc, char** argv) {
 
 		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
-			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			float_t ratioBeforeToAfter = static_cast<float>(currentFrameDelta) / static_cast<float>(newFrameDelta);
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
 			LOG_DEBUG("Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
@@ -728,8 +728,8 @@ void HandleMasterPacket(Packet* packet) {
 			{
 				CBITSTREAM;
 				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
-				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-				bitStream.Write((LWOINSTANCEID)instanceID);
+				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+				bitStream.Write<LWOINSTANCEID>(instanceID);
 				Game::server->SendToMaster(bitStream);
 			}
 		}
@@ -830,8 +830,8 @@ void HandlePacket(Packet* packet) {
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
-		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-		bitStream.Write((LWOINSTANCEID)instanceID);
+		bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+		bitStream.Write<LWOINSTANCEID>(instanceID);
 		Game::server->SendToMaster(bitStream);
 	}
 

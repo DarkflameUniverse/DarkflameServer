@@ -141,6 +141,6 @@ elseif(APPLE)
 endif()
 
 # Add directories to include lists
-target_include_directories(MariaDB::ConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
+target_include_directories(MariaDB::ConnCpp SYSTEM INTERFACE ${MARIADB_INCLUDE_DIR})
 
 set(MariaDB_FOUND TRUE)

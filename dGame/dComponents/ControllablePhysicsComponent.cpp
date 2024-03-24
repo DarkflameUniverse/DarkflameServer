@@ -26,7 +26,6 @@ ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : Phy
 	m_SpeedMultiplier = 1;
 	m_GravityScale = 1;
 	m_DirtyCheats = false;
-	m_IgnoreMultipliers = false;
 
 	m_DirtyEquippedItemInfo = true;
 	m_PickupRadius = 0.0f;
@@ -92,31 +91,31 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 		outBitStream.Write(m_ImmuneToStunInteractCount);
 	}
 
-	if (m_IgnoreMultipliers) m_DirtyCheats = false;
-
-	outBitStream.Write(m_DirtyCheats);
-	if (m_DirtyCheats) {
+	outBitStream.Write(m_DirtyCheats || bIsInitialUpdate);
+	if (m_DirtyCheats || bIsInitialUpdate) {
 		outBitStream.Write(m_GravityScale);
 		outBitStream.Write(m_SpeedMultiplier);
 
-		m_DirtyCheats = false;
+		if (!bIsInitialUpdate) m_DirtyCheats = false;
 	}
 
-	outBitStream.Write(m_DirtyEquippedItemInfo);
-	if (m_DirtyEquippedItemInfo) {
+	outBitStream.Write(m_DirtyEquippedItemInfo || bIsInitialUpdate);
+	if (m_DirtyEquippedItemInfo || bIsInitialUpdate) {
 		outBitStream.Write(m_PickupRadius);
 		outBitStream.Write(m_InJetpackMode);
-		m_DirtyEquippedItemInfo = false;
+
+		if (!bIsInitialUpdate) m_DirtyEquippedItemInfo = false;
 	}
 
-	outBitStream.Write(m_DirtyBubble);
-	if (m_DirtyBubble) {
+	outBitStream.Write(m_DirtyBubble || bIsInitialUpdate);
+	if (m_DirtyBubble || bIsInitialUpdate) {
 		outBitStream.Write(m_IsInBubble);
 		if (m_IsInBubble) {
 			outBitStream.Write(m_BubbleType);
 			outBitStream.Write(m_SpecialAnims);
 		}
-		m_DirtyBubble = false;
+
+		if (!bIsInitialUpdate) m_DirtyBubble = false;
 	}
 
 	outBitStream.Write(m_DirtyPosition || bIsInitialUpdate);
@@ -149,7 +148,8 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			outBitStream.Write(m_AngularVelocity.z);
 		}
 
-		outBitStream.Write0();
+		outBitStream.Write0(); // local_space_info, always zero for now.
+
 		if (!bIsInitialUpdate) {
 			m_DirtyPosition = false;
 			outBitStream.Write(m_IsTeleporting);
