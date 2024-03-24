@@ -41,9 +41,9 @@ public:
 	uint32_t m_behaviorId;
 	BehaviorTemplates m_templateId;
 	uint32_t m_effectId;
-	std::string* m_effectHandle = nullptr;
-	std::unordered_map<std::string, std::string>* m_effectNames = nullptr;
-	std::string* m_effectType = nullptr;
+	std::string m_effectHandle;
+	std::unordered_map<std::string, std::string> m_effectNames;
+	std::string m_effectType;
 
 	/*
 	 * Behavior parameters
@@ -88,5 +88,5 @@ public:
 	 */
 
 	explicit Behavior(uint32_t behaviorId);
-	virtual ~Behavior();
+	virtual ~Behavior() = default;
 };
