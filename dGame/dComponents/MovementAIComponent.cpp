@@ -51,14 +51,14 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_MaxSpeed = 0;
 	m_LockRotation = false;
 
-	SetPath(m_Parent->GetVarAsString(u"attached_path"));
+	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
 
 void MovementAIComponent::SetPath(const std::string pathName) {
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
 	if (!pathName.empty()) LOG("%s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
 	if (!m_Path) return;
-	SetMaxSpeed(m_BaseSpeed);
+	SetMaxSpeed(1);
 	SetPath(m_Path->pathWaypoints);
 }
 
