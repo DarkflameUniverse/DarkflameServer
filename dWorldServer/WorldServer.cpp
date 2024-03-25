@@ -543,114 +543,114 @@ void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
 			switch (static_cast<eChatMessageType>(packet->data[3])) {
-			case eChatMessageType::GM_ANNOUNCE: {
-				CINSTREAM_SKIP_HEADER;
+				case eChatMessageType::WORLD_ROUTE_PACKET: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerID;
+					inStream.Read(playerID);
 
-				std::string title;
-				std::string msg;
+					auto player = Game::entityManager->GetEntity(playerID);
+					if (!player) return;
 
-				uint32_t len;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					title += character;
+					auto sysAddr = player->GetSystemAddress();
+
+					//Write our stream outwards:
+					CBITSTREAM;
+					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					}
+
+					SEND_PACKET; //send routed packet to player
+					break;
 				}
 
-				len = 0;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					msg += character;
-				}
+				case eChatMessageType::GM_ANNOUNCE: {
+					CINSTREAM_SKIP_HEADER;
 
-				//Send to our clients:
-				AMFArrayValue args;
+					std::string title;
+					std::string msg;
 
-				args.Insert("title", title);
-				args.Insert("message", msg);
+					uint32_t len;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						title += character;
+					}
 
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+					len = 0;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						msg += character;
+					}
 
-				break;
-			}
+					//Send to our clients:
+					AMFArrayValue args;
 
-			case eChatMessageType::GM_MUTE: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerId;
-				time_t expire = 0;
-				inStream.Read(playerId);
-				inStream.Read(expire);
+					args.Insert("title", title);
+					args.Insert("message", msg);
 
-				auto* entity = Game::entityManager->GetEntity(playerId);
-				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) {
-					user->SetMuteExpire(expire);
-
-					entity->GetCharacter()->SendMuteNotice();
-				}
-
-				break;
-			}
-
-			case eChatMessageType::TEAM_GET_STATUS: {
-				CINSTREAM_SKIP_HEADER;
-
-				LWOOBJID teamID = 0;
-				char lootOption = 0;
-				char memberCount = 0;
-				std::vector<LWOOBJID> members;
-
-				inStream.Read(teamID);
-				bool deleteTeam = inStream.ReadBit();
-
-				if (deleteTeam) {
-					TeamManager::Instance()->DeleteTeam(teamID);
-
-					LOG("Deleting team (%llu)", teamID);
+					GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 					break;
 				}
 
-				inStream.Read(lootOption);
-				inStream.Read(memberCount);
-				LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
-				for (char i = 0; i < memberCount; i++) {
-					LWOOBJID member = LWOOBJID_EMPTY;
-					inStream.Read(member);
-					members.push_back(member);
+				case eChatMessageType::GM_MUTE: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerId;
+					time_t expire = 0;
+					inStream.Read(playerId);
+					inStream.Read(expire);
 
-					LOG("Updating team member (%llu)", member);
+					auto* entity = Game::entityManager->GetEntity(playerId);
+					auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+					auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+					if (user) {
+						user->SetMuteExpire(expire);
+
+						entity->GetCharacter()->SendMuteNotice();
+					}
+
+					break;
 				}
 
-				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+				case eChatMessageType::TEAM_GET_STATUS: {
+					CINSTREAM_SKIP_HEADER;
 
-				break;
-			}
-			case eChatMessageType::WORLD_ROUTE_PACKET: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
+					LWOOBJID teamID = 0;
+					char lootOption = 0;
+					char memberCount = 0;
+					std::vector<LWOOBJID> members;
 
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
+					inStream.Read(teamID);
+					bool deleteTeam = inStream.ReadBit();
 
-				auto sysAddr = player->GetSystemAddress();
+					if (deleteTeam) {
+						TeamManager::Instance()->DeleteTeam(teamID);
 
-				//Write our stream outwards:
-				CBITSTREAM;
-				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+						LOG("Deleting team (%llu)", teamID);
+
+						break;
+					}
+
+					inStream.Read(lootOption);
+					inStream.Read(memberCount);
+					LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+					for (char i = 0; i < memberCount; i++) {
+						LWOOBJID member = LWOOBJID_EMPTY;
+						inStream.Read(member);
+						members.push_back(member);
+
+						LOG("Updating team member (%llu)", member);
+					}
+
+					TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+
+					break;
 				}
-
-				SEND_PACKET; //send routed packet to player
-				break;
-			}
-
-			default:
-				LOG("Received an unknown chat: %i", int(packet->data[3]));
+				default:
+					LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
 		}
 	}
