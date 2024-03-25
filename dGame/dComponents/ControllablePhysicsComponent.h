@@ -175,18 +175,6 @@ public:
 	const float GetGravityScale() const { return m_GravityScale; }
 
 	/**
-	 * Sets the ignore multipliers value, allowing you to skip the serialization of speed and gravity multipliers
-	 * @param value whether or not to ignore multipliers
-	 */
-	void SetIgnoreMultipliers(bool value) { m_IgnoreMultipliers = value; }
-
-	/**
-	 * Returns the current ignore multipliers value
-	 * @return the current ignore multipliers value
-	 */
-	const bool GetIgnoreMultipliers() const { return m_IgnoreMultipliers; }
-
-	/**
 	 * Can make an entity static, making it unable to move around
 	 * @param value whether or not the entity is static
 	 */
@@ -352,11 +340,6 @@ private:
 	 * Forces a serialization of the speed multiplier and the gravity scale
 	 */
 	bool m_DirtyCheats;
-
-	/**
-	 * Makes it so that the speed multiplier and gravity scale are no longer serialized if false
-	 */
-	bool m_IgnoreMultipliers;
 
 	/**
 	 * Whether this entity is static, making it unable to move

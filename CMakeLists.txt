@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.25)
 project(Darkflame)
 include(CTest)
 
@@ -213,29 +213,29 @@ if (APPLE)
 endif()
 
 # Load all of our third party directories
-add_subdirectory(thirdparty)
+add_subdirectory(thirdparty SYSTEM)
 
 # Create our list of include directories
-set(INCLUDED_DIRECTORIES
+include_directories(
 	"dPhysics"
 
 	"dNavigation"
 
 	"dNet"
 
-	"thirdparty/magic_enum/include/magic_enum"
-	"thirdparty/raknet/Source"
-	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation"
-	"thirdparty/SQLite"
-	"thirdparty/cpplinq"
-	"thirdparty/cpp-httplib"
-	"thirdparty/MD5"
-
 	"tests"
 	"tests/dCommonTests"
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
+
+	SYSTEM "thirdparty/magic_enum/include/magic_enum"
+	SYSTEM "thirdparty/raknet/Source"
+	SYSTEM "thirdparty/tinyxml2"
+	SYSTEM "thirdparty/recastnavigation"
+	SYSTEM "thirdparty/SQLite"
+	SYSTEM "thirdparty/cpplinq"
+	SYSTEM "thirdparty/cpp-httplib"
+	SYSTEM "thirdparty/MD5"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -244,14 +244,9 @@ if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-# Actually include the directories from our list
-foreach(dir ${INCLUDED_DIRECTORIES})
-	include_directories(${PROJECT_SOURCE_DIR}/${dir})
-endforeach()
-
 # Add linking directories:
 if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") # Warning flags
 endif()
 file(
 	GLOB HEADERS_DZONEMANAGER
