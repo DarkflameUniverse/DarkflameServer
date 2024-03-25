@@ -196,6 +196,12 @@ public:
 	 */
 	void SetPath(std::vector<PathWaypoint> path);
 
+	void Pause();
+
+	void Resume();
+
+	NiPoint3 GetVelocity() const;
+
 	/**
 	 * Returns the base speed from the DB for a given LOT
 	 * @param lot the lot to check for
@@ -311,6 +317,10 @@ private:
 	const Path* m_Path = nullptr;
 
 	NiPoint3 m_SourcePosition;
+
+	bool m_Paused;
+
+	NiPoint3 m_SavedVelocity;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

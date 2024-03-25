@@ -52,6 +52,8 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_LockRotation = false;
 	m_Path = nullptr;
 	m_SourcePosition = m_Parent->GetPosition();
+	m_Paused = false;
+	m_SavedVelocity = NiPoint3Constant::ZERO;
 
 	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
@@ -65,7 +67,25 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 	SetPath(m_Path->pathWaypoints);
 }
 
+void MovementAIComponent::Pause() {
+	m_Paused = true;
+	SetPosition(ApproximateLocation());
+	m_SavedVelocity = GetVelocity();
+	SetVelocity(NiPoint3Constant::ZERO);
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void MovementAIComponent::Resume() {
+	m_Paused = false;
+	SetVelocity(m_SavedVelocity);
+	m_SavedVelocity = NiPoint3Constant::ZERO;
+	SetRotation(NiQuaternion::LookAt(m_Parent->GetPosition(), m_NextWaypoint));
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
 void MovementAIComponent::Update(const float deltaTime) {
+	if (m_Paused) return;
+
 	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
 
@@ -290,6 +310,23 @@ void MovementAIComponent::SetPosition(const NiPoint3& value) {
 
 void MovementAIComponent::SetRotation(const NiQuaternion& value) {
 	if (!m_LockRotation) m_Parent->SetRotation(value);
+}
+
+NiPoint3 MovementAIComponent::GetVelocity() const {
+	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetVelocity();
+	}
+
+	auto* simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetVelocity();
+	}
+
+	return NiPoint3Constant::ZERO;
+
 }
 
 void MovementAIComponent::SetVelocity(const NiPoint3& value) {
