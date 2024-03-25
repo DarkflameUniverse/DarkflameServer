@@ -721,11 +721,10 @@ void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, TeamDa
 
 	bitStream.Write(receiver.playerID);
 	bitStream.Write(eGameMessageType::TEAM_INVITE_CONFIRM);
-
-	bitStream.Write(false); // bLeaderIsFreeTrial
-	bitStream.Write(team->leaderID);
 	const auto& leader = Game::playerContainer.GetPlayerData(team->leaderID);
 
+	bitStream.Write(leader.isFTP);
+	bitStream.Write(team->leaderID);
 	bitStream.Write(leader.zoneID);
 	bitStream.Write<uint32_t>((team->memberIDs.size() - 1) * ((sizeof(int16_t) * 33) + sizeof(LWOOBJID) + sizeof(LWOZONEID)));
 	for (const auto memberid: team->memberIDs){
