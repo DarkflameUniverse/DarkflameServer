@@ -737,7 +737,7 @@ void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, TeamDa
 	}
 	bitStream.Write(team->lootFlag);
 	bitStream.Write(team->memberIDs.size());
-	bitStream.Write<uint8_t>(0); // ucResponseCode
+	bitStream.Write(responseCode);
 	const std::u16string wsLeaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
 	bitStream.Write<uint32_t>(wsLeaderName.size());
 	bitStream.Write(wsLeaderName);
