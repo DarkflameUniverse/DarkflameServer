@@ -335,26 +335,22 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
 
-	if (m_effectNames == nullptr) {
-		m_effectNames = new std::unordered_map<std::string, std::string>();
-	} else {
-		const auto pair = m_effectNames->find(typeString);
+	const auto itr = m_effectNames.find(typeString);
 
-		if (type.empty()) {
-			type = GeneralUtils::ASCIIToUTF16(*m_effectType);
-		}
+	if (type.empty()) {
+		type = GeneralUtils::ASCIIToUTF16(m_effectType);
+	}
 
-		if (pair != m_effectNames->end()) {
-			if (renderComponent == nullptr) {
-				GameMessages::SendPlayFXEffect(targetEntity, effectId, type, pair->second, secondary, 1, 1, true);
-
-				return;
-			}
-
-			renderComponent->PlayEffect(effectId, type, pair->second, secondary);
+	if (itr != m_effectNames.end()) {
+		if (renderComponent == nullptr) {
+			GameMessages::SendPlayFXEffect(targetEntity, effectId, type, itr->second, secondary, 1, 1, true);
 
 			return;
 		}
+
+		renderComponent->PlayEffect(effectId, type, itr->second, secondary);
+
+		return;
 	}
 
 	// The SQlite result object becomes invalid if the query object leaves scope.
@@ -388,12 +384,12 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 
-		m_effectType = new std::string(typeResult);
+		m_effectType = typeResult;
 	}
 
 	result.finalize();
 
-	m_effectNames->insert_or_assign(typeString, name);
+	m_effectNames.insert_or_assign(typeString, name);
 
 	if (renderComponent == nullptr) {
 		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
@@ -423,7 +419,6 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	if (behaviorId == 0) {
 		this->m_effectId = 0;
-		this->m_effectHandle = nullptr;
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 	}
 
@@ -432,7 +427,6 @@ Behavior::Behavior(const uint32_t behaviorId) {
 		LOG("Failed to load behavior with id (%i)!", behaviorId);
 
 		this->m_effectId = 0;
-		this->m_effectHandle = nullptr;
 		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
 
 		return;
@@ -442,7 +436,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	this->m_effectId = templateInDatabase.effectID;
 
-	this->m_effectHandle = *templateInDatabase.effectHandle != "" ? new std::string(*templateInDatabase.effectHandle) : nullptr;
+	this->m_effectHandle = *templateInDatabase.effectHandle;
 }
 
 
@@ -506,10 +500,4 @@ void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream,
 }
 
 void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
-}
-
-Behavior::~Behavior() {
-	delete m_effectNames;
-	delete m_effectType;
-	delete m_effectHandle;
 }
