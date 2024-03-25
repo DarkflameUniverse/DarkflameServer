@@ -309,6 +309,8 @@ private:
 	std::stack<PathWaypoint> m_CurrentPath;
 
 	const Path* m_Path = nullptr;
+
+	NiPoint3 m_SourcePosition;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

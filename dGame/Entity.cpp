@@ -733,7 +733,7 @@ void Entity::Initialize() {
 			AddComponent<MovingPlatformComponent>(pathName);
 		} else if (path->pathType == PathType::Movement) {
 			auto movementAIcomponent = GetComponent<MovementAIComponent>();
-			if (movementAIcomponent) {
+			if (movementAIcomponent && combatAiId == 0) {
 				movementAIcomponent->SetPath(pathName);
 			} else {
 				MovementAIInfo moveInfo = MovementAIInfo();

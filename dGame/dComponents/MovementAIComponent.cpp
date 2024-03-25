@@ -50,6 +50,8 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
 	m_LockRotation = false;
+	m_Path = nullptr;
+	m_SourcePosition = m_Parent->GetPosition();
 
 	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
@@ -91,12 +93,16 @@ void MovementAIComponent::Update(const float deltaTime) {
 	}
 
 	m_TimeTravelled += deltaTime;
+
+	SetPosition(ApproximateLocation());
+
 	if (m_TimeTravelled < m_TimeToTravel) return;
 	m_TimeTravelled = 0.0f;
 
 	const auto source = GetCurrentWaypoint();
 
 	SetPosition(source);
+	m_SourcePosition = source;
 
 	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
@@ -168,7 +174,7 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 }
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
-	auto source = m_Parent->GetPosition();
+	auto source = m_SourcePosition;
 
 	if (AtFinalWaypoint()) return source;
 
@@ -309,6 +315,8 @@ void MovementAIComponent::SetDestination(const NiPoint3 destination) {
 	if (!AtFinalWaypoint()) {
 		SetPosition(location);
 	}
+
+	m_SourcePosition = location;
 
 	std::vector<NiPoint3> computedPath;
 	if (dpWorld::IsLoaded()) {
