@@ -96,33 +96,29 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 		if (m_NextWaypoint == source) {
 			m_TimeToTravel = 0.0f;
+		} else {
+			if (m_CurrentSpeed < m_MaxSpeed) {
+				m_CurrentSpeed += m_Acceleration;
+			}
 
-			goto nextAction;
+			m_CurrentSpeed = std::min(m_CurrentSpeed, m_MaxSpeed);
+
+			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+
+			const auto delta = m_NextWaypoint - source;
+
+			// Normalize the vector
+			const auto length = delta.Length();
+			if (length > 0.0f) {
+				velocity = (delta / length) * speed;
+			}
+
+			// Calclute the time it will take to reach the next waypoint with the current speed
+			m_TimeTravelled = 0.0f;
+			m_TimeToTravel = length / speed;
+
+			SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 		}
-
-		if (m_CurrentSpeed < m_MaxSpeed) {
-			m_CurrentSpeed += m_Acceleration;
-		}
-
-		if (m_CurrentSpeed > m_MaxSpeed) {
-			m_CurrentSpeed = m_MaxSpeed;
-		}
-
-		const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
-
-		const auto delta = m_NextWaypoint - source;
-
-		// Normalize the vector
-		const auto length = delta.Length();
-		if (length > 0) {
-			velocity = (delta / length) * speed;
-		}
-
-		// Calclute the time it will take to reach the next waypoint with the current speed
-		m_TimeTravelled = 0.0f;
-		m_TimeToTravel = length / speed;
-
-		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		if (m_CurrentPath.empty()) {
@@ -134,8 +130,6 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 		m_CurrentPath.pop();
 	}
-
-nextAction:
 
 	SetVelocity(velocity);
 
@@ -320,7 +314,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 
 		for (int i = 0; i < 10; i++) {
 			// TODO: Replace this with += when the NiPoint3::operator+= is fixed
-			start = start + step;
+			start += step;
 
 			computedPath.push_back(start);
 		}
