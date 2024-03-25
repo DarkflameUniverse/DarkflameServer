@@ -6203,3 +6203,15 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Ent
 	if (!characterComponent) return;
 	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
 }
+
+void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string text) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::SLASH_COMMAND_TEXT_FEEDBACK);
+	bitStream.Write<uint32_t>(text.size());
+	bitStream.Write(text);
+	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}
