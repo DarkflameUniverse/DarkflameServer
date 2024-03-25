@@ -731,15 +731,14 @@ void Entity::Initialize() {
 		// if we have a moving platform path, then we need a moving platform component
 		if (path->pathType == PathType::MovingPlatform) {
 			AddComponent<MovingPlatformComponent>(pathName);
-			// else if we are a movement path
-		} /*else if (path->pathType == PathType::Movement) {
+		} else if (path->pathType == PathType::Movement) {
 			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp){
+			if (movementAIcomp) {
 				// TODO: set path in existing movementAIComp
 			} else {
 				// TODO: create movementAIcomp and set path
 			}
-		}*/
+		}
 	} else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path
 		int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);

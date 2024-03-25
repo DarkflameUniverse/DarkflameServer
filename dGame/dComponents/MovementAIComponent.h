@@ -18,6 +18,7 @@
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
+struct PathWaypoint;
 
 /**
  * Information that describes the different variables used to make an entity move around
@@ -189,7 +190,7 @@ public:
 	 * Sets a path to follow for the AI
 	 * @param path the path to follow
 	 */
-	void SetPath(std::vector<NiPoint3> path);
+	void SetPath(std::vector<PathWaypoint> path);
 
 	/**
 	 * Returns the base speed from the DB for a given LOT
@@ -301,7 +302,7 @@ private:
 	/**
 	 * The path from the current position to the destination.
 	 */
-	std::stack<NiPoint3> m_CurrentPath;
+	std::stack<PathWaypoint> m_CurrentPath;
 };
 
 #endif // MOVEMENTAICOMPONENT_H

@@ -126,7 +126,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 			return;
 		}
-		SetDestination(m_CurrentPath.top());
+		SetDestination(m_CurrentPath.top().position);
 
 		m_CurrentPath.pop();
 	}
@@ -221,13 +221,13 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 	m_PullPoint = point;
 }
 
-void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
+void MovementAIComponent::SetPath(std::vector<PathWaypoint> path) {
 	if (path.empty()) return;
-	std::for_each(path.rbegin(), path.rend() - 1, [this](const NiPoint3& point) {
+	std::for_each(path.rbegin(), path.rend() - 1, [this](const PathWaypoint& point) {
 		this->m_CurrentPath.push(point);
 		});
 
-	SetDestination(path.front());
+	SetDestination(path.front().position);
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
