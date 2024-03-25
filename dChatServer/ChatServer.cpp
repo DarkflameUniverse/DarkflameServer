@@ -195,9 +195,10 @@ void HandlePacket(Packet* packet) {
 	eChatMessageType chatMessageID;
 
 	inStream.Read(connection);
+	if (connection != eConnectionType::CHAT) return;
 	inStream.Read(chatMessageID);
 	inStream.SetReadOffset(BYTES_TO_BITS(HEADER_SIZE));
-
+	
 	switch (chatMessageID) {
 		case eChatMessageType::GM_MUTE:
 			Game::playerContainer.MuteUpdate(packet);
@@ -282,9 +283,9 @@ void HandlePacket(Packet* packet) {
 			Game::playerContainer.InsertPlayer(packet);
 			break;
 		case eChatMessageType::GM_ANNOUNCE:{
-			//we just forward this packet to every connected server
+			// we just forward this packet to every connected server
 			CINSTREAM;
-			Game::server->Send(inStream, packet->systemAddress, true); //send to everyone except origin
+			Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
 			}
 			break;
 		case eChatMessageType::UNEXPECTED_DISCONNECT:
@@ -339,17 +340,5 @@ void HandlePacket(Packet* packet) {
 			break;
 		default:
 			LOG("Unknown CHAT Message id: %i", chatMessageID);
-	}
-
-	if (connection == eConnectionType::WORLD) {
-		switch (static_cast<eWorldMessageType>(packet->data[3])) {
-		case eWorldMessageType::ROUTE_PACKET: {
-			LOG("Routing packet from world");
-			break;
-		}
-
-		default:
-			LOG("Unknown World id: %i", int(packet->data[3]));
-		}
 	}
 }
