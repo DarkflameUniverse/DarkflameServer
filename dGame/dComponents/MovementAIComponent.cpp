@@ -61,7 +61,7 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 	SetMaxSpeed(m_BaseSpeed);
 	SetPath(m_Path->pathWaypoints);
 }
-#define bla if (m_Parent->GetLOT() == 12215) 
+
 void MovementAIComponent::Update(const float deltaTime) {
 	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
@@ -101,12 +101,9 @@ void MovementAIComponent::Update(const float deltaTime) {
 	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
-		bla LOG("Next waypoint: %f %f %f", m_NextWaypoint.x, m_NextWaypoint.y, m_NextWaypoint.z);
 		if (m_NextWaypoint == source) {
-			bla LOG("Next waypoint is the same as the current waypoint");
 			m_TimeToTravel = 0.0f;
 		} else {
-			bla LOG("");
 			m_CurrentSpeed = std::min(m_CurrentSpeed + m_Acceleration, m_MaxSpeed);
 
 			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
@@ -129,27 +126,21 @@ void MovementAIComponent::Update(const float deltaTime) {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		if (m_CurrentPath.empty()) {
 			if (m_Path) {
-				bla LOG("Path is not empty");
 				if (m_Path->pathBehavior == PathBehavior::Loop) {
-					bla LOG("Looping path");
 					SetPath(m_Path->pathWaypoints);
 				} else if (m_Path->pathBehavior == PathBehavior::Bounce) {
-					bla LOG("Bouncing path");
 					std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
 					std::reverse(waypoints.begin(), waypoints.end());
 					SetPath(waypoints);
 				} else if (m_Path->pathBehavior == PathBehavior::Once) {
-					bla LOG("Once path");
 					Stop();
 					return;
 				}
 			} else {
-				bla LOG("No more waypoints");
 				Stop();
 				return;
 			}
 		}
-		bla LOG("Next waypoint");
 		SetDestination(m_CurrentPath.top().position);
 
 		m_CurrentPath.pop();
