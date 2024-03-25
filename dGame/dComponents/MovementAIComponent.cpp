@@ -106,11 +106,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 		if (m_NextWaypoint == source) {
 			m_TimeToTravel = 0.0f;
 		} else {
-			if (m_CurrentSpeed < m_MaxSpeed) {
-				m_CurrentSpeed += m_Acceleration;
-			}
-
-			m_CurrentSpeed = std::min(m_CurrentSpeed, m_MaxSpeed);
+			m_CurrentSpeed = std::min(m_CurrentSpeed + m_Acceleration, m_MaxSpeed);
 
 			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
 
@@ -297,7 +293,7 @@ void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 	}
 }
 
-void MovementAIComponent::SetDestination(const NiPoint3& destination) {
+void MovementAIComponent::SetDestination(const NiPoint3 destination) {
 	if (m_PullingToPoint) return;
 
 	const auto location = ApproximateLocation();

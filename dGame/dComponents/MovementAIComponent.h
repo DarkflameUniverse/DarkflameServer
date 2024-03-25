@@ -78,7 +78,7 @@ public:
 	 * Set a destination point for the entity to move towards
 	 * @param value the destination point to move towards
 	 */
-	void SetDestination(const NiPoint3& value);
+	void SetDestination(const NiPoint3 value);
 
 	/**
 	 * Returns the current rotation this entity is moving towards
