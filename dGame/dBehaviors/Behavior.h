@@ -89,4 +89,10 @@ public:
 
 	explicit Behavior(uint32_t behaviorId);
 	virtual ~Behavior() = default;
+
+	Behavior(const Behavior& other) = default;
+	Behavior(Behavior&& other) = default;
+
+	Behavior& operator=(const Behavior& other) = default;
+	Behavior& operator=(Behavior&& other) = default;
 };
