@@ -50,6 +50,15 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
 	m_LockRotation = false;
+
+	SetPath(m_Parent->GetVarAsString(u"attached_path"));
+}
+
+void MovementAIComponent::SetPath(const std::string pathName) {
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	if (!pathName.empty()) LOG("%s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
+	if (!m_Path) return;
+	SetPath(m_Path->pathWaypoints);
 }
 
 void MovementAIComponent::Update(const float deltaTime) {

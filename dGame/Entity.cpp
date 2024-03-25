@@ -732,11 +732,18 @@ void Entity::Initialize() {
 		if (path->pathType == PathType::MovingPlatform) {
 			AddComponent<MovingPlatformComponent>(pathName);
 		} else if (path->pathType == PathType::Movement) {
-			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp) {
-				// TODO: set path in existing movementAIComp
+			auto movementAIcomponent = GetComponent<MovementAIComponent>();
+			if (movementAIcomponent) {
+				movementAIcomponent->SetPath(pathName);
 			} else {
-				// TODO: create movementAIcomp and set path
+				MovementAIInfo moveInfo = MovementAIInfo();
+				moveInfo.movementType = "";
+				moveInfo.wanderChance = 0;
+				moveInfo.wanderRadius = 16;
+				moveInfo.wanderSpeed = 2.5f;
+				moveInfo.wanderDelayMax = 5;
+				moveInfo.wanderDelayMin = 2;
+				AddComponent<MovementAIComponent>(moveInfo);
 			}
 		}
 	} else {

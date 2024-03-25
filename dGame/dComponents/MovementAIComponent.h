@@ -18,6 +18,8 @@
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
+
+struct Path;
 struct PathWaypoint;
 
 /**
@@ -61,6 +63,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
+
+	void SetPath(const std::string pathName);
 
 	void Update(float deltaTime) override;
 
@@ -303,6 +307,8 @@ private:
 	 * The path from the current position to the destination.
 	 */
 	std::stack<PathWaypoint> m_CurrentPath;
+
+	const Path* m_Path = nullptr;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
