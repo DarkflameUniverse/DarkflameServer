@@ -629,33 +629,28 @@ void HandlePacketChat(Packet* packet) {
 
 				break;
 			}
+			case eChatMessageType::WORLD_ROUTE_PACKET: {
+				CINSTREAM_SKIP_HEADER;
+				LWOOBJID playerID;
+				inStream.Read(playerID);
+
+				auto player = Game::entityManager->GetEntity(playerID);
+				if (!player) return;
+
+				auto sysAddr = player->GetSystemAddress();
+
+				//Write our stream outwards:
+				CBITSTREAM;
+				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+				}
+
+				SEND_PACKET; //send routed packet to player
+				break;
+			}
 
 			default:
-				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
-			}
-		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
-			switch (static_cast<eChatMessageType>(packet->data[3])) {
-				case eChatMessageType::WORLD_ROUTE_PACKET: {
-					CINSTREAM_SKIP_HEADER;
-					LWOOBJID playerID;
-					inStream.Read(playerID);
-
-					auto player = Game::entityManager->GetEntity(playerID);
-					if (!player) return;
-
-					auto sysAddr = player->GetSystemAddress();
-
-					//Write our stream outwards:
-					CBITSTREAM;
-					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
-					}
-
-					SEND_PACKET; //send routed packet to player
-					break;
-				}
-				default:
-					LOG("Received an unknown chat message type: %i", int(packet->data[3]));
+				LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
 		}
 	}
