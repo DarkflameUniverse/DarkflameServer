@@ -61,6 +61,7 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 	if (!pathName.empty()) LOG("%s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
 	if (!m_Path) return;
 	SetMaxSpeed(1);
+	SetCurrentSpeed(m_BaseSpeed);
 	SetPath(m_Path->pathWaypoints);
 }
 
