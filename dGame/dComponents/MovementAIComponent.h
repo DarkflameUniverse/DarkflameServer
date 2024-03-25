@@ -14,13 +14,13 @@
 #include "Logger.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "Zone.h"
 #include <vector>
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
 
 struct Path;
-struct PathWaypoint;
 
 /**
  * Information that describes the different variables used to make an entity move around
