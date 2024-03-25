@@ -60,7 +60,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 
 void MovementAIComponent::SetPath(const std::string pathName) {
 	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
-	if (!pathName.empty()) LOG("%s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
+	if (!pathName.empty()) LOG("WARNING: %s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
 	if (!m_Path) return;
 	SetMaxSpeed(1);
 	SetCurrentSpeed(m_BaseSpeed);
