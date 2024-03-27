@@ -79,7 +79,7 @@
 #include "RenderComponent.h"
 #include "eControlScheme.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "eMasterMessageType.h"
 #include "PlayerManager.h"
 
@@ -1063,7 +1063,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 
 			//Notify chat about it
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_MUTE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);
@@ -2078,7 +2078,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	//Notify chat about it
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ANNOUNCEMENT);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {
