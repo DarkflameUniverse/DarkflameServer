@@ -228,7 +228,7 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 	const auto leaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
 	const auto memberName = GeneralUtils::UTF8ToUTF16(member.playerName);
 
-	ChatPacketHandler::SendTeamInviteConfirm(member, false, leader.playerID, leader.zoneID, team->lootFlag, 0, 0, leaderName);
+	ChatPacketHandler::SendTeamInviteConfirm(member, team, 0);
 
 	if (!team->local) {
 		ChatPacketHandler::SendTeamSetLeader(member, leader.playerID);
@@ -343,7 +343,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 		if (!otherMember) continue;
 
 		if (!team->local) {
-			ChatPacketHandler::SendTeamStatus(otherMember, team->leaderID, leader.zoneID, team->lootFlag, 0, leaderName);
+			ChatPacketHandler::SendTeamStatus(otherMember, team);
 		}
 	}
 

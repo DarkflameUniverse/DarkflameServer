@@ -4,6 +4,7 @@
 #include "BitStream.h"
 
 struct PlayerData;
+struct TeamData;
 
 enum class eAddFriendResponseType : uint8_t;
 
@@ -64,8 +65,8 @@ namespace ChatPacketHandler {
 	void HandleTeamStatusRequest(Packet* packet);
 
 	void SendTeamInvite(const PlayerData& receiver, const PlayerData& sender);
-	void SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName);
-	void SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName);
+	void SendTeamInviteConfirm(const PlayerData& receiver, TeamData* team, uint8_t responseCode);
+	void SendTeamStatus(const PlayerData& receiver, TeamData* team);
 	void SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID);
 	void SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID);
 	void SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName);

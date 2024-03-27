@@ -709,7 +709,9 @@ void ChatPacketHandler::SendTeamInvite(const PlayerData& receiver, const PlayerD
 	SEND_PACKET;
 }
 
-void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName) {
+void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, TeamData* team, uint8_t responseCode) {
+	if(!team) return;
+
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
 	bitStream.Write(receiver.playerID);
@@ -719,26 +721,35 @@ void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, bool b
 
 	bitStream.Write(receiver.playerID);
 	bitStream.Write(eGameMessageType::TEAM_INVITE_CONFIRM);
+	const auto& leader = Game::playerContainer.GetPlayerData(team->leaderID);
 
-	bitStream.Write(bLeaderIsFreeTrial);
-	bitStream.Write(i64LeaderID);
-	bitStream.Write(i64LeaderZoneID);
-	bitStream.Write<uint32_t>(0); // BinaryBuffe, no clue what's in here
-	bitStream.Write(ucLootFlag);
-	bitStream.Write(ucNumOfOtherPlayers);
-	bitStream.Write(ucResponseCode);
-	bitStream.Write<uint32_t>(wsLeaderName.size());
-	for (const auto character : wsLeaderName) {
-		bitStream.Write(character);
+	bitStream.Write(leader.isFTP);
+	bitStream.Write(team->leaderID);
+	bitStream.Write(leader.zoneID);
+	bitStream.Write<uint32_t>((team->memberIDs.size() - 1) * ((sizeof(int16_t) * 33) + sizeof(LWOOBJID) + sizeof(LWOZONEID)));
+	for (const auto memberid: team->memberIDs){
+		if (memberid == team->leaderID) continue;
+		const auto& member = Game::playerContainer.GetPlayerData(memberid);
+		bitStream.Write(LUWString(member.playerName));
+		bitStream.Write(memberid);
+		bitStream.Write(member.zoneID);
 	}
+	bitStream.Write(team->lootFlag);
+	bitStream.Write(team->memberIDs.size());
+	bitStream.Write(responseCode);
+	const std::u16string wsLeaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
+	bitStream.Write<uint32_t>(wsLeaderName.size());
+	bitStream.Write(wsLeaderName);
 
 	SystemAddress sysAddr = receiver.sysAddr;
 	SEND_PACKET;
 }
 
-void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName) {
+void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, TeamData* team) {
+	if(!team) return;
+
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT,  eChatMessageType::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -747,16 +758,23 @@ void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64L
 	bitStream.Write(receiver.playerID);
 	bitStream.Write(eGameMessageType::TEAM_GET_STATUS_RESPONSE);
 
-	bitStream.Write(i64LeaderID);
-	bitStream.Write(i64LeaderZoneID);
-	bitStream.Write<uint32_t>(0); // BinaryBuffe, no clue what's in here
-	bitStream.Write(ucLootFlag);
-	bitStream.Write(ucNumOfOtherPlayers);
-	bitStream.Write<uint32_t>(wsLeaderName.size());
-	for (const auto character : wsLeaderName) {
-		bitStream.Write(character);
-	}
+	bitStream.Write(team->leaderID);
+	const auto& leader = Game::playerContainer.GetPlayerData(team->leaderID);
 
+	bitStream.Write(leader.zoneID);
+	bitStream.Write<uint32_t>((team->memberIDs.size() - 1) * ((sizeof(int16_t) * 33) + sizeof(LWOOBJID) + sizeof(LWOZONEID)));
+	for (const auto memberid: team->memberIDs){
+		if (memberid == team->leaderID) continue;
+		const auto& member = Game::playerContainer.GetPlayerData(memberid);
+		bitStream.Write(LUWString(member.playerName));
+		bitStream.Write(memberid);
+		bitStream.Write(member.zoneID);
+	}
+	bitStream.Write(team->lootFlag);
+	bitStream.Write(team->memberIDs.size());
+	const std::u16string wsLeaderName = GeneralUtils::UTF8ToUTF16(leader.playerName);
+	bitStream.Write<uint32_t>(wsLeaderName.size());
+	bitStream.Write(wsLeaderName);
 	SystemAddress sysAddr = receiver.sysAddr;
 	SEND_PACKET;
 }
