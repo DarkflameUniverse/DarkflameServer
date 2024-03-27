@@ -64,6 +64,7 @@ void ProximityMonitorComponent::Update(float deltaTime) {
 	for (const auto& prox : m_ProximitiesData) {
 		if (!prox.second) continue;
 
+		prox.second->SetPosition(m_Parent->GetPosition());
 		//Process enter events
 		for (auto* en : prox.second->GetNewObjects()) {
 			m_Parent->OnCollisionProximity(en->GetObjectID(), prox.first, "ENTER");

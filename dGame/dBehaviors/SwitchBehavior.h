@@ -14,6 +14,8 @@ public:
 
 	int32_t m_targetHasBuff;
 
+	float m_Distance;
+
 	/*
 	 * Inherited
 	 */

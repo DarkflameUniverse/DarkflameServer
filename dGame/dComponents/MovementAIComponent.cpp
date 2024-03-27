@@ -50,9 +50,42 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_CurrentSpeed = 0;
 	m_MaxSpeed = 0;
 	m_LockRotation = false;
+	m_Path = nullptr;
+	m_SourcePosition = m_Parent->GetPosition();
+	m_Paused = false;
+	m_SavedVelocity = NiPoint3Constant::ZERO;
+
+	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
+}
+
+void MovementAIComponent::SetPath(const std::string pathName) {
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	if (!pathName.empty()) LOG("WARNING: %s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
+	if (!m_Path) return;
+	SetMaxSpeed(1);
+	SetCurrentSpeed(m_BaseSpeed);
+	SetPath(m_Path->pathWaypoints);
+}
+
+void MovementAIComponent::Pause() {
+	m_Paused = true;
+	SetPosition(ApproximateLocation());
+	m_SavedVelocity = GetVelocity();
+	SetVelocity(NiPoint3Constant::ZERO);
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void MovementAIComponent::Resume() {
+	m_Paused = false;
+	SetVelocity(m_SavedVelocity);
+	m_SavedVelocity = NiPoint3Constant::ZERO;
+	SetRotation(NiQuaternion::LookAt(m_Parent->GetPosition(), m_NextWaypoint));
+	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void MovementAIComponent::Update(const float deltaTime) {
+	if (m_Paused) return;
+
 	if (m_PullingToPoint) {
 		const auto source = GetCurrentWaypoint();
 
@@ -81,63 +114,64 @@ void MovementAIComponent::Update(const float deltaTime) {
 	}
 
 	m_TimeTravelled += deltaTime;
+
+	SetPosition(ApproximateLocation());
+
 	if (m_TimeTravelled < m_TimeToTravel) return;
 	m_TimeTravelled = 0.0f;
 
 	const auto source = GetCurrentWaypoint();
 
 	SetPosition(source);
-
-	NiPoint3 velocity = NiPoint3Constant::ZERO;
+	m_SourcePosition = source;
 
 	if (m_Acceleration > 0 && m_BaseSpeed > 0 && AdvanceWaypointIndex()) // Do we have another waypoint to seek?
 	{
 		m_NextWaypoint = GetCurrentWaypoint();
-
 		if (m_NextWaypoint == source) {
 			m_TimeToTravel = 0.0f;
+		} else {
+			m_CurrentSpeed = std::min(m_CurrentSpeed + m_Acceleration, m_MaxSpeed);
 
-			goto nextAction;
+			const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
+
+			const auto delta = m_NextWaypoint - source;
+
+			// Normalize the vector
+			const auto length = delta.Length();
+			if (length > 0.0f) {
+				SetVelocity((delta / length) * speed);
+			}
+
+			// Calclute the time it will take to reach the next waypoint with the current speed
+			m_TimeTravelled = 0.0f;
+			m_TimeToTravel = length / speed;
+
+			SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 		}
-
-		if (m_CurrentSpeed < m_MaxSpeed) {
-			m_CurrentSpeed += m_Acceleration;
-		}
-
-		if (m_CurrentSpeed > m_MaxSpeed) {
-			m_CurrentSpeed = m_MaxSpeed;
-		}
-
-		const auto speed = m_CurrentSpeed * m_BaseSpeed; // scale speed based on base speed
-
-		const auto delta = m_NextWaypoint - source;
-
-		// Normalize the vector
-		const auto length = delta.Length();
-		if (length > 0) {
-			velocity = (delta / length) * speed;
-		}
-
-		// Calclute the time it will take to reach the next waypoint with the current speed
-		m_TimeTravelled = 0.0f;
-		m_TimeToTravel = length / speed;
-
-		SetRotation(NiQuaternion::LookAt(source, m_NextWaypoint));
 	} else {
 		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
 		if (m_CurrentPath.empty()) {
-			Stop();
-
-			return;
+			if (m_Path) {
+				if (m_Path->pathBehavior == PathBehavior::Loop) {
+					SetPath(m_Path->pathWaypoints);
+				} else if (m_Path->pathBehavior == PathBehavior::Bounce) {
+					std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
+					std::reverse(waypoints.begin(), waypoints.end());
+					SetPath(waypoints);
+				} else if (m_Path->pathBehavior == PathBehavior::Once) {
+					Stop();
+					return;
+				}
+			} else {
+				Stop();
+				return;
+			}
 		}
-		SetDestination(m_CurrentPath.top());
+		SetDestination(m_CurrentPath.top().position);
 
 		m_CurrentPath.pop();
 	}
-
-nextAction:
-
-	SetVelocity(velocity);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 }
@@ -161,7 +195,7 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 }
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
-	auto source = m_Parent->GetPosition();
+	auto source = m_SourcePosition;
 
 	if (AtFinalWaypoint()) return source;
 
@@ -227,13 +261,13 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 	m_PullPoint = point;
 }
 
-void MovementAIComponent::SetPath(std::vector<NiPoint3> path) {
+void MovementAIComponent::SetPath(std::vector<PathWaypoint> path) {
 	if (path.empty()) return;
-	std::for_each(path.rbegin(), path.rend() - 1, [this](const NiPoint3& point) {
+	std::for_each(path.rbegin(), path.rend() - 1, [this](const PathWaypoint& point) {
 		this->m_CurrentPath.push(point);
 		});
 
-	SetDestination(path.front());
+	SetDestination(path.front().position);
 }
 
 float MovementAIComponent::GetBaseSpeed(LOT lot) {
@@ -278,6 +312,23 @@ void MovementAIComponent::SetRotation(const NiQuaternion& value) {
 	if (!m_LockRotation) m_Parent->SetRotation(value);
 }
 
+NiPoint3 MovementAIComponent::GetVelocity() const {
+	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
+
+	if (controllablePhysicsComponent != nullptr) {
+		return controllablePhysicsComponent->GetVelocity();
+	}
+
+	auto* simplePhysicsComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+
+	if (simplePhysicsComponent != nullptr) {
+		return simplePhysicsComponent->GetVelocity();
+	}
+
+	return NiPoint3Constant::ZERO;
+
+}
+
 void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 	auto* controllablePhysicsComponent = m_Parent->GetComponent<ControllablePhysicsComponent>();
 
@@ -294,7 +345,7 @@ void MovementAIComponent::SetVelocity(const NiPoint3& value) {
 	}
 }
 
-void MovementAIComponent::SetDestination(const NiPoint3& destination) {
+void MovementAIComponent::SetDestination(const NiPoint3 destination) {
 	if (m_PullingToPoint) return;
 
 	const auto location = ApproximateLocation();
@@ -302,6 +353,8 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 	if (!AtFinalWaypoint()) {
 		SetPosition(location);
 	}
+
+	m_SourcePosition = location;
 
 	std::vector<NiPoint3> computedPath;
 	if (dpWorld::IsLoaded()) {
@@ -319,8 +372,7 @@ void MovementAIComponent::SetDestination(const NiPoint3& destination) {
 		auto step = delta / 10.0f;
 
 		for (int i = 0; i < 10; i++) {
-			// TODO: Replace this with += when the NiPoint3::operator+= is fixed
-			start = start + step;
+			start += step;
 
 			computedPath.push_back(start);
 		}
