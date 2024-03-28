@@ -42,6 +42,8 @@
 #include "eStateChangeType.h"
 #include "eConnectionType.h"
 #include "ePlayerFlag.h"
+#include "eHelpType.h"
+#include "ePetAbilityType.h"
 
 #include <sstream>
 #include <future>
@@ -518,6 +520,17 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t
 	bitStream.Write(bFlag);
 	bitStream.Write(iFlagID);
 
+	SEND_PACKET;
+}
+
+void GameMessages::SendHelp(const LWOOBJID& objectId, const eHelpType help, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+	
+	bitStream.Write(objectId);
+	bitStream.Write(eGameMessageType::HELP);
+	bitStream.Write(help);
+	
 	SEND_PACKET;
 }
 
@@ -1173,7 +1186,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 
 	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
-
+	
 	if (bIsNotIdentity) {
 		bitStream.Write(rotation.w);
 		bitStream.Write(rotation.x);
@@ -3550,7 +3563,7 @@ void GameMessages::SendShowPetActionButton(const LWOOBJID objectId, const ePetAb
 	bitStream.Write(petAbility);
 	bitStream.Write(bShow);
 
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST; // TODO: Don't think this should ever be broadcasted, need to confirm
 	SEND_PACKET;
 }
 
@@ -3596,6 +3609,33 @@ void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, cons
 	SEND_PACKET;
 }
 
+void GameMessages::SendRequestClientBounce(const LWOOBJID& objectId, const LWOOBJID& bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	LOG_DEBUG("Object id: %llu", objectId);
+	bitStream.Write(eGameMessageType::REQUEST_CLIENT_BOUNCE);
+
+	bitStream.Write(bounceTargetId);
+	LOG_DEBUG("Bounce target id: %llu", bounceTargetId);
+	bitStream.Write(bounceTargetPos.x);
+	bitStream.Write(bounceTargetPos.y);
+	bitStream.Write(bounceTargetPos.z);
+	LOG_DEBUG("Bounce target pos on server: %f %f %f", bounceTargetPos.x, bounceTargetPos.y, bounceTargetPos.z);
+	bitStream.Write(bouncedObjLinVel.x);
+	bitStream.Write(bouncedObjLinVel.y);
+	bitStream.Write(bouncedObjLinVel.z);
+	LOG_DEBUG("Bounced object linear velocity: %f %f %f", bouncedObjLinVel.x, bouncedObjLinVel.y, bouncedObjLinVel.z);
+	bitStream.Write(requestSourceId);
+	LOG_DEBUG("Request source id: %llu", requestSourceId);
+
+	bitStream.Write(bAllBounced);
+	bitStream.Write(bAllowClientOverload);
+
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
+}
 
 void GameMessages::SendSetPetName(LWOOBJID objectId, std::u16string name, LWOOBJID petDBID, const SystemAddress& sysAddr) {
 	CBITSTREAM;
@@ -3783,7 +3823,7 @@ void GameMessages::HandleDespawnPet(RakNet::BitStream& inStream, Entity* entity,
 	if (bDeletePet) {
 		petComponent->Release();
 	} else {
-		petComponent->Deactivate();
+		petComponent->Deactivate(eHelpType::PET_DESPAWN_BY_OWNER_HIBERNATE);
 	}
 }
 

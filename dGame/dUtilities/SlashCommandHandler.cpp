@@ -46,6 +46,7 @@
 #include "dServer.h"
 #include "MissionComponent.h"
 #include "Mail.h"
+#include "PetComponent.h"
 #include "dpWorld.h"
 #include "Item.h"
 #include "PropertyManagementComponent.h"
@@ -58,6 +59,7 @@
 #include "dpShapeSphere.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "StringifiedEnum.h"
 #include "HavokVehiclePhysicsComponent.h"
 #include "BuffComponent.h"
 #include "SkillComponent.h"
@@ -80,6 +82,7 @@
 #include "eControlScheme.h"
 #include "eConnectionType.h"
 #include "eChatInternalMessageType.h"
+#include "eHelpType.h"
 #include "eMasterMessageType.h"
 #include "PlayerManager.h"
 
@@ -673,6 +676,32 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		return;
 	}
 
+	// Send packet to display help message pop-up
+	if (chatCommand == "helpmsg") {
+		if (entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
+			const auto helpIdOpt = GeneralUtils::TryParse<eHelpType>(args[0]);
+			if (!helpIdOpt) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid help message id.");
+				return;
+			}
+
+			const eHelpType helpId = helpIdOpt.value();
+			GameMessages::SendHelp(entity->GetObjectID(), helpId, sysAddr);
+
+			// Convert and print enum string
+			const std::u16string msg = u"Sent help message '"
+				+ GeneralUtils::ASCIIToUTF16(StringifiedEnum::ToString(helpId))
+				+ u"' (id: "
+				+ GeneralUtils::to_u16string(GeneralUtils::ToUnderlying(helpId))
+				+ u')';
+			
+			ChatPackets::SendSystemMessage(sysAddr, msg);
+		} else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command invocation.");
+			return;
+		}
+	}
+
 	if (chatCommand == "setflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() == 1) {
 		const auto flagId = GeneralUtils::TryParse<int32_t>(args.at(0));
 
@@ -706,6 +735,159 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		}
 
 		entity->GetCharacter()->SetPlayerFlag(flagId.value(), false);
+	}
+
+	// Pet status utility
+	if (chatCommand == "setpetflag" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() == 0) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
+			return;
+		}
+
+		const auto petFlagInput = GeneralUtils::TryParse<std::underlying_type_t<PetFlag>>(args[0]);
+		if (!petFlagInput) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid pet status!");
+			return;
+		}
+		const PetFlag petFlag = static_cast<PetFlag>(1 << petFlagInput.value());
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		petComponent->SetFlag(petFlag);
+
+		std::u16string msg = u"Set pet flag to " + (GeneralUtils::to_u16string(GeneralUtils::ToUnderlying(petFlag)));
+		ChatPackets::SendSystemMessage(sysAddr, msg);
+	}
+
+	//Pet command utility
+	if (chatCommand == "petcommand" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() < 5) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Too few arguments!");
+			return;
+		}
+
+		const auto commandType = GeneralUtils::TryParse<int32_t>(args[0+3]);
+		if (!commandType) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type!");
+			return;
+		}
+
+		const auto typeId = GeneralUtils::TryParse<int32_t>(args[1+3]);
+		if (!typeId) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid command type id!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		//Determine the positional coordinates
+		//NiPoint3 commandPos{};
+		//float x, y, z;
+		const auto commandPos = GeneralUtils::TryParse<NiPoint3>(args[0], args[1], args[2]);
+		if (!commandPos) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid position.");
+			return;
+		}
+		
+		// Set command position
+		petComponent->Command(commandPos.value(), entity->GetObjectID(), commandType.value(), typeId.value(), true);
+	}
+
+	// Pet speed utility
+	if (chatCommand == "setpetmaxspeed" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() != 1) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of arguments!");
+			return;
+		}
+
+		const auto petMaxSpeed = GeneralUtils::TryParse<float>(args[0]);
+		if (!petMaxSpeed) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid speed!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		auto* movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
+		if (!movementAIComponent) return;
+
+		movementAIComponent->SetMaxSpeed(petMaxSpeed.value());
+
+		std::u16string msg = u"Set pet max speed to " + (GeneralUtils::to_u16string(petMaxSpeed.value()));
+		ChatPackets::SendSystemMessage(sysAddr, msg);
+	}
+
+	// Set pet acceleration
+	if (chatCommand == "setpetaccel" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() != 1) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of arguments!");
+			return;
+		}
+
+		const auto petAccel = GeneralUtils::TryParse<float>(args[0]);
+		if (!petAccel) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid acceleration!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* const petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		auto* const movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
+		if (!movementAIComponent) return;
+
+		movementAIComponent->SetAcceleration(petAccel.value());
+
+		std::u16string msg = u"Set pet acceleration to " + GeneralUtils::to_u16string(petAccel.value());
+		ChatPackets::SendSystemMessage(sysAddr, msg);
+	}
+
+	// Set pet halt distance
+	if (chatCommand == "setpethalt" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
+		if (args.size() != 1) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of arguments!");
+			return;
+		}
+
+		const auto petHaltDistance = GeneralUtils::TryParse<float>(args[0]);
+		if (!petHaltDistance) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid halt distance!");
+			return;
+		}
+
+		// Determine if player has a pet summoned
+		auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
+		if (!petComponent) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No active pet found!");
+			return;
+		}
+
+		auto* movementAIComponent = petComponent->GetParentEntity()->GetComponent<MovementAIComponent>();
+		if (!movementAIComponent) return;
+
+		movementAIComponent->SetHaltDistance(petHaltDistance.value());
+
+		std::u16string msg = u"Set pet halt distance to " + GeneralUtils::to_u16string(petHaltDistance.value());
+		ChatPackets::SendSystemMessage(sysAddr, msg);
 	}
 
 	if (chatCommand == "playeffect" && entity->GetGMLevel() >= eGameMasterLevel::DEVELOPER && args.size() >= 3) {

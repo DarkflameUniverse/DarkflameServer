@@ -7,7 +7,82 @@
 #include "Preconditions.h"
 #include "ePetAbilityType.h"
 #include "eReplicaComponentType.h"
+#include "ePetAbilityType.h"
 #include "CDPetComponentTable.h"
+#include "CDClientManager.h"
+
+/*
+* The current state of the pet AI
+*/
+enum class PetAiState : uint8_t {
+	idle = 0,   	// Doing nothing
+	spawn,			// Spawning into the world
+	follow,			// Begin following
+	goToObj,		// Go to object
+	interact,		// Interact with an object
+	despawn 		// Despawning from world
+};
+
+/*
+* The type of object the pet is interacting with
+*/
+enum class PetInteractType : uint8_t {
+	none,		// Not interacting
+	treasure,	// Treasure dig
+	bouncer		// Bouncer switch
+};
+
+/**
+ * The flags governing the status of the pet: Governs the icon above their head and the interactions available
+*/
+enum class PetFlag : uint32_t {
+	NONE,
+	IDLE = 1 << 0,			//0x01 - Seems to be "idle," which the game doesn't differentiate from "follow"
+	UNKNOWN2 = 1 << 1,		//0x02,
+	UNKNOWN4 = 1 << 2,		//0x04 - FOLLOWING(?)
+	BEING_TAMED = 1 << 4, 	//0x10,
+	NOT_WAITING = 1 << 5, 	//0x20,
+	IMMOBILE = 1 << 6,		//0x40 - Seems to be the "stop moving" flag - called when taming begins and stays active until a name is submitted
+	SPAWNING = 1 << 7,		//0x80
+	ON_SWITCH = 1 << 8, 	//0x100
+	UNKNOWN1024 = 1 << 10,	//0x400
+	TAMEABLE = 1 << 26		//0x4000000
+};
+
+/**
+ * Define bitwise operators for PetFlag (TODO: Encapsulate into proper class)
+*/
+constexpr PetFlag operator|(const PetFlag lhs, const PetFlag rhs) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(static_cast<underlying_type>(lhs) | static_cast<underlying_type>(rhs));
+}
+
+constexpr PetFlag& operator|=(PetFlag& lhs, const PetFlag rhs) {
+    return lhs = lhs | rhs;
+}
+
+constexpr PetFlag operator&(const PetFlag lhs, const PetFlag rhs) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(static_cast<underlying_type>(lhs) & static_cast<underlying_type>(rhs));
+}
+
+constexpr PetFlag& operator&=(PetFlag& lhs, const PetFlag rhs) {
+    return lhs = lhs & rhs;
+}
+
+constexpr PetFlag operator~(const PetFlag flag) {
+	using underlying_type = std::underlying_type_t<PetFlag>;
+    return static_cast<PetFlag>(~static_cast<underlying_type>(flag));
+}
+
+/**
+ * The pet emote animation ids that can used in PetComponent::Command()
+*/
+enum class PetEmote : int32_t {
+	ActivateSwitch = 201,
+	DigTreasure,
+	Bounce
+};
 
 /**
  * Represents an entity that is a pet. This pet can be tamed and consequently follows the tamer around, allowing it
@@ -18,10 +93,82 @@ class PetComponent final : public Component
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
+	/**
+	 * PetComponent constructor
+	 * @param parentEntity The parent entity
+	 * @param componentId The component id
+	*/
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
+	
 	~PetComponent() override;
 
+	/**
+	 * Serializes the pet
+	 * @param outBitStream The output bitstream
+	 * @param bIsInitialUpdate Boolean value of whether this is the initial update
+	*/
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
+
+	/**
+	 * Sets the AI state of the pet
+	 * @param newState New pet AI state
+	*/
+	void SetPetAiState(PetAiState newState);
+
+	/**
+	 * Gets the AI state of the pet
+	*/
+	PetAiState GetPetAiState() const { return m_State; }
+
+	/**
+	 * Sets one or more pet flags
+	 * @param flag PetFlag(s) to set
+	*/
+	template <typename... varArg>
+	void SetFlag(varArg... flag) {
+		m_Flags |= (flag | ...); 
+	}
+
+	/**
+	 * Sets the pet to ONLY have the specified flag(s), clearing all others
+	 * @param flag PetFlag(s) to set exclusively
+	*/
+	template <typename... varArg>
+	void SetOnlyFlag(varArg... flag) {
+		m_Flags = (flag | ...);
+	}
+
+	/**
+	 * Unsets one or more pet flags
+	 * @param flag PetFlag(s) to unset
+	*/
+	template <typename... varArg>
+	void UnsetFlag(varArg... flag) {
+		m_Flags &= ~(flag | ...);
+	}
+
+	/**
+	 * Returns true if the pet has all the specified flag(s)
+	 * @param flag PetFlag(s) to check
+	*/
+	template <typename... varArg>
+	bool HasFlag(varArg... flag) const {
+		return (m_Flags & (flag | ...)) == (flag | ...);
+	}
+
+	/**
+	 * Returns true if the pet has ONLY the specified flag(s)
+	 * @param flag PetFlag(s) to check if the pet has exclusively
+	*/
+	template <typename... varArg>
+	bool HasOnlyFlag(varArg... flag) const {
+		return m_Flags == (flag | ...);
+	}
+
+	/**
+	 * Governs the pet update loop
+	 * @param deltaTime Time elapsed since last update
+	*/
 	void Update(float deltaTime) override;
 
 	/**
@@ -49,7 +196,7 @@ public:
 	 * successfully).
 	 * @param name the name of the pet to set
 	 */
-	void RequestSetPetName(std::u16string name);
+	void RequestSetPetName(const std::u16string& name);
 
 	/**
 	 * Handles a notification of the client that the taming entity is leaving the minigame, either voluntary or because
@@ -74,6 +221,42 @@ public:
 	void Wander();
 
 	/**
+	 * Called when the pet is first spawned
+	*/
+	void OnSpawn();
+
+	/**
+	 * Continues a step in the follow state, making sure that the entity is around its start position
+	*/
+	void OnFollow(const float deltaTime);
+
+	/**
+	 * Continues a step in the interact state, handling the pet's interaction with an entity
+	*/
+	void OnInteract();
+
+	/**
+	 * Start a pet interaction with an object at a given position
+	*/
+	void StartInteract(const NiPoint3& position, const PetInteractType interactType, const LWOOBJID& interactID);
+
+	/**
+	 * Stop a pet interaction with an object
+	 * @param bDontSerialize optional parameter, set to true to not serialize afterwards
+	*/
+	void StopInteract(bool bDontSerialize = false);
+
+	/**
+	 * Set the type of interaction the pet is executing
+	*/
+	void SetInteractType(PetInteractType interactType) { m_InteractType = interactType; };
+
+	/**
+	 * Get the type of interaction the pet is executing
+	*/
+	PetInteractType GetInteractType() { return m_InteractType; };
+
+	/**
 	 * Spawns a pet from an item in the inventory of an owner
 	 * @param item the item to create the pet from
 	 * @param registerPet notifies the client that the pet was spawned, not necessary if this pet is being tamed
@@ -83,7 +266,7 @@ public:
 	/**
 	 * Despawns the pet
 	 */
-	void Deactivate();
+	void Deactivate(eHelpType msg = eHelpType::NONE);
 
 	/**
 	 * Removes the pet from the inventory
@@ -141,13 +324,13 @@ public:
 	 * bit map
 	 * @return the status of this pet
 	 */
-	uint32_t GetStatus() const;
+	/*uint32_t GetStatus() const;*/
 
 	/**
 	 * Sets the current status of the pet
 	 * @param value the current status of the pet to set
 	 */
-	void SetStatus(uint32_t value);
+	/*void SetStatus(uint32_t value);*/
 
 	/**
 	 * Returns an ability the pet may perform, currently unused
@@ -166,6 +349,58 @@ public:
 	 * @param conditions the preconditions to set
 	 */
 	void SetPreconditions(std::string& conditions);
+
+	/**
+	 * Sets if the pet is ready to interact with an object
+	 * @param isReady whether the pet is ready to interact (true) or not (false)
+	 */
+	void SetIsReadyToInteract(bool isReady) { m_ReadyToInteract = isReady; };
+
+	/**
+	 * @return is pet ready to interact with an object
+	 */
+	bool IsReadyToInteract() { return m_ReadyToInteract; };
+
+	/**
+	 * Sets if the pet is currently handling an interaction with an object
+	 * @param isHandlingInteraction whether the pet is currently handling an interaction with an object
+	*/
+	void SetIsHandlingInteraction(bool isHandlingInteraction) { m_IsHandlingInteraction = isHandlingInteraction; };
+
+	/**
+	 * @return is pet currently handling an interaction with an object
+	*/
+	bool IsHandlingInteraction() { return m_IsHandlingInteraction; };
+
+	/**
+	 * Set up the pet bouncer interaction
+	*/
+	void SetupInteractBouncer();
+
+	/**
+	 * Starts the pet bouncer interaction
+	*/
+	void StartInteractBouncer();
+
+	/**
+	 * Handles the pet bouncer interaction
+	*/
+	void HandleInteractBouncer();
+
+	/**
+	 * Set up the treasure dig interaction
+	 */
+	void SetupInteractTreasureDig();
+
+	/**
+	 * Starts the pet treasure dig interaction
+	*/
+	void StartInteractTreasureDig();
+
+	/**
+	 * Handles the pet treasure dig interaction
+	*/
+	void HandleInteractTreasureDig();
 
 	/**
 	 * Returns the entity that this component belongs to
@@ -261,6 +496,11 @@ private:
 	static std::map<LOT, int32_t> petFlags;
 
 	/**
+	 * The halting radius of the pet while following a player TODO: Move into struct?
+	*/
+	float m_FollowRadius;
+
+	/**
 	 * The ID of the component in the pet component table
 	 */
 	uint32_t m_ComponentId;
@@ -274,6 +514,11 @@ private:
 	 * The ID of the object that the pet is currently interacting with (e.g. a treasure chest or switch)
 	 */
 	LWOOBJID m_Interaction;
+
+	/**
+	 * The type of object that the pet is currently interacting with (e.g. a treasure chest or switch)
+	*/
+	PetInteractType m_InteractType;
 
 	/**
 	 * The ID of the entity that owns this pet
@@ -311,9 +556,14 @@ private:
 	std::string m_OwnerName;
 
 	/**
-	 * The current state of the pet (e.g. tamable, tamed, etc).
+	 * The current flags of the pet (e.g. tamable, tamed, etc).
 	 */
-	uint32_t m_Status;
+	PetFlag m_Flags;
+
+	/**
+	 * The current state of the pet AI
+	 */
+	PetAiState m_State;
 
 	/**
 	 * A currently active ability, mostly unused
@@ -331,10 +581,19 @@ private:
 	float m_TimerAway;
 
 	/**
-	 * Timer that tracks how long a pet has been digging up some treasure, required to spawn the treasure contents
-	 * on time
+	 * A timer that tracks how long until a tamed pet will bounce again when standing over a treasure dig site
+	*/
+	float m_TimerBounce;
+
+	/**
+	 * Boolean that sets if a pet is ready to interact with an object
 	 */
-	float m_TresureTime;
+	bool m_ReadyToInteract;
+
+	/**
+	 * Boolean that sets if a pet is currently handling an interaction with an object
+	*/
+	bool m_IsHandlingInteraction;
 
 	/**
 	 * The position that this pet was spawned at

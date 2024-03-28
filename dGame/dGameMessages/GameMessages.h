@@ -10,6 +10,8 @@
 #include "eEndBehavior.h"
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
+#include "eHelpType.h"
+#include "ePetAbilityType.h"
 #include "Brick.h"
 
 class AMFBaseValue;
@@ -84,6 +86,7 @@ namespace GameMessages {
 
 	void SendAddItemToInventoryClientSync(Entity* entity, const SystemAddress& sysAddr, Item* item, const LWOOBJID& objectID, bool showFlyingLoot, int itemCount, LWOOBJID subKey = LWOOBJID_EMPTY, eLootSourceType lootSourceType = eLootSourceType::NONE);
 	void SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t iFlagID, bool bFlag, const SystemAddress& sysAddr);
+	void SendHelp(const LWOOBJID& objectId, const eHelpType help, const SystemAddress& sysAddr);
 	void SendChangeObjectWorldState(const LWOOBJID& objectID, eObjectWorldState state, const SystemAddress& sysAddr);
 
 	void SendOfferMission(const LWOOBJID& entity, const SystemAddress& sysAddr, int32_t missionID, const LWOOBJID& offererID);
@@ -395,7 +398,25 @@ namespace GameMessages {
 
 	void SendPlayEmote(LWOOBJID objectId, int32_t emoteID, LWOOBJID target, const SystemAddress& sysAddr);
 
+	/**
+	 * Sends the bouncer active status
+	 * @param objectId Object ID of the bouncer
+	 * @param bActive Active state of the bouncer
+	 * @param sysAddr System address of the user
+	*/
 	void SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr);
+
+	/**
+	 * Sends a request to the client to bounce (I think?)
+	 * @param objectId Object ID
+	 * @param bounceTargetId The object ID of the bounce target
+	 * @param bounceTargetPos The position of the bounce target
+	 * @param bouncedObjLinVel TODO: UNUSED
+	 * @param requestSourceId The object Id of the entity requesting the bounce
+	 * @param bAllBounced Whether to bounce all entities standing on the bouncer pad
+	 * @param bAllowClientOverload TODO: UNUSED
+	*/
+	void SendRequestClientBounce(const LWOOBJID& objectId, const LWOOBJID& bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr);
 
 	void SendSetPetName(LWOOBJID objectId, std::u16string name, LWOOBJID petDBID, const SystemAddress& sysAddr);
 
