@@ -86,7 +86,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 			ChatPacketHandler::SendTeamSetOffWorldFlag(otherMember, playerID, { 0, 0, 0 });
 		}
 	}
-	
+
 	LOG("Removed user: %llu", playerID);
 	m_Players.erase(playerID);
 
