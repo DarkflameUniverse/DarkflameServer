@@ -68,6 +68,7 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 }
 
 void MovementAIComponent::Pause() {
+	if (m_Paused) return;
 	m_Paused = true;
 	SetPosition(ApproximateLocation());
 	m_SavedVelocity = GetVelocity();
@@ -76,6 +77,7 @@ void MovementAIComponent::Pause() {
 }
 
 void MovementAIComponent::Resume() {
+	if (!m_Paused) return;
 	m_Paused = false;
 	SetVelocity(m_SavedVelocity);
 	m_SavedVelocity = NiPoint3Constant::ZERO;

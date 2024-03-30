@@ -1,6 +1,7 @@
 #include "WanderingVendor.h"
 #include "MovementAIComponent.h"
 #include "ProximityMonitorComponent.h"
+#include <ranges>
 
 void WanderingVendor::OnStartup(Entity* self) {
 	auto movementAIComponent = self->GetComponent<MovementAIComponent>();
@@ -19,7 +20,16 @@ void WanderingVendor::OnProximityUpdate(Entity* self, Entity* entering, std::str
 		if (!proximityMonitorComponent) self->AddComponent<ProximityMonitorComponent>();
 
 		const auto proxObjs = proximityMonitorComponent->GetProximityObjects("playermonitor");
-		if (proxObjs.empty()) self->AddTimer("startWalking", 1.5);
+		bool foundPlayer = false;
+		for (const auto id : proxObjs | std::views::keys) {
+			auto* entity = Game::entityManager->GetEntity(id);
+			if (entity && entity->IsPlayer()) {
+				foundPlayer = true;
+				break;
+			}
+		}
+
+		if (!foundPlayer) self->AddTimer("startWalking", 1.5);
 	}
 }
 
