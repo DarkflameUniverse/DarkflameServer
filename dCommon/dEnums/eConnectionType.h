@@ -5,8 +5,7 @@ enum class eConnectionType : uint16_t {
 	SERVER = 0,
 	AUTH,
 	CHAT,
-	UNUSED,
-	WORLD,
+	WORLD = 4,
 	CLIENT,
 	MASTER
 };

@@ -181,12 +181,9 @@ int main(int argc, char** argv) {
 void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has disconnected, erasing their connected players from the list.");
-	}
-
-	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
+	} else if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
 		LOG("A server is connecting, awaiting user list.");
-	}
-	if (packet->length < 4) return; // Nothing left to process.  Need 4 bytes to continue.
+	} else if (packet->length < 4 || packet->data[0] != ID_USER_PACKET_ENUM) return; // Nothing left to process or not the right packet type
 
 	CINSTREAM;
 	inStream.SetReadOffset(BYTES_TO_BITS(1));
@@ -197,7 +194,6 @@ void HandlePacket(Packet* packet) {
 	inStream.Read(connection);
 	if (connection != eConnectionType::CHAT) return;
 	inStream.Read(chatMessageID);
-	inStream.SetReadOffset(BYTES_TO_BITS(HEADER_SIZE));
 	
 	switch (chatMessageID) {
 		case eChatMessageType::GM_MUTE:
@@ -207,6 +203,7 @@ void HandlePacket(Packet* packet) {
 		case eChatMessageType::CREATE_TEAM:
 			Game::playerContainer.CreateTeamServer(packet);
 			break;
+
 		case eChatMessageType::GET_FRIENDS_LIST:
 			ChatPacketHandler::HandleFriendlistRequest(packet);
 			break;
@@ -284,7 +281,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		case eChatMessageType::GM_ANNOUNCE:{
 			// we just forward this packet to every connected server
-			CINSTREAM;
+			inStream.ResetReadPointer();
 			Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
 			}
 			break;
