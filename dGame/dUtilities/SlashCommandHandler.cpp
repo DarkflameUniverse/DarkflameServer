@@ -90,12 +90,13 @@
 #include "dNavMesh.h"
 
 namespace {
-	std::map<std::string, Command> RegisteredCommands;
+	std::vector<Command> RegisteredCommands;
 }
 
-void SlashCommandHandler::RegisterCommand(Command info, std::string command) {
-	LOG_DEBUG("Registering SlashCommand: %s", command.c_str());
-	RegisteredCommands.emplace(std::make_pair(command, info));
+void SlashCommandHandler::RegisterCommand(Command command) {
+	LOG_DEBUG("Registering SlashCommand: %s", command.aliases[0].c_str());
+	// TODO: duplicate alias check
+	RegisteredCommands.push_back(command);
 };
 
 // DEV Commands
@@ -173,24 +174,26 @@ void GMZeroCommands::Help(Entity* entity, const std::string args) {
 	if (args.empty()) {
 		std::ostringstream helpMessage;
 		helpMessage << "Commands:\n*";
-		for (auto& [commandCall, command] : RegisteredCommands) {
-			// TODO: Limit dispplaying commands based on GM level they require
+		for (auto& command: RegisteredCommands) {
+			// TODO: Limit displaying commands based on GM level they require
 			// if (RegisteredCommands[args].requiredLevel > entity->GetGMLevel()) continue;
-			helpMessage << "\t" << commandCall << ": " << command.description << "\n*";
+			helpMessage << "\t" << command.aliases[0] << ": " << command.info << "\n*";
 		}
 		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 3)));
 	} else {
-		if (RegisteredCommands.contains(args)) {
-			if (entity->GetGMLevel() >= RegisteredCommands[args].requiredLevel) {
-				RegisteredCommands[args].help;
-				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(RegisteredCommands[args].help));
+		for (auto& command: RegisteredCommands) {
+			if (std::find(command.aliases.begin(), command.aliases.end(), args) != command.aliases.end()) {
+				if (entity->GetGMLevel() >= command.requiredLevel) {
+					command.help;
+					GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(command.help));
+				}
+			} else {
+				// We don't need to tell normies commands don't exist
+				if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+				std::ostringstream feedback;
+				feedback << "Command " << std::quoted(args) << " does not exist!";
+				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 			}
-		} else {
-			// We don't need to tell normies commands don't exist
-			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-			std::ostringstream feedback;
-			feedback << "Command " << std::quoted(args) << " does not exist!";
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 		}
 	}
 }
@@ -198,41 +201,44 @@ void GMZeroCommands::Help(Entity* entity, const std::string args) {
 void SlashCommandHandler::Startup() {
 
 	// Register Dev Commands
-	Command SetGMLevelCommand;
-	SetGMLevelCommand.description = "Set the players GM Level";
-	SetGMLevelCommand.help = "Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands.";
-	SetGMLevelCommand.requiredLevel = eGameMasterLevel::CIVILIAN;
-	SetGMLevelCommand.handle = DEVGMCommands::SetGMLevel;
-	RegisterCommand(SetGMLevelCommand, "setgmlevel");
-	RegisterCommand(SetGMLevelCommand, "makegm");
-	RegisterCommand(SetGMLevelCommand, "gmlevel");
+	Command SetGMLevelCommand(
+		"",
+		"",
+		{"setgmlevel", "makegm", "gmlevel"},
+		DEVGMCommands::SetGMLevel,
+		eGameMasterLevel::CIVILIAN
+	);
+	RegisterCommand(SetGMLevelCommand);
 	
-	Command ToggleNameplateCommand;
-	ToggleNameplateCommand.description = "Toggles the visibility of a players nameplate";
-	ToggleNameplateCommand.help = "Turns the nameplate above your head that is visible to other players off and on.";
-	ToggleNameplateCommand.requiredLevel = eGameMasterLevel::CIVILIAN;
-	ToggleNameplateCommand.handle = DEVGMCommands::ToggleNameplate;
-	RegisterCommand(ToggleNameplateCommand, "togglenameplate");
-	RegisterCommand(ToggleNameplateCommand, "tnp");
+	Command ToggleNameplateCommand(
+		"",
+		"",
+		{"togglenameplate", "tnp"},
+		DEVGMCommands::ToggleNameplate,
+		eGameMasterLevel::CIVILIAN
+	);
+	RegisterCommand(ToggleNameplateCommand);
 
-	Command ToggleSkipCinematicsCommand;
-	ToggleSkipCinematicsCommand.description = "Toggles skipping cinematics";
-	ToggleSkipCinematicsCommand.help = "Skips mission and world load related cinematics.";
-	ToggleSkipCinematicsCommand.requiredLevel = eGameMasterLevel::CIVILIAN;
-	ToggleSkipCinematicsCommand.handle = DEVGMCommands::ToggleSkipCinematics;
-	RegisterCommand(ToggleSkipCinematicsCommand, "toggleskipcinematics");
-	RegisterCommand(ToggleSkipCinematicsCommand, "tsc");
+	Command ToggleSkipCinematicsCommand(
+		"",
+		"",
+		{"toggleskipcinematics", "tsc"},
+		DEVGMCommands::ToggleSkipCinematics,
+		eGameMasterLevel::CIVILIAN
+	);
+	RegisterCommand(ToggleSkipCinematicsCommand);
 
 	// Register Greater Than Zero Commands
 
 	// Register GM Zero Commands
-	Command HelpCommand;
-	HelpCommand.description = "Display command help";
-	HelpCommand.help = "Displays a list of commands and their descriptions if no command are given. If an command is given, displays detailed info about that command.";
-	HelpCommand.requiredLevel = eGameMasterLevel::CIVILIAN;
-	HelpCommand.handle = GMZeroCommands::Help;
-	RegisterCommand(HelpCommand, "help");
-	RegisterCommand(HelpCommand, "h");
+	Command HelpCommand(
+		"Display command info",
+		"If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",
+		{"help", "h"},
+		GMZeroCommands::Help,
+		eGameMasterLevel::CIVILIAN
+	);
+	RegisterCommand(HelpCommand);
 }
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
@@ -244,23 +250,25 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	if (args.front() == '/') args.clear();
 	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
 
-	if (RegisteredCommands.contains(command)) {
-		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
-			RegisteredCommands[command].handle(entity, args);
+	for (auto& registeredCommand : RegisteredCommands) {
+		if (std::find(registeredCommand.aliases.begin(), registeredCommand.aliases.end(), args) != registeredCommand.aliases.end()) {
+			if (entity->GetGMLevel() >= registeredCommand.requiredLevel) {
+				registeredCommand.handle(entity, args);
+			} else {
+				// We don't need to tell normies they aren't high enough level
+				if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+				std::ostringstream feedback;
+				feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
+				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			}
+
 		} else {
-			// We don't need to tell normies they aren't high enough level
+			// We don't need to tell normies commands don't exist
 			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
 			std::ostringstream feedback;
-			feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
+			feedback << "Command " << std::quoted(command) << " does not exist!";
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 		}
-
-	} else {
-		// We don't need to tell normies commands don't exist
-		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-		std::ostringstream feedback;
-		feedback << "Command " << std::quoted(command) << " does not exist!";
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 	}
 
 	return;

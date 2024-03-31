@@ -13,19 +13,25 @@
 class Entity;
 
 struct Command {
-	Command(std::string description, std::string help, std::vector<std::string> commands, std::function<void(Entity*,const std::string)> handle);
-	std::string description;
+	Command(std::string help, std::string info, std::vector<std::string> aliases, std::function<void(Entity*,const std::string)> handle, eGameMasterLevel requiredLevel = eGameMasterLevel::DEVELOPER) {
+		this->help = help;
+		this->info = info;
+		this->aliases = aliases;
+		this->handle = handle;
+		this->requiredLevel = requiredLevel;
+	}
 	std::string help;
-	std::vector<std::string> commands;
-	eGameMasterLevel requiredLevel = eGameMasterLevel::DEVELOPER;
+	std::string info;
+	std::vector<std::string> aliases;
 	std::function<void(Entity*,const std::string)> handle;
+	eGameMasterLevel requiredLevel = eGameMasterLevel::DEVELOPER;
 };
 
 namespace SlashCommandHandler {
 	void Startup();
 	void HandleChatCommand(const std::u16string& command, Entity* entity, const SystemAddress& sysAddr);
 	void SendAnnouncement(const std::string& title, const std::string& message);
-	void RegisterCommand(Command info, std::string command);
+	void RegisterCommand(Command info);
 };
 
 namespace DEVGMCommands {
