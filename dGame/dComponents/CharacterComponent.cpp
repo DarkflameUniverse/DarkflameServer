@@ -104,7 +104,7 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_Character->GetLastLogin()); //Last login
 		outBitStream.Write<uint64_t>(0); //"prop mod last display time"
 		outBitStream.Write<uint64_t>(m_Uscore); //u-score
-		outBitStream.Write0(); //Not free-to-play (disabled in DLU)
+		outBitStream.Write1(); // all players are now free to play gated
 
 		//Stats:
 		outBitStream.Write(m_CurrencyCollected);
