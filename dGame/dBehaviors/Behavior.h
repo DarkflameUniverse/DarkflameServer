@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "BitStream.h"
-#include "BehaviorTemplates.h"
+#include "BehaviorTemplate.h"
 #include "dCommonVars.h"
 
 struct BehaviorContext;
@@ -26,7 +26,7 @@ public:
 
 	static Behavior* CreateBehavior(uint32_t behaviorId);
 
-	static BehaviorTemplates GetBehaviorTemplate(uint32_t behaviorId);
+	static BehaviorTemplate GetBehaviorTemplate(uint32_t behaviorId);
 
 	/*
 	 * Utilities
@@ -39,7 +39,7 @@ public:
 	 */
 
 	uint32_t m_behaviorId;
-	BehaviorTemplates m_templateId;
+	BehaviorTemplate m_templateId;
 	uint32_t m_effectId;
 	std::string m_effectHandle;
 	std::unordered_map<std::string, std::string> m_effectNames;
