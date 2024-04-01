@@ -73,7 +73,7 @@ sudo apt install build-essential gcc zlib1g-dev libssl-dev openssl mariadb-serve
 ```
 
 #### Required CMake version
-This project uses <font size="4">**CMake version 3.18**</font> or higher and as such you will need to ensure you have this version installed.
+This project uses <font size="4">**CMake version 3.25**</font> or higher and as such you will need to ensure you have this version installed.
 You can check your CMake version by using the following command in a terminal.
 ```bash
 cmake --version

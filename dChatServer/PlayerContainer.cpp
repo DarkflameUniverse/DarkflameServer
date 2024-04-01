@@ -390,7 +390,7 @@ LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const LWOOBJID& playerID) {
-	return m_Players[playerID];
+	return m_Players.contains(playerID) ? m_Players[playerID] : m_Players[LWOOBJID_EMPTY];
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const std::string& playerName) {

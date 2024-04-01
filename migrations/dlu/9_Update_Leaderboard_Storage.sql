@@ -11,7 +11,7 @@ ALTER TABLE leaderboard CHANGE time secondaryScore FLOAT NOT NULL DEFAULT 0 AFTE
 /* A bit messy, but better than going through a bunch of code fixes all to be run once. */
 UPDATE leaderboard SET
 	primaryScore = secondaryScore,
-	secondaryScore = 0 WHERE game_id IN (1, 44, 46, 47, 48, 49, 53, 103, 104, 108, 1901);
+	secondaryScore = 0 WHERE game_id IN (1, 44, 46, 47, 48, 49, 53, 103, 104, 108, 1901) AND secondaryScore > 0;
 
 /* Do this last so we dont update entry times erroneously */
 ALTER TABLE leaderboard 

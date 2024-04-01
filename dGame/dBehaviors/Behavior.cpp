@@ -5,7 +5,7 @@
 #include "CDActivitiesTable.h"
 #include "Game.h"
 #include "Logger.h"
-#include "BehaviorTemplates.h"
+#include "BehaviorTemplate.h"
 #include "BehaviorBranchContext.h"
 #include <unordered_map>
 
@@ -110,176 +110,176 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	Behavior* behavior = nullptr;
 
 	switch (templateId) {
-	case BehaviorTemplates::BEHAVIOR_EMPTY: break;
-	case BehaviorTemplates::BEHAVIOR_BASIC_ATTACK:
+	case BehaviorTemplate::EMPTY: break;
+	case BehaviorTemplate::BASIC_ATTACK:
 		behavior = new BasicAttackBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_TAC_ARC:
+	case BehaviorTemplate::TAC_ARC:
 		behavior = new TacArcBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_AND:
+	case BehaviorTemplate::AND:
 		behavior = new AndBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PROJECTILE_ATTACK:
+	case BehaviorTemplate::PROJECTILE_ATTACK:
 		behavior = new ProjectileAttackBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_HEAL:
+	case BehaviorTemplate::HEAL:
 		behavior = new HealBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_MOVEMENT_SWITCH:
+	case BehaviorTemplate::MOVEMENT_SWITCH:
 		behavior = new MovementSwitchBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_AREA_OF_EFFECT:
+	case BehaviorTemplate::AREA_OF_EFFECT:
 		behavior = new AreaOfEffectBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PLAY_EFFECT:
+	case BehaviorTemplate::PLAY_EFFECT:
 		behavior = new PlayEffectBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_IMMUNITY:
+	case BehaviorTemplate::IMMUNITY:
 		behavior = new ImmunityBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DAMAGE_BUFF: break;
-	case BehaviorTemplates::BEHAVIOR_DAMAGE_ABSORBTION:
+	case BehaviorTemplate::DAMAGE_BUFF: break;
+	case BehaviorTemplate::DAMAGE_ABSORBTION:
 		behavior = new DamageAbsorptionBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_OVER_TIME:
+	case BehaviorTemplate::OVER_TIME:
 		behavior = new OverTimeBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_IMAGINATION:
+	case BehaviorTemplate::IMAGINATION:
 		behavior = new ImaginationBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_TARGET_CASTER:
+	case BehaviorTemplate::TARGET_CASTER:
 		behavior = new TargetCasterBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_STUN:
+	case BehaviorTemplate::STUN:
 		behavior = new StunBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DURATION:
+	case BehaviorTemplate::DURATION:
 		behavior = new DurationBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_KNOCKBACK:
+	case BehaviorTemplate::KNOCKBACK:
 		behavior = new KnockbackBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_ATTACK_DELAY:
+	case BehaviorTemplate::ATTACK_DELAY:
 		behavior = new AttackDelayBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_CAR_BOOST:
+	case BehaviorTemplate::CAR_BOOST:
 		behavior = new CarBoostBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_FALL_SPEED:
+	case BehaviorTemplate::FALL_SPEED:
 		behavior = new FallSpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SHIELD: break;
-	case BehaviorTemplates::BEHAVIOR_REPAIR_ARMOR:
+	case BehaviorTemplate::SHIELD: break;
+	case BehaviorTemplate::REPAIR_ARMOR:
 		behavior = new RepairBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SPEED:
+	case BehaviorTemplate::SPEED:
 		behavior = new SpeedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_DARK_INSPIRATION:
+	case BehaviorTemplate::DARK_INSPIRATION:
 		behavior = new DarkInspirationBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_LOOT_BUFF:
+	case BehaviorTemplate::LOOT_BUFF:
 		behavior = new LootBuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_VENTURE_VISION:
+	case BehaviorTemplate::VENTURE_VISION:
 		behavior = new VentureVisionBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SPAWN_OBJECT:
+	case BehaviorTemplate::SPAWN_OBJECT:
 		behavior = new SpawnBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_LAY_BRICK: break;
-	case BehaviorTemplates::BEHAVIOR_SWITCH:
+	case BehaviorTemplate::LAY_BRICK: break;
+	case BehaviorTemplate::SWITCH:
 		behavior = new SwitchBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_BUFF:
+	case BehaviorTemplate::BUFF:
 		behavior = new BuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_JETPACK:
+	case BehaviorTemplate::JETPACK:
 		behavior = new JetPackBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SKILL_EVENT:
+	case BehaviorTemplate::SKILL_EVENT:
 		behavior = new SkillEventBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_CONSUME_ITEM:
+	case BehaviorTemplate::CONSUME_ITEM:
 		behavior = new ConsumeItemBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SKILL_CAST_FAILED:
+	case BehaviorTemplate::SKILL_CAST_FAILED:
 		behavior = new SkillCastFailedBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_IMITATION_SKUNK_STINK: break;
-	case BehaviorTemplates::BEHAVIOR_CHANGE_IDLE_FLAGS:
+	case BehaviorTemplate::IMITATION_SKUNK_STINK: break;
+	case BehaviorTemplate::CHANGE_IDLE_FLAGS:
 		behavior = new ChangeIdleFlagsBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_APPLY_BUFF:
+	case BehaviorTemplate::APPLY_BUFF:
 		behavior = new ApplyBuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_CHAIN:
+	case BehaviorTemplate::CHAIN:
 		behavior = new ChainBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_CHANGE_ORIENTATION:
+	case BehaviorTemplate::CHANGE_ORIENTATION:
 		behavior = new ChangeOrientationBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_FORCE_MOVEMENT:
+	case BehaviorTemplate::FORCE_MOVEMENT:
 		behavior = new ForceMovementBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_INTERRUPT:
+	case BehaviorTemplate::INTERRUPT:
 		behavior = new InterruptBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_ALTER_COOLDOWN: break;
-	case BehaviorTemplates::BEHAVIOR_CHARGE_UP:
+	case BehaviorTemplate::ALTER_COOLDOWN: break;
+	case BehaviorTemplate::CHARGE_UP:
 		behavior = new ChargeUpBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SWITCH_MULTIPLE:
+	case BehaviorTemplate::SWITCH_MULTIPLE:
 		behavior = new SwitchMultipleBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_START:
+	case BehaviorTemplate::START:
 		behavior = new StartBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_END:
+	case BehaviorTemplate::END:
 		behavior = new EndBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_ALTER_CHAIN_DELAY: break;
-	case BehaviorTemplates::BEHAVIOR_CAMERA: break;
-	case BehaviorTemplates::BEHAVIOR_REMOVE_BUFF:
+	case BehaviorTemplate::ALTER_CHAIN_DELAY: break;
+	case BehaviorTemplate::CAMERA: break;
+	case BehaviorTemplate::REMOVE_BUFF:
 		behavior = new RemoveBuffBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_GRAB: break;
-	case BehaviorTemplates::BEHAVIOR_MODULAR_BUILD: break;
-	case BehaviorTemplates::BEHAVIOR_NPC_COMBAT_SKILL:
+	case BehaviorTemplate::GRAB: break;
+	case BehaviorTemplate::MODULAR_BUILD: break;
+	case BehaviorTemplate::NPC_COMBAT_SKILL:
 		behavior = new NpcCombatSkillBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_BLOCK:
+	case BehaviorTemplate::BLOCK:
 		behavior = new BlockBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_VERIFY:
+	case BehaviorTemplate::VERIFY:
 		behavior = new VerifyBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_TAUNT:
+	case BehaviorTemplate::TAUNT:
 		behavior = new TauntBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_AIR_MOVEMENT:
+	case BehaviorTemplate::AIR_MOVEMENT:
 		behavior = new AirMovementBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_SPAWN_QUICKBUILD:
+	case BehaviorTemplate::SPAWN_QUICKBUILD:
 		behavior = new SpawnBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PULL_TO_POINT:
+	case BehaviorTemplate::PULL_TO_POINT:
 		behavior = new PullToPointBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PROPERTY_ROTATE: break;
-	case BehaviorTemplates::BEHAVIOR_DAMAGE_REDUCTION:
+	case BehaviorTemplate::PROPERTY_ROTATE: break;
+	case BehaviorTemplate::DAMAGE_REDUCTION:
 		behavior = new DamageReductionBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PROPERTY_TELEPORT:
+	case BehaviorTemplate::PROPERTY_TELEPORT:
 		behavior = new PropertyTeleportBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_PROPERTY_CLEAR_TARGET:
+	case BehaviorTemplate::PROPERTY_CLEAR_TARGET:
 		behavior = new ClearTargetBehavior(behaviorId);
 		break;
-	case BehaviorTemplates::BEHAVIOR_TAKE_PICTURE: break;
-	case BehaviorTemplates::BEHAVIOR_MOUNT: break;
-	case BehaviorTemplates::BEHAVIOR_SKILL_SET: break;
+	case BehaviorTemplate::TAKE_PICTURE: break;
+	case BehaviorTemplate::MOUNT: break;
+	case BehaviorTemplate::SKILL_SET: break;
 	default:
 		//LOG("Failed to load behavior with invalid template id (%i)!", templateId);
 		break;
@@ -296,19 +296,19 @@ Behavior* Behavior::CreateBehavior(const uint32_t behaviorId) {
 	return behavior;
 }
 
-BehaviorTemplates Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
+BehaviorTemplate Behavior::GetBehaviorTemplate(const uint32_t behaviorId) {
 	auto behaviorTemplateTable = CDClientManager::GetTable<CDBehaviorTemplateTable>();
 
-	BehaviorTemplates templateID = BehaviorTemplates::BEHAVIOR_EMPTY;
+	BehaviorTemplate templateID = BehaviorTemplate::EMPTY;
 	// Find behavior template by its behavior id.  Default to 0.
 	if (behaviorTemplateTable) {
 		auto templateEntry = behaviorTemplateTable->GetByBehaviorID(behaviorId);
 		if (templateEntry.behaviorID == behaviorId) {
-			templateID = static_cast<BehaviorTemplates>(templateEntry.templateID);
+			templateID = static_cast<BehaviorTemplate>(templateEntry.templateID);
 		}
 	}
 
-	if (templateID == BehaviorTemplates::BEHAVIOR_EMPTY && behaviorId != 0) {
+	if (templateID == BehaviorTemplate::EMPTY && behaviorId != 0) {
 		LOG("Failed to load behavior template with id (%i)!", behaviorId);
 	}
 
@@ -335,26 +335,22 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 	const auto typeString = GeneralUtils::UTF16ToWTF8(type);
 
-	if (m_effectNames == nullptr) {
-		m_effectNames = new std::unordered_map<std::string, std::string>();
-	} else {
-		const auto pair = m_effectNames->find(typeString);
+	const auto itr = m_effectNames.find(typeString);
 
-		if (type.empty()) {
-			type = GeneralUtils::ASCIIToUTF16(*m_effectType);
-		}
+	if (type.empty()) {
+		type = GeneralUtils::ASCIIToUTF16(m_effectType);
+	}
 
-		if (pair != m_effectNames->end()) {
-			if (renderComponent == nullptr) {
-				GameMessages::SendPlayFXEffect(targetEntity, effectId, type, pair->second, secondary, 1, 1, true);
-
-				return;
-			}
-
-			renderComponent->PlayEffect(effectId, type, pair->second, secondary);
+	if (itr != m_effectNames.end()) {
+		if (renderComponent == nullptr) {
+			GameMessages::SendPlayFXEffect(targetEntity, effectId, type, itr->second, secondary, 1, 1, true);
 
 			return;
 		}
+
+		renderComponent->PlayEffect(effectId, type, itr->second, secondary);
+
+		return;
 	}
 
 	// The SQlite result object becomes invalid if the query object leaves scope.
@@ -388,12 +384,12 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 
-		m_effectType = new std::string(typeResult);
+		m_effectType = typeResult;
 	}
 
 	result.finalize();
 
-	m_effectNames->insert_or_assign(typeString, name);
+	m_effectNames.insert_or_assign(typeString, name);
 
 	if (renderComponent == nullptr) {
 		GameMessages::SendPlayFXEffect(targetEntity, effectId, type, name, secondary, 1, 1, true);
@@ -423,8 +419,7 @@ Behavior::Behavior(const uint32_t behaviorId) {
 
 	if (behaviorId == 0) {
 		this->m_effectId = 0;
-		this->m_effectHandle = nullptr;
-		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
+		this->m_templateId = BehaviorTemplate::EMPTY;
 	}
 
 	// Make sure we do not proceed if we are trying to load an invalid behavior
@@ -432,17 +427,16 @@ Behavior::Behavior(const uint32_t behaviorId) {
 		LOG("Failed to load behavior with id (%i)!", behaviorId);
 
 		this->m_effectId = 0;
-		this->m_effectHandle = nullptr;
-		this->m_templateId = BehaviorTemplates::BEHAVIOR_EMPTY;
+		this->m_templateId = BehaviorTemplate::EMPTY;
 
 		return;
 	}
 
-	this->m_templateId = static_cast<BehaviorTemplates>(templateInDatabase.templateID);
+	this->m_templateId = static_cast<BehaviorTemplate>(templateInDatabase.templateID);
 
 	this->m_effectId = templateInDatabase.effectID;
 
-	this->m_effectHandle = *templateInDatabase.effectHandle != "" ? new std::string(*templateInDatabase.effectHandle) : nullptr;
+	this->m_effectHandle = *templateInDatabase.effectHandle;
 }
 
 
@@ -506,10 +500,4 @@ void Behavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream,
 }
 
 void Behavior::SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
-}
-
-Behavior::~Behavior() {
-	delete m_effectNames;
-	delete m_effectType;
-	delete m_effectHandle;
 }

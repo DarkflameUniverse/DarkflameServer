@@ -166,7 +166,7 @@ namespace GeneralUtils {
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
-#ifdef DARKFLAME_PLATFORM_MACOS
+#if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 
 	// MacOS floating-point parse helper function specializations
 	namespace details {

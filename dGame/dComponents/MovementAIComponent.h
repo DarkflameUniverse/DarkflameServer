@@ -14,10 +14,13 @@
 #include "Logger.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "Zone.h"
 #include <vector>
 
 class ControllablePhysicsComponent;
 class BaseCombatAIComponent;
+
+struct Path;
 
 /**
  * Information that describes the different variables used to make an entity move around
@@ -61,6 +64,8 @@ public:
 
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 
+	void SetPath(const std::string pathName);
+
 	void Update(float deltaTime) override;
 
 	/**
@@ -73,7 +78,7 @@ public:
 	 * Set a destination point for the entity to move towards
 	 * @param value the destination point to move towards
 	 */
-	void SetDestination(const NiPoint3& value);
+	void SetDestination(const NiPoint3 value);
 
 	/**
 	 * Returns the current rotation this entity is moving towards
@@ -189,7 +194,13 @@ public:
 	 * Sets a path to follow for the AI
 	 * @param path the path to follow
 	 */
-	void SetPath(std::vector<NiPoint3> path);
+	void SetPath(std::vector<PathWaypoint> path);
+
+	void Pause();
+
+	void Resume();
+
+	NiPoint3 GetVelocity() const;
 
 	/**
 	 * Returns the base speed from the DB for a given LOT
@@ -301,7 +312,15 @@ private:
 	/**
 	 * The path from the current position to the destination.
 	 */
-	std::stack<NiPoint3> m_CurrentPath;
+	std::stack<PathWaypoint> m_CurrentPath;
+
+	const Path* m_Path = nullptr;
+
+	NiPoint3 m_SourcePosition;
+
+	bool m_Paused;
+
+	NiPoint3 m_SavedVelocity;
 };
 
 #endif // MOVEMENTAICOMPONENT_H
