@@ -1,3 +1,0 @@
-set(DSCRIPTS_SOURCES_ZONE_AG 
-	"ZoneAgSurvival.cpp"
-	PARENT_SCOPE)

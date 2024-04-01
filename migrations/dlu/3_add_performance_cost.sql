@@ -1,1 +1,0 @@
-ALTER TABLE properties ADD COLUMN performance_cost DOUBLE(20, 15) DEFAULT 0.0;

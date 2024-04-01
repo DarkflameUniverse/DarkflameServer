@@ -1,3 +1,0 @@
-set(DSCRIPTS_SOURCES_02_SERVER_ENEMY_AG 
-	"BossSpiderQueenEnemyServer.cpp"
-	PARENT_SCOPE)

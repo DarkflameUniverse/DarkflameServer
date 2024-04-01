@@ -1,3 +1,0 @@
-set(DSCRIPTS_SOURCES_ZONE_PROPERTY_FV 
-	"ZoneFvProperty.cpp"
-	PARENT_SCOPE)

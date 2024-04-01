@@ -1,3 +1,0 @@
-set(DSCRIPTS_SOURCES_AI_ACT_FOOTRACE 
-	"BaseFootRaceManager.cpp"
-	PARENT_SCOPE)
