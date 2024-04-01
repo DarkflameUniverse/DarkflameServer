@@ -99,3 +99,38 @@ TEST_F(PetTest, PetComponentFlagTest) {
 	ASSERT_FALSE(petComponent->HasFlag(SPAWNING));
 	ASSERT_FALSE(petComponent->HasFlag(SPAWNING, NOT_WAITING, TAMEABLE, BEING_TAMED));
 }
+
+TEST_F(PetTest, PetAiState) {
+	const auto initialState = petComponent->GetPetAiState();
+	ASSERT_EQ(initialState, PetAiState::spawn);
+
+	petComponent->SetPetAiState(PetAiState::follow);
+	ASSERT_EQ(PetAiState::follow, petComponent->GetPetAiState());
+
+	petComponent->SetPetAiState(PetAiState::idle);
+	ASSERT_EQ(PetAiState::idle, petComponent->GetPetAiState());
+
+	petComponent->SetPetAiState(PetAiState::interact);
+	ASSERT_EQ(PetAiState::interact, petComponent->GetPetAiState());
+
+	petComponent->SetPetAiState(PetAiState::despawn);
+	ASSERT_EQ(PetAiState::despawn, petComponent->GetPetAiState());
+}
+
+// Test the pet use logic
+TEST_F(PetTest, PetUse) {
+	ASSERT_FALSE(petComponent->IsReadyToInteract());
+
+	petComponent->SetIsReadyToInteract(true);
+	ASSERT_TRUE(petComponent->IsReadyToInteract());
+
+	// Test bouncer logic
+	ASSERT_FALSE(petComponent->IsHandlingInteraction());
+	petComponent->SetAbility(ePetAbilityType::JumpOnObject);
+	ASSERT_EQ(petComponent->GetAbility(), ePetAbilityType::JumpOnObject);
+	petComponent->SetInteractType(PetInteractType::bouncer);
+	petComponent->OnUse(baseEntity);
+
+	// need to add a destroyable component to the test entity and test the imagination drain
+
+}

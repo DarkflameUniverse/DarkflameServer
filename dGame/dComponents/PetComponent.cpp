@@ -153,11 +153,11 @@ void PetComponent::SetPetAiState(PetAiState newState) {
 }
 
 void PetComponent::OnUse(Entity* originator) {
-	LOG("PET USE!");
+	LOG_DEBUG("PET USE!");
 
 	if (IsReadyToInteract()) {
 		switch (GetAbility()) {
-		case ePetAbilityType::DigAtPosition: // Treasure dig TODO: FIX ICON
+		case ePetAbilityType::DigAtPosition: // Treasure dig
 			StartInteractTreasureDig();
 			break;
 
@@ -170,8 +170,7 @@ void PetComponent::OnUse(Entity* originator) {
 		}
 	}
 
-	// TODO: Rewrite everything below this comment
-
+	// The minigame logic beneath this comment should be rewritten... eventually
 	if (m_Owner != LWOOBJID_EMPTY) return;
 
 	if (m_Tamer != LWOOBJID_EMPTY) {
@@ -201,7 +200,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	std::string buildFile;
 
-	// TODO: MOVE THIS OUT OF THE COMPONENT
+	// It may make sense to move this minigame-specific logic into another file
 	if (cached == buildCache.end()) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = ?;");
