@@ -90,111 +90,12 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 	RegisteredCommands.push_back(command);
 };
 
-// DEV Commands
-void DEVGMCommands::SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	User* user = UserManager::Instance()->GetUser(entity->GetSystemAddress());
-
-	const auto level_intermed = GeneralUtils::TryParse<uint32_t>(args);
-	if (!level_intermed) {
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Invalid GM level.");
-		return;
-	}
-	eGameMasterLevel level = static_cast<eGameMasterLevel>(level_intermed.value());
-
-#ifndef DEVELOPER_SERVER
-	if (user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER) {
-		level = eGameMasterLevel::CIVILIAN;
-	}
-#endif
-
-	if (level > user->GetMaxGMLevel()) level = user->GetMaxGMLevel();
-
-	if (level == entity->GetGMLevel()) return;
-	bool success = user->GetMaxGMLevel() >= level;
-
-	if (success) {
-		WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
-		GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
-		entity->SetGMLevel(level);
-		LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
-	}
-
-#ifndef DEVELOPER_SERVER
-	if ((entity->GetGMLevel() > user->GetMaxGMLevel()) || (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN && user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER)) {
-		WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), true, user->GetMaxGMLevel(), entity->GetGMLevel(), eGameMasterLevel::CIVILIAN);
-		GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
-		entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
-
-		GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
-
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
-	}
-#endif
-}
-
-void DEVGMCommands::ToggleNameplate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	if ((Game::config->GetValue("allow_nameplate_off") != "1" && entity->GetGMLevel() < eGameMasterLevel::DEVELOPER)) return;
-
-	auto* character = entity->GetCharacter();
-	if (character && character->GetBillboardVisible()) {
-		character->SetBillboardVisible(false);
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
-	} else {
-		character->SetBillboardVisible(true);
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate is now on and visible to all players.");
-	}
-}
-
-void DEVGMCommands::ToggleSkipCinematics(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1" && entity->GetGMLevel() < eGameMasterLevel::DEVELOPER) return;
-	auto* character = entity->GetCharacter();
-	if (!character) return;
-	bool current = character->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS);
-	character->SetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS, !current);
-	if (!current) {
-		GameMessages::SendSlashCommandFeedbackText(entity, u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.");
-	} else {
-		GameMessages::SendSlashCommandFeedbackText(entity, u"Cinematics will no longer be skipped.");
-	}
-}
-
-// Greater Than Zero Commands
-
-// GM Zero Commands
-void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	if (args.empty()) {
-		std::ostringstream helpMessage;
-		helpMessage << "Commands:\n*";
-		for (auto& command : RegisteredCommands) {
-			// TODO: Limit displaying commands based on GM level they require
-			// if (RegisteredCommands[args].requiredLevel > entity->GetGMLevel()) continue;
-			helpMessage << "\t" << command.aliases[0] << ": " << command.info << "\n*";
-		}
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 3)));
-	} else {
-		for (auto& command : RegisteredCommands) {
-			if (std::find(command.aliases.begin(), command.aliases.end(), args) != command.aliases.end()) {
-				if (entity->GetGMLevel() >= command.requiredLevel) {
-					command.help;
-					GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(command.help));
-				}
-			} else {
-				// We don't need to tell normies commands don't exist
-				if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-				std::ostringstream feedback;
-				feedback << "Command " << std::quoted(args) << " does not exist!";
-				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-			}
-		}
-	}
-}
-
 void SlashCommandHandler::Startup() {
 
 	// Register Dev Commands
 	Command SetGMLevelCommand{
-		.help = "",
-		.info = "",
+		.help = "Change the GM level of your character",
+		.info = "Within the authorized range of levels for the current account, changes the character's game master level to the specified value. This is required to use certain commands",
 		.aliases = { "setgmlevel", "makegm", "gmlevel" },
 		.handle = DEVGMCommands::SetGMLevel,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
@@ -202,8 +103,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetGMLevelCommand);
 
 	Command ToggleNameplateCommand{
-		.help = "",
-		.info = "",
+		.help = "Toggle the visibility of your nameplate",
+		.info = "Turns the nameplate above your head that is visible to other players off and on",
 		.aliases = { "togglenameplate", "tnp" },
 		.handle = DEVGMCommands::ToggleNameplate,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
@@ -211,8 +112,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ToggleNameplateCommand);
 
 	Command ToggleSkipCinematicsCommand{
-		.help = "",
-		.info = "",
+		.help = "Toggle Skipping Cinematics",
+		.info = "Skips mission and world load related cinematics",
 		.aliases = { "toggleskipcinematics", "tsc" },
 		.handle = DEVGMCommands::ToggleSkipCinematics,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
@@ -242,10 +143,11 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
 
 	for (auto& registeredCommand : RegisteredCommands) {
-		if (std::find(registeredCommand.aliases.begin(), registeredCommand.aliases.end(), args) != registeredCommand.aliases.end()) {
+		if (std::find(registeredCommand.aliases.begin(), registeredCommand.aliases.end(), command) != registeredCommand.aliases.end()) {
 			if (entity->GetGMLevel() >= registeredCommand.requiredLevel) {
 				// Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), chatCommand);
 				registeredCommand.handle(entity, sysAddr, args);
+				return;
 			} else {
 				// We don't need to tell normies they aren't high enough level
 				if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
@@ -253,7 +155,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 				feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
 				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 			}
-
 		} else {
 			// We don't need to tell normies commands don't exist
 			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
@@ -265,6 +166,40 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 }
 
 namespace GMZeroCommands {
+	void Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			std::ostringstream helpMessage;
+			helpMessage << "Commands:\n*";
+			for (auto& command : RegisteredCommands) {
+				// TODO: Limit displaying commands based on GM level they require
+				// if (RegisteredCommands[args].requiredLevel > entity->GetGMLevel()) continue;
+				helpMessage << command.aliases[0] << ": " << command.help << "\n*";
+			}
+			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
+		} else {
+			for (auto& command : RegisteredCommands) {
+				if (std::find(command.aliases.begin(), command.aliases.end(), args) != command.aliases.end()) {
+					if (entity->GetGMLevel() >= command.requiredLevel) {
+						std::ostringstream commandDetails;
+						commandDetails << "Command: " << command.aliases[0] << "\n*";
+						commandDetails << command.info << "\n*";
+						if (command.aliases.size() > 1) {
+							commandDetails << "Aliases: ";
+							std::copy(command.aliases.begin(), command.aliases.end(), std::ostream_iterator<std::string>(commandDetails, ", "));
+						}
+						GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(commandDetails.str().substr(0, commandDetails.str().size() - 2)));
+					}
+				} else {
+					// We don't need to tell normies commands don't exist
+					if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+					std::ostringstream feedback;
+					feedback << "Command " << std::quoted(args) << " does not exist!";
+					GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+				}
+			}
+		}
+	}
+
 	void Pvp(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		auto* character = entity->GetComponent<CharacterComponent>();
 
@@ -468,6 +403,74 @@ namespace GMZeroCommands {
 };
 
 namespace DEVGMCommands {
+	void SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		User* user = UserManager::Instance()->GetUser(entity->GetSystemAddress());
+
+		const auto level_intermed = GeneralUtils::TryParse<uint32_t>(args);
+		if (!level_intermed) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Invalid GM level.");
+			return;
+		}
+		eGameMasterLevel level = static_cast<eGameMasterLevel>(level_intermed.value());
+
+	#ifndef DEVELOPER_SERVER
+		if (user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER) {
+			level = eGameMasterLevel::CIVILIAN;
+		}
+	#endif
+
+		if (level > user->GetMaxGMLevel()) level = user->GetMaxGMLevel();
+
+		if (level == entity->GetGMLevel()) return;
+		bool success = user->GetMaxGMLevel() >= level;
+
+		if (success) {
+			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
+			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
+			entity->SetGMLevel(level);
+			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
+		}
+
+	#ifndef DEVELOPER_SERVER
+		if ((entity->GetGMLevel() > user->GetMaxGMLevel()) || (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN && user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER)) {
+			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), true, user->GetMaxGMLevel(), entity->GetGMLevel(), eGameMasterLevel::CIVILIAN);
+			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
+			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
+
+			GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
+		}
+	#endif
+	}
+
+
+	void ToggleNameplate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if ((Game::config->GetValue("allow_nameplate_off") != "1" && entity->GetGMLevel() < eGameMasterLevel::DEVELOPER)) return;
+
+		auto* character = entity->GetCharacter();
+		if (character && character->GetBillboardVisible()) {
+			character->SetBillboardVisible(false);
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate has been turned off and is not visible to players currently in this zone.");
+		} else {
+			character->SetBillboardVisible(true);
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Your nameplate is now on and visible to all players.");
+		}
+	}
+
+	void ToggleSkipCinematics(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1" && entity->GetGMLevel() < eGameMasterLevel::DEVELOPER) return;
+		auto* character = entity->GetCharacter();
+		if (!character) return;
+		bool current = character->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS);
+		character->SetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS, !current);
+		if (!current) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.");
+		} else {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Cinematics will no longer be skipped.");
+		}
+	}
+
 	void ResetMission(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
