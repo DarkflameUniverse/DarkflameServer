@@ -1,6 +1,6 @@
 #include "ChatIgnoreList.h"
 #include "PlayerContainer.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "BitStreamUtils.h"
 #include "Game.h"
 #include "Logger.h"
@@ -13,7 +13,7 @@
 // The only thing not auto-handled is instance activities force joining the team on the server.
 
 void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const ChatIgnoreList::Response type) {
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::ROUTE_TO_PLAYER);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT,  eChatMessageType::WORLD_ROUTE_PACKET);
 	bitStream.Write(receivingPlayer);
 
 	//portion that will get routed:
