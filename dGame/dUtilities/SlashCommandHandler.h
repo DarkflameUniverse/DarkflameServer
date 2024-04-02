@@ -17,7 +17,7 @@ struct Command {
 	std::string info;
 	std::vector<std::string> aliases;
 	std::function<void(Entity*, const SystemAddress&,const std::string)> handle;
-	eGameMasterLevel requiredLevel = eGameMasterLevel::DEVELOPER;
+	eGameMasterLevel requiredLevel = eGameMasterLevel::OPERATOR;
 };
 
 namespace SlashCommandHandler {
@@ -95,10 +95,10 @@ namespace DEVGMCommands {
 	void AddFaction(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GetFactions(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void SetRewardCode(Entity* entity, const SystemAddress& sysAddr, const std::string args);
-
 	void Crash(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void RollLoot(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void CastSkill(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void DeleteInven(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
 namespace GMZeroCommands {
@@ -113,6 +113,8 @@ namespace GMZeroCommands {
 	void FixStats(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Join(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void LeaveZone(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void Resurrect(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void InstanceInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
 namespace GMGreaterThanZeroCommands {

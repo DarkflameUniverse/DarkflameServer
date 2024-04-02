@@ -86,11 +86,14 @@ namespace {
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
+	if (command.aliases.empty()) return;
+
 	LOG_DEBUG("Registering SlashCommand: %s", command.aliases[0].c_str());
 	std::vector<std::string> toRemove;
 	for (auto& alias : command.aliases) {
+		if (alias.empty()) continue;
 		if (RegisteredCommands.contains(alias)){
-			LOG("Command alias %s is already registered! Skipping!", alias.c_str());
+			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
 			// denote it to be removed
 			toRemove.push_back(alias);
 			continue;
@@ -135,63 +138,62 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ToggleSkipCinematicsCommand);
 
 	Command KillCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Smash a user",
+		.info = "Smashes the character whom the given user is playing",
+		.aliases = { "kill" },
 		.handle = DEVGMCommands::Kill,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(KillCommand);
 
 	Command MetricsCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Display server metrics",
+		.info = "Prints some information about the server's performance",
+		.aliases = { "metrics" },
 		.handle = DEVGMCommands::Metrics,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(MetricsCommand);
 
 	Command AnnounceCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = " Send and announcement",
+		.info = "Sends an announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.",
+		.aliases = { "announce" },
 		.handle = DEVGMCommands::Announce,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(AnnounceCommand);
 
 	Command SetAnnTitleCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Sets the title of an announcement",
+		.info = "Sets the title of an announcement. Use with `/setannmsg` and `/announce`",
+		.aliases = { "setanntitle" },
 		.handle = DEVGMCommands::SetAnnTitle,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(SetAnnTitleCommand);
 
 	Command SetAnnMsgCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Sets the message of an announcement",
+		.info = "Sets the message of an announcement. Use with `/setannmtitle` and `/announce`",
+		.aliases = { "setannmsg" },
 		.handle = DEVGMCommands::SetAnnMsg,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(SetAnnMsgCommand);
 
 	Command ShutdownUniverseCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
-		.handle = DEVGMCommands::ShutdownUniverse,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.help = "Sends a shutdown message to the master server",
+		.info = "Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.",
+		.aliases = { "shutdownuniverse" },
+		.handle = DEVGMCommands::ShutdownUniverse
 	};
 	RegisterCommand(ShutdownUniverseCommand);
 
 	Command SetMinifigCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setminifig" },
 		.handle = DEVGMCommands::SetMinifig,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -200,7 +202,7 @@ void SlashCommandHandler::Startup() {
 	Command TestMapCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "testmap", "tm" },
 		.handle = DEVGMCommands::TestMap,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -209,7 +211,7 @@ void SlashCommandHandler::Startup() {
 	Command ReportProxPhysCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "reportproxphys" },
 		.handle = DEVGMCommands::ReportProxPhys,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -218,7 +220,7 @@ void SlashCommandHandler::Startup() {
 	Command SpawnPhysicsVertsCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "spawnphysicsverts" },
 		.handle = DEVGMCommands::SpawnPhysicsVerts,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -227,7 +229,7 @@ void SlashCommandHandler::Startup() {
 	Command TeleportCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "teleport", "tele", "tp" },
 		.handle = DEVGMCommands::Teleport,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -236,7 +238,7 @@ void SlashCommandHandler::Startup() {
 	Command ActivateSpawnerCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "activatespawner" },
 		.handle = DEVGMCommands::ActivateSpawner,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -245,7 +247,7 @@ void SlashCommandHandler::Startup() {
 	Command AddMissionCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "addmission" },
 		.handle = DEVGMCommands::AddMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -254,7 +256,7 @@ void SlashCommandHandler::Startup() {
 	Command BoostCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "boost" },
 		.handle = DEVGMCommands::Boost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -263,7 +265,7 @@ void SlashCommandHandler::Startup() {
 	Command UnboostCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "unboost" },
 		.handle = DEVGMCommands::Unboost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -272,7 +274,7 @@ void SlashCommandHandler::Startup() {
 	Command BuffCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "buff" },
 		.handle = DEVGMCommands::Buff,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -281,7 +283,7 @@ void SlashCommandHandler::Startup() {
 	Command BuffMeCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "buffme" },
 		.handle = DEVGMCommands::BuffMe,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -290,7 +292,7 @@ void SlashCommandHandler::Startup() {
 	Command BuffMedCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "buffmed" },
 		.handle = DEVGMCommands::BuffMed,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -299,7 +301,7 @@ void SlashCommandHandler::Startup() {
 	Command ClearFlagCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "clearflag" },
 		.handle = DEVGMCommands::ClearFlag,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -308,7 +310,7 @@ void SlashCommandHandler::Startup() {
 	Command CompleteMissionCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "completemission" },
 		.handle = DEVGMCommands::CompleteMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -317,7 +319,7 @@ void SlashCommandHandler::Startup() {
 	Command CreatePrivateCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "createprivate" },
 		.handle = DEVGMCommands::CreatePrivate,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -326,7 +328,7 @@ void SlashCommandHandler::Startup() {
 	Command DebugUiCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "debugui" },
 		.handle = DEVGMCommands::DebugUi,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -335,7 +337,7 @@ void SlashCommandHandler::Startup() {
 	Command DismountCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "dismount" },
 		.handle = DEVGMCommands::Dismount,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -344,7 +346,7 @@ void SlashCommandHandler::Startup() {
 	Command ReloadConfigCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "reloadconfig", "reload-config" },
 		.handle = DEVGMCommands::ReloadConfig,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -353,7 +355,7 @@ void SlashCommandHandler::Startup() {
 	Command ForceSaveCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "forcesave", "force-save" },
 		.handle = DEVGMCommands::ForceSave,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -362,7 +364,7 @@ void SlashCommandHandler::Startup() {
 	Command FreecamCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "freecam" },
 		.handle = DEVGMCommands::Freecam,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -371,7 +373,7 @@ void SlashCommandHandler::Startup() {
 	Command FreeMoneyCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "freemoney" },
 		.handle = DEVGMCommands::FreeMoney,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -380,7 +382,7 @@ void SlashCommandHandler::Startup() {
 	Command GetNavmeshHeightCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "getnavmeshheight" },
 		.handle = DEVGMCommands::GetNavmeshHeight,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -389,7 +391,7 @@ void SlashCommandHandler::Startup() {
 	Command GiveUScoreCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "giveuscore" },
 		.handle = DEVGMCommands::GiveUScore,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -398,7 +400,7 @@ void SlashCommandHandler::Startup() {
 	Command GmAddItemCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "gmadditem", "give" },
 		.handle = DEVGMCommands::GmAddItem,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -407,7 +409,7 @@ void SlashCommandHandler::Startup() {
 	Command InspectCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "inspect" },
 		.handle = DEVGMCommands::Inspect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -416,7 +418,7 @@ void SlashCommandHandler::Startup() {
 	Command ListSpawnsCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "list-spawns", "listspawns" },
 		.handle = DEVGMCommands::ListSpawns,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -425,7 +427,7 @@ void SlashCommandHandler::Startup() {
 	Command LocRowCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "locrow" },
 		.handle = DEVGMCommands::LocRow,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -434,7 +436,7 @@ void SlashCommandHandler::Startup() {
 	Command LookupCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "lookup" },
 		.handle = DEVGMCommands::Lookup,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -443,7 +445,7 @@ void SlashCommandHandler::Startup() {
 	Command PlayAnimationCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "playanimation", "playanim" },
 		.handle = DEVGMCommands::PlayAnimation,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -452,7 +454,7 @@ void SlashCommandHandler::Startup() {
 	Command PlayEffectCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "playeffect" },
 		.handle = DEVGMCommands::PlayEffect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -461,7 +463,7 @@ void SlashCommandHandler::Startup() {
 	Command PlayLvlFxCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "playlvlfx" },
 		.handle = DEVGMCommands::PlayLvlFx,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -470,7 +472,7 @@ void SlashCommandHandler::Startup() {
 	Command PlayRebuildFxCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "playrebuildfx" },
 		.handle = DEVGMCommands::PlayRebuildFx,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -479,7 +481,7 @@ void SlashCommandHandler::Startup() {
 	Command PosCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "pos" },
 		.handle = DEVGMCommands::Pos,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -488,7 +490,7 @@ void SlashCommandHandler::Startup() {
 	Command RefillStatsCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "refillstats" },
 		.handle = DEVGMCommands::RefillStats,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -497,7 +499,7 @@ void SlashCommandHandler::Startup() {
 	Command ReforgeCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "reforge" },
 		.handle = DEVGMCommands::Reforge,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -506,7 +508,7 @@ void SlashCommandHandler::Startup() {
 	Command ResetMissionCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "resetmission" },
 		.handle = DEVGMCommands::ResetMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -515,7 +517,7 @@ void SlashCommandHandler::Startup() {
 	Command RotCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "rot" },
 		.handle = DEVGMCommands::Rot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -524,7 +526,7 @@ void SlashCommandHandler::Startup() {
 	Command RunMacroCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "runmacro" },
 		.handle = DEVGMCommands::RunMacro,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -533,7 +535,7 @@ void SlashCommandHandler::Startup() {
 	Command SetControlSchemeCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setcontrolscheme" },
 		.handle = DEVGMCommands::SetControlScheme,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -542,7 +544,7 @@ void SlashCommandHandler::Startup() {
 	Command SetCurrencyCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setcurrency" },
 		.handle = DEVGMCommands::SetCurrency,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -551,7 +553,7 @@ void SlashCommandHandler::Startup() {
 	Command SetFlagCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setflag" },
 		.handle = DEVGMCommands::SetFlag,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -560,7 +562,7 @@ void SlashCommandHandler::Startup() {
 	Command SetInventorySizeCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setinventorysize" },
 		.handle = DEVGMCommands::SetInventorySize,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -569,7 +571,7 @@ void SlashCommandHandler::Startup() {
 	Command SetUiStateCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setuistate" },
 		.handle = DEVGMCommands::SetUiState,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -578,7 +580,7 @@ void SlashCommandHandler::Startup() {
 	Command SpawnCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "spawn" },
 		.handle = DEVGMCommands::Spawn,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -587,7 +589,7 @@ void SlashCommandHandler::Startup() {
 	Command SpawnGroupCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "spawngroup" },
 		.handle = DEVGMCommands::SpawnGroup,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -596,7 +598,7 @@ void SlashCommandHandler::Startup() {
 	Command SpeedBoostCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "speedboost" },
 		.handle = DEVGMCommands::SpeedBoost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -605,7 +607,7 @@ void SlashCommandHandler::Startup() {
 	Command StartCelebrationCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "startcelebration" },
 		.handle = DEVGMCommands::StartCelebration,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -614,7 +616,7 @@ void SlashCommandHandler::Startup() {
 	Command StopEffectCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "stopeffect" },
 		.handle = DEVGMCommands::StopEffect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -623,7 +625,7 @@ void SlashCommandHandler::Startup() {
 	Command ToggleCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "toggle" },
 		.handle = DEVGMCommands::Toggle,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -632,7 +634,7 @@ void SlashCommandHandler::Startup() {
 	Command TpAllCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "tpall" },
 		.handle = DEVGMCommands::TpAll,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -641,7 +643,7 @@ void SlashCommandHandler::Startup() {
 	Command TriggerSpawnerCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "triggerspawner" },
 		.handle = DEVGMCommands::TriggerSpawner,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -650,7 +652,7 @@ void SlashCommandHandler::Startup() {
 	Command UnlockEmoteCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "unlock-emote", "unlockemote" },
 		.handle = DEVGMCommands::UnlockEmote,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -659,7 +661,7 @@ void SlashCommandHandler::Startup() {
 	Command SetLevelCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setlevel" },
 		.handle = DEVGMCommands::SetLevel,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -668,7 +670,7 @@ void SlashCommandHandler::Startup() {
 	Command SetSkillSlotCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setskillslot" },
 		.handle = DEVGMCommands::SetSkillSlot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -677,7 +679,7 @@ void SlashCommandHandler::Startup() {
 	Command SetFactionCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setfaction" },
 		.handle = DEVGMCommands::SetFaction,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -686,7 +688,7 @@ void SlashCommandHandler::Startup() {
 	Command AddFactionCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "addfaction" },
 		.handle = DEVGMCommands::AddFaction,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -695,7 +697,7 @@ void SlashCommandHandler::Startup() {
 	Command GetFactionsCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "getfactions" },
 		.handle = DEVGMCommands::GetFactions,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -704,7 +706,7 @@ void SlashCommandHandler::Startup() {
 	Command SetRewardCodeCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "setrewardcode" },
 		.handle = DEVGMCommands::SetRewardCode,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -713,7 +715,7 @@ void SlashCommandHandler::Startup() {
 	Command CrashCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "crash", "pumpkin"  },
 		.handle = DEVGMCommands::Crash,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -722,7 +724,7 @@ void SlashCommandHandler::Startup() {
 	Command RollLootCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "rollloot", "roll-loot" },
 		.handle = DEVGMCommands::RollLoot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
@@ -731,92 +733,123 @@ void SlashCommandHandler::Startup() {
 	Command CastSkillCommand {
 		.help = "",
 		.info = "",
-		.aliases = { "" },
+		.aliases = { "castskill" },
 		.handle = DEVGMCommands::CastSkill,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(CastSkillCommand);
 
+	Command DeleteInvenCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "deleteinven" },
+		.handle = DEVGMCommands::CastSkill,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(DeleteInvenCommand);
 
 	// Register Greater Than Zero Commands
 
 	Command KickCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Kicks the player off the server",
+		.info = "Kicks the player off the server",
+		.aliases = { "kick" },
 		.handle = GMGreaterThanZeroCommands::Kick,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
 	};
+	RegisterCommand(KickCommand);
+
 	Command MailItemCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Mails an item to the given player",
+		.info = "Mails an item to the given player. The mailed item has predetermined content. The sender name is set to \"Darkflame Universe\". The title of the message is \"Lost item\". The body of the message is \"This is a replacement item for one you lost\".",
+		.aliases = { "mailitem" },
 		.handle = GMGreaterThanZeroCommands::MailItem,
 		.requiredLevel = eGameMasterLevel::MODERATOR
 	};
+	RegisterCommand(MailItemCommand);
+
 	Command BanCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Bans a user from the server",
+		.info = "Bans a user from the server",
+		.aliases = { "ban" },
 		.handle = GMGreaterThanZeroCommands::Ban,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::SENIOR_MODERATOR
 	};
+	RegisterCommand(BanCommand);
+
 	Command ApprovePropertyCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Approves a property",
+		.info = "Approves the property the player is currently visiting",
+		.aliases = { "approveproperty" },
 		.handle = GMGreaterThanZeroCommands::ApproveProperty,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
 	};
+	RegisterCommand(ApprovePropertyCommand);
+
 	Command MuteCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Mute a player",
+		.info = "Mute player for the given amount of time. If no time is given, the mute is indefinite.",
+		.aliases = { "mute" },
 		.handle = GMGreaterThanZeroCommands::Mute,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER
 	};
+	RegisterCommand(MuteCommand);
+
 	Command FlyCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Toggle flying",
+		.info = "Toggles your flying state with an optional parameter for the speed scale.",
+		.aliases = { "fly" },
 		.handle = GMGreaterThanZeroCommands::Fly,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(FlyCommand);
+
 	Command AttackImmuneCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Make yourself immune to attacks",
+		.info = "Sets the character's immunity to basic attacks state, where value can be one of \"1\", to make yourself immune to basic attack damage, or \"0\" to undo",
+		.aliases = { "attackimmune" },
 		.handle = GMGreaterThanZeroCommands::AttackImmune,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(AttackImmuneCommand);
+
 	Command GmImmuneCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Sets the character's GMImmune state",
+		.info = "Sets the character's GMImmune state, where value can be one of \"1\", to make yourself immune to damage, or \"0\" to undo",
+		.aliases = { "gmimmune" },
 		.handle = GMGreaterThanZeroCommands::GmImmune,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(GmImmuneCommand);
+
 	Command GmInvisCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Toggles invisibility for the character",
+		.info = "Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8",
+		.aliases = { "gminvis" },
 		.handle = GMGreaterThanZeroCommands::GmInvis,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(GmInvisCommand);
+
 	Command SetNameCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+
+		.help = "Sets a temporary name for your player",
+		.info = "Sets a temporary name for your player. The name resets when you log out",
+		.aliases = { "setname" },
 		.handle = GMGreaterThanZeroCommands::SetName,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(SetNameCommand);
+
 	Command TitleCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Give your character a title",
+		.info = "Temporarily appends your player's name with \" - &#60;title&#62;\". This resets when you log out",
+		.aliases = { "title" },
 		.handle = GMGreaterThanZeroCommands::Title,
-		.requiredLevel = eGameMasterLevel::MODERATOR
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
+	RegisterCommand(TitleCommand);
+
 
 	// Register GM Zero Commands
 	Command HelpCommand{
@@ -829,94 +862,112 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(HelpCommand);
 
 	Command CreditsCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Displays DLU Credits",
+		.info = "Displays the names of the people behind Darkflame Universe.",
+		.aliases = { "credits" },
 		.handle = GMZeroCommands::Credits,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(CreditsCommand);
 
 	Command InfoCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Displays server info",
+		.info = "Displays server info to the user, including where to find the server's source code",
+		.aliases = { "info" },
 		.handle = GMZeroCommands::Info,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(InfoCommand);
 
 	Command DieCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Smashes the player",
+		.info = "Smashes the player as if they were killed by something",
+		.aliases = { "die" },
 		.handle = GMZeroCommands::Die,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(DieCommand);
 
 	Command PingCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Displays your average ping.",
+		.info = "Displays your average ping. If the `-l` flag is used, the latest ping is displayed.",
+		.aliases = { "ping" },
 		.handle = GMZeroCommands::Ping,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(PingCommand);
 
 	Command PvpCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Toggle your PVP flag",
+		.info = "Toggle your PVP flag",
+		.aliases = { "pvp" },
 		.handle = GMZeroCommands::Pvp,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(PvpCommand);
 
 	Command RequestMailCountCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Gets the players mail count",
+		.info = "Sends notification with number of unread messages in the player's mailbox",
+		.aliases = { "requestmailcount" },
 		.handle = GMZeroCommands::RequestMailCount,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(RequestMailCountCommand);
 
 	Command WhoCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Displays all players on the instance",
+		.info = "Displays all players on the instance",
+		.aliases = { "who" },
 		.handle = GMZeroCommands::Who,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(WhoCommand);
 
 	Command FixStatsCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Resets skills, buffs, and destroyables",
+		.info = "Resets skills, buffs, and destroyables",
+		.aliases = { "fix-stats" },
 		.handle = GMZeroCommands::FixStats,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(FixStatsCommand);
 
 	Command JoinCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Join a private zone",
+		.info = "Join a private zone with given password",
+		.aliases = { "join" },
 		.handle = GMZeroCommands::Join,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(JoinCommand);
 
 	Command LeaveZoneCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "" },
+		.help = "Leave an instanced zone",
+		.info = "If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.",
+		.aliases = { "leave-zone", "leavezone" },
 		.handle = GMZeroCommands::LeaveZone,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(LeaveZoneCommand);
+
+	Command ResurrectCommand {
+		.help = "Resurrects the player",
+		.info = "Resurrects the player",
+		.aliases = { "resurrect" },
+		.handle = GMZeroCommands::Resurrect,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(ResurrectCommand);
+
+	Command InstanceInfoCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "instanceinfo" },
+		.handle = GMZeroCommands::InstanceInfo,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(InstanceInfoCommand);
 
 }
 
@@ -931,7 +982,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 
 	if (RegisteredCommands.contains(command)) {
 		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
-			// Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), chatCommand);
+			Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			RegisteredCommands[command].handle(entity, sysAddr, args);
 			return;
 		} else {
@@ -954,11 +1005,11 @@ namespace GMZeroCommands {
 	void Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		if (args.empty()) {
 			std::ostringstream helpMessage;
-			helpMessage << "Commands:\n*";
+			helpMessage << "----- Commands -----\n*";
 			for (auto& command : CommandInfos) {
 				// TODO: Limit displaying commands based on GM level they require
 				if (command.requiredLevel > entity->GetGMLevel()) continue;
-				helpMessage << command.aliases[0] << ": " << command.help << "\n*";
+				helpMessage << "/" << command.aliases[0] << ": " << command.help << "\n*";
 			}
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
 		} else {
@@ -968,7 +1019,7 @@ namespace GMZeroCommands {
 					foundCommand = true;
 					if (entity->GetGMLevel() >= command.requiredLevel) {
 						std::ostringstream commandDetails;
-						commandDetails << "Command: " << command.aliases[0] << "\n*";
+						commandDetails << "----- " << command.aliases[0] << " -----n*";
 						commandDetails << command.info << "\n*";
 						if (command.aliases.size() > 1) {
 							commandDetails << "Aliases: ";
@@ -2726,8 +2777,7 @@ namespace DEVGMCommands {
 	}
 };
 
-namespace GreaterThanZeroCommands {
-
+namespace GMGreaterThanZeroCommands {
 
 	void Kick(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
