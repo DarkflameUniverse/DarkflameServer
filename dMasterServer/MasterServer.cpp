@@ -576,7 +576,7 @@ void HandlePacket(Packet* packet) {
 					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
-					Game::server->Send(&bitStream, packet->systemAddress, false);
+					Game::server->Send(bitStream, packet->systemAddress, false);
 					break;
 				}
 			}
@@ -675,7 +675,7 @@ void HandlePacket(Packet* packet) {
 
 			const auto& zone = instance->GetZoneID();
 
-			MasterPackets::SendZoneTransferResponse(Game::server, packet->systemAddress, requestID, (bool)mythranShift, zone.GetMapID(), instance->GetInstanceID(), zone.GetCloneID(), instance->GetIP(), instance->GetPort());
+			MasterPackets::SendZoneTransferResponse(Game::server, packet->systemAddress, requestID, static_cast<bool>(mythranShift), zone.GetMapID(), instance->GetInstanceID(), zone.GetCloneID(), instance->GetIP(), instance->GetPort());
 
 			break;
 		}
@@ -786,7 +786,7 @@ int ShutdownSequence(int32_t signal) {
 	{
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
-		Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}
 

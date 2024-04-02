@@ -13,9 +13,11 @@
 #include "SkillComponent.h"
 #include "eEndBehavior.h"
 #include "PlayerManager.h"
+#include "Game.h"
+#include "EntityManager.h"
+#include "MovementAIComponent.h"
 
-
-TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo): Component(parent) {
+TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo) : Component(parent) {
 	m_Parent = parent;
 	m_Trigger = nullptr;
 
@@ -42,7 +44,7 @@ void TriggerComponent::TriggerEvent(eTriggerEventType event, Entity* optionalTar
 }
 
 void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity* optionalTarget) {
-	auto argArray =  GeneralUtils::SplitString(command->args, ',');
+	auto argArray = GeneralUtils::SplitString(command->args, ',');
 
 	// determine targets
 	std::vector<Entity*> targetEntities = GatherTargets(command, optionalTarget);
@@ -54,107 +56,119 @@ void TriggerComponent::HandleTriggerCommand(LUTriggers::Command* command, Entity
 		if (!targetEntity) continue;
 
 		switch (command->id) {
-			case eTriggerCommandType::ZONE_PLAYER: break;
-			case eTriggerCommandType::FIRE_EVENT:
-				HandleFireEvent(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::DESTROY_OBJ:
-				HandleDestroyObject(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::TOGGLE_TRIGGER:
-				HandleToggleTrigger(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::RESET_REBUILD:
-				HandleResetRebuild(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::SET_PATH: break;
-			case eTriggerCommandType::SET_PICK_TYPE: break;
-			case eTriggerCommandType::MOVE_OBJECT:
-				HandleMoveObject(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::ROTATE_OBJECT:
-				HandleRotateObject(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::PUSH_OBJECT:
-				HandlePushObject(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::REPEL_OBJECT:
-				HandleRepelObject(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::SET_TIMER:
-				HandleSetTimer(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::CANCEL_TIMER:
-				HandleCancelTimer(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::PLAY_CINEMATIC:
-				HandlePlayCinematic(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::TOGGLE_BBB:
-				HandleToggleBBB(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::UPDATE_MISSION:
-				HandleUpdateMission(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::SET_BOUNCER_STATE: break;
-			case eTriggerCommandType::BOUNCE_ALL_ON_BOUNCER: break;
-			case eTriggerCommandType::TURN_AROUND_ON_PATH: break;
-			case eTriggerCommandType::GO_FORWARD_ON_PATH: break;
-			case eTriggerCommandType::GO_BACKWARD_ON_PATH: break;
-			case eTriggerCommandType::STOP_PATHING: break;
-			case eTriggerCommandType::START_PATHING: break;
-			case eTriggerCommandType::LOCK_OR_UNLOCK_CONTROLS: break;
-			case eTriggerCommandType::PLAY_EFFECT:
-				HandlePlayEffect(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::STOP_EFFECT:
-				GameMessages::SendStopFXEffect(targetEntity, true, command->args);
-				break;
-			case eTriggerCommandType::CAST_SKILL:
-				HandleCastSkill(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::DISPLAY_ZONE_SUMMARY:
-				GameMessages::SendDisplayZoneSummary(targetEntity->GetObjectID(), targetEntity->GetSystemAddress(), false, command->args == "1", m_Parent->GetObjectID());
-				break;
-			case eTriggerCommandType::SET_PHYSICS_VOLUME_EFFECT:
-				HandleSetPhysicsVolumeEffect(targetEntity, argArray);
-				break;
-			case eTriggerCommandType::SET_PHYSICS_VOLUME_STATUS:
-				HandleSetPhysicsVolumeStatus(targetEntity, command->args);
-				break;
-			case eTriggerCommandType::SET_MODEL_TO_BUILD: break;
-			case eTriggerCommandType::SPAWN_MODEL_BRICKS: break;
-			case eTriggerCommandType::ACTIVATE_SPAWNER_NETWORK:
-				HandleActivateSpawnerNetwork(command->args);
-				break;
-			case eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK:
-				HandleDeactivateSpawnerNetwork(command->args);
-				break;
-			case eTriggerCommandType::RESET_SPAWNER_NETWORK:
-				HandleResetSpawnerNetwork(command->args);
-				break;
-			case eTriggerCommandType::DESTROY_SPAWNER_NETWORK_OBJECTS:
-				HandleDestroySpawnerNetworkObjects(command->args);
-				break;
-			case eTriggerCommandType::GO_TO_WAYPOINT: break;
-			case eTriggerCommandType::ACTIVATE_PHYSICS:
-				HandleActivatePhysics(targetEntity, command->args);
-				break;
+		case eTriggerCommandType::ZONE_PLAYER: break;
+		case eTriggerCommandType::FIRE_EVENT:
+			HandleFireEvent(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::DESTROY_OBJ:
+			HandleDestroyObject(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::TOGGLE_TRIGGER:
+			HandleToggleTrigger(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::RESET_REBUILD:
+			HandleResetRebuild(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::SET_PATH:
+			HandleSetPath(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::SET_PICK_TYPE: break;
+		case eTriggerCommandType::MOVE_OBJECT:
+			HandleMoveObject(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::ROTATE_OBJECT:
+			HandleRotateObject(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::PUSH_OBJECT:
+			HandlePushObject(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::REPEL_OBJECT:
+			HandleRepelObject(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::SET_TIMER:
+			HandleSetTimer(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::CANCEL_TIMER:
+			HandleCancelTimer(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::PLAY_CINEMATIC:
+			HandlePlayCinematic(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::TOGGLE_BBB:
+			HandleToggleBBB(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::UPDATE_MISSION:
+			HandleUpdateMission(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::SET_BOUNCER_STATE: break;
+		case eTriggerCommandType::BOUNCE_ALL_ON_BOUNCER: break;
+		case eTriggerCommandType::TURN_AROUND_ON_PATH:
+			HandleTurnAroundOnPath(targetEntity);
+			break;
+		case eTriggerCommandType::GO_FORWARD_ON_PATH:
+			HandleGoForwardOnPath(targetEntity);
+			break;
+		case eTriggerCommandType::GO_BACKWARD_ON_PATH:
+			HandleGoBackwardOnPath(targetEntity);
+			break;
+		case eTriggerCommandType::STOP_PATHING:
+			HandleStopPathing(targetEntity);
+			break;
+		case eTriggerCommandType::START_PATHING:
+			HandleStartPathing(targetEntity);
+			break;
+		case eTriggerCommandType::LOCK_OR_UNLOCK_CONTROLS: break;
+		case eTriggerCommandType::PLAY_EFFECT:
+			HandlePlayEffect(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::STOP_EFFECT:
+			GameMessages::SendStopFXEffect(targetEntity, true, command->args);
+			break;
+		case eTriggerCommandType::CAST_SKILL:
+			HandleCastSkill(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::DISPLAY_ZONE_SUMMARY:
+			GameMessages::SendDisplayZoneSummary(targetEntity->GetObjectID(), targetEntity->GetSystemAddress(), false, command->args == "1", m_Parent->GetObjectID());
+			break;
+		case eTriggerCommandType::SET_PHYSICS_VOLUME_EFFECT:
+			HandleSetPhysicsVolumeEffect(targetEntity, argArray);
+			break;
+		case eTriggerCommandType::SET_PHYSICS_VOLUME_STATUS:
+			HandleSetPhysicsVolumeStatus(targetEntity, command->args);
+			break;
+		case eTriggerCommandType::SET_MODEL_TO_BUILD: break;
+		case eTriggerCommandType::SPAWN_MODEL_BRICKS: break;
+		case eTriggerCommandType::ACTIVATE_SPAWNER_NETWORK:
+			HandleActivateSpawnerNetwork(command->args);
+			break;
+		case eTriggerCommandType::DEACTIVATE_SPAWNER_NETWORK:
+			HandleDeactivateSpawnerNetwork(command->args);
+			break;
+		case eTriggerCommandType::RESET_SPAWNER_NETWORK:
+			HandleResetSpawnerNetwork(command->args);
+			break;
+		case eTriggerCommandType::DESTROY_SPAWNER_NETWORK_OBJECTS:
+			HandleDestroySpawnerNetworkObjects(command->args);
+			break;
+		case eTriggerCommandType::GO_TO_WAYPOINT: break;
+		case eTriggerCommandType::ACTIVATE_PHYSICS:
+			HandleActivatePhysics(targetEntity, command->args);
+			break;
 			// DEPRECATED BLOCK START
-			case eTriggerCommandType::ACTIVATE_MUSIC_CUE: break;
-			case eTriggerCommandType::DEACTIVATE_MUSIC_CUE: break;
-			case eTriggerCommandType::FLASH_MUSIC_CUE: break;
-			case eTriggerCommandType::SET_MUSIC_PARAMETER: break;
-			case eTriggerCommandType::PLAY_2D_AMBIENT_SOUND: break;
-			case eTriggerCommandType::STOP_2D_AMBIENT_SOUND: break;
-			case eTriggerCommandType::PLAY_3D_AMBIENT_SOUND: break;
-			case eTriggerCommandType::STOP_3D_AMBIENT_SOUND: break;
-			case eTriggerCommandType::ACTIVATE_MIXER_PROGRAM: break;
-			case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
+		case eTriggerCommandType::ACTIVATE_MUSIC_CUE: break;
+		case eTriggerCommandType::DEACTIVATE_MUSIC_CUE: break;
+		case eTriggerCommandType::FLASH_MUSIC_CUE: break;
+		case eTriggerCommandType::SET_MUSIC_PARAMETER: break;
+		case eTriggerCommandType::PLAY_2D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::STOP_2D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::PLAY_3D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::STOP_3D_AMBIENT_SOUND: break;
+		case eTriggerCommandType::ACTIVATE_MIXER_PROGRAM: break;
+		case eTriggerCommandType::DEACTIVATE_MIXER_PROGRAM: break;
 			// DEPRECATED BLOCK END
-			default:
-				LOG_DEBUG("Event %i was not handled!", command->id);
-				break;
+		default:
+			LOG_DEBUG("Event %i was not handled!", command->id);
+			break;
 		}
 	}
 }
@@ -163,36 +177,39 @@ std::vector<Entity*> TriggerComponent::GatherTargets(LUTriggers::Command* comman
 	std::vector<Entity*> entities = {};
 
 	if (command->target == "self") entities.push_back(m_Parent);
-	else if (command->target == "zone") { /*TODO*/ }
-	else if (command->target == "target" && optionalTarget) entities.push_back(optionalTarget);
-	else if (command->target == "targetTeam" && optionalTarget) {
+	else if (command->target == "zone") {
+		/*TODO*/
+	} else if (command->target == "target" && optionalTarget) {
+		entities.push_back(optionalTarget);
+	} else if (command->target == "targetTeam" && optionalTarget) {
 		auto* team = TeamManager::Instance()->GetTeam(optionalTarget->GetObjectID());
 		for (const auto memberId : team->members) {
 			auto* member = Game::entityManager->GetEntity(memberId);
 			if (member) entities.push_back(member);
 		}
-	} else if (command->target == "objGroup") entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
-	else if (command->target == "allPlayers") {
+	} else if (command->target == "objGroup") {
+		entities = Game::entityManager->GetEntitiesInGroup(command->targetName);
+	} else if (command->target == "allPlayers") {
 		for (auto* player : PlayerManager::GetAllPlayers()) {
 			entities.push_back(player);
 		}
-	} else if (command->target == "allNPCs") { /*UNUSED*/ }
+	} else if (command->target == "allNPCs") {
+		/*UNUSED*/
+	}
 
 	return entities;
 }
 
 void TriggerComponent::HandleFireEvent(Entity* targetEntity, std::string args) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(targetEntity)) {
-		script->OnFireEventServerSide(targetEntity, m_Parent, args, 0, 0, 0);
-	}
+	targetEntity->GetScript()->OnFireEventServerSide(targetEntity, m_Parent, args, 0, 0, 0);
 }
 
-void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleDestroyObject(Entity* targetEntity, std::string args) {
 	const eKillType killType = GeneralUtils::TryParse<eKillType>(args).value_or(eKillType::VIOLENT);
 	targetEntity->Smash(m_Parent->GetObjectID(), killType);
 }
 
-void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string args) {
 	auto* triggerComponent = targetEntity->GetComponent<TriggerComponent>();
 	if (!triggerComponent) {
 		LOG_DEBUG("Trigger component not found!");
@@ -201,7 +218,7 @@ void TriggerComponent::HandleToggleTrigger(Entity* targetEntity, std::string arg
 	triggerComponent->SetTriggerEnabled(args == "1");
 }
 
-void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args) {
 	auto* quickBuildComponent = targetEntity->GetComponent<QuickBuildComponent>();
 	if (!quickBuildComponent) {
 		LOG_DEBUG("Rebuild component not found!");
@@ -210,7 +227,7 @@ void TriggerComponent::HandleResetRebuild(Entity* targetEntity, std::string args
 	quickBuildComponent->ResetQuickBuild(args == "1");
 }
 
-void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray){
+void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() <= 2) return;
 
 	NiPoint3 position = targetEntity->GetPosition();
@@ -220,7 +237,7 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 	targetEntity->SetPosition(position);
 }
 
-void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray){
+void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() <= 2) return;
 
 	const NiPoint3 vector = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
@@ -229,7 +246,7 @@ void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std:
 	targetEntity->SetRotation(rotation);
 }
 
-void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray){
+void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() < 3) return;
 
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
@@ -247,7 +264,7 @@ void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::s
 }
 
 
-void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args) {
 	auto* phantomPhysicsComponent = m_Parent->GetComponent<PhantomPhysicsComponent>();
 	if (!phantomPhysicsComponent) {
 		LOG_DEBUG("Phantom Physics component not found!");
@@ -271,7 +288,7 @@ void TriggerComponent::HandleRepelObject(Entity* targetEntity, std::string args)
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray){
+void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() != 2) {
 		LOG_DEBUG("Not enough variables!");
 		return;
@@ -280,7 +297,7 @@ void TriggerComponent::HandleSetTimer(Entity* targetEntity, std::vector<std::str
 	m_Parent->AddTimer(argArray.at(0), time);
 }
 
-void TriggerComponent::HandleCancelTimer(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleCancelTimer(Entity* targetEntity, std::string args) {
 	m_Parent->CancelTimer(args);
 }
 
@@ -328,7 +345,7 @@ void TriggerComponent::HandleUpdateMission(Entity* targetEntity, std::vector<std
 	// then we need a good way to convert this from a string to that enum
 	if (argArray.at(0) != "exploretask") return;
 	MissionComponent* missionComponent = targetEntity->GetComponent<MissionComponent>();
-	if (!missionComponent){
+	if (!missionComponent) {
 		LOG_DEBUG("Mission component not found!");
 		return;
 	}
@@ -340,7 +357,7 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 	const auto effectID = GeneralUtils::TryParse<int32_t>(argArray.at(1));
 	if (!effectID) return;
 	std::u16string effectType = GeneralUtils::UTF8ToUTF16(argArray.at(2));
-	
+
 	float priority = 1;
 	if (argArray.size() == 4) {
 		priority = GeneralUtils::TryParse<float>(argArray.at(3)).value_or(priority);
@@ -349,7 +366,7 @@ void TriggerComponent::HandlePlayEffect(Entity* targetEntity, std::vector<std::s
 	GameMessages::SendPlayFXEffect(targetEntity, effectID.value(), effectType, argArray.at(0), LWOOBJID_EMPTY, priority);
 }
 
-void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args){
+void TriggerComponent::HandleCastSkill(Entity* targetEntity, std::string args) {
 	auto* skillComponent = targetEntity->GetComponent<SkillComponent>();
 	if (!skillComponent) {
 		LOG_DEBUG("Skill component not found!");
@@ -377,7 +394,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 	phantomPhysicsComponent->SetEffectType(effectType);
 	phantomPhysicsComponent->SetDirectionalMultiplier(std::stof(argArray.at(1)));
 	if (argArray.size() > 4) {
-		const NiPoint3 direction = 
+		const NiPoint3 direction =
 			GeneralUtils::TryParse<NiPoint3>(argArray.at(2), argArray.at(3), argArray.at(4)).value_or(NiPoint3Constant::ZERO);
 
 		phantomPhysicsComponent->SetDirection(direction);
@@ -403,25 +420,25 @@ void TriggerComponent::HandleSetPhysicsVolumeStatus(Entity* targetEntity, std::s
 	Game::entityManager->SerializeEntity(targetEntity);
 }
 
-void TriggerComponent::HandleActivateSpawnerNetwork(std::string args){
+void TriggerComponent::HandleActivateSpawnerNetwork(std::string args) {
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Activate();
 	}
 }
 
-void TriggerComponent::HandleDeactivateSpawnerNetwork(std::string args){
+void TriggerComponent::HandleDeactivateSpawnerNetwork(std::string args) {
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Deactivate();
 	}
 }
 
-void TriggerComponent::HandleResetSpawnerNetwork(std::string args){
+void TriggerComponent::HandleResetSpawnerNetwork(std::string args) {
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->Reset();
 	}
 }
 
-void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args){
+void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args) {
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(args)) {
 		if (spawner) spawner->DestroyAllEntities();
 	}
@@ -430,9 +447,50 @@ void TriggerComponent::HandleDestroySpawnerNetworkObjects(std::string args){
 void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string args) {
 	if (args == "true") {
 		// TODO add physics entity if there isn't one
-	} else if (args == "false"){
+	} else if (args == "false") {
 		// TODO remove Phsyics entity if there is one
 	} else {
 		LOG_DEBUG("Invalid argument for ActivatePhysics Trigger: %s", args.c_str());
 	}
+}
+
+void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	// movementAIComponent->SetupPath(argArray.at(0));
+	if (argArray.size() >= 2) {
+		auto index = GeneralUtils::TryParse<int32_t>(argArray.at(1));
+		if (!index) return;
+		// movementAIComponent->SetPathStartingWaypointIndex(index.value());
+	}
+	if (argArray.size() >= 3 && argArray.at(2) == "1") {
+		// movementAIComponent->ReversePath();
+	}
+}
+
+void TriggerComponent::HandleTurnAroundOnPath(Entity* targetEntity) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	// if (movementAIComponent) movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleGoForwardOnPath(Entity* targetEntity) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	// if (movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleGoBackwardOnPath(Entity* targetEntity) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	if (!movementAIComponent) return;
+	// if (!movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+}
+
+void TriggerComponent::HandleStopPathing(Entity* targetEntity) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	// if (movementAIComponent) movementAIComponent->Pause();
+}
+
+void TriggerComponent::HandleStartPathing(Entity* targetEntity) {
+	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
+	// if (movementAIComponent) movementAIComponent->Resume();
 }

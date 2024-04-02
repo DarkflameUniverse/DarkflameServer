@@ -19,7 +19,7 @@ public:
 	dServerMock() {};
 	~dServerMock() {};
 	RakNet::BitStream* GetMostRecentBitStream() { return sentBitStream; };
-	void Send(RakNet::BitStream* bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = bitStream; };
+	void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = &bitStream; };
 };
 
 class GameDependenciesTest : public ::testing::Test {

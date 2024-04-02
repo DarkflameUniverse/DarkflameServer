@@ -30,7 +30,7 @@ public:
 
 	explicit MissionComponent(Entity* parent);
 	~MissionComponent() override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate, unsigned int& flags);
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 

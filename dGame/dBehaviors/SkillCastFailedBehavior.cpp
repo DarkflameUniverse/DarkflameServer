@@ -3,11 +3,11 @@
 #include "BehaviorContext.h"
 #include "BehaviorBranchContext.h"
 
-void SkillCastFailedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SkillCastFailedBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	context->failed = true;
 }
 
-void SkillCastFailedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void SkillCastFailedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	context->failed = true;
 }
 

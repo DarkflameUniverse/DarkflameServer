@@ -10,7 +10,7 @@ class DonationVendorComponent final : public VendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DONATION_VENDOR;
 	DonationVendorComponent(Entity* parent);
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	uint32_t GetActivityID() {return m_ActivityId;};
 	void SubmitDonation(uint32_t count);
 

@@ -307,11 +307,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 		movementAI->SetHaltDistance(0.0f);
 
-		std::vector<NiPoint3> pathWaypoints;
-
-		for (const auto& waypoint : path->pathWaypoints) {
-			pathWaypoints.push_back(waypoint.position);
-		}
+		std::vector<PathWaypoint> pathWaypoints = path->pathWaypoints;
 
 		if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
 			std::reverse(pathWaypoints.begin(), pathWaypoints.end());

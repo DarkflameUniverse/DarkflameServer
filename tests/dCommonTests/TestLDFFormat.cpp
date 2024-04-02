@@ -27,7 +27,7 @@ TEST_F(LDFTests, LDFUTF16Test) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_16);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::u16string>*)data.get())->GetValue(), u"IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ");
+	ASSERT_EQ((static_cast<LDFData<std::u16string>*>(data.get()))->GetValue(), u"IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -37,7 +37,7 @@ TEST_F(LDFTests, LDFUTF16EmptyTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_16);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::u16string>*)data.get())->GetValue(), u"");
+	ASSERT_EQ(static_cast<LDFData<std::u16string>*>(data.get())->GetValue(), u"");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -47,7 +47,7 @@ TEST_F(LDFTests, LDFUTF16ColonTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_16);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::u16string>*)data.get())->GetValue(), u"::");
+	ASSERT_EQ(static_cast<LDFData<std::u16string>*>(data.get())->GetValue(), u"::");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -57,7 +57,7 @@ TEST_F(LDFTests, LDFUTF16EqualsTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_16);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::u16string>*)data.get())->GetValue(), u"==");
+	ASSERT_EQ(static_cast<LDFData<std::u16string>*>(data.get())->GetValue(), u"==");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -66,7 +66,7 @@ TEST_F(LDFTests, LDFS32Test) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_S32);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<int32_t>*)data.get())->GetValue(), -15);
+	ASSERT_EQ(static_cast<LDFData<int32_t>*>(data.get())->GetValue(), -15);
 	ASSERT_EQ(data->GetString(), "KEY=1:-15");
 }
 TEST_F(LDFTests, LDFU32Test) {
@@ -74,7 +74,7 @@ TEST_F(LDFTests, LDFU32Test) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<uint32_t>*)data.get())->GetValue(), 15);
+	ASSERT_EQ(static_cast<LDFData<uint32_t>*>(data.get())->GetValue(), 15);
 	ASSERT_EQ(data->GetString(), "KEY=5:15");
 }
 
@@ -83,7 +83,7 @@ TEST_F(LDFTests, LDFU32TrueTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<uint32_t>*)data.get())->GetValue(), 1);
+	ASSERT_EQ(static_cast<LDFData<uint32_t>*>(data.get())->GetValue(), 1);
 	ASSERT_EQ(data->GetString(), "KEY=5:1");
 }
 
@@ -92,7 +92,7 @@ TEST_F(LDFTests, LDFU32FalseTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U32);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<uint32_t>*)data.get())->GetValue(), 0);
+	ASSERT_EQ(static_cast<LDFData<uint32_t>*>(data.get())->GetValue(), 0);
 	ASSERT_EQ(data->GetString(), "KEY=5:0");
 }
 
@@ -103,7 +103,7 @@ TEST_F(LDFTests, LDFFloatTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_FLOAT);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<float>*)data.get())->GetValue(), 15.5f);
+	ASSERT_EQ(static_cast<LDFData<float>*>(data.get())->GetValue(), 15.5f);
 	ASSERT_EQ(data->GetString().find("KEY=3:15.5"), 0);
 }
 
@@ -112,7 +112,7 @@ TEST_F(LDFTests, LDFDoubleTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_DOUBLE);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<double>*)data.get())->GetValue(), 15.5);
+	ASSERT_EQ(static_cast<LDFData<double>*>(data.get())->GetValue(), 15.5);
 	ASSERT_EQ(data->GetString().find("KEY=4:15.5"), 0);
 }
 
@@ -122,7 +122,7 @@ TEST_F(LDFTests, LDFBoolTrueTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<bool>*)data.get())->GetValue(), true);
+	ASSERT_EQ(static_cast<LDFData<bool>*>(data.get())->GetValue(), true);
 	ASSERT_EQ(data->GetString(), "KEY=7:1");
 }
 
@@ -131,7 +131,7 @@ TEST_F(LDFTests, LDFBoolFalseTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<bool>*)data.get())->GetValue(), false);
+	ASSERT_EQ(static_cast<LDFData<bool>*>(data.get())->GetValue(), false);
 	ASSERT_EQ(data->GetString(), "KEY=7:0");
 }
 
@@ -140,7 +140,7 @@ TEST_F(LDFTests, LDFBoolIntTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_BOOLEAN);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<bool>*)data.get())->GetValue(), true);
+	ASSERT_EQ(static_cast<LDFData<bool>*>(data.get())->GetValue(), true);
 	ASSERT_EQ(data->GetString(), "KEY=7:1");
 }
 
@@ -149,7 +149,7 @@ TEST_F(LDFTests, LDFU64Test) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_U64);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<uint64_t>*)data.get())->GetValue(), 15);
+	ASSERT_EQ(static_cast<LDFData<uint64_t>*>(data.get())->GetValue(), 15);
 	ASSERT_EQ(data->GetString(), "KEY=8:15");
 }
 
@@ -158,7 +158,7 @@ TEST_F(LDFTests, LDFLWOOBJIDTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_OBJID);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<uint64_t>*)data.get())->GetValue(), 15);
+	ASSERT_EQ(static_cast<LDFData<uint64_t>*>(data.get())->GetValue(), 15);
 	ASSERT_EQ(data->GetString(), "KEY=9:15");
 }
 
@@ -168,7 +168,7 @@ TEST_F(LDFTests, LDFUTF8Test) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_8);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::string>*)data.get())->GetValue(), "IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ");
+	ASSERT_EQ(static_cast<LDFData<std::string>*>(data.get())->GetValue(), "IAmA weird string with :::: and spac,./;'][\\es that I expect to be parsed correctly...; ");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -178,7 +178,7 @@ TEST_F(LDFTests, LDFUTF8EmptyTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_8);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::string>*)data.get())->GetValue(), "");
+	ASSERT_EQ(static_cast<LDFData<std::string>*>(data.get())->GetValue(), "");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 
@@ -188,7 +188,7 @@ TEST_F(LDFTests, LDFUTF8ColonsTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_8);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::string>*)data.get())->GetValue(), "::");
+	ASSERT_EQ(static_cast<LDFData<std::string>*>(data.get())->GetValue(), "::");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 TEST_F(LDFTests, LDFUTF8EqualsTest) {
@@ -197,7 +197,7 @@ TEST_F(LDFTests, LDFUTF8EqualsTest) {
 	ASSERT_NE(data, nullptr);
 	ASSERT_EQ(data->GetValueType(), eLDFType::LDF_TYPE_UTF_8);
 	ASSERT_EQ(data->GetKey(), u"KEY");
-	ASSERT_EQ(((LDFData<std::string>*)data.get())->GetValue(), "==");
+	ASSERT_EQ(static_cast<LDFData<std::string>*>(data.get())->GetValue(), "==");
 	ASSERT_EQ(data->GetString(), testWord);
 }
 

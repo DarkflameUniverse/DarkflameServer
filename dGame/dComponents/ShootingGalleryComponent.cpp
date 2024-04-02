@@ -17,50 +17,50 @@ void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryPara
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ShootingGalleryComponent::Serialize(RakNet::BitStream* outBitStream, bool isInitialUpdate) {
+void ShootingGalleryComponent::Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) {
 	// Start ScriptedActivityComponent
-	outBitStream->Write<bool>(true);
+	outBitStream.Write<bool>(true);
 	if (m_CurrentPlayerID == LWOOBJID_EMPTY) {
-		outBitStream->Write<uint32_t>(0);
+		outBitStream.Write<uint32_t>(0);
 	} else {
-		outBitStream->Write<uint32_t>(1);
-		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
+		outBitStream.Write<uint32_t>(1);
+		outBitStream.Write<LWOOBJID>(m_CurrentPlayerID);
 		for (size_t i = 0; i < 10; i++) {
-			outBitStream->Write<float_t>(0.0f);
+			outBitStream.Write<float_t>(0.0f);
 		}
 
 	}
 	// End ScriptedActivityComponent
 
 	if (isInitialUpdate) {
-		outBitStream->Write<float_t>(m_StaticParams.cameraPosition.GetX());
-		outBitStream->Write<float_t>(m_StaticParams.cameraPosition.GetY());
-		outBitStream->Write<float_t>(m_StaticParams.cameraPosition.GetZ());
+		outBitStream.Write<float_t>(m_StaticParams.cameraPosition.GetX());
+		outBitStream.Write<float_t>(m_StaticParams.cameraPosition.GetY());
+		outBitStream.Write<float_t>(m_StaticParams.cameraPosition.GetZ());
 
-		outBitStream->Write<float_t>(m_StaticParams.cameraLookatPosition.GetX());
-		outBitStream->Write<float_t>(m_StaticParams.cameraLookatPosition.GetY());
-		outBitStream->Write<float_t>(m_StaticParams.cameraLookatPosition.GetZ());
+		outBitStream.Write<float_t>(m_StaticParams.cameraLookatPosition.GetX());
+		outBitStream.Write<float_t>(m_StaticParams.cameraLookatPosition.GetY());
+		outBitStream.Write<float_t>(m_StaticParams.cameraLookatPosition.GetZ());
 	}
 
-	outBitStream->Write<bool>(m_Dirty || isInitialUpdate);
+	outBitStream.Write<bool>(m_Dirty || isInitialUpdate);
 	if (m_Dirty || isInitialUpdate) {
-		outBitStream->Write<double_t>(m_DynamicParams.cannonVelocity);
-		outBitStream->Write<double_t>(m_DynamicParams.cannonRefireRate);
-		outBitStream->Write<double_t>(m_DynamicParams.cannonMinDistance);
+		outBitStream.Write<double_t>(m_DynamicParams.cannonVelocity);
+		outBitStream.Write<double_t>(m_DynamicParams.cannonRefireRate);
+		outBitStream.Write<double_t>(m_DynamicParams.cannonMinDistance);
 
-		outBitStream->Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetX());
-		outBitStream->Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetY());
-		outBitStream->Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetZ());
+		outBitStream.Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetX());
+		outBitStream.Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetY());
+		outBitStream.Write<float_t>(m_DynamicParams.cameraBarrelOffset.GetZ());
 
-		outBitStream->Write<float_t>(m_DynamicParams.cannonAngle);
+		outBitStream.Write<float_t>(m_DynamicParams.cannonAngle);
 
-		outBitStream->Write<float_t>(m_DynamicParams.facing.GetX());
-		outBitStream->Write<float_t>(m_DynamicParams.facing.GetY());
-		outBitStream->Write<float_t>(m_DynamicParams.facing.GetZ());
+		outBitStream.Write<float_t>(m_DynamicParams.facing.GetX());
+		outBitStream.Write<float_t>(m_DynamicParams.facing.GetY());
+		outBitStream.Write<float_t>(m_DynamicParams.facing.GetZ());
 
-		outBitStream->Write<LWOOBJID>(m_CurrentPlayerID);
-		outBitStream->Write<float_t>(m_DynamicParams.cannonTimeout);
-		outBitStream->Write<float_t>(m_DynamicParams.cannonFOV);
+		outBitStream.Write<LWOOBJID>(m_CurrentPlayerID);
+		outBitStream.Write<float_t>(m_DynamicParams.cannonTimeout);
+		outBitStream.Write<float_t>(m_DynamicParams.cannonFOV);
 		if (!isInitialUpdate) m_Dirty = false;
 	}
 }

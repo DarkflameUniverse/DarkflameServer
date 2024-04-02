@@ -79,12 +79,12 @@ namespace Mail {
 		const SystemAddress& sysAddr
 	);
 
-	void HandleMailStuff(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* entity);
-	void HandleSendMail(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* entity);
-	void HandleDataRequest(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player);
-	void HandleAttachmentCollect(RakNet::BitStream* packet, const SystemAddress& sysAddr, Entity* player);
-	void HandleMailDelete(RakNet::BitStream* packet, const SystemAddress& sysAddr);
-	void HandleMailRead(RakNet::BitStream* packet, const SystemAddress& sysAddr);
+	void HandleMailStuff(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity);
+	void HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity);
+	void HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player);
+	void HandleAttachmentCollect(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player);
+	void HandleMailDelete(RakNet::BitStream& packet, const SystemAddress& sysAddr);
+	void HandleMailRead(RakNet::BitStream& packet, const SystemAddress& sysAddr);
 	void HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID);
 
 	void SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response);

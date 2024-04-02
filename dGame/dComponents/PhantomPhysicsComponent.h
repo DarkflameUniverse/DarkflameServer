@@ -32,7 +32,7 @@ public:
 	PhantomPhysicsComponent(Entity* parent);
 	~PhantomPhysicsComponent() override;
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Creates the physics shape for this entity based on LDF data

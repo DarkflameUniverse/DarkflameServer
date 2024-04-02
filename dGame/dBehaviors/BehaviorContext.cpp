@@ -105,7 +105,7 @@ void BehaviorContext::ExecuteUpdates() {
 	this->scheduledUpdates.clear();
 }
 
-void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream* bitStream) {
+void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bitStream) {
 	BehaviorSyncEntry entry;
 	auto found = false;
 
@@ -243,27 +243,25 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 		echo.uiBehaviorHandle = entry.handle;
 		echo.uiSkillHandle = this->skillUId;
 
-		auto* bitStream = new RakNet::BitStream();
+		RakNet::BitStream bitStream{};
 
 		// Calculate sync
 		entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
 
 		if (!clientInitalized) {
-			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream->GetData()), bitStream->GetNumberOfBytesUsed());
+			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
 			// Write message
 			RakNet::BitStream message;
 
 			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
 			message.Write(this->originator);
-			echo.Serialize(&message);
+			echo.Serialize(message);
 
-			Game::server->Send(&message, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 
 		ExecuteUpdates();
-
-		delete bitStream;
 	}
 
 	std::vector<BehaviorSyncEntry> valid;

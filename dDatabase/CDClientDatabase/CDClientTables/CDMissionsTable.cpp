@@ -22,7 +22,7 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM Missions");
 	while (!tableData.eof()) {
-		CDMissions entry;
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.defined_type = tableData.getStringField("defined_type", "");
 		entry.defined_subtype = tableData.getStringField("defined_subtype", "");
@@ -76,10 +76,8 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 		UNUSED(entry.locStatus = tableData.getIntField("locStatus", -1));
 		entry.reward_bankinventory = tableData.getIntField("reward_bankinventory", -1);
 
-		entries.push_back(entry);
 		tableData.nextRow();
 	}
-
 	tableData.finalize();
 
 	Default.id = -1;
@@ -118,3 +116,12 @@ const CDMissions& CDMissionsTable::GetByMissionID(uint32_t missionID, bool& foun
 	return Default;
 }
 
+const std::set<int32_t> CDMissionsTable::GetMissionsForReward(LOT lot) {
+	std::set<int32_t> toReturn {};
+	for (const auto& entry : GetEntries()) {
+		if (lot == entry.reward_item1 || lot == entry.reward_item2 || lot == entry.reward_item3 || lot == entry.reward_item4) {
+			toReturn.insert(entry.id);
+		}
+	}
+	return toReturn;
+}

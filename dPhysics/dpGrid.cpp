@@ -26,8 +26,8 @@ dpGrid::~dpGrid() {
 
 void dpGrid::Add(dpEntity* entity) {
 	//Determine which grid cell it's in.
-	int cellX = (int)std::round(entity->m_Position.x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
-	int cellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int cellX = static_cast<int>(std::round(entity->m_Position.x)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int cellZ = static_cast<int>(std::round(entity->m_Position.z)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
 	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
@@ -42,11 +42,11 @@ void dpGrid::Add(dpEntity* entity) {
 }
 
 void dpGrid::Move(dpEntity* entity, float x, float z) {
-	int oldCellX = (int)std::round(entity->m_Position.x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
-	int oldCellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int oldCellX = static_cast<int>(std::round(entity->m_Position.x)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int oldCellZ = static_cast<int>(std::round(entity->m_Position.z)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
-	int cellX = (int)std::round(x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
-	int cellZ = (int)std::round(z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int cellX = static_cast<int>(std::round(x)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int cellZ = static_cast<int>(std::round(z)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
 	cellX = std::clamp(cellX, 0, NUM_CELLS - 1);
@@ -73,8 +73,8 @@ void dpGrid::Move(dpEntity* entity, float x, float z) {
 
 void dpGrid::Delete(dpEntity* entity) {
 	if (!entity) return;
-	int oldCellX = (int)std::round(entity->m_Position.x) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
-	int oldCellZ = (int)std::round(entity->m_Position.z) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int oldCellX = static_cast<int>(std::round(entity->m_Position.x)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
+	int oldCellZ = static_cast<int>(std::round(entity->m_Position.z)) / dpGrid::CELL_SIZE + NUM_CELLS / 2;
 
 	// Clamp values to the range [0, NUM_CELLS - 1]
 	oldCellX = std::clamp(oldCellX, 0, NUM_CELLS - 1);

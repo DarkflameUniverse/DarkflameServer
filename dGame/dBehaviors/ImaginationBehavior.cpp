@@ -6,7 +6,7 @@
 #include "Logger.h"
 
 
-void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	if (entity == nullptr) {
@@ -23,7 +23,7 @@ void ImaginationBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 
 }
 
-void ImaginationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bit_stream, const BehaviorBranchContext branch) {
+void ImaginationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	Handle(context, bit_stream, branch);
 }
 

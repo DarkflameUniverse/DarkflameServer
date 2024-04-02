@@ -2,28 +2,28 @@
 #include "Game.h"
 #include "Logger.h"
 
-void MusicCue::Serialize(RakNet::BitStream* outBitStream){
-	outBitStream->Write<uint8_t>(name.size());
-	outBitStream->Write(name.c_str(), name.size());
-	outBitStream->Write(result);
-	outBitStream->Write(boredomTime);
+void MusicCue::Serialize(RakNet::BitStream& outBitStream){
+	outBitStream.Write<uint8_t>(name.size());
+	outBitStream.Write(name.c_str(), name.size());
+	outBitStream.Write(result);
+	outBitStream.Write(boredomTime);
 }
 
-void MusicParameter::Serialize(RakNet::BitStream* outBitStream){
-	outBitStream->Write<uint8_t>(name.size());
-	outBitStream->Write(name.c_str(), name.size());
-	outBitStream->Write(value);
+void MusicParameter::Serialize(RakNet::BitStream& outBitStream){
+	outBitStream.Write<uint8_t>(name.size());
+	outBitStream.Write(name.c_str(), name.size());
+	outBitStream.Write(value);
 }
 
-void GUIDResults::Serialize(RakNet::BitStream* outBitStream){
+void GUIDResults::Serialize(RakNet::BitStream& outBitStream){
 	guid.Serialize(outBitStream);
-	outBitStream->Write(result);
+	outBitStream.Write(result);
 }
 
-void MixerProgram::Serialize(RakNet::BitStream* outBitStream){
-	outBitStream->Write<uint8_t>(name.size());
-	outBitStream->Write(name.c_str(), name.size());
-	outBitStream->Write(result);
+void MixerProgram::Serialize(RakNet::BitStream& outBitStream){
+	outBitStream.Write<uint8_t>(name.size());
+	outBitStream.Write(name.c_str(), name.size());
+	outBitStream.Write(result);
 }
 SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent) {
 
@@ -55,30 +55,30 @@ SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent)
 	if (!mixerName.empty()) this->m_MixerPrograms.push_back(MixerProgram(mixerName));
 }
 
-void SoundTriggerComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(this->m_Dirty || bIsInitialUpdate);
+void SoundTriggerComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(this->m_Dirty || bIsInitialUpdate);
 	if (this->m_Dirty || bIsInitialUpdate) {
-		outBitStream->Write<uint8_t>(this->m_MusicCues.size());
+		outBitStream.Write<uint8_t>(this->m_MusicCues.size());
 		for (auto& musicCue : this->m_MusicCues) {
 			musicCue.Serialize(outBitStream);
 		}
 
-		outBitStream->Write<uint8_t>(this->m_MusicParameters.size());
+		outBitStream.Write<uint8_t>(this->m_MusicParameters.size());
 		for (auto& musicParam : this->m_MusicParameters) {
 			musicParam.Serialize(outBitStream);
 		}
 
-		outBitStream->Write<uint8_t>(this->m_2DAmbientSounds.size());
+		outBitStream.Write<uint8_t>(this->m_2DAmbientSounds.size());
 		for (auto twoDAmbientSound : this->m_2DAmbientSounds) {
 			twoDAmbientSound.Serialize(outBitStream);
 		}
 
-		outBitStream->Write<uint8_t>(this->m_3DAmbientSounds.size());
+		outBitStream.Write<uint8_t>(this->m_3DAmbientSounds.size());
 		for (auto threeDAmbientSound : this->m_3DAmbientSounds) {
 			threeDAmbientSound.Serialize(outBitStream);
 		}
 
-		outBitStream->Write<uint8_t>(this->m_MixerPrograms.size());
+		outBitStream.Write<uint8_t>(this->m_MixerPrograms.size());
 		for (auto& mixerProgram : this->m_MixerPrograms) {
 			mixerProgram.Serialize(outBitStream);
 		}

@@ -21,7 +21,7 @@
 #include "eMissionTaskType.h"
 #include "eMatchUpdate.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
@@ -90,15 +90,15 @@ void ActivityComponent::LoadActivityData(const int32_t activityId) {
 	}
 }
 
-void ActivityComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyActivityInfo);
+void ActivityComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyActivityInfo);
 	if (m_DirtyActivityInfo) {
-		outBitStream->Write<uint32_t>(m_ActivityPlayers.size());
+		outBitStream.Write<uint32_t>(m_ActivityPlayers.size());
 		if (!m_ActivityPlayers.empty()) {
 			for (const auto& activityPlayer : m_ActivityPlayers) {
-				outBitStream->Write<LWOOBJID>(activityPlayer->playerID);
+				outBitStream.Write<LWOOBJID>(activityPlayer->playerID);
 				for (const auto& activityValue : activityPlayer->values) {
-					outBitStream->Write<float_t>(activityValue);
+					outBitStream.Write<float_t>(activityValue);
 				}
 			}
 		}
@@ -501,7 +501,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::CREATE_TEAM);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

@@ -5,7 +5,7 @@
 #include "BehaviorBranchContext.h"
 
 
-void FallSpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void FallSpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	// make sure required parameter has non-default value
 	if (m_PercentSlowed == 0.0f) return;
 	auto* target = Game::entityManager->GetEntity(branch.target);
@@ -23,7 +23,7 @@ void FallSpeedBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitS
 	}
 }
 
-void FallSpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void FallSpeedBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

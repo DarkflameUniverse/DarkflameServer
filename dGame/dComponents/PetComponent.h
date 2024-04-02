@@ -21,7 +21,7 @@ public:
 	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
 	~PetComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;
 
 	/**
@@ -353,7 +353,6 @@ private:
 
 	/**
 	 * Pet information loaded from the CDClientDatabase
-	 * TODO: Switch to a reference when safe to do so
 	 */
 	CDPetComponent m_PetInfo;
 };

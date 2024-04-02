@@ -37,9 +37,9 @@ void LevelProgressionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_CharacterVersion = static_cast<eCharacterVersion>(characterVersion);
 }
 
-void LevelProgressionComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(bIsInitialUpdate || m_DirtyLevelInfo);
-	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream->Write(m_Level);
+void LevelProgressionComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(bIsInitialUpdate || m_DirtyLevelInfo);
+	if (bIsInitialUpdate || m_DirtyLevelInfo) outBitStream.Write(m_Level);
 	m_DirtyLevelInfo = false;
 }
 

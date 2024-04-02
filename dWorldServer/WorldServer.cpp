@@ -66,7 +66,7 @@
 #include "eObjectBits.h"
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "eWorldMessageType.h"
 #include "eMasterMessageType.h"
 #include "eGameMessageType.h"
@@ -348,7 +348,7 @@ int main(int argc, char** argv) {
 
 		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
-			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			float_t ratioBeforeToAfter = static_cast<float>(currentFrameDelta) / static_cast<float>(newFrameDelta);
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
 			LOG_DEBUG("Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
@@ -554,118 +554,116 @@ void HandlePacketChat(Packet* packet) {
 	}
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
-			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+			switch (static_cast<eChatMessageType>(packet->data[3])) {
+				case eChatMessageType::WORLD_ROUTE_PACKET: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerID;
+					inStream.Read(playerID);
 
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
+					auto player = Game::entityManager->GetEntity(playerID);
+					if (!player) return;
 
-				auto sysAddr = player->GetSystemAddress();
+					auto sysAddr = player->GetSystemAddress();
 
-				//Write our stream outwards:
-				CBITSTREAM;
-				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					//Write our stream outwards:
+					CBITSTREAM;
+					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
+						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					}
+
+					SEND_PACKET; //send routed packet to player
+					break;
 				}
 
-				SEND_PACKET; //send routed packet to player
+				case eChatMessageType::GM_ANNOUNCE: {
+					CINSTREAM_SKIP_HEADER;
 
-				break;
-			}
+					std::string title;
+					std::string msg;
 
-			case eChatInternalMessageType::ANNOUNCEMENT: {
-				CINSTREAM_SKIP_HEADER;
+					uint32_t len;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						title += character;
+					}
 
-				std::string title;
-				std::string msg;
+					len = 0;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						msg += character;
+					}
 
-				uint32_t len;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					title += character;
-				}
+					//Send to our clients:
+					AMFArrayValue args;
 
-				len = 0;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					msg += character;
-				}
+					args.Insert("title", title);
+					args.Insert("message", msg);
 
-				//Send to our clients:
-				AMFArrayValue args;
-
-				args.Insert("title", title);
-				args.Insert("message", msg);
-
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-				break;
-			}
-
-			case eChatInternalMessageType::MUTE_UPDATE: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerId;
-				time_t expire = 0;
-				inStream.Read(playerId);
-				inStream.Read(expire);
-
-				auto* entity = Game::entityManager->GetEntity(playerId);
-				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) {
-					user->SetMuteExpire(expire);
-
-					entity->GetCharacter()->SendMuteNotice();
-				}
-
-				break;
-			}
-
-			case eChatInternalMessageType::TEAM_UPDATE: {
-				CINSTREAM_SKIP_HEADER;
-
-				LWOOBJID teamID = 0;
-				char lootOption = 0;
-				char memberCount = 0;
-				std::vector<LWOOBJID> members;
-
-				inStream.Read(teamID);
-				bool deleteTeam = inStream.ReadBit();
-
-				if (deleteTeam) {
-					TeamManager::Instance()->DeleteTeam(teamID);
-
-					LOG("Deleting team (%llu)", teamID);
+					GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 					break;
 				}
 
-				inStream.Read(lootOption);
-				inStream.Read(memberCount);
-				LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
-				for (char i = 0; i < memberCount; i++) {
-					LWOOBJID member = LWOOBJID_EMPTY;
-					inStream.Read(member);
-					members.push_back(member);
+				case eChatMessageType::GM_MUTE: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerId;
+					time_t expire = 0;
+					inStream.Read(playerId);
+					inStream.Read(expire);
 
-					LOG("Updating team member (%llu)", member);
+					auto* entity = Game::entityManager->GetEntity(playerId);
+					auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+					auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+					if (user) {
+						user->SetMuteExpire(expire);
+
+						entity->GetCharacter()->SendMuteNotice();
+					}
+
+					break;
 				}
 
-				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+				case eChatMessageType::TEAM_GET_STATUS: {
+					CINSTREAM_SKIP_HEADER;
 
-				break;
-			}
+					LWOOBJID teamID = 0;
+					char lootOption = 0;
+					char memberCount = 0;
+					std::vector<LWOOBJID> members;
 
-			default:
-				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
+					inStream.Read(teamID);
+					bool deleteTeam = inStream.ReadBit();
+
+					if (deleteTeam) {
+						TeamManager::Instance()->DeleteTeam(teamID);
+
+						LOG("Deleting team (%llu)", teamID);
+
+						break;
+					}
+
+					inStream.Read(lootOption);
+					inStream.Read(memberCount);
+					LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+					for (char i = 0; i < memberCount; i++) {
+						LWOOBJID member = LWOOBJID_EMPTY;
+						inStream.Read(member);
+						members.push_back(member);
+
+						LOG("Updating team member (%llu)", member);
+					}
+
+					TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+
+					break;
+				}
+				default:
+					LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
 		}
 	}
@@ -741,9 +739,9 @@ void HandleMasterPacket(Packet* packet) {
 			{
 				CBITSTREAM;
 				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
-				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-				bitStream.Write((LWOINSTANCEID)instanceID);
-				Game::server->SendToMaster(&bitStream);
+				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+				bitStream.Write<LWOINSTANCEID>(instanceID);
+				Game::server->SendToMaster(bitStream);
 			}
 		}
 
@@ -759,7 +757,7 @@ void HandleMasterPacket(Packet* packet) {
 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
 		bitStream.Write(requestID);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		break;
 	}
@@ -830,7 +828,7 @@ void HandlePacket(Packet* packet) {
 
 		{
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -843,9 +841,9 @@ void HandlePacket(Packet* packet) {
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
-		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-		bitStream.Write((LWOINSTANCEID)instanceID);
-		Game::server->SendToMaster(&bitStream);
+		bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+		bitStream.Write<LWOINSTANCEID>(instanceID);
+		Game::server->SendToMaster(bitStream);
 	}
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
@@ -908,7 +906,7 @@ void HandlePacket(Packet* packet) {
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
 		bitStream.Write(username);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 
 		//Insert info into our pending list
 		tempSessionInfo info;
@@ -963,7 +961,7 @@ void HandlePacket(Packet* packet) {
 			static_cast<int32_t>(messageID)
 		);
 
-		if (isSender) GameMessageHandler::HandleMessage(&dataStream, packet->systemAddress, objectID, messageID);
+		if (isSender) GameMessageHandler::HandleMessage(dataStream, packet->systemAddress, objectID, messageID);
 		break;
 	}
 
@@ -999,7 +997,7 @@ void HandlePacket(Packet* packet) {
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
@@ -1145,7 +1143,7 @@ void HandlePacket(Packet* packet) {
 					const auto& playerName = character->GetName();
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::LOGIN_SESSION_NOTIFY);
 					bitStream.Write(player->GetObjectID());
 					bitStream.Write<uint32_t>(playerName.size());
 					for (size_t i = 0; i < playerName.size(); i++) {
@@ -1190,7 +1188,7 @@ void HandlePacket(Packet* packet) {
 		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
 		bitStream.Read(space);
-		Mail::HandleMailStuff(&bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::HandleMailStuff(bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 
@@ -1480,5 +1478,5 @@ void FinalizeShutdown() {
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
-	Game::server->SendToMaster(&bitStream);
+	Game::server->SendToMaster(bitStream);
 }

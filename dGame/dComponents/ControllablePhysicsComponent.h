@@ -27,7 +27,7 @@ public:
 	~ControllablePhysicsComponent() override;
 
 	void Update(float deltaTime) override;
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
 	void UpdateXml(tinyxml2::XMLDocument* doc) override;
 
@@ -105,18 +105,6 @@ public:
 	void SetDirtyPosition(bool val);
 
 	/**
-	 * Mark the velocity as dirty, forcing a serializtion update next tick
-	 * @param val whether or not the velocity is dirty
-	 */
-	void SetDirtyVelocity(bool val);
-
-	/**
-	 * Mark the angular velocity as dirty, forcing a serialization update next tick
-	 * @param val whether or not the angular velocity is dirty
-	 */
-	void SetDirtyAngularVelocity(bool val);
-
-	/**
 	 * Sets whether or not the entity is currently wearing a jetpack
 	 * @param val whether or not the entity is currently wearing a jetpack
 	 */
@@ -185,18 +173,6 @@ public:
 	 * @return the current gravity scale
 	 */
 	const float GetGravityScale() const { return m_GravityScale; }
-
-	/**
-	 * Sets the ignore multipliers value, allowing you to skip the serialization of speed and gravity multipliers
-	 * @param value whether or not to ignore multipliers
-	 */
-	void SetIgnoreMultipliers(bool value) { m_IgnoreMultipliers = value; }
-
-	/**
-	 * Returns the current ignore multipliers value
-	 * @return the current ignore multipliers value
-	 */
-	const bool GetIgnoreMultipliers() const { return m_IgnoreMultipliers; }
 
 	/**
 	 * Can make an entity static, making it unable to move around
@@ -311,19 +287,9 @@ private:
 	dpEntity* m_dpEntity;
 
 	/**
-	 * Whether or not the velocity is dirty, forcing a serialization of the velocity
-	 */
-	bool m_DirtyVelocity;
-
-	/**
 	 * The current velocity of the entity
 	 */
 	NiPoint3 m_Velocity;
-
-	/**
-	 * Whether or not the angular velocity is dirty, forcing a serialization
-	 */
-	bool m_DirtyAngularVelocity;
 
 	/**
 	 * The current angular velocity of the entity
@@ -374,11 +340,6 @@ private:
 	 * Forces a serialization of the speed multiplier and the gravity scale
 	 */
 	bool m_DirtyCheats;
-
-	/**
-	 * Makes it so that the speed multiplier and gravity scale are no longer serialized if false
-	 */
-	bool m_IgnoreMultipliers;
 
 	/**
 	 * Whether this entity is static, making it unable to move

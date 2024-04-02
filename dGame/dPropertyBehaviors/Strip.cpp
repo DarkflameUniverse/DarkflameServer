@@ -3,48 +3,47 @@
 #include "Amf3.h"
 #include "ControlBehaviorMsgs.h"
 
-template<>
+template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
 	m_Position = msg.GetPosition();
 };
 
-template<>
+template <>
 void Strip::HandleMsg(AddActionMessage& msg) {
 	if (msg.GetActionIndex() == -1) return;
-
 	m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
 };
 
-template<>
+template <>
 void Strip::HandleMsg(UpdateStripUiMessage& msg) {
 	m_Position = msg.GetPosition();
 };
 
-template<>
+template <>
 void Strip::HandleMsg(RemoveStripMessage& msg) {
 	m_Actions.clear();
 };
 
-template<>
+template <>
 void Strip::HandleMsg(RemoveActionsMessage& msg) {
 	if (msg.GetActionIndex() >= m_Actions.size()) return;
 	m_Actions.erase(m_Actions.begin() + msg.GetActionIndex(), m_Actions.end());
 };
 
-template<>
+template <>
 void Strip::HandleMsg(UpdateActionMessage& msg) {
 	if (msg.GetActionIndex() >= m_Actions.size()) return;
 	m_Actions.at(msg.GetActionIndex()) = msg.GetAction();
 };
 
-template<>
+template <>
 void Strip::HandleMsg(RearrangeStripMessage& msg) {
 	if (msg.GetDstActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() <= msg.GetDstActionIndex()) return;
 	std::rotate(m_Actions.begin() + msg.GetDstActionIndex(), m_Actions.begin() + msg.GetSrcActionIndex(), m_Actions.end());
 };
 
-template<>
+template <>
 void Strip::HandleMsg(SplitStripMessage& msg) {
 	if (msg.GetTransferredActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -56,7 +55,7 @@ void Strip::HandleMsg(SplitStripMessage& msg) {
 	}
 };
 
-template<>
+template <>
 void Strip::HandleMsg(MergeStripsMessage& msg) {
 	if (msg.GetMigratedActions().empty() && !m_Actions.empty()) {
 		msg.SetMigratedActions(m_Actions.begin(), m_Actions.end());
@@ -66,7 +65,7 @@ void Strip::HandleMsg(MergeStripsMessage& msg) {
 	}
 };
 
-template<>
+template <>
 void Strip::HandleMsg(MigrateActionsMessage& msg) {
 	if (msg.GetMigratedActions().empty() && !m_Actions.empty()) {
 		auto startToMove = m_Actions.begin() + msg.GetSrcActionIndex();
@@ -80,8 +79,8 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	m_Position.SendBehaviorBlocksToClient(args);
 
-	auto* actions = args.InsertArray("actions");
-	for (auto& action : m_Actions) {
+	auto* const actions = args.InsertArray("actions");
+	for (const auto& action : m_Actions) {
 		action.SendBehaviorBlocksToClient(*actions);
 	}
 };

@@ -19,7 +19,7 @@ public:
 	PlayerForcedMovementComponent(Entity* parent);
 	~PlayerForcedMovementComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * @brief Set the Player On Rail object
