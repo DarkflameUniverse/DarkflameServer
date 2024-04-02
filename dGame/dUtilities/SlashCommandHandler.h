@@ -115,7 +115,7 @@ namespace GMZeroCommands {
 	void LeaveZone(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
-namespace GreaterThanZeroCommands {
+namespace GMGreaterThanZeroCommands {
 	void Kick(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void MailItem(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Ban(Entity* entity, const SystemAddress& sysAddr, const std::string args);

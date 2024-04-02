@@ -81,13 +81,27 @@
 #include "dNavMesh.h"
 
 namespace {
-	std::vector<Command> RegisteredCommands;
+	std::vector<Command> CommandInfos;
+	std::map<std::string, Command> RegisteredCommands;
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
 	LOG_DEBUG("Registering SlashCommand: %s", command.aliases[0].c_str());
-	// TODO: duplicate alias check
-	RegisteredCommands.push_back(command);
+	std::vector<std::string> toRemove;
+	for (auto& alias : command.aliases) {
+		if (RegisteredCommands.contains(alias)){
+			LOG("Command alias %s is already registered! Skipping!", alias.c_str());
+			// denote it to be removed
+			toRemove.push_back(alias);
+			continue;
+		}
+		RegisteredCommands.emplace(make_pair(alias, command));
+	}
+	// Actually remove the duplicate aliases here
+	for (auto& removing : toRemove) {
+		command.aliases.erase(std::find(std::cbegin(command.aliases), std::cend(command.aliases), removing));
+	}
+	CommandInfos.push_back(command);
 };
 
 void SlashCommandHandler::Startup() {
@@ -120,17 +134,790 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ToggleSkipCinematicsCommand);
 
+	Command KillCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Kill,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(KillCommand);
+
+	Command MetricsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Metrics,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(MetricsCommand);
+
+	Command AnnounceCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Announce,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(AnnounceCommand);
+
+	Command SetAnnTitleCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetAnnTitle,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetAnnTitleCommand);
+
+	Command SetAnnMsgCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetAnnMsg,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetAnnMsgCommand);
+
+	Command ShutdownUniverseCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ShutdownUniverse,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ShutdownUniverseCommand);
+
+	Command SetMinifigCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetMinifig,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetMinifigCommand);
+
+	Command TestMapCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::TestMap,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(TestMapCommand);
+
+	Command ReportProxPhysCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ReportProxPhys,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ReportProxPhysCommand);
+
+	Command SpawnPhysicsVertsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SpawnPhysicsVerts,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnPhysicsVertsCommand);
+
+	Command TeleportCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Teleport,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(TeleportCommand);
+
+	Command ActivateSpawnerCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ActivateSpawner,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ActivateSpawnerCommand);
+
+	Command AddMissionCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::AddMission,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(AddMissionCommand);
+
+	Command BoostCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Boost,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(BoostCommand);
+
+	Command UnboostCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Unboost,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(UnboostCommand);
+
+	Command BuffCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Buff,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(BuffCommand);
+
+	Command BuffMeCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::BuffMe,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(BuffMeCommand);
+
+	Command BuffMedCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::BuffMed,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(BuffMedCommand);
+
+	Command ClearFlagCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ClearFlag,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ClearFlagCommand);
+
+	Command CompleteMissionCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::CompleteMission,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(CompleteMissionCommand);
+
+	Command CreatePrivateCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::CreatePrivate,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(CreatePrivateCommand);
+
+	Command DebugUiCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::DebugUi,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(DebugUiCommand);
+
+	Command DismountCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Dismount,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(DismountCommand);
+
+	Command ReloadConfigCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ReloadConfig,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ReloadConfigCommand);
+
+	Command ForceSaveCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ForceSave,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ForceSaveCommand);
+
+	Command FreecamCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Freecam,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(FreecamCommand);
+
+	Command FreeMoneyCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::FreeMoney,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(FreeMoneyCommand);
+
+	Command GetNavmeshHeightCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::GetNavmeshHeight,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetNavmeshHeightCommand);
+
+	Command GiveUScoreCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::GiveUScore,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GiveUScoreCommand);
+
+	Command GmAddItemCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::GmAddItem,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GmAddItemCommand);
+
+	Command InspectCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Inspect,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(InspectCommand);
+
+	Command ListSpawnsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ListSpawns,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ListSpawnsCommand);
+
+	Command LocRowCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::LocRow,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(LocRowCommand);
+
+	Command LookupCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Lookup,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(LookupCommand);
+
+	Command PlayAnimationCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::PlayAnimation,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(PlayAnimationCommand);
+
+	Command PlayEffectCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::PlayEffect,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(PlayEffectCommand);
+
+	Command PlayLvlFxCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::PlayLvlFx,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(PlayLvlFxCommand);
+
+	Command PlayRebuildFxCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::PlayRebuildFx,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(PlayRebuildFxCommand);
+
+	Command PosCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Pos,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(PosCommand);
+
+	Command RefillStatsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::RefillStats,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(RefillStatsCommand);
+
+	Command ReforgeCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Reforge,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ReforgeCommand);
+
+	Command ResetMissionCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::ResetMission,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ResetMissionCommand);
+
+	Command RotCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Rot,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(RotCommand);
+
+	Command RunMacroCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::RunMacro,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(RunMacroCommand);
+
+	Command SetControlSchemeCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetControlScheme,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetControlSchemeCommand);
+
+	Command SetCurrencyCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetCurrency,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetCurrencyCommand);
+
+	Command SetFlagCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetFlag,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetFlagCommand);
+
+	Command SetInventorySizeCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetInventorySize,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetInventorySizeCommand);
+
+	Command SetUiStateCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetUiState,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetUiStateCommand);
+
+	Command SpawnCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Spawn,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnCommand);
+
+	Command SpawnGroupCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SpawnGroup,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnGroupCommand);
+
+	Command SpeedBoostCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SpeedBoost,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpeedBoostCommand);
+
+	Command StartCelebrationCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::StartCelebration,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(StartCelebrationCommand);
+
+	Command StopEffectCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::StopEffect,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(StopEffectCommand);
+
+	Command ToggleCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Toggle,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ToggleCommand);
+
+	Command TpAllCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::TpAll,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(TpAllCommand);
+
+	Command TriggerSpawnerCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::TriggerSpawner,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(TriggerSpawnerCommand);
+
+	Command UnlockEmoteCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::UnlockEmote,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(UnlockEmoteCommand);
+
+	Command SetLevelCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetLevel,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetLevelCommand);
+
+	Command SetSkillSlotCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetSkillSlot,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetSkillSlotCommand);
+
+	Command SetFactionCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetFaction,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetFactionCommand);
+
+	Command AddFactionCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::AddFaction,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(AddFactionCommand);
+
+	Command GetFactionsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::GetFactions,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetFactionsCommand);
+
+	Command SetRewardCodeCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::SetRewardCode,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SetRewardCodeCommand);
+
+	Command CrashCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::Crash,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(CrashCommand);
+
+	Command RollLootCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::RollLoot,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(RollLootCommand);
+
+	Command CastSkillCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = DEVGMCommands::CastSkill,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(CastSkillCommand);
+
+
 	// Register Greater Than Zero Commands
+
+	Command KickCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::Kick,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command MailItemCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::MailItem,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command BanCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::Ban,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command ApprovePropertyCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::ApproveProperty,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command MuteCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::Mute,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command FlyCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::Fly,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command AttackImmuneCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::AttackImmune,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command GmImmuneCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::GmImmune,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command GmInvisCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::GmInvis,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command SetNameCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::SetName,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
+	Command TitleCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMGreaterThanZeroCommands::Title,
+		.requiredLevel = eGameMasterLevel::MODERATOR
+	};
 
 	// Register GM Zero Commands
 	Command HelpCommand{
 		.help = "Display command info",
 		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",
-		.aliases = { "help", "h" },
+		.aliases = { "help", "h"},
 		.handle = GMZeroCommands::Help,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(HelpCommand);
+
+	Command CreditsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Credits,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(CreditsCommand);
+
+	Command InfoCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Info,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(InfoCommand);
+
+	Command DieCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Die,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(DieCommand);
+
+	Command PingCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Ping,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(PingCommand);
+
+	Command PvpCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Pvp,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(PvpCommand);
+
+	Command RequestMailCountCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::RequestMailCount,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(RequestMailCountCommand);
+
+	Command WhoCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Who,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(WhoCommand);
+
+	Command FixStatsCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::FixStats,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(FixStatsCommand);
+
+	Command JoinCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::Join,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(JoinCommand);
+
+	Command LeaveZoneCommand {
+		.help = "",
+		.info = "",
+		.aliases = { "" },
+		.handle = GMZeroCommands::LeaveZone,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(LeaveZoneCommand);
+
 }
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
@@ -142,26 +929,24 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	if (args.front() == '/') args.clear();
 	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
 
-	for (auto& registeredCommand : RegisteredCommands) {
-		if (std::find(registeredCommand.aliases.begin(), registeredCommand.aliases.end(), command) != registeredCommand.aliases.end()) {
-			if (entity->GetGMLevel() >= registeredCommand.requiredLevel) {
-				// Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), chatCommand);
-				registeredCommand.handle(entity, sysAddr, args);
-				return;
-			} else {
-				// We don't need to tell normies they aren't high enough level
-				if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-				std::ostringstream feedback;
-				feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
-				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-			}
+	if (RegisteredCommands.contains(command)) {
+		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
+			// Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), chatCommand);
+			RegisteredCommands[command].handle(entity, sysAddr, args);
+			return;
 		} else {
-			// We don't need to tell normies commands don't exist
+			// We don't need to tell normies they aren't high enough level
 			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
 			std::ostringstream feedback;
-			feedback << "Command " << std::quoted(command) << " does not exist!";
+			feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 		}
+	} else {
+		// We don't need to tell normies commands don't exist
+		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+		std::ostringstream feedback;
+		feedback << "Command " << std::quoted(command) << " does not exist!";
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 	}
 }
 
@@ -170,15 +955,17 @@ namespace GMZeroCommands {
 		if (args.empty()) {
 			std::ostringstream helpMessage;
 			helpMessage << "Commands:\n*";
-			for (auto& command : RegisteredCommands) {
+			for (auto& command : CommandInfos) {
 				// TODO: Limit displaying commands based on GM level they require
-				// if (RegisteredCommands[args].requiredLevel > entity->GetGMLevel()) continue;
+				if (command.requiredLevel > entity->GetGMLevel()) continue;
 				helpMessage << command.aliases[0] << ": " << command.help << "\n*";
 			}
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
 		} else {
-			for (auto& command : RegisteredCommands) {
+			bool foundCommand = false;
+			for (auto& command : CommandInfos) {
 				if (std::find(command.aliases.begin(), command.aliases.end(), args) != command.aliases.end()) {
+					foundCommand = true;
 					if (entity->GetGMLevel() >= command.requiredLevel) {
 						std::ostringstream commandDetails;
 						commandDetails << "Command: " << command.aliases[0] << "\n*";
@@ -189,13 +976,13 @@ namespace GMZeroCommands {
 						}
 						GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(commandDetails.str().substr(0, commandDetails.str().size() - 2)));
 					}
-				} else {
-					// We don't need to tell normies commands don't exist
-					if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-					std::ostringstream feedback;
-					feedback << "Command " << std::quoted(args) << " does not exist!";
-					GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-				}
+				} 
+			}
+
+			if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
+				std::ostringstream feedback;
+				feedback << "Command " << std::quoted(args) << " does not exist!";
+				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 			}
 		}
 	}
