@@ -174,7 +174,7 @@ void SlashCommandHandler::Startup() {
 	Command KillCommand{
 		.help = "Smash a user",
 		.info = "Smashes the character whom the given user is playing",
-		.aliases = { "kill", "tsc" },
+		.aliases = { "kill" },
 		.handle = DEVGMCommands::Kill,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
