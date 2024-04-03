@@ -123,17 +123,13 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
 			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
-		} else {
+		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
 			// We don't need to tell civilians they aren't high enough level
-			if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
-				error = "You are not high enough GM level to use \"" + command + "\"";
-			}
+			error = "You are not high enough GM level to use \"" + command + "\"";
 		}
-	} else {
+	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
 		// We don't need to tell civilians commands don't exist
-		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
-			error = "Command " + command + " does not exist!";
-		}
+		error = "Command " + command + " does not exist!";
 	}
 
 	if (!error.empty()) {
