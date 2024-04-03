@@ -107,6 +107,36 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 	CommandInfos.push_back(command);
 };
 
+void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
+	auto input = GeneralUtils::UTF16ToWTF8(chat);
+	if (input.empty() || input.front() != u'/') return;
+	std::string command = input.substr(1, input.find(' ') - 1);
+
+	std::string args = input.substr(input.find(' ') + 1, std::string::npos);
+	if (args.front() == '/') args.clear();
+	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
+
+	if (RegisteredCommands.contains(command)) {
+		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
+			Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
+			RegisteredCommands[command].handle(entity, sysAddr, args);
+			return;
+		} else {
+			// We don't need to tell normies they aren't high enough level
+			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+			std::ostringstream feedback;
+			feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
+			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		}
+	} else {
+		// We don't need to tell normies commands don't exist
+		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
+		std::ostringstream feedback;
+		feedback << "Command " << std::quoted(command) << " does not exist!";
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
+}
+
 void SlashCommandHandler::Startup() {
 
 	// Register Dev Commands
@@ -191,35 +221,35 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ShutdownUniverseCommand);
 
 	Command SetMinifigCommand {
-		.help = "",
-		.info = "",
+		.help = "Alters your player's minifig",
+		.info = "Alters your player's minifig. Body part can be one of \"Eyebrows\", \"Eyes\", \"HairColor\", \"HairStyle\", \"Pants\", \"LeftHand\", \"Mouth\", \"RightHand\", \"Shirt\", or \"Hands\". Changing minifig parts could break the character so this command is limited to GMs.",
 		.aliases = { "setminifig" },
 		.handle = DEVGMCommands::SetMinifig,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::FORUM_MODERATOR
 	};
 	RegisterCommand(SetMinifigCommand);
 
 	Command TestMapCommand {
-		.help = "",
-		.info = "",
+		.help = "Transfers you to the given zone",
+		.info = "Transfers you to the given zone by id and clone id. Add \"force\" to skip checking if the zone is accessible (this can softlock your character, though, if you e.g. try to teleport to Frostburgh).",
 		.aliases = { "testmap", "tm" },
 		.handle = DEVGMCommands::TestMap,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::FORUM_MODERATOR
 	};
 	RegisterCommand(TestMapCommand);
 
 	Command ReportProxPhysCommand {
-		.help = "",
-		.info = "",
+		.help = "Display proximity sensor info",
+		.info = "Prints to console the position and radius of proximity sensors.",
 		.aliases = { "reportproxphys" },
 		.handle = DEVGMCommands::ReportProxPhys,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::OPERATOR
 	};
 	RegisterCommand(ReportProxPhysCommand);
 
 	Command SpawnPhysicsVertsCommand {
-		.help = "",
-		.info = "",
+		.help = "Spawns a 1x1 brick at all vertices of phantom physics objects",
+		.info = "Spawns a 1x1 brick at all vertices of phantom physics objects",
 		.aliases = { "spawnphysicsverts" },
 		.handle = DEVGMCommands::SpawnPhysicsVerts,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -227,17 +257,17 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SpawnPhysicsVertsCommand);
 
 	Command TeleportCommand {
-		.help = "",
-		.info = "",
+		.help = "Teleports you",
+		.info = "Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z)",
 		.aliases = { "teleport", "tele", "tp" },
 		.handle = DEVGMCommands::Teleport,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER
 	};
 	RegisterCommand(TeleportCommand);
 
 	Command ActivateSpawnerCommand {
-		.help = "",
-		.info = "",
+		.help = "Activates spawner by name",
+		.info = "Activates spawner by name",
 		.aliases = { "activatespawner" },
 		.handle = DEVGMCommands::ActivateSpawner,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -245,8 +275,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ActivateSpawnerCommand);
 
 	Command AddMissionCommand {
-		.help = "",
-		.info = "",
+		.help = "Accepts the mission, adding it to your journal.",
+		.info = "Accepts the mission, adding it to your journal.",
 		.aliases = { "addmission" },
 		.handle = DEVGMCommands::AddMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -254,8 +284,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(AddMissionCommand);
 
 	Command BoostCommand {
-		.help = "",
-		.info = "",
+		.help = "Adds boost to a vehicle",
+		.info = "Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time",
 		.aliases = { "boost" },
 		.handle = DEVGMCommands::Boost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -263,8 +293,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(BoostCommand);
 
 	Command UnboostCommand {
-		.help = "",
-		.info = "",
+		.help = "Removes a passive vehicle boost",
+		.info = "Removes a passive vehicle boost",
 		.aliases = { "unboost" },
 		.handle = DEVGMCommands::Unboost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -272,8 +302,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(UnboostCommand);
 
 	Command BuffCommand {
-		.help = "",
-		.info = "",
+		.help = "Applies a buff",
+		.info = "Applies a buff with the given id for the given number of seconds",
 		.aliases = { "buff" },
 		.handle = DEVGMCommands::Buff,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -281,8 +311,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(BuffCommand);
 
 	Command BuffMeCommand {
-		.help = "",
-		.info = "",
+		.help = "Sets health, armor, and imagination to 999",
+		.info = "Sets health, armor, and imagination to 999",
 		.aliases = { "buffme" },
 		.handle = DEVGMCommands::BuffMe,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -290,8 +320,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(BuffMeCommand);
 
 	Command BuffMedCommand {
-		.help = "",
-		.info = "",
+		.help = "Sets health, armor, and imagination to 9",
+		.info = "Sets health, armor, and imagination to 9",
 		.aliases = { "buffmed" },
 		.handle = DEVGMCommands::BuffMed,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -299,8 +329,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(BuffMedCommand);
 
 	Command ClearFlagCommand {
-		.help = "",
-		.info = "",
+		.help = "Clear a player flag",
+		.info = "Removes the given health or inventory flag from your player. Equivalent of calling `/setflag off <flag id>`",
 		.aliases = { "clearflag" },
 		.handle = DEVGMCommands::ClearFlag,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -308,8 +338,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ClearFlagCommand);
 
 	Command CompleteMissionCommand {
-		.help = "",
-		.info = "",
+		.help = "Completes the mission",
+		.info = "Completes the mission, removing it from your journal",
 		.aliases = { "completemission" },
 		.handle = DEVGMCommands::CompleteMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -317,8 +347,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(CompleteMissionCommand);
 
 	Command CreatePrivateCommand {
-		.help = "",
-		.info = "",
+		.help = "Creates a private zone with password",
+		.info = "Creates a private zone with password",
 		.aliases = { "createprivate" },
 		.handle = DEVGMCommands::CreatePrivate,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -326,8 +356,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(CreatePrivateCommand);
 
 	Command DebugUiCommand {
-		.help = "",
-		.info = "",
+		.help = "Toggle Debug UI",
+		.info = "Toggle Debug UI",
 		.aliases = { "debugui" },
 		.handle = DEVGMCommands::DebugUi,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -335,8 +365,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(DebugUiCommand);
 
 	Command DismountCommand {
-		.help = "",
-		.info = "",
+		.help = "Dismounts you from the vehicle or mount",
+		.info = "Dismounts you from the vehicle or mount",
 		.aliases = { "dismount" },
 		.handle = DEVGMCommands::Dismount,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -344,8 +374,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(DismountCommand);
 
 	Command ReloadConfigCommand {
-		.help = "",
-		.info = "",
+		.help = "Reload Server configs",
+		.info = "Reloads the server with the new config values.",
 		.aliases = { "reloadconfig", "reload-config" },
 		.handle = DEVGMCommands::ReloadConfig,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -353,8 +383,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ReloadConfigCommand);
 
 	Command ForceSaveCommand {
-		.help = "",
-		.info = "",
+		.help = "Force save your player",
+		.info = "While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database",
 		.aliases = { "forcesave", "force-save" },
 		.handle = DEVGMCommands::ForceSave,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -362,8 +392,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ForceSaveCommand);
 
 	Command FreecamCommand {
-		.help = "",
-		.info = "",
+		.help = "Toggles freecam mode",
+		.info = "Toggles freecam mode",
 		.aliases = { "freecam" },
 		.handle = DEVGMCommands::Freecam,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -371,17 +401,17 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(FreecamCommand);
 
 	Command FreeMoneyCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "freemoney" },
+		.help = "Give yourself coins",
+		.info = "Give yourself coins",
+		.aliases = { "freemoney", "givemoney", "money", "givecoins", "coins"},
 		.handle = DEVGMCommands::FreeMoney,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(FreeMoneyCommand);
 
 	Command GetNavmeshHeightCommand {
-		.help = "",
-		.info = "",
+		.help = "Display the navmesh height",
+		.info = "Display the navmesh height at your current position",
 		.aliases = { "getnavmeshheight" },
 		.handle = DEVGMCommands::GetNavmeshHeight,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -389,8 +419,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(GetNavmeshHeightCommand);
 
 	Command GiveUScoreCommand {
-		.help = "",
-		.info = "",
+		.help = "Gives uscore",
+		.info = "Gives uscore",
 		.aliases = { "giveuscore" },
 		.handle = DEVGMCommands::GiveUScore,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -398,8 +428,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(GiveUScoreCommand);
 
 	Command GmAddItemCommand {
-		.help = "",
-		.info = "",
+		.help = "Give yourseld an item",
+		.info = "Adds the given item to your inventory by id",
 		.aliases = { "gmadditem", "give" },
 		.handle = DEVGMCommands::GmAddItem,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -407,8 +437,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(GmAddItemCommand);
 
 	Command InspectCommand {
-		.help = "",
-		.info = "",
+		.help = "Inspect an object",
+		.info = "Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See detailed usage in the DLU docs",
 		.aliases = { "inspect" },
 		.handle = DEVGMCommands::Inspect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -416,8 +446,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(InspectCommand);
 
 	Command ListSpawnsCommand {
-		.help = "",
-		.info = "",
+		.help = "List spawn points for players",
+		.info = "Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.",
 		.aliases = { "list-spawns", "listspawns" },
 		.handle = DEVGMCommands::ListSpawns,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -425,8 +455,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ListSpawnsCommand);
 
 	Command LocRowCommand {
-		.help = "",
-		.info = "",
+		.help = "Prints the your current position and rotation information to the console",
+		.info = "Prints the your current position and rotation information to the console",
 		.aliases = { "locrow" },
 		.handle = DEVGMCommands::LocRow,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -434,8 +464,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(LocRowCommand);
 
 	Command LookupCommand {
-		.help = "",
-		.info = "",
+		.help = "Lookup an object",
+		.info = "Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query. Query can be multiple words delimited by spaces.",
 		.aliases = { "lookup" },
 		.handle = DEVGMCommands::Lookup,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -443,8 +473,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(LookupCommand);
 
 	Command PlayAnimationCommand {
-		.help = "",
-		.info = "",
+		.help = "Play an animation with given ID",
+		.info = "Play an animation with given ID",
 		.aliases = { "playanimation", "playanim" },
 		.handle = DEVGMCommands::PlayAnimation,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -452,8 +482,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(PlayAnimationCommand);
 
 	Command PlayEffectCommand {
-		.help = "",
-		.info = "",
+		.help = "Plays an effect",
+		.info = "Plays an effect",
 		.aliases = { "playeffect" },
 		.handle = DEVGMCommands::PlayEffect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -461,8 +491,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(PlayEffectCommand);
 
 	Command PlayLvlFxCommand {
-		.help = "",
-		.info = "",
+		.help = "Plays the level up animation on your character",
+		.info = "Plays the level up animation on your character",
 		.aliases = { "playlvlfx" },
 		.handle = DEVGMCommands::PlayLvlFx,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -470,8 +500,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(PlayLvlFxCommand);
 
 	Command PlayRebuildFxCommand {
-		.help = "",
-		.info = "",
+		.help = "Plays the quickbuild animation on your character",
+		.info = "Plays the quickbuild animation on your character",
 		.aliases = { "playrebuildfx" },
 		.handle = DEVGMCommands::PlayRebuildFx,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -479,8 +509,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(PlayRebuildFxCommand);
 
 	Command PosCommand {
-		.help = "",
-		.info = "",
+		.help = "Displays your current position in chat and in the console",
+		.info = "Displays your current position in chat and in the console",
 		.aliases = { "pos" },
 		.handle = DEVGMCommands::Pos,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -488,8 +518,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(PosCommand);
 
 	Command RefillStatsCommand {
-		.help = "",
-		.info = "",
+		.help = "Refills health, armor, and imagination to their maximum level",
+		.info = "Refills health, armor, and imagination to their maximum level",
 		.aliases = { "refillstats" },
 		.handle = DEVGMCommands::RefillStats,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -497,8 +527,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(RefillStatsCommand);
 
 	Command ReforgeCommand {
-		.help = "",
-		.info = "",
+		.help = "Reforges an item",
+		.info = "Reforges an item",
 		.aliases = { "reforge" },
 		.handle = DEVGMCommands::Reforge,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -506,8 +536,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ReforgeCommand);
 
 	Command ResetMissionCommand {
-		.help = "",
-		.info = "",
+		.help = "Sets the state of the mission to accepted but not yet started",
+		.info = "Sets the state of the mission to accepted but not yet started",
 		.aliases = { "resetmission" },
 		.handle = DEVGMCommands::ResetMission,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -515,8 +545,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ResetMissionCommand);
 
 	Command RotCommand {
-		.help = "",
-		.info = "",
+		.help = "Displays your current rotation in chat and in the console",
+		.info = "Displays your current rotation in chat and in the console",
 		.aliases = { "rot" },
 		.handle = DEVGMCommands::Rot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -524,8 +554,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(RotCommand);
 
 	Command RunMacroCommand {
-		.help = "",
-		.info = "",
+		.help = "Run a macro",
+		.info = "Runs any command macro found in `./res/macros/`",
 		.aliases = { "runmacro" },
 		.handle = DEVGMCommands::RunMacro,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -533,8 +563,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(RunMacroCommand);
 
 	Command SetControlSchemeCommand {
-		.help = "",
-		.info = "",
+		.help = "Sets the character control scheme to the specified number",
+		.info = "Sets the character control scheme to the specified number",
 		.aliases = { "setcontrolscheme" },
 		.handle = DEVGMCommands::SetControlScheme,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -542,17 +572,17 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetControlSchemeCommand);
 
 	Command SetCurrencyCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "setcurrency" },
+		.help = "Sets your coins",
+		.info = "Sets your coins",
+		.aliases = { "setcurrency", "setcoins" },
 		.handle = DEVGMCommands::SetCurrency,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(SetCurrencyCommand);
 
 	Command SetFlagCommand {
-		.help = "",
-		.info = "",
+		.help = "Set a player flag",
+		.info = "Sets the given inventory or health flag to the given value, where value can be one of \"on\" or \"off\". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`)",
 		.aliases = { "setflag" },
 		.handle = DEVGMCommands::SetFlag,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -560,17 +590,17 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetFlagCommand);
 
 	Command SetInventorySizeCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "setinventorysize" },
+		.help = "Set your inventory size",
+		.info = "Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size",
+		.aliases = { "setinventorysize", "setinvsize", "setinvensize" },
 		.handle = DEVGMCommands::SetInventorySize,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(SetInventorySizeCommand);
 
 	Command SetUiStateCommand {
-		.help = "",
-		.info = "",
+		.help = "Changes UI state",
+		.info = "Changes UI state",
 		.aliases = { "setuistate" },
 		.handle = DEVGMCommands::SetUiState,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -578,8 +608,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetUiStateCommand);
 
 	Command SpawnCommand {
-		.help = "",
-		.info = "",
+		.help = "Spawns an object at your location by id",
+		.info = "Spawns an object at your location by id",
 		.aliases = { "spawn" },
 		.handle = DEVGMCommands::Spawn,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -596,8 +626,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SpawnGroupCommand);
 
 	Command SpeedBoostCommand {
-		.help = "",
-		.info = "",
+		.help = "Set the players speed multiplier",
+		.info = "Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed",
 		.aliases = { "speedboost" },
 		.handle = DEVGMCommands::SpeedBoost,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -605,8 +635,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SpeedBoostCommand);
 
 	Command StartCelebrationCommand {
-		.help = "",
-		.info = "",
+		.help = "Starts a celebration effect on your character",
+		.info = "Starts a celebration effect on your character",
 		.aliases = { "startcelebration" },
 		.handle = DEVGMCommands::StartCelebration,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -614,8 +644,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(StartCelebrationCommand);
 
 	Command StopEffectCommand {
-		.help = "",
-		.info = "",
+		.help = "Stops the given effect",
+		.info = "Stops the given effect",
 		.aliases = { "stopeffect" },
 		.handle = DEVGMCommands::StopEffect,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -623,8 +653,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(StopEffectCommand);
 
 	Command ToggleCommand {
-		.help = "",
-		.info = "",
+		.help = "Toggles UI state",
+		.info = "Toggles UI state",
 		.aliases = { "toggle" },
 		.handle = DEVGMCommands::Toggle,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -632,8 +662,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ToggleCommand);
 
 	Command TpAllCommand {
-		.help = "",
-		.info = "",
+		.help = "Teleports all characters to your current position",
+		.info = "Teleports all characters to your current position",
 		.aliases = { "tpall" },
 		.handle = DEVGMCommands::TpAll,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -641,8 +671,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(TpAllCommand);
 
 	Command TriggerSpawnerCommand {
-		.help = "",
-		.info = "",
+		.help = "Triggers spawner by name",
+		.info = "Triggers spawner by name",
 		.aliases = { "triggerspawner" },
 		.handle = DEVGMCommands::TriggerSpawner,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -650,8 +680,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(TriggerSpawnerCommand);
 
 	Command UnlockEmoteCommand {
-		.help = "",
-		.info = "",
+		.help = "Unlocks for your character the emote of the given id",
+		.info = "Unlocks for your character the emote of the given id",
 		.aliases = { "unlock-emote", "unlockemote" },
 		.handle = DEVGMCommands::UnlockEmote,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -659,8 +689,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(UnlockEmoteCommand);
 
 	Command SetLevelCommand {
-		.help = "",
-		.info = "",
+		.help = "Set player level",
+		.info = "Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of",
 		.aliases = { "setlevel" },
 		.handle = DEVGMCommands::SetLevel,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -668,8 +698,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetLevelCommand);
 
 	Command SetSkillSlotCommand {
-		.help = "",
-		.info = "",
+		.help = "Set an action slot to a specific skill",
+		.info = "Set an action slot to a specific skill",
 		.aliases = { "setskillslot" },
 		.handle = DEVGMCommands::SetSkillSlot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -677,8 +707,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetSkillSlotCommand);
 
 	Command SetFactionCommand {
-		.help = "",
-		.info = "",
+		.help = "Set the players faction",
+		.info = "Clears the users current factions and sets it",
 		.aliases = { "setfaction" },
 		.handle = DEVGMCommands::SetFaction,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -686,8 +716,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetFactionCommand);
 
 	Command AddFactionCommand {
-		.help = "",
-		.info = "",
+		.help = "Add the faction to the users list of factions",
+		.info = "Add the faction to the users list of factions",
 		.aliases = { "addfaction" },
 		.handle = DEVGMCommands::AddFaction,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -695,8 +725,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(AddFactionCommand);
 
 	Command GetFactionsCommand {
-		.help = "",
-		.info = "",
+		.help = "Shows the player's factions",
+		.info = "Shows the player's factions",
 		.aliases = { "getfactions" },
 		.handle = DEVGMCommands::GetFactions,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -704,8 +734,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(GetFactionsCommand);
 
 	Command SetRewardCodeCommand {
-		.help = "",
-		.info = "",
+		.help = "Set a reward code for your account",
+		.info = "Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`",
 		.aliases = { "setrewardcode" },
 		.handle = DEVGMCommands::SetRewardCode,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -713,17 +743,17 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetRewardCodeCommand);
 
 	Command CrashCommand {
-		.help = "",
-		.info = "",
-		.aliases = { "crash", "pumpkin"  },
+		.help = "Crash the server",
+		.info = "Crashes the server",
+		.aliases = { "crash", "pumpkin" },
 		.handle = DEVGMCommands::Crash,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(CrashCommand);
 
 	Command RollLootCommand {
-		.help = "",
-		.info = "",
+		.help = "Simulate loot rolls",
+		.info = "Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.",
 		.aliases = { "rollloot", "roll-loot" },
 		.handle = DEVGMCommands::RollLoot,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -731,8 +761,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(RollLootCommand);
 
 	Command CastSkillCommand {
-		.help = "",
-		.info = "",
+		.help = "Casts the skill as the player",
+		.info = "Casts the skill as the player",
 		.aliases = { "castskill" },
 		.handle = DEVGMCommands::CastSkill,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
@@ -740,10 +770,10 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(CastSkillCommand);
 
 	Command DeleteInvenCommand {
-		.help = "",
-		.info = "",
+		.help = "Delete all items from a specified inventory",
+		.info = "Delete all items from a specified inventory",
 		.aliases = { "deleteinven" },
-		.handle = DEVGMCommands::CastSkill,
+		.handle = DEVGMCommands::DeleteInven,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(DeleteInvenCommand);
@@ -961,44 +991,14 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(ResurrectCommand);
 
 	Command InstanceInfoCommand {
-		.help = "",
-		.info = "",
+		.help = "Display LWOZoneID info for the current zone",
+		.info = "Display LWOZoneID info for the current zone",
 		.aliases = { "instanceinfo" },
 		.handle = GMZeroCommands::InstanceInfo,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(InstanceInfoCommand);
 
-}
-
-void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
-	auto input = GeneralUtils::UTF16ToWTF8(chat);
-	if (input.empty() || input.front() != u'/') return;
-	std::string command = input.substr(1, input.find(' ') - 1);
-
-	std::string args = input.substr(input.find(' ') + 1, std::string::npos);
-	if (args.front() == '/') args.clear();
-	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
-
-	if (RegisteredCommands.contains(command)) {
-		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
-			Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
-			RegisteredCommands[command].handle(entity, sysAddr, args);
-			return;
-		} else {
-			// We don't need to tell normies they aren't high enough level
-			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-			std::ostringstream feedback;
-			feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-		}
-	} else {
-		// We don't need to tell normies commands don't exist
-		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-		std::ostringstream feedback;
-		feedback << "Command " << std::quoted(command) << " does not exist!";
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-	}
 }
 
 namespace GMZeroCommands {
@@ -1011,6 +1011,8 @@ namespace GMZeroCommands {
 				if (command.requiredLevel > entity->GetGMLevel()) continue;
 				helpMessage << "/" << command.aliases[0] << ": " << command.help << "\n*";
 			}
+			LOG("HELP TEXT IS: \n%s",helpMessage.str().c_str() );
+
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
 		} else {
 			bool foundCommand = false;
@@ -1019,12 +1021,13 @@ namespace GMZeroCommands {
 					foundCommand = true;
 					if (entity->GetGMLevel() >= command.requiredLevel) {
 						std::ostringstream commandDetails;
-						commandDetails << "----- " << command.aliases[0] << " -----n*";
+						commandDetails << "----- " << command.aliases[0] << " -----\n*";
 						commandDetails << command.info << "\n*";
 						if (command.aliases.size() > 1) {
 							commandDetails << "Aliases: ";
 							std::copy(command.aliases.begin(), command.aliases.end(), std::ostream_iterator<std::string>(commandDetails, ", "));
 						}
+						LOG("HELP TEXT IS: \n%s",commandDetails.str().c_str() );
 						GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(commandDetails.str().substr(0, commandDetails.str().size() - 2)));
 					}
 				} 
