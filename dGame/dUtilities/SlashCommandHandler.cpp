@@ -121,7 +121,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	if (commandItr != RegisteredCommands.end()) {
 		auto& [alias, commandHandle] = *commandItr;
 		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
-			Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
+			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
 		} else {
 			// We don't need to tell civilians they aren't high enough level
