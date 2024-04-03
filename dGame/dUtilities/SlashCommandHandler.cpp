@@ -79,6 +79,7 @@
 #include "CDZoneTableTable.h"
 #include "ePlayerFlag.h"
 #include "dNavMesh.h"
+#include <ranges>
 
 namespace {
 	std::vector<Command> CommandInfos;
@@ -86,54 +87,57 @@ namespace {
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
-	if (command.aliases.empty()) return;
+	if (command.aliases.empty()) {
+		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
+		return;
+	}
 
-	LOG_DEBUG("Registering SlashCommand: %s", command.aliases[0].c_str());
-	std::vector<std::string> toRemove;
-	for (auto& alias : command.aliases) {
-		if (alias.empty()) continue;
-		if (RegisteredCommands.contains(alias)){
+	for (const auto& alias : command.aliases) {
+		LOG_DEBUG("Registering command %s", alias.c_str());
+		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
+		// Don't allow duplicate commands
+		if (!success) {
 			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
-			// denote it to be removed
-			toRemove.push_back(alias);
 			continue;
 		}
-		RegisteredCommands.emplace(make_pair(alias, command));
 	}
-	// Actually remove the duplicate aliases here
-	for (auto& removing : toRemove) {
-		command.aliases.erase(std::find(std::cbegin(command.aliases), std::cend(command.aliases), removing));
-	}
+
 	CommandInfos.push_back(command);
 };
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
-	if (input.empty() || input.front() != u'/') return;
-	std::string command = input.substr(1, input.find(' ') - 1);
+	if (input.empty() || input.front() != '/') return;
+	const auto pos = input.find(' ');
+	std::string command = input.substr(1, pos - 1);
 
-	std::string args = input.substr(input.find(' ') + 1, std::string::npos);
-	if (args.front() == '/') args.clear();
-	LOG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
+	std::string args;
+	// make sure the space exists and isn't the last character
+	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
+	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
 
-	if (RegisteredCommands.contains(command)) {
-		if (entity->GetGMLevel() >= RegisteredCommands[command].requiredLevel) {
+	const auto commandItr = RegisteredCommands.find(command);
+	std::string error;
+	if (commandItr != RegisteredCommands.end()) {
+		auto& [alias, commandHandle] = *commandItr;
+		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
 			Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
-			RegisteredCommands[command].handle(entity, sysAddr, args);
-			return;
+			commandHandle.handle(entity, sysAddr, args);
 		} else {
-			// We don't need to tell normies they aren't high enough level
-			if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-			std::ostringstream feedback;
-			feedback << "You are not high enough GM level to use " << std::quoted(command) << "";
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			// We don't need to tell civilians they aren't high enough level
+			if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
+				error = "You are not high enough GM level to use \"" + command + "\"";
+			}
 		}
 	} else {
-		// We don't need to tell normies commands don't exist
-		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) return;
-		std::ostringstream feedback;
-		feedback << "Command " << std::quoted(command) << " does not exist!";
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		// We don't need to tell civilians commands don't exist
+		if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
+			error = "Command " + command + " does not exist!";
+		}
+	}
+
+	if (!error.empty()) {
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
 	}
 }
 
@@ -167,16 +171,16 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ToggleSkipCinematicsCommand);
 
-	Command KillCommand {
+	Command KillCommand{
 		.help = "Smash a user",
 		.info = "Smashes the character whom the given user is playing",
-		.aliases = { "kill" },
+		.aliases = { "kill", "tsc" },
 		.handle = DEVGMCommands::Kill,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(KillCommand);
 
-	Command MetricsCommand {
+	Command MetricsCommand{
 		.help = "Display server metrics",
 		.info = "Prints some information about the server's performance",
 		.aliases = { "metrics" },
@@ -185,7 +189,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(MetricsCommand);
 
-	Command AnnounceCommand {
+	Command AnnounceCommand{
 		.help = " Send and announcement",
 		.info = "Sends an announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.",
 		.aliases = { "announce" },
@@ -194,7 +198,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(AnnounceCommand);
 
-	Command SetAnnTitleCommand {
+	Command SetAnnTitleCommand{
 		.help = "Sets the title of an announcement",
 		.info = "Sets the title of an announcement. Use with `/setannmsg` and `/announce`",
 		.aliases = { "setanntitle" },
@@ -203,7 +207,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetAnnTitleCommand);
 
-	Command SetAnnMsgCommand {
+	Command SetAnnMsgCommand{
 		.help = "Sets the message of an announcement",
 		.info = "Sets the message of an announcement. Use with `/setannmtitle` and `/announce`",
 		.aliases = { "setannmsg" },
@@ -212,7 +216,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetAnnMsgCommand);
 
-	Command ShutdownUniverseCommand {
+	Command ShutdownUniverseCommand{
 		.help = "Sends a shutdown message to the master server",
 		.info = "Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.",
 		.aliases = { "shutdownuniverse" },
@@ -220,7 +224,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ShutdownUniverseCommand);
 
-	Command SetMinifigCommand {
+	Command SetMinifigCommand{
 		.help = "Alters your player's minifig",
 		.info = "Alters your player's minifig. Body part can be one of \"Eyebrows\", \"Eyes\", \"HairColor\", \"HairStyle\", \"Pants\", \"LeftHand\", \"Mouth\", \"RightHand\", \"Shirt\", or \"Hands\". Changing minifig parts could break the character so this command is limited to GMs.",
 		.aliases = { "setminifig" },
@@ -229,7 +233,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetMinifigCommand);
 
-	Command TestMapCommand {
+	Command TestMapCommand{
 		.help = "Transfers you to the given zone",
 		.info = "Transfers you to the given zone by id and clone id. Add \"force\" to skip checking if the zone is accessible (this can softlock your character, though, if you e.g. try to teleport to Frostburgh).",
 		.aliases = { "testmap", "tm" },
@@ -238,7 +242,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TestMapCommand);
 
-	Command ReportProxPhysCommand {
+	Command ReportProxPhysCommand{
 		.help = "Display proximity sensor info",
 		.info = "Prints to console the position and radius of proximity sensors.",
 		.aliases = { "reportproxphys" },
@@ -247,7 +251,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ReportProxPhysCommand);
 
-	Command SpawnPhysicsVertsCommand {
+	Command SpawnPhysicsVertsCommand{
 		.help = "Spawns a 1x1 brick at all vertices of phantom physics objects",
 		.info = "Spawns a 1x1 brick at all vertices of phantom physics objects",
 		.aliases = { "spawnphysicsverts" },
@@ -256,7 +260,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SpawnPhysicsVertsCommand);
 
-	Command TeleportCommand {
+	Command TeleportCommand{
 		.help = "Teleports you",
 		.info = "Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z)",
 		.aliases = { "teleport", "tele", "tp" },
@@ -265,7 +269,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TeleportCommand);
 
-	Command ActivateSpawnerCommand {
+	Command ActivateSpawnerCommand{
 		.help = "Activates spawner by name",
 		.info = "Activates spawner by name",
 		.aliases = { "activatespawner" },
@@ -274,7 +278,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ActivateSpawnerCommand);
 
-	Command AddMissionCommand {
+	Command AddMissionCommand{
 		.help = "Accepts the mission, adding it to your journal.",
 		.info = "Accepts the mission, adding it to your journal.",
 		.aliases = { "addmission" },
@@ -283,7 +287,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(AddMissionCommand);
 
-	Command BoostCommand {
+	Command BoostCommand{
 		.help = "Adds boost to a vehicle",
 		.info = "Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time",
 		.aliases = { "boost" },
@@ -292,7 +296,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(BoostCommand);
 
-	Command UnboostCommand {
+	Command UnboostCommand{
 		.help = "Removes a passive vehicle boost",
 		.info = "Removes a passive vehicle boost",
 		.aliases = { "unboost" },
@@ -301,7 +305,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(UnboostCommand);
 
-	Command BuffCommand {
+	Command BuffCommand{
 		.help = "Applies a buff",
 		.info = "Applies a buff with the given id for the given number of seconds",
 		.aliases = { "buff" },
@@ -310,7 +314,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(BuffCommand);
 
-	Command BuffMeCommand {
+	Command BuffMeCommand{
 		.help = "Sets health, armor, and imagination to 999",
 		.info = "Sets health, armor, and imagination to 999",
 		.aliases = { "buffme" },
@@ -319,7 +323,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(BuffMeCommand);
 
-	Command BuffMedCommand {
+	Command BuffMedCommand{
 		.help = "Sets health, armor, and imagination to 9",
 		.info = "Sets health, armor, and imagination to 9",
 		.aliases = { "buffmed" },
@@ -328,7 +332,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(BuffMedCommand);
 
-	Command ClearFlagCommand {
+	Command ClearFlagCommand{
 		.help = "Clear a player flag",
 		.info = "Removes the given health or inventory flag from your player. Equivalent of calling `/setflag off <flag id>`",
 		.aliases = { "clearflag" },
@@ -337,7 +341,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ClearFlagCommand);
 
-	Command CompleteMissionCommand {
+	Command CompleteMissionCommand{
 		.help = "Completes the mission",
 		.info = "Completes the mission, removing it from your journal",
 		.aliases = { "completemission" },
@@ -346,7 +350,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(CompleteMissionCommand);
 
-	Command CreatePrivateCommand {
+	Command CreatePrivateCommand{
 		.help = "Creates a private zone with password",
 		.info = "Creates a private zone with password",
 		.aliases = { "createprivate" },
@@ -355,7 +359,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(CreatePrivateCommand);
 
-	Command DebugUiCommand {
+	Command DebugUiCommand{
 		.help = "Toggle Debug UI",
 		.info = "Toggle Debug UI",
 		.aliases = { "debugui" },
@@ -364,7 +368,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(DebugUiCommand);
 
-	Command DismountCommand {
+	Command DismountCommand{
 		.help = "Dismounts you from the vehicle or mount",
 		.info = "Dismounts you from the vehicle or mount",
 		.aliases = { "dismount" },
@@ -373,7 +377,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(DismountCommand);
 
-	Command ReloadConfigCommand {
+	Command ReloadConfigCommand{
 		.help = "Reload Server configs",
 		.info = "Reloads the server with the new config values.",
 		.aliases = { "reloadconfig", "reload-config" },
@@ -382,7 +386,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ReloadConfigCommand);
 
-	Command ForceSaveCommand {
+	Command ForceSaveCommand{
 		.help = "Force save your player",
 		.info = "While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database",
 		.aliases = { "forcesave", "force-save" },
@@ -391,7 +395,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ForceSaveCommand);
 
-	Command FreecamCommand {
+	Command FreecamCommand{
 		.help = "Toggles freecam mode",
 		.info = "Toggles freecam mode",
 		.aliases = { "freecam" },
@@ -400,7 +404,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FreecamCommand);
 
-	Command FreeMoneyCommand {
+	Command FreeMoneyCommand{
 		.help = "Give yourself coins",
 		.info = "Give yourself coins",
 		.aliases = { "freemoney", "givemoney", "money", "givecoins", "coins"},
@@ -409,7 +413,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FreeMoneyCommand);
 
-	Command GetNavmeshHeightCommand {
+	Command GetNavmeshHeightCommand{
 		.help = "Display the navmesh height",
 		.info = "Display the navmesh height at your current position",
 		.aliases = { "getnavmeshheight" },
@@ -418,7 +422,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GetNavmeshHeightCommand);
 
-	Command GiveUScoreCommand {
+	Command GiveUScoreCommand{
 		.help = "Gives uscore",
 		.info = "Gives uscore",
 		.aliases = { "giveuscore" },
@@ -427,7 +431,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GiveUScoreCommand);
 
-	Command GmAddItemCommand {
+	Command GmAddItemCommand{
 		.help = "Give yourseld an item",
 		.info = "Adds the given item to your inventory by id",
 		.aliases = { "gmadditem", "give" },
@@ -436,7 +440,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GmAddItemCommand);
 
-	Command InspectCommand {
+	Command InspectCommand{
 		.help = "Inspect an object",
 		.info = "Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See detailed usage in the DLU docs",
 		.aliases = { "inspect" },
@@ -445,7 +449,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(InspectCommand);
 
-	Command ListSpawnsCommand {
+	Command ListSpawnsCommand{
 		.help = "List spawn points for players",
 		.info = "Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.",
 		.aliases = { "list-spawns", "listspawns" },
@@ -454,7 +458,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ListSpawnsCommand);
 
-	Command LocRowCommand {
+	Command LocRowCommand{
 		.help = "Prints the your current position and rotation information to the console",
 		.info = "Prints the your current position and rotation information to the console",
 		.aliases = { "locrow" },
@@ -463,7 +467,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(LocRowCommand);
 
-	Command LookupCommand {
+	Command LookupCommand{
 		.help = "Lookup an object",
 		.info = "Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query. Query can be multiple words delimited by spaces.",
 		.aliases = { "lookup" },
@@ -472,7 +476,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(LookupCommand);
 
-	Command PlayAnimationCommand {
+	Command PlayAnimationCommand{
 		.help = "Play an animation with given ID",
 		.info = "Play an animation with given ID",
 		.aliases = { "playanimation", "playanim" },
@@ -481,7 +485,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PlayAnimationCommand);
 
-	Command PlayEffectCommand {
+	Command PlayEffectCommand{
 		.help = "Plays an effect",
 		.info = "Plays an effect",
 		.aliases = { "playeffect" },
@@ -490,7 +494,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PlayEffectCommand);
 
-	Command PlayLvlFxCommand {
+	Command PlayLvlFxCommand{
 		.help = "Plays the level up animation on your character",
 		.info = "Plays the level up animation on your character",
 		.aliases = { "playlvlfx" },
@@ -499,7 +503,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PlayLvlFxCommand);
 
-	Command PlayRebuildFxCommand {
+	Command PlayRebuildFxCommand{
 		.help = "Plays the quickbuild animation on your character",
 		.info = "Plays the quickbuild animation on your character",
 		.aliases = { "playrebuildfx" },
@@ -508,7 +512,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PlayRebuildFxCommand);
 
-	Command PosCommand {
+	Command PosCommand{
 		.help = "Displays your current position in chat and in the console",
 		.info = "Displays your current position in chat and in the console",
 		.aliases = { "pos" },
@@ -517,7 +521,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PosCommand);
 
-	Command RefillStatsCommand {
+	Command RefillStatsCommand{
 		.help = "Refills health, armor, and imagination to their maximum level",
 		.info = "Refills health, armor, and imagination to their maximum level",
 		.aliases = { "refillstats" },
@@ -526,7 +530,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(RefillStatsCommand);
 
-	Command ReforgeCommand {
+	Command ReforgeCommand{
 		.help = "Reforges an item",
 		.info = "Reforges an item",
 		.aliases = { "reforge" },
@@ -535,7 +539,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ReforgeCommand);
 
-	Command ResetMissionCommand {
+	Command ResetMissionCommand{
 		.help = "Sets the state of the mission to accepted but not yet started",
 		.info = "Sets the state of the mission to accepted but not yet started",
 		.aliases = { "resetmission" },
@@ -544,7 +548,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ResetMissionCommand);
 
-	Command RotCommand {
+	Command RotCommand{
 		.help = "Displays your current rotation in chat and in the console",
 		.info = "Displays your current rotation in chat and in the console",
 		.aliases = { "rot" },
@@ -553,7 +557,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(RotCommand);
 
-	Command RunMacroCommand {
+	Command RunMacroCommand{
 		.help = "Run a macro",
 		.info = "Runs any command macro found in `./res/macros/`",
 		.aliases = { "runmacro" },
@@ -562,7 +566,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(RunMacroCommand);
 
-	Command SetControlSchemeCommand {
+	Command SetControlSchemeCommand{
 		.help = "Sets the character control scheme to the specified number",
 		.info = "Sets the character control scheme to the specified number",
 		.aliases = { "setcontrolscheme" },
@@ -571,7 +575,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetControlSchemeCommand);
 
-	Command SetCurrencyCommand {
+	Command SetCurrencyCommand{
 		.help = "Sets your coins",
 		.info = "Sets your coins",
 		.aliases = { "setcurrency", "setcoins" },
@@ -580,7 +584,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetCurrencyCommand);
 
-	Command SetFlagCommand {
+	Command SetFlagCommand{
 		.help = "Set a player flag",
 		.info = "Sets the given inventory or health flag to the given value, where value can be one of \"on\" or \"off\". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`)",
 		.aliases = { "setflag" },
@@ -589,7 +593,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetFlagCommand);
 
-	Command SetInventorySizeCommand {
+	Command SetInventorySizeCommand{
 		.help = "Set your inventory size",
 		.info = "Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size",
 		.aliases = { "setinventorysize", "setinvsize", "setinvensize" },
@@ -598,7 +602,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetInventorySizeCommand);
 
-	Command SetUiStateCommand {
+	Command SetUiStateCommand{
 		.help = "Changes UI state",
 		.info = "Changes UI state",
 		.aliases = { "setuistate" },
@@ -607,7 +611,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetUiStateCommand);
 
-	Command SpawnCommand {
+	Command SpawnCommand{
 		.help = "Spawns an object at your location by id",
 		.info = "Spawns an object at your location by id",
 		.aliases = { "spawn" },
@@ -616,7 +620,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SpawnCommand);
 
-	Command SpawnGroupCommand {
+	Command SpawnGroupCommand{
 		.help = "",
 		.info = "",
 		.aliases = { "spawngroup" },
@@ -625,7 +629,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SpawnGroupCommand);
 
-	Command SpeedBoostCommand {
+	Command SpeedBoostCommand{
 		.help = "Set the players speed multiplier",
 		.info = "Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed",
 		.aliases = { "speedboost" },
@@ -634,7 +638,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SpeedBoostCommand);
 
-	Command StartCelebrationCommand {
+	Command StartCelebrationCommand{
 		.help = "Starts a celebration effect on your character",
 		.info = "Starts a celebration effect on your character",
 		.aliases = { "startcelebration" },
@@ -643,7 +647,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(StartCelebrationCommand);
 
-	Command StopEffectCommand {
+	Command StopEffectCommand{
 		.help = "Stops the given effect",
 		.info = "Stops the given effect",
 		.aliases = { "stopeffect" },
@@ -652,7 +656,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(StopEffectCommand);
 
-	Command ToggleCommand {
+	Command ToggleCommand{
 		.help = "Toggles UI state",
 		.info = "Toggles UI state",
 		.aliases = { "toggle" },
@@ -661,7 +665,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ToggleCommand);
 
-	Command TpAllCommand {
+	Command TpAllCommand{
 		.help = "Teleports all characters to your current position",
 		.info = "Teleports all characters to your current position",
 		.aliases = { "tpall" },
@@ -670,7 +674,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TpAllCommand);
 
-	Command TriggerSpawnerCommand {
+	Command TriggerSpawnerCommand{
 		.help = "Triggers spawner by name",
 		.info = "Triggers spawner by name",
 		.aliases = { "triggerspawner" },
@@ -679,7 +683,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TriggerSpawnerCommand);
 
-	Command UnlockEmoteCommand {
+	Command UnlockEmoteCommand{
 		.help = "Unlocks for your character the emote of the given id",
 		.info = "Unlocks for your character the emote of the given id",
 		.aliases = { "unlock-emote", "unlockemote" },
@@ -688,7 +692,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(UnlockEmoteCommand);
 
-	Command SetLevelCommand {
+	Command SetLevelCommand{
 		.help = "Set player level",
 		.info = "Sets the using entities level to the requested level.  Takes an optional parameter of an in-game players username to set the level of",
 		.aliases = { "setlevel" },
@@ -697,7 +701,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetLevelCommand);
 
-	Command SetSkillSlotCommand {
+	Command SetSkillSlotCommand{
 		.help = "Set an action slot to a specific skill",
 		.info = "Set an action slot to a specific skill",
 		.aliases = { "setskillslot" },
@@ -706,7 +710,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetSkillSlotCommand);
 
-	Command SetFactionCommand {
+	Command SetFactionCommand{
 		.help = "Set the players faction",
 		.info = "Clears the users current factions and sets it",
 		.aliases = { "setfaction" },
@@ -715,7 +719,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetFactionCommand);
 
-	Command AddFactionCommand {
+	Command AddFactionCommand{
 		.help = "Add the faction to the users list of factions",
 		.info = "Add the faction to the users list of factions",
 		.aliases = { "addfaction" },
@@ -724,7 +728,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(AddFactionCommand);
 
-	Command GetFactionsCommand {
+	Command GetFactionsCommand{
 		.help = "Shows the player's factions",
 		.info = "Shows the player's factions",
 		.aliases = { "getfactions" },
@@ -733,7 +737,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GetFactionsCommand);
 
-	Command SetRewardCodeCommand {
+	Command SetRewardCodeCommand{
 		.help = "Set a reward code for your account",
 		.info = "Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`",
 		.aliases = { "setrewardcode" },
@@ -742,7 +746,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetRewardCodeCommand);
 
-	Command CrashCommand {
+	Command CrashCommand{
 		.help = "Crash the server",
 		.info = "Crashes the server",
 		.aliases = { "crash", "pumpkin" },
@@ -751,7 +755,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(CrashCommand);
 
-	Command RollLootCommand {
+	Command RollLootCommand{
 		.help = "Simulate loot rolls",
 		.info = "Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.",
 		.aliases = { "rollloot", "roll-loot" },
@@ -760,7 +764,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(RollLootCommand);
 
-	Command CastSkillCommand {
+	Command CastSkillCommand{
 		.help = "Casts the skill as the player",
 		.info = "Casts the skill as the player",
 		.aliases = { "castskill" },
@@ -769,7 +773,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(CastSkillCommand);
 
-	Command DeleteInvenCommand {
+	Command DeleteInvenCommand{
 		.help = "Delete all items from a specified inventory",
 		.info = "Delete all items from a specified inventory",
 		.aliases = { "deleteinven" },
@@ -780,7 +784,7 @@ void SlashCommandHandler::Startup() {
 
 	// Register Greater Than Zero Commands
 
-	Command KickCommand {
+	Command KickCommand{
 		.help = "Kicks the player off the server",
 		.info = "Kicks the player off the server",
 		.aliases = { "kick" },
@@ -789,7 +793,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(KickCommand);
 
-	Command MailItemCommand {
+	Command MailItemCommand{
 		.help = "Mails an item to the given player",
 		.info = "Mails an item to the given player. The mailed item has predetermined content. The sender name is set to \"Darkflame Universe\". The title of the message is \"Lost item\". The body of the message is \"This is a replacement item for one you lost\".",
 		.aliases = { "mailitem" },
@@ -798,7 +802,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(MailItemCommand);
 
-	Command BanCommand {
+	Command BanCommand{
 		.help = "Bans a user from the server",
 		.info = "Bans a user from the server",
 		.aliases = { "ban" },
@@ -807,7 +811,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(BanCommand);
 
-	Command ApprovePropertyCommand {
+	Command ApprovePropertyCommand{
 		.help = "Approves a property",
 		.info = "Approves the property the player is currently visiting",
 		.aliases = { "approveproperty" },
@@ -816,7 +820,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ApprovePropertyCommand);
 
-	Command MuteCommand {
+	Command MuteCommand{
 		.help = "Mute a player",
 		.info = "Mute player for the given amount of time. If no time is given, the mute is indefinite.",
 		.aliases = { "mute" },
@@ -825,7 +829,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(MuteCommand);
 
-	Command FlyCommand {
+	Command FlyCommand{
 		.help = "Toggle flying",
 		.info = "Toggles your flying state with an optional parameter for the speed scale.",
 		.aliases = { "fly" },
@@ -834,7 +838,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FlyCommand);
 
-	Command AttackImmuneCommand {
+	Command AttackImmuneCommand{
 		.help = "Make yourself immune to attacks",
 		.info = "Sets the character's immunity to basic attacks state, where value can be one of \"1\", to make yourself immune to basic attack damage, or \"0\" to undo",
 		.aliases = { "attackimmune" },
@@ -843,7 +847,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(AttackImmuneCommand);
 
-	Command GmImmuneCommand {
+	Command GmImmuneCommand{
 		.help = "Sets the character's GMImmune state",
 		.info = "Sets the character's GMImmune state, where value can be one of \"1\", to make yourself immune to damage, or \"0\" to undo",
 		.aliases = { "gmimmune" },
@@ -852,7 +856,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GmImmuneCommand);
 
-	Command GmInvisCommand {
+	Command GmInvisCommand{
 		.help = "Toggles invisibility for the character",
 		.info = "Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8",
 		.aliases = { "gminvis" },
@@ -861,7 +865,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(GmInvisCommand);
 
-	Command SetNameCommand {
+	Command SetNameCommand{
 
 		.help = "Sets a temporary name for your player",
 		.info = "Sets a temporary name for your player. The name resets when you log out",
@@ -871,7 +875,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(SetNameCommand);
 
-	Command TitleCommand {
+	Command TitleCommand{
 		.help = "Give your character a title",
 		.info = "Temporarily appends your player's name with \" - &#60;title&#62;\". This resets when you log out",
 		.aliases = { "title" },
@@ -891,7 +895,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(HelpCommand);
 
-	Command CreditsCommand {
+	Command CreditsCommand{
 		.help = "Displays DLU Credits",
 		.info = "Displays the names of the people behind Darkflame Universe.",
 		.aliases = { "credits" },
@@ -900,7 +904,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(CreditsCommand);
 
-	Command InfoCommand {
+	Command InfoCommand{
 		.help = "Displays server info",
 		.info = "Displays server info to the user, including where to find the server's source code",
 		.aliases = { "info" },
@@ -909,7 +913,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(InfoCommand);
 
-	Command DieCommand {
+	Command DieCommand{
 		.help = "Smashes the player",
 		.info = "Smashes the player as if they were killed by something",
 		.aliases = { "die" },
@@ -918,7 +922,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(DieCommand);
 
-	Command PingCommand {
+	Command PingCommand{
 		.help = "Displays your average ping.",
 		.info = "Displays your average ping. If the `-l` flag is used, the latest ping is displayed.",
 		.aliases = { "ping" },
@@ -927,7 +931,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PingCommand);
 
-	Command PvpCommand {
+	Command PvpCommand{
 		.help = "Toggle your PVP flag",
 		.info = "Toggle your PVP flag",
 		.aliases = { "pvp" },
@@ -936,7 +940,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(PvpCommand);
 
-	Command RequestMailCountCommand {
+	Command RequestMailCountCommand{
 		.help = "Gets the players mail count",
 		.info = "Sends notification with number of unread messages in the player's mailbox",
 		.aliases = { "requestmailcount" },
@@ -945,7 +949,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(RequestMailCountCommand);
 
-	Command WhoCommand {
+	Command WhoCommand{
 		.help = "Displays all players on the instance",
 		.info = "Displays all players on the instance",
 		.aliases = { "who" },
@@ -954,7 +958,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(WhoCommand);
 
-	Command FixStatsCommand {
+	Command FixStatsCommand{
 		.help = "Resets skills, buffs, and destroyables",
 		.info = "Resets skills, buffs, and destroyables",
 		.aliases = { "fix-stats" },
@@ -963,7 +967,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FixStatsCommand);
 
-	Command JoinCommand {
+	Command JoinCommand{
 		.help = "Join a private zone",
 		.info = "Join a private zone with given password",
 		.aliases = { "join" },
@@ -972,7 +976,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(JoinCommand);
 
-	Command LeaveZoneCommand {
+	Command LeaveZoneCommand{
 		.help = "Leave an instanced zone",
 		.info = "If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.",
 		.aliases = { "leave-zone", "leavezone" },
@@ -981,7 +985,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(LeaveZoneCommand);
 
-	Command ResurrectCommand {
+	Command ResurrectCommand{
 		.help = "Resurrects the player",
 		.info = "Resurrects the player",
 		.aliases = { "resurrect" },
@@ -990,7 +994,7 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ResurrectCommand);
 
-	Command InstanceInfoCommand {
+	Command InstanceInfoCommand{
 		.help = "Display LWOZoneID info for the current zone",
 		.info = "Display LWOZoneID info for the current zone",
 		.aliases = { "instanceinfo" },
@@ -1002,40 +1006,41 @@ void SlashCommandHandler::Startup() {
 }
 
 namespace GMZeroCommands {
+	// The star delimiter is to be used for marking the start and end of a localized string.
 	void Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		std::ostringstream feedback;
 		if (args.empty()) {
-			std::ostringstream helpMessage;
-			helpMessage << "----- Commands -----\n*";
-			for (auto& command : CommandInfos) {
+			feedback << "----- Commands -----\n";
+			for (size_t i = 0; i < CommandInfos.size(); i++) {
+				const auto& command = CommandInfos[i];
 				// TODO: Limit displaying commands based on GM level they require
 				if (command.requiredLevel > entity->GetGMLevel()) continue;
-				helpMessage << "/" << command.aliases[0] << ": " << command.help << "\n*";
+				if (i > 0) feedback << '\n';
+				feedback << "/" << command.aliases[0] << ": *" << command.help << '*';
 			}
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
 		} else {
 			bool foundCommand = false;
-			for (auto& command : CommandInfos) {
-				if (std::find(command.aliases.begin(), command.aliases.end(), args) != command.aliases.end()) {
-					foundCommand = true;
-					if (entity->GetGMLevel() >= command.requiredLevel) {
-						std::ostringstream commandDetails;
-						commandDetails << "----- " << command.aliases[0] << " -----\n*";
-						commandDetails << command.info << "\n*";
-						if (command.aliases.size() > 1) {
-							commandDetails << "Aliases: ";
-							std::copy(command.aliases.begin(), command.aliases.end(), std::ostream_iterator<std::string>(commandDetails, ", "));
-						}
-						GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(commandDetails.str().substr(0, commandDetails.str().size() - 2)));
-					}
-				} 
+			for (const auto& command : CommandInfos) {
+				if (std::ranges::find(command.aliases, args) == command.aliases.end()) continue;
+
+				if (entity->GetGMLevel() < command.requiredLevel) break;
+				foundCommand = true;
+				feedback << "----- " << command.aliases.at(0) << " -----\n";
+				// info can be a localizable string
+				feedback << '*' << command.info << "*";
+				if (command.aliases.size() == 1) break;
+
+				feedback << "\nAliases: ";
+				for (size_t i = 0; i < command.aliases.size(); i++) {
+					if (i > 0) feedback << ", ";
+					feedback << command.aliases[i];
+				}
 			}
 
-			if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
-				std::ostringstream feedback;
-				feedback << "Command " << std::quoted(args) << " does not exist!";
-				GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-			}
+			// Let GameMasters know if the command doesn't exist
+			if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) feedback << "Command " << std::quoted(args) << " does not exist!";
 		}
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 	}
 
 	void Pvp(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1251,11 +1256,11 @@ namespace DEVGMCommands {
 		}
 		eGameMasterLevel level = static_cast<eGameMasterLevel>(level_intermed.value());
 
-	#ifndef DEVELOPER_SERVER
+#ifndef DEVELOPER_SERVER
 		if (user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER) {
 			level = eGameMasterLevel::CIVILIAN;
 		}
-	#endif
+#endif
 
 		if (level > user->GetMaxGMLevel()) level = user->GetMaxGMLevel();
 
@@ -1269,7 +1274,7 @@ namespace DEVGMCommands {
 			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
 		}
 
-	#ifndef DEVELOPER_SERVER
+#ifndef DEVELOPER_SERVER
 		if ((entity->GetGMLevel() > user->GetMaxGMLevel()) || (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN && user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER)) {
 			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), true, user->GetMaxGMLevel(), entity->GetGMLevel(), eGameMasterLevel::CIVILIAN);
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
@@ -1279,7 +1284,7 @@ namespace DEVGMCommands {
 
 			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
 		}
-	#endif
+#endif
 	}
 
 
