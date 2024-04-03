@@ -1011,8 +1011,6 @@ namespace GMZeroCommands {
 				if (command.requiredLevel > entity->GetGMLevel()) continue;
 				helpMessage << "/" << command.aliases[0] << ": " << command.help << "\n*";
 			}
-			LOG("HELP TEXT IS: \n%s",helpMessage.str().c_str() );
-
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(helpMessage.str().substr(0, helpMessage.str().size() - 2)));
 		} else {
 			bool foundCommand = false;
@@ -1027,7 +1025,6 @@ namespace GMZeroCommands {
 							commandDetails << "Aliases: ";
 							std::copy(command.aliases.begin(), command.aliases.end(), std::ostream_iterator<std::string>(commandDetails, ", "));
 						}
-						LOG("HELP TEXT IS: \n%s",commandDetails.str().c_str() );
 						GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(commandDetails.str().substr(0, commandDetails.str().size() - 2)));
 					}
 				} 
