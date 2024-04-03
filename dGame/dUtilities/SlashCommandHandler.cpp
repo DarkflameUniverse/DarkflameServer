@@ -1006,13 +1006,12 @@ namespace GMZeroCommands {
 	void Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		std::ostringstream feedback;
 		if (args.empty()) {
-			feedback << "----- Commands -----\n";
-			for (size_t i = 0; i < CommandInfos.size(); i++) {
-				const auto& command = CommandInfos[i];
+			feedback << "----- Commands -----";
+			for (const auto& command : CommandInfos) {
 				// TODO: Limit displaying commands based on GM level they require
 				if (command.requiredLevel > entity->GetGMLevel()) continue;
-				if (i > 0) feedback << '\n';
-				feedback << "/" << command.aliases[0] << ": *" << command.help << '*';
+				LOG("Help command: %s", command.aliases[0].c_str());
+				feedback << "\n/" << command.aliases[0] << ": " << command.help;
 			}
 		} else {
 			bool foundCommand = false;
@@ -1023,7 +1022,7 @@ namespace GMZeroCommands {
 				foundCommand = true;
 				feedback << "----- " << command.aliases.at(0) << " -----\n";
 				// info can be a localizable string
-				feedback << '*' << command.info << "*";
+				feedback << command.info;
 				if (command.aliases.size() == 1) break;
 
 				feedback << "\nAliases: ";
@@ -1036,7 +1035,8 @@ namespace GMZeroCommands {
 			// Let GameMasters know if the command doesn't exist
 			if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) feedback << "Command " << std::quoted(args) << " does not exist!";
 		}
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		const auto feedbackStr = feedback.str();
+		if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 	}
 
 	void Pvp(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
