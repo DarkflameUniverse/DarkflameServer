@@ -9,7 +9,7 @@
 #include "ControllablePhysicsComponent.h"
 #include "eStateChangeType.h"
 
-void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (!target) {
@@ -51,7 +51,7 @@ void ImmunityBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ImmunityBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

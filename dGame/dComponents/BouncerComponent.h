@@ -17,7 +17,7 @@ public:
 	BouncerComponent(Entity* parentEntity);
 	~BouncerComponent() override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	Entity* GetParentEntity() const;
 

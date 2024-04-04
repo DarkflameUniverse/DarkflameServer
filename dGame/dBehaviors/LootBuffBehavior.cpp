@@ -1,6 +1,6 @@
 #include "LootBuffBehavior.h"
 
-void LootBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void LootBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto target = Game::entityManager->GetEntity(context->caster);
 	if (!target) return;
 
@@ -14,7 +14,7 @@ void LootBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitSt
 
 }
 
-void LootBuffBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void LootBuffBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

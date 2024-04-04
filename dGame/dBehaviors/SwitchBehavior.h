@@ -14,6 +14,8 @@ public:
 
 	int32_t m_targetHasBuff;
 
+	float m_Distance;
+
 	/*
 	 * Inherited
 	 */
@@ -21,9 +23,9 @@ public:
 	explicit SwitchBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {
 	}
 
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 
-	void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;
 };

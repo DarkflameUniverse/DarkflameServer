@@ -5,8 +5,8 @@ class ConsumeItemBehavior final : public Behavior
 {
 public:
 	explicit ConsumeItemBehavior(const uint32_t behaviorId) : Behavior(behaviorId) {}
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
-	void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
+	void Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 	void Load() override;
 
 private:

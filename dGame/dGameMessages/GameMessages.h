@@ -38,6 +38,7 @@ enum class eUseItemResponse : uint32_t;
 enum class eQuickBuildFailReason : uint32_t;
 enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
+enum class eVendorTransactionResult : uint32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -135,7 +136,7 @@ namespace GameMessages {
 
 	void SendVendorOpenWindow(Entity* entity, const SystemAddress& sysAddr);
 	void SendVendorStatusUpdate(Entity* entity, const SystemAddress& sysAddr, bool bUpdateOnly = false);
-	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr);
+	void SendVendorTransactionResult(Entity* entity, const SystemAddress& sysAddr, eVendorTransactionResult result);
 
 	void SendRemoveItemFromInventory(Entity* entity, const SystemAddress& sysAddr, LWOOBJID iObjID, LOT templateID, int inventoryType, uint32_t stackCount, uint32_t stackRemaining);
 	void SendConsumeClientItem(Entity* entity, bool bSuccess, LWOOBJID item);
@@ -145,7 +146,7 @@ namespace GameMessages {
 	void SendMatchResponse(Entity* entity, const SystemAddress& sysAddr, int response);
 	void SendMatchUpdate(Entity* entity, const SystemAddress& sysAddr, std::string data, eMatchUpdate type);
 
-	void HandleUnUseModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendStartCelebrationEffect(Entity* entity, const SystemAddress& sysAddr, int celebrationID);
 
 	// https://lcdruniverse.org/lu_packets/lu_packets/world/gm/client/struct.SetResurrectRestoreValues.html
@@ -182,7 +183,7 @@ namespace GameMessages {
 	 * @param entity The Entity that sent the message
 	 * @param sysAddr The SystemAddress that sent the message
 	 */
-	void HandleControlBehaviors(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	// Rails stuff
 	void SendSetRailMovement(const LWOOBJID& objectID, bool pathGoForward, std::u16string pathName, uint32_t pathStart,
@@ -196,9 +197,9 @@ namespace GameMessages {
 		bool collisionEnabled = true, bool useDB = true, int32_t railComponentID = -1,
 		LWOOBJID railActivatorObjectID = LWOOBJID_EMPTY);
 
-	void HandleClientRailMovementReady(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleCancelRailMovement(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandlePlayerRailArrivedNotification(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientRailMovementReady(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleCancelRailMovement(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePlayerRailArrivedNotification(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendNotifyClientObject(const LWOOBJID& objectID, std::u16string name, int param1 = 0, int param2 = 0, const LWOOBJID& paramObj = LWOOBJID_EMPTY, std::string paramStr = "", const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SendNotifyClientZoneObject(const LWOOBJID& objectID, const std::u16string& name, int param1, int param2, const LWOOBJID& paramObj, const std::string& paramStr, const SystemAddress& sysAddr);
@@ -251,39 +252,39 @@ namespace GameMessages {
 
 	void SendUGCEquipPostDeleteBasedOnEditMode(LWOOBJID objectId, const SystemAddress& sysAddr, LWOOBJID inventoryItem, int itemTotal);
 
-	void HandleSetPropertyAccess(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetPropertyAccess(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleQueryPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleQueryPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleSetBuildMode(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetBuildMode(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleStartBuildingWithItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleStartBuildingWithItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyEditorBegin(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePropertyEditorBegin(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyEditorEnd(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePropertyEditorEnd(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyContentsFromClient(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePropertyContentsFromClient(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyModelEquipped(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePropertyModelEquipped(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePlacePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePlacePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleUpdatePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdatePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleDeletePropertyModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleDeletePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleBBBLoadItemRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleBBBSaveRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePropertyEntranceSync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleEnterProperty(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleEnterProperty(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleSetConsumableItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetConsumableItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendPlayCinematic(LWOOBJID objectId, std::u16string pathName, const SystemAddress& sysAddr,
 		bool allowGhostUpdates = true, bool bCloseMultiInteract = true, bool bSendServerNotify = false, bool bUseControlledObjectForAudioListener = false,
@@ -292,7 +293,7 @@ namespace GameMessages {
 
 	void SendEndCinematic(LWOOBJID objectID, std::u16string pathName, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS,
 		float leadOut = -1.0f, bool leavePlayerLocked = false);
-	void HandleCinematicUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleCinematicUpdate(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendSetStunned(LWOOBJID objectId, eStateChangeType stateChangeType, const SystemAddress& sysAddr,
 		LWOOBJID originator = LWOOBJID_EMPTY, bool bCantAttack = false, bool bCantEquip = false,
@@ -344,7 +345,7 @@ namespace GameMessages {
 
 	void SendNotifyObject(LWOOBJID objectId, LWOOBJID objIDSender, std::u16string name, const SystemAddress& sysAddr, int param1 = 0, int param2 = 0);
 
-	void HandleVerifyAck(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleVerifyAck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendTeamPickupItem(LWOOBJID objectId, LWOOBJID lootID, LWOOBJID lootOwnerID, const SystemAddress& sysAddr);
 
@@ -361,13 +362,13 @@ namespace GameMessages {
 
 	void SendServerTradeUpdate(LWOOBJID objectId, uint64_t coins, const std::vector<TradeItem>& items, const SystemAddress& sysAddr);
 
-	void HandleClientTradeRequest(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientTradeRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleClientTradeCancel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientTradeCancel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleClientTradeAccept(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientTradeAccept(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleClientTradeUpdate(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Pets:
 	void SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId, LWOOBJID playerTamingId, bool bForceTeleport, ePetTamingNotifyType notifyType, NiPoint3 petsDestPos, NiPoint3 telePos, NiQuaternion teleRot, const SystemAddress& sysAddr);
@@ -402,23 +403,23 @@ namespace GameMessages {
 
 	void SendPetNameChanged(LWOOBJID objectId, int32_t moderationStatus, std::u16string name, std::u16string ownerName, const SystemAddress& sysAddr);
 
-	void HandleClientExitTamingMinigame(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleClientExitTamingMinigame(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleStartServerPetMinigameTimer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleStartServerPetMinigameTimer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandlePetTamingTryBuild(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleNotifyTamingBuildSuccess(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleNotifyTamingBuildSuccess(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleRequestSetPetName(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRequestSetPetName(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleCommandPet(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleCommandPet(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleDespawnPet(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleDespawnPet(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleMessageBoxResponse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleChoiceBoxRespond(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendDisplayZoneSummary(LWOOBJID objectId, const SystemAddress& sysAddr, bool isPropertyMap = false, bool isZoneStart = false, LWOOBJID sender = LWOOBJID_EMPTY);
 
@@ -455,7 +456,7 @@ namespace GameMessages {
 	 * @param entity The Entity that is dismounting
 	 * @param sysAddr the system address to send game message responses to
 	 */
-	void HandleDismountComplete(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleDismountComplete(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	/**
 	 * @brief Handle acknowledging that the client possessed something
@@ -464,7 +465,7 @@ namespace GameMessages {
 	 * @param entity The Entity that is possessing
 	 * @param sysAddr the system address to send game message responses to
 	 */
-	void HandleAcknowledgePossession(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	/**
 	 * @brief A request from a client to get the hot properties that would appear on the news feed
@@ -474,7 +475,7 @@ namespace GameMessages {
 	 * @param entity The Entity that sent the request
 	 * @param sysAddr The SystemAddress of the Entity that sent the request
 	 */
-	void HandleGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	/**
 	 * @brief A request from a client to get the hot properties that would appear on the news feed
@@ -496,26 +497,26 @@ namespace GameMessages {
 	 * @param entity The Entity that sent the request
 	 * @param sysAddr The SystemAddress of the Entity that sent the request
 	 */
-	void SendGetHotPropertyData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void SendGetHotPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	//Racing:
-	void HandleModuleAssemblyQueryData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleModuleAssemblyQueryData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleModularAssemblyNIFCompleted(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleModularAssemblyNIFCompleted(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleVehicleSetWheelLockState(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleVehicleSetWheelLockState(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleRacingClientReady(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRacingClientReady(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleVehicleNotifyServerAddPassiveBoostAction(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleVehicleNotifyServerAddPassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleVehicleNotifyServerRemovePassiveBoostAction(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleVehicleNotifyServerRemovePassiveBoostAction(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleRacingPlayerInfoResetFinished(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRacingPlayerInfoResetFinished(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
-	void HandleVehicleNotifyHitImaginationServer(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleVehicleNotifyHitImaginationServer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendModuleAssemblyDBDataForClient(LWOOBJID objectId, LWOOBJID assemblyID, const std::u16string& data, const SystemAddress& sysAddr);
 
@@ -555,7 +556,7 @@ namespace GameMessages {
 		bool bUseLeaderboards
 	);
 
-	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendNotifyClientShootingGalleryScore(LWOOBJID objectId, const SystemAddress& sysAddr,
 		float addTime,
@@ -564,20 +565,20 @@ namespace GameMessages {
 		NiPoint3 targetPos
 	);
 
-	void HandleUpdateShootingGalleryRotation(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdateShootingGalleryRotation(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendUpdateReputation(const LWOOBJID objectId, const int64_t reputation, const SystemAddress& sysAddr);
 
 	// Leaderboards
 	void SendActivitySummaryLeaderboardData(const LWOOBJID& objectID, const Leaderboard* leaderboard,
 		const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
-	void HandleActivitySummaryLeaderboardData(RakNet::BitStream* instream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleActivitySummaryLeaderboardData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendRequestActivitySummaryLeaderboardData(const LWOOBJID& objectID, const LWOOBJID& targetID,
 		const SystemAddress& sysAddr, const int32_t& gameID = 0,
 		const int32_t& queryType = 1, const int32_t& resultsEnd = 10,
 		const int32_t& resultsStart = 0, bool weekly = false);
-	void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleActivityStateChangeRequest(RakNet::BitStream* inStream, Entity* entity);
+	void HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendVehicleAddPassiveBoostAction(LWOOBJID objectId, const SystemAddress& sysAddr);
 
@@ -587,82 +588,82 @@ namespace GameMessages {
 
 	//NT:
 
-	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
 
 	//Handlers:
 
-	void HandleToggleGhostReferenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetGhostReferencePosition(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleToggleGhostReferenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetGhostReferencePosition(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 
 	void SendSetNamebillboardState(const SystemAddress& sysAddr, LWOOBJID objectId);
 	void SendShowBillboardInteractIcon(const SystemAddress& sysAddr, LWOOBJID objectId);
-	void HandleBuyFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSellToVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleBuybackFromVendor(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleParseChatMessage(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleToggleGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetGhostReffrenceOverride(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleFireEventServerSide(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRequestPlatformResync(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleQuickBuildCancel(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRequestUse(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandlePlayEmote(RakNet::BitStream* inStream, Entity* entity);
-	void HandleModularBuildConvertModel(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetFlag(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRespondToMission(RakNet::BitStream* inStream, Entity* entity);
-	void HandleMissionDialogOK(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRequestLinkedMission(RakNet::BitStream* inStream, Entity* entity);
-	void HandleHasBeenCollected(RakNet::BitStream* inStream, Entity* entity);
-	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream* inStream, Entity* entity);
-	void HandlePickupCurrency(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRequestDie(RakNet::BitStream* inStream, Entity* entity);
-	void HandleEquipItem(RakNet::BitStream* inStream, Entity* entity);
-	void HandleUnequipItem(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRemoveItemFromInventory(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleMoveItemInInventory(RakNet::BitStream* inStream, Entity* entity);
-	void HandleMoveItemBetweenInventoryTypes(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleBuildModeSet(RakNet::BitStream* inStream, Entity* entity);
-	void HandleModularBuildFinish(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleDoneArrangingWithItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleModularBuildMoveAndEquip(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandlePickupItem(RakNet::BitStream* inStream, Entity* entity);
-	void HandleResurrect(RakNet::BitStream* inStream, Entity* entity);
-	void HandleModifyPlayerZoneStatistic(RakNet::BitStream* inStream, Entity* entity);
-	void HandleUpdatePlayerStatistic(RakNet::BitStream* inStream, Entity* entity);
+	void HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSellToVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleBuybackFromVendor(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleParseChatMessage(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleToggleGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetGhostReffrenceOverride(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleFireEventServerSide(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRequestPlatformResync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRequestUse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
+	void HandleModularBuildConvertModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleSetFlag(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity);
+	void HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity);
+	void HandleHasBeenCollected(RakNet::BitStream& inStream, Entity* entity);
+	void HandleNotifyServerLevelProcessingComplete(RakNet::BitStream& inStream, Entity* entity);
+	void HandlePickupCurrency(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRequestDie(RakNet::BitStream& inStream, Entity* entity);
+	void HandleEquipItem(RakNet::BitStream& inStream, Entity* entity);
+	void HandleUnequipItem(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRemoveItemFromInventory(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleMoveItemInInventory(RakNet::BitStream& inStream, Entity* entity);
+	void HandleMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleBuildModeSet(RakNet::BitStream& inStream, Entity* entity);
+	void HandleModularBuildFinish(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleDoneArrangingWithItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleModularBuildMoveAndEquip(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandlePickupItem(RakNet::BitStream& inStream, Entity* entity);
+	void HandleResurrect(RakNet::BitStream& inStream, Entity* entity);
+	void HandleModifyPlayerZoneStatistic(RakNet::BitStream& inStream, Entity* entity);
+	void HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandlePushEquippedItemsState(RakNet::BitStream* inStream, Entity* entity);
+	void HandlePushEquippedItemsState(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandlePopEquippedItemsState(RakNet::BitStream* inStream, Entity* entity);
+	void HandlePopEquippedItemsState(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleClientItemConsumed(RakNet::BitStream* inStream, Entity* entity);
+	void HandleClientItemConsumed(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleUseNonEquipmentItem(RakNet::BitStream* inStream, Entity* entity);
+	void HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleMatchRequest(RakNet::BitStream* inStream, Entity* entity);
+	void HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleReportBug(RakNet::BitStream* inStream, Entity* entity);
+	void HandleReportBug(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendRemoveBuff(Entity* entity, bool fromUnEquip, bool removeImmunity, uint32_t buffId);
 
 	// bubble
-	void HandleDeactivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+	void HandleDeactivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity);
 
-	void HandleActivateBubbleBuff(RakNet::BitStream* inStream, Entity* entity);
+	void HandleActivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendActivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
 	void SendDeactivateBubbleBuffFromServer(LWOOBJID objectId, const SystemAddress& sysAddr);
 
-	void HandleZoneSummaryDismissed(RakNet::BitStream* inStream, Entity* entity);
-	void HandleRequestActivityExit(RakNet::BitStream* inStream, Entity* entity);
+	void HandleZoneSummaryDismissed(RakNet::BitStream& inStream, Entity* entity);
+	void HandleRequestActivityExit(RakNet::BitStream& inStream, Entity* entity);
 
 	// Donation vendor
-	void HandleAddDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleRemoveDonationItem(RakNet::BitStream* inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleConfirmDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
-	void HandleCancelDonationOnPlayer(RakNet::BitStream* inStream, Entity* entity);
+	void HandleAddDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
+	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 };
 
 #endif // GAMEMESSAGES_H

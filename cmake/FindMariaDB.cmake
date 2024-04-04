@@ -23,14 +23,14 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	set(MARIADB_CONNECTOR_CPP_MSI "mariadb-connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}-win64.msi")
 	
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}" )
-		message("Downloading mariadb connector/c")
+		message(STATUS "Downloading mariadb connector/c")
 		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_C_BUCKET}/Connectors/c/connector-c-${MARIADB_CONNECTOR_C_VERSION}/${MARIADB_CONNECTOR_C_MSI}
 			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}"
 			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_C_MD5})
 	endif()
 
 	if(NOT EXISTS "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}" )
-		message("Downloading mariadb connector/c++")
+		message(STATUS "Downloading mariadb connector/c++")
 		file(DOWNLOAD https://dlm.mariadb.com/${MARIADB_CONNECTOR_CPP_BUCKET}/Connectors/cpp/connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}/${MARIADB_CONNECTOR_CPP_MSI}
 			"${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}"
 			EXPECTED_HASH MD5=${MARIADB_CONNECTOR_CPP_MD5})
@@ -43,27 +43,28 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 		file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_C_MSI}" MSI_DIR)
 		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
 	endif()
+	set(MARIADBC_SHARED_LIBRARY_LOCATION "${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll")
 
 	if(NOT EXISTS "${MARIADB_CPP_CONNECTOR_DIR}")
 	file(TO_NATIVE_PATH "${MARIADB_MSI_DIR}/${MARIADB_CONNECTOR_CPP_MSI}" MSI_DIR)
 		execute_process(COMMAND msiexec /a ${MSI_DIR} /qn TARGETDIR=${MSIEXEC_TARGETDIR})
 	endif()
 
-	set(MARIADB_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
+	set(MARIADBCPP_SHARED_LIBRARY_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll")
 	set(MARIADB_IMPLIB_LOCATION "${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.lib")
 	set(MARIADB_INCLUDE_DIR "${MARIADB_CPP_CONNECTOR_DIR}/include/mariadb")
 
 	add_custom_target(mariadb_connector_cpp)
 	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_if_different
-					"${MARIADB_CPP_CONNECTOR_DIR}/mariadbcpp.dll"
-					"${MARIADB_C_CONNECTOR_DIR}/lib/libmariadb.dll"
+					"${MARIADBCPP_SHARED_LIBRARY_LOCATION}"
+					"${MARIADBC_SHARED_LIBRARY_LOCATION}"
 					"${PROJECT_BINARY_DIR}")
 
 	# MariaDB uses plugins that the database needs to load, the prebuilt binaries by default will try to find the libraries in system directories,
 	# so set this define and the servers will set the MARIADB_PLUGIN_DIR environment variable to the appropriate directory.
 	# Plugin directory is determined at dll load time (this will happen before main()) so we need to delay the dll load so that we can set the environment variable
-	add_link_options(/DELAYLOAD:${MARIADB_SHARED_LIBRARY_LOCATION})
+	add_link_options(/DELAYLOAD:${MARIADBCPP_SHARED_LIBRARY_LOCATION})
 	add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADB_CPP_CONNECTOR_DIR}/plugin")
 else() # Build from source
 
@@ -85,77 +86,61 @@ else() # Build from source
 			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
 	endif()
 
+	set(MARIADBCPP_INSTALL_DIR ${PROJECT_BINARY_DIR}/prefix)
+	set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
+	set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_LIBRARY_DIR}/plugin)
+	set(MARIADBCPP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp)
+	set(MARIADB_INCLUDE_DIR "${MARIADBCPP_SOURCE_DIR}/include")
 	ExternalProject_Add(mariadb_connector_cpp
-						SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp
-						CMAKE_ARGS  -Wno-dev
-									-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
-									-DCMAKE_INSTALL_PREFIX=./mariadbcpp # Points the connector to the correct plugin directory
-									-DINSTALL_PLUGINDIR=plugin
-									${MARIADB_EXTRA_CMAKE_ARGS}
-						PREFIX "${PROJECT_BINARY_DIR}/mariadbcpp"
-						BUILD_COMMAND cmake --build . --config RelWithDebInfo -j${MARIADB_CONNECTOR_COMPILE_JOBS}
-						INSTALL_COMMAND "")
-
-	ExternalProject_Get_Property(mariadb_connector_cpp BINARY_DIR)
+		PREFIX "${PROJECT_BINARY_DIR}/thirdparty/mariadb-connector-cpp"
+		SOURCE_DIR ${MARIADBCPP_SOURCE_DIR}
+		INSTALL_DIR ${MARIADBCPP_INSTALL_DIR}
+		CMAKE_ARGS  -Wno-dev
+					-DWITH_UNIT_TESTS=OFF
+					-DMARIADB_LINK_DYNAMIC=OFF
+					-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
+					-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+					-DINSTALL_LIBDIR=${MARIADBCPP_LIBRARY_DIR}
+					-DINSTALL_PLUGINDIR=${MARIADBCPP_PLUGIN_DIR}
+					${MARIADB_EXTRA_CMAKE_ARGS}
+		BUILD_ALWAYS true
+	)
 
 	if(WIN32)
 		set(MARIADB_SHARED_LIBRARY_NAME mariadbcpp.dll)
 		set(MARIADB_PLUGIN_SUFFIX .dll)
-		set(MARIADB_IMPLIB_LOCATION "${BINARY_DIR}/RelWithDebInfo/mariadbcpp.lib")
+		set(MARIADB_IMPLIB_LOCATION "${MARIADBCPP_LIBRARY_DIR}/mariadbcpp.lib")
 
 		# When built from source windows only seems to check same folder as exe instead specified folder, so use
 		# environment variable to force it
 		add_link_options(/DELAYLOAD:mariadbcpp.dll)
-		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${PROJECT_BINARY_DIR}/mariadbcpp/plugin")
+		add_compile_definitions(MARIADB_PLUGIN_DIR_OVERRIDE="${MARIADBCPP_PLUGIN_DIR}")
 	else()
 		set(MARIADB_SHARED_LIBRARY_NAME libmariadbcpp${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(MARIADB_PLUGIN_SUFFIX .so)
+		set(MARIADB_PLUGIN_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
 	endif()
 
-	get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-	if(isMultiConfig)
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/RelWithDebInfo/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}/$<CONFIG>")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb/RelWithDebInfo")
-	else()
-		set(MARIADB_SHARED_LIBRARY_LOCATION "${BINARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
-		set(MARIADB_SHARED_LIBRARY_COPY_LOCATION "${PROJECT_BINARY_DIR}")
-		set(MARIADB_PLUGINS_LOCATION "${BINARY_DIR}/libmariadb")
+	set(MARIADBCPP_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/${MARIADB_SHARED_LIBRARY_NAME}")
+	if(WIN32)
+		set(MARIADBC_SHARED_LIBRARY_LOCATION "${MARIADBCPP_LIBRARY_DIR}/libmariadb.lib")
 	endif()
-
-	set(MARIADB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include/")
-
-	add_custom_command(TARGET mariadb_connector_cpp POST_BUILD
-						COMMAND ${CMAKE_COMMAND} -E make_directory
-						${BINARY_DIR}/mariadbcpp/plugin
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${MARIADB_SHARED_LIBRARY_LOCATION}
-						${MARIADB_SHARED_LIBRARY_COPY_LOCATION}
-
-						COMMAND ${CMAKE_COMMAND} -E copy_if_different
-						${MARIADB_PLUGINS_LOCATION}/caching_sha2_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/client_ed25519${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/dialog${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/mysql_clear_password${MARIADB_PLUGIN_SUFFIX}
-						${MARIADB_PLUGINS_LOCATION}/sha256_password${MARIADB_PLUGIN_SUFFIX}
-						${BINARY_DIR}/mariadbcpp/plugin)
-endif()
-
-# Remove the CMakeLists.txt file from the tests folder for the maria-db-connector so we dont compile the tests.
-if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
-	file(REMOVE "${CMAKE_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/test/CMakeLists.txt")
 endif()
 
 # Create mariadb connector library object
-add_library(mariadbConnCpp SHARED IMPORTED GLOBAL)
-set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_LOCATION ${MARIADB_SHARED_LIBRARY_LOCATION})
+add_library(MariaDB::ConnCpp SHARED IMPORTED GLOBAL)
+add_dependencies(MariaDB::ConnCpp mariadb_connector_cpp)
+set_target_properties(MariaDB::ConnCpp PROPERTIES
+	IMPORTED_LOCATION "${MARIADBCPP_SHARED_LIBRARY_LOCATION}")
 
 if(WIN32)
-	set_property(TARGET mariadbConnCpp PROPERTY IMPORTED_IMPLIB ${MARIADB_IMPLIB_LOCATION})
+	set_target_properties(MariaDB::ConnCpp PROPERTIES
+		IMPORTED_IMPLIB "${MARIADB_IMPLIB_LOCATION}")
+elseif(APPLE)
+	set_target_properties(MariaDB::ConnCpp PROPERTIES
+		IMPORTED_SONAME "libmariadbcpp")
 endif()
 
 # Add directories to include lists
-target_include_directories(mariadbConnCpp INTERFACE ${MARIADB_INCLUDE_DIR})
-add_dependencies(mariadbConnCpp mariadb_connector_cpp)
+target_include_directories(MariaDB::ConnCpp SYSTEM INTERFACE ${MARIADB_INCLUDE_DIR})
+
+set(MariaDB_FOUND TRUE)

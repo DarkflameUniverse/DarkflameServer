@@ -1,0 +1,5 @@
+<files>
+	<file name="dev-tribute.xml" enabled="1"/>
+	<file name="atm.xml" enabled="0"/>
+	<file name="demo.xml" enabled="0"/>
+</files>

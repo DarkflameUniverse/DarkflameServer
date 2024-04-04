@@ -757,7 +757,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
-		Game::server->SendToMaster(&bitStream);
+		Game::server->SendToMaster(bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
 		//Tell chat to send an announcement to all servers

@@ -11,7 +11,7 @@ public:
 	explicit PropertyTeleportBehavior(const uint32_t behavior_id) : Behavior(behavior_id) {
 	}
 
-	void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) override;
+	void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) override;
 
 	void Load() override;
 

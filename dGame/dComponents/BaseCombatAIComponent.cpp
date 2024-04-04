@@ -162,7 +162,6 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	// Check if we should stop the tether effect
 	if (m_TetherEffectActive) {
 		m_TetherTime -= deltaTime;
-		const auto& info = m_MovementAI->GetInfo();
 		if (m_Target != LWOOBJID_EMPTY || (NiPoint3::DistanceSquared(
 			m_StartPosition,
 			m_Parent->GetPosition()) < 20 * 20 && m_TetherTime <= 0)
@@ -520,11 +519,11 @@ bool BaseCombatAIComponent::IsMech() {
 }
 
 
-void BaseCombatAIComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
-	outBitStream->Write(m_DirtyStateOrTarget || bIsInitialUpdate);
+void BaseCombatAIComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
+	outBitStream.Write(m_DirtyStateOrTarget || bIsInitialUpdate);
 	if (m_DirtyStateOrTarget || bIsInitialUpdate) {
-		outBitStream->Write(m_State);
-		outBitStream->Write(m_Target);
+		outBitStream.Write(m_State);
+		outBitStream.Write(m_Target);
 		m_DirtyStateOrTarget = false;
 	}
 }

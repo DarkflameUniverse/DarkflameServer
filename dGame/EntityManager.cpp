@@ -178,18 +178,18 @@ void EntityManager::SerializeEntities() {
 		stream.Write<char>(ID_REPLICA_MANAGER_SERIALIZE);
 		stream.Write<unsigned short>(entity->GetNetworkId());
 
-		entity->WriteBaseReplicaData(&stream, eReplicaPacketType::SERIALIZATION);
-		entity->WriteComponents(&stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteBaseReplicaData(stream, eReplicaPacketType::SERIALIZATION);
+		entity->WriteComponents(stream, eReplicaPacketType::SERIALIZATION);
 
 		if (entity->GetIsGhostingCandidate()) {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
 				auto* ghostComponent = player->GetComponent<GhostComponent>();
 				if (ghostComponent && ghostComponent->IsObserved(toSerialize)) {
-					Game::server->Send(&stream, player->GetSystemAddress(), false);
+					Game::server->Send(stream, player->GetSystemAddress(), false);
 				}
 			}
 		} else {
-			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		}
 	}
 	m_EntitiesToSerialize.clear();
@@ -359,16 +359,16 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	stream.Write(true);
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
-	entity->WriteBaseReplicaData(&stream, eReplicaPacketType::CONSTRUCTION);
-	entity->WriteComponents(&stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteBaseReplicaData(stream, eReplicaPacketType::CONSTRUCTION);
+	entity->WriteComponents(stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		if (skipChecks) {
-			Game::server->Send(&stream, UNASSIGNED_SYSTEM_ADDRESS, true);
+			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		} else {
 			for (auto* player : PlayerManager::GetAllPlayers()) {
 				if (player->GetPlayerReadyForUpdates()) {
-					Game::server->Send(&stream, player->GetSystemAddress(), false);
+					Game::server->Send(stream, player->GetSystemAddress(), false);
 				} else {
 					auto* ghostComponent = player->GetComponent<GhostComponent>();
 					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
@@ -376,7 +376,7 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 			}
 		}
 	} else {
-		Game::server->Send(&stream, sysAddr, false);
+		Game::server->Send(stream, sysAddr, false);
 	}
 
 	if (entity->IsPlayer()) {
@@ -407,7 +407,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 	stream.Write<uint8_t>(ID_REPLICA_MANAGER_DESTRUCTION);
 	stream.Write<uint16_t>(entity->GetNetworkId());
 
-	Game::server->Send(&stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+	Game::server->Send(stream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		if (!player->GetPlayerReadyForUpdates()) {
@@ -418,10 +418,16 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 }
 
 void EntityManager::SerializeEntity(Entity* entity) {
-	if (!entity || entity->GetNetworkId() == 0) return;
+	if (!entity) return;
+	
+	EntityManager::SerializeEntity(*entity);
+}
 
-	if (std::find(m_EntitiesToSerialize.begin(), m_EntitiesToSerialize.end(), entity->GetObjectID()) == m_EntitiesToSerialize.end()) {
-		m_EntitiesToSerialize.push_back(entity->GetObjectID());
+void EntityManager::SerializeEntity(const Entity& entity) {
+	if (entity.GetNetworkId() == 0) return;
+
+	if (std::find(m_EntitiesToSerialize.cbegin(), m_EntitiesToSerialize.cend(), entity.GetObjectID()) == m_EntitiesToSerialize.cend()) {
+		m_EntitiesToSerialize.push_back(entity.GetObjectID());
 	}
 }
 
@@ -575,13 +581,13 @@ void EntityManager::ScheduleForKill(Entity* entity) {
 
 	const auto objectId = entity->GetObjectID();
 
-	if (std::find(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId) != m_EntitiesToKill.end()) {
+	if (std::find(m_EntitiesToKill.begin(), m_EntitiesToKill.end(), objectId) == m_EntitiesToKill.end()) {
 		m_EntitiesToKill.push_back(objectId);
 	}
 }
 
 void EntityManager::ScheduleForDeletion(LWOOBJID entity) {
-	if (std::find(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity) != m_EntitiesToDelete.end()) {
+	if (std::find(m_EntitiesToDelete.begin(), m_EntitiesToDelete.end(), entity) == m_EntitiesToDelete.end()) {
 		m_EntitiesToDelete.push_back(entity);
 	}
 }

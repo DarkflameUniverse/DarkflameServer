@@ -34,8 +34,8 @@ constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 #define CINSTREAM RakNet::BitStream inStream(packet->data, packet->length, false);
 #define CINSTREAM_SKIP_HEADER CINSTREAM if (inStream.GetNumberOfUnreadBits() >= BYTES_TO_BITS(HEADER_SIZE)) inStream.IgnoreBytes(HEADER_SIZE); else inStream.IgnoreBits(inStream.GetNumberOfUnreadBits());
 #define CMSGHEADER BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
-#define SEND_PACKET Game::server->Send(&bitStream, sysAddr, false);
-#define SEND_PACKET_BROADCAST Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+#define SEND_PACKET Game::server->Send(bitStream, sysAddr, false);
+#define SEND_PACKET_BROADCAST Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 
 //=========== TYPEDEFS ==========
 

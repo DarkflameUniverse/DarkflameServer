@@ -19,12 +19,11 @@ void CDPackageComponentTable::LoadValuesFromDatabase() {
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM PackageComponent");
 	while (!tableData.eof()) {
-		CDPackageComponent entry;
+		auto& entry = entries.emplace_back();
 		entry.id = tableData.getIntField("id", -1);
 		entry.LootMatrixIndex = tableData.getIntField("LootMatrixIndex", -1);
 		entry.packageType = tableData.getIntField("packageType", -1);
 
-		entries.push_back(entry);
 		tableData.nextRow();
 	}
 

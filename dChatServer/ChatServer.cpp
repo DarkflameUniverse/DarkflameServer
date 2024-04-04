@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	std::string ourIP = "localhost";
 	const uint32_t maxClients = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_clients")).value_or(999);
-	const uint32_t ourPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("chat_server_port")).value_or(1501);
+	const uint32_t ourPort = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("chat_server_port")).value_or(2005);
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
@@ -211,7 +211,7 @@ void HandlePacket(Packet* packet) {
 		case eChatInternalMessageType::ANNOUNCEMENT: {
 			//we just forward this packet to every connected server
 			CINSTREAM;
-			Game::server->Send(&inStream, packet->systemAddress, true); //send to everyone except origin
+			Game::server->Send(inStream, packet->systemAddress, true); //send to everyone except origin
 			break;
 		}
 
