@@ -73,7 +73,7 @@
           "value": "x64"
         },
         "cacheVariables": {
-          "CMAKE_CXX_FLAGS_INIT": "Debug"
+          "CMAKE_BUILD_TYPE": "Debug"
         }
       },
       {
