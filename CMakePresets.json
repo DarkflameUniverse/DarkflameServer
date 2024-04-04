@@ -37,19 +37,13 @@
         "name": "ci-macos-13",
         "displayName": "CI configure step for MacOS",
         "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default",
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Release"
-        }
+        "inherits": "default"
       },
       {
         "name": "debug-macos-13",
         "displayName": "Debug configure step for MacOS",
         "description": "Used to generate debug configuration for MacOS",
-        "inherits": "default",
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Debug"
-        }
+        "inherits": "default"
       },
       {
         "name": "ci-windows-2022",
