@@ -78,19 +78,14 @@ void dpEntity::CheckCollision(dpEntity* other) {
 	}
 
 	const auto objId = other->GetObjectID();
-	const auto objItr = std::ranges::find(m_CurrentlyCollidingObjects, objId);
-	const bool wasFound = objItr != m_CurrentlyCollidingObjects.cend();
+	const bool wasFound = std::ranges::find(m_CurrentlyCollidingObjects, objId) != m_CurrentlyCollidingObjects.cend();
 	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
-		m_CurrentlyCollidingObjects.emplace_back(objId);
+		m_CurrentlyCollidingObjects.emplace(objId);
 		m_NewObjects.push_back(objId);
 	} else if (!isColliding && wasFound) {
-		// Erase object ID from currently colliding objects by swapping and popping vector
-		auto& lastObj = m_CurrentlyCollidingObjects.back();
-		*objItr = std::move(lastObj);
-		m_CurrentlyCollidingObjects.pop_back();
-
+		m_CurrentlyCollidingObjects.erase(objId);
 		m_RemovedObjects.push_back(objId);
 	}
 }

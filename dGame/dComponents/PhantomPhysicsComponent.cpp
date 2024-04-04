@@ -323,14 +323,13 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 	if (!m_dpEntity) return;
 
 	//Process enter events
-	for (const auto en : m_dpEntity->GetNewObjects()) {
-		if (!en) continue;
-		ApplyCollisionEffect(en, m_EffectType, m_DirectionalMultiplier);
-		m_Parent->OnCollisionPhantom(en);
+	for (const auto id : m_dpEntity->GetNewObjects()) {
+		ApplyCollisionEffect(id, m_EffectType, m_DirectionalMultiplier);
+		m_Parent->OnCollisionPhantom(id);
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
-			auto* const entity = Game::entityManager->GetEntity(en);
+			auto* const entity = Game::entityManager->GetEntity(id);
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
@@ -341,10 +340,9 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 	}
 
 	//Process exit events
-	for (const auto en : m_dpEntity->GetRemovedObjects()) {
-		if (!en) continue;
-		ApplyCollisionEffect(en, m_EffectType, 1.0f);
-		m_Parent->OnCollisionLeavePhantom(en);
+	for (const auto id : m_dpEntity->GetRemovedObjects()) {
+		ApplyCollisionEffect(id, m_EffectType, 1.0f);
+		m_Parent->OnCollisionLeavePhantom(id);
 	}
 }
 

@@ -3,6 +3,7 @@
 #include "NiQuaternion.h"
 #include <vector>
 #include <map>
+#include <span>
 
 #include "dCommonVars.h"
 #include "dpCommon.h"
@@ -49,9 +50,9 @@ public:
 	bool GetSleeping() const { return m_Sleeping; }
 	void SetSleeping(bool value) { m_Sleeping = value; }
 
-	const std::vector<LWOOBJID>& GetNewObjects() const { return m_NewObjects; }
-	const std::vector<LWOOBJID>& GetRemovedObjects() const { return m_RemovedObjects; }
-	const std::vector<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
+	const std::span<const LWOOBJID> GetNewObjects() const { return m_NewObjects; }
+	const std::span<const LWOOBJID> GetRemovedObjects() const { return m_RemovedObjects; }
+	const std::set<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
 
@@ -82,5 +83,5 @@ private:
 
 	std::vector<LWOOBJID> m_NewObjects;
 	std::vector<LWOOBJID> m_RemovedObjects;
-	std::vector<LWOOBJID> m_CurrentlyCollidingObjects;
+	std::set<LWOOBJID> m_CurrentlyCollidingObjects;
 };

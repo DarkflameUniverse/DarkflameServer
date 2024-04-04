@@ -42,9 +42,9 @@ public:
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name
 	 * @param name the proximity name to retrieve physics objects for
-	 * @return a vector of physics entity object IDs for this name
+	 * @return a set of physics entity object IDs for this name
 	 */
-	const std::vector<LWOOBJID>& GetProximityObjects(const std::string& name);
+	const std::set<LWOOBJID>& GetProximityObjects(const std::string& name);
 
 	/**
 	 * Checks if the passed object is in proximity of the named proximity sensor
@@ -70,7 +70,7 @@ private:
 	/**
 	 * Default value for the proximity data
 	 */
-	static const std::vector<LWOOBJID> m_EmptyObjectVec;
+	static const std::set<LWOOBJID> m_EmptyObjectSet;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H

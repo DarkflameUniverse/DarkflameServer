@@ -7,7 +7,7 @@
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
 
-const std::vector<LWOOBJID> ProximityMonitorComponent::m_EmptyObjectVec = {};
+const std::set<LWOOBJID> ProximityMonitorComponent::m_EmptyObjectSet = {};
 
 ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
 	if (radiusSmall != -1 && radiusLarge != -1) {
@@ -40,11 +40,11 @@ void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 
-const std::vector<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
+const std::set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
 	const auto& iter = m_ProximitiesData.find(name);
 
 	if (iter == m_ProximitiesData.end()) {
-		return m_EmptyObjectVec;
+		return m_EmptyObjectSet;
 	}
 
 	return iter->second->GetCurrentlyCollidingObjects();
@@ -59,7 +59,7 @@ bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID 
 
 	const auto& collisions = iter->second->GetCurrentlyCollidingObjects();
 
-	return std::ranges::find(collisions, objectID) != collisions.cend();
+	return collisions.contains(objectID);
 }
 
 void ProximityMonitorComponent::Update(float deltaTime) {
