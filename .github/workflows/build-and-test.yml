@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, MSVCCompilerFlags ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, MSVCCompilerFlags ]
+    branches: [ main ]
 
 jobs:
   build-and-test:

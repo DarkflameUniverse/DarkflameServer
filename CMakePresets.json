@@ -37,13 +37,19 @@
         "name": "ci-macos-13",
         "displayName": "CI configure step for MacOS",
         "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default"
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
       },
       {
         "name": "debug-macos-13",
         "displayName": "Debug configure step for MacOS",
         "description": "Used to generate debug configuration for MacOS",
-        "inherits": "default"
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
       },
       {
         "name": "ci-windows-2022",
@@ -129,6 +135,7 @@
         "configurePreset": "ci-macos-13",
         "displayName": "MacOS CI Build",
         "description": "This preset is used by the CI build on MacOS",
+        "configuration": "Release",
         "jobs": 2
       },
       {
@@ -136,6 +143,7 @@
         "configurePreset": "debug-macos-13",
         "displayName": "MacOS Debug Build",
         "description": "This preset is used to debug the build on MacOS",
+        "configuration": "Debug",
         "jobs": 2
       }
     ],
@@ -183,7 +191,7 @@
         "configurePreset": "ci-windows-2022",
         "displayName": "CI Tests on windows",
         "description": "Runs all tests on a windows configuration",
-        "configuration": "RelWithDebInfo",
+        "configuration": "Release",
         "execution": {
           "jobs": 2
         },
