@@ -3,9 +3,6 @@
 #include "dpShapeBox.h"
 #include "dpGrid.h"
 
-#include <algorithm>
-#include <iostream>
-
 dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStatic) {
 	m_ObjectID = objectID;
 	m_IsStatic = isStatic;
@@ -78,7 +75,7 @@ void dpEntity::CheckCollision(dpEntity* other) {
 	}
 
 	const auto objId = other->GetObjectID();
-	const bool wasFound = std::ranges::find(m_CurrentlyCollidingObjects, objId) != m_CurrentlyCollidingObjects.cend();
+	const bool wasFound = m_CurrentlyCollidingObjects.contains(objId);
 	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
