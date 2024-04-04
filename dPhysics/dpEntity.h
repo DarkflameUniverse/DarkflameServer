@@ -49,9 +49,9 @@ public:
 	bool GetSleeping() const { return m_Sleeping; }
 	void SetSleeping(bool value) { m_Sleeping = value; }
 
-	const std::vector<dpEntity*>& GetNewObjects() const { return m_NewObjects; }
-	const std::vector<dpEntity*>& GetRemovedObjects() const { return m_RemovedObjects; }
-	const std::map<LWOOBJID, dpEntity*>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
+	const std::vector<LWOOBJID>& GetNewObjects() const { return m_NewObjects; }
+	const std::vector<LWOOBJID>& GetRemovedObjects() const { return m_RemovedObjects; }
+	const std::vector<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
 
@@ -80,7 +80,7 @@ private:
 
 	bool m_IsGargantuan = false;
 
-	std::vector<dpEntity*> m_NewObjects;
-	std::vector<dpEntity*> m_RemovedObjects;
-	std::map<LWOOBJID, dpEntity*> m_CurrentlyCollidingObjects;
+	std::vector<LWOOBJID> m_NewObjects;
+	std::vector<LWOOBJID> m_RemovedObjects;
+	std::vector<LWOOBJID> m_CurrentlyCollidingObjects;
 };

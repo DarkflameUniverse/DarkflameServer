@@ -187,7 +187,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 			//add fallback cube:
 			m_dpEntity = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
 		}
-	
+
 		m_dpEntity->SetScale(m_Scale);
 		m_dpEntity->SetRotation(m_Rotation);
 		m_dpEntity->SetPosition(m_Position);
@@ -323,14 +323,14 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 	if (!m_dpEntity) return;
 
 	//Process enter events
-	for (auto en : m_dpEntity->GetNewObjects()) {
+	for (const auto en : m_dpEntity->GetNewObjects()) {
 		if (!en) continue;
-		ApplyCollisionEffect(en->GetObjectID(), m_EffectType, m_DirectionalMultiplier);
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+		ApplyCollisionEffect(en, m_EffectType, m_DirectionalMultiplier);
+		m_Parent->OnCollisionPhantom(en);
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
-			auto entity = Game::entityManager->GetEntity(en->GetObjectID());
+			const auto entity = Game::entityManager->GetEntity(en);
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);
@@ -341,10 +341,10 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 	}
 
 	//Process exit events
-	for (auto en : m_dpEntity->GetRemovedObjects()) {
+	for (const auto en : m_dpEntity->GetRemovedObjects()) {
 		if (!en) continue;
-		ApplyCollisionEffect(en->GetObjectID(), m_EffectType, 1.0f);
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+		ApplyCollisionEffect(en, m_EffectType, 1.0f);
+		m_Parent->OnCollisionLeavePhantom(en);
 	}
 }
 

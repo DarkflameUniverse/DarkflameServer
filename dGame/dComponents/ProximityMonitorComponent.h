@@ -44,7 +44,7 @@ public:
 	 * @param name the proximity name to retrieve physics objects for
 	 * @return a map of physics entities for this name, indexed by object ID
 	 */
-	const std::map<LWOOBJID, dpEntity*>& GetProximityObjects(const std::string& name);
+	const std::vector<LWOOBJID>& GetProximityObjects(const std::string& name);
 
 	/**
 	 * Checks if the passed object is in proximity of the named proximity sensor
@@ -70,7 +70,7 @@ private:
 	/**
 	 * Default value for the proximity data
 	 */
-	static const std::map<LWOOBJID, dpEntity*> m_EmptyObjectMap;
+	static const std::vector<LWOOBJID> m_EmptyObjectVec;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H

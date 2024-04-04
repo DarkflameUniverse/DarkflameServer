@@ -3,6 +3,7 @@
 #include "dpShapeBox.h"
 #include "dpGrid.h"
 
+#include <algorithm>
 #include <iostream>
 
 dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStatic) {
@@ -76,16 +77,25 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		return;
 	}
 
-	bool wasFound = m_CurrentlyCollidingObjects.contains(other->GetObjectID());
-
-	bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
+	const auto objItr = std::find(
+		m_CurrentlyCollidingObjects.cbegin(),
+		m_CurrentlyCollidingObjects.cend(),
+		other->GetObjectID()
+	);
+	const bool wasFound = objItr != m_CurrentlyCollidingObjects.cend();
+	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
-		m_CurrentlyCollidingObjects.emplace(other->GetObjectID(), other);
-		m_NewObjects.push_back(other);
+		m_CurrentlyCollidingObjects.emplace_back(other->GetObjectID());
+		m_NewObjects.push_back(other->GetObjectID());
 	} else if (!isColliding && wasFound) {
-		m_CurrentlyCollidingObjects.erase(other->GetObjectID());
-		m_RemovedObjects.push_back(other);
+		// Erase object ID from currently colliding objects by swapping and popping vector
+		const auto objIdx = objItr - m_CurrentlyCollidingObjects.cbegin();
+		auto& lastObj = m_CurrentlyCollidingObjects.back();
+		m_CurrentlyCollidingObjects[objIdx] = std::move(lastObj);
+		m_CurrentlyCollidingObjects.pop_back();
+
+		m_RemovedObjects.push_back(other->GetObjectID());
 	}
 }
 
