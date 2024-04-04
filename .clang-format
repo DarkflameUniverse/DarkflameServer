@@ -1,0 +1,36 @@
+---
+# Use defaults from the GNU style, but with 4 columns indentation.
+BasedOnStyle: LLVM
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+---
+Language: Cpp
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Indent all namespaces
+NamespaceIndentation: All
+
+# Do not enforce a column limit
+ColumnLimit: 0
+
+# Allow short statements on one line
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true
+
+# Do not remove braces on short statements
+RemoveBracesLLVM: false
+
+# Add spaces between braces and contents
+Cpp11BracedListStyle: false
+
+# Brace wrapping rules
+# BreakBeforeBraces: Custom
+# BraceWrapping:
+#    BraceWrappingAfterControlStatementStyle: MultiLine
