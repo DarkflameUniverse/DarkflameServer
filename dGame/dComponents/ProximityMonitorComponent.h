@@ -42,7 +42,7 @@ public:
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name
 	 * @param name the proximity name to retrieve physics objects for
-	 * @return a map of physics entities for this name, indexed by object ID
+	 * @return a vector of physics entity object IDs for this name
 	 */
 	const std::vector<LWOOBJID>& GetProximityObjects(const std::string& name);
 
