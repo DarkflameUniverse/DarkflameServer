@@ -150,8 +150,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SetGMLevelCommand);
 
 	Command ToggleNameplateCommand{
-		.help = "Toggle the visibility of your nameplate",
-		.info = "Turns the nameplate above your head that is visible to other players off and on",
+		.help = "Toggle the visibility of your nameplate. This must be enabled by a server admin to be used.",
+		.info = "Turns the nameplate above your head that is visible to other players off and on. This must be enabled by a server admin to be used.",
 		.aliases = { "togglenameplate", "tnp" },
 		.handle = DEVGMCommands::ToggleNameplate,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
