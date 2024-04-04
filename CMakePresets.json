@@ -135,7 +135,6 @@
         "configurePreset": "ci-macos-13",
         "displayName": "MacOS CI Build",
         "description": "This preset is used by the CI build on MacOS",
-        "configuration": "Release",
         "jobs": 2
       },
       {
@@ -143,7 +142,6 @@
         "configurePreset": "debug-macos-13",
         "displayName": "MacOS Debug Build",
         "description": "This preset is used to debug the build on MacOS",
-        "configuration": "Debug",
         "jobs": 2
       }
     ],
