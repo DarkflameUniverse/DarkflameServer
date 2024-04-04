@@ -39,17 +39,15 @@
         "description": "Same as default, Used in GitHub actions workflow",
         "inherits": "default",
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Release"
+          "CMAKE_CXX_FLAGS_INIT" : "-O2",
+          "CMAKE_C_FLAGS_INIT" : "-O2"
         }
       },
       {
         "name": "debug-macos-13",
         "displayName": "Debug configure step for MacOS",
         "description": "Used to generate debug configuration for MacOS",
-        "inherits": "default",
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Debug"
-        }
+        "inherits": "default"
       },
       {
         "name": "ci-windows-2022",
@@ -75,7 +73,7 @@
           "value": "x64"
         },
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Debug"
+          "CMAKE_CXX_FLAGS_INIT": "Debug"
         }
       },
       {
