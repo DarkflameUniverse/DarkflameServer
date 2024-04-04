@@ -330,7 +330,7 @@ void PhantomPhysicsComponent::Update(float deltaTime) {
 
 		//If we are a respawn volume, inform the client:
 		if (m_IsRespawnVolume) {
-			const auto entity = Game::entityManager->GetEntity(en);
+			auto* const entity = Game::entityManager->GetEntity(en);
 
 			if (entity) {
 				GameMessages::SendPlayerReachedRespawnCheckpoint(entity, m_RespawnPos, m_RespawnRot);

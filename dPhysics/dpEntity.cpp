@@ -77,25 +77,21 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		return;
 	}
 
-	const auto objItr = std::find(
-		m_CurrentlyCollidingObjects.cbegin(),
-		m_CurrentlyCollidingObjects.cend(),
-		other->GetObjectID()
-	);
+	const auto objId = other->GetObjectID();
+	const auto objItr = std::ranges::find(m_CurrentlyCollidingObjects, objId);
 	const bool wasFound = objItr != m_CurrentlyCollidingObjects.cend();
 	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
-		m_CurrentlyCollidingObjects.emplace_back(other->GetObjectID());
-		m_NewObjects.push_back(other->GetObjectID());
+		m_CurrentlyCollidingObjects.emplace_back(objId);
+		m_NewObjects.push_back(objId);
 	} else if (!isColliding && wasFound) {
 		// Erase object ID from currently colliding objects by swapping and popping vector
-		const auto objIdx = std::distance(m_CurrentlyCollidingObjects.cbegin(), objItr);
 		auto& lastObj = m_CurrentlyCollidingObjects.back();
-		m_CurrentlyCollidingObjects[objIdx] = std::move(lastObj);
+		*objItr = std::move(lastObj);
 		m_CurrentlyCollidingObjects.pop_back();
 
-		m_RemovedObjects.push_back(other->GetObjectID());
+		m_RemovedObjects.push_back(objId);
 	}
 }
 
