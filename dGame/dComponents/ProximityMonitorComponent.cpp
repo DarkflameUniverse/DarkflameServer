@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "ProximityMonitorComponent.h"
 #include "GameMessages.h"
 #include "dZoneManager.h"
@@ -57,7 +59,7 @@ bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID 
 
 	const auto& collisions = iter->second->GetCurrentlyCollidingObjects();
 
-	return std::find(collisions.cbegin(), collisions.cend(), objectID) != collisions.cend();
+	return std::ranges::find(collisions, objectID) != collisions.cend();
 }
 
 void ProximityMonitorComponent::Update(float deltaTime) {
