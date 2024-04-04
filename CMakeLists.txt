@@ -58,7 +58,8 @@ if(UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wuninitialized -fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
-	if(NOT APPLE)
+	# For all except Clang and Apple Clang
+	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
 	endif()
 
@@ -73,7 +74,6 @@ if(UNIX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 	add_compile_options ("/wd4267" "/utf-8")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)

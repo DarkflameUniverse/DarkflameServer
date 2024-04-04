@@ -18,9 +18,8 @@
         "displayName": "CI configure step for Ubuntu",
         "description": "Same as default, Used in GitHub actions workflow",
         "inherits": "default",
-        "cacheVariables": { 
-          "CMAKE_BUILD_TYPE": "Release",
-          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
         }
       },
       {
@@ -28,9 +27,8 @@
         "displayName": "Debug configure step for Ubuntu",
         "description": "Used to generate debug configuration for Ubuntu",
         "inherits": "default",
-        "cacheVariables": { 
+        "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",
-          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
           "CMAKE_CXX_FLAGS_INIT" : "-Og",
           "CMAKE_C_FLAGS_INIT" : "-Og"
         }
@@ -39,7 +37,19 @@
         "name": "ci-macos-13",
         "displayName": "CI configure step for MacOS",
         "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default"
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      },
+      {
+        "name": "debug-macos-13",
+        "displayName": "Debug configure step for MacOS",
+        "description": "Used to generate debug configuration for MacOS",
+        "inherits": "default",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
       },
       {
         "name": "ci-windows-2022",
@@ -50,10 +60,22 @@
         "architecture": {
           "value": "x64"
         },
-        "cacheVariables": { 
+        "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Release",
-          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-          "CMAKE_CXX_FLAGS_INIT": "/O2 /Zc:inline"
+          "CMAKE_CXX_FLAGS_INIT": "/Zc:inline"
+        }
+      },
+      {
+        "name": "debug-windows-2022",
+        "displayName": "Debug configure step for Windows",
+        "description": "Set architecture to 64-bit (b/c RakNet)",
+        "inherits": "default",
+        "generator": "Visual Studio 17 2022",
+        "architecture": {
+          "value": "x64"
+        },
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
         }
       },
       {
@@ -101,10 +123,25 @@
         "jobs": 2
       },
       {
+        "name": "debug-windows-2022",
+        "configurePreset": "debug-windows-2022",
+        "displayName": "Windows Debug Build",
+        "description": "This preset is used to debug the build on windows",
+        "configuration": "Release",
+        "jobs": 2
+      },
+      {
         "name": "ci-macos-13",
         "configurePreset": "ci-macos-13",
         "displayName": "MacOS CI Build",
         "description": "This preset is used by the CI build on MacOS",
+        "jobs": 2
+      },
+      {
+        "name": "debug-macos-13",
+        "configurePreset": "debug-macos-13",
+        "displayName": "MacOS Debug Build",
+        "description": "This preset is used to debug the build on MacOS",
         "jobs": 2
       }
     ],
