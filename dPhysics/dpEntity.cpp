@@ -90,7 +90,7 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		m_NewObjects.push_back(other->GetObjectID());
 	} else if (!isColliding && wasFound) {
 		// Erase object ID from currently colliding objects by swapping and popping vector
-		const auto objIdx = objItr - m_CurrentlyCollidingObjects.cbegin();
+		const auto objIdx = std::distance(m_CurrentlyCollidingObjects.cbegin(), objItr);
 		auto& lastObj = m_CurrentlyCollidingObjects.back();
 		m_CurrentlyCollidingObjects[objIdx] = std::move(lastObj);
 		m_CurrentlyCollidingObjects.pop_back();
