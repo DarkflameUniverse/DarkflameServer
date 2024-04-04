@@ -75,14 +75,15 @@ void dpEntity::CheckCollision(dpEntity* other) {
 	}
 
 	const auto objId = other->GetObjectID();
-	const bool wasFound = m_CurrentlyCollidingObjects.contains(objId);
+	const auto objItr = m_CurrentlyCollidingObjects.find(objId);
+	const bool wasFound = objItr != m_CurrentlyCollidingObjects.cend();
 	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
 		m_CurrentlyCollidingObjects.emplace(objId);
 		m_NewObjects.push_back(objId);
 	} else if (!isColliding && wasFound) {
-		m_CurrentlyCollidingObjects.erase(objId);
+		m_CurrentlyCollidingObjects.erase(objItr);
 		m_RemovedObjects.push_back(objId);
 	}
 }

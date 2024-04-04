@@ -2,7 +2,7 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include <vector>
-#include <map>
+#include <unordered_set>
 #include <span>
 
 #include "dCommonVars.h"
@@ -52,7 +52,7 @@ public:
 
 	const std::span<const LWOOBJID> GetNewObjects() const { return m_NewObjects; }
 	const std::span<const LWOOBJID> GetRemovedObjects() const { return m_RemovedObjects; }
-	const std::set<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
+	const std::unordered_set<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
 
@@ -83,5 +83,5 @@ private:
 
 	std::vector<LWOOBJID> m_NewObjects;
 	std::vector<LWOOBJID> m_RemovedObjects;
-	std::set<LWOOBJID> m_CurrentlyCollidingObjects;
+	std::unordered_set<LWOOBJID> m_CurrentlyCollidingObjects;
 };

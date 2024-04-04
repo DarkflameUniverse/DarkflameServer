@@ -5,7 +5,7 @@
 #include "EntityManager.h"
 #include "SimplePhysicsComponent.h"
 
-const std::set<LWOOBJID> ProximityMonitorComponent::m_EmptyObjectSet = {};
+const std::unordered_set<LWOOBJID> ProximityMonitorComponent::m_EmptyObjectSet = {};
 
 ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
 	if (radiusSmall != -1 && radiusLarge != -1) {
@@ -38,10 +38,10 @@ void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 
-const std::set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
-	const auto& iter = m_ProximitiesData.find(name);
+const std::unordered_set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
+	const auto iter = m_ProximitiesData.find(name);
 
-	if (iter == m_ProximitiesData.end()) {
+	if (iter == m_ProximitiesData.cend()) {
 		return m_EmptyObjectSet;
 	}
 
@@ -49,7 +49,7 @@ const std::set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const s
 }
 
 bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID objectID) {
-	const auto& iter = m_ProximitiesData.find(name);
+	const auto iter = m_ProximitiesData.find(name);
 
 	if (iter == m_ProximitiesData.cend()) {
 		return false;
@@ -66,13 +66,13 @@ void ProximityMonitorComponent::Update(float deltaTime) {
 
 		prox.second->SetPosition(m_Parent->GetPosition());
 		//Process enter events
-		for (const auto en : prox.second->GetNewObjects()) {
-			m_Parent->OnCollisionProximity(en, prox.first, "ENTER");
+		for (const auto id : prox.second->GetNewObjects()) {
+			m_Parent->OnCollisionProximity(id, prox.first, "ENTER");
 		}
 
 		//Process exit events
-		for (const auto en : prox.second->GetRemovedObjects()) {
-			m_Parent->OnCollisionProximity(en, prox.first, "LEAVE");
+		for (const auto id : prox.second->GetRemovedObjects()) {
+			m_Parent->OnCollisionProximity(id, prox.first, "LEAVE");
 		}
 	}
 }
