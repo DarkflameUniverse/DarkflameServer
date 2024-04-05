@@ -73,6 +73,7 @@
     },
     {
       "name": "linux-base",
+      "inherits": "default",
       "hidden": true,
       "condition": {
         "type": "equals",
@@ -82,6 +83,7 @@
     },
     {
       "name": "macos-base",
+      "inherits": "default",
       "hidden": true,
       "condition": {
         "type": "equals",
