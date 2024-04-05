@@ -228,7 +228,7 @@
       "steps": [
         {
           "type": "configure",
-          "name": "macos-appleclang-release"
+          "name": "default"
         },
         {
           "type": "build",
