@@ -122,4 +122,7 @@ docker/__pycache__
 docker-compose.override.yml
 
 !*Test.bin
-# !cmake/* Why was this directory excluded?
+
+# CMake scripts
+!cmake/*
+!cmake/toolchains/*

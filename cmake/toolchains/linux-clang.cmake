@@ -1,0 +1,14 @@
+# Try and find a clang-16 install, falling back to a generic clang install otherwise
+find_program(CLANG_C_COMPILER clang-16 | clang REQUIRED)
+find_program(CLANG_CXX_COMPILER clang++-16 | clang++ REQUIRED)
+
+# Debug messages
+message("CLANG_C_COMPILER = ${CLANG_C_COMPILER}")
+message("CLANG_CXX_COMPILER = ${CLANG_CXX_COMPILER}")
+
+# Set compilers to clang
+set(CMAKE_C_COMPILER ${CLANG_C_COMPILER})
+set(CMAKE_CXX_COMPILER ${CLANG_CXX_COMPILER})
+
+# Set linker to lld
+add_link_options("-fuse-ld=lld")
