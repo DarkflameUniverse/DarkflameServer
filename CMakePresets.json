@@ -1,8 +1,8 @@
 {
-  "version": 6,
+  "version": 7,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 25,
+    "minor": 27,
     "patch": 0
   },
   "configurePresets": [
@@ -12,6 +12,30 @@
       "description": "Use 'build' dir and Unix makefiles",
       "binaryDir": "${sourceDir}/build",
       "generator": "Unix Makefiles"
+    },
+    {
+      "name": "debug-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "clang-base",
+      "hidden": true,
+      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake"
+    },
+    {
+      "name": "gcc-base",
+      "hidden": true,
+      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gcc.cmake"
     },
     {
       "name": "ci-windows-2022",
@@ -49,10 +73,7 @@
     },
     {
       "name": "linux-base",
-      "displayName": "x86_64-pc-linux-gnu",
-      "description": "Linux base configuration",
       "hidden": true,
-      "binaryDir": "${sourceDir}/build",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -60,71 +81,71 @@
       }
     },
     {
-      "name": "linux-clang-debug",
-      "inherits": "linux-base",
-      "displayName": "[Debug] Linux (Clang)",
-      "description": "Create a debug build using the Clang toolchain for Linux",
-      "binaryDir": "${sourceDir}/build",
-      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+      "name": "macos-base",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
       }
+    },
+    {
+      "name": "linux-clang-debug",
+      "inherits": [
+        "linux-base",
+        "clang-base",
+        "debug-base"
+      ],
+      "displayName": "[Debug] Linux (Clang)",
+      "description": "Create a debug build using the Clang toolchain for Linux"
     },
     {
       "name": "linux-clang-release",
-      "inherits": "linux-clang-debug",
+      "inherits": [
+        "linux-base",
+        "clang-base",
+        "release-base"
+      ],
       "displayName": "[Release] Linux (Clang)",
-      "description": "Create a release build using the Clang toolchain for Linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "description": "Create a release build using the Clang toolchain for Linux"
     },
     {
       "name": "linux-gcc-debug",
+      "inherits": [
+        "linux-base",
+        "gcc-base",
+        "debug-base"
+      ],
       "displayName": "[Debug] Linux (GCC)",
-      "description": "Create a debug build using the GNU toolchain for Linux",
-      "binaryDir": "${sourceDir}/build",
-      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gcc.cmake",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "description": "Create a debug build using the GNU toolchain for Linux"
     },
     {
       "name": "linux-gcc-release",
-      "inherits": "linux-gcc-debug",
+      "inherits": [
+        "linux-base",
+        "gcc-base",
+        "release-base"
+      ],
       "displayName": "[Release] Linux (GCC)",
-      "description": "Create a release build using the GNU toolchain for Linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "description": "Create a release build using the GNU toolchain for Linux"
     },
     {
-      "name": "macos-appleclang-debug",
-      "displayName": "[Debug] MacOS (AppleClang)",
-      "description": "Same as default, Used in GitHub actions workflow",
-      "inherits": "default",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "name": "macos-debug",
+      "inherits": [
+        "macos-base",
+        "release-base"
+      ],
+      "displayName": "[Debug] MacOS",
+      "description": "Create a debug build using MacOS"
     },
     {
-      "name": "macos-appleclang-release",
-      "displayName": "[Release] MacOS (AppleClang)",
-      "description": "Same as default, Used in GitHub actions workflow",
-      "inherits": "default",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "name": "macos-release",
+      "inherits": [
+        "macos-base",
+        "release-base"
+      ],
+      "displayName": "[Release] MacOS",
+      "description": "Create a release build using MacOS"
     }
   ],
   "buildPresets": [
@@ -144,10 +165,50 @@
       "jobs": 2
     },
     {
-      "name": "debug-windows-2022",
-      "configurePreset": "ci-windows-2022",
-      "displayName": "Windows Debug Build",
-      "description": "This preset is used to debug the build on windows",
+      "name": "linux-clang-debug",
+      "configurePreset": "linux-clang-debug",
+      "displayName": "[Debug] Linux (Clang)",
+      "description": "This preset is used to build in debug mode using the Clang toolchain on Linux",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "linux-clang-release",
+      "configurePreset": "linux-clang-release",
+      "displayName": "[Release] Linux (Clang)",
+      "description": "This preset is used to build in release mode using the Clang toolchain on Linux",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "linux-gcc-debug",
+      "configurePreset": "linux-gcc-debug",
+      "displayName": "[Debug] Linux (GCC)",
+      "description": "This preset is used to build in debug mode using the GCC toolchain on Linux",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "linux-gcc-release",
+      "configurePreset": "linux-gcc-release",
+      "displayName": "[Release] Linux (GCC)",
+      "description": "This preset is used to build in release mode using the GCC toolchain on Linux",
+      "configuration": "Release",
+      "jobs": 2
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug",
+      "displayName": "[Debug] MacOS",
+      "description": "This preset is used to build in debug mode on MacOS",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release",
+      "displayName": "[Release] MacOS",
+      "description": "This preset is used to build in release mode on MacOS",
       "configuration": "Release",
       "jobs": 2
     }
@@ -165,21 +226,64 @@
     },
     {
       "name": "ci-windows-2022",
+      "inherits": "default",
       "configurePreset": "ci-windows-2022",
       "displayName": "CI Tests on windows",
       "description": "Runs all tests on a windows configuration",
       "configuration": "Release",
-      "execution": {
-        "jobs": 2
-      },
-      "output": {
-        "outputOnFailure": true
-      },
       "filter": {
         "exclude": {
           "name": "((example)|(minigzip))+"
         }
       }
+    },
+    {
+      "name": "linux-clang-debug",
+      "inherits": "default",
+      "configurePreset": "linux-clang-debug",
+      "displayName": "[Debug] Linux (Clang)",
+      "description": "Runs all tests on a Linux Clang configuration",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-clang-release",
+      "inherits": "default",
+      "configurePreset": "linux-clang-release",
+      "displayName": "[Release] Linux (Clang)",
+      "description": "Runs all tests on a Linux Clang configuration",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc-debug",
+      "inherits": "default",
+      "configurePreset": "linux-gcc-debug",
+      "displayName": "[Debug] Linux (GCC)",
+      "description": "Runs all tests on a Linux GCC configuration",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-gcc-release",
+      "inherits": "default",
+      "configurePreset": "linux-gcc-release",
+      "displayName": "[Release] Linux (GCC)",
+      "description": "Runs all tests on a Linux GCC configuration",
+      "configuration": "Release"
+    },
+    {
+      "name": "macos-debug",
+      "inherits": "default",
+      "configurePreset": "macos-debug",
+      "displayName": "[Debug] MacOS",
+      "description": "Runs all tests on a MacOS configuration",
+      "configuration": "Release"
+    },
+    {
+      "name": "macos-release",
+      "inherits": "default",
+      "configurePreset": "macos-release",
+      "displayName": "[Release] MacOS",
+      "description": "Runs all tests on a MacOS configuration",
+      "configuration": "Release"
     }
   ],
   "workflowPresets": [
@@ -194,11 +298,11 @@
         },
         {
           "type": "build",
-          "name": "default"
+          "name": "ci-windows-2022"
         },
         {
           "type": "test",
-          "name": "default"
+          "name": "ci-windows-2022"
         }
       ]
     },
@@ -213,11 +317,30 @@
         },
         {
           "type": "build",
-          "name": "default"
+          "name": "linux-gcc-release"
         },
         {
           "type": "test",
-          "name": "default"
+          "name": "linux-gcc-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Build using Clang on Linux",
+      "description": "Clang workflow preset for Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-clang-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-clang-release"
+        },
+        {
+          "type": "test",
+          "name": "linux-clang-release"
         }
       ]
     },
@@ -228,15 +351,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "default"
+          "name": "macos-release"
         },
         {
           "type": "build",
-          "name": "default"
+          "name": "macos-release"
         },
         {
           "type": "test",
-          "name": "default"
+          "name": "macos-release"
         }
       ]
     }
