@@ -50,8 +50,8 @@ public:
 	bool GetSleeping() const { return m_Sleeping; }
 	void SetSleeping(bool value) { m_Sleeping = value; }
 
-	const std::span<const LWOOBJID> GetNewObjects() const { return m_NewObjects; }
-	const std::span<const LWOOBJID> GetRemovedObjects() const { return m_RemovedObjects; }
+	std::span<const LWOOBJID> GetNewObjects() const { return m_NewObjects; }
+	std::span<const LWOOBJID> GetRemovedObjects() const { return m_RemovedObjects; }
 	const std::unordered_set<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
