@@ -150,13 +150,13 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
 
 	//Process enter events
-	for (auto en : m_dpEntity->GetNewObjects()) {
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+	for (const auto id : m_dpEntity->GetNewObjects()) {
+		m_Parent->OnCollisionPhantom(id);
 	}
 
 	//Process exit events
-	for (auto en : m_dpEntity->GetRemovedObjects()) {
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+	for (const auto id : m_dpEntity->GetRemovedObjects()) {
+		m_Parent->OnCollisionLeavePhantom(id);
 	}
 
 	// Check if we should stop the tether effect
