@@ -103,7 +103,7 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
