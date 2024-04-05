@@ -2663,17 +2663,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
-		LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-		LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
-		LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", newIDL);
-
-		info.settings.push_back(ldfBlueprintID);
-		info.settings.push_back(componentWhitelist);
-		info.settings.push_back(modelType);
-		info.settings.push_back(propertyObjectID);
-		info.settings.push_back(userModelID);
+		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		info.settings.push_back(new LDFData<int>(u"modelType", 2));
+		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", newIDL));
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {

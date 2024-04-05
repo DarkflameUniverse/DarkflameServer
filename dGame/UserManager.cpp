@@ -83,7 +83,7 @@ void UserManager::Initialize() {
 	auto chatListStream = Game::assetManager->GetFile("chatplus_en_us.txt");
 	if (!chatListStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
-		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
+		throw std::runtime_error("Aborting initialization due to missing chat allowlist file.");
 	}
 
 	while (std::getline(chatListStream, line, '\n')) {
