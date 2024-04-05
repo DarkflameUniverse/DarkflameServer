@@ -320,7 +320,7 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 	return sortedFiles;
 }
 
-#ifdef DARKFLAME_PLATFORM_MACOS
+#if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 
 // MacOS floating-point parse function specializations
 namespace GeneralUtils::details {
