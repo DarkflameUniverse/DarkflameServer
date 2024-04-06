@@ -290,6 +290,23 @@
   ],
   "workflowPresets": [
     {
+      "name": "default",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "default"
+        },
+        {
+          "type": "build",
+          "name": "default"
+        },
+        {
+          "type": "test",
+          "name": "default"
+        }
+      ]
+    },
+    {
       "name": "ci-windows-2022",
       "displayName": "Windows CI Workflow",
       "description": "CI workflow preset for Windows",
