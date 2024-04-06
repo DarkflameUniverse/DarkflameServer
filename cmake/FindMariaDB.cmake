@@ -143,6 +143,5 @@ endif()
 
 # Add directories to include lists
 target_include_directories(MariaDB::ConnCpp SYSTEM INTERFACE ${MARIADB_INCLUDE_DIR})
-target_link_directories(MariaDB::ConnCpp PUBLIC ${MARIADBCPP_LIBRARY_DIR})
 
 set(MariaDB_FOUND TRUE)
