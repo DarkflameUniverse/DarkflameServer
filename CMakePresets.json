@@ -134,8 +134,7 @@
     {
       "name": "macos-debug",
       "inherits": [
-        "macos-config",
-        "release-config"
+        "macos-config"
       ],
       "displayName": "[Debug] MacOS",
       "description": "Create a debug build using MacOS"
@@ -143,8 +142,7 @@
     {
       "name": "macos-release",
       "inherits": [
-        "macos-config",
-        "release-config"
+        "macos-config"
       ],
       "displayName": "[Release] MacOS",
       "description": "Create a release build using MacOS"
