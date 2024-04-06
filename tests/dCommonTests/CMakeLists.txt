@@ -20,21 +20,19 @@ add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
 add_dependencies(dCommonTests conncpp_tests)
 
 # Apple needs some special linkage for the mariadb connector for tests.
-#if(APPLE)
-#add_custom_command(TARGET dCommonTests POST_BUILD
-#	COMMAND otool ARGS -l dCommonTests
-#	COMMAND otool ARGS -L dCommonTests
-#	COMMAND ls
-#	COMMAND otool ARGS -D libmariadbcpp.dylib
-#	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dCommonTests
-#	COMMAND otool ARGS -L dCommonTests
-#	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-#endif()
-
-#set_target_properties(libmariadbcpp PROPERTIES IMPORTED_LOCATION @rpath/libmariadbcpp.dylib)
+if(APPLE)
+add_custom_command(TARGET dCommonTests POST_BUILD
+	COMMAND otool ARGS -l dCommonTests
+	COMMAND otool ARGS -L dCommonTests
+	COMMAND ls
+	COMMAND otool ARGS -D libmariadbcpp.dylib
+	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dCommonTests
+	COMMAND otool ARGS -L dCommonTests
+	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 # Link needed libraries
-target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main MariaDB::ConnCpp)
+target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)
