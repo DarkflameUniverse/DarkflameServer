@@ -29,8 +29,8 @@ enum class eWorldMessageType : uint32_t {
 	ROUTE_PACKET,  // 				Social?
 	POSITION_UPDATE,
 	MAIL,
-	WORD_CHECK, // 				Whitelist word check
-	STRING_CHECK,  // 				Whitelist string check
+	WORD_CHECK, // 				AllowList word check
+	STRING_CHECK,  // 				AllowList string check
 	GET_PLAYERS_IN_ZONE,
 	REQUEST_UGC_MANIFEST_INFO,
 	BLUEPRINT_GET_ALL_DATA_REQUEST,
