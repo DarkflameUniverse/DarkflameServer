@@ -33,11 +33,6 @@ add_dependencies(dCommonTests conncpp_tests)
 
 #set_target_properties(libmariadbcpp PROPERTIES IMPORTED_LOCATION @rpath/libmariadbcpp.dylib)
 
-# TEST
-if(APPLE)
-	link_directories(${CMAKE_BINARY_DIR}/mariadbcpp)
-endif()
-
 # Link needed libraries
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main MariaDB::ConnCpp)
 
