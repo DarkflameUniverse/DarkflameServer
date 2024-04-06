@@ -14,32 +14,32 @@
       "generator": "Unix Makefiles"
     },
     {
-      "name": "debug-base",
+      "name": "debug-config",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "release-base",
+      "name": "release-config",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
-      "name": "clang-base",
+      "name": "clang-config",
       "hidden": true,
       "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake"
     },
     {
-      "name": "gcc-base",
+      "name": "gcc-config",
       "hidden": true,
       "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gcc.cmake"
     },
     {
-      "name": "ci-windows-2022",
-      "displayName": "CI configure step for Windows",
+      "name": "windows-msvc",
+      "displayName": "[Multi] Windows (MSVC)",
       "description": "Set architecture to 64-bit (b/c RakNet)",
       "inherits": "default",
       "generator": "Visual Studio 17 2022",
@@ -57,7 +57,7 @@
     },
     {
       "name": "windows-default",
-      "inherits": "ci-windows-2022",
+      "inherits": "windows-msvc",
       "displayName": "Windows only Configure Settings",
       "description": "Sets build and install directories",
       "generator": "Ninja",
@@ -72,7 +72,7 @@
       }
     },
     {
-      "name": "linux-base",
+      "name": "linux-config",
       "inherits": "default",
       "hidden": true,
       "condition": {
@@ -82,7 +82,7 @@
       }
     },
     {
-      "name": "macos-base",
+      "name": "macos-config",
       "inherits": "default",
       "hidden": true,
       "condition": {
@@ -94,9 +94,9 @@
     {
       "name": "linux-clang-debug",
       "inherits": [
-        "linux-base",
-        "clang-base",
-        "debug-base"
+        "linux-config",
+        "clang-config",
+        "debug-config"
       ],
       "displayName": "[Debug] Linux (Clang)",
       "description": "Create a debug build using the Clang toolchain for Linux"
@@ -104,9 +104,9 @@
     {
       "name": "linux-clang-release",
       "inherits": [
-        "linux-base",
-        "clang-base",
-        "release-base"
+        "linux-config",
+        "clang-config",
+        "release-config"
       ],
       "displayName": "[Release] Linux (Clang)",
       "description": "Create a release build using the Clang toolchain for Linux"
@@ -114,9 +114,9 @@
     {
       "name": "linux-gcc-debug",
       "inherits": [
-        "linux-base",
-        "gcc-base",
-        "debug-base"
+        "linux-config",
+        "gcc-config",
+        "debug-config"
       ],
       "displayName": "[Debug] Linux (GCC)",
       "description": "Create a debug build using the GNU toolchain for Linux"
@@ -124,9 +124,9 @@
     {
       "name": "linux-gcc-release",
       "inherits": [
-        "linux-base",
-        "gcc-base",
-        "release-base"
+        "linux-config",
+        "gcc-config",
+        "release-config"
       ],
       "displayName": "[Release] Linux (GCC)",
       "description": "Create a release build using the GNU toolchain for Linux"
@@ -134,8 +134,8 @@
     {
       "name": "macos-debug",
       "inherits": [
-        "macos-base",
-        "release-base"
+        "macos-config",
+        "release-config"
       ],
       "displayName": "[Debug] MacOS",
       "description": "Create a debug build using MacOS"
@@ -143,8 +143,8 @@
     {
       "name": "macos-release",
       "inherits": [
-        "macos-base",
-        "release-base"
+        "macos-config",
+        "release-config"
       ],
       "displayName": "[Release] MacOS",
       "description": "Create a release build using MacOS"
@@ -159,13 +159,21 @@
       "jobs": 2
     },
     {
-      "name": "ci-windows-2022",
-      "configurePreset": "ci-windows-2022",
-      "displayName": "Windows CI Build",
-      "description": "This preset is used by the CI build on windows",
-      "configuration": "Release",
+      "name": "windows-msvc-debug",
+      "configurePreset": "windows-msvc",
+      "displayName": "[Debug] Windows (MSVC)",
+      "description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
+      "configuration": "Debug",
       "jobs": 2
     },
+    {
+      "name": "windows-msvc-release",
+      "configurePreset": "windows-msvc",
+      "displayName": "[Release] Windows (MSVC)",
+      "description": "This preset is used to build in release mode using the MSVC toolchain on Windows",
+      "configuration": "Release",
+      "jobs": 2
+      },
     {
       "name": "linux-clang-debug",
       "configurePreset": "linux-clang-debug",
@@ -227,11 +235,11 @@
       }
     },
     {
-      "name": "ci-windows-2022",
+      "name": "windows-msvc",
       "inherits": "default",
-      "configurePreset": "ci-windows-2022",
-      "displayName": "CI Tests on windows",
-      "description": "Runs all tests on a windows configuration",
+      "configurePreset": "windows-msvc",
+      "displayName": "[Multi] Windows (MSVC)",
+      "description": "Runs all tests on a Windows configuration",
       "configuration": "Release",
       "filter": {
         "exclude": {
@@ -313,15 +321,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "ci-windows-2022"
+          "name": "windows-msvc"
         },
         {
           "type": "build",
-          "name": "ci-windows-2022"
+          "name": "windows-msvc-release"
         },
         {
           "type": "test",
-          "name": "ci-windows-2022"
+          "name": "windows-msvc"
         }
       ]
     },

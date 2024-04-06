@@ -1,4 +1,4 @@
-# Try and find a gcc/g++ install, falling back to a generic clang install otherwise
+# Try and find a gcc/g++ install
 find_program(GNU_C_COMPILER gcc REQUIRED)
 find_program(GNU_CXX_COMPILER g++ REQUIRED)
 
