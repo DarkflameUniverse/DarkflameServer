@@ -1,0 +1,50 @@
+<Recorder>
+    <ClearEquippedRecord t="0"/>
+    <EquipRecord item="9856" t="0"/>
+    <EquipRecord item="6500" t="0"/>
+    <MovementRecord x="-557.53174" y="1128.7369" z="50.89016" qx="0" qy="0.72913098" qz="0" qw="0.68437415" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="0.39199999"/>
+    <SpeakRecord text="Welcome!" t="4.026"/>
+    <MovementRecord x="-557.53174" y="1128.7369" z="50.89016" qx="0" qy="0.72913098" qz="0" qw="0.68437415" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="2.046"/>
+    <MovementRecord x="-557.55542" y="1128.7369" z="50.891663" qx="0" qy="0.77823329" qz="0" qw="0.62797529" vx="-1.4221454" vy="3.3353501e-07" vz="0.090151384" avx="0" avy="188.49556" avz="0" g="true" dv="true" dav="true" t="0.46200001"/>
+    <MovementRecord x="-559.65845" y="1128.7369" z="51.024967" qx="0" qy="0.97620082" qz="0" qw="-0.21686859" vx="-16.871138" vy="3.9568704e-06" vz="1.0694356" avx="0" avy="80.788872" avz="0" g="true" dv="true" dav="true" t="0.198"/>
+    <MovementRecord x="-563.03271" y="1128.7369" z="51.238667" qx="0" qy="-0.68442959" qz="0" qw="0.72907895" vx="-16.871298" vy="3.9620759e-06" vz="1.0669085" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-566.12579" y="1128.7369" z="51.43425" qx="0" qy="-0.68442959" qz="0" qw="0.72907895" vx="-16.871298" vy="3.9620759e-06" vz="1.0669085" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-569.76996" y="1128.7369" z="51.779564" qx="0" qy="-0.65352851" qz="0" qw="0.75690192" vx="-16.724352" vy="1.0602414e-06" vz="2.4647665" avx="0" avy="0.29643202" avz="0" g="true" dv="true" dav="true" t="0.23100001"/>
+    <MovementRecord x="-573.31696" y="1128.7369" z="52.304493" qx="0" qy="-0.65330213" qz="0" qw="0.7570973" vx="-16.722874" vy="1.0393246e-06" vz="2.4747682" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-576.93988" y="1128.7369" z="52.840672" qx="0" qy="-0.65330213" qz="0" qw="0.7570973" vx="-16.722874" vy="1.0393246e-06" vz="2.4747682" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-580.00543" y="1128.7369" z="53.294361" qx="0" qy="-0.65330213" qz="0" qw="0.7570973" vx="-16.722874" vy="1.0393246e-06" vz="2.4747682" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-583.6225" y="1128.7369" z="53.869492" qx="0" qy="-0.64578879" qz="0" qw="0.76351613" vx="-16.6707" vy="3.4790952e-07" vz="2.8047707" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.23100001"/>
+    <MovementRecord x="-587.23431" y="1128.7369" z="54.47718" qx="0" qy="-0.64578879" qz="0" qw="0.76351613" vx="-16.6707" vy="3.4790952e-07" vz="2.8047707" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.23100001"/>
+    <MovementRecord x="-590.78857" y="1128.7369" z="55.154781" qx="0" qy="-0.63436413" qz="0" qw="0.77303439" vx="-16.579926" vy="-6.9270078e-07" vz="3.2992506" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-594.10425" y="1128.7369" z="55.814648" qx="0" qy="-0.63436413" qz="0" qw="0.77303439" vx="-16.579926" vy="-6.9270078e-07" vz="3.2992506" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-597.41992" y="1128.7369" z="56.474514" qx="0" qy="-0.63436413" qz="0" qw="0.77303439" vx="-16.579926" vy="-6.9270078e-07" vz="3.2992506" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-600.37299" y="1129.1835" z="57.067936" qx="0" qy="-0.63436413" qz="0" qw="0.77303439" vx="-16.550844" vy="-0.02764282" vz="3.293468" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-603.67401" y="1129.1776" z="57.794476" qx="0" qy="-0.60967135" qz="0" qw="0.79265428" vx="-16.338949" vy="-0.027341407" vz="4.3378429" avx="0" avy="0.68940604" avz="0" g="true" dv="true" dav="true" t="0.264"/>
+    <MovementRecord x="-607.30255" y="1128.5726" z="58.873291" qx="0" qy="-0.58935732" qz="0" qw="0.80787253" vx="-16.122616" vy="-15" vz="5.0832543" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-610.39264" y="1126.5226" z="59.848522" qx="0" qy="-0.58935732" qz="0" qw="0.80787253" vx="-13.727316" vy="-8.8299694" vz="4.4012947" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-612.91327" y="1124.842" z="60.493713" qx="0" qy="-0.64014912" qz="0" qw="0.7682507" vx="-13.939328" vy="-9.2160997" vz="2.5568676" avx="0" avy="-0.90714848" avz="0" g="true" dv="true" dav="true" t="0.495"/>
+    <MovementRecord x="-615.60901" y="1123.9226" z="60.914558" qx="0" qy="-0.65074474" qz="0" qw="0.7592966" vx="-16.705799" vy="0" vz="2.5875225" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.16500001"/>
+    <MovementRecord x="-619.20642" y="1123.9226" z="61.475426" qx="0" qy="-0.64724869" qz="0" qw="0.76227891" vx="-16.681313" vy="0" vz="2.7409482" avx="0" avy="0.31377235" avz="0" g="true" dv="true" dav="true" t="0.264"/>
+    <MovementRecord x="-622.5293" y="1123.9226" z="62.100258" qx="0" qy="-0.63752168" qz="0" qw="0.77043241" vx="-16.606367" vy="0" vz="3.163466" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.16500001"/>
+    <MovementRecord x="-626.12823" y="1123.7505" z="62.781879" qx="0" qy="-0.64108664" qz="0" qw="0.76746851" vx="-16.634985" vy="4.6775982e-05" vz="3.0093575" avx="0" avy="-0.30132243" avz="0" g="true" dv="true" dav="true" t="0.23100001"/>
+    <MovementRecord x="-629.71057" y="1123.7505" z="63.393055" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-16.665606" vy="-4.7832516e-05" vz="2.8348761" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-633.59003" y="1124.8367" z="64.052917" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-16.896" vy="20.297354" vz="2.8736222" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.23100001"/>
+    <MovementRecord x="-637.22083" y="1127.7493" z="64.670441" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-19.241386" vy="8.9419651" vz="3.2726972" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-641.23969" y="1128.4006" z="65.354004" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-20.97077" vy="-2.3861933" vz="3.5669582" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-645.92755" y="1128.7273" z="66.15139" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-22.068434" vy="11.44259" vz="3.7537298" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-650.06995" y="1129.8671" z="66.85601" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-22.994522" vy="0.9925909" vz="3.9113069" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-655.15118" y="1128.7443" z="67.720322" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-23.803282" vy="-11.357409" vz="4.0489192" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.23100001"/>
+    <MovementRecord x="-659.56635" y="1124.9456" z="68.471329" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-7.8723621" vy="-23.707413" vz="1.3390911" avx="0" avy="0" avz="0" g="false" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-660.31464" y="1123.7504" z="68.5979" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="-1.6779066" vy="1.007928e-05" vz="0.28236043" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.23100001"/>
+    <MovementRecord x="-660.31915" y="1123.7504" z="68.598663" qx="0" qy="-0.6450991" qz="0" qw="0.76409894" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="0.198"/>
+    <MovementRecord x="-660.29572" y="1123.7504" z="68.594681" qx="0" qy="-0.5861969" qz="0" qw="0.81016856" vx="1.4048207" vy="2.2637594e-05" vz="-0.23896487" avx="0" avy="188.49556" avz="0" g="true" dv="true" dav="true" t="0.29699999"/>
+    <MovementRecord x="-658.21826" y="1123.7504" z="68.241364" qx="0" qy="0.26788518" qz="0" qw="0.96345085" vx="16.665703" vy="8.9682879e-05" vz="-2.8343182" avx="0" avy="80.787056" avz="0" g="true" dv="true" dav="true" t="0.198"/>
+    <MovementRecord x="-655.93872" y="1123.7504" z="67.853683" qx="0" qy="0.47554708" qz="0" qw="0.87969029" vx="4.0222421" vy="4.9844002e-05" vz="-0.6840589" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-655.87488" y="1123.7504" z="67.842827" qx="0" qy="0.47554708" qz="0" qw="0.87969029" vx="1.2125849" vy="3.9280545e-05" vz="-0.20622317" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-655.87488" y="1123.7504" z="67.842827" qx="0" qy="0.47554708" qz="0" qw="0.87969029" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="0.23100001"/>
+    <MovementRecord x="-655.04889" y="1123.7504" z="67.242249" qx="0" qy="0.85166776" qz="0" qw="0.52408218" vx="4.6101446" vy="-0.0011672372" vz="-3.3521008" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-654.93365" y="1123.7504" z="67.158447" qx="0" qy="0.85166776" qz="0" qw="0.52408218" vx="1.1525371" vy="-0.00029180956" vz="-0.83802569" avx="0" avy="0" avz="0" g="true" dv="true" dav="false" t="0.198"/>
+    <MovementRecord x="-654.93365" y="1123.7504" z="67.158447" qx="0" qy="0.85166776" qz="0" qw="0.52408218" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="0.198"/>
+    <SpeakRecord text="Great!&quot;" t="2.3759999"/>
+    <MovementRecord x="-654.93365" y="1123.7504" z="67.158447" qx="0" qy="0.85166776" qz="0" qw="0.52408218" vx="0" vy="0" vz="0" avx="0" avy="0" avz="0" g="true" dv="false" dav="false" t="3.6960001"/>
+</Recorder>
