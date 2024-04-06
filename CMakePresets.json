@@ -211,7 +211,6 @@
       "configurePreset": "macos-debug",
       "displayName": "[Debug] MacOS",
       "description": "This preset is used to build in debug mode on MacOS",
-      "configuration": "Debug",
       "jobs": 2
     },
     {
@@ -219,7 +218,6 @@
       "configurePreset": "macos-release",
       "displayName": "[Release] MacOS",
       "description": "This preset is used to build in release mode on MacOS",
-      "configuration": "Release",
       "jobs": 2
     }
   ],

@@ -102,7 +102,7 @@ void VanityUtilities::SpawnVanity() {
 }
 
 LWOOBJID SpawnSpawner(const VanityObject& object, const VanityObjectLocation& location) {
-	SceneObject obj {};
+	SceneObject obj{};
 	obj.lot = object.m_LOT;
 	// guratantee we have no collisions
 	do {
