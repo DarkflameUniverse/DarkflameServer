@@ -23,8 +23,8 @@ if(NOT WIN32)
 	target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
 endif()
 
-# Need to define this on Clang (Linux) for 'strdup' support
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+# Need to define this on Clang and GNU for 'strdup' support
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR "GNU")
 	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
 endif()
 
