@@ -1977,7 +1977,12 @@ namespace DEVGMCommands {
 
 			auto newEntity = Game::entityManager->CreateEntity(info);
 			if (newEntity == nullptr) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to spawn entity.");
+				return;
 			}
+
+			Game::entityManager->ConstructEntity(newEntity);
+			numberToSpawn--;
 		}
 	}
 
