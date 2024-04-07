@@ -10,7 +10,7 @@
       "name": "default",
       "displayName": "Default configure step",
       "description": "Use 'build' dir and Unix makefiles",
-      "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build/default",
       "generator": "Unix Makefiles"
     },
     {
@@ -41,8 +41,8 @@
       "name": "windows-msvc",
       "displayName": "[Multi] Windows (MSVC)",
       "description": "Set architecture to 64-bit (b/c RakNet)",
-      "inherits": "default",
       "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/msvc",
       "architecture": {
         "value": "x64"
       },
@@ -82,16 +82,6 @@
       }
     },
     {
-      "name": "macos-config",
-      "inherits": "default",
-      "hidden": true,
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      }
-    },
-    {
       "name": "linux-clang-debug",
       "inherits": [
         "linux-config",
@@ -99,7 +89,8 @@
         "debug-config"
       ],
       "displayName": "[Debug] Linux (Clang)",
-      "description": "Create a debug build using the Clang toolchain for Linux"
+      "description": "Create a debug build using the Clang toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/clang/debug"
     },
     {
       "name": "linux-clang-release",
@@ -109,7 +100,8 @@
         "release-config"
       ],
       "displayName": "[Release] Linux (Clang)",
-      "description": "Create a release build using the Clang toolchain for Linux"
+      "description": "Create a release build using the Clang toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/clang/release"
     },
     {
       "name": "linux-gnu-debug",
@@ -119,7 +111,8 @@
         "debug-config"
       ],
       "displayName": "[Debug] Linux (GNU)",
-      "description": "Create a debug build using the GNU toolchain for Linux"
+      "description": "Create a debug build using the GNU toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/gnu/debug"
     },
     {
       "name": "linux-gnu-release",
@@ -129,25 +122,20 @@
         "release-config"
       ],
       "displayName": "[Release] Linux (GNU)",
-      "description": "Create a release build using the GNU toolchain for Linux"
+      "description": "Create a release build using the GNU toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/gnu/release"
     },
     {
-      "name": "macos-debug",
-      "inherits": [
-        "macos-config",
-        "debug-config"
-      ],
-      "displayName": "[Debug] MacOS",
-      "description": "Create a debug build using MacOS"
-    },
-    {
-      "name": "macos-release",
-      "inherits": [
-        "macos-config",
-        "release-config"
-      ],
-      "displayName": "[Release] MacOS",
-      "description": "Create a release build using MacOS"
+      "name": "macos",
+      "inherits": "macos-config",
+      "displayName": "[Multi] MacOS",
+      "description": "Create a build for MacOS",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "binaryDir": "${sourceDir}/build/macos"
     }
   ],
   "buildPresets": [
@@ -208,14 +196,14 @@
     },
     {
       "name": "macos-debug",
-      "configurePreset": "macos-debug",
+      "configurePreset": "macos",
       "displayName": "[Debug] MacOS",
       "description": "This preset is used to build in debug mode on MacOS",
       "jobs": 2
     },
     {
       "name": "macos-release",
-      "configurePreset": "macos-release",
+      "configurePreset": "macos",
       "displayName": "[Release] MacOS",
       "description": "This preset is used to build in release mode on MacOS",
       "jobs": 2
@@ -233,17 +221,31 @@
       }
     },
     {
-      "name": "windows-msvc",
+      "name": "windows-msvc-test",
       "inherits": "default",
       "configurePreset": "windows-msvc",
-      "displayName": "[Multi] Windows (MSVC)",
-      "description": "Runs all tests on a Windows configuration",
-      "configuration": "Release",
+      "hidden": true,
       "filter": {
         "exclude": {
           "name": "((example)|(minigzip))+"
         }
       }
+    },
+    {
+      "name": "windows-msvc-debug",
+      "inherits": "windows-msvc-test",
+      "configurePreset": "windows-msvc",
+      "displayName": "[Debug] Windows (MSVC)",
+      "description": "Runs all tests on a Windows configuration",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "windows-msvc-test",
+      "configurePreset": "windows-msvc",
+      "displayName": "[Release] Windows (MSVC)",
+      "description": "Runs all tests on a Windows configuration",
+      "configuration": "Release"
     },
     {
       "name": "linux-clang-debug",
@@ -280,7 +282,7 @@
     {
       "name": "macos-debug",
       "inherits": "default",
-      "configurePreset": "macos-debug",
+      "configurePreset": "macos",
       "displayName": "[Debug] MacOS",
       "description": "Runs all tests on a MacOS configuration",
       "configuration": "Debug"
@@ -288,7 +290,7 @@
     {
       "name": "macos-release",
       "inherits": "default",
-      "configurePreset": "macos-release",
+      "configurePreset": "macos",
       "displayName": "[Release] MacOS",
       "description": "Runs all tests on a MacOS configuration",
       "configuration": "Release"
@@ -313,8 +315,27 @@
       ]
     },
     {
+      "name": "windows-msvc-debug",
+      "displayName": "[Debug] Windows (MSVC)",
+      "description": "MSVC debug workflow preset for Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-msvc"
+        },
+        {
+          "type": "build",
+          "name": "windows-msvc-debug"
+        },
+        {
+          "type": "test",
+          "name": "windows-msvc-debug"
+        }
+      ]
+    },
+    {
       "name": "ci-windows-2022",
-      "displayName": "Windows CI Workflow",
+      "displayName": "[Release] Windows (MSVC)",
       "description": "CI workflow preset for Windows",
       "steps": [
         {
@@ -327,13 +348,32 @@
         },
         {
           "type": "test",
-          "name": "windows-msvc"
+          "name": "windows-msvc-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-gnu-debug",
+      "displayName": "[Debug] Linux (GNU)",
+      "description": "GNU debug workflow preset for Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-gnu-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-gnu-debug"
+        },
+        {
+          "type": "test",
+          "name": "linux-gnu-debug"
         }
       ]
     },
     {
       "name": "ci-ubuntu-22.04",
-      "displayName": "Ubuntu CI Workflow",
+      "displayName": "[Release] Linux (GNU)",
       "description": "CI workflow preset for Ubuntu",
       "steps": [
         {
@@ -351,9 +391,28 @@
       ]
     },
     {
+      "name": "linux-clang-debug",
+      "displayName": "[Debug] Linux (Clang)",
+      "description": "Clang debug workflow preset for Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-clang-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-clang-debug"
+        },
+        {
+          "type": "test",
+          "name": "linux-clang-debug"
+        }
+      ]
+    },
+    {
       "name": "linux-clang-release",
-      "displayName": "Build using Clang on Linux",
-      "description": "Clang workflow preset for Linux",
+      "displayName": "[Release] Linux (Clang)",
+      "description": "Clang release workflow preset for Linux",
       "steps": [
         {
           "type": "configure",
@@ -370,13 +429,32 @@
       ]
     },
     {
+      "name": "macos-debug",
+      "displayName": "[Debug] MacOS",
+      "description": "Release workflow preset for MacOS",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "macos"
+        },
+        {
+          "type": "build",
+          "name": "macos-debug"
+        },
+        {
+          "type": "test",
+          "name": "macos-debug"
+        }
+      ]
+    },
+    {
       "name": "ci-macos-13",
-      "displayName": "MacOS CI Workflow",
+      "displayName": "[Release] MacOS",
       "description": "CI workflow preset for MacOS",
       "steps": [
         {
           "type": "configure",
-          "name": "macos-release"
+          "name": "macos"
         },
         {
           "type": "build",
