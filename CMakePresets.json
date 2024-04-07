@@ -33,9 +33,9 @@
       "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake"
     },
     {
-      "name": "gcc-config",
+      "name": "gnu-config",
       "hidden": true,
-      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gcc.cmake"
+      "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake"
     },
     {
       "name": "windows-msvc",
@@ -112,23 +112,23 @@
       "description": "Create a release build using the Clang toolchain for Linux"
     },
     {
-      "name": "linux-gcc-debug",
+      "name": "linux-gnu-debug",
       "inherits": [
         "linux-config",
-        "gcc-config",
+        "gnu-config",
         "debug-config"
       ],
-      "displayName": "[Debug] Linux (GCC)",
+      "displayName": "[Debug] Linux (GNU)",
       "description": "Create a debug build using the GNU toolchain for Linux"
     },
     {
-      "name": "linux-gcc-release",
+      "name": "linux-gnu-release",
       "inherits": [
         "linux-config",
-        "gcc-config",
+        "gnu-config",
         "release-config"
       ],
-      "displayName": "[Release] Linux (GCC)",
+      "displayName": "[Release] Linux (GNU)",
       "description": "Create a release build using the GNU toolchain for Linux"
     },
     {
@@ -191,18 +191,18 @@
       "jobs": 2
     },
     {
-      "name": "linux-gcc-debug",
-      "configurePreset": "linux-gcc-debug",
-      "displayName": "[Debug] Linux (GCC)",
-      "description": "This preset is used to build in debug mode using the GCC toolchain on Linux",
+      "name": "linux-gnu-debug",
+      "configurePreset": "linux-gnu-debug",
+      "displayName": "[Debug] Linux (GNU)",
+      "description": "This preset is used to build in debug mode using the GNU toolchain on Linux",
       "configuration": "Debug",
       "jobs": 2
     },
     {
-      "name": "linux-gcc-release",
-      "configurePreset": "linux-gcc-release",
-      "displayName": "[Release] Linux (GCC)",
-      "description": "This preset is used to build in release mode using the GCC toolchain on Linux",
+      "name": "linux-gnu-release",
+      "configurePreset": "linux-gnu-release",
+      "displayName": "[Release] Linux (GNU)",
+      "description": "This preset is used to build in release mode using the GNU toolchain on Linux",
       "configuration": "Release",
       "jobs": 2
     },
@@ -262,19 +262,19 @@
       "configuration": "Release"
     },
     {
-      "name": "linux-gcc-debug",
+      "name": "linux-gnu-debug",
       "inherits": "default",
-      "configurePreset": "linux-gcc-debug",
-      "displayName": "[Debug] Linux (GCC)",
-      "description": "Runs all tests on a Linux GCC configuration",
+      "configurePreset": "linux-gnu-debug",
+      "displayName": "[Debug] Linux (GNU)",
+      "description": "Runs all tests on a Linux GNU configuration",
       "configuration": "Release"
     },
     {
-      "name": "linux-gcc-release",
+      "name": "linux-gnu-release",
       "inherits": "default",
-      "configurePreset": "linux-gcc-release",
-      "displayName": "[Release] Linux (GCC)",
-      "description": "Runs all tests on a Linux GCC configuration",
+      "configurePreset": "linux-gnu-release",
+      "displayName": "[Release] Linux (GNU)",
+      "description": "Runs all tests on a Linux GNU configuration",
       "configuration": "Release"
     },
     {
@@ -338,15 +338,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "linux-gcc-release"
+          "name": "linux-gnu-release"
         },
         {
           "type": "build",
-          "name": "linux-gcc-release"
+          "name": "linux-gnu-release"
         },
         {
           "type": "test",
-          "name": "linux-gcc-release"
+          "name": "linux-gnu-release"
         }
       ]
     },
