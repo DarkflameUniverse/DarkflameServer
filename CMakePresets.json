@@ -127,7 +127,7 @@
     },
     {
       "name": "macos",
-      "inherits": "macos-config",
+      "inherits": "default",
       "displayName": "[Multi] MacOS",
       "description": "Create a build for MacOS",
       "condition": {
