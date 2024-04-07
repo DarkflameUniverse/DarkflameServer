@@ -10,7 +10,7 @@
       "name": "default",
       "displayName": "Default configure step",
       "description": "Use 'build' dir and Unix makefiles",
-      "binaryDir": "${sourceDir}/build/default",
+      "binaryDir": "${sourceDir}/build",
       "generator": "Unix Makefiles"
     },
     {
@@ -50,9 +50,6 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "/Zc:inline"
       }
     },
     {

@@ -75,7 +75,7 @@ if(UNIX)
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
 	# Also disable non-portable MSVC volatile behavior
-	add_compile_options("/wd4267" "/utf-8" "/volatile:iso")
+	add_compile_options("/wd4267" "/utf-8" "/volatile:iso" "/Zc:inline")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
