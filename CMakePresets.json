@@ -134,7 +134,8 @@
     {
       "name": "macos-debug",
       "inherits": [
-        "macos-config"
+        "macos-config",
+        "debug-config"
       ],
       "displayName": "[Debug] MacOS",
       "description": "Create a debug build using MacOS"
@@ -142,7 +143,8 @@
     {
       "name": "macos-release",
       "inherits": [
-        "macos-config"
+        "macos-config",
+        "release-config"
       ],
       "displayName": "[Release] MacOS",
       "description": "Create a release build using MacOS"
@@ -281,7 +283,7 @@
       "configurePreset": "macos-debug",
       "displayName": "[Debug] MacOS",
       "description": "Runs all tests on a MacOS configuration",
-      "configuration": "Release"
+      "configuration": "Debug"
     },
     {
       "name": "macos-release",
