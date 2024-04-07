@@ -27,14 +27,16 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		return;
 	}
 
-	for (auto i = 0; i < 5; ++i) {
-		if (result.fieldIsNull(i)) {
+	const std::vector<std::string_view> rowNames = { "skillSetWith2", "skillSetWith3", "skillSetWith4", "skillSetWith5", "skillSetWith6" };
+	for (auto i = 0; i < rowNames.size(); ++i) {
+		const auto rowName = rowNames[i];
+		if (result.fieldIsNull(rowName.data())) {
 			continue;
 		}
 
 		auto skillQuery = CDClientDatabase::CreatePreppedStmt(
 			"SELECT SkillID FROM ItemSetSkills WHERE SkillSetID = ?;");
-		skillQuery.bind(1, result.getIntField(i));
+		skillQuery.bind(1, result.getIntField(rowName.data()));
 
 		auto skillResult = skillQuery.execQuery();
 
@@ -43,13 +45,13 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		}
 
 		while (!skillResult.eof()) {
-			if (skillResult.fieldIsNull(0)) {
+			if (skillResult.fieldIsNull("SkillID")) {
 				skillResult.nextRow();
 
 				continue;
 			}
 
-			const auto skillId = skillResult.getIntField(0);
+			const auto skillId = skillResult.getIntField("SkillID");
 
 			switch (i) {
 			case 0:
@@ -75,7 +77,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		}
 	}
 
-	std::string ids = result.getStringField(5);
+	std::string ids = result.getStringField("itemIDs");
 
 	ids.erase(std::remove_if(ids.begin(), ids.end(), ::isspace), ids.end());
 

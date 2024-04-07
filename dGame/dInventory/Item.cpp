@@ -405,18 +405,18 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 
 	auto result = query.execQuery();
 
-	if (result.eof() || result.fieldIsNull(0)) {
+	if (result.eof() || result.fieldIsNull("render_asset")) {
 		return;
 	}
 
-	std::string renderAsset = std::string(result.getStringField(0));
+	std::string renderAsset = std::string(result.getStringField("render_asset"));
 
 	// normalize path slashes
 	for (auto& c : renderAsset) {
 		if (c == '\\') c = '/';
 	}
 
-	std::string lxfmlFolderName = std::string(result.getStringField(1));
+	std::string lxfmlFolderName = std::string(result.getStringField("LXFMLFolder"));
 	if (!lxfmlFolderName.empty()) lxfmlFolderName.insert(0, "/");
 
 	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '/');

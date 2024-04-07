@@ -1195,7 +1195,7 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& command, Entit
 		auto tables = query.execQuery();
 
 		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
+			std::string message = std::to_string(tables.getIntField("id")) + " - " + tables.getStringField("name");
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
 			tables.nextRow();
 		}

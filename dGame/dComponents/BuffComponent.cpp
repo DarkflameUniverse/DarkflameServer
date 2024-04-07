@@ -450,7 +450,7 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 		param.value = result.getFloatField("NumberValue");
 		param.effectId = result.getIntField("EffectID");
 
-		if (!result.fieldIsNull(3)) {
+		if (!result.fieldIsNull("StringValue")) {
 			std::istringstream stream(result.getStringField("StringValue"));
 			std::string token;
 

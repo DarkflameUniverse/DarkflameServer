@@ -49,11 +49,11 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	auto result = query.execQuery();
 
-	if (result.eof() || result.fieldIsNull(0)) {
+	if (result.eof() || result.fieldIsNull("id")) {
 		return;
 	}
 
-	templateId = result.getIntField(0);
+	templateId = result.getIntField("id");
 
 	auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 
@@ -105,7 +105,7 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 	std::vector<float> points;
 
-	std::istringstream stream(result.getStringField(0));
+	std::istringstream stream(result.getStringField("path"));
 	std::string token;
 
 	while (std::getline(stream, token, ' ')) {
