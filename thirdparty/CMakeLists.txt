@@ -24,7 +24,7 @@ if(NOT WIN32)
 endif()
 
 # Need to define this on Clang and GNU for 'strdup' support
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR "GNU")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
 endif()
 
