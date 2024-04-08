@@ -476,8 +476,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
-		auto* xmlDoc = m_Character ? m_Character->GetXMLDoc() : nullptr;
-		AddComponent<InventoryComponent>(xmlDoc);
+		AddComponent<InventoryComponent>();
 	}
 	// if this component exists, then we initialize it. it's value is always 0
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
@@ -1244,7 +1243,7 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 	outBitStream.Write0();
 }
 
-void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
+void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
 	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
 	//Naturally, we don't include any non-player components in this update function.
 
