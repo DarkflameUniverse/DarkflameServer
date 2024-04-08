@@ -185,8 +185,8 @@ void DestroyableComponent::Update(float deltaTime) {
 	m_DamageCooldownTimer -= deltaTime;
 }
 
-void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;
@@ -207,8 +207,8 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_DirtyHealth = true;
 }
 
-void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+	tinyxml2::XMLElement* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;

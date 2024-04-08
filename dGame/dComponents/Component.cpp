@@ -21,11 +21,11 @@ void Component::OnUse(Entity* originator) {
 
 }
 
-void Component::UpdateXml(tinyxml2::XMLDocument* doc) {
+void Component::UpdateXml(tinyxml2::XMLDocument& doc) {
 
 }
 
-void Component::LoadFromXml(tinyxml2::XMLDocument* doc) {
+void Component::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 }
 
