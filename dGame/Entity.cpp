@@ -1635,10 +1635,8 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
-
 					auto* skillComponent = GetComponent<SkillComponent>();
-					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID());
+					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
