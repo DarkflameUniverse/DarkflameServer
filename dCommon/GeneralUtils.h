@@ -156,8 +156,11 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <Numeric T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str) {
 		numeric_parse_t<T> result;
+		if (!str.empty()) {
+			while (std::isspace(str.front())) str.remove_prefix(1);
+		}
 
 		const char* const strEnd = str.data() + str.size();
 		const auto [parseEnd, ec] = std::from_chars(str.data(), strEnd, result);
@@ -181,8 +184,12 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <std::floating_point T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str) noexcept
 	try {
+		if (!str.empty()) {
+			while (std::isspace(str.front())) str.remove_prefix(1);
+		}
+
 		size_t parseNum;
 		const T result = details::_parse<T>(str, parseNum);
 		const bool isParsed = str.length() == parseNum;
