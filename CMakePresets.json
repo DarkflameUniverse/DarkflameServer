@@ -86,7 +86,7 @@
       ],
       "displayName": "[Debug] Linux (Clang)",
       "description": "Create a debug build using the Clang toolchain for Linux",
-      "binaryDir": "${sourceDir}/build/clang/debug"
+      "binaryDir": "${sourceDir}/build/clang-debug"
     },
     {
       "name": "linux-clang-release",
@@ -97,7 +97,7 @@
       ],
       "displayName": "[Release] Linux (Clang)",
       "description": "Create a release build using the Clang toolchain for Linux",
-      "binaryDir": "${sourceDir}/build/clang/release"
+      "binaryDir": "${sourceDir}/build/clang-release"
     },
     {
       "name": "linux-gnu-debug",
@@ -108,7 +108,7 @@
       ],
       "displayName": "[Debug] Linux (GNU)",
       "description": "Create a debug build using the GNU toolchain for Linux",
-      "binaryDir": "${sourceDir}/build/gnu/debug"
+      "binaryDir": "${sourceDir}/build/gnu-debug"
     },
     {
       "name": "linux-gnu-release",
@@ -119,7 +119,7 @@
       ],
       "displayName": "[Release] Linux (GNU)",
       "description": "Create a release build using the GNU toolchain for Linux",
-      "binaryDir": "${sourceDir}/build/gnu/release"
+      "binaryDir": "${sourceDir}/build/gnu-release"
     },
     {
       "name": "macos",
