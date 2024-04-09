@@ -10,17 +10,15 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hid
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Check if link-time-optimization is supported and apply it if possible in release builds
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	include(CheckIPOSupported)
-	check_ipo_supported(RESULT supported OUTPUT error)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT supported OUTPUT error)
 
-	if(supported)
-		message(STATUS "IPO / LTO enabled")
-		set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
-		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-	else()
-		message(STATUS "IPO / LTO not supported: <${error}>")
-	endif()
+if(supported)
+	message(STATUS "IPO / LTO enabled")
+	set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+else()
+	message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
 
 # Read variables from file
