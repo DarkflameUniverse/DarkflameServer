@@ -158,9 +158,7 @@ namespace GeneralUtils {
 	template <Numeric T>
 	[[nodiscard]] std::optional<T> TryParse(std::string_view str) {
 		numeric_parse_t<T> result;
-		if (!str.empty()) {
-			while (std::isspace(str.front())) str.remove_prefix(1);
-		}
+		while (!str.empty() && std::isspace(str.front())) str.remove_prefix(1);
 
 		const char* const strEnd = str.data() + str.size();
 		const auto [parseEnd, ec] = std::from_chars(str.data(), strEnd, result);
@@ -186,9 +184,7 @@ namespace GeneralUtils {
 	template <std::floating_point T>
 	[[nodiscard]] std::optional<T> TryParse(std::string_view str) noexcept
 	try {
-		if (!str.empty()) {
-			while (std::isspace(str.front())) str.remove_prefix(1);
-		}
+		while (!str.empty() && std::isspace(str.front())) str.remove_prefix(1);
 
 		size_t parseNum;
 		const T result = details::_parse<T>(str, parseNum);
