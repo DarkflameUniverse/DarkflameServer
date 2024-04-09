@@ -4660,7 +4660,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* enti
 	if (!user) return;
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
-	
+
 	// handle buying normal items
 	auto* vendorComponent = entity->GetComponent<VendorComponent>();
 	if (vendorComponent) {
@@ -5290,7 +5290,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
 	bool iObjIDIsDefault = false;
-	LWOOBJID iObjID;
+	LWOOBJID iObjID = LWOOBJID_EMPTY;
 	bool iObjTemplateIsDefault = false;
 	LOT iObjTemplate = LOT_NULL;
 	bool iRequestingObjIDIsDefault = false;
