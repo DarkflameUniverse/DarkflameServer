@@ -253,7 +253,7 @@ endif()
 
 # Set warning flags
 if(MSVC)
-	add_compile_options("/WX")
+	add_compile_options("/W4")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Werror")
 else()
