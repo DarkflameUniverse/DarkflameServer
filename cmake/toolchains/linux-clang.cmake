@@ -3,8 +3,8 @@ find_program(CLANG_C_COMPILER clang-16 | clang REQUIRED)
 find_program(CLANG_CXX_COMPILER clang++-16 | clang++ REQUIRED)
 
 # Debug messages
-message("CLANG_C_COMPILER = ${CLANG_C_COMPILER}")
-message("CLANG_CXX_COMPILER = ${CLANG_CXX_COMPILER}")
+message(DEBUG "CLANG_C_COMPILER = ${CLANG_C_COMPILER}")
+message(DEBUG "CLANG_CXX_COMPILER = ${CLANG_CXX_COMPILER}")
 
 # Set compilers to clang
 set(CMAKE_C_COMPILER ${CLANG_C_COMPILER})

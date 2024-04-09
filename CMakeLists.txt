@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.25)
-project(Darkflame)
+project(Darkflame
+	HOMEPAGE_URL "https://github.com/DarkflameUniverse/DarkflameServer"
+	LANGUAGES C CXX
+)
 include(CTest)
 
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
-set(CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debugging
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
@@ -55,23 +60,21 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wuninitialized -fPIC")
+	add_compile_options("-fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
 	# For all except Clang and Apple Clang
 	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
+		add_compile_options("-static-libgcc" "-lstdc++fs")
 	endif()
 
 	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+		add_compile_options("-rdynamic")
 	endif()
 
 	if(${GGDB})
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+		add_compile_options("-ggdb")
 	endif()
-
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
 	# Also disable non-portable MSVC volatile behavior
@@ -231,14 +234,15 @@ include_directories(
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
 
-	SYSTEM "thirdparty/magic_enum/include/magic_enum"
-	SYSTEM "thirdparty/raknet/Source"
-	SYSTEM "thirdparty/tinyxml2"
-	SYSTEM "thirdparty/recastnavigation"
-	SYSTEM "thirdparty/SQLite"
-	SYSTEM "thirdparty/cpplinq"
-	SYSTEM "thirdparty/cpp-httplib"
-	SYSTEM "thirdparty/MD5"
+	SYSTEM
+	"thirdparty/magic_enum/include/magic_enum"
+	"thirdparty/raknet/Source"
+	"thirdparty/tinyxml2"
+	"thirdparty/recastnavigation"
+	"thirdparty/SQLite"
+	"thirdparty/cpplinq"
+	"thirdparty/cpp-httplib"
+	"thirdparty/MD5"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -247,10 +251,16 @@ if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-# Add linking directories:
-if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") # Warning flags
+# Set warning flags
+if(MSVC)
+	add_compile_options("/WX")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Werror")
+else()
+	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' No warning flags enabled.")
 endif()
+
+# Add linking directories:
 file(
 	GLOB HEADERS_DZONEMANAGER
 	LIST_DIRECTORIES false
