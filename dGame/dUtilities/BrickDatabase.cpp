@@ -29,15 +29,14 @@ const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 		return emptyCache;
 	}
 
-	auto* doc = new tinyxml2::XMLDocument();
-	if (doc->Parse(data.str().c_str(), data.str().size()) != 0) {
-		delete doc;
+	tinyxml2::XMLDocument doc;
+	if (doc.Parse(data.str().c_str(), data.str().size()) != 0) {
 		return emptyCache;
 	}
 
 	BrickList parts;
 
-	auto* lxfml = doc->FirstChildElement("LXFML");
+	auto* lxfml = doc.FirstChildElement("LXFML");
 	auto* bricks = lxfml->FirstChildElement("Bricks");
 	std::string searchTerm = "Brick";
 
@@ -85,8 +84,6 @@ const BrickList& BrickDatabase::GetBricks(const LxfmlPath& lxfmlPath) {
 	}
 
 	m_Cache[lxfmlPath] = parts;
-
-	delete doc;
 
 	return m_Cache[lxfmlPath];
 }
