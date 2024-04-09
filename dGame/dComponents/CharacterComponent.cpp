@@ -186,9 +186,9 @@ void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_GMLevel = gmlevel;
 }
 
-void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
+void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
-	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
+	auto* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		LOG("Failed to find char tag while loading XML!");
 		return;
@@ -299,8 +299,8 @@ void CharacterComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	}
 }
 
-void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* minifig = doc->FirstChildElement("obj")->FirstChildElement("mf");
+void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+	tinyxml2::XMLElement* minifig = doc.FirstChildElement("obj")->FirstChildElement("mf");
 	if (!minifig) {
 		LOG("Failed to find mf tag while updating XML!");
 		return;
@@ -320,7 +320,7 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	// done with minifig
 
-	tinyxml2::XMLElement* character = doc->FirstChildElement("obj")->FirstChildElement("char");
+	tinyxml2::XMLElement* character = doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (!character) {
 		LOG("Failed to find char tag while updating XML!");
 		return;
@@ -338,11 +338,11 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 
 	// Set the zone statistics of the form <zs><s/> ... <s/></zs>
 	auto zoneStatistics = character->FirstChildElement("zs");
-	if (!zoneStatistics) zoneStatistics = doc->NewElement("zs");
+	if (!zoneStatistics) zoneStatistics = doc.NewElement("zs");
 	zoneStatistics->DeleteChildren();
 
 	for (auto pair : m_ZoneStatistics) {
-		auto zoneStatistic = doc->NewElement("s");
+		auto zoneStatistic = doc.NewElement("s");
 
 		zoneStatistic->SetAttribute("map", pair.first);
 		zoneStatistic->SetAttribute("ac", pair.second.m_AchievementsCollected);

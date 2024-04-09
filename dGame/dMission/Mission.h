@@ -28,8 +28,8 @@ public:
 	Mission(MissionComponent* missionComponent, uint32_t missionId);
 	~Mission();
 
-	void LoadFromXml(tinyxml2::XMLElement* element);
-	void UpdateXml(tinyxml2::XMLElement* element);
+	void LoadFromXml(const tinyxml2::XMLElement& element);
+	void UpdateXml(tinyxml2::XMLElement& element);
 
 	/**
 	 * Returns the ID of this mission

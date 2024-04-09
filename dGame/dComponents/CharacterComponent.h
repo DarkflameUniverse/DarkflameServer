@@ -70,8 +70,8 @@ public:
 	CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;
 
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 

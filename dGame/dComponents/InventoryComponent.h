@@ -38,12 +38,12 @@ enum class eItemType : int32_t;
 class InventoryComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
-	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
+	InventoryComponent(Entity* parent);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadXml(tinyxml2::XMLDocument* document);
-	void UpdateXml(tinyxml2::XMLDocument* document) override;
+	void LoadXml(const tinyxml2::XMLDocument& document);
+	void UpdateXml(tinyxml2::XMLDocument& document) override;
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -470,13 +470,13 @@ private:
 	 * Saves all the pet information stored in inventory items to the database
 	 * @param document the xml doc to save to
 	 */
-	void LoadPetXml(tinyxml2::XMLDocument* document);
+	void LoadPetXml(const tinyxml2::XMLDocument& document);
 
 	/**
 	 * Loads all the pet information from an xml doc into items
 	 * @param document the xml doc to load from
 	 */
-	void UpdatePetXml(tinyxml2::XMLDocument* document);
+	void UpdatePetXml(tinyxml2::XMLDocument& document);
 };
 
 #endif
