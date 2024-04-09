@@ -21,7 +21,7 @@ jobs:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
       if: ${{ matrix.os == 'windows-2022' }}
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64

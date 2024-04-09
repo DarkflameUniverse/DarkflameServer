@@ -64,8 +64,7 @@
         "rhs": "Windows"
       },
       "architecture": {
-        "value": "x64",
-        "strategy": "external"
+        "value": "x64"
       }
     },
     {
