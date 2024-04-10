@@ -699,12 +699,12 @@ namespace DEVGMCommands {
 			"SELECT `id`, `name` FROM `Objects` WHERE `displayName` LIKE ?1 OR `name` LIKE ?1 OR `description` LIKE ?1 LIMIT 50");
 
 		const std::string query_text = "%" + args + "%";
-		query.bind(1, query_text.c_str());
+		query.bind("name", query_text.c_str());
 
 		auto tables = query.execQuery();
 
 		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
+			std::string message = std::to_string(tables.getIntField("id")) + " - " + tables.getStringField(1);
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
 			tables.nextRow();
 		}
