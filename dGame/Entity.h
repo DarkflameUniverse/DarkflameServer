@@ -174,7 +174,7 @@ public:
 
 	void WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType);
-	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
+	void UpdateXMLDoc(tinyxml2::XMLDocument& doc);
 	void Update(float deltaTime);
 
 	// Events

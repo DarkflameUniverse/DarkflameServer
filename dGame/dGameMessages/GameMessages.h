@@ -664,6 +664,8 @@ namespace GameMessages {
 	void HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
+
+	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
 };
 
 #endif // GAMEMESSAGES_H

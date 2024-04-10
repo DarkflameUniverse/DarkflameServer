@@ -26,8 +26,8 @@ public:
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Initializes the component using a different LOT

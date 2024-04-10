@@ -326,9 +326,9 @@ Entity* BuffComponent::GetParent() const {
 	return m_Parent;
 }
 
-void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
+void BuffComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 	// Load buffs
-	auto* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 
 	// Make sure we have a clean buff element.
 	auto* buffElement = dest->FirstChildElement("buff");
@@ -386,15 +386,15 @@ void BuffComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	}
 }
 
-void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
+void BuffComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	// Save buffs
-	auto* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 
 	// Make sure we have a clean buff element.
 	auto* buffElement = dest->FirstChildElement("buff");
 
 	if (buffElement == nullptr) {
-		buffElement = doc->NewElement("buff");
+		buffElement = doc.NewElement("buff");
 
 		dest->LinkEndChild(buffElement);
 	} else {
@@ -402,7 +402,7 @@ void BuffComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 	}
 
 	for (const auto& [id, buff] : m_Buffs) {
-		auto* buffEntry = doc->NewElement("b");
+		auto* buffEntry = doc.NewElement("b");
 		// TODO: change this if to if (buff.cancelOnZone || buff.cancelOnLogout) handling at some point.  No current way to differentiate between zone transfer and logout.
 		if (buff.cancelOnZone) continue;
 
