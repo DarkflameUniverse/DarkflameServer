@@ -10,4 +10,6 @@ namespace GMGreaterThanZeroCommands {
 	void GmInvis(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void SetName(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Title(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }

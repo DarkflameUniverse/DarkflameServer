@@ -354,6 +354,75 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 	inStream.Read(player.gmLevel);
 }
 
+
+void ChatPacketHandler::HandleWho(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerID;
+	inStream.Read(playerID);
+
+	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	if (!sender) return;
+
+	LUWString playerName;
+	inStream.Read(playerName);
+	const auto& player = Game::playerContainer.GetPlayerData(playerName.GetAsString());
+	bool online = true;
+	if (!player) online = false;
+
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	bitStream.Write(playerID);
+
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::WHO_RESPONSE);
+	bitStream.Write<uint8_t>(online);
+	bitStream.Write(player.zoneID.GetMapID());
+	bitStream.Write(player.zoneID.GetInstanceID());
+	bitStream.Write(player.zoneID.GetCloneID());
+	bitStream.Write(playerName);
+
+	SystemAddress sysAddr = sender.sysAddr;
+	SEND_PACKET;
+}
+
+void ChatPacketHandler::HandleShowAll(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	LWOOBJID playerID;
+	inStream.Read(playerID);
+
+	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	if (!sender) return;
+
+	LUString displayZoneData(1);
+	inStream.Read(displayZoneData);
+	LUString displayIndividualPlayers(1);
+	inStream.Read(displayIndividualPlayers);
+
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	bitStream.Write(playerID);
+
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SHOW_ALL_RESPONSE);
+	bitStream.Write<uint8_t>(displayZoneData.string != "1" && displayIndividualPlayers.string != "1");
+	bitStream.Write(Game::playerContainer.GetPlayerCount());
+	bitStream.Write(Game::playerContainer.GetSimCount());
+	bitStream.Write<uint8_t>(displayIndividualPlayers.string == "1");
+	bitStream.Write<uint8_t>(displayZoneData.string == "1");
+	if (displayZoneData.string == "1" || displayIndividualPlayers.string == "1"){
+		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+			if (!playerData) continue;
+			bitStream.Write<uint8_t>(0); // padding
+			if (displayIndividualPlayers.string == "1") bitStream.Write(LUWString(playerData.playerName));
+			if (displayZoneData.string == "1") {
+				bitStream.Write(playerData.zoneID.GetMapID());
+				bitStream.Write(playerData.zoneID.GetInstanceID());
+				bitStream.Write(playerData.zoneID.GetCloneID());
+			}
+		}
+	}
+	SystemAddress sysAddr = sender.sysAddr;
+	SEND_PACKET;
+}
+
 // the structure the client uses to send this packet is shared in many chat messages 
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {

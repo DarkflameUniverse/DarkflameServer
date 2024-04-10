@@ -287,4 +287,29 @@ namespace GMGreaterThanZeroCommands {
 		std::string name = entity->GetCharacter()->GetName() + " - " + args;
 		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
 	}
+
+	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::SHOW_ALL);
+		bitStream.Write(entity->GetObjectID());
+		if (splitArgs.size() > 0 && splitArgs.at(0).size() > 0) bitStream.Write(LUString(splitArgs.at(0), 1));
+		else bitStream.Write(LUString("1", 1));
+		if (splitArgs.size() > 1) bitStream.Write(LUString(splitArgs.at(1), 1));
+		else bitStream.Write(LUString("1", 1));
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
+
+	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.size() == 0) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+			return;
+		}
+
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WHO);
+		bitStream.Write(entity->GetObjectID());
+		bitStream.Write(LUWString(args));
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
 }

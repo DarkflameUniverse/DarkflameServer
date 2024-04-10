@@ -289,7 +289,11 @@ void HandlePacket(Packet* packet) {
 			Game::playerContainer.RemovePlayer(packet);
 			break;
 		case eChatMessageType::WHO:
+			ChatPacketHandler::HandleWho(packet);
+			break;
 		case eChatMessageType::SHOW_ALL:
+			ChatPacketHandler::HandleShowAll(packet);
+			break;
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
 		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
 		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:
