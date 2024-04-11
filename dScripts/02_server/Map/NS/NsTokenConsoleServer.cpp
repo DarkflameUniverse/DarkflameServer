@@ -39,7 +39,7 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 	const auto useSound = self->GetVar<std::string>(u"sound1");
 
 	if (!useSound.empty()) {
-		GameMessages::SendPlayNDAudioEmitter(self, UNASSIGNED_SYSTEM_ADDRESS, useSound);
+		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), useSound);
 	}
 
 	// Player must be in faction to interact with this entity.
