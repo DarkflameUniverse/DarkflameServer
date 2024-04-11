@@ -170,14 +170,14 @@ void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success,
 	SEND_PACKET;
 }
 
-void WorldPackets::SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo info) {
+void WorldPackets::SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo& info) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::HTTP_MONITOR_INFO_RESPONSE);
 	info.Serialize(bitStream);
 	SEND_PACKET;
 }
 
-void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string data){
+void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string& data){
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::DEBUG_OUTPUT);
 	bitStream.Write<uint32_t>(data.size());

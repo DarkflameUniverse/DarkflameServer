@@ -73,7 +73,7 @@ public:
 	PlayerData& GetPlayerDataMutable(const std::string& playerName);
 	uint32_t GetPlayerCount() { return m_PlayerCount; };
 	uint32_t GetSimCount() { return m_SimCount; };
-	std::map<LWOOBJID, PlayerData> GetAllPlayers() { return m_Players; };
+	const std::map<LWOOBJID, PlayerData>& GetAllPlayers() { return m_Players; };
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);

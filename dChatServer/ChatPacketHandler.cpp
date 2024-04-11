@@ -366,8 +366,7 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 	LUWString playerName;
 	inStream.Read(playerName);
 	const auto& player = Game::playerContainer.GetPlayerData(playerName.GetAsString());
-	bool online = true;
-	if (!player) online = false;
+	bool online = player;
 
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
@@ -386,15 +385,15 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 
 void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
+	LWOOBJID playerID = LWOOBJID_EMPTY;
 	inStream.Read(playerID);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
 	if (!sender) return;
 
-	LUString displayZoneData(1);
+	bool displayZoneData = true;
 	inStream.Read(displayZoneData);
-	LUString displayIndividualPlayers(1);
+	bool displayIndividualPlayers = true;
 	inStream.Read(displayIndividualPlayers);
 
 	CBITSTREAM;
@@ -402,17 +401,17 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	bitStream.Write(playerID);
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SHOW_ALL_RESPONSE);
-	bitStream.Write<uint8_t>(displayZoneData.string != "1" && displayIndividualPlayers.string != "1");
+	bitStream.Write<uint8_t>(!displayZoneData && !displayIndividualPlayers);
 	bitStream.Write(Game::playerContainer.GetPlayerCount());
 	bitStream.Write(Game::playerContainer.GetSimCount());
-	bitStream.Write<uint8_t>(displayIndividualPlayers.string == "1");
-	bitStream.Write<uint8_t>(displayZoneData.string == "1");
-	if (displayZoneData.string == "1" || displayIndividualPlayers.string == "1"){
+	bitStream.Write<uint8_t>(displayIndividualPlayers);
+	bitStream.Write<uint8_t>(displayZoneData);
+	if (displayZoneData || displayIndividualPlayers){
 		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
 			if (!playerData) continue;
-			bitStream.Write<uint8_t>(0); // padding
-			if (displayIndividualPlayers.string == "1") bitStream.Write(LUWString(playerData.playerName));
-			if (displayZoneData.string == "1") {
+			bitStream.Write<uint8_t>(0); // structure packing
+			if (displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
+			if (displayZoneData) {
 				bitStream.Write(playerData.zoneID.GetMapID());
 				bitStream.Write(playerData.zoneID.GetInstanceID());
 				bitStream.Write(playerData.zoneID.GetCloneID());

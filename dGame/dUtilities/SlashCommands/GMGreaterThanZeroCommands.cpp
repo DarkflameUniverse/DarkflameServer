@@ -289,19 +289,24 @@ namespace GMGreaterThanZeroCommands {
 	}
 
 	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		bool displayZoneData = true;
+		bool displayIndividualPlayers = true;
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		
+		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
+		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
+
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::SHOW_ALL);
 		bitStream.Write(entity->GetObjectID());
-		if (splitArgs.size() > 0 && splitArgs.at(0).size() > 0) bitStream.Write(LUString(splitArgs.at(0), 1));
-		else bitStream.Write(LUString("1", 1));
-		if (splitArgs.size() > 1) bitStream.Write(LUString(splitArgs.at(1), 1));
-		else bitStream.Write(LUString("1", 1));
+		bitStream.Write(displayZoneData);
+		bitStream.Write(displayIndividualPlayers);
+		
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 	}
 
 	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		if (args.size() == 0) {
+		if (args.empty()) {
 			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
 			return;
 		}

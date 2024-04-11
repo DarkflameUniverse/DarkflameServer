@@ -14,7 +14,6 @@ namespace RakNet {
 	class BitStream;
 };
 
-#pragma pack(push, 1)
 struct HTTPMonitorInfo {
 	uint16_t port = 80;
 	bool openWeb = false;
@@ -24,7 +23,6 @@ struct HTTPMonitorInfo {
 	bool supportsObjects = false;
 	void Serialize(RakNet::BitStream &bitstream) const;
 };
-#pragma pack(pop)
 
 namespace WorldPackets {
 	void SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum, LWOZONEID zone);
@@ -36,8 +34,8 @@ namespace WorldPackets {
 	void SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm);
 	void SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems);
 	void SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel);
-	void SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo info);
-	void SendDebugOuput(const SystemAddress& sysAddr, const std::string data);
+	void SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo& info);
+	void SendDebugOuput(const SystemAddress& sysAddr, const std::string& data);
 }
 
 #endif // WORLDPACKETS_H
