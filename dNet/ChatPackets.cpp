@@ -6,10 +6,35 @@
 #include "ChatPackets.h"
 #include "RakNetTypes.h"
 #include "BitStream.h"
+#include "Game.h"
 #include "BitStreamUtils.h"
 #include "dServer.h"
 #include "eConnectionType.h"
 #include "eChatMessageType.h"
+
+void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) {
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::SHOW_ALL);
+	bitStream.Write(this->requestor);
+	bitStream.Write(this->displayZoneData);
+	bitStream.Write(this->displayIndividualPlayers);
+}
+
+void ShowAllRequest::Deserialize(RakNet::BitStream& inStream) {
+	inStream.Read(this->requestor);
+	inStream.Read(this->displayZoneData);
+	inStream.Read(this->displayIndividualPlayers);
+}
+
+void FindPlayerRequest::Serialize(RakNet::BitStream& bitStream) {
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WHO);
+	bitStream.Write(this->requestor);
+	bitStream.Write(this->playerName);
+}
+
+void FindPlayerRequest::Deserialize(RakNet::BitStream& inStream) {
+	inStream.Read(this->requestor);
+	inStream.Read(this->playerName);
+}
 
 void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
 	CBITSTREAM;

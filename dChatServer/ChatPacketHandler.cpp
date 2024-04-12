@@ -18,6 +18,7 @@
 #include "eGameMessageType.h"
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
+#include "ChatPackets.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -357,27 +358,25 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 
 void ChatPacketHandler::HandleWho(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
+	FindPlayerRequest request;
+	request.Deserialize(inStream);
 
-	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
 	if (!sender) return;
 
-	LUWString playerName;
-	inStream.Read(playerName);
-	const auto& player = Game::playerContainer.GetPlayerData(playerName.GetAsString());
+	const auto& player = Game::playerContainer.GetPlayerData(request.playerName.GetAsString());
 	bool online = player;
 
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
-	bitStream.Write(playerID);
+	bitStream.Write(request.requestor);
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::WHO_RESPONSE);
 	bitStream.Write<uint8_t>(online);
 	bitStream.Write(player.zoneID.GetMapID());
 	bitStream.Write(player.zoneID.GetInstanceID());
 	bitStream.Write(player.zoneID.GetCloneID());
-	bitStream.Write(playerName);
+	bitStream.Write(request.playerName);
 
 	SystemAddress sysAddr = sender.sysAddr;
 	SEND_PACKET;
@@ -385,33 +384,28 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 
 void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID = LWOOBJID_EMPTY;
-	inStream.Read(playerID);
+	ShowAllRequest request;
+	request.Deserialize(inStream);
 
-	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
+	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
 	if (!sender) return;
-
-	bool displayZoneData = true;
-	inStream.Read(displayZoneData);
-	bool displayIndividualPlayers = true;
-	inStream.Read(displayIndividualPlayers);
 
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
-	bitStream.Write(playerID);
+	bitStream.Write(request.requestor);
 
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SHOW_ALL_RESPONSE);
-	bitStream.Write<uint8_t>(!displayZoneData && !displayIndividualPlayers);
+	bitStream.Write<uint8_t>(!request.displayZoneData && !request.displayIndividualPlayers);
 	bitStream.Write(Game::playerContainer.GetPlayerCount());
 	bitStream.Write(Game::playerContainer.GetSimCount());
-	bitStream.Write<uint8_t>(displayIndividualPlayers);
-	bitStream.Write<uint8_t>(displayZoneData);
-	if (displayZoneData || displayIndividualPlayers){
+	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
+	bitStream.Write<uint8_t>(request.displayZoneData);
+	if (request.displayZoneData || request.displayIndividualPlayers){
 		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
 			if (!playerData) continue;
 			bitStream.Write<uint8_t>(0); // structure packing
-			if (displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
-			if (displayZoneData) {
+			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
+			if (request.displayZoneData) {
 				bitStream.Write(playerData.zoneID.GetMapID());
 				bitStream.Write(playerData.zoneID.GetInstanceID());
 				bitStream.Write(playerData.zoneID.GetCloneID());

@@ -296,12 +296,14 @@ namespace GMGreaterThanZeroCommands {
 		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
 		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
 
+		ShowAllRequest request {
+			.requestor = entity->GetObjectID(),
+			.displayZoneData = displayZoneData,
+			.displayIndividualPlayers = displayIndividualPlayers
+		};
+
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::SHOW_ALL);
-		bitStream.Write(entity->GetObjectID());
-		bitStream.Write(displayZoneData);
-		bitStream.Write(displayIndividualPlayers);
-		
+		request.Serialize(bitStream);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 	}
 
@@ -311,10 +313,13 @@ namespace GMGreaterThanZeroCommands {
 			return;
 		}
 
+		FindPlayerRequest request {
+			.requestor = entity->GetObjectID(),
+			.playerName = LUWString(args)
+		};
+
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WHO);
-		bitStream.Write(entity->GetObjectID());
-		bitStream.Write(LUWString(args));
+		request.Serialize(bitStream);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 	}
 }
