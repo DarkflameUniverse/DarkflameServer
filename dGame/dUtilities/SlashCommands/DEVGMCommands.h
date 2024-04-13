@@ -70,6 +70,4 @@ namespace DEVGMCommands {
 	void RollLoot(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void CastSkill(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void DeleteInven(Entity* entity, const SystemAddress& sysAddr, const std::string args);
-	void GetHttpMonInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args);
-	void OpenHttpMonInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }

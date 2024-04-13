@@ -776,24 +776,6 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(DeleteInvenCommand);
 
-	Command GetHttpMonInfo{
-		.help = "Gets the IP, port and supported pages for our current World Server's Http Monitor",
-		.info = "Gets the IP, port and supported pages for our current World Server's Http Monitor",
-		.aliases = { "gethttpmoninfo" },
-		.handle = DEVGMCommands::GetHttpMonInfo,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
-	};
-	RegisterCommand(GetHttpMonInfo);
-
-	Command OpenHttpMonInfo{
-		.help = "Opens the Http Monitor for the current server (also prints info to chat)",
-		.info = "Opens the Http Monitor for the current server (also prints info to chat)",
-		.aliases = { "openhttpmoninfo" },
-		.handle = DEVGMCommands::OpenHttpMonInfo,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
-	};
-	RegisterCommand(OpenHttpMonInfo);
-
 	// Register Greater Than Zero Commands
 
 	Command KickCommand{

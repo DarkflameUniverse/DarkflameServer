@@ -1589,19 +1589,4 @@ namespace DEVGMCommands {
 			}
 		}
 	}
-
-	void GetHttpMonInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::SendSlashCommandFeedbackText(entity, u"HTTP Monitor is not implemented.");
-		HTTPMonitorInfo info;
-		info.port = Game::server->GetPort();
-		WorldPackets::SendHTTPMonitorInfo(sysAddr, info);
-	}
-
-	void OpenHttpMonInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		GameMessages::SendSlashCommandFeedbackText(entity, u"HTTP Monitor is not implemented.");
-		HTTPMonitorInfo info;
-		info.port = Game::server->GetPort();
-		info.openWeb = true;
-		WorldPackets::SendHTTPMonitorInfo(sysAddr, info);
-	}
 };
