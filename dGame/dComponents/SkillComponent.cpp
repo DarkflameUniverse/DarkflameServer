@@ -497,7 +497,7 @@ void SkillComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 			outBitStream.Write(skill.cancel_type);
 			outBitStream.Write(skill.behavior_count);
 			for (auto& index : skill.behavior_count) {
-				outBitStream.Write<uint32_t>(unknown_1);
+				outBitStream.Write<uint32_t>(behaviorUID); // Maybe
 				outBitStream.Write<uint32_t>(action);
 				outBitStream.Write<uint32_t>(wait_time_ms);
 				outBitStream.Write<uint32_t>(template_id);
