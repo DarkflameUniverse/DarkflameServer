@@ -21,6 +21,13 @@
       }
     },
     {
+      "name": "relwithdebinfo-config",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "release-config",
       "hidden": true,
       "cacheVariables": {
@@ -75,6 +82,9 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_INIT": "-Werror"
       }
     },
     {
@@ -87,6 +97,17 @@
       "displayName": "[Debug] Linux (Clang)",
       "description": "Create a debug build using the Clang toolchain for Linux",
       "binaryDir": "${sourceDir}/build/clang-debug"
+    },
+    {
+      "name": "linux-clang-relwithdebinfo",
+      "inherits": [
+        "linux-config",
+        "clang-config",
+        "relwithdebinfo-config"
+      ],
+      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "description": "Create a release build with debug info using the Clang toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/clang-relwithdebinfo"
     },
     {
       "name": "linux-clang-release",
@@ -109,6 +130,17 @@
       "displayName": "[Debug] Linux (GNU)",
       "description": "Create a debug build using the GNU toolchain for Linux",
       "binaryDir": "${sourceDir}/build/gnu-debug"
+    },
+    {
+      "name": "linux-gnu-relwithdebinfo",
+      "inherits": [
+        "linux-config",
+        "gnu-config",
+        "relwithdebinfo-config"
+      ],
+      "displayName": "[RelWithDebInfo] Linux (GNU)",
+      "description": "Create a release build with debug info using the GNU toolchain for Linux",
+      "binaryDir": "${sourceDir}/build/gnu-relwithdebinfo"
     },
     {
       "name": "linux-gnu-release",
@@ -151,6 +183,14 @@
       "jobs": 2
     },
     {
+      "name": "windows-msvc-relwithdebinfo",
+      "configurePreset": "windows-msvc",
+      "displayName": "[RelWithDebInfo] Windows (MSVC)",
+      "description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
+      "configuration": "RelWithDebInfo",
+      "jobs": 2
+    },
+    {
       "name": "windows-msvc-release",
       "configurePreset": "windows-msvc",
       "displayName": "[Release] Windows (MSVC)",
@@ -164,6 +204,14 @@
       "displayName": "[Debug] Linux (Clang)",
       "description": "This preset is used to build in debug mode using the Clang toolchain on Linux",
       "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "linux-clang-relwithdebinfo",
+      "configurePreset": "linux-clang-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "description": "This preset is used to build in release mode with debug info using the Clang toolchain on Linux",
+      "configuration": "RelWithDebInfo",
       "jobs": 2
     },
     {
@@ -183,6 +231,14 @@
       "jobs": 2
     },
     {
+      "name": "linux-gnu-relwithdebinfo",
+      "configurePreset": "linux-gnu-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (GNU)",
+      "description": "This preset is used to build in release mode with debug info using the GNU toolchain on Linux",
+      "configuration": "RelWithDebInfo",
+      "jobs": 2
+    },
+    {
       "name": "linux-gnu-release",
       "configurePreset": "linux-gnu-release",
       "displayName": "[Release] Linux (GNU)",
@@ -195,6 +251,15 @@
       "configurePreset": "macos",
       "displayName": "[Debug] MacOS",
       "description": "This preset is used to build in debug mode on MacOS",
+      "configuration": "Debug",
+      "jobs": 2
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "configurePreset": "macos",
+      "displayName": "[RelWithDebInfo] MacOS",
+      "description": "This preset is used to build in release mode with debug info on MacOS",
+      "configuration": "RelWithDebInfo",
       "jobs": 2
     },
     {
@@ -202,6 +267,7 @@
       "configurePreset": "macos",
       "displayName": "[Release] MacOS",
       "description": "This preset is used to build in release mode on MacOS",
+      "configuration": "Release",
       "jobs": 2
     }
   ],
@@ -236,6 +302,14 @@
       "configuration": "Debug"
     },
     {
+      "name": "windows-msvc-relwithdebinfo",
+      "inherits": "windows-msvc-test",
+      "configurePreset": "windows-msvc",
+      "displayName": "[RelWithDebInfo] Windows (MSVC)",
+      "description": "Runs all tests on a Windows configuration",
+      "configuration": "RelWithDebInfo"
+    },
+    {
       "name": "windows-msvc-release",
       "inherits": "windows-msvc-test",
       "configurePreset": "windows-msvc",
@@ -250,6 +324,14 @@
       "displayName": "[Debug] Linux (Clang)",
       "description": "Runs all tests on a Linux Clang configuration",
       "configuration": "Release"
+    },
+    {
+      "name": "linux-clang-relwithdebinfo",
+      "inherits": "default",
+      "configurePreset": "linux-clang-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "description": "Runs all tests on a Linux Clang configuration",
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-clang-release",
@@ -268,6 +350,14 @@
       "configuration": "Release"
     },
     {
+      "name": "linux-gnu-relwithdebinfo",
+      "inherits": "default",
+      "configurePreset": "linux-gnu-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (GNU)",
+      "description": "Runs all tests on a Linux GNU configuration",
+      "configuration": "RelWithDebInfo"
+    },
+    {
       "name": "linux-gnu-release",
       "inherits": "default",
       "configurePreset": "linux-gnu-release",
@@ -282,6 +372,14 @@
       "displayName": "[Debug] MacOS",
       "description": "Runs all tests on a MacOS configuration",
       "configuration": "Debug"
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "inherits": "default",
+      "configurePreset": "macos",
+      "displayName": "[RelWithDebInfo] MacOS",
+      "description": "Runs all tests on a MacOS configuration",
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "macos-release",
@@ -330,6 +428,25 @@
       ]
     },
     {
+      "name": "windows-msvc-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Windows (MSVC)",
+      "description": "MSVC release with debug info workflow preset for Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-msvc"
+        },
+        {
+          "type": "build",
+          "name": "windows-msvc-relwithdebinfo"
+        },
+        {
+          "type": "test",
+          "name": "windows-msvc-relwithdebinfo"
+        }
+      ]
+    },
+    {
       "name": "ci-windows-2022",
       "displayName": "[Release] Windows (MSVC)",
       "description": "CI workflow preset for Windows",
@@ -364,6 +481,25 @@
         {
           "type": "test",
           "name": "linux-gnu-debug"
+        }
+      ]
+    },
+    {
+      "name": "linux-gnu-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (GNU)",
+      "description": "GNU release with debug info workflow preset for Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-gnu-relwithdebinfo"
+        },
+        {
+          "type": "build",
+          "name": "linux-gnu-relwithdebinfo"
+        },
+        {
+          "type": "test",
+          "name": "linux-gnu-relwithdebinfo"
         }
       ]
     },
@@ -406,6 +542,25 @@
       ]
     },
     {
+      "name": "linux-clang-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "description": "Clang release with debug info workflow preset for Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-clang-relwithdebinfo"
+        },
+        {
+          "type": "build",
+          "name": "linux-clang-relwithdebinfo"
+        },
+        {
+          "type": "test",
+          "name": "linux-clang-relwithdebinfo"
+        }
+      ]
+    },
+    {
       "name": "linux-clang-release",
       "displayName": "[Release] Linux (Clang)",
       "description": "Clang release workflow preset for Linux",
@@ -440,6 +595,25 @@
         {
           "type": "test",
           "name": "macos-debug"
+        }
+      ]
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "displayName": "[RelWithDebInfo] MacOS",
+      "description": "Release with debug info workflow preset for MacOS",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "macos"
+        },
+        {
+          "type": "build",
+          "name": "macos-relwithdebinfo"
+        },
+        {
+          "type": "test",
+          "name": "macos-relwithdebinfo"
         }
       ]
     },

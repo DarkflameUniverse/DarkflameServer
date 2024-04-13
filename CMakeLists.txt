@@ -255,9 +255,9 @@ endif()
 if(MSVC)
 	add_compile_options("/W4")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Werror")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast")
 else()
-	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' No warning flags enabled.")
+	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()
 
 # Add linking directories:
