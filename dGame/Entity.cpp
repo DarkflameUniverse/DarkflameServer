@@ -254,7 +254,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MINI_GAME_CONTROL) > 0) {
-		AddComponent<MiniGameControlComponent>();
+		AddComponent<MiniGameControlComponent>(m_TemplateID);
 	}
 
 	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
@@ -666,7 +666,7 @@ void Entity::Initialize() {
 
 	// Shooting gallery component
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY) > 0) {
-		AddComponent<ShootingGalleryComponent>();
+		AddComponent<ShootingGalleryComponent>(m_TemplateID);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1) != -1) {

@@ -47,7 +47,6 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"TriggerComponent.cpp"
 	"HavokVehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp"
-	"MiniGameControlComponent.cpp"
 	"ScriptComponent.cpp"
 )
 

@@ -2,7 +2,7 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "Entity.h"
-#include "Component.h"
+#include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
 
 /**
@@ -71,12 +71,11 @@ struct StaticShootingGalleryParams {
  * A very ancient component that was used to guide shooting galleries, it's still kind of used but a lot of logic is
  * also in the related scripts.
  */
-class ShootingGalleryComponent final : public Component {
+class ShootingGalleryComponent final : public ActivityComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
-	explicit ShootingGalleryComponent(Entity* parent);
-	~ShootingGalleryComponent();
+	explicit ShootingGalleryComponent(Entity* parent, LOT lot) : ActivityComponent(parent, lot) {}
 	void Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) override;
 
 	/**
@@ -107,13 +106,8 @@ public:
 	 * Sets the entity that's currently playing the shooting gallery
 	 * @param playerID the entity to set
 	 */
-	void SetCurrentPlayerID(LWOOBJID playerID) { m_CurrentPlayerID = playerID; m_Dirty = true; };
+	void SetCurrentPlayerID(LWOOBJID playerID);
 
-	/**
-	 * Returns the player that's currently playing the shooting gallery
-	 * @return the player that's currently playing the shooting gallery
-	 */
-	LWOOBJID GetCurrentPlayerID() const { return m_CurrentPlayerID; };
 private:
 
 	/**

@@ -2,11 +2,6 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 
-ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent) : Component(parent) {
-}
-
-ShootingGalleryComponent::~ShootingGalleryComponent() = default;
-
 void ShootingGalleryComponent::SetStaticParams(const StaticShootingGalleryParams& params) {
 	m_StaticParams = params;
 }
@@ -17,20 +12,15 @@ void ShootingGalleryComponent::SetDynamicParams(const DynamicShootingGalleryPara
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void ShootingGalleryComponent::Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) {
-	// Start ScriptedActivityComponent
-	outBitStream.Write<bool>(true);
-	if (m_CurrentPlayerID == LWOOBJID_EMPTY) {
-		outBitStream.Write<uint32_t>(0);
-	} else {
-		outBitStream.Write<uint32_t>(1);
-		outBitStream.Write<LWOOBJID>(m_CurrentPlayerID);
-		for (size_t i = 0; i < 10; i++) {
-			outBitStream.Write<float_t>(0.0f);
-		}
+void ShootingGalleryComponent::SetCurrentPlayerID(LWOOBJID playerID) { 
+	m_CurrentPlayerID = playerID; 
+	m_Dirty = true; 
+	AddActivityPlayerData(playerID);
+};
 
-	}
-	// End ScriptedActivityComponent
+
+void ShootingGalleryComponent::Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) {
+	ActivityComponent::Serialize(outBitStream, isInitialUpdate);
 
 	if (isInitialUpdate) {
 		outBitStream.Write<float_t>(m_StaticParams.cameraPosition.GetX());

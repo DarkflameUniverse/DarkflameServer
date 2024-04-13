@@ -696,22 +696,20 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 }
 
 void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool bIsInitialUpdate) {
+	// LWOInventoryComponent_EquippedItem
+	outBitStream.Write(bIsInitialUpdate || m_Dirty);
 	if (bIsInitialUpdate || m_Dirty) {
-		outBitStream.Write(true);
-
 		outBitStream.Write<uint32_t>(m_Equipped.size());
 
 		for (const auto& pair : m_Equipped) {
 			const auto item = pair.second;
 
-			if (bIsInitialUpdate) {
-				AddItemSkills(item.lot);
-			}
+			if (bIsInitialUpdate) AddItemSkills(item.lot);
 
 			outBitStream.Write(item.id);
 			outBitStream.Write(item.lot);
 
-			outBitStream.Write0();
+			outBitStream.Write0(); // subkey
 
 			outBitStream.Write(item.count > 0);
 			if (item.count > 0) outBitStream.Write(item.count);
@@ -719,7 +717,7 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 			outBitStream.Write(item.slot != 0);
 			if (item.slot != 0) outBitStream.Write<uint16_t>(item.slot);
 
-			outBitStream.Write0();
+			outBitStream.Write0(); // inventory type
 
 			bool flag = !item.config.empty();
 			outBitStream.Write(flag);
@@ -746,11 +744,21 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 		}
 
 		m_Dirty = false;
-	} else {
-		outBitStream.Write(false);
 	}
 
+	// EquippedModelTransform
 	outBitStream.Write(false);
+	/*
+	outBitStream.Write(bIsInitialUpdate || m_Dirty); // Same dirty or different?
+	if (bIsInitialUpdate || m_Dirty) {
+		outBitStream.Write<uint32_t>(m_Equipped.size()); // Equiped models?
+		for (const auto& [location, item] : m_Equipped) {
+			outBitStream.Write(item.id);
+			outBitStream.Write(item.pos);
+			outBitStream.Write(item.rot);
+		}
+	}
+	*/
 }
 
 void InventoryComponent::Update(float deltaTime) {

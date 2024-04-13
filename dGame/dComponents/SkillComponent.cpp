@@ -486,6 +486,32 @@ SkillComponent::~SkillComponent() {
 
 void SkillComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) outBitStream.Write0();
+	/*
+	outBitStream.Write(bIsInitialUpdate && !m_managedBehaviors.empty());
+	if (bIsInitialUpdate && !m_managedBehaviors.empty()) {
+		outBitStream.Write<uint32_t>(m_managedBehaviors.size());
+		for (const auto& [id, skill] : m_managedBehaviors) {
+			outBitStream.Write(skill.skillUID);
+			outBitStream.Write(skill.skillID);
+			outBitStream.Write(skill.cast_type);
+			outBitStream.Write(skill.cancel_type);
+			outBitStream.Write(skill.behavior_count);
+			for (auto& index : skill.behavior_count) {
+				outBitStream.Write<uint32_t>(unknown_1);
+				outBitStream.Write<uint32_t>(action);
+				outBitStream.Write<uint32_t>(wait_time_ms);
+				outBitStream.Write<uint32_t>(template_id);
+				outBitStream.Write(casterObjId);
+				outBitStream.Write(originatorObjId);
+				outBitStream.Write(targetObjId);
+				outBitStream.Write<bool>(usedMouse);
+				outBitStream.Write(cooldown);
+				outBitStream.Write(charge_time);
+				outBitStream.Write(imagination_cost);
+			}
+		}
+	}
+	*/
 }
 
 /// <summary>

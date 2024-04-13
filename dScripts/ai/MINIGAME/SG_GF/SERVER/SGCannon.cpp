@@ -90,7 +90,7 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 			auto* shootingGalleryComponent = self->GetComponent<ShootingGalleryComponent>();
 
 			if (shootingGalleryComponent != nullptr) {
-				shootingGalleryComponent->SetCurrentPlayerID(player->GetObjectID());
+				shootingGalleryComponent->AddActivityPlayerData(player->GetObjectID());
 
 				LOG("Setting player ID");
 
