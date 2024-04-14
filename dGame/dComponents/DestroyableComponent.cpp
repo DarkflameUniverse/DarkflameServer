@@ -389,9 +389,9 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	if (result.eof()) return;
 
-	if (result.fieldIsNull(0)) return;
+	if (result.fieldIsNull("enemyList")) return;
 
-	const auto* list_string = result.getStringField(0);
+	const auto* list_string = result.getStringField("enemyList");
 
 	std::stringstream ss(list_string);
 	std::string token;

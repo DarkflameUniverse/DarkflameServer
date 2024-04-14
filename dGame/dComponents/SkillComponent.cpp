@@ -99,7 +99,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 		return;
 	}
 
-	const auto behavior_id = static_cast<uint32_t>(result.getIntField(0));
+	const auto behavior_id = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
 	result.finalize();
 
@@ -425,7 +425,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 		return;
 	}
 
-	const auto behaviorId = static_cast<uint32_t>(result.getIntField(0));
+	const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
 	result.finalize();
 

@@ -377,10 +377,10 @@ void Behavior::PlayFx(std::u16string type, const LWOOBJID target, const LWOOBJID
 		return;
 	}
 
-	const auto name = std::string(result.getStringField(0));
+	const auto name = std::string(result.getStringField("effectName"));
 
 	if (type.empty()) {
-		const auto typeResult = result.getStringField(1);
+		const auto typeResult = result.getStringField("effectType");
 
 		type = GeneralUtils::ASCIIToUTF16(typeResult);
 

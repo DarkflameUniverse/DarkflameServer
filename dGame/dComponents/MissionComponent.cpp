@@ -466,8 +466,8 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 		return false;
 	}
 
-	if (!result.fieldIsNull(0)) {
-		const auto type = std::string(result.getStringField(0));
+	if (!result.fieldIsNull("type")) {
+		const auto type = std::string(result.getStringField("type"));
 
 		result.finalize();
 
