@@ -1,0 +1,143 @@
+<objects>
+	<!--A story plaque with custom text-->
+	<!--Font color can be set but you must encode the `<` as &lt; and `>` as &gt; >-->
+	<object lot="8139">
+		<config>
+			<key>customText=13:This story plaque has custom text that is defined by DLU's vanity system. Check out &lt;font color="#000000" &gt;vanity/demo.xml&lt;/font&gt; to see how this works!</key>
+		  </config>
+		<locations>
+			<location zone="1200" x="-26.281" y="288.896" z="-77.484" rw="0.997534" rx="0.00" ry="-0.070190" rz="0.00" />
+		</locations>
+	</object>
+
+	<!--A tree spawned at two locations with different positions, rotations, and scales-->
+	<!--Positions and rotations are easily gotten by typing /loc or /pos, and /rot into the in-game chat-->
+	<object lot="3248">
+		<locations>
+			<location zone="1200" x="-15.0" y="288.8" z="-167.0" rw="0.984321" rx="0.00" ry="0.176388" rz="0.00" />
+			<location zone="1200" x="15.0" y="288.8" z="-158.0" rw="0.724628" rx="0.00" ry="-0.689141" rz="0.00" scale="0.30" />
+		</locations>
+	</object>
+
+	<!--A vendor who we will give GM-only items-->
+	<object name="Demo Fella - GM Items Vendor" lot="1867">
+		<equipment>7630, 1727, 7453, 7521</equipment>
+		<config>
+			<key>vendorInvOverride=0:1727,7292,16553,2243,14535,14538,14531,6730</key>
+		</config>
+		<locations>
+			<location zone="1200" x="35.935" y="288.896" z="-128.213" rw="0.882977" rx="0.00" ry="-0.469416" rz="0.00" />
+		</locations>
+	</object>
+
+	<!--Friendly Felix will choose one of the 3 locations, then have a 50% chance to spawn at one of them on world server startup-->
+	<object lot="10141">
+		<config>
+			<key>useLocationsAsRandomSpawnPoint=7:1</key>
+		</config>
+		<locations>
+			<location zone="1200" x="31.819" y="288.896" z="-117.095" rw="0.630659" rx="0.00" ry="-0.776060" rz="0.00" chance="0.50"/>
+			<location zone="1200" x="42.755" y="291.897" z="-144.385" rw="0.855306" rx="0.00" ry="-0.518124" rz="0.00" chance="0.50"/>
+			<location zone="1200" x="3.984" y="288.896" z="-165.947" rw="0.978508" rx="0.00" ry="-0.206210" rz="0.00" chance="0.50"/>
+		</locations>
+	</object>
+
+	<!--Spawner(s) for enemies, largely copy-pasted from Portabello in this case-->
+	<object lot="176">
+		<config>
+			<key>CheckPrecondition=0:</key>
+			<key>SmashableDoesNotCutNavmesh=7:0</key>
+			<key>add_to_navmesh=7:1</key>
+			<key>aggroRadius=3:15</key>
+			<key>camGradSnap=7:0</key>
+			<key>camPrefersToFadeObject=7:1</key>
+			<key>carver_only=7:0</key>
+			<key>create_physics=7:1</key>
+			<key>currency=5:0</key>
+			<key>custom_config_names=0:</key>
+			<key>explode_factor=3:1</key>
+			<key>fxpriority=1:0</key>
+			<key>gravFactor=3:1</key>
+			<key>grpNameQBShowBricks=0:</key>
+			<key>ignoreCameraCollision=7:0</key>
+			<key>interaction_distance=3:16</key>
+			<key>is_smashable=7:1</key>
+			<key>loadOnClientOnly=7:0</key>
+			<key>loadSrvrOnly=7:0</key>
+			<key>max_to_spawn=1:-1</key>
+			<key>navmesh_carver=7:0</key>
+			<key>no_auto_spawn=7:1</key>
+			<key>no_timed_spawn=7:1</key>
+			<key>override_faction=7:0</key>
+			<key>radius=3:0</key>
+			<key>renderAnimLODSkew=3:1</key>
+			<key>renderCullingGroup=5:0</key>
+			<key>renderOffscreenAnimEnabled=7:0</key>
+			<key>respawn=3:20</key>
+			<key>sceneIDOverride=1:255</key>
+			<key>sceneIDOverrideEnabled=7:0</key>
+			<key>sceneLayerIDOverride=5:0</key>
+			<key>set_faction=13:4</key>
+			<key>smashable_loot_matrix=1:486</key>
+			<key>smashable_loot_matrix_set=7:0</key>
+			<key>softtetherRadius=3:15</key>
+			<key>spawner_active_on_load=7:1</key>
+			<key>spawntemplate=1:12379</key>
+			<key>startsQBActivator=7:0</key>
+			<key>template=1:-1</key>
+			<key>tetherRadius=3:15</key>
+			<key>usetetherdb=7:0</key>
+			<key>usewanderdb=7:0</key>
+			<key>wanderRadius=3:15</key>
+		</config>
+		<locations>
+			<location zone="1200" x="-16.749" y="291.841" z="-122.349" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
+			<location zone="1200" x="-15.696" y="291.608" z="-136.902" rw="1.00" rx="0.00" ry="0.00" rz="0.00" />
+		</locations>
+	</object>
+
+	<!--Spawner for a crate-->
+	<object lot="176">
+		<config>
+			<key>CheckPrecondition=0:</key>
+			<key>SmashableDoesNotCutNavmesh=7:0</key>
+			<key>add_to_navmesh=7:1</key>
+			<key>bounding_radius_override=3:0</key>
+			<key>camGradSnap=7:0</key>
+			<key>camPrefersToFadeObject=7:1</key>
+			<key>carver_only=7:0</key>
+			<key>create_physics=7:1</key>
+			<key>custom_config_names=0:</key>
+			<key>explode_factor=3:1</key>
+			<key>friction=3:1.5</key>
+			<key>fxpriority=1:0</key>
+			<key>gravFactor=3:1</key>
+			<key>grpNameQBShowBricks=0:</key>
+			<key>ignoreCameraCollision=7:0</key>
+			<key>interaction_distance=3:16</key>
+			<key>is_smashable=7:1</key>
+			<key>loadOnClientOnly=7:0</key>
+			<key>max_to_spawn=1:-1</key>
+			<key>navmesh_carver=7:0</key>
+			<key>no_auto_spawn=7:1</key>
+			<key>no_timed_spawn=7:1</key>
+			<key>override_faction=7:0</key>
+			<key>radius=3:0</key>
+			<key>renderCullingGroup=5:0</key>
+			<key>respawn=5:20000</key>
+			<key>sceneIDOverride=1:255</key>
+			<key>sceneIDOverrideEnabled=7:0</key>
+			<key>sceneLayerIDOverride=5:0</key>
+			<key>set_faction=13:6 </key>
+			<key>smashable_loot_matrix=1:227</key>
+			<key>smashable_loot_matrix_set=7:0</key>
+			<key>spawner_active_on_load=7:1</key>
+			<key>spawntemplate=1:2295</key>
+			<key>startsQBActivator=7:0</key>
+			<key>template=1:-1</key>
+		</config>
+		<locations>
+			<location zone="1200" x="4.232" y="288.895" z="-85.846" rw="-0.205988" rx="0.00" ry="0.978555" rz="0.00" />
+		</locations>
+	</object>
+</objects>

@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "BitStream.h"
-#include "BehaviorTemplates.h"
+#include "BehaviorTemplate.h"
 #include "dCommonVars.h"
 
 struct BehaviorContext;
@@ -26,7 +26,7 @@ public:
 
 	static Behavior* CreateBehavior(uint32_t behaviorId);
 
-	static BehaviorTemplates GetBehaviorTemplate(uint32_t behaviorId);
+	static BehaviorTemplate GetBehaviorTemplate(uint32_t behaviorId);
 
 	/*
 	 * Utilities
@@ -39,11 +39,11 @@ public:
 	 */
 
 	uint32_t m_behaviorId;
-	BehaviorTemplates m_templateId;
+	BehaviorTemplate m_templateId;
 	uint32_t m_effectId;
-	std::string* m_effectHandle = nullptr;
-	std::unordered_map<std::string, std::string>* m_effectNames = nullptr;
-	std::string* m_effectType = nullptr;
+	std::string m_effectHandle;
+	std::unordered_map<std::string, std::string> m_effectNames;
+	std::string m_effectType;
 
 	/*
 	 * Behavior parameters
@@ -68,9 +68,9 @@ public:
 	virtual void Load();
 
 	// Player side
-	virtual void Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
-	virtual void Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	virtual void UnCast(BehaviorContext* context, BehaviorBranchContext branch);
 
@@ -79,14 +79,20 @@ public:
 	virtual void End(BehaviorContext* context, BehaviorBranchContext branch, LWOOBJID second);
 
 	// Npc side
-	virtual void Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
-	virtual void SyncCalculation(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch);
+	virtual void SyncCalculation(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch);
 
 	/*
 	 * Creations/destruction
 	 */
 
 	explicit Behavior(uint32_t behaviorId);
-	virtual ~Behavior();
+	virtual ~Behavior() = default;
+
+	Behavior(const Behavior& other) = default;
+	Behavior(Behavior&& other) = default;
+
+	Behavior& operator=(const Behavior& other) = default;
+	Behavior& operator=(Behavior&& other) = default;
 };

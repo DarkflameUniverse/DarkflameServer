@@ -26,7 +26,7 @@
 #include "eCharacterCreationResponse.h"
 #include "eRenameResponse.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 
@@ -83,7 +83,7 @@ void UserManager::Initialize() {
 	auto chatListStream = Game::assetManager->GetFile("chatplus_en_us.txt");
 	if (!chatListStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
-		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
+		throw std::runtime_error("Aborting initialization due to missing chat allowlist file.");
 	}
 
 	while (std::getline(chatListStream, line, '\n')) {
@@ -422,7 +422,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Database::Get()->DeleteCharacter(charID);
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 

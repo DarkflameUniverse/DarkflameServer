@@ -7,7 +7,7 @@
 #include "Logger.h"
 
 
-void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
 
 	auto success = true;
@@ -33,12 +33,12 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitS
 	}
 
 	if (branch.target != LWOOBJID_EMPTY && branch.target != context->originator) {
-		bitStream->Write(success);
+		bitStream.Write(success);
 
 		if (success) {
-			bitStream->Write<uint32_t>(1);
-			bitStream->Write0();
-			bitStream->Write0();
+			bitStream.Write<uint32_t>(1);
+			bitStream.Write0();
+			bitStream.Write0();
 		}
 	}
 

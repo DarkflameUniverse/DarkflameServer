@@ -37,7 +37,7 @@ public:
 	void LoadXmlRespawnCheckpoints();
 
 	const std::string& GetXMLData() const { return m_XMLData; }
-	tinyxml2::XMLDocument* GetXMLDoc() const { return m_Doc; }
+	const tinyxml2::XMLDocument& GetXMLDoc() const { return m_Doc; }
 
 	/**
 	 * Out of abundance of safety and clarity of what this saves, this is its own function.
@@ -623,7 +623,7 @@ private:
 	/**
 	 * The character XML belonging to this character
 	 */
-	tinyxml2::XMLDocument* m_Doc;
+	tinyxml2::XMLDocument m_Doc;
 
 	/**
 	 * Title of an announcement this character made (reserved for GMs)

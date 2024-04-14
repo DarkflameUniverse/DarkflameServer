@@ -275,14 +275,14 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string_view str, c
 	return vector;
 }
 
-std::u16string GeneralUtils::ReadWString(RakNet::BitStream* inStream) {
+std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
 	uint32_t length;
-	inStream->Read<uint32_t>(length);
+	inStream.Read<uint32_t>(length);
 
 	std::u16string string;
 	for (auto i = 0; i < length; i++) {
 		uint16_t c;
-		inStream->Read(c);
+		inStream.Read(c);
 		string.push_back(c);
 	}
 
@@ -300,19 +300,41 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 
 	// Now sort the map by the oldest migration.
 	std::vector<std::string> sortedFiles{};
-    auto fileIterator = filenames.begin();
-    std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
-    while (!filenames.empty()) {
+	auto fileIterator = filenames.begin();
+	std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
+	while (!filenames.empty()) {
 		if (fileIterator == filenames.end()) {
-            sortedFiles.push_back(oldest->second);
-            filenames.erase(oldest);
-            fileIterator = filenames.begin();
-            oldest = filenames.begin();
-            continue;
+			sortedFiles.push_back(oldest->second);
+			filenames.erase(oldest);
+			fileIterator = filenames.begin();
+			oldest = filenames.begin();
+			continue;
 		}
-        if (oldest->first > fileIterator->first) oldest = fileIterator;
-        fileIterator = std::next(fileIterator);
+		if (oldest->first > fileIterator->first) oldest = fileIterator;
+		fileIterator++;
 	}
 
 	return sortedFiles;
 }
+
+#if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
+
+// MacOS floating-point parse function specializations
+namespace GeneralUtils::details {
+	template <>
+	[[nodiscard]] float _parse<float>(const std::string_view str, size_t& parseNum) {
+		return std::stof(std::string{ str }, &parseNum);
+	}
+
+	template <>
+	[[nodiscard]] double _parse<double>(const std::string_view str, size_t& parseNum) {
+		return std::stod(std::string{ str }, &parseNum);
+	}
+
+	template <>
+	[[nodiscard]] long double _parse<long double>(const std::string_view str, size_t& parseNum) {
+		return std::stold(std::string{ str }, &parseNum);
+	}
+}
+
+#endif

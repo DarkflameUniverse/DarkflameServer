@@ -3,8 +3,6 @@
 #include "dpShapeBox.h"
 #include "dpGrid.h"
 
-#include <iostream>
-
 dpEntity::dpEntity(const LWOOBJID& objectID, dpShapeType shapeType, bool isStatic) {
 	m_ObjectID = objectID;
 	m_IsStatic = isStatic;
@@ -76,16 +74,17 @@ void dpEntity::CheckCollision(dpEntity* other) {
 		return;
 	}
 
-	bool wasFound = m_CurrentlyCollidingObjects.contains(other->GetObjectID());
-
-	bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
+	const auto objId = other->GetObjectID();
+	const auto objItr = m_CurrentlyCollidingObjects.find(objId);
+	const bool wasFound = objItr != m_CurrentlyCollidingObjects.cend();
+	const bool isColliding = m_CollisionShape->IsColliding(other->GetShape());
 
 	if (isColliding && !wasFound) {
-		m_CurrentlyCollidingObjects.emplace(other->GetObjectID(), other);
-		m_NewObjects.push_back(other);
+		m_CurrentlyCollidingObjects.emplace(objId);
+		m_NewObjects.push_back(objId);
 	} else if (!isColliding && wasFound) {
-		m_CurrentlyCollidingObjects.erase(other->GetObjectID());
-		m_RemovedObjects.push_back(other);
+		m_CurrentlyCollidingObjects.erase(objItr);
+		m_RemovedObjects.push_back(objId);
 	}
 }
 

@@ -5,7 +5,7 @@
 #include "EntityManager.h"
 #include "BuffComponent.h"
 
-void RemoveBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void RemoveBuffBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(context->caster);
 	if (!entity) return;
 

@@ -117,7 +117,7 @@ namespace GeneralUtils {
 
 	bool ReplaceInString(std::string& str, const std::string_view from, const std::string_view to);
 
-	std::u16string ReadWString(RakNet::BitStream* inStream);
+	std::u16string ReadWString(RakNet::BitStream& inStream);
 
 	std::vector<std::wstring> SplitString(const std::wstring_view str, const wchar_t delimiter);
 
@@ -157,8 +157,9 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <Numeric T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) {
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str) {
 		numeric_parse_t<T> result;
+		while (!str.empty() && std::isspace(str.front())) str.remove_prefix(1);
 
 		const char* const strEnd = str.data() + str.size();
 		const auto [parseEnd, ec] = std::from_chars(str.data(), strEnd, result);
@@ -167,27 +168,12 @@ namespace GeneralUtils {
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
-#ifdef DARKFLAME_PLATFORM_MACOS
+#if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 
-	// Anonymous namespace containing MacOS floating-point parse function specializations
-	namespace {
+	// MacOS floating-point parse helper function specializations
+	namespace details {
 		template <std::floating_point T>
-		[[nodiscard]] T Parse(const std::string_view str, size_t* parseNum);
-
-		template <>
-		[[nodiscard]] float Parse<float>(const std::string_view str, size_t* parseNum) {
-			return std::stof(std::string{ str }, parseNum);
-		}
-
-		template <>
-		[[nodiscard]] double Parse<double>(const std::string_view str, size_t* parseNum) {
-			return std::stod(std::string{ str }, parseNum);
-		}
-
-		template <>
-		[[nodiscard]] long double Parse<long double>(const std::string_view str, size_t* parseNum) {
-			return std::stold(std::string{ str }, parseNum);
-		}
+		[[nodiscard]] T _parse(const std::string_view str, size_t& parseNum);
 	}
 
 	/**
@@ -197,9 +183,12 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired value if it is equivalent to the string
 	*/
 	template <std::floating_point T>
-	[[nodiscard]] std::optional<T> TryParse(const std::string_view str) noexcept try {
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str) noexcept
+	try {
+		while (!str.empty() && std::isspace(str.front())) str.remove_prefix(1);
+
 		size_t parseNum;
-		const T result = Parse<T>(str, &parseNum);
+		const T result = details::_parse<T>(str, parseNum);
 		const bool isParsed = str.length() == parseNum;
 
 		return isParsed ? result : std::optional<T>{};
@@ -279,8 +268,8 @@ namespace GeneralUtils {
 	 * @returns The enum entry's value in its underlying type
 	*/
 	template <Enum eType>
-	constexpr typename std::underlying_type_t<eType> CastUnderlyingType(const eType entry) noexcept {
-		return static_cast<typename std::underlying_type_t<eType>>(entry);
+	constexpr std::underlying_type_t<eType> ToUnderlying(const eType entry) noexcept {
+		return static_cast<std::underlying_type_t<eType>>(entry);
 	}
 
 	// on Windows we need to undef these or else they conflict with our numeric limits calls

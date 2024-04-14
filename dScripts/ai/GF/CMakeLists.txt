@@ -12,6 +12,6 @@ set(DSCRIPTS_SOURCES_AI_GF
 	"PirateRep.cpp"
 	"GfParrotCrash.cpp")
 
-add_library(dScriptsAiGF STATIC ${DSCRIPTS_SOURCES_AI_GF})
+add_library(dScriptsAiGF OBJECT ${DSCRIPTS_SOURCES_AI_GF})
 target_include_directories(dScriptsAiGF PUBLIC ".")
 target_precompile_headers(dScriptsAiGF REUSE_FROM dScriptsBase)

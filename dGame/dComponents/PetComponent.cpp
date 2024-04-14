@@ -96,42 +96,42 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	}
 }
 
-void PetComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-	outBitStream->Write1(); // Always serialize as dirty for now
+	outBitStream.Write1(); // Always serialize as dirty for now
 
-	outBitStream->Write<uint32_t>(m_Status);
-	outBitStream->Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
+	outBitStream.Write<uint32_t>(m_Status);
+	outBitStream.Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
 
-	outBitStream->Write(interacting);
+	outBitStream.Write(interacting);
 	if (interacting) {
-		outBitStream->Write(m_Interaction);
+		outBitStream.Write(m_Interaction);
 	}
 
-	outBitStream->Write(tamed);
+	outBitStream.Write(tamed);
 	if (tamed) {
-		outBitStream->Write(m_Owner);
+		outBitStream.Write(m_Owner);
 	}
 
 	if (bIsInitialUpdate) {
-		outBitStream->Write(tamed);
+		outBitStream.Write(tamed);
 		if (tamed) {
-			outBitStream->Write(m_ModerationStatus);
+			outBitStream.Write(m_ModerationStatus);
 
 			const auto nameData = GeneralUtils::UTF8ToUTF16(m_Name);
 			const auto ownerNameData = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 
-			outBitStream->Write<uint8_t>(nameData.size());
+			outBitStream.Write<uint8_t>(nameData.size());
 			for (const auto c : nameData) {
-				outBitStream->Write(c);
+				outBitStream.Write(c);
 			}
 
-			outBitStream->Write<uint8_t>(ownerNameData.size());
+			outBitStream.Write<uint8_t>(ownerNameData.size());
 			for (const auto c : ownerNameData) {
-				outBitStream->Write(c);
+				outBitStream.Write(c);
 			}
 		}
 	}
@@ -306,9 +306,7 @@ void PetComponent::OnUse(Entity* originator) {
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
 	// Notify the start of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 }
 
 void PetComponent::Update(float deltaTime) {
@@ -690,9 +688,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 	m_Tamer = LWOOBJID_EMPTY;
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::SUCCESS);
 }
 
 void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
@@ -731,9 +727,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::QUIT);
 }
 
 void PetComponent::StartTimer() {
@@ -782,9 +776,7 @@ void PetComponent::ClientFailTamingMinigame() {
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Notify the end of a pet taming minigame
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(m_Parent)) {
-		script->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
-	}
+	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, tamer, ePetTamingNotifyType::FAILED);
 }
 
 void PetComponent::Wander() {

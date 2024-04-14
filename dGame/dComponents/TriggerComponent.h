@@ -44,6 +44,12 @@ private:
 	void HandleResetSpawnerNetwork(std::string args);
 	void HandleDestroySpawnerNetworkObjects(std::string args);
 	void HandleActivatePhysics(Entity* targetEntity, std::string args);
+	void HandleTurnAroundOnPath(Entity* targetEntity);
+	void HandleGoForwardOnPath(Entity* targetEntity);
+	void HandleGoBackwardOnPath(Entity* targetEntity);
+	void HandleStopPathing(Entity* targetEntity);
+	void HandleStartPathing(Entity* targetEntity);
+	void HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray);
 
 	LUTriggers::Trigger* m_Trigger;
 };

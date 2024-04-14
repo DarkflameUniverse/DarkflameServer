@@ -3,7 +3,7 @@
 #include "BehaviorBranchContext.h"
 #include "InventoryComponent.h"
 
-void ConsumeItemBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ConsumeItemBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto action_to_cast = m_ActionNotConsumed;
 	if (this->m_ConsumeLOT != -1) {
 		auto caster = Game::entityManager->GetEntity(context->caster);
@@ -19,7 +19,7 @@ void ConsumeItemBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bi
 	if(action_to_cast) action_to_cast->Handle(context, bitStream, branch);
 }
 
-void ConsumeItemBehavior::Sync(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void ConsumeItemBehavior::Sync(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

@@ -11,6 +11,6 @@ RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* paren
 	m_Rotation = m_Parent->GetDefaultRotation();
 }
 
-void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) {
+void RigidbodyPhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }

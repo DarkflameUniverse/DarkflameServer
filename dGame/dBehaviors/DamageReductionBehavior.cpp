@@ -7,7 +7,7 @@
 #include "Logger.h"
 #include "DestroyableComponent.h"
 
-void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, const BehaviorBranchContext branch) {
+void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, const BehaviorBranchContext branch) {
 	auto* target = Game::entityManager->GetEntity(branch.target);
 
 	if (target == nullptr) {
@@ -27,7 +27,7 @@ void DamageReductionBehavior::Handle(BehaviorContext* context, RakNet::BitStream
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
 }
 
-void DamageReductionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void DamageReductionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Handle(context, bitStream, branch);
 }
 

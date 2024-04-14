@@ -36,10 +36,11 @@
 #include "sqlite3.h"
 #include <cstdio>
 #include <cstring>
+#include <exception>
 
 #define CPPSQLITE_ERROR 1000
 
-class CppSQLite3Exception
+class CppSQLite3Exception : public std::exception
 {
 public:
 
@@ -54,6 +55,8 @@ public:
     const int errorCode() { return mnErrCode; }
 
     const char* errorMessage() { return mpszErrMess; }
+    
+    const char* what() const noexcept override { return mpszErrMess; }
 
     static const char* errorCodeAsString(int nErrCode);
 

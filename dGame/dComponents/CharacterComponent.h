@@ -5,7 +5,6 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
-#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -14,6 +13,8 @@
 #include "Loot.h"
 
 enum class eGameActivity : uint32_t;
+
+class Item;
 
 /**
  * The statistics that can be achieved per zone
@@ -69,10 +70,10 @@ public:
 	CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;
 
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
 	 * Updates the rocket configuration using a LOT string separated by commas

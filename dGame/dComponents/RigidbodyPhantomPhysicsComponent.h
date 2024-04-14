@@ -23,7 +23,7 @@ public:
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 
-	void Serialize(RakNet::BitStream* outBitStream, bool bIsInitialUpdate) override;
+	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 };
 
 #endif // __RIGIDBODYPHANTOMPHYSICS_H__

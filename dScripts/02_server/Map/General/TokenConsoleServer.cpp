@@ -17,7 +17,9 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		inv->RemoveItem(6194, bricksToTake);
 
 		//play sound
-		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), "947d0d52-c7f8-4516-8dee-e1593a7fd1d1");
+		if (self->HasVar(u"sound1")) {
+			GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), self->GetVarAsString(u"sound1"));
+		}
 
 		//figure out which faction the player belongs to:
 		auto character = user->GetCharacter();

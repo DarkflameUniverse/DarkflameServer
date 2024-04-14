@@ -11,7 +11,7 @@
 #include "ZoneInstanceManager.h"
 #include "dZoneManager.h"
 
-void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStream* bitStream, BehaviorBranchContext branch) {
+void PropertyTeleportBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	auto* caster = Game::entityManager->GetEntity(context->caster);
 	if (!caster) return;
 

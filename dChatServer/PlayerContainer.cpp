@@ -9,9 +9,9 @@
 #include "BitStreamUtils.h"
 #include "Database.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
+#include "eChatMessageType.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -145,12 +145,12 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 TeamData* PlayerContainer::CreateLocalTeam(std::vector<LWOOBJID> members) {
@@ -352,7 +352,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);
@@ -365,7 +365,7 @@ void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 		}
 	}
 
-	Game::server->Send(&bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+	Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 std::u16string PlayerContainer::GetName(LWOOBJID playerID) {
@@ -390,7 +390,7 @@ LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const LWOOBJID& playerID) {
-	return m_Players[playerID];
+	return m_Players.contains(playerID) ? m_Players[playerID] : m_Players[LWOOBJID_EMPTY];
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const std::string& playerName) {

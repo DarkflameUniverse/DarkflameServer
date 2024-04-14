@@ -11,10 +11,10 @@
 /**
  * Helper method that all tests use to get their respective AMF.
  */
-AMFBaseValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
+std::unique_ptr<AMFBaseValue> ReadFromBitStream(RakNet::BitStream& bitStream) {
 	AMFDeserialize deserializer;
 	AMFBaseValue* returnValue(deserializer.Read(bitStream));
-	return returnValue;
+	return std::unique_ptr<AMFBaseValue>{ returnValue };
 }
 
 /**
@@ -23,7 +23,7 @@ AMFBaseValue* ReadFromBitStream(RakNet::BitStream* bitStream) {
 TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
 	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x00);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::Undefined);
 }
 
@@ -34,7 +34,7 @@ TEST(dCommonTests, AMFDeserializeAMFUndefinedTest) {
 TEST(dCommonTests, AMFDeserializeAMFNullTest) {
 	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x01);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::Null);
 }
 
@@ -44,7 +44,7 @@ TEST(dCommonTests, AMFDeserializeAMFNullTest) {
 TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
 	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x02);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::False);
 }
 
@@ -54,7 +54,7 @@ TEST(dCommonTests, AMFDeserializeAMFFalseTest) {
 TEST(dCommonTests, AMFDeserializeAMFTrueTest) {
 	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x03);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::True);
 }
 
@@ -67,7 +67,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		bitStream.Write<uint8_t>(0x04);
 		// 127 == 01111111
 		bitStream.Write<uint8_t>(127);
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Integer);
 		// Check that the max value of a byte can be read correctly
 		ASSERT_EQ(static_cast<AMFIntValue*>(res.get())->GetValue(), 127);
@@ -76,7 +76,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 	{
 		bitStream.Write<uint8_t>(0x04);
 		bitStream.Write<uint32_t>(UINT32_MAX);
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Integer);
 		// Check that we can read the maximum value correctly
 		ASSERT_EQ(static_cast<AMFIntValue*>(res.get())->GetValue(), 536870911);
@@ -90,7 +90,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		bitStream.Write<uint8_t>(255);
 		// 127 == 01111111
 		bitStream.Write<uint8_t>(127);
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Integer);
 		// Check that short max can be read correctly
 		ASSERT_EQ(static_cast<AMFIntValue*>(res.get())->GetValue(), UINT16_MAX);
@@ -102,7 +102,7 @@ TEST(dCommonTests, AMFDeserializeAMFIntegerTest) {
 		bitStream.Write<uint8_t>(255);
 		// 127 == 01111111
 		bitStream.Write<uint8_t>(127);
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Integer);
 		// Check that 2 byte max can be read correctly
 		ASSERT_EQ(static_cast<AMFIntValue*>(res.get())->GetValue(), 16383);
@@ -116,7 +116,7 @@ TEST(dCommonTests, AMFDeserializeAMFDoubleTest) {
 	CBITSTREAM;
 	bitStream.Write<uint8_t>(0x05);
 	bitStream.Write<double>(25346.4f);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::Double);
 	ASSERT_EQ(static_cast<AMFDoubleValue*>(res.get())->GetValue(), 25346.4f);
 }
@@ -130,7 +130,7 @@ TEST(dCommonTests, AMFDeserializeAMFStringTest) {
 	bitStream.Write<uint8_t>(0x0F);
 	std::string toWrite = "stateID";
 	for (auto e : toWrite) bitStream.Write<char>(e);
-	std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+	std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 	ASSERT_EQ(res->GetValueType(), eAmf::String);
 	ASSERT_EQ(static_cast<AMFStringValue*>(res.get())->GetValue(), "stateID");
 }
@@ -145,7 +145,7 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	bitStream.Write<uint8_t>(0x01);
 	bitStream.Write<uint8_t>(0x01);
 	{
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Array);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), 0);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDense().size(), 0);
@@ -164,7 +164,7 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 	bitStream.Write<uint8_t>(0x0B);
 	for (auto e : "10447") if (e != '\0') bitStream.Write<char>(e);
 	{
-		std::unique_ptr<AMFBaseValue> res(ReadFromBitStream(&bitStream));
+		std::unique_ptr<AMFBaseValue> res{ ReadFromBitStream(bitStream) };
 		ASSERT_EQ(res->GetValueType(), eAmf::Array);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetAssociative().size(), 1);
 		ASSERT_EQ(static_cast<AMFArrayValue*>(res.get())->GetDense().size(), 1);
@@ -213,7 +213,7 @@ TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 		testBitStream.Write(value);
 		bool caughtException = false;
 		try {
-			ReadFromBitStream(&testBitStream);
+			ReadFromBitStream(testBitStream);
 		} catch (eAmf unimplementedValueType) {
 			caughtException = true;
 		}
@@ -238,117 +238,109 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	testFileStream.close();
 
-	std::unique_ptr<AMFBaseValue> resultFromFn(ReadFromBitStream(&testBitStream));
-	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
+	std::unique_ptr<AMFBaseValue> resultFromFn{ ReadFromBitStream(testBitStream) };
+	auto* result = static_cast<AMFArrayValue*>(resultFromFn.get());
 	// Test the outermost array
 
 	ASSERT_EQ(result->Get<std::string>("BehaviorID")->GetValue(), "10447");
 	ASSERT_EQ(result->Get<std::string>("objectID")->GetValue(), "288300744895913279");
 
 	// Test the execution state array
-	auto executionState = result->GetArray("executionState");
+	auto* executionState = result->GetArray("executionState");
 
 	ASSERT_NE(executionState, nullptr);
 
-	auto strips = executionState->GetArray("strips")->GetDense();
+	auto& strips = executionState->GetArray("strips")->GetDense();
 
 	ASSERT_EQ(strips.size(), 1);
 
-	auto stripsPosition0 = dynamic_cast<AMFArrayValue*>(strips[0]);
+	auto* stripsPosition0 = dynamic_cast<AMFArrayValue*>(strips[0]);
 
-	auto actionIndex = stripsPosition0->Get<double>("actionIndex");
+	auto* actionIndex = stripsPosition0->Get<double>("actionIndex");
 
 	ASSERT_EQ(actionIndex->GetValue(), 0.0f);
 
-	auto stripIdExecution = stripsPosition0->Get<double>("id");
+	auto* stripIdExecution = stripsPosition0->Get<double>("id");
 
 	ASSERT_EQ(stripIdExecution->GetValue(), 0.0f);
 
-	auto stateIdExecution = executionState->Get<double>("stateID");
+	auto* stateIdExecution = executionState->Get<double>("stateID");
 
 	ASSERT_EQ(stateIdExecution->GetValue(), 0.0f);
 
-	auto states = result->GetArray("states")->GetDense();
+	auto& states = result->GetArray("states")->GetDense();
 
 	ASSERT_EQ(states.size(), 1);
 
-	auto firstState = dynamic_cast<AMFArrayValue*>(states[0]);
+	auto* firstState = dynamic_cast<AMFArrayValue*>(states[0]);
 
-	auto stateID = firstState->Get<double>("id");
+	auto* stateID = firstState->Get<double>("id");
 
 	ASSERT_EQ(stateID->GetValue(), 0.0f);
 
-	auto stripsInState = firstState->GetArray("strips")->GetDense();
+	auto& stripsInState = firstState->GetArray("strips")->GetDense();
 
 	ASSERT_EQ(stripsInState.size(), 1);
 
-	auto firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0]);
+	auto* firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0]);
 
-	auto actionsInFirstStrip = firstStrip->GetArray("actions")->GetDense();
+	auto& actionsInFirstStrip = firstStrip->GetArray("actions")->GetDense();
 
 	ASSERT_EQ(actionsInFirstStrip.size(), 3);
 
-	auto actionID = firstStrip->Get<double>("id");
+	auto* actionID = firstStrip->Get<double>("id");
 
 	ASSERT_EQ(actionID->GetValue(), 0.0f);
 
-	auto uiArray = firstStrip->GetArray("ui");
+	auto* uiArray = firstStrip->GetArray("ui");
 
-	auto xPos = uiArray->Get<double>("x");
-	auto yPos = uiArray->Get<double>("y");
+	auto* xPos = uiArray->Get<double>("x");
+	auto* yPos = uiArray->Get<double>("y");
 
 	ASSERT_EQ(xPos->GetValue(), 103.0f);
 	ASSERT_EQ(yPos->GetValue(), 82.0f);
 
-	auto stripId = firstStrip->Get<double>("id");
+	auto* stripId = firstStrip->Get<double>("id");
 
 	ASSERT_EQ(stripId->GetValue(), 0.0f);
 
-	auto firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
+	auto* firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
 
-	auto firstType = firstAction->Get<std::string>("Type");
+	auto* firstType = firstAction->Get<std::string>("Type");
 
 	ASSERT_EQ(firstType->GetValue(), "OnInteract");
 
-	auto firstCallback = firstAction->Get<std::string>("__callbackID__");
+	auto* firstCallback = firstAction->Get<std::string>("__callbackID__");
 
 	ASSERT_EQ(firstCallback->GetValue(), "");
 
-	auto secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1]);
+	auto* secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1]);
 
-	auto secondType = secondAction->Get<std::string>("Type");
+	auto* secondType = secondAction->Get<std::string>("Type");
 
 	ASSERT_EQ(secondType->GetValue(), "FlyUp");
 
-	auto secondCallback = secondAction->Get<std::string>("__callbackID__");
+	auto* secondCallback = secondAction->Get<std::string>("__callbackID__");
 
 	ASSERT_EQ(secondCallback->GetValue(), "");
 
-	auto secondDistance = secondAction->Get<double>("Distance");
+	auto* secondDistance = secondAction->Get<double>("Distance");
 
 	ASSERT_EQ(secondDistance->GetValue(), 25.0f);
 
-	auto thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2]);
+	auto* thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2]);
 
-	auto thirdType = thirdAction->Get<std::string>("Type");
+	auto* thirdType = thirdAction->Get<std::string>("Type");
 
 	ASSERT_EQ(thirdType->GetValue(), "FlyDown");
 
-	auto thirdCallback = thirdAction->Get<std::string>("__callbackID__");
+	auto* thirdCallback = thirdAction->Get<std::string>("__callbackID__");
 
 	ASSERT_EQ(thirdCallback->GetValue(), "");
 
-	auto thirdDistance = thirdAction->Get<double>("Distance");
+	auto* thirdDistance = thirdAction->Get<double>("Distance");
 
 	ASSERT_EQ(thirdDistance->GetValue(), 25.0f);
-}
-
-/**
- * @brief Tests that having no BitStream returns a nullptr.
- */
-TEST(dCommonTests, AMFDeserializeNullTest) {
-	std::unique_ptr<AMFBaseValue> result(ReadFromBitStream(nullptr));
-	ASSERT_EQ(result.get(), nullptr);
 }
 
 TEST(dCommonTests, AMFBadConversionTest) {
@@ -364,7 +356,7 @@ TEST(dCommonTests, AMFBadConversionTest) {
 
 	testFileStream.close();
 
-	std::unique_ptr<AMFBaseValue> resultFromFn(ReadFromBitStream(&testBitStream));
+	std::unique_ptr<AMFBaseValue> resultFromFn(ReadFromBitStream(testBitStream));
 	auto result = static_cast<AMFArrayValue*>(resultFromFn.get());
 
 	// Actually a string value.
