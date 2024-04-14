@@ -1094,7 +1094,7 @@ void InventoryComponent::CheckItemSet(const LOT lot) {
 	auto result = query.execQuery();
 
 	while (!result.eof()) {
-		const auto id = result.getIntField(0);
+		const auto id = result.getIntField("setID");
 
 		bool found = false;
 
