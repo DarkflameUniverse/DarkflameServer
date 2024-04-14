@@ -8,10 +8,13 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include <algorithm>
+#include <array>
 
 #include "CDSkillBehaviorTable.h"
 
 ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
+	using namespace std::string_view_literals;
+
 	this->m_ID = id;
 	this->m_InventoryComponent = inventoryComponent;
 
@@ -27,7 +30,7 @@ ItemSet::ItemSet(const uint32_t id, InventoryComponent* inventoryComponent) {
 		return;
 	}
 
-	const std::vector<std::string_view> rowNames = { "skillSetWith2", "skillSetWith3", "skillSetWith4", "skillSetWith5", "skillSetWith6" };
+	constexpr std::array rowNames = { "skillSetWith2"sv, "skillSetWith3"sv, "skillSetWith4"sv, "skillSetWith5"sv, "skillSetWith6"sv };
 	for (auto i = 0; i < rowNames.size(); ++i) {
 		const auto rowName = rowNames[i];
 		if (result.fieldIsNull(rowName.data())) {
