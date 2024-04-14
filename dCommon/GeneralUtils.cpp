@@ -8,7 +8,7 @@
 #include <map>
 
 template <typename T>
-inline size_t MinSize(const size_t size, const std::basic_string_view<T> string) {
+static inline size_t MinSize(const size_t size, const std::basic_string_view<T> string) {
 	if (size == SIZE_MAX || size > string.size()) {
 		return string.size();
 	} else {
@@ -46,11 +46,11 @@ inline void PushUTF8CodePoint(std::string& ret, const char32_t cp) {
 
 constexpr const char16_t REPLACEMENT_CHARACTER = 0xFFFD;
 
-bool _IsSuffixChar(const uint8_t c) {
+bool static _IsSuffixChar(const uint8_t c) {
 	return (c & 0xC0) == 0x80;
 }
 
-bool GeneralUtils::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
+bool GeneralUtils::details::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 	const size_t rem = slice.length();
 	if (slice.empty()) return false;
 	const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&slice.front());
@@ -148,7 +148,7 @@ std::u16string GeneralUtils::UTF8ToUTF16(const std::string_view string, const si
 	std::string_view iterator = string;
 
 	uint32_t c;
-	while (_NextUTF8Char(iterator, c) && PushUTF16CodePoint(output, c, size)) {}
+	while (details::_NextUTF8Char(iterator, c) && PushUTF16CodePoint(output, c, size)) {}
 	return output;
 }
 
@@ -158,7 +158,7 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view string, const s
 	std::u16string ret;
 	ret.reserve(newSize);
 
-	for (size_t i = 0; i < newSize; i++) {
+	for (size_t i = 0; i < newSize; ++i) {
 		const char c = string[i];
 		// Note: both 7-bit ascii characters and REPLACEMENT_CHARACTER fit in one char16_t
 		ret.push_back((c > 0 && c <= 127) ? static_cast<char16_t>(c) : REPLACEMENT_CHARACTER);
@@ -174,7 +174,7 @@ std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const si
 	std::string ret;
 	ret.reserve(newSize);
 
-	for (size_t i = 0; i < newSize; i++) {
+	for (size_t i = 0; i < newSize; ++i) {
 		const char16_t u = string[i];
 		if (IsLeadSurrogate(u) && (i + 1) < newSize) {
 			const char16_t next = string[i + 1];
@@ -280,7 +280,7 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
 	inStream.Read<uint32_t>(length);
 
 	std::u16string string;
-	for (auto i = 0; i < length; i++) {
+	for (uint32_t i = 0; i < length; ++i) {
 		uint16_t c;
 		inStream.Read(c);
 		string.push_back(c);
@@ -300,18 +300,18 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 
 	// Now sort the map by the oldest migration.
 	std::vector<std::string> sortedFiles{};
-	auto fileIterator = filenames.begin();
-	std::map<uint32_t, std::string>::iterator oldest = filenames.begin();
+	auto fileIterator = filenames.cbegin();
+	auto oldest = filenames.cbegin();
 	while (!filenames.empty()) {
-		if (fileIterator == filenames.end()) {
+		if (fileIterator == filenames.cend()) {
 			sortedFiles.push_back(oldest->second);
 			filenames.erase(oldest);
-			fileIterator = filenames.begin();
-			oldest = filenames.begin();
+			fileIterator = filenames.cbegin();
+			oldest = filenames.cbegin();
 			continue;
 		}
 		if (oldest->first > fileIterator->first) oldest = fileIterator;
-		fileIterator++;
+		++fileIterator;
 	}
 
 	return sortedFiles;

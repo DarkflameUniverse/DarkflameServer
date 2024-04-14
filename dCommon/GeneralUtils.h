@@ -46,8 +46,10 @@ namespace GeneralUtils {
 	 */
 	std::u16string UTF8ToUTF16(const std::string_view string, const size_t size = SIZE_MAX);
 
-	//! Internal, do not use
-	bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
+	namespace details {
+		//! Internal, do not use
+		bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
+	}
 
 	//! Converts a UTF-16 string to a UTF-8 string
 	/*!
@@ -71,7 +73,7 @@ namespace GeneralUtils {
 
 	//! Sets a bit on a numerical value
 	template <typename T>
-	inline void SetBit(T& value, eObjectBits bits) {
+	inline void SetBit(T& value, const eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
 		const auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
@@ -218,7 +220,7 @@ namespace GeneralUtils {
 	}
 
 	/**
-	 * The TryParse overload for handling NiPoint3 by passinng a reference to a vector of three strings
+	 * The TryParse overload for handling NiPoint3 by passing a span of three strings
 	 * @param str The string vector representing the X, Y, and Z coordinates
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
