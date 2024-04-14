@@ -3,17 +3,18 @@
 // C++
 #include <charconv>
 #include <cstdint>
-#include <random>
 #include <ctime>
+#include <functional>
+#include <optional>
+#include <random>
+#include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <optional>
-#include <functional>
 #include <type_traits>
-#include <stdexcept>
+
 #include "BitStream.h"
 #include "NiPoint3.h"
-
 #include "dPlatforms.h"
 #include "Game.h"
 #include "Logger.h"
@@ -35,7 +36,7 @@ namespace GeneralUtils {
 	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-16 representation of the string
 	 */
-	std::u16string ASCIIToUTF16(const std::string_view& string, const size_t size = SIZE_MAX);
+	std::u16string ASCIIToUTF16(const std::string_view string, const size_t size = SIZE_MAX);
 
 	//! Converts a UTF-8 String to a UTF-16 string
 	/*!
@@ -43,7 +44,7 @@ namespace GeneralUtils {
 	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-16 representation of the string
 	 */
-	std::u16string UTF8ToUTF16(const std::string_view& string, const size_t size = SIZE_MAX);
+	std::u16string UTF8ToUTF16(const std::string_view string, const size_t size = SIZE_MAX);
 
 	//! Internal, do not use
 	bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
@@ -54,7 +55,7 @@ namespace GeneralUtils {
 	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-8 representation of the string
 	 */
-	std::string UTF16ToWTF8(const std::u16string_view& string, const size_t size = SIZE_MAX);
+	std::string UTF16ToWTF8(const std::u16string_view string, const size_t size = SIZE_MAX);
 
 	/**
 	 * Compares two basic strings but does so ignoring case sensitivity
@@ -62,7 +63,7 @@ namespace GeneralUtils {
 	 * \param b the second string to compare against the first string
 	 * @return if the two strings are equal
 	 */
-	bool CaseInsensitiveStringCompare(const std::string& a, const std::string& b);
+	bool CaseInsensitiveStringCompare(const std::string_view a, const std::string_view b);
 
 	// MARK: Bits
 
@@ -72,7 +73,7 @@ namespace GeneralUtils {
 	template <typename T>
 	inline void SetBit(T& value, eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-		auto index = static_cast<size_t>(bits);
+		const auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8) - 1) {
 			return;
 		}
@@ -82,9 +83,9 @@ namespace GeneralUtils {
 
 	//! Clears a bit on a numerical value
 	template <typename T>
-	inline void ClearBit(T& value, eObjectBits bits) {
+	inline void ClearBit(T& value, const eObjectBits bits) {
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
-		auto index = static_cast<size_t>(bits);
+		const auto index = static_cast<size_t>(bits);
 		if (index > (sizeof(T) * 8 - 1)) {
 			return;
 		}
@@ -114,17 +115,17 @@ namespace GeneralUtils {
 	 */
 	bool CheckBit(int64_t value, const uint32_t index);
 
-	bool ReplaceInString(std::string& str, const std::string& from, const std::string& to);
+	bool ReplaceInString(std::string& str, const std::string_view from, const std::string_view to);
 
 	std::u16string ReadWString(RakNet::BitStream* inStream);
 
-	std::vector<std::wstring> SplitString(const std::wstring& str, const wchar_t delimiter);
+	std::vector<std::wstring> SplitString(const std::wstring_view str, const wchar_t delimiter);
 
-	std::vector<std::u16string> SplitString(const std::u16string& str, const char16_t delimiter);
+	std::vector<std::u16string> SplitString(const std::u16string_view str, const char16_t delimiter);
 
-	std::vector<std::string> SplitString(const std::string& str, const char delimiter);
+	std::vector<std::string> SplitString(const std::string_view str, const char delimiter);
 
-	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string& folder);
+	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string_view folder);
 
 	// Concept constraining to enum types
 	template <typename T>
@@ -144,7 +145,7 @@ namespace GeneralUtils {
 
 	// If a boolean, present an alias to an intermediate integral type for parsing
 	template <Numeric T> requires std::same_as<T, bool>
-	struct numeric_parse<T> { using type = uint32_t; };
+	struct numeric_parse<T> { using type = uint8_t; };
 
 	// Shorthand type alias
 	template <Numeric T>
@@ -216,7 +217,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string& strX, const std::string& strY, const std::string& strZ) {
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string_view strX, const std::string_view strY, const std::string_view strZ) {
 		const auto x = TryParse<float>(strX);
 		if (!x) return std::nullopt;
 
@@ -228,17 +229,17 @@ namespace GeneralUtils {
 	}
 
 	/**
-	 * The TryParse overload for handling NiPoint3 by passingn a reference to a vector of three strings
-	 * @param str The string vector representing the X, Y, and Xcoordinates
+	 * The TryParse overload for handling NiPoint3 by passinng a reference to a vector of three strings
+	 * @param str The string vector representing the X, Y, and Z coordinates
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::vector<std::string>& str) {
+	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::span<const std::string> str) {
 		return (str.size() == 3) ? TryParse<NiPoint3>(str[0], str[1], str[2]) : std::nullopt;
 	}
 
 	template <typename T>
-	std::u16string to_u16string(T value) {
+	std::u16string to_u16string(const T value) {
 		return GeneralUtils::ASCIIToUTF16(std::to_string(value));
 	}
 
@@ -257,7 +258,7 @@ namespace GeneralUtils {
 	  \param max The maximum to generate to
 	 */
 	template <typename T>
-	inline T GenerateRandomNumber(std::size_t min, std::size_t max) {
+	inline T GenerateRandomNumber(const std::size_t min, const std::size_t max) {
 		// Make sure it is a numeric type
 		static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
 
@@ -284,10 +285,10 @@ namespace GeneralUtils {
 
 	// on Windows we need to undef these or else they conflict with our numeric limits calls
 	// DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS
-	#ifdef _WIN32
-	#undef min
-	#undef max
-	#endif
+#ifdef _WIN32
+#undef min
+#undef max
+#endif
 
 	template <typename T>
 	inline T GenerateRandomNumber() {
