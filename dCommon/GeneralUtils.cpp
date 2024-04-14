@@ -228,7 +228,7 @@ std::vector<std::wstring> GeneralUtils::SplitString(const std::wstring_view str,
 	std::vector<std::wstring> vector = std::vector<std::wstring>();
 	std::wstring current;
 
-	for (const auto& c : str) {
+	for (const wchar_t c : str) {
 		if (c == delimiter) {
 			vector.push_back(current);
 			current = L"";
@@ -245,7 +245,7 @@ std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string_view 
 	std::vector<std::u16string> vector = std::vector<std::u16string>();
 	std::u16string current;
 
-	for (const auto& c : str) {
+	for (const char16_t c : str) {
 		if (c == delimiter) {
 			vector.push_back(current);
 			current = u"";
@@ -254,7 +254,7 @@ std::vector<std::u16string> GeneralUtils::SplitString(const std::u16string_view 
 		}
 	}
 
-	vector.push_back(current);
+	vector.push_back(std::move(current));
 	return vector;
 }
 
@@ -262,7 +262,7 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string_view str, c
 	std::vector<std::string> vector = std::vector<std::string>();
 	std::string current = "";
 
-	for (const auto& c : str) {
+	for (const char c : str) {
 		if (c == delimiter) {
 			vector.push_back(current);
 			current = "";
@@ -271,7 +271,7 @@ std::vector<std::string> GeneralUtils::SplitString(const std::string_view str, c
 		}
 	}
 
-	vector.push_back(current);
+	vector.push_back(std::move(current));
 	return vector;
 }
 
