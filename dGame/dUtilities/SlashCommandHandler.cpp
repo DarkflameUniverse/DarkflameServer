@@ -878,8 +878,26 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(TitleCommand);
 
+	Command ShowAllCommand{
+		.help = "Show all online players across World Servers",
+		.info = "Usage: /showall (displayZoneData: Default 1) (displayIndividualPlayers: Default 1)",
+		.aliases = { "showall" },
+		.handle = GMGreaterThanZeroCommands::ShowAll,
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+	};
+	RegisterCommand(ShowAllCommand);
+
+	Command FindPlayerCommand{
+		.help = "Find the World Server a player is in if they are online",
+		.info = "Find the World Server a player is in if they are online",
+		.aliases = { "findplayer" },
+		.handle = GMGreaterThanZeroCommands::FindPlayer,
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+	};
+	RegisterCommand(FindPlayerCommand);
 
 	// Register GM Zero Commands
+
 	Command HelpCommand{
 		.help = "Display command info",
 		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",

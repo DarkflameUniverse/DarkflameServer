@@ -18,6 +18,7 @@
 #include "eGameMessageType.h"
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
+#include "ChatPackets.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -352,6 +353,67 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 	auto& player = Game::playerContainer.GetPlayerData(playerID);
 	if (!player) return;
 	inStream.Read(player.gmLevel);
+}
+
+
+void ChatPacketHandler::HandleWho(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	FindPlayerRequest request;
+	request.Deserialize(inStream);
+
+	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
+	if (!sender) return;
+
+	const auto& player = Game::playerContainer.GetPlayerData(request.playerName.GetAsString());
+	bool online = player;
+
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	bitStream.Write(request.requestor);
+
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::WHO_RESPONSE);
+	bitStream.Write<uint8_t>(online);
+	bitStream.Write(player.zoneID.GetMapID());
+	bitStream.Write(player.zoneID.GetInstanceID());
+	bitStream.Write(player.zoneID.GetCloneID());
+	bitStream.Write(request.playerName);
+
+	SystemAddress sysAddr = sender.sysAddr;
+	SEND_PACKET;
+}
+
+void ChatPacketHandler::HandleShowAll(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	ShowAllRequest request;
+	request.Deserialize(inStream);
+
+	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
+	if (!sender) return;
+
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	bitStream.Write(request.requestor);
+
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SHOW_ALL_RESPONSE);
+	bitStream.Write<uint8_t>(!request.displayZoneData && !request.displayIndividualPlayers);
+	bitStream.Write(Game::playerContainer.GetPlayerCount());
+	bitStream.Write(Game::playerContainer.GetSimCount());
+	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
+	bitStream.Write<uint8_t>(request.displayZoneData);
+	if (request.displayZoneData || request.displayIndividualPlayers){
+		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+			if (!playerData) continue;
+			bitStream.Write<uint8_t>(0); // structure packing
+			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
+			if (request.displayZoneData) {
+				bitStream.Write(playerData.zoneID.GetMapID());
+				bitStream.Write(playerData.zoneID.GetInstanceID());
+				bitStream.Write(playerData.zoneID.GetCloneID());
+			}
+		}
+	}
+	SystemAddress sysAddr = sender.sysAddr;
+	SEND_PACKET;
 }
 
 // the structure the client uses to send this packet is shared in many chat messages 
