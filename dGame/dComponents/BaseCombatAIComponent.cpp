@@ -45,20 +45,20 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	auto componentResult = componentQuery.execQuery();
 
 	if (!componentResult.eof()) {
-		if (!componentResult.fieldIsNull(0))
-			m_AggroRadius = componentResult.getFloatField(0);
+		if (!componentResult.fieldIsNull("aggroRadius"))
+			m_AggroRadius = componentResult.getFloatField("aggroRadius");
 
-		if (!componentResult.fieldIsNull(1))
-			m_TetherSpeed = componentResult.getFloatField(1);
+		if (!componentResult.fieldIsNull("tetherSpeed"))
+			m_TetherSpeed = componentResult.getFloatField("tetherSpeed");
 
-		if (!componentResult.fieldIsNull(2))
-			m_PursuitSpeed = componentResult.getFloatField(2);
+		if (!componentResult.fieldIsNull("pursuitSpeed"))
+			m_PursuitSpeed = componentResult.getFloatField("pursuitSpeed");
 
-		if (!componentResult.fieldIsNull(3))
-			m_SoftTetherRadius = componentResult.getFloatField(3);
+		if (!componentResult.fieldIsNull("softTetherRadius"))
+			m_SoftTetherRadius = componentResult.getFloatField("softTetherRadius");
 
-		if (!componentResult.fieldIsNull(4))
-			m_HardTetherRadius = componentResult.getFloatField(4);
+		if (!componentResult.fieldIsNull("hardTetherRadius"))
+			m_HardTetherRadius = componentResult.getFloatField("hardTetherRadius");
 	}
 
 	componentResult.finalize();
@@ -82,11 +82,11 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	auto result = skillQuery.execQuery();
 
 	while (!result.eof()) {
-		const auto skillId = static_cast<uint32_t>(result.getIntField(0));
+		const auto skillId = static_cast<uint32_t>(result.getIntField("skillID"));
 
-		const auto abilityCooldown = static_cast<float>(result.getFloatField(1));
+		const auto abilityCooldown = static_cast<float>(result.getFloatField("cooldown"));
 
-		const auto behaviorId = static_cast<uint32_t>(result.getIntField(2));
+		const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
 		auto* behavior = Behavior::CreateBehavior(behaviorId);
 
@@ -150,13 +150,13 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	m_dpEntityEnemy->SetPosition(m_Parent->GetPosition());
 
 	//Process enter events
-	for (auto en : m_dpEntity->GetNewObjects()) {
-		m_Parent->OnCollisionPhantom(en->GetObjectID());
+	for (const auto id : m_dpEntity->GetNewObjects()) {
+		m_Parent->OnCollisionPhantom(id);
 	}
 
 	//Process exit events
-	for (auto en : m_dpEntity->GetRemovedObjects()) {
-		m_Parent->OnCollisionLeavePhantom(en->GetObjectID());
+	for (const auto id : m_dpEntity->GetRemovedObjects()) {
+		m_Parent->OnCollisionLeavePhantom(id);
 	}
 
 	// Check if we should stop the tether effect

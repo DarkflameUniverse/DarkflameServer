@@ -49,11 +49,11 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 
 	auto result = query.execQuery();
 
-	if (result.eof() || result.fieldIsNull(0)) {
+	if (result.eof() || result.fieldIsNull("id")) {
 		return;
 	}
 
-	templateId = result.getIntField(0);
+	templateId = result.getIntField("id");
 
 	auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
 
@@ -105,7 +105,7 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 	std::vector<float> points;
 
-	std::istringstream stream(result.getStringField(0));
+	std::istringstream stream(result.getStringField("path"));
 	std::string token;
 
 	while (std::getline(stream, token, ' ')) {
@@ -352,16 +352,11 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
-		auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
-		auto userModelID = new LDFData<LWOOBJID>(u"userModelID", info.spawnerID);
-		auto modelType = new LDFData<int>(u"modelType", 2);
-		auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-		auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-		info.nodes[0]->config.push_back(componentWhitelist);
-		info.nodes[0]->config.push_back(ldfModelBehavior);
-		info.nodes[0]->config.push_back(modelType);
-		info.nodes[0]->config.push_back(propertyObjectID);
-		info.nodes[0]->config.push_back(userModelID);
+		info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
+		info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
+		info.nodes[0]->config.push_back(new LDFData<int>(u"modelType", 2));
+		info.nodes[0]->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
 
 		auto* model = spawner->Spawn();
 
@@ -585,29 +580,17 @@ void PropertyManagementComponent::Load() {
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
-			LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
-			LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-			LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
-			LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-			LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", databaseModel.id);
-
-			settings.push_back(ldfBlueprintID);
-			settings.push_back(componentWhitelist);
-			settings.push_back(modelType);
-			settings.push_back(propertyObjectID);
-			settings.push_back(userModelID);
+			settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+			settings.push_back(new LDFData<int>(u"modelType", 2));
+			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
 		} else {
-			auto modelType = new LDFData<int>(u"modelType", 2);
-			auto userModelID = new LDFData<LWOOBJID>(u"userModelID", databaseModel.id);
-			auto ldfModelBehavior = new LDFData<LWOOBJID>(u"modelBehaviors", 0);
-			auto propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-			auto componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-
-			settings.push_back(componentWhitelist);
-			settings.push_back(ldfModelBehavior);
-			settings.push_back(modelType);
-			settings.push_back(propertyObjectID);
-			settings.push_back(userModelID);
+			settings.push_back(new LDFData<int>(u"modelType", 2));
+			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
+			settings.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
+			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
 		}
 
 		node->config = settings;

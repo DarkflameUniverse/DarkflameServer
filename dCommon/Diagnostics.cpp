@@ -120,6 +120,8 @@ void CatchUnhandled(int sig) {
 		if (eptr) std::rethrow_exception(eptr);
 	} catch(const std::exception& e) {
 		LOG("Caught exception: '%s'", e.what());
+	} catch (...) {
+		LOG("Caught unknown exception.");
 	}
 
 #ifndef INCLUDE_BACKTRACE

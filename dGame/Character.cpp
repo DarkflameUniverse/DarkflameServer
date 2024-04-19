@@ -27,12 +27,9 @@ Character::Character(uint32_t id, User* parentUser) {
 	m_ID = id;
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
-	m_Doc = nullptr;
 }
 
 Character::~Character() {
-	if (m_Doc) delete m_Doc;
-	m_Doc = nullptr;
 	m_OurEntity = nullptr;
 	m_ParentUser = nullptr;
 }
@@ -55,8 +52,6 @@ void Character::UpdateInfoFromDatabase() {
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
 	m_ZoneCloneID = 0;
 
-	m_Doc = nullptr;
-
 	//Quickly and dirtly parse the xmlData to get the info we need:
 	DoQuickXMLDataParse();
 
@@ -70,18 +65,13 @@ void Character::UpdateInfoFromDatabase() {
 }
 
 void Character::UpdateFromDatabase() {
-	if (m_Doc) delete m_Doc;
 	UpdateInfoFromDatabase();
 }
 
 void Character::DoQuickXMLDataParse() {
 	if (m_XMLData.size() == 0) return;
 
-	delete m_Doc;
-	m_Doc = new tinyxml2::XMLDocument();
-	if (!m_Doc) return;
-
-	if (m_Doc->Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
+	if (m_Doc.Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
 		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
 		LOG("Failed to load xmlData!");
@@ -89,7 +79,7 @@ void Character::DoQuickXMLDataParse() {
 		return;
 	}
 
-	tinyxml2::XMLElement* mf = m_Doc->FirstChildElement("obj")->FirstChildElement("mf");
+	tinyxml2::XMLElement* mf = m_Doc.FirstChildElement("obj")->FirstChildElement("mf");
 	if (!mf) {
 		LOG("Failed to find mf tag!");
 		return;
@@ -108,7 +98,7 @@ void Character::DoQuickXMLDataParse() {
 	mf->QueryAttribute("ess", &m_Eyes);
 	mf->QueryAttribute("ms", &m_Mouth);
 
-	tinyxml2::XMLElement* inv = m_Doc->FirstChildElement("obj")->FirstChildElement("inv");
+	tinyxml2::XMLElement* inv = m_Doc.FirstChildElement("obj")->FirstChildElement("inv");
 	if (!inv) {
 		LOG("Char has no inv!");
 		return;
@@ -141,7 +131,7 @@ void Character::DoQuickXMLDataParse() {
 	}
 
 
-	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
+	tinyxml2::XMLElement* character = m_Doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
 		character->QueryAttribute("cc", &m_Coins);
 		int32_t gm_level = 0;
@@ -205,7 +195,7 @@ void Character::DoQuickXMLDataParse() {
 		character->QueryAttribute("lzrw", &m_OriginalRotation.w);
 	}
 
-	auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
 	if (flags) {
 		auto* currentChild = flags->FirstChildElement();
 		while (currentChild) {
@@ -239,12 +229,10 @@ void Character::SetBuildMode(bool buildMode) {
 }
 
 void Character::SaveXMLToDatabase() {
-	if (!m_Doc) return;
-
 	//For metrics, we'll record the time it took to save:
 	auto start = std::chrono::system_clock::now();
 
-	tinyxml2::XMLElement* character = m_Doc->FirstChildElement("obj")->FirstChildElement("char");
+	tinyxml2::XMLElement* character = m_Doc.FirstChildElement("obj")->FirstChildElement("char");
 	if (character) {
 		character->SetAttribute("gm", static_cast<uint32_t>(m_GMLevel));
 		character->SetAttribute("cc", m_Coins);
@@ -266,11 +254,11 @@ void Character::SaveXMLToDatabase() {
 		}
 
 		auto emotes = character->FirstChildElement("ue");
-		if (!emotes) emotes = m_Doc->NewElement("ue");
+		if (!emotes) emotes = m_Doc.NewElement("ue");
 
 		emotes->DeleteChildren();
 		for (int emoteID : m_UnlockedEmotes) {
-			auto emote = m_Doc->NewElement("e");
+			auto emote = m_Doc.NewElement("e");
 			emote->SetAttribute("id", emoteID);
 
 			emotes->LinkEndChild(emote);
@@ -280,15 +268,15 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	//Export our flags:
-	auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
 	if (!flags) {
-		flags = m_Doc->NewElement("flag"); //Create a flags tag if we don't have one
-		m_Doc->FirstChildElement("obj")->LinkEndChild(flags); //Link it to the obj tag so we can find next time
+		flags = m_Doc.NewElement("flag"); //Create a flags tag if we don't have one
+		m_Doc.FirstChildElement("obj")->LinkEndChild(flags); //Link it to the obj tag so we can find next time
 	}
 
 	flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
 	for (std::pair<uint32_t, uint64_t> flag : m_PlayerFlags) {
-		auto* f = m_Doc->NewElement("f");
+		auto* f = m_Doc.NewElement("f");
 		f->SetAttribute("id", flag.first);
 
 		//Because of the joy that is tinyxml2, it doesn't offer a function to set a uint64 as an attribute.
@@ -301,7 +289,7 @@ void Character::SaveXMLToDatabase() {
 
 	// Prevents the news feed from showing up on world transfers
 	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
-		auto* s = m_Doc->NewElement("s");
+		auto* s = m_Doc.NewElement("s");
 		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
 		flags->LinkEndChild(s);
 	}
@@ -326,7 +314,7 @@ void Character::SaveXMLToDatabase() {
 
 void Character::SetIsNewLogin() {
 	// If we dont have a flag element, then we cannot have a s element as a child of flag.
-	auto* flags = m_Doc->FirstChildElement("obj")->FirstChildElement("flag");
+	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
 	if (!flags) return;
 
 	auto* currentChild = flags->FirstChildElement();
@@ -344,7 +332,7 @@ void Character::SetIsNewLogin() {
 void Character::WriteToDatabase() {
 	//Dump our xml into m_XMLData:
 	tinyxml2::XMLPrinter printer(0, true, 0);
-	m_Doc->Print(&printer);
+	m_Doc.Print(&printer);
 
 	//Finally, save to db:
 	Database::Get()->UpdateCharacterXml(m_ID, printer.CStr());
@@ -421,15 +409,15 @@ void Character::SetRetroactiveFlags() {
 
 void Character::SaveXmlRespawnCheckpoints() {
 	//Export our respawn points:
-	auto* points = m_Doc->FirstChildElement("obj")->FirstChildElement("res");
+	auto* points = m_Doc.FirstChildElement("obj")->FirstChildElement("res");
 	if (!points) {
-		points = m_Doc->NewElement("res");
-		m_Doc->FirstChildElement("obj")->LinkEndChild(points);
+		points = m_Doc.NewElement("res");
+		m_Doc.FirstChildElement("obj")->LinkEndChild(points);
 	}
 
 	points->DeleteChildren();
 	for (const auto& point : m_WorldRespawnCheckpoints) {
-		auto* r = m_Doc->NewElement("r");
+		auto* r = m_Doc.NewElement("r");
 		r->SetAttribute("w", point.first);
 
 		r->SetAttribute("x", point.second.x);
@@ -443,7 +431,7 @@ void Character::SaveXmlRespawnCheckpoints() {
 void Character::LoadXmlRespawnCheckpoints() {
 	m_WorldRespawnCheckpoints.clear();
 
-	auto* points = m_Doc->FirstChildElement("obj")->FirstChildElement("res");
+	auto* points = m_Doc.FirstChildElement("obj")->FirstChildElement("res");
 	if (!points) {
 		return;
 	}

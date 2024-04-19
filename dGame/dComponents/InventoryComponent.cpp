@@ -38,7 +38,7 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
-InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
+InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -48,7 +48,8 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	const auto lot = parent->GetLOT();
 
 	if (lot == 1) {
-		LoadXml(document);
+		auto* character = m_Parent->GetCharacter();
+		if (character) LoadXml(character->GetXMLDoc());
 
 		CheckProxyIntegrity();
 
@@ -472,10 +473,10 @@ bool InventoryComponent::HasSpaceForLoot(const std::unordered_map<LOT, int32_t>&
 	return true;
 }
 
-void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
+void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 	LoadPetXml(document);
 
-	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
+	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
 		LOG("Failed to find 'inv' xml element!");
@@ -594,10 +595,10 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
+void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 	UpdatePetXml(document);
 
-	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
+	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
 		LOG("Failed to find 'inv' xml element!");
@@ -631,7 +632,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	bags->DeleteChildren();
 
 	for (const auto* inventory : inventoriesToSave) {
-		auto* bag = document->NewElement("b");
+		auto* bag = document.NewElement("b");
 
 		bag->SetAttribute("t", inventory->GetType());
 		bag->SetAttribute("m", static_cast<unsigned int>(inventory->GetSize()));
@@ -654,14 +655,14 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 			continue;
 		}
 
-		auto* bagElement = document->NewElement("in");
+		auto* bagElement = document.NewElement("in");
 
 		bagElement->SetAttribute("t", inventory->GetType());
 
 		for (const auto& pair : inventory->GetItems()) {
 			auto* item = pair.second;
 
-			auto* itemElement = document->NewElement("i");
+			auto* itemElement = document.NewElement("i");
 
 			itemElement->SetAttribute("l", item->GetLot());
 			itemElement->SetAttribute("id", item->GetId());
@@ -680,7 +681,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 					continue;
 				}
 
-				auto* extraInfo = document->NewElement("x");
+				auto* extraInfo = document.NewElement("x");
 
 				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
 
@@ -1093,7 +1094,7 @@ void InventoryComponent::CheckItemSet(const LOT lot) {
 	auto result = query.execQuery();
 
 	while (!result.eof()) {
-		const auto id = result.getIntField(0);
+		const auto id = result.getIntField("setID");
 
 		bool found = false;
 
@@ -1542,8 +1543,8 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	}
 }
 
-void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document) {
-	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
+void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
+	auto* petInventoryElement = document.FirstChildElement("obj")->FirstChildElement("pet");
 
 	if (petInventoryElement == nullptr) {
 		m_Pets.clear();
@@ -1574,19 +1575,19 @@ void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) {
-	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
+void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
+	auto* petInventoryElement = document.FirstChildElement("obj")->FirstChildElement("pet");
 
 	if (petInventoryElement == nullptr) {
-		petInventoryElement = document->NewElement("pet");
+		petInventoryElement = document.NewElement("pet");
 
-		document->FirstChildElement("obj")->LinkEndChild(petInventoryElement);
+		document.FirstChildElement("obj")->LinkEndChild(petInventoryElement);
 	}
 
 	petInventoryElement->DeleteChildren();
 
 	for (const auto& pet : m_Pets) {
-		auto* petElement = document->NewElement("p");
+		auto* petElement = document.NewElement("p");
 
 		petElement->SetAttribute("id", pet.first);
 		petElement->SetAttribute("l", pet.second.lot);

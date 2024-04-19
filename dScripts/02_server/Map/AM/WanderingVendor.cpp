@@ -21,7 +21,7 @@ void WanderingVendor::OnProximityUpdate(Entity* self, Entity* entering, std::str
 
 		const auto proxObjs = proximityMonitorComponent->GetProximityObjects("playermonitor");
 		bool foundPlayer = false;
-		for (const auto id : proxObjs | std::views::keys) {
+		for (const auto id : proxObjs) {
 			auto* entity = Game::entityManager->GetEntity(id);
 			if (entity && entity->IsPlayer()) {
 				foundPlayer = true;

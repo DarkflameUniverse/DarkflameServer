@@ -2,7 +2,8 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 #include <vector>
-#include <map>
+#include <unordered_set>
+#include <span>
 
 #include "dCommonVars.h"
 #include "dpCommon.h"
@@ -49,9 +50,9 @@ public:
 	bool GetSleeping() const { return m_Sleeping; }
 	void SetSleeping(bool value) { m_Sleeping = value; }
 
-	const std::vector<dpEntity*>& GetNewObjects() const { return m_NewObjects; }
-	const std::vector<dpEntity*>& GetRemovedObjects() const { return m_RemovedObjects; }
-	const std::map<LWOOBJID, dpEntity*>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
+	std::span<const LWOOBJID> GetNewObjects() const { return m_NewObjects; }
+	std::span<const LWOOBJID> GetRemovedObjects() const { return m_RemovedObjects; }
+	const std::unordered_set<LWOOBJID>& GetCurrentlyCollidingObjects() const { return m_CurrentlyCollidingObjects; }
 
 	void PreUpdate() { m_NewObjects.clear();  m_RemovedObjects.clear(); }
 
@@ -80,7 +81,7 @@ private:
 
 	bool m_IsGargantuan = false;
 
-	std::vector<dpEntity*> m_NewObjects;
-	std::vector<dpEntity*> m_RemovedObjects;
-	std::map<LWOOBJID, dpEntity*> m_CurrentlyCollidingObjects;
+	std::vector<LWOOBJID> m_NewObjects;
+	std::vector<LWOOBJID> m_RemovedObjects;
+	std::unordered_set<LWOOBJID> m_CurrentlyCollidingObjects;
 };

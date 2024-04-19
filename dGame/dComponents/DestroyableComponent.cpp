@@ -185,8 +185,8 @@ void DestroyableComponent::Update(float deltaTime) {
 	m_DamageCooldownTimer -= deltaTime;
 }
 
-void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;
@@ -207,8 +207,8 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_DirtyHealth = true;
 }
 
-void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+	tinyxml2::XMLElement* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;
@@ -389,9 +389,9 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	if (result.eof()) return;
 
-	if (result.fieldIsNull(0)) return;
+	if (result.fieldIsNull("enemyList")) return;
 
-	const auto* list_string = result.getStringField(0);
+	const auto* list_string = result.getStringField("enemyList");
 
 	std::stringstream ss(list_string);
 	std::string token;

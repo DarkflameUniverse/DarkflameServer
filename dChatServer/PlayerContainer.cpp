@@ -9,9 +9,9 @@
 #include "BitStreamUtils.h"
 #include "Database.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
+#include "eChatMessageType.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -49,6 +49,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
+	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 
@@ -87,6 +88,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		}
 	}
 
+	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);
 	m_Players.erase(playerID);
 
@@ -145,7 +147,7 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -352,7 +354,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);

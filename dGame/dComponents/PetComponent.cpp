@@ -215,20 +215,20 @@ void PetComponent::OnUse(Entity* originator) {
 			return;
 		}
 
-		if (result.fieldIsNull(0)) {
+		if (result.fieldIsNull("ValidPiecesLXF")) {
 			result.finalize();
 
 			return;
 		}
 
-		buildFile = std::string(result.getStringField(0));
+		buildFile = std::string(result.getStringField("ValidPiecesLXF"));
 
 		PetPuzzleData data;
 		data.buildFile = buildFile;
-		data.puzzleModelLot = result.getIntField(1);
-		data.timeLimit = result.getFloatField(2);
-		data.numValidPieces = result.getIntField(3);
-		data.imaginationCost = result.getIntField(4);
+		data.puzzleModelLot = result.getIntField("PuzzleModelLot");
+		data.timeLimit = result.getFloatField("Timelimit");
+		data.numValidPieces = result.getIntField("NumValidPieces");
+		data.imaginationCost = result.getIntField("imagCostPerBuild");
 		if (data.timeLimit <= 0) data.timeLimit = 60;
 		imaginationCost = data.imaginationCost;
 

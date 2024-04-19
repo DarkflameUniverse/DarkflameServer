@@ -6,6 +6,8 @@
 #ifndef PROXIMITYMONITORCOMPONENT_H
 #define PROXIMITYMONITORCOMPONENT_H
 
+#include <unordered_set>
+
 #include "BitStream.h"
 #include "Entity.h"
 #include "dpWorld.h"
@@ -42,9 +44,9 @@ public:
 	/**
 	 * Returns the last of entities that are used to check proximity, given a name
 	 * @param name the proximity name to retrieve physics objects for
-	 * @return a map of physics entities for this name, indexed by object ID
+	 * @return a set of physics entity object IDs for this name
 	 */
-	const std::map<LWOOBJID, dpEntity*>& GetProximityObjects(const std::string& name);
+	const std::unordered_set<LWOOBJID>& GetProximityObjects(const std::string& name);
 
 	/**
 	 * Checks if the passed object is in proximity of the named proximity sensor
@@ -70,7 +72,7 @@ private:
 	/**
 	 * Default value for the proximity data
 	 */
-	static const std::map<LWOOBJID, dpEntity*> m_EmptyObjectMap;
+	static const std::unordered_set<LWOOBJID> m_EmptyObjectSet;
 };
 
 #endif // PROXIMITYMONITORCOMPONENT_H

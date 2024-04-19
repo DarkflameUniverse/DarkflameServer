@@ -2676,17 +2676,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
-		LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-		LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
-		LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", newIDL);
-
-		info.settings.push_back(ldfBlueprintID);
-		info.settings.push_back(componentWhitelist);
-		info.settings.push_back(modelType);
-		info.settings.push_back(propertyObjectID);
-		info.settings.push_back(userModelID);
+		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		info.settings.push_back(new LDFData<int>(u"modelType", 2));
+		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", newIDL));
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
@@ -4706,7 +4700,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* enti
 	if (!user) return;
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
-	
+
 	// handle buying normal items
 	auto* vendorComponent = entity->GetComponent<VendorComponent>();
 	if (vendorComponent) {
@@ -5336,7 +5330,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
 	bool iObjIDIsDefault = false;
-	LWOOBJID iObjID;
+	LWOOBJID iObjID = LWOOBJID_EMPTY;
 	bool iObjTemplateIsDefault = false;
 	LOT iObjTemplate = LOT_NULL;
 	bool iRequestingObjIDIsDefault = false;
@@ -6242,4 +6236,16 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Ent
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
+}
+
+void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string text) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::SLASH_COMMAND_TEXT_FEEDBACK);
+	bitStream.Write<uint32_t>(text.size());
+	bitStream.Write(text);
+	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
 }

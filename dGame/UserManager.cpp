@@ -26,7 +26,7 @@
 #include "eCharacterCreationResponse.h"
 #include "eRenameResponse.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
+#include "eChatMessageType.h"
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 
@@ -83,7 +83,7 @@ void UserManager::Initialize() {
 	auto chatListStream = Game::assetManager->GetFile("chatplus_en_us.txt");
 	if (!chatListStream) {
 		LOG("Failed to load %s", (Game::assetManager->GetResPath() / "chatplus_en_us.txt").string().c_str());
-		throw std::runtime_error("Aborting initialization due to missing chat whitelist file.");
+		throw std::runtime_error("Aborting initialization due to missing chat allowlist file.");
 	}
 
 	while (std::getline(chatListStream, line, '\n')) {
@@ -422,7 +422,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Database::Get()->DeleteCharacter(charID);
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
@@ -536,13 +536,13 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 	try {
 		auto stmt = CDClientDatabase::CreatePreppedStmt(
-			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ? AND icc.decal == ?"
+			"select obj.id as objectId from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ? AND icc.decal == ?"
 		);
 		stmt.bind(1, "character create shirt");
 		stmt.bind(2, static_cast<int>(shirtColor));
 		stmt.bind(3, static_cast<int>(shirtStyle));
 		auto tableData = stmt.execQuery();
-		auto shirtLOT = tableData.getIntField(0, 4069);
+		auto shirtLOT = tableData.getIntField("objectId", 4069);
 		tableData.finalize();
 		return shirtLOT;
 	} catch (const std::exception& ex) {
@@ -555,12 +555,12 @@ uint32_t FindCharShirtID(uint32_t shirtColor, uint32_t shirtStyle) {
 uint32_t FindCharPantsID(uint32_t pantsColor) {
 	try {
 		auto stmt = CDClientDatabase::CreatePreppedStmt(
-			"select obj.id from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ?"
+			"select obj.id as objectId from Objects as obj JOIN (select * from ComponentsRegistry as cr JOIN ItemComponent as ic on ic.id = cr.component_id where cr.component_type == 11) as icc on icc.id = obj.id where lower(obj._internalNotes) == ? AND icc.color1 == ?"
 		);
 		stmt.bind(1, "cc pants");
 		stmt.bind(2, static_cast<int>(pantsColor));
 		auto tableData = stmt.execQuery();
-		auto pantsLOT = tableData.getIntField(0, 2508);
+		auto pantsLOT = tableData.getIntField("objectId", 2508);
 		tableData.finalize();
 		return pantsLOT;
 	} catch (const std::exception& ex) {
