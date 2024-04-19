@@ -50,13 +50,13 @@ void CDPetComponentTable::LoadValuesFromDatabase() {
 }
 
 void CDPetComponentTable::LoadValuesFromDefaults() {
-	GetEntriesMutable().insert(std::make_pair(defaultEntry.id, defaultEntry));
+	GetEntriesMutable().emplace(defaultEntry.id, defaultEntry);
 }
 
-CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {
-	auto& entries = GetEntriesMutable();
-	auto itr = entries.find(componentID);
-	if (itr == entries.end()) {
+const CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {
+	const auto& entries = GetEntriesMutable();
+	const auto itr = entries.find(componentID);
+	if (itr == entries.cend()) {
 		LOG("Unable to load pet component (ID %i) values from database! Using default values instead.", componentID);
 		return defaultEntry;
 	}

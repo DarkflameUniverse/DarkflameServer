@@ -20,6 +20,7 @@
 #include "CDMissionsTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDObjectsTable.h"
+#include "CDPetAbilitiesTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "CDRebuildComponentTable.h"
 #include "CDScriptComponentTable.h"
@@ -41,8 +42,6 @@
 #include "CDRewardCodesTable.h"
 #include "CDPetComponentTable.h"
 
-#include <exception>
-
 #ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
 // A vanilla CDClient takes about 46MB of memory + the regular world data.
@@ -54,13 +53,6 @@
 #else
 	#define CDCLIENT_DONT_CACHE_TABLE(x)
 #endif
-
-class CDClientConnectionException : public std::exception {
-public:
-	virtual const char* what() const throw() {
-		return "CDClientDatabase is not connected!";
-	}
-};
 
 // Using a macro to reduce repetitive code and issues from copy and paste.
 // As a note, ## in a macro is used to concatenate two tokens together.
@@ -97,6 +89,7 @@ DEFINE_TABLE_STORAGE(CDObjectSkillsTable);
 DEFINE_TABLE_STORAGE(CDObjectsTable);
 DEFINE_TABLE_STORAGE(CDPhysicsComponentTable);
 DEFINE_TABLE_STORAGE(CDPackageComponentTable);
+DEFINE_TABLE_STORAGE(CDPetAbilitiesTable);
 DEFINE_TABLE_STORAGE(CDPetComponentTable);
 DEFINE_TABLE_STORAGE(CDProximityMonitorComponentTable);
 DEFINE_TABLE_STORAGE(CDPropertyEntranceComponentTable);
@@ -112,7 +105,9 @@ DEFINE_TABLE_STORAGE(CDVendorComponentTable);
 DEFINE_TABLE_STORAGE(CDZoneTableTable);
 
 void CDClientManager::LoadValuesFromDatabase() {
-	if (!CDClientDatabase::isConnected) throw CDClientConnectionException();
+	if (!CDClientDatabase::isConnected) {
+		throw std::runtime_error{ "CDClientDatabase is not connected!" };
+	}
 
 	CDActivityRewardsTable::Instance().LoadValuesFromDatabase();
 	CDActivitiesTable::Instance().LoadValuesFromDatabase();
@@ -141,6 +136,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
 	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
 	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
+	CDPetAbilitiesTable::Instance().LoadValuesFromDatabase();
 	CDPetComponentTable::Instance().LoadValuesFromDatabase();
 	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
@@ -159,5 +155,6 @@ void CDClientManager::LoadValuesFromDatabase() {
 void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
 
+	CDPetAbilitiesTable::Instance().LoadValuesFromDefaults();
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
 }

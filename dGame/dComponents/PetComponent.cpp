@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
+#include "CDPetAbilitiesTable.h"
 #include "CDPetComponentTable.h"
 #include "ChatPackets.h"
 #include "EntityManager.h"
@@ -911,7 +912,9 @@ void PetComponent::StartInteractBouncer() {
 	if (!destroyableComponent) return;
 
 	auto imagination = destroyableComponent->GetImagination();
-	const int32_t imaginationCost = 2; // TODO: Get rid of this magic number - make static variable from lookup
+	const auto imaginationCost =
+		CDClientManager::GetTable<CDPetAbilitiesTable>()->GetByID(ePetAbilityType::JumpOnObject).imaginationCost;
+
 	if (imagination < imaginationCost) {
 		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
 		return;
@@ -989,7 +992,9 @@ void PetComponent::StartInteractTreasureDig() {
 	if (!destroyableComponent) return;
 
 	auto imagination = destroyableComponent->GetImagination();
-	const int32_t imaginationCost = 1; // TODO: Get rid of this magic number - make static variable from lookup
+	const auto imaginationCost =
+		CDClientManager::GetTable<CDPetAbilitiesTable>()->GetByID(ePetAbilityType::DigAtPosition).imaginationCost;
+
 	if (imagination < imaginationCost) {
 		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
 		return;
