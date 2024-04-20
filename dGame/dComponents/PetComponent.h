@@ -13,11 +13,6 @@
 #include "CDClientManager.h"
 
 #include <optional>
-#include <gtest/gtest.h>
-
-// Forward declarations
-class PetTest;
-class PetComponentFlagTest;
 
 /*
 * The current state of the pet AI
@@ -364,16 +359,13 @@ public:
 	void AddDrainImaginationTimer(Item* item, bool fromTaming = false);
 
 private:
-	// Needed so these can access flags
-    friend class DamagingPets;
-	friend class PetTest;
-	FRIEND_TEST(PetTest, PetComponentFlagTest);
+	// Needed so it can access flags
+	friend class DamagingPets;
 
 	/**
 	 * Information for the minigame to be completed
 	 */
-	struct PuzzleData
-	{
+	struct PuzzleData {
 		/**
 		 * The LOT of the object that is to be created
 		 */

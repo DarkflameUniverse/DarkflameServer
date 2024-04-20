@@ -96,7 +96,8 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-	outBitStream.Write1(); // Always serialize as dirty for now
+	constexpr bool isDirty = true;
+	outBitStream.Write(isDirty); // Always serialize as dirty for now
 
 	outBitStream.Write(m_Flags);
 	outBitStream.Write(tamed ? m_Interaction.ability : ePetAbilityType::Invalid); // Something with the overhead icon?

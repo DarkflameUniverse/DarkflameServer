@@ -54,7 +54,7 @@ void CDPetComponentTable::LoadValuesFromDefaults() {
 }
 
 const CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {
-	const auto& entries = GetEntriesMutable();
+	const auto& entries = GetEntries();
 	const auto itr = entries.find(componentID);
 	if (itr == entries.cend()) {
 		LOG("Unable to load pet component (ID %i) values from database! Using default values instead.", componentID);

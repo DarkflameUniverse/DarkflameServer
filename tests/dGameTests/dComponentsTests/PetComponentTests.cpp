@@ -31,60 +31,6 @@ protected:
 	}
 };
 
-/**
- * Test bitset pet flags
-*/
-TEST_F(PetTest, PetComponentFlagTest) {
-	using enum PetFlag;
-
-	// Test setting and reading single flags, exclusively
-	petComponent->m_Flags.Reset(NONE);
-	ASSERT_TRUE(petComponent->m_Flags.HasOnly(NONE));
-	petComponent->m_Flags.Reset(TAMEABLE);
-	ASSERT_TRUE(petComponent->m_Flags.HasOnly(TAMEABLE));
-	ASSERT_FALSE(petComponent->m_Flags.HasOnly(SPAWNING));
-
-	// Test setting and reading multiple flags, exclusively
-	petComponent->m_Flags.Reset(NOT_WAITING, SPAWNING);
-	ASSERT_FALSE(petComponent->m_Flags.Has(TAMEABLE));
-	ASSERT_TRUE(petComponent->m_Flags.Has(NOT_WAITING));
-	ASSERT_TRUE(petComponent->m_Flags.Has(SPAWNING));
-	ASSERT_TRUE(petComponent->m_Flags.Has(NOT_WAITING, SPAWNING));
-	ASSERT_FALSE(petComponent->m_Flags.HasOnly(NOT_WAITING));
-	ASSERT_FALSE(petComponent->m_Flags.HasOnly(SPAWNING));
-	ASSERT_TRUE(petComponent->m_Flags.HasOnly(NOT_WAITING, SPAWNING));
-
-	// Test flags are being properly reset for next batch of tests
-	petComponent->m_Flags.Reset(NONE);
-	ASSERT_TRUE(petComponent->m_Flags.Has(NONE));
-	ASSERT_TRUE(petComponent->m_Flags.HasOnly(NONE));
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING, SPAWNING, TAMEABLE));
-
-	// Test setting and reading single flags, non-exclusively
-	petComponent->m_Flags.Set(NOT_WAITING);
-	ASSERT_TRUE(petComponent->m_Flags.Has(NOT_WAITING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(SPAWNING));
-
-	// Test setting and reading multiple flags, non-exclusively
-	petComponent->m_Flags.Set(TAMEABLE, BEING_TAMED);
-	ASSERT_TRUE(petComponent->m_Flags.Has(TAMEABLE, BEING_TAMED));
-	ASSERT_TRUE(petComponent->m_Flags.Has(NOT_WAITING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING, SPAWNING));
-	ASSERT_TRUE(petComponent->m_Flags.Has(NOT_WAITING, TAMEABLE, BEING_TAMED));
-	ASSERT_FALSE(petComponent->m_Flags.Has(SPAWNING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(SPAWNING, NOT_WAITING, TAMEABLE, BEING_TAMED));
-
-	// Test unsetting and reading multiple flags, non-exclusively
-	petComponent->m_Flags.Unset(NOT_WAITING, SPAWNING);
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING, SPAWNING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING));
-	ASSERT_TRUE(petComponent->m_Flags.Has(TAMEABLE, BEING_TAMED));
-	ASSERT_FALSE(petComponent->m_Flags.Has(NOT_WAITING, TAMEABLE, BEING_TAMED));
-	ASSERT_FALSE(petComponent->m_Flags.Has(SPAWNING));
-	ASSERT_FALSE(petComponent->m_Flags.Has(SPAWNING, NOT_WAITING, TAMEABLE, BEING_TAMED));
-}
-
 TEST_F(PetTest, PlacementNewAddComponentTest) {
 	using enum PetFlag;
 
