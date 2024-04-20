@@ -826,8 +826,8 @@ void PetComponent::OnInteract() {
 	}
 }
 
-void PetComponent::StartInteract(const NiPoint3& position, const PetInteractType interactionType, const LWOOBJID& interactID) {
-	m_Interaction.obj; // TODO: Check if this should be serialized for goToObj
+void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType interactionType, const LWOOBJID interactID) {
+	m_Interaction.obj = interactID; // TODO: Check if this should be serialized for goToObj
 	m_Interaction.type = interactionType;
 	m_Interaction.ability = ePetAbilityType::GoToObject;
 	SetPetAiState(PetAiState::goToObj);

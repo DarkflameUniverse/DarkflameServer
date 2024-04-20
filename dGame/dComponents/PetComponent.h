@@ -174,7 +174,7 @@ public:
 	/**
 	 * Start a pet interaction with an object at a given position
 	*/
-	void StartInteract(const NiPoint3& position, const PetInteractType interactionType, const LWOOBJID& interactID);
+	void StartInteract(const NiPoint3 position, const PetInteractType interactionType, const LWOOBJID interactID);
 
 	/**
 	 * Stop a pet interaction with an object
