@@ -41,25 +41,25 @@ TEST_F(PetTest, PlacementNewAddComponentTest) {
 
 	// Test getting initial status
 	ASSERT_EQ(petComponent->GetParent()->GetObjectID(), 15);
-	ASSERT_EQ(petComponent->GetPetAiState(), PetAiState::SPAWN);
+	ASSERT_EQ(petComponent->GetPetAiState(), PetAiState::spawn);
 }
 
 
 TEST_F(PetTest, PetAiState) {
 	const auto initialState = petComponent->GetPetAiState();
-	ASSERT_EQ(initialState, PetAiState::SPAWN);
+	ASSERT_EQ(initialState, PetAiState::spawn);
 
-	petComponent->SetPetAiState(PetAiState::FOLLOW);
-	ASSERT_EQ(PetAiState::FOLLOW, petComponent->GetPetAiState());
+	petComponent->SetPetAiState(PetAiState::follow);
+	ASSERT_EQ(PetAiState::follow, petComponent->GetPetAiState());
 
-	petComponent->SetPetAiState(PetAiState::IDLE);
-	ASSERT_EQ(PetAiState::IDLE, petComponent->GetPetAiState());
+	petComponent->SetPetAiState(PetAiState::idle);
+	ASSERT_EQ(PetAiState::idle, petComponent->GetPetAiState());
 
-	petComponent->SetPetAiState(PetAiState::INTERACT);
-	ASSERT_EQ(PetAiState::INTERACT, petComponent->GetPetAiState());
+	petComponent->SetPetAiState(PetAiState::interact);
+	ASSERT_EQ(PetAiState::interact, petComponent->GetPetAiState());
 
-	petComponent->SetPetAiState(PetAiState::DESPAWN);
-	ASSERT_EQ(PetAiState::DESPAWN, petComponent->GetPetAiState());
+	petComponent->SetPetAiState(PetAiState::despawn);
+	ASSERT_EQ(PetAiState::despawn, petComponent->GetPetAiState());
 }
 
 // Test the pet use logic
