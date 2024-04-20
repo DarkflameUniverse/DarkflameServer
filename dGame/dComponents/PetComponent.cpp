@@ -149,12 +149,65 @@ void PetComponent::OnUse(Entity* originator) {
 		case ePetAbilityType::JumpOnObject: // Bouncer
 			StartInteractBouncer();
 			break;
-
-		default:
-			break;
 		}
+	} else {
+		StartTamingMinigame(originator);
+	}
+}
+
+void PetComponent::Update(float deltaTime) {
+	// Update timers
+	m_TimerBounce -= deltaTime;
+
+	if (m_Timer > 0) {
+		m_Timer -= deltaTime;
+		return;
 	}
 
+	// Remove "left behind" pets and handle failing pet taming minigame
+	if (m_Owner != LWOOBJID_EMPTY) {
+		const Entity* const owner = GetOwner();
+		if (!owner) {
+			m_Parent->Kill();
+			return;
+		}
+	} else {
+		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
+	}
+
+	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
+
+	// Handle pet AI states
+	switch (m_State) {
+	case PetAiState::idle:
+		Wander();
+		break;
+
+	case PetAiState::follow:
+		OnFollow(deltaTime);
+		break;
+
+	case PetAiState::goToObj:
+		if (m_MovementAI->AtFinalWaypoint()) {
+			LOG_DEBUG("Reached object!");
+			m_MovementAI->Stop();
+			SetPetAiState(PetAiState::interact);
+		} else {
+			m_Timer += 0.5f;
+		}
+		break;
+
+	case PetAiState::interact:
+		OnInteract();
+		break;
+
+	default:
+		LOG_DEBUG("Unknown state: %d!", m_Flags);
+		break;
+	}
+}
+
+void PetComponent::StartTamingMinigame(Entity* originator) {
 	// The minigame logic beneath this comment should be rewritten... eventually
 	if (m_Owner != LWOOBJID_EMPTY) return;
 
@@ -315,58 +368,6 @@ void PetComponent::OnUse(Entity* originator) {
 
 	// Notify the start of a pet taming minigame
 	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
-}
-
-void PetComponent::Update(float deltaTime) {
-	// Update timers
-	m_TimerBounce -= deltaTime;
-
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-		return;
-	}
-
-	// Remove "left behind" pets and handle failing pet taming minigame
-	if (m_Owner != LWOOBJID_EMPTY) {
-		const Entity* const owner = GetOwner();
-		if (!owner) {
-			m_Parent->Kill();
-			return;
-		}
-	} else {
-		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
-	}
-
-	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
-
-	// Handle pet AI states
-	switch (m_State) {
-	case PetAiState::idle:
-		Wander();
-		break;
-
-	case PetAiState::follow:
-		OnFollow(deltaTime);
-		break;
-
-	case PetAiState::goToObj:
-		if (m_MovementAI->AtFinalWaypoint()) {
-			LOG_DEBUG("Reached object!");
-			m_MovementAI->Stop();
-			SetPetAiState(PetAiState::interact);
-		} else {
-			m_Timer += 0.5f;
-		}
-		break;
-
-	case PetAiState::interact:
-		OnInteract();
-		break;
-
-	default:
-		LOG_DEBUG("Unknown state: %d!", m_Flags);
-		break;
-	}
 }
 
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {

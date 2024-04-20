@@ -121,6 +121,11 @@ public:
 	void TryBuild(uint32_t numBricks, bool clientFailed);
 
 	/**
+	 * Start the pet taming minigame
+	*/
+	void StartTamingMinigame(Entity* originator);
+
+	/**
 	 * Handles a notification from the client regarding the completion of the pet minigame, adding the pet to their
 	 * inventory.
 	 * @param position the position to spawn the completed model at
