@@ -85,7 +85,7 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId)
 	m_MovementAI = nullptr;
 
 	m_ReadyToInteract = false;
-	m_State = PetAiState::spawn;
+	m_State = PetAiState::SPAWN;
 	SetIsHandlingInteraction(false);
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
@@ -139,23 +139,76 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 
 void PetComponent::OnUse(Entity* originator) {
 	LOG_DEBUG("PET USE!");
+	if (!IsReadyToInteract()) return;
 
-	if (IsReadyToInteract()) {
-		switch (m_Interaction.ability) {
-		case ePetAbilityType::DigAtPosition: // Treasure dig
-			StartInteractTreasureDig();
-			break;
+	switch (m_Interaction.ability) {
+	case ePetAbilityType::DigAtPosition: // Treasure dig
+		StartInteractTreasureDig();
+		break;
 
-		case ePetAbilityType::JumpOnObject: // Bouncer
-			StartInteractBouncer();
-			break;
+	case ePetAbilityType::JumpOnObject: // Bouncer
+		StartInteractBouncer();
+		break;
 
-		default:
-			break;
-		}
+	default: // Pet taming minigame
+		StartTamingMinigame(originator);
+		break;
+	}
+}
+
+void PetComponent::Update(float deltaTime) {
+	// Update timers
+	m_TimerBounce -= deltaTime;
+
+	if (m_Timer > 0) {
+		m_Timer -= deltaTime;
+		return;
 	}
 
-	// The minigame logic beneath this comment should be rewritten... eventually
+	// Remove "left behind" pets and handle failing pet taming minigame
+	if (m_Owner != LWOOBJID_EMPTY) {
+		const Entity* const owner = GetOwner();
+		if (!owner) {
+			m_Parent->Kill();
+			return;
+		}
+	} else {
+		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
+	}
+
+	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
+
+	// Handle pet AI states
+	switch (m_State) {
+	case PetAiState::IDLE:
+		Wander();
+		break;
+
+	case PetAiState::FOLLOW:
+		OnFollow(deltaTime);
+		break;
+
+	case PetAiState::GO_TO_OBJ:
+		if (m_MovementAI->AtFinalWaypoint()) {
+			LOG_DEBUG("Reached object!");
+			m_MovementAI->Stop();
+			SetPetAiState(PetAiState::INTERACT);
+		} else {
+			m_Timer += 0.5f;
+		}
+		break;
+
+	case PetAiState::INTERACT:
+		OnInteract();
+		break;
+
+	default:
+		LOG_DEBUG("Unknown state: %d!", m_Flags);
+		break;
+	}
+}
+
+void PetComponent::StartTamingMinigame(Entity* originator) {
 	if (m_Owner != LWOOBJID_EMPTY) return;
 
 	if (m_Tamer != LWOOBJID_EMPTY) {
@@ -167,7 +220,6 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	auto* const inventoryComponent = originator->GetComponent<InventoryComponent>();
-
 	if (!inventoryComponent) return;
 
 	if (m_Preconditions.has_value() && !m_Preconditions->Check(originator, true)) return;
@@ -186,7 +238,7 @@ void PetComponent::OnUse(Entity* originator) {
 	std::string buildFile;
 
 	// It may make sense to move this minigame-specific logic into another file
-	if (cached == buildCache.end()) {
+	if (cached == buildCache.cend()) {
 		auto query = CDClientDatabase::CreatePreppedStmt(
 			"SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = ?;");
 		query.bind(1, static_cast<int>(m_Parent->GetLOT()));
@@ -226,11 +278,9 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
-
 	if (!destroyableComponent) return;
 
 	const auto imagination = destroyableComponent->GetImagination();
-
 	if (imagination < imaginationCost) return;
 
 	const auto& bricks = BrickDatabase::GetBricks(buildFile);
@@ -243,13 +293,11 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	const auto petPosition = m_Parent->GetPosition();
-
 	const auto originatorPosition = originator->GetPosition();
 
 	m_Parent->SetRotation(NiQuaternion::LookAt(petPosition, originatorPosition));
 
 	float interactionDistance = m_Parent->GetVar<float>(u"interaction_distance");
-
 	if (interactionDistance <= 0) {
 		interactionDistance = 15;
 	}
@@ -315,58 +363,6 @@ void PetComponent::OnUse(Entity* originator) {
 
 	// Notify the start of a pet taming minigame
 	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
-}
-
-void PetComponent::Update(float deltaTime) {
-	// Update timers
-	m_TimerBounce -= deltaTime;
-
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-		return;
-	}
-
-	// Remove "left behind" pets and handle failing pet taming minigame
-	if (m_Owner != LWOOBJID_EMPTY) {
-		const Entity* const owner = GetOwner();
-		if (!owner) {
-			m_Parent->Kill();
-			return;
-		}
-	} else {
-		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
-	}
-
-	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
-
-	// Handle pet AI states
-	switch (m_State) {
-	case PetAiState::idle:
-		Wander();
-		break;
-
-	case PetAiState::follow:
-		OnFollow(deltaTime);
-		break;
-
-	case PetAiState::goToObj:
-		if (m_MovementAI->AtFinalWaypoint()) {
-			LOG_DEBUG("Reached object!");
-			m_MovementAI->Stop();
-			SetPetAiState(PetAiState::interact);
-		} else {
-			m_Timer += 0.5f;
-		}
-		break;
-
-	case PetAiState::interact:
-		OnInteract();
-		break;
-
-	default:
-		LOG_DEBUG("Unknown state: %d!", m_Flags);
-		break;
-	}
 }
 
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
@@ -628,7 +624,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 void PetComponent::StartTimer() {
 	const auto& cached = buildCache.find(m_Parent->GetLOT());
 
-	if (cached == buildCache.end()) {
+	if (cached == buildCache.cend()) {
 		return;
 	}
 
@@ -724,10 +720,10 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		SetPetAiState(PetAiState::follow);
+		SetPetAiState(PetAiState::FOLLOW);
 	} else {
 		m_Flags.Set<PetFlag::TAMEABLE>();
-		SetPetAiState(PetAiState::idle);
+		SetPetAiState(PetAiState::IDLE);
 	}
 
 	m_Flags.Set<PetFlag::IDLE>();
@@ -748,7 +744,7 @@ void PetComponent::OnFollow(const float deltaTime) {
 		const LWOOBJID switchID = closestSwitch->GetParentEntity()->GetObjectID();
 		const float distance = Vector3::DistanceSquared(ownerPos, switchPos);
 		if (distance < 16 * 16) {
-			StartInteract(switchPos, PetInteractType::bouncer, switchID);
+			StartInteract(switchPos, PetInteractType::BOUNCER, switchID);
 			return;
 		}
 	}
@@ -764,7 +760,7 @@ void PetComponent::OnFollow(const float deltaTime) {
 		const NiPoint3 treasurePos = closestTreasure->GetPosition();
 		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
 		if (distance < 16 * 16) {
-			StartInteract(treasurePos, PetInteractType::treasure, m_Owner);
+			StartInteract(treasurePos, PetInteractType::TREASURE, m_Owner);
 			return;
 		}
 	}
@@ -810,12 +806,12 @@ void PetComponent::OnInteract() {
 	}
 
 	switch (m_Interaction.type) {
-	case PetInteractType::bouncer:
+	case PetInteractType::BOUNCER:
 		if (IsReadyToInteract()) HandleInteractBouncer();
 		else SetupInteractBouncer();
 		break;
 
-	case PetInteractType::treasure:
+	case PetInteractType::TREASURE:
 		if (IsReadyToInteract()) HandleInteractTreasureDig();
 		else SetupInteractTreasureDig();
 		break;
@@ -832,7 +828,7 @@ void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType 
 	m_Interaction.obj = interactID; // TODO: Check if this should be serialized for goToObj
 	m_Interaction.type = interactionType;
 	m_Interaction.ability = ePetAbilityType::GoToObject;
-	SetPetAiState(PetAiState::goToObj);
+	SetPetAiState(PetAiState::GO_TO_OBJ);
 	m_MovementAI->SetMaxSpeed(m_PetInfo.runSpeed);
 	m_MovementAI->SetHaltDistance(0.0f);
 	m_MovementAI->SetDestination(position);
@@ -847,11 +843,10 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 	constexpr auto petAbility = ePetAbilityType::Invalid;
 
 	m_Interaction.obj = LWOOBJID_EMPTY;
-	m_Interaction.type = PetInteractType::none;
+	m_Interaction.type = PetInteractType::NONE;
 	m_Interaction.ability = petAbility;
-	SetPetAiState(PetAiState::follow);
+	SetPetAiState(PetAiState::FOLLOW);
 	m_Flags.Reset<PetFlag::IDLE>();
-	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 	m_MovementAI->SetHaltDistance(m_FollowRadius);
@@ -1170,7 +1165,7 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 		GameMessages::SendPlayEmote(m_Parent->GetObjectID(), typeId, owner->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (commandType == 3) {
 		StopInteract(); // TODO: Verify this is necessary
-		SetPetAiState(PetAiState::follow);
+		SetPetAiState(PetAiState::FOLLOW);
 	} else if (commandType == 6) {
 		// TODO: Go to player
 	}

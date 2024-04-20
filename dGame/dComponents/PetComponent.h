@@ -18,21 +18,21 @@
 * The current state of the pet AI
 */
 enum class PetAiState : uint8_t {
-	idle = 0,   	// Doing nothing
-	spawn,			// Spawning into the world
-	follow,			// Begin following
-	goToObj,		// Go to object
-	interact,		// Interact with an object
-	despawn 		// Despawning from world
+	IDLE = 0,   	// Doing nothing
+	SPAWN,			// Spawning into the world
+	FOLLOW,			// Begin following
+	GO_TO_OBJ,		// Go to object
+	INTERACT,		// Interact with an object
+	DESPAWN 		// Despawning from world
 };
 
 /*
 * The type of object the pet is interacting with
 */
 enum class PetInteractType : uint8_t {
-	none,		// Not interacting
-	treasure,	// Treasure dig
-	bouncer		// Bouncer switch
+	NONE,		// Not interacting
+	TREASURE,	// Treasure dig
+	BOUNCER		// Bouncer switch
 };
 
 /**
@@ -112,6 +112,11 @@ public:
 	 * @param originator the entity that triggered the event
 	 */
 	void OnUse(Entity* originator) override;
+
+	/**
+	 * Start the pet taming minigame
+	*/
+	void StartTamingMinigame(Entity* originator);
 
 	/**
 	 * Attempts to complete the pet minigame by passing a list of bricks to build the minigame model.
@@ -396,7 +401,7 @@ private:
 		/**
 		 * The type of object that the pet is currently interacting with (e.g. a treasure chest or switch)
 		*/
-		PetInteractType type = PetInteractType::none;
+		PetInteractType type = PetInteractType::NONE;
 
 		/**
 		 * The interaction ability
