@@ -379,7 +379,7 @@ private:
 		/**
 		 * The time limit to complete the build
 		 */
-		int32_t timeLimit;
+		float timeLimit;
 
 		/**
 		 * The imagination cost for the tamer to start the minigame
@@ -432,7 +432,7 @@ private:
 	/**
 	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
 	 */
-	static std::map<LOT, int32_t> petFlags;
+	static const std::map<LOT, int32_t> petFlags;
 
 	/**
 	 * The halting radius of the pet while following a player TODO: Move into struct?

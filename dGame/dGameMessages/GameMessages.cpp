@@ -523,14 +523,14 @@ void GameMessages::SendNotifyClientFlagChange(const LWOOBJID& objectID, uint32_t
 	SEND_PACKET;
 }
 
-void GameMessages::SendHelp(const LWOOBJID& objectId, const eHelpType help, const SystemAddress& sysAddr) {
+void GameMessages::SendHelp(const LWOOBJID objectId, const eHelpType help, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
-	
+
 	bitStream.Write(objectId);
 	bitStream.Write(eGameMessageType::HELP);
 	bitStream.Write(help);
-	
+
 	SEND_PACKET;
 }
 
@@ -1186,7 +1186,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 
 	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
-	
+
 	if (bIsNotIdentity) {
 		bitStream.Write(rotation.w);
 		bitStream.Write(rotation.x);

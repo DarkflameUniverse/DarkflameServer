@@ -45,7 +45,7 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
  * Maps all the pet lots to a flag indicating that the player has caught it. All basic pets have been guessed by ObjID
  * while the faction ones could be checked using their respective missions.
  */
-std::map<LOT, int32_t> PetComponent::petFlags{
+const std::map<LOT, int32_t> PetComponent::petFlags{
 		{ 3050, 801 },  // Elephant
 		{ 3054, 803 },  // Cat
 		{ 3195, 806 },  // Triceratops
@@ -75,10 +75,12 @@ std::map<LOT, int32_t> PetComponent::petFlags{
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
+PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId)
+	: Component{ parentEntity }
+	, m_Flags{ PetFlag::SPAWNING }
+{
 	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
 	m_ComponentId = componentId;
-	m_Flags = PetFlag::SPAWNING; // Tameable
 	m_StartPosition = m_Parent->GetPosition();
 	m_MovementAI = nullptr;
 
@@ -99,7 +101,7 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 	constexpr bool isDirty = true;
 	outBitStream.Write(isDirty); // Always serialize as dirty for now
 
-	outBitStream.Write(m_Flags);
+	outBitStream.Write(m_Flags.Value());
 	outBitStream.Write(tamed ? m_Interaction.ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
 	const bool interacting = m_Interaction.obj != LWOOBJID_EMPTY;
@@ -205,12 +207,13 @@ void PetComponent::OnUse(Entity* originator) {
 
 		buildFile = std::string(result.getStringField("ValidPiecesLXF"));
 
-		PuzzleData data;
-		data.buildFile = buildFile;
-		data.puzzleModelLot = result.getIntField("PuzzleModelLot");
-		data.timeLimit = result.getFloatField("Timelimit");
-		data.numValidPieces = result.getIntField("NumValidPieces");
-		data.imaginationCost = result.getIntField("imagCostPerBuild");
+		PuzzleData data{
+			.puzzleModelLot = result.getIntField("PuzzleModelLot"),
+			.buildFile = buildFile,
+			.timeLimit = static_cast<float>(result.getFloatField("Timelimit")),
+			.imaginationCost = result.getIntField("imagCostPerBuild"),
+			.numValidPieces = result.getIntField("NumValidPieces")
+		};
 		if (data.timeLimit <= 0) data.timeLimit = 60;
 		imaginationCost = data.imaginationCost;
 
@@ -306,7 +309,7 @@ void PetComponent::OnUse(Entity* originator) {
 	GameMessages::SendNotifyPetTamingPuzzleSelected(originator->GetObjectID(), bricks, originator->GetSystemAddress());
 
 	m_Tamer = originator->GetObjectID();
-	m_Flags.Set(PetFlag::IDLE, PetFlag::UNKNOWN4);
+	m_Flags.Set<PetFlag::IDLE, PetFlag::UNKNOWN4>();
 
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
@@ -334,7 +337,7 @@ void PetComponent::Update(float deltaTime) {
 		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
 	}
 
-	if (m_Flags.Has(PetFlag::SPAWNING)) OnSpawn();
+	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
 
 	// Handle pet AI states
 	switch (m_State) {
@@ -501,7 +504,7 @@ void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
-	m_Flags.Reset(PetFlag::IDLE);
+	m_Flags.Reset<PetFlag::IDLE>();
 
 	auto* const characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
@@ -612,7 +615,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 
 	currentActivities.erase(m_Tamer);
 
-	m_Flags.Reset(PetFlag::TAMEABLE);
+	m_Flags.Reset<PetFlag::TAMEABLE>();
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -661,7 +664,7 @@ void PetComponent::ClientFailTamingMinigame() {
 
 	currentActivities.erase(m_Tamer);
 
-	m_Flags.Reset(PetFlag::TAMEABLE);
+	m_Flags.Reset<PetFlag::TAMEABLE>();
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -721,15 +724,14 @@ void PetComponent::OnSpawn() {
 		m_Parent->SetOwnerOverride(m_Owner);
 		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
 		m_MovementAI->SetHaltDistance(m_FollowRadius);
-		//SetOnlyFlag(IDLE); //SetStatus(PetFlag::NONE);
 		SetPetAiState(PetAiState::follow);
 	} else {
-		m_Flags.Set(PetFlag::TAMEABLE);
+		m_Flags.Set<PetFlag::TAMEABLE>();
 		SetPetAiState(PetAiState::idle);
 	}
 
-	m_Flags.Set(PetFlag::IDLE);
-	m_Flags.Unset(PetFlag::SPAWNING);
+	m_Flags.Set<PetFlag::IDLE>();
+	m_Flags.Unset<PetFlag::SPAWNING>();
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
@@ -848,7 +850,7 @@ void PetComponent::StopInteract(bool bDontSerialize) {
 	m_Interaction.type = PetInteractType::none;
 	m_Interaction.ability = petAbility;
 	SetPetAiState(PetAiState::follow);
-	m_Flags.Reset(PetFlag::IDLE);
+	m_Flags.Reset<PetFlag::IDLE>();
 	SetIsReadyToInteract(false);
 	SetIsHandlingInteraction(false); // Needed?
 	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
@@ -871,8 +873,8 @@ void PetComponent::SetupInteractBouncer() {
 	constexpr auto petAbility = ePetAbilityType::JumpOnObject;
 
 	m_Interaction.ability = petAbility;
-	m_Flags.Unset(PetFlag::IDLE);
-	m_Flags.Set(PetFlag::ON_SWITCH, PetFlag::NOT_WAITING); //SetStatus(PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	m_Flags.Unset<PetFlag::IDLE>();
+	m_Flags.Set<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: Double-check this is the right flag being set
 	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
@@ -913,8 +915,6 @@ void PetComponent::StartInteractBouncer() {
 	SetIsHandlingInteraction(true);
 	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 	closestSwitch->EntityEnter(m_Parent);
-
-	//m_Timer += 0.5;
 }
 
 void PetComponent::HandleInteractBouncer() {
@@ -954,8 +954,8 @@ void PetComponent::SetupInteractTreasureDig() {
 	constexpr auto petAbility = ePetAbilityType::DigAtPosition;
 
 	m_Interaction.ability = petAbility;
-	m_Flags.Unset(PetFlag::IDLE);
-	m_Flags.Set(PetFlag::ON_SWITCH, PetFlag::NOT_WAITING); // TODO: Double-check this is the right flag being set
+	m_Flags.Unset<PetFlag::IDLE>();
+	m_Flags.Set<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: Double-check this is the right flag being set
 	LOG_DEBUG("m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
 
@@ -989,8 +989,8 @@ void PetComponent::StartInteractTreasureDig() {
 	Game::entityManager->SerializeEntity(user);
 
 	SetIsHandlingInteraction(true);
-	m_Flags.Unset(PetFlag::ON_SWITCH, PetFlag::NOT_WAITING); // TODO: FIND THE CORRECT STATUS TO USE HERE
-	m_Flags.Set(PetFlag::IDLE);
+	m_Flags.Unset<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: FIND THE CORRECT STATUS TO USE HERE
+	m_Flags.Set<PetFlag::IDLE>();
 	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
 	Game::entityManager->SerializeEntity(m_Parent);
 
@@ -1039,7 +1039,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 	auto* const owner = GetOwner();
 
 	if (!owner) return;
-	m_Flags.Set(PetFlag::SPAWNING);
+	m_Flags.Set<PetFlag::SPAWNING>();
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
