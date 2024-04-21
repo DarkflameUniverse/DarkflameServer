@@ -20,6 +20,7 @@
 #include "eWorldMessageType.h"
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
+#include "ChatHttpApi.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -122,6 +123,8 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
+	std::thread APIThread(ChatHttpApi::Listen, ourPort);
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
@@ -174,7 +177,8 @@ int main(int argc, char** argv) {
 	delete Game::server;
 	delete Game::logger;
 	delete Game::config;
-
+	ChatHttpApi::Stop();
+	APIThread.join();
 	return EXIT_SUCCESS;
 }
 

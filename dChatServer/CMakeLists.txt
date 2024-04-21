@@ -1,4 +1,5 @@
 set(DCHATSERVER_SOURCES
+	"ChatHttpApi.cpp"
 	"ChatIgnoreList.cpp"
 	"ChatPacketHandler.cpp"
 	"PlayerContainer.cpp"
