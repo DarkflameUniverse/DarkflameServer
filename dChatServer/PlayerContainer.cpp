@@ -1,7 +1,8 @@
-#include "PlayerContainer.h"
-#include "dNetCommon.h"
 #include <iostream>
 #include <algorithm>
+
+#include "PlayerContainer.h"
+#include "dNetCommon.h"
 #include "Game.h"
 #include "Logger.h"
 #include "ChatPacketHandler.h"
@@ -12,6 +13,22 @@
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "eChatMessageType.h"
+
+
+const json PlayerData::to_json() const {
+	json data;
+	data["id"] = this->playerID;
+	data["name"] = this->playerName;
+	data["gm_level"] = this->gmLevel;
+	data["muted"] = this->GetIsMuted();
+
+	json zoneID;
+	zoneID["map_id"] = std::to_string(this->zoneID.GetMapID());
+	zoneID["instance_id"] = std::to_string(this->zoneID.GetInstanceID());
+	zoneID["clone_id"] = std::to_string(this->zoneID.GetCloneID());
+	data["zone_id"] = zoneID;
+	return data;
+}
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =

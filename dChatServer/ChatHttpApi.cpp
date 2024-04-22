@@ -40,13 +40,36 @@ void ChatHttpApi::Listen(const uint32_t port) {
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 	});
 
-	m_APIServer.Get("/who", [](const httplib::Request& req, httplib::Response& res) {
-		json data;
+	m_APIServer.Get("/players", [](const httplib::Request& req, httplib::Response& res) {
+		auto data = json::array();
 		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
 			if (!playerData) continue;
-			auto map = std::to_string(playerData.zoneID.GetMapID());
-			if (!data.contains(map)) data[map] = json::array();
-			data[map].push_back(playerData.playerName);
+			data.push_back(playerData.to_json());
+		}
+		res.set_content(data.dump(), "application/json");
+		if (data.empty()) res.status = 204;
+	});
+
+	m_APIServer.Get("/teams", [](const httplib::Request& req, httplib::Response& res) {
+		auto data = json::array();
+		for (auto& teamData: Game::playerContainer.GetAllTeams()){
+			if (!teamData) continue;
+			json toInsert;
+			toInsert["id"] = teamData->teamID;
+			toInsert["loot_flag"] = teamData->lootFlag;
+			toInsert["local"] = teamData->local;
+
+			auto leader = Game::playerContainer.GetPlayerData(teamData->leaderID);
+			toInsert["leader"] = leader.to_json();
+
+			json members;
+			for (auto& member : teamData->memberIDs){
+				auto playerData = Game::playerContainer.GetPlayerData(member);
+				if (!playerData) continue;
+				members.push_back(playerData.to_json());
+			}
+			toInsert["members"] = members;
+			data.push_back(toInsert);
 		}
 		res.set_content(data.dump(), "application/json");
 		if (data.empty()) res.status = 204;
@@ -54,8 +77,6 @@ void ChatHttpApi::Listen(const uint32_t port) {
 
 	m_APIServer.listen("0.0.0.0", port);
 };
-
-
 
 void ChatHttpApi::Stop(){
 	m_APIServer.stop();

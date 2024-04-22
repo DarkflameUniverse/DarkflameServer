@@ -7,6 +7,9 @@
 #include "dServer.h"
 #include <unordered_map>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 enum class eGameMasterLevel : uint8_t;
 
 struct IgnoreData {
@@ -35,6 +38,8 @@ struct PlayerData {
 	bool GetIsMuted() const {
 		return muteExpire == 1 || muteExpire > time(NULL);
 	}
+
+	const json to_json() const;
 
 	SystemAddress sysAddr{};
 	LWOZONEID zoneID{};
@@ -88,6 +93,7 @@ public:
 	LWOOBJID GetId(const std::u16string& playerName);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
+	const std::vector<TeamData*> GetAllTeams() { return mTeams;};
 
 private:
 	LWOOBJID m_TeamIDCounter = 0;
