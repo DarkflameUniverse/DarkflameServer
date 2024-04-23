@@ -42,8 +42,6 @@
 #include "CDRewardCodesTable.h"
 #include "CDPetComponentTable.h"
 
-#include <exception>
-
 #ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
 // A vanilla CDClient takes about 46MB of memory + the regular world data.
@@ -55,13 +53,6 @@
 #else
 	#define CDCLIENT_DONT_CACHE_TABLE(x)
 #endif
-
-class CDClientConnectionException : public std::exception {
-public:
-	virtual const char* what() const throw() {
-		return "CDClientDatabase is not connected!";
-	}
-};
 
 // Using a macro to reduce repetitive code and issues from copy and paste.
 // As a note, ## in a macro is used to concatenate two tokens together.
@@ -114,7 +105,9 @@ DEFINE_TABLE_STORAGE(CDVendorComponentTable);
 DEFINE_TABLE_STORAGE(CDZoneTableTable);
 
 void CDClientManager::LoadValuesFromDatabase() {
-	if (!CDClientDatabase::isConnected) throw CDClientConnectionException();
+	if (!CDClientDatabase::isConnected) {
+		throw std::runtime_error{ "CDClientDatabase is not connected!" };
+	}
 
 	CDActivityRewardsTable::Instance().LoadValuesFromDatabase();
 	CDActivitiesTable::Instance().LoadValuesFromDatabase();

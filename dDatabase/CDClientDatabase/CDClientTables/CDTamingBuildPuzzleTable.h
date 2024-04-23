@@ -4,15 +4,10 @@
 #include <filesystem>
 
 /**
- * Type aliases
-*/
-using TamingBuildPuzzleId = uint32_t;
-
-/**
  * Information for the minigame to be completed
  */
 struct CDTamingBuildPuzzle {
-	UNUSED_COLUMN(TamingBuildPuzzleId id = 0;)
+	UNUSED_COLUMN(uint32_t id = 0;)
 
 	// The LOT of the object that is to be created
 	LOT puzzleModelLot = LOT_NULL;
@@ -59,16 +54,8 @@ public:
 	void LoadValuesFromDatabase();
 
 	/**
-	 * Load the default values into memory instead of attempting to connect to the CD client database
-	*/
-	void LoadValuesFromDefaults();
-
-	/**
 	 * Gets the pet ability table corresponding to the pet LOT
-	 * @returns A reference to the corresponding table, or the default if one cannot be found
+	 * @returns A pointer to the corresponding table, or nullptr if one cannot be found
 	*/
-	const CDTamingBuildPuzzle& GetByLOT(const LOT lot);
-
-private:
-	static const CDTamingBuildPuzzle defaultEntry;
+	const CDTamingBuildPuzzle* GetByLOT(const LOT lot);
 };

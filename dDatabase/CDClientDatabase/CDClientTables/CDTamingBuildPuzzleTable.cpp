@@ -1,7 +1,5 @@
 #include "CDTamingBuildPuzzleTable.h"
 
-const CDTamingBuildPuzzle CDTamingBuildPuzzleTable::defaultEntry = CDTamingBuildPuzzle{};
-
 void CDTamingBuildPuzzleTable::LoadValuesFromDatabase() {
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM TamingBuildPuzzles");
 	auto& entries = GetEntriesMutable();
@@ -17,11 +15,10 @@ void CDTamingBuildPuzzleTable::LoadValuesFromDatabase() {
 		});
 		tableData.nextRow();
 	}
-	tableData.finalize();
 }
 
-const CDTamingBuildPuzzle& CDTamingBuildPuzzleTable::GetByLOT(const LOT lot) {
+const CDTamingBuildPuzzle* CDTamingBuildPuzzleTable::GetByLOT(const LOT lot) {
 	const auto& entries = GetEntries();
 	const auto itr = entries.find(lot);
-	return itr != entries.cend() ? itr->second : defaultEntry;
+	return itr != entries.cend() ? &itr->second : nullptr;
 }
