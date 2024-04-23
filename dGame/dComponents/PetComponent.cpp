@@ -182,7 +182,7 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	const auto& bricks = BrickDatabase::GetBricks(entry.validPieces.string());
+	const auto& bricks = BrickDatabase::GetBricks(entry.validPieces);
 	if (bricks.empty()) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
 		LOG("Couldn't find %s for minigame!", entry.validPieces.c_str());

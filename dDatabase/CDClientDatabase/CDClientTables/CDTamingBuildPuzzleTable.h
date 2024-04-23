@@ -1,8 +1,6 @@
 #pragma once
 #include "CDTable.h"
 
-#include <filesystem>
-
 /**
  * Information for the minigame to be completed
  */
@@ -16,10 +14,10 @@ struct CDTamingBuildPuzzle {
 	UNUSED_COLUMN(LOT npcLot = LOT_NULL;)
 
 	// The .lxfml file that contains the bricks required to build the model
-	std::filesystem::path validPieces{};
+	std::string validPieces{};
 
 	// The .lxfml file that contains the bricks NOT required to build the model
-	UNUSED_COLUMN(std::filesystem::path invalidPieces{};)
+	UNUSED_COLUMN(std::string invalidPieces{};)
 
 	// Difficulty value
 	UNUSED_COLUMN(int32_t difficulty = 1;)
@@ -34,10 +32,10 @@ struct CDTamingBuildPuzzle {
 	UNUSED_COLUMN(int32_t totalNumPieces = 16;)
 
 	// Model name
-	UNUSED_COLUMN(std::filesystem::path modelName{};)
+	UNUSED_COLUMN(std::string modelName{};)
 
 	// The .lxfml file that contains the full model
-	UNUSED_COLUMN(std::filesystem::path fullModel{};)
+	UNUSED_COLUMN(std::string fullModel{};)
 
 	// The duration of the pet taming minigame
 	UNUSED_COLUMN(float duration = 45.0f;)
