@@ -169,7 +169,10 @@ void PetComponent::OnUse(Entity* originator) {
 	inventoryComponent->DespawnPet();
 
 	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
-	if (!entry) return;
+	if (!entry) {
+		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to find the puzzle minigame for this pet.");
+		return;
+	}
 
 	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
