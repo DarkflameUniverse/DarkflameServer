@@ -55,5 +55,6 @@ public:
 	 * Gets the pet ability table corresponding to the pet LOT
 	 * @returns A pointer to the corresponding table, or nullptr if one cannot be found
 	*/
-	const CDTamingBuildPuzzle* GetByLOT(const LOT lot);
+	[[nodiscard]]
+	const CDTamingBuildPuzzle* GetByLOT(const LOT lot) const;
 };
