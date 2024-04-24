@@ -251,11 +251,6 @@ private:
 	static std::unordered_map<LWOOBJID, LWOOBJID> currentActivities;
 
 	/**
-	 * Cache of all the minigames and their information from the database
-	 */
-	static std::unordered_map<LOT, PetComponent::PetPuzzleData> buildCache;
-
-	/**
 	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
 	 */
 	static const std::map<LOT, int32_t> petFlags;
