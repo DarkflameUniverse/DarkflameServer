@@ -10,7 +10,6 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(json)
 if(NOT json_POPULATED)
-	set(JSON_BuildTests OFF CACHE INTERNAL "")
 	FetchContent_Populate(json)
 	add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
