@@ -8,7 +8,6 @@ void CDTamingBuildPuzzleTable::LoadValuesFromDatabase() {
 		size = tableSize.getIntField(0, 0);
 		tableSize.nextRow();
 	}
-	tableSize.finalize();
 
 	// Reserve the size
 	auto& entries = GetEntriesMutable();
