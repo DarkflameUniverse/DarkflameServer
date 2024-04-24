@@ -40,7 +40,7 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
  * Maps all the pet lots to a flag indicating that the player has caught it. All basic pets have been guessed by ObjID
  * while the faction ones could be checked using their respective missions.
  */
-std::map<LOT, int32_t> PetComponent::petFlags = {
+const std::map<LOT, int32_t> PetComponent::petFlags{
 		{ 3050, 801 },  // Elephant
 		{ 3054, 803 },  // Cat
 		{ 3195, 806 },  // Triceratops
@@ -87,7 +87,6 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
 	m_TresureTime = 0;
-	m_Preconditions = nullptr;
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
 
@@ -158,7 +157,7 @@ void PetComponent::OnUse(Entity* originator) {
 		return;
 	}
 
-	if (m_Preconditions != nullptr && !m_Preconditions->Check(originator, true)) {
+	if (m_Preconditions.has_value() && !m_Preconditions->Check(originator, true)) {
 		return;
 	}
 
@@ -1086,6 +1085,6 @@ void PetComponent::LoadPetNameFromModeration() {
 	}
 }
 
-void PetComponent::SetPreconditions(std::string& preconditions) {
-	m_Preconditions = new PreconditionExpression(preconditions);
+void PetComponent::SetPreconditions(const std::string& preconditions) {
+	m_Preconditions = std::make_optional<PreconditionExpression>(preconditions);
 }
