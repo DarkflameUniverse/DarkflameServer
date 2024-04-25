@@ -537,7 +537,7 @@ private:
 	/**
 	 * Preconditions that need to be met before an entity can tame this pet
 	 */
-	std::optional<PreconditionExpression> m_Preconditions;
+	std::optional<PreconditionExpression> m_Preconditions{};
 
 	/**
 	 * Pet information loaded from the CDClientDatabase

@@ -26,6 +26,7 @@
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
+#include "CDTamingBuildPuzzleTable.h"
 #include "CDVendorComponentTable.h"
 #include "CDActivitiesTable.h"
 #include "CDPackageComponentTable.h"
@@ -101,6 +102,7 @@ DEFINE_TABLE_STORAGE(CDRewardCodesTable);
 DEFINE_TABLE_STORAGE(CDRewardsTable);
 DEFINE_TABLE_STORAGE(CDScriptComponentTable);
 DEFINE_TABLE_STORAGE(CDSkillBehaviorTable);
+DEFINE_TABLE_STORAGE(CDTamingBuildPuzzleTable);
 DEFINE_TABLE_STORAGE(CDVendorComponentTable);
 DEFINE_TABLE_STORAGE(CDZoneTableTable);
 
@@ -148,6 +150,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDRewardsTable::Instance().LoadValuesFromDatabase();
 	CDScriptComponentTable::Instance().LoadValuesFromDatabase();
 	CDSkillBehaviorTable::Instance().LoadValuesFromDatabase();
+	CDTamingBuildPuzzleTable::Instance().LoadValuesFromDatabase();
 	CDVendorComponentTable::Instance().LoadValuesFromDatabase();
 	CDZoneTableTable::Instance().LoadValuesFromDatabase();
 }
