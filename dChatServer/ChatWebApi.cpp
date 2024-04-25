@@ -82,7 +82,7 @@ void ChatWebApi::Listen(const uint32_t port) {
 		if (data.empty()) res.status = 204;
 	});
 
-	m_APIServer.listen(Game::config->GetValue("enable_chat_web_api").c_str(), port);
+	m_APIServer.listen(Game::config->GetValue("chat_web_api_listen_address").c_str(), port);
 };
 
 void ChatWebApi::Stop(){
