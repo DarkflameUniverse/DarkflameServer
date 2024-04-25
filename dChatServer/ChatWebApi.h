@@ -1,6 +1,6 @@
 #include "httplib.h"
 
-namespace ChatHttpApi {
+namespace ChatWebApi {
 	void Listen(const uint32_t port);
 	void Stop();
 };

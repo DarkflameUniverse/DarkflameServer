@@ -1,13 +1,14 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
-#include "ChatHttpApi.h"
+#include "ChatWebApi.h"
 #include "dCommonVars.h"
 #include "eConnectionType.h"
 #include "eChatMessageType.h"
 #include "httplib.h"
 #include "dServer.h"
 #include "PlayerContainer.h"
+#include "dConfig.h"
 
 using json = nlohmann::json;
 
@@ -15,7 +16,13 @@ namespace {
 	httplib::Server m_APIServer;
 }
 
-void ChatHttpApi::Listen(const uint32_t port) {
+void ChatWebApi::Listen(const uint32_t port) {
+	if (Game::config->GetValue("enable_chat_web_api") != "1") {
+		LOG("Chat Web API is disabled");
+		return;
+	}
+	LOG("Chat Web API is enabled, starting web server...");
+
 	m_APIServer.Post("/announce", [](const httplib::Request& req, httplib::Response& res) {
 		const json data = json::parse(req.body);
 		if (!data.contains("title")) {
@@ -75,9 +82,12 @@ void ChatHttpApi::Listen(const uint32_t port) {
 		if (data.empty()) res.status = 204;
 	});
 
-	m_APIServer.listen("0.0.0.0", port);
+	m_APIServer.listen(Game::config->GetValue("enable_chat_web_api").c_str(), port);
 };
 
-void ChatHttpApi::Stop(){
-	m_APIServer.stop();
+void ChatWebApi::Stop(){
+	if (Game::config->GetValue("enable_chat_web_api") == "1") {
+		LOG("Stopping Chat Web API server...");
+		m_APIServer.stop();
+	}
 }
