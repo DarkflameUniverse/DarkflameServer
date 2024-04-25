@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
+#include "CDTamingBuildPuzzleTable.h"
 #include "ChatPackets.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -32,7 +33,6 @@
 #include "eMissionState.h"
 #include "dNavMesh.h"
 
-std::unordered_map<LOT, PetComponent::PetPuzzleData> PetComponent::buildCache{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
 
@@ -40,7 +40,7 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
  * Maps all the pet lots to a flag indicating that the player has caught it. All basic pets have been guessed by ObjID
  * while the faction ones could be checked using their respective missions.
  */
-std::map<LOT, int32_t> PetComponent::petFlags = {
+const std::map<LOT, int32_t> PetComponent::petFlags{
 		{ 3050, 801 },  // Elephant
 		{ 3054, 803 },  // Cat
 		{ 3195, 806 },  // Triceratops
@@ -87,7 +87,6 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
 	m_TresureTime = 0;
-	m_Preconditions = nullptr;
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
 
@@ -152,96 +151,53 @@ void PetComponent::OnUse(Entity* originator) {
 		m_Tamer = LWOOBJID_EMPTY;
 	}
 
-	auto* inventoryComponent = originator->GetComponent<InventoryComponent>();
-
+	auto* const inventoryComponent = originator->GetComponent<InventoryComponent>();
 	if (inventoryComponent == nullptr) {
 		return;
 	}
 
-	if (m_Preconditions != nullptr && !m_Preconditions->Check(originator, true)) {
+	if (m_Preconditions.has_value() && !m_Preconditions->Check(originator, true)) {
 		return;
 	}
 
-	auto* movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
-
+	auto* const movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
 	if (movementAIComponent != nullptr) {
 		movementAIComponent->Stop();
 	}
 
 	inventoryComponent->DespawnPet();
 
-	const auto& cached = buildCache.find(m_Parent->GetLOT());
-	int32_t imaginationCost = 0;
-
-	std::string buildFile;
-
-	if (cached == buildCache.end()) {
-		auto query = CDClientDatabase::CreatePreppedStmt(
-			"SELECT ValidPiecesLXF, PuzzleModelLot, Timelimit, NumValidPieces, imagCostPerBuild FROM TamingBuildPuzzles WHERE NPCLot = ?;");
-		query.bind(1, static_cast<int>(m_Parent->GetLOT()));
-
-		auto result = query.execQuery();
-
-		if (result.eof()) {
-			ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to find the puzzle minigame for this pet.");
-
-			return;
-		}
-
-		if (result.fieldIsNull("ValidPiecesLXF")) {
-			result.finalize();
-
-			return;
-		}
-
-		buildFile = std::string(result.getStringField("ValidPiecesLXF"));
-
-		PetPuzzleData data;
-		data.buildFile = buildFile;
-		data.puzzleModelLot = result.getIntField("PuzzleModelLot");
-		data.timeLimit = result.getFloatField("Timelimit");
-		data.numValidPieces = result.getIntField("NumValidPieces");
-		data.imaginationCost = result.getIntField("imagCostPerBuild");
-		if (data.timeLimit <= 0) data.timeLimit = 60;
-		imaginationCost = data.imaginationCost;
-
-		buildCache[m_Parent->GetLOT()] = data;
-
-		result.finalize();
-	} else {
-		buildFile = cached->second.buildFile;
-		imaginationCost = cached->second.imaginationCost;
+	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
+	if (!entry) {
+		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to find the puzzle minigame for this pet.");
+		return;
 	}
 
-	auto* destroyableComponent = originator->GetComponent<DestroyableComponent>();
-
+	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
 	if (destroyableComponent == nullptr) {
 		return;
 	}
 
-	auto imagination = destroyableComponent->GetImagination();
-
-	if (imagination < imaginationCost) {
+	const auto imagination = destroyableComponent->GetImagination();
+	if (imagination < entry->imaginationCost) {
 		return;
 	}
 
-	const auto& bricks = BrickDatabase::GetBricks(buildFile);
-
+	const auto& bricks = BrickDatabase::GetBricks(entry->validPieces);
 	if (bricks.empty()) {
 		ChatPackets::SendSystemMessage(originator->GetSystemAddress(), u"Failed to load the puzzle minigame for this pet.");
-		LOG("Couldn't find %s for minigame!", buildFile.c_str());
+		LOG("Couldn't find %s for minigame!", entry->validPieces.c_str());
 
 		return;
 	}
 
-	auto petPosition = m_Parent->GetPosition();
+	const auto petPosition = m_Parent->GetPosition();
 
-	auto originatorPosition = originator->GetPosition();
+	const auto originatorPosition = originator->GetPosition();
 
 	m_Parent->SetRotation(NiQuaternion::LookAt(petPosition, originatorPosition));
 
 	float interactionDistance = m_Parent->GetVar<float>(u"interaction_distance");
-
 	if (interactionDistance <= 0) {
 		interactionDistance = 15;
 	}
@@ -477,9 +433,8 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 		return;
 	}
 
-	const auto& cached = buildCache.find(m_Parent->GetLOT());
-
-	if (cached == buildCache.end()) return;
+	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
+	if (!entry) return;
 
 	auto* destroyableComponent = tamer->GetComponent<DestroyableComponent>();
 
@@ -487,14 +442,14 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 
 	auto imagination = destroyableComponent->GetImagination();
 
-	imagination -= cached->second.imaginationCost;
+	imagination -= entry->imaginationCost;
 
 	destroyableComponent->SetImagination(imagination);
 
 	Game::entityManager->SerializeEntity(tamer);
 
 	if (clientFailed) {
-		if (imagination < cached->second.imaginationCost) {
+		if (imagination < entry->imaginationCost) {
 			ClientFailTamingMinigame();
 		}
 	} else {
@@ -517,17 +472,14 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		return;
 	}
 
-	const auto& cached = buildCache.find(m_Parent->GetLOT());
-
-	if (cached == buildCache.end()) {
-		return;
-	}
+	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
+	if (!entry) return;
 
 	GameMessages::SendPlayFXEffect(tamer, -1, u"petceleb", "", LWOOBJID_EMPTY, 1, 1, true);
 	RenderComponent::PlayAnimation(tamer, u"rebuild-celebrate");
 
 	EntityInfo info{};
-	info.lot = cached->second.puzzleModelLot;
+	info.lot = entry->puzzleModelLot;
 	info.pos = position;
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
@@ -731,13 +683,10 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 }
 
 void PetComponent::StartTimer() {
-	const auto& cached = buildCache.find(m_Parent->GetLOT());
+	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
+	if (!entry) return;
 
-	if (cached == buildCache.end()) {
-		return;
-	}
-
-	m_Timer = cached->second.timeLimit;
+	m_Timer = entry->timeLimit;
 }
 
 void PetComponent::ClientFailTamingMinigame() {
@@ -1086,6 +1035,6 @@ void PetComponent::LoadPetNameFromModeration() {
 	}
 }
 
-void PetComponent::SetPreconditions(std::string& preconditions) {
-	m_Preconditions = new PreconditionExpression(preconditions);
+void PetComponent::SetPreconditions(const std::string& preconditions) {
+	m_Preconditions = std::make_optional<PreconditionExpression>(preconditions);
 }
