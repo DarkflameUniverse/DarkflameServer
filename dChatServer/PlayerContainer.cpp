@@ -1,7 +1,8 @@
+#include "PlayerContainer.h"
+
 #include <iostream>
 #include <algorithm>
 
-#include "PlayerContainer.h"
 #include "dNetCommon.h"
 #include "Game.h"
 #include "Logger.h"
@@ -13,7 +14,6 @@
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "eChatMessageType.h"
-
 
 const json PlayerData::to_json() const {
 	json data;

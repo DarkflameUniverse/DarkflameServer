@@ -48,6 +48,7 @@ paths:
     get:
       tags:
         - user
+      summary: Get all online Players
       responses:
         "200":
           description: Successful operation
@@ -64,6 +65,7 @@ paths:
     get:
       tags:
         - user
+      summary: Get all active Teams
       responses:
         "200":
           description: Successful operation
