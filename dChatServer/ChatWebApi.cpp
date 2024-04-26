@@ -66,7 +66,7 @@ void ChatWebApi::Listen(const uint32_t port) {
 			toInsert["loot_flag"] = teamData->lootFlag;
 			toInsert["local"] = teamData->local;
 
-			auto leader = Game::playerContainer.GetPlayerData(teamData->leaderID);
+			auto& leader = Game::playerContainer.GetPlayerData(teamData->leaderID);
 			toInsert["leader"] = leader.to_json();
 
 			json members;
