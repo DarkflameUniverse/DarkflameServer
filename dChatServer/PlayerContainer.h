@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
-#include "json.h"
+#include "nlohmann/json.hpp"
 
 enum class eGameMasterLevel : uint8_t;
 
@@ -37,7 +37,7 @@ struct PlayerData {
 		return muteExpire == 1 || muteExpire > time(NULL);
 	}
 
-	const json to_json() const;
+	const nlohmann::json to_json() const;
 
 	SystemAddress sysAddr{};
 	LWOZONEID zoneID{};

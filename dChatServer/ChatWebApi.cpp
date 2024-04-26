@@ -10,7 +10,9 @@
 #include "PlayerContainer.h"
 #include "dConfig.h"
 #include "httplib.h"
-#include "json.h"
+#include "nlohmann/json.hpp"
+
+using json = nlohmann::json;
 
 namespace {
 	httplib::Server m_APIServer;

@@ -13,7 +13,9 @@
 #include "eConnectionType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
-#include "eChatMessageType.h"
+#include "eChatMessageType.h"	
+
+using json = nlohmann::json;
 
 const json PlayerData::to_json() const {
 	json data;
