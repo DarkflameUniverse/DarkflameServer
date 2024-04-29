@@ -7,7 +7,7 @@ services:
       - darkflame
     image: mariadb:latest
     volumes:
-      - ${DB_DATA_DIR:-./db/data}:/var/lib/mysql
+      - ${DB_DATA_DIR:-db-data}:/var/lib/mysql
     environment:
       - MARIADB_RANDOM_ROOT_PASSWORD=1
       - MARIADB_USER=${MARIADB_USER:-darkflame}
@@ -79,3 +79,6 @@ services:
 
 networks:
   darkflame:
+
+volumes:
+  db-data:
