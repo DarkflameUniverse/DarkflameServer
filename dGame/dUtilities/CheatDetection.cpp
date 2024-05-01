@@ -130,12 +130,6 @@ bool CheatDetection::VerifyLwoobjidIsSender(const LWOOBJID& id, const SystemAddr
 
 	// This will be true if the player does not possess the entity they are trying to send a packet as.
 	// or if the user does not own the character they are trying to send a packet as.
-	if (invalidPacket) {
-		va_list args;
-		va_start(args, messageIfNotSender);
-		LogAndSaveFailedAntiCheatCheck(id, sysAddr, checkType, messageIfNotSender, args);
-		va_end(args);
-	}
 
 	return !invalidPacket;
 }
