@@ -6,6 +6,7 @@ FetchContent_Declare(
 	json
 	GIT_REPOSITORY https://github.com/nlohmann/json
 	GIT_TAG v3.11.3
+	GIT_SHALLOW 1
 )
 
 FetchContent_GetProperties(json)
