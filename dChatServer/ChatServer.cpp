@@ -122,10 +122,13 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
+	// Independant chat server
+	bool isStandalone = argc > 1 && strcmp(argv[1], "--standalone") == 0;
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
-		if (!Game::server->GetIsConnectedToMaster()) {
+		if (!isStandalone && !Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 
 			if (framesSinceMasterDisconnect >= chatFramerate)
@@ -281,6 +284,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		case eChatMessageType::GM_ANNOUNCE:{
 			// we just forward this packet to every connected server
+			ChatPacketHandler::HandleGMAnnounce(packet);
 			inStream.ResetReadPointer();
 			Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
 			}

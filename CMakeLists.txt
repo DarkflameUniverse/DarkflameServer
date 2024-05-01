@@ -301,6 +301,7 @@ add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
 add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
+add_subdirectory(dChatClient)
 
 target_precompile_headers(
 	dZoneManager PRIVATE

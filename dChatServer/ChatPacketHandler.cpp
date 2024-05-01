@@ -355,6 +355,18 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 	inStream.Read(player.gmLevel);
 }
 
+void ChatPacketHandler::HandleGMAnnounce(Packet* packet) {
+	CINSTREAM_SKIP_HEADER;
+	uint32_t titleLen, messageLen;
+	inStream.Read(titleLen);
+	std::string title(titleLen, 0);
+	inStream.Read(title.data(), titleLen);
+	inStream.Read(messageLen);
+	std::string message(messageLen, 0);
+	inStream.Read(message.data(), messageLen);
+	LOG("GM Announcement from %s: '%s' '%s'", packet->systemAddress.ToString(), title.c_str(), message.c_str());
+}
+
 
 void ChatPacketHandler::HandleWho(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;

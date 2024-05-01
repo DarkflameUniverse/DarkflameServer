@@ -50,6 +50,7 @@ namespace ChatPacketHandler {
 	void HandleFriendResponse(Packet* packet);
 	void HandleRemoveFriend(Packet* packet);
 	void HandleGMLevelUpdate(Packet* packet);
+	void HandleGMAnnounce(Packet* packet);
 	void HandleWho(Packet* packet);
 	void HandleShowAll(Packet* packet);
 
