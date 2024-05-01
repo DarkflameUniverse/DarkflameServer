@@ -1,7 +1,5 @@
-/*
- * Darkflame Universe
- * Copyright 2023
- */
+// Darkflame Universe
+// Copyright 2024
 
 #include "RigidbodyPhantomPhysicsComponent.h"
 #include "Entity.h"

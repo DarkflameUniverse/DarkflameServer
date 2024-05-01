@@ -1,10 +1,8 @@
-/*
- * Darkflame Universe
- * Copyright 2023
- */
+// Darkflame Universe
+// Copyright 2024
 
-#ifndef __RIGIDBODYPHANTOMPHYSICS_H__
-#define __RIGIDBODYPHANTOMPHYSICS_H__
+#ifndef RIGIDBODYPHANTOMPHYSICS_H
+#define RIGIDBODYPHANTOMPHYSICS_H
 
 #include "BitStream.h"
 #include "dCommonVars.h"
@@ -26,4 +24,4 @@ public:
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 };
 
-#endif // __RIGIDBODYPHANTOMPHYSICS_H__
+#endif // RIGIDBODYPHANTOMPHYSICS_H

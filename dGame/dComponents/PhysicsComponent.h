@@ -9,6 +9,8 @@ namespace Raknet {
 	class BitStream;
 };
 
+class dpEntity;
+
 class PhysicsComponent : public Component {
 public:
 	PhysicsComponent(Entity* parent);
@@ -22,6 +24,8 @@ public:
 	const NiQuaternion& GetRotation() const { return m_Rotation; }
 	virtual void SetRotation(const NiQuaternion& rot) { if (m_Rotation == rot) return; m_Rotation = rot; m_DirtyPosition = true; }
 protected:
+	dpEntity* CreatePhysicsEntity(const float scale);
+
 	NiPoint3 m_Position;
 
 	NiQuaternion m_Rotation;
