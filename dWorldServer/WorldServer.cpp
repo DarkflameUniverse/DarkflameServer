@@ -388,13 +388,13 @@ int main(int argc, char** argv) {
 		//In world we'd update our other systems here.
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
-			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::StepWorld(deltaTime);
-			Metrics::EndMeasurement(MetricVariable::Physics);
-
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
 			Game::entityManager->UpdateEntities(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateEntities);
+
+			Metrics::StartMeasurement(MetricVariable::Physics);
+			dpWorld::StepWorld(deltaTime);
+			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::Ghosting);
 			if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
