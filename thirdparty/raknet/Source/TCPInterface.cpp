@@ -198,6 +198,7 @@ SystemAddress TCPInterface::Connect(const char* host, unsigned short remotePort,
 		remoteClient->systemAddress.binaryAddress=inet_addr(host);
 		remoteClient->systemAddress.port=remotePort;
 		InsertRemoteClient(remoteClient);
+		WaitForPendingClients();
 		return remoteClient->systemAddress;
 	}
 	else
@@ -223,7 +224,7 @@ void TCPInterface::StartSSLClient(SystemAddress systemAddress)
 	if (ctx==0)
 	{
 		SSLeay_add_ssl_algorithms();
-		meth = SSLv2_client_method();
+		meth = SSLv23_client_method();
 		SSL_load_error_strings();
 		ctx = SSL_CTX_new (meth);
 		RakAssert(ctx!=0);
@@ -243,12 +244,14 @@ bool TCPInterface::IsSSLActive(SystemAddress systemAddress)
 #endif
 void TCPInterface::Send( const char *data, unsigned length, SystemAddress systemAddress )
 {
+	printf("TCP Send %d, %d, %p\n", isStarted, remoteClients.Size(), data);
 	if (isStarted==false)
 		return;
 	if (remoteClients.Size()==0)
 		return;
 	if (data==0)
 		return;
+	printf("Acquiring lock\n");
 	Packet *p=outgoingMessages.WriteLock();
 	p->length=length;
 	p->data = (unsigned char*) rakMalloc( p->length );
@@ -347,6 +350,7 @@ void TCPInterface::DeleteRemoteClient(RemoteClient *remoteClient, fd_set *except
 
 void TCPInterface::InsertRemoteClient(RemoteClient* remoteClient)
 {
+	printf("new remote client\n");
 	remoteClientsInsertionQueueMutex.Lock();
 	remoteClientsInsertionQueue.Push(remoteClient);
 	remoteClientsInsertionQueueMutex.Unlock();
@@ -423,14 +427,7 @@ RAK_THREAD_DECLARATION(ConnectionAttemptLoop)
 	tcpInterface->InsertRemoteClient(remoteClient);
 
 	// Wait for the other thread to pick up the remote client
-	bool isEmpty;
-	do 
-	{
-		RakSleep(30);
-		tcpInterface->remoteClientsInsertionQueueMutex.Lock();
-		isEmpty=tcpInterface->remoteClientsInsertionQueue.IsEmpty();
-		tcpInterface->remoteClientsInsertionQueueMutex.Unlock();
-	} while(isEmpty==false && tcpInterface->threadRunning);	
+	tcpInterface->WaitForPendingClients();
 
 	// Notify user that the connection attempt has completed.
 	if (tcpInterface->threadRunning)
@@ -441,6 +438,16 @@ RAK_THREAD_DECLARATION(ConnectionAttemptLoop)
 	}	
 
 	return 0;
+}
+void TCPInterface::WaitForPendingClients() {
+	bool isEmpty;
+	do
+	{
+		RakSleep(30);
+		remoteClientsInsertionQueueMutex.Lock();
+		isEmpty=remoteClientsInsertionQueue.IsEmpty();
+		remoteClientsInsertionQueueMutex.Unlock();
+	} while(isEmpty==false && threadRunning);
 }
 
 RAK_THREAD_DECLARATION(UpdateTCPInterfaceLoop)
@@ -700,7 +707,7 @@ RAK_THREAD_DECLARATION(UpdateTCPInterfaceLoop)
 }
 
 #if defined(OPEN_SSL_CLIENT_SUPPORT)
-void RemoteClient::InitSSL(SSL_CTX* ctx, SSL_METHOD *meth)
+void RemoteClient::InitSSL(SSL_CTX* ctx, const SSL_METHOD *meth)
 {
 	(void) meth;
 

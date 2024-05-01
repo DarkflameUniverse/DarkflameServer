@@ -72,8 +72,14 @@ Source/RakThread.h                       Source/SuperFastHash.h                S
 Source/HTTPConnection.h                  Kbhit.h
 )
 
-
 add_library(raknet STATIC ${RAKNET_SOURCES})
+
+find_package(OpenSSL COMPONENTS SSL)
+if(OpenSSL_FOUND)
+target_compile_definitions(raknet PUBLIC OPEN_SSL_CLIENT_SUPPORT)
+target_link_libraries(raknet PRIVATE OpenSSL::SSL)
+endif()
+
 target_compile_options(raknet PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         -w>

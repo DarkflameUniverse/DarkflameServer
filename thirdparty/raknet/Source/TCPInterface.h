@@ -128,6 +128,7 @@ protected:
 	friend RAK_THREAD_DECLARATION(UpdateTCPInterfaceLoop);
 	friend RAK_THREAD_DECLARATION(ConnectionAttemptLoop);
 
+	void WaitForPendingClients();
 	void DeleteRemoteClient(RemoteClient *remoteClient, fd_set *exceptionFD);
 	void InsertRemoteClient(RemoteClient* remoteClient);
 	SOCKET SocketConnect(const char* host, unsigned short remotePort);
@@ -141,7 +142,7 @@ protected:
 
 #if defined(OPEN_SSL_CLIENT_SUPPORT)
 	SSL_CTX* ctx;
-	SSL_METHOD *meth;
+	const SSL_METHOD *meth;
 	DataStructures::SingleProducerConsumer<SystemAddress> startSSL;
 	DataStructures::List<SystemAddress> activeSSLConnections;
 #endif
@@ -160,7 +161,7 @@ struct RemoteClient
 
 #if defined(OPEN_SSL_CLIENT_SUPPORT)
 	SSL*     ssl;
-	void InitSSL(SSL_CTX* ctx, SSL_METHOD *meth);
+	void InitSSL(SSL_CTX* ctx, const SSL_METHOD *meth);
 	void DisconnectSSL(void);
 	void FreeSSL(void);
 	void Send(const char *data, unsigned int length);
