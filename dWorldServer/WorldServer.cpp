@@ -282,24 +282,22 @@ int main(int argc, char** argv) {
 		}
 
 		const int32_t bufferSize = 1024;
-		MD5* md5 = new MD5();
+		MD5 md5;
 
 		char fileStreamBuffer[1024] = {};
 
 		while (!fileStream.eof()) {
 			memset(fileStreamBuffer, 0, bufferSize);
 			fileStream.read(fileStreamBuffer, bufferSize);
-			md5->update(fileStreamBuffer, fileStream.gcount());
+			md5.update(fileStreamBuffer, fileStream.gcount());
 		}
 
 		fileStream.close();
 
 		const char* nullTerminateBuffer = "\0";
-		md5->update(nullTerminateBuffer, 1); // null terminate the data
-		md5->finalize();
-		databaseChecksum = md5->hexdigest();
-
-		delete md5;
+		md5.update(nullTerminateBuffer, 1); // null terminate the data
+		md5.finalize();
+		databaseChecksum = md5.hexdigest();
 
 		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
