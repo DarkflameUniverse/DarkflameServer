@@ -29,9 +29,9 @@ void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitia
 	}
 }
 
-dpEntity* PhysicsComponent::CreatePhysicsEntity(const float scale) {
+dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
+	auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), type);
 
 	CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
@@ -40,7 +40,6 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(const float scale) {
 	auto* info = physComp->GetByID(componentID);
 	if (info == nullptr || info->physicsAsset == "" || info->physicsAsset == "NO_PHYSICS") return nullptr;
 
-	//temp test
 	dpEntity* toReturn;
 	if (info->physicsAsset == "miscellaneous\\misc_phys_10x1x5.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 10.0f, 5.0f, 1.0f);
@@ -68,7 +67,7 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(const float scale) {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 4.5f);
 	} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
-		m_Position.y -= (111.467964f * scale) / 2;
+		m_Position.y -= (111.467964f * m_Parent->GetDefaultScale()) / 2;
 	} else {
 		// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
 

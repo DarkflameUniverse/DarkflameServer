@@ -7,56 +7,26 @@ void FvRacePillarABCServer::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	const auto racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 	if (racingControllers.empty()) return;
-	const auto* racingController = racingControllers.at(0);
 
-	auto* racingControlComponent = racingController->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = racingControllers[0]->GetComponent<RacingControlComponent>();
 	if (!racingControlComponent) return;
-	const auto* player = racingControlComponent->GetPlayerData(target->GetObjectID());
-	if(!player) return;
-	if (player->lap == 2){
-		LOG("pillar abcScript");
-		const auto pillars = Game::entityManager->GetEntitiesInGroup("pillars");
-		for (const auto &pillar : pillars){
-			if (!pillar || pillar->GetLOT() != this->m_PillarA) continue;
-			auto* renderComponent = pillar->GetComponent<RenderComponent>();
-			if (!renderComponent) continue;
-			renderComponent->PlayAnimation(pillar, "crumble");
-		}
 
-		const auto dragons = Game::entityManager->GetEntitiesInGroup("dragon");
-		for (const auto &dragon : dragons){
-			if (!dragon || dragon->GetLOT() != this->m_Dragon) continue;
-			auto* renderComponent = dragon->GetComponent<RenderComponent>();
-			if (!renderComponent) continue;
-			renderComponent->PlayAnimation(dragon, "roar");
-		}
-		self->AddTimer("PillarBFall", 2.5);
-		self->AddTimer("PillarCFall", 3.7);
-		self->AddTimer("DeleteObject", 3.8);
-	}
+	const auto* player = racingControlComponent->GetPlayerData(target->GetObjectID());
+	if (!player || player->lap != 1) return;
+
+	PlayAnimation("crumble", "pillars", m_PillarA);
+	PlayAnimation("roar", "dragon", m_Dragon);
+
+	self->AddTimer("PillarBFall", 2.5f);
+	self->AddTimer("PillarCFall", 3.7f);
+	self->AddTimer("DeleteObject", 3.8f);
 }
 
 void FvRacePillarABCServer::OnTimerDone(Entity* self, std::string timerName) {
-	if (timerName == "PillarBFall"){
-				LOG("pillar abcScriptbbbbbbbbbbbbbbbbbb");
-
-		const auto pillars = Game::entityManager->GetEntitiesInGroup("pillars");
-		for (const auto &pillar : pillars){
-			if (!pillar || pillar->GetLOT() != this->m_PillarB) continue;
-			auto* renderComponent = pillar->GetComponent<RenderComponent>();
-			if (!renderComponent) continue;
-			renderComponent->PlayAnimation(pillar, "crumble");
-		}
+	if (timerName == "PillarBFall") {
+		PlayAnimation("crumble", "pillars", m_PillarB);
 	} else if (timerName == "PillarCFall") {
-				LOG("pillar abcScriptcccccccccccccccccccccc");
-
-		const auto pillars = Game::entityManager->GetEntitiesInGroup("pillars");
-		for (const auto &pillar : pillars){
-			if (!pillar || pillar->GetLOT() != this->m_PillarC) continue;
-			auto* renderComponent = pillar->GetComponent<RenderComponent>();
-			if (!renderComponent) continue;
-			renderComponent->PlayAnimation(pillar, "crumble");
-		}
+		PlayAnimation("crumble", "pillars", m_PillarC);
 	} else if (timerName == "DeleteObject") {
 		Game::entityManager->DestroyEntity(self);
 	}

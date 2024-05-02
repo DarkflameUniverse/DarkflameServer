@@ -1,8 +1,26 @@
 #include "RaceShipLapColumnsServer.h"
 
+#include "RacingControlComponent.h"
+#include "MovingPlatformComponent.h"
+
 void RaceShipLapColumnsServer::OnStartup(Entity* self) {
-	self->SetVar("Lap2Complete",false);
-	self->SetVar("Lap3Complete",false);
+	self->SetVar(u"Lap2Complete", false);
+	self->SetVar(u"Lap3Complete", false);
+}
+
+void SetMovingToWaypoint(const int32_t waypointIndex, const std::string group) {
+	const auto entities = Game::entityManager->GetEntitiesInGroup(group);
+	if (entities.empty()) return;
+
+	auto* entity = entities[0];
+	entity->SetIsGhostingCandidate(false);
+
+	auto* movingPlatfromComponent = entity->GetComponent<MovingPlatformComponent>();
+	if (!movingPlatfromComponent) return;
+
+	movingPlatfromComponent->SetSerialized(true);
+	movingPlatfromComponent->GotoWaypoint(waypointIndex);
+	Game::entityManager->SerializeEntity(entity);
 }
 
 void RaceShipLapColumnsServer::OnCollisionPhantom(Entity* self, Entity* target) {
@@ -10,20 +28,20 @@ void RaceShipLapColumnsServer::OnCollisionPhantom(Entity* self, Entity* target) 
 
 	const auto racingControllers = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RACING_CONTROL);
 	if (racingControllers.empty()) return;
-	const auto* racingController = racingControllers.at(0);
 
-	auto* racingControlComponent = racingController->GetComponent<RacingControlComponent>();
+	auto* racingControlComponent = racingControllers[0]->GetComponent<RacingControlComponent>();
 	if (!racingControlComponent) return;
+
 	const auto* player = racingControlComponent->GetPlayerData(target->GetObjectID());
-	if(!player) return;
-	
-	if (player->lap == 2 && self->GetVar<bool>("Lap2Complete")) {
-		self->SetVar("Lap2Complete",true);
-		const auto Lap2Column = Game::entityManager->GetEntitiesInGroup("Lap2Column").at(0);
-		const auto Lap2Ramp = Game::entityManager->GetEntitiesInGroup("Lap2Ramp").at(0);
-	} else if  (player->lap == 3 && self->GetVar<bool>("Lap3Complete")) {
-		self->SetVar("Lap3Complete",true);
-		const auto Lap3Column = Game::entityManager->GetEntitiesInGroup("Lap3Column").at(0);
-		const auto Lap3Ramp = Game::entityManager->GetEntitiesInGroup("Lap3Ramp").at(0);
+	if (!player) return;
+
+	if (player->lap == 1 && !self->GetVar<bool>(u"Lap2Complete")) {
+		self->SetVar(u"Lap2Complete", true);
+		SetMovingToWaypoint(1, "Lap2Column");
+		SetMovingToWaypoint(0, "Lap2Ramp");
+	} else if (player->lap == 2 && !self->GetVar<bool>(u"Lap3Complete")) {
+		self->SetVar(u"Lap3Complete", true);
+		SetMovingToWaypoint(1, "Lap3Column");
+		SetMovingToWaypoint(0, "Lap3Ramp");
 	}
 }

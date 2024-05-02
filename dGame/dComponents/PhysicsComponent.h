@@ -9,6 +9,8 @@ namespace Raknet {
 	class BitStream;
 };
 
+enum class eReplicaComponentType : uint32_t;
+
 class dpEntity;
 
 class PhysicsComponent : public Component {
@@ -24,7 +26,7 @@ public:
 	const NiQuaternion& GetRotation() const { return m_Rotation; }
 	virtual void SetRotation(const NiQuaternion& rot) { if (m_Rotation == rot) return; m_Rotation = rot; m_DirtyPosition = true; }
 protected:
-	dpEntity* CreatePhysicsEntity(const float scale);
+	dpEntity* CreatePhysicsEntity(eReplicaComponentType type);
 
 	NiPoint3 m_Position;
 

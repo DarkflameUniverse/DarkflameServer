@@ -1,9 +1,8 @@
 set(DSCRIPTS_SOURCES_AI_RACING_OBJECTS 
 	"RaceImagineCrateServer.cpp"
 	"RaceImaginePowerup.cpp"
-	"FvRaceDragonLap1.cpp"
-	"FvRaceDragonLap2.cpp"
-	"FvRaceDragonLap3.cpp"
+	"FvRaceDragon.cpp"
+	"FvRacePillarServer.cpp"
 	"FvRacePillarABCServer.cpp"
 	"FvRacePillarDServer.cpp"
 	"FvRaceSmashEggImagineServer.cpp"

@@ -11,6 +11,8 @@
 #include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
 
+class dpEntity;
+
  /**
   * Component that handles rigid bodies that can be interacted with, mostly client-side rendered. An example is the
   * bananas that fall from trees in GF.
@@ -21,7 +23,13 @@ public:
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 
+	void Update(const float deltaTime) override;
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
+private:
+	float m_Scale{};
+
+	dpEntity* m_dpEntity{};
 };
 
 #endif // RIGIDBODYPHANTOMPHYSICS_H

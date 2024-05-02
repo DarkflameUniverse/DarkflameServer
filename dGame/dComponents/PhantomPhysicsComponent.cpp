@@ -90,7 +90,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 	}
 
 	if (!m_HasCreatedPhysics) {
-		m_dpEntity = CreatePhysicsEntity(m_Scale);
+		m_dpEntity = CreatePhysicsEntity(ComponentType);
 		if (!m_dpEntity) return;
 		m_dpEntity->SetScale(m_Scale);
 		m_dpEntity->SetRotation(m_Rotation);
