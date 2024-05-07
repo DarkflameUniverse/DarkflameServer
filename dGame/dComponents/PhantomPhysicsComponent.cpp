@@ -47,7 +47,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 	m_Direction = NiPoint3(); // * m_DirectionalMultiplier
 
 	if (m_Parent->GetVar<bool>(u"create_physics")) {
-		CreatePhysics();
+		m_dpEntity = CreatePhysicsLnv(m_Scale, ComponentType);
 	}
 
 	if (m_Parent->GetVar<bool>(u"respawnVol")) {
@@ -89,7 +89,7 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsCompon
 		m_RespawnRot = m_Rotation;
 	}
 
-	if (!m_HasCreatedPhysics) {
+	if (!m_dpEntity) {
 		m_dpEntity = CreatePhysicsEntity(ComponentType);
 		if (!m_dpEntity) return;
 		m_dpEntity->SetScale(m_Scale);
@@ -103,69 +103,6 @@ PhantomPhysicsComponent::~PhantomPhysicsComponent() {
 	if (m_dpEntity) {
 		dpWorld::RemoveEntity(m_dpEntity);
 	}
-}
-
-void PhantomPhysicsComponent::CreatePhysics() {
-	unsigned char alpha;
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-	int type = -1;
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
-	float width = 0.0f; //aka "radius"
-	float height = 0.0f;
-
-	if (m_Parent->HasVar(u"primitiveModelType")) {
-		type = m_Parent->GetVar<int32_t>(u"primitiveModelType");
-		x = m_Parent->GetVar<float>(u"primitiveModelValueX");
-		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
-		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
-	} else {
-		CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), eReplicaComponentType::PHANTOM_PHYSICS);
-
-		CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
-
-		if (physComp == nullptr) return;
-
-		auto info = physComp->GetByID(componentID);
-
-		if (info == nullptr) return;
-
-		type = info->pcShapeType;
-		width = info->playerRadius;
-		height = info->playerHeight;
-	}
-
-	switch (type) {
-	case 1: { //Make a new box shape
-		NiPoint3 boxSize(x, y, z);
-		if (x == 0.0f) {
-			//LU has some weird values, so I think it's best to scale them down a bit
-			if (height < 0.5f) height = 2.0f;
-			if (width < 0.5f) width = 2.0f;
-
-			//Scale them:
-			width = width * m_Scale;
-			height = height * m_Scale;
-
-			boxSize = NiPoint3(width, height, width);
-		}
-
-		m_dpEntity = new dpEntity(m_Parent->GetObjectID(), boxSize);
-		break;
-	}
-	}
-
-	if (!m_dpEntity) return;
-
-	m_dpEntity->SetPosition({ m_Position.x, m_Position.y - (height / 2), m_Position.z });
-
-	dpWorld::AddEntity(m_dpEntity);
-
-	m_HasCreatedPhysics = true;
 }
 
 void PhantomPhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -213,7 +150,7 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 			GameMessages::SendSetGravityScale(target, effectScale, targetEntity->GetSystemAddress());
 		}
 	}
-	// The other types are not handled by the server
+										  // The other types are not handled by the server
 	case ePhysicsEffectType::ATTRACT:
 	case ePhysicsEffectType::FRICTION:
 	case ePhysicsEffectType::PUSH:
@@ -264,18 +201,68 @@ void PhantomPhysicsComponent::SpawnVertices() {
 	if (!m_dpEntity) return;
 
 	LOG("%llu", m_Parent->GetObjectID());
-	auto box = static_cast<dpShapeBox*>(m_dpEntity->GetShape());
-	for (auto vert : box->GetVertices()) {
-		LOG("%f, %f, %f", vert.x, vert.y, vert.z);
+	auto box = dynamic_cast<dpShapeBox*>(m_dpEntity->GetShape());
+	if (box) {
+		for (auto vert : box->GetVertices()) {
+			LOG("%f, %f, %f", vert.x, vert.y, vert.z);
 
+			EntityInfo info;
+			info.lot = 33;
+			info.pos = vert;
+			info.spawner = nullptr;
+			info.spawnerID = m_Parent->GetObjectID();
+			info.spawnerNodeID = 0;
+
+			Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+			Game::entityManager->ConstructEntity(newEntity);
+		}
+	}
+	auto sphere = dynamic_cast<dpShapeSphere*>(m_dpEntity->GetShape());
+	if (sphere) {
+		auto [x, y, z] = m_dpEntity->GetPosition();
+		float plusX = x + sphere->GetRadius();
+		float minusX = x - sphere->GetRadius();
+		float plusY = y + sphere->GetRadius();
+		float minusY = y - sphere->GetRadius();
+		float plusZ = z + sphere->GetRadius();
+		float minusZ = z - sphere->GetRadius();
+
+		auto radius = sphere->GetRadius();
+		LOG("Radius: %f", radius);
+		LOG("Verts %f %f %f", plusX, plusY, plusZ);
+		LOG("Verts %f %f %f", minusX, minusY, minusZ);
 		EntityInfo info;
 		info.lot = 33;
-		info.pos = vert;
 		info.spawner = nullptr;
 		info.spawnerID = m_Parent->GetObjectID();
 		info.spawnerNodeID = 0;
 
+		info.pos = {x, plusY, z};
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {x, minusY, z};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {plusX, y, z};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {minusX, y, z};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {x, y, plusZ};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {x, y, minusZ};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = {x, y, z};
+		newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		Game::entityManager->ConstructEntity(newEntity);
 	}
 }

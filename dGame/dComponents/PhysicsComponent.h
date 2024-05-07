@@ -28,6 +28,8 @@ public:
 protected:
 	dpEntity* CreatePhysicsEntity(eReplicaComponentType type);
 
+	dpEntity* CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const;
+
 	NiPoint3 m_Position;
 
 	NiQuaternion m_Rotation;

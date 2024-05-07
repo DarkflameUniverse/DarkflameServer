@@ -8,6 +8,7 @@
 #include "CDPhysicsComponentTable.h"
 
 #include "dpEntity.h"
+#include "dpWorld.h"
 
 PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
@@ -74,5 +75,83 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 		//add fallback cube:
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
 	}
+	return toReturn;
+}
+#define bla if (m_Parent->GetLOT() == 11386)
+dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const {
+	unsigned char alpha;
+	unsigned char red;
+	unsigned char green;
+	unsigned char blue;
+	int pcShapeType = -1;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float width = 0.0f; //aka "radius"
+	float height = 0.0f;
+	dpEntity* toReturn = nullptr;
+
+	if (m_Parent->HasVar(u"primitiveModelType")) {
+		pcShapeType = m_Parent->GetVar<int32_t>(u"primitiveModelType");
+		x = m_Parent->GetVar<float>(u"primitiveModelValueX");
+		y = m_Parent->GetVar<float>(u"primitiveModelValueY");
+		z = m_Parent->GetVar<float>(u"primitiveModelValueZ");
+	} else {
+		CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+		auto componentID = compRegistryTable->GetByIDAndType(m_Parent->GetLOT(), type);
+
+		CDPhysicsComponentTable* physComp = CDClientManager::GetTable<CDPhysicsComponentTable>();
+
+		if (physComp == nullptr) return nullptr;
+
+		auto info = physComp->GetByID(componentID);
+
+		if (info == nullptr) return nullptr;
+
+		pcShapeType = info->pcShapeType;
+		width = info->playerRadius;
+		height = info->playerHeight;
+	}
+
+	switch (pcShapeType) {
+	case 0: {
+		// LOG("uhh");
+		break;
+	}
+	case 1: { //Make a new box shape
+		NiPoint3 boxSize(x, y, z);
+		if (x == 0.0f) {
+			//LU has some weird values, so I think it's best to scale them down a bit
+			if (height < 0.5f) height = 2.0f;
+			if (width < 0.5f) width = 2.0f;
+
+			//Scale them:
+			width = width * scale;
+			height = height * scale;
+
+			boxSize = NiPoint3(width, height, width);
+		}
+
+		toReturn = new dpEntity(m_Parent->GetObjectID(), boxSize);
+
+		toReturn->SetPosition({ m_Position.x, m_Position.y - (height / 2), m_Position.z });
+		break;
+	}
+	case 2: { //Make a new cylinder shape
+		break;
+	}
+	case 3: { //Make a new sphere shape
+		auto [x, y, z] = m_Position;
+		toReturn = new dpEntity(m_Parent->GetObjectID(), width);
+		toReturn->SetPosition({ x, y, z });
+		break;
+	}
+	case 4: { //Make a new capsule shape
+		break;
+	}
+	}
+
+	if (toReturn) dpWorld::AddEntity(toReturn);
+
 	return toReturn;
 }

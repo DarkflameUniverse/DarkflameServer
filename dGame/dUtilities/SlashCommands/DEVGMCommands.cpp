@@ -41,6 +41,7 @@
 #include "ScriptedActivityComponent.h"
 #include "SkillComponent.h"
 #include "TriggerComponent.h"
+#include "RigidbodyPhantomPhysicsComponent.h"
 
 // Enums
 #include "eGameMasterLevel.h"
@@ -1131,6 +1132,12 @@ namespace DEVGMCommands {
 		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
 		for (auto en : entities) {
 			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+			if (phys)
+				phys->SpawnVertices();
+		}
+		entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
+		for (auto en : entities) {
+			auto phys = static_cast<RigidbodyPhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS));
 			if (phys)
 				phys->SpawnVertices();
 		}

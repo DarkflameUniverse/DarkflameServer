@@ -26,6 +26,8 @@ public:
 	void Update(const float deltaTime) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
+
+	void SpawnVertices();
 private:
 	float m_Scale{};
 

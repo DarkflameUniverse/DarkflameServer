@@ -1840,6 +1840,12 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetPosition();
+	}
+
 	return NiPoint3Constant::ZERO;
 }
 
@@ -1866,6 +1872,12 @@ const NiQuaternion& Entity::GetRotation() const {
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternionConstant::IDENTITY;
@@ -1896,6 +1908,12 @@ void Entity::SetPosition(const NiPoint3& position) {
 		vehicel->SetPosition(position);
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetPosition(position);
+	}
+
 	Game::entityManager->SerializeEntity(this);
 }
 
@@ -1922,6 +1940,12 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetRotation(rotation);
 	}
 
 	Game::entityManager->SerializeEntity(this);
