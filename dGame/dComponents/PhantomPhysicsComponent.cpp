@@ -149,8 +149,9 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 			controllablePhysicsComponent->SetGravityScale(effectScale);
 			GameMessages::SendSetGravityScale(target, effectScale, targetEntity->GetSystemAddress());
 		}
+		break;
 	}
-										  // The other types are not handled by the server
+
 	case ePhysicsEffectType::ATTRACT:
 	case ePhysicsEffectType::FRICTION:
 	case ePhysicsEffectType::PUSH:
@@ -158,6 +159,7 @@ void ApplyCollisionEffect(const LWOOBJID& target, const ePhysicsEffectType effec
 	default:
 		break;
 	}
+	// The other types are not handled by the server and are here to handle all cases of the enum.
 }
 
 void PhantomPhysicsComponent::Update(float deltaTime) {
