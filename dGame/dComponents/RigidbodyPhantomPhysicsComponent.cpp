@@ -17,7 +17,7 @@ RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* paren
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
 
-	if (m_Parent->GetVar<bool>(u"create_physics") || m_Parent->GetLOT() == 11386) {
+	if (m_Parent->GetVar<bool>(u"create_physics")) {
 		m_dpEntity = CreatePhysicsLnv(m_Scale, ComponentType);
 		if (!m_dpEntity) {
 			m_dpEntity = CreatePhysicsEntity(ComponentType);
