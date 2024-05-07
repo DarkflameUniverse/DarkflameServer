@@ -9,7 +9,7 @@ public:
 	FvRaceDragon(const std::string_view lapAnimName, const int32_t lap) : m_LapAnimName(lapAnimName), m_Lap(lap) {}
 private:
 	void OnCollisionPhantom(Entity* self, Entity* target) override;
-	std::string m_LapAnimName;
-	int32_t m_Lap;
-	LOT m_Dragon = 11898;
+	const std::string m_LapAnimName;
+	const int32_t m_Lap;
+	const LOT m_Dragon = 11898;
 };
