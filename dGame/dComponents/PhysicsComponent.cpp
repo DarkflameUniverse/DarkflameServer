@@ -83,10 +83,6 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 }
 
 dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const {
-	unsigned char alpha;
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
 	int pcShapeType = -1;
 	float x = 0.0f;
 	float y = 0.0f;
@@ -118,8 +114,7 @@ dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaCo
 	}
 
 	switch (pcShapeType) {
-	case 0: {
-		// LOG("uhh");
+	case 0: { // HKX type
 		break;
 	}
 	case 1: { //Make a new box shape
