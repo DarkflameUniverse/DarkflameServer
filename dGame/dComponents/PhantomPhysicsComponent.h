@@ -105,7 +105,7 @@ public:
 	/**
 	 * Spawns an object at each of the vertices for debugging purposes
 	 */
-	void SpawnVertices();
+	void SpawnVertices() const;
 
 	/**
 	 * Legacy stuff no clue what this does

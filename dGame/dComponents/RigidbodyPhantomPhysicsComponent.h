@@ -27,7 +27,7 @@ public:
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
-	void SpawnVertices();
+	void SpawnVertices() const;
 private:
 	float m_Scale{};
 

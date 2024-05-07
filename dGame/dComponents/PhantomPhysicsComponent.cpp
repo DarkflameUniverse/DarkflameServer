@@ -197,74 +197,12 @@ void PhantomPhysicsComponent::SetDirection(const NiPoint3& pos) {
 	m_IsDirectional = true;
 }
 
-void PhantomPhysicsComponent::SpawnVertices() {
-	if (!m_dpEntity) return;
-
-	LOG("%llu", m_Parent->GetObjectID());
-	auto box = dynamic_cast<dpShapeBox*>(m_dpEntity->GetShape());
-	if (box) {
-		for (auto vert : box->GetVertices()) {
-			LOG("%f, %f, %f", vert.x, vert.y, vert.z);
-
-			EntityInfo info;
-			info.lot = 33;
-			info.pos = vert;
-			info.spawner = nullptr;
-			info.spawnerID = m_Parent->GetObjectID();
-			info.spawnerNodeID = 0;
-
-			Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-			Game::entityManager->ConstructEntity(newEntity);
-		}
+void PhantomPhysicsComponent::SpawnVertices() const {
+	if (!m_dpEntity) {
+		LOG("No dpEntity to spawn vertices for %llu:%i", m_Parent->GetObjectID(), m_Parent->GetLOT());
+		return;
 	}
-	auto sphere = dynamic_cast<dpShapeSphere*>(m_dpEntity->GetShape());
-	if (sphere) {
-		auto [x, y, z] = m_dpEntity->GetPosition();
-		float plusX = x + sphere->GetRadius();
-		float minusX = x - sphere->GetRadius();
-		float plusY = y + sphere->GetRadius();
-		float minusY = y - sphere->GetRadius();
-		float plusZ = z + sphere->GetRadius();
-		float minusZ = z - sphere->GetRadius();
-
-		auto radius = sphere->GetRadius();
-		LOG("Radius: %f", radius);
-		LOG("Verts %f %f %f", plusX, plusY, plusZ);
-		LOG("Verts %f %f %f", minusX, minusY, minusZ);
-		EntityInfo info;
-		info.lot = 33;
-		info.spawner = nullptr;
-		info.spawnerID = m_Parent->GetObjectID();
-		info.spawnerNodeID = 0;
-
-		info.pos = {x, plusY, z};
-		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {x, minusY, z};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {plusX, y, z};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {minusX, y, z};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {x, y, plusZ};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {x, y, minusZ};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-
-		info.pos = {x, y, z};
-		newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		Game::entityManager->ConstructEntity(newEntity);
-	}
+	PhysicsComponent::SpawnVertices(m_dpEntity);
 }
 
 void PhantomPhysicsComponent::SetDirectionalMultiplier(float mul) {

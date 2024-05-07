@@ -9,6 +9,10 @@
 
 #include "dpEntity.h"
 #include "dpWorld.h"
+#include "dpShapeBox.h"
+#include "dpShapeSphere.h"
+
+#include "EntityInfo.h"
 
 PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
@@ -77,7 +81,7 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	}
 	return toReturn;
 }
-#define bla if (m_Parent->GetLOT() == 11386)
+
 dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const {
 	unsigned char alpha;
 	unsigned char red;
@@ -154,4 +158,70 @@ dpEntity* PhysicsComponent::CreatePhysicsLnv(const float scale, const eReplicaCo
 	if (toReturn) dpWorld::AddEntity(toReturn);
 
 	return toReturn;
+}
+
+void PhysicsComponent::SpawnVertices(dpEntity* entity) const {
+	if (!entity) return;
+
+	LOG("Spawning vertices for %llu", m_Parent->GetObjectID());
+	EntityInfo info;
+	info.lot = 33;
+	info.spawner = nullptr;
+	info.spawnerID = m_Parent->GetObjectID();
+	info.spawnerNodeID = 0;
+
+	// These don't use overloaded methods as dPhysics does not link with dGame at the moment.
+	auto box = dynamic_cast<dpShapeBox*>(entity->GetShape());
+	if (box) {
+		for (auto vert : box->GetVertices()) {
+			LOG("Vertex at %f, %f, %f", vert.x, vert.y, vert.z);
+
+			info.pos = vert;
+			Entity* newEntity = Game::entityManager->CreateEntity(info);
+			Game::entityManager->ConstructEntity(newEntity);
+		}
+	}
+	auto sphere = dynamic_cast<dpShapeSphere*>(entity->GetShape());
+	if (sphere) {
+		auto [x, y, z] = entity->GetPosition(); // Use shapes position instead of the parent's position in case it's different
+		float plusX = x + sphere->GetRadius();
+		float minusX = x - sphere->GetRadius();
+		float plusY = y + sphere->GetRadius();
+		float minusY = y - sphere->GetRadius();
+		float plusZ = z + sphere->GetRadius();
+		float minusZ = z - sphere->GetRadius();
+
+		auto radius = sphere->GetRadius();
+		LOG("Radius: %f", radius);
+		LOG("Plus Vertices %f %f %f", plusX, plusY, plusZ);
+		LOG("Minus Vertices %f %f %f", minusX, minusY, minusZ);
+
+		info.pos = NiPoint3{ x, plusY, z };
+		Entity* newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ x, minusY, z };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ plusX, y, z };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ minusX, y, z };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ x, y, plusZ };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ x, y, minusZ };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+
+		info.pos = NiPoint3{ x, y, z };
+		newEntity = Game::entityManager->CreateEntity(info);
+		Game::entityManager->ConstructEntity(newEntity);
+	}
 }

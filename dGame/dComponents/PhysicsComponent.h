@@ -30,6 +30,8 @@ protected:
 
 	dpEntity* CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const;
 
+	void SpawnVertices(dpEntity* entity) const;
+
 	NiPoint3 m_Position;
 
 	NiQuaternion m_Rotation;
