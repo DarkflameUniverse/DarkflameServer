@@ -184,6 +184,7 @@
 #include "RaceMaelstromGeiser.h"
 #include "FvRaceSmashEggImagineServer.h"
 #include "RaceSmashServer.h"
+#include "FvRacingColumns.h"
 
 // NT Scripts
 #include "NtSentinelWalkwayServer.h"
@@ -682,6 +683,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 		script = new RaceMaelstromGeiser();
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_SMASH_EGG_IMAGINE_SERVER.lua")
 		script = new FvRaceSmashEggImagineServer();
+	else if (scriptName == "scripts\\02_server\\Map\\FV\\Racing\\FV_RACING_COLUMNS.lua")
+		script = new FvRacingColumns();
 	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_SMASH_SERVER.lua")
 		script = new RaceSmashServer();
 

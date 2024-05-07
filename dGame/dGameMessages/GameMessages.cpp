@@ -369,8 +369,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 
 	const auto lot = entity->GetLOT();
 
-	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449) {
-		iDesiredWaypointIndex = 0;
+	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308) {
+		iDesiredWaypointIndex = (lot == 11306 || lot == 11308) ? 1 : 0;
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
