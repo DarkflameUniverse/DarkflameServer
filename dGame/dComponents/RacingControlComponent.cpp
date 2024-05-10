@@ -817,8 +817,10 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Some offset up to make they don't fall through the terrain on a
 			// respawn, seems to fix itself to the track anyhow
-			player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
-			player.respawnRotation = vehicle->GetRotation();
+			if (waypoint.racing.isResetNode) {
+				player.respawnPosition = position + NiPoint3Constant::UNIT_Y * 5;
+				player.respawnRotation = vehicle->GetRotation();
+			}
 			player.respawnIndex = respawnIndex;
 
 			// Reached the start point, lapped
