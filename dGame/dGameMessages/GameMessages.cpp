@@ -5354,14 +5354,14 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 		if (eInvType == eInventoryType::MODELS) {
 			item->DisassembleModel(iStackCount);
 		}
-
+		auto lot = item->GetLot();
 		item->SetCount(item->GetCount() - iStackCount, true);
 		Game::entityManager->SerializeEntity(entity);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(eMissionTaskType::GATHER, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
+			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -iStackCount);
 		}
 	}
 }
