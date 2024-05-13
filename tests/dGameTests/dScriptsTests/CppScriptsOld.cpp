@@ -330,17 +330,17 @@
 
 namespace {
 	// This is in the translation unit instead of the header to prevent wierd linker errors
-	InvalidScript* const InvalidToReturnOld = new InvalidScript();
-	std::map<std::string, CppScripts::Script*> m_ScriptsOld;
+	InvalidScript* const InvalidToReturn = new InvalidScript();
+	std::map<std::string, CppScripts::Script*> m_Scripts;
 };
 
 CppScripts::Script* const CppScriptsOld::GetScript(Entity* parent, const std::string& scriptName) {
-	auto itr = m_ScriptsOld.find(scriptName);
-	if (itr != m_ScriptsOld.end()) {
+	auto itr = m_Scripts.find(scriptName);
+	if (itr != m_Scripts.end()) {
 		return itr->second;
 	}
 
-	CppScripts::Script* script = InvalidToReturnOld;
+	CppScripts::Script* script = InvalidToReturn;
 
 	//VE / AG:
 	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
@@ -977,15 +977,15 @@ CppScripts::Script* const CppScriptsOld::GetScript(Entity* parent, const std::st
 
 	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
 	// information not really needed for sys admins but is for developers
-	else if (script == InvalidToReturnOld) {
+	else if (script == InvalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
-			(scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
+			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
 			(scriptName == "scripts\\empty.lua")
 			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
-	m_ScriptsOld[scriptName] = script;
+	m_Scripts[scriptName] = script;
 	return script;
 }
