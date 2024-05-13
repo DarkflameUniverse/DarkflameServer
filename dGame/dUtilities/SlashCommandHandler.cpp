@@ -20,7 +20,6 @@
 
 namespace {
 	std::map<std::string, Command> CommandInfos;
-	//std::vector<Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
 }
 
@@ -46,26 +45,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
     }
 }
 
-/**
-void SlashCommandHandler::RegisterCommand(Command command) {
-	if (command.aliases.empty()) {
-		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
-		return;
-	}
-
-	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
-		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
-		// Don't allow duplicate commands
-		if (!success) {
-			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
-			continue;
-		}
-	}
-
-	CommandInfos.insert(std::pair<std::string, Command>(, command));
-};
-**/
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
 	if (input.empty() || input.front() != '/') return;
@@ -891,54 +870,18 @@ void SlashCommandHandler::Startup() {
     	.aliases = { "help", "h"},
     	.handle = [](Entity* entity, const SystemAddress& sysAddr, const std::string& args) {
         	std::ostringstream feedback;
-        	constexpr size_t pageSize = 10; // Number of commands per page
+        	feedback << "----- Commands -----";
 
-        	// Filter CommandInfos based on player's GM level
-        	std::vector<std::pair<std::string, Command>> accessibleCommands;
-        	std::copy_if(CommandInfos.begin(), CommandInfos.end(), std::back_inserter(accessibleCommands),
-                     	[&](const auto& pair) {
-                         	return pair.second.requiredLevel <= entity->GetGMLevel();
-                     	});
-
-        	// Calculate total number of pages based on accessible commands
-        	size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
-
-        	size_t page = 1; // Default to first page
-
-        	// Check if page number is provided
-        	if (!args.empty()) {
-            	try {
-                	page = std::stoi(args);
-            	} catch (const std::exception&) {
-                	feedback << "Invalid page number.";
-                	GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-             		return;
+        	// Loop through CommandInfos and display commands the player can access
+        	for (const auto& [alias, command] : CommandInfos) {
+            	if (command.requiredLevel <= entity->GetGMLevel()) {
+                	LOG("Help command: %s", alias.c_str());
+                	feedback << "\n/" << alias << ": " << command.help;
             	}
         	}
 
-        	// Check if requested page number is valid
-        	if (page < 1 || page > totalPages) {
-         		feedback << "Invalid page number. Total pages: " << totalPages;
-            	GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-            	return;
-        	}
-
-        	// Calculate starting and ending index for commands on the current page
-        	size_t startIdx = (page - 1) * pageSize;
-        	size_t endIdx = std::min(startIdx + pageSize, accessibleCommands.size());
-
-        	// Display commands for the current page
-        	feedback << "----- Commands (Page " << page << ") -----";
-        	size_t count = 0;
-        	for (size_t i = startIdx; i < endIdx; ++i) {
-            	const auto& [alias, command] = accessibleCommands[i];
-            	LOG("Help command: %s", alias.c_str());
-            	feedback << "\n/" << alias << ": " << command.help;
-         		++count;
-        	}
-
         	// Send feedback text
-       		const auto feedbackStr = feedback.str();
+        	const auto feedbackStr = feedback.str();
         	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
     	},
     	.requiredLevel = eGameMasterLevel::CIVILIAN
