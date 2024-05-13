@@ -19,10 +19,34 @@
 #include "dServer.h"
 
 namespace {
-	std::vector<Command> CommandInfos;
+	std::map<std::string, Command> CommandInfos;
+	//std::vector<Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
 }
 
+void SlashCommandHandler::RegisterCommand(Command command) {
+    if (command.aliases.empty()) {
+        LOG("Command %s has no aliases! Skipping!", command.help.c_str());
+        return;
+    }
+
+    for (const auto& alias : command.aliases) {
+        LOG_DEBUG("Registering command %s", alias.c_str());
+        auto [_, success] = RegisteredCommands.try_emplace(alias, command);
+        // Don't allow duplicate commands
+        if (!success) {
+            LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
+            continue;
+        }
+    }
+
+    // Inserting into CommandInfos using the first alias as the key
+    if (!command.aliases.empty()) {
+        CommandInfos.insert(std::make_pair(command.aliases[0], command));
+    }
+}
+
+/**
 void SlashCommandHandler::RegisterCommand(Command command) {
 	if (command.aliases.empty()) {
 		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
@@ -39,9 +63,9 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 		}
 	}
 
-	CommandInfos.push_back(command);
+	CommandInfos.insert(std::pair<std::string, Command>(, command));
 };
-
+**/
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
 	if (input.empty() || input.front() != '/') return;
@@ -72,43 +96,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	if (!error.empty()) {
 		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
 	}
-}
-
-// This commands in here so we can access the CommandInfos to display info
-void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	std::ostringstream feedback;
-	if (args.empty()) {
-		feedback << "----- Commands -----";
-		for (const auto& command : CommandInfos) {
-			// TODO: Limit displaying commands based on GM level they require
-			if (command.requiredLevel > entity->GetGMLevel()) continue;
-			LOG("Help command: %s", command.aliases[0].c_str());
-			feedback << "\n/" << command.aliases[0] << ": " << command.help;
-		}
-	} else {
-		bool foundCommand = false;
-		for (const auto& command : CommandInfos) {
-			if (std::ranges::find(command.aliases, args) == command.aliases.end()) continue;
-
-			if (entity->GetGMLevel() < command.requiredLevel) break;
-			foundCommand = true;
-			feedback << "----- " << command.aliases.at(0) << " -----\n";
-			// info can be a localizable string
-			feedback << command.info;
-			if (command.aliases.size() == 1) break;
-
-			feedback << "\nAliases: ";
-			for (size_t i = 0; i < command.aliases.size(); i++) {
-				if (i > 0) feedback << ", ";
-				feedback << command.aliases[i];
-			}
-		}
-
-		// Let GameMasters know if the command doesn't exist
-		if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) feedback << "Command " << std::quoted(args) << " does not exist!";
-	}
-	const auto feedbackStr = feedback.str();
-	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
@@ -899,11 +886,62 @@ void SlashCommandHandler::Startup() {
 	// Register GM Zero Commands
 
 	Command HelpCommand{
-		.help = "Display command info",
-		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",
-		.aliases = { "help", "h"},
-		.handle = GMZeroCommands::Help,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
+    	.help = "Display command info",
+    	.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short descriptions.",
+    	.aliases = { "help", "h"},
+    	.handle = [](Entity* entity, const SystemAddress& sysAddr, const std::string& args) {
+        	std::ostringstream feedback;
+        	constexpr size_t pageSize = 10; // Number of commands per page
+
+        	// Filter CommandInfos based on player's GM level
+        	std::vector<std::pair<std::string, Command>> accessibleCommands;
+        	std::copy_if(CommandInfos.begin(), CommandInfos.end(), std::back_inserter(accessibleCommands),
+                     	[&](const auto& pair) {
+                         	return pair.second.requiredLevel <= entity->GetGMLevel();
+                     	});
+
+        	// Calculate total number of pages based on accessible commands
+        	size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
+
+        	size_t page = 1; // Default to first page
+
+        	// Check if page number is provided
+        	if (!args.empty()) {
+            	try {
+                	page = std::stoi(args);
+            	} catch (const std::exception&) {
+                	feedback << "Invalid page number.";
+                	GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+             		return;
+            	}
+        	}
+
+        	// Check if requested page number is valid
+        	if (page < 1 || page > totalPages) {
+         		feedback << "Invalid page number. Total pages: " << totalPages;
+            	GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+            	return;
+        	}
+
+        	// Calculate starting and ending index for commands on the current page
+        	size_t startIdx = (page - 1) * pageSize;
+        	size_t endIdx = std::min(startIdx + pageSize, accessibleCommands.size());
+
+        	// Display commands for the current page
+        	feedback << "----- Commands (Page " << page << ") -----";
+        	size_t count = 0;
+        	for (size_t i = startIdx; i < endIdx; ++i) {
+            	const auto& [alias, command] = accessibleCommands[i];
+            	LOG("Help command: %s", alias.c_str());
+            	feedback << "\n/" << alias << ": " << command.help;
+         		++count;
+        	}
+
+        	// Send feedback text
+       		const auto feedbackStr = feedback.str();
+        	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+    	},
+    	.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(HelpCommand);
 
