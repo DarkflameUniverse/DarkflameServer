@@ -335,7 +335,8 @@ namespace {
     // This is in the translation unit instead of the header to prevent weird linker errors
     InvalidScript InvalidToReturn;
     std::map<std::string, CppScripts::Script*> m_Scripts;
-    std::map<std::string, std::function<CppScripts::Script* ()>> test = {
+    std::map<std::string, std::function<CppScripts::Script* ()>> scriptLoader = {
+
 		//VE / AG
 		{ "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua", []() { return new AgShipPlayerDeathTrigger(); } },
         {"scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua", []() { return new NpcNpSpacemanBob(); } },
@@ -676,8 +677,12 @@ namespace {
 		{"scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua", [](){return new WildNinjaStudent();}},
 		{"scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua", [](){return new WildNinjaSensei();}},
 		{"scripts\\ai\\WILD\\L_LUP_generic_interact.lua", [](){return new LupGenericInteract();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenBlue.lua", [](){return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenGreen.lua", [](){return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua", [](){return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", [](){return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", [](){return new WblRobotCitizen();}},
 
-		//And on, and on, and on, and on
     };
 };
 
@@ -687,8 +692,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
         return itr->second;
     }
 
-    const auto itrSN = test.find(scriptName);
-    Script* script = itrSN != test.cend() ? itrSN->second() : &InvalidToReturn;
+    const auto itrTernary = scriptLoader.find(scriptName);
+    Script* script = itrTernary != scriptLoader.cend() ? itrTernary->second() : &InvalidToReturn;
 
     if (script == &InvalidToReturn) {
         if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||

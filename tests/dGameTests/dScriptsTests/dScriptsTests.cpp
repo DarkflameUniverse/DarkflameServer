@@ -636,6 +636,11 @@ TEST(dScriptsTests, OldCppScriptsCheck) {
 	CHECK_SCRIPT("scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua", WildNinjaStudent);
 	CHECK_SCRIPT("scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua", WildNinjaSensei);
 	CHECK_SCRIPT("scripts\\ai\\WILD\\L_LUP_generic_interact.lua", LupGenericInteract);
+	CHECK_SCRIPT("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenBlue.lua", WblRobotCitizen);
+	CHECK_SCRIPT("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenGreen.lua", WblRobotCitizen);
+	CHECK_SCRIPT("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua", WblRobotCitizen);
+	CHECK_SCRIPT("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", WblRobotCitizen);
+	CHECK_SCRIPT("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", WblRobotCitizen);
 }
 
 TEST(dScriptsTests, CacheCheck) {
@@ -937,5 +942,9 @@ TEST(dScriptsTests, CacheCheck) {
 	CHECK_CACHE("scripts\\ai\\WILD\\L_WILD_NINJA_BRICKS.lua");
 	CHECK_CACHE("scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua");
 	CHECK_CACHE("scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua");
-	CHECK_CACHE("scripts\\ai\\WILD\\L_LUP_generic_interact.lua");
+	CHECK_CACHE("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenBlue.lua");
+	CHECK_CACHE("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenGreen.lua");
+	CHECK_CACHE("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua");
+	CHECK_CACHE("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua");
+	CHECK_CACHE("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua");
 }
