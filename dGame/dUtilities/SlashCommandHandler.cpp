@@ -136,8 +136,6 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
 
-<<<<<<< Updated upstream
-=======
 void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
     std::ostringstream feedback;
     constexpr size_t pageSize = 10; // Number of commands per page
@@ -191,7 +189,6 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
     if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 }
 
->>>>>>> Stashed changes
 void SlashCommandHandler::Startup() {
 	// Register Dev Commands
 	Command SetGMLevelCommand{
