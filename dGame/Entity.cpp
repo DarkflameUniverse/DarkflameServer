@@ -1534,7 +1534,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
+			waitForDeathAnimation = !destroyableComponent->GetIsSmashable() && destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
