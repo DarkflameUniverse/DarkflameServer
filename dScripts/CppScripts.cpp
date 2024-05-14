@@ -334,7 +334,7 @@
 namespace {
     // This is in the translation unit instead of the header to prevent weird linker errors
     InvalidScript InvalidToReturn;
-    std::map<std::string, CppScripts::Script*> m_Scripts;
+    std::map<std::string, CppScripts::Script*> g_Scripts;
     std::map<std::string, std::function<CppScripts::Script* ()>> scriptLoader = {
 
 		//VE / AG
@@ -687,8 +687,8 @@ namespace {
 };
 
 CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-    auto itr = m_Scripts.find(scriptName);
-    if (itr != m_Scripts.end()) {
+    auto itr = g_Scripts.find(scriptName);
+    if (itr != g_Scripts.end()) {
         return itr->second;
     }
 
@@ -704,7 +704,7 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
             )) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
     }
 
-    m_Scripts[scriptName] = script;
+    g_Scripts[scriptName] = script;
     return script;
 }
 
