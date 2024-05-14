@@ -19,28 +19,31 @@
 #include "dServer.h"
 
 namespace {
-	std::vector<Command> CommandInfos;
+	std::map<std::string, Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
-	if (command.aliases.empty()) {
-		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
-		return;
-	}
+    if (command.aliases.empty()) {
+        LOG("Command %s has no aliases! Skipping!", command.help.c_str());
+        return;
+    }
 
-	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
-		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
-		// Don't allow duplicate commands
-		if (!success) {
-			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
-			continue;
-		}
-	}
+    for (const auto& alias : command.aliases) {
+        LOG_DEBUG("Registering command %s", alias.c_str());
+        auto [_, success] = RegisteredCommands.try_emplace(alias, command);
+        // Don't allow duplicate commands
+        if (!success) {
+            LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
+            continue;
+        }
+    }
 
-	CommandInfos.push_back(command);
-};
+    // Inserting into CommandInfos using the first alias as the key
+    if (!command.aliases.empty()) {
+        CommandInfos.insert(std::make_pair(command.aliases[0], command));
+    }
+}
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
@@ -74,43 +77,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	}
 }
 
-// This commands in here so we can access the CommandInfos to display info
-void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-	std::ostringstream feedback;
-	if (args.empty()) {
-		feedback << "----- Commands -----";
-		for (const auto& command : CommandInfos) {
-			// TODO: Limit displaying commands based on GM level they require
-			if (command.requiredLevel > entity->GetGMLevel()) continue;
-			LOG("Help command: %s", command.aliases[0].c_str());
-			feedback << "\n/" << command.aliases[0] << ": " << command.help;
-		}
-	} else {
-		bool foundCommand = false;
-		for (const auto& command : CommandInfos) {
-			if (std::ranges::find(command.aliases, args) == command.aliases.end()) continue;
-
-			if (entity->GetGMLevel() < command.requiredLevel) break;
-			foundCommand = true;
-			feedback << "----- " << command.aliases.at(0) << " -----\n";
-			// info can be a localizable string
-			feedback << command.info;
-			if (command.aliases.size() == 1) break;
-
-			feedback << "\nAliases: ";
-			for (size_t i = 0; i < command.aliases.size(); i++) {
-				if (i > 0) feedback << ", ";
-				feedback << command.aliases[i];
-			}
-		}
-
-		// Let GameMasters know if the command doesn't exist
-		if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) feedback << "Command " << std::quoted(args) << " does not exist!";
-	}
-	const auto feedbackStr = feedback.str();
-	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
-}
-
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
 	AMFArrayValue args;
 
@@ -134,6 +100,39 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	}
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+}
+
+void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+    std::ostringstream feedback;
+    if (args.empty()) {
+        feedback << "----- Commands -----";
+        for (const auto& [alias, command] : CommandInfos) {
+            // TODO: Limit displaying commands based on GM level they require
+            if (command.requiredLevel > entity->GetGMLevel()) continue;
+            LOG("Help command: %s", alias.c_str());
+            feedback << "\n/" << alias << ": " << command.help;
+        }
+    } else {
+        auto it = CommandInfos.find(args);
+        if (it != CommandInfos.end() && entity->GetGMLevel() >= it->second.requiredLevel) {
+            feedback << "----- " << args << " -----\n";
+            feedback << it->second.info;
+            if (it->second.aliases.size() > 1) {
+                feedback << "\nAliases: ";
+                for (size_t i = 0; i < it->second.aliases.size(); i++) {
+                    if (i > 0) feedback << ", ";
+                    feedback << it->second.aliases[i];
+                }
+            }
+        } else {
+            // Let GameMasters know if the command doesn't exist or they don't have access
+            if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
+                feedback << "Command " << std::quoted(args) << " does not exist or you don't have access!";
+            }
+        }
+    }
+    const auto feedbackStr = feedback.str();
+    if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 }
 
 void SlashCommandHandler::Startup() {
@@ -899,11 +898,11 @@ void SlashCommandHandler::Startup() {
 	// Register GM Zero Commands
 
 	Command HelpCommand{
-		.help = "Display command info",
-		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",
-		.aliases = { "help", "h"},
-		.handle = GMZeroCommands::Help,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
+    	.help = "Display command info",
+    	.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short descriptions.",
+    	.aliases = { "help", "h"},
+    	.handle = GMZeroCommands::Help,
+    	.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(HelpCommand);
 
