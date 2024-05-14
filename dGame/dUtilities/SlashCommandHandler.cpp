@@ -143,9 +143,9 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
     // Filter CommandInfos based on player's GM level
     std::vector<std::pair<std::string, Command>> accessibleCommands;
     std::copy_if(CommandInfos.begin(), CommandInfos.end(), std::back_inserter(accessibleCommands),
-                 [&](const auto& pair) {
-                     return pair.second.requiredLevel <= entity->GetGMLevel();
-                 });
+                    [&](const auto& pair) {
+                        return pair.second.requiredLevel <= entity->GetGMLevel();
+                    });
 
     // Calculate total number of pages based on accessible commands
     size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
@@ -153,7 +153,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
     size_t page = 1; // Default to first page
 
     // Check if page number is provided
-    if (!args.empty()) {
+     if (!args.empty()) {
         try {
             page = std::stoi(args);
         } catch (const std::exception&) {
@@ -184,7 +184,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
         ++count;
     }
 
-	// Send feedback text
+    // Send feedback text
     const auto feedbackStr = feedback.str();
     if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 }
