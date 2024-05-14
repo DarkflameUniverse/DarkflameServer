@@ -136,6 +136,62 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
 
+<<<<<<< Updated upstream
+=======
+void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+    std::ostringstream feedback;
+    constexpr size_t pageSize = 10; // Number of commands per page
+
+    // Filter CommandInfos based on player's GM level
+    std::vector<std::pair<std::string, Command>> accessibleCommands;
+    std::copy_if(CommandInfos.begin(), CommandInfos.end(), std::back_inserter(accessibleCommands),
+                 [&](const auto& pair) {
+                     return pair.second.requiredLevel <= entity->GetGMLevel();
+                 });
+
+    // Calculate total number of pages based on accessible commands
+    size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
+
+    size_t page = 1; // Default to first page
+
+    // Check if page number is provided
+    if (!args.empty()) {
+        try {
+            page = std::stoi(args);
+        } catch (const std::exception&) {
+            feedback << "Invalid page number.";
+            GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+            return;
+        }
+    }
+
+    // Check if requested page number is valid
+    if (page < 1 || page > totalPages) {
+        feedback << "Invalid page number. Total pages: " << totalPages;
+        GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+        return;
+    }
+
+    // Calculate starting and ending index for commands on the current page
+    size_t startIdx = (page - 1) * pageSize;
+    size_t endIdx = std::min(startIdx + pageSize, accessibleCommands.size());
+
+    // Display commands for the current page
+    feedback << "----- Commands (Page " << page << ") -----";
+    size_t count = 0;
+    for (size_t i = startIdx; i < endIdx; ++i) {
+        const auto& [alias, command] = accessibleCommands[i];
+        LOG("Help command: %s", alias.c_str());
+        feedback << "\n/" << alias << ": " << command.help;
+        ++count;
+    }
+
+	// Send feedback text
+    const auto feedbackStr = feedback.str();
+    if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+}
+
+>>>>>>> Stashed changes
 void SlashCommandHandler::Startup() {
 	// Register Dev Commands
 	Command SetGMLevelCommand{
