@@ -6,7 +6,7 @@ set(DMASTERSERVER_SOURCES
 
 add_library(dMasterServer ${DMASTERSERVER_SOURCES})
 add_executable(MasterServer "MasterServer.cpp")
-add_compile_definitions(MasterServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
+target_compile_definitions(MasterServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 target_include_directories(dMasterServer PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # InstanceManager.h uses dZMCommon.h
 	${PROJECT_SOURCE_DIR}/dServer/ # BinaryPathFinder.h

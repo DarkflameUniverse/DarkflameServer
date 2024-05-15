@@ -11,7 +11,7 @@ if(UNIX)
 
 	#  -Wno-unused-result -Wno-unknown-pragmas -fpermissive
 	target_compile_options(sqlite3 PRIVATE)
-	if(NOT APPLE)
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		target_compile_options(sqlite3 PRIVATE "-Wno-return-local-addr" "-Wno-maybe-uninitialized")
 	else()
 		target_compile_options(sqlite3 PRIVATE "-Wno-return-stack-address" "-Wno-uninitialized" "-Wno-deprecated-declarations")

@@ -102,7 +102,7 @@ void VanityUtilities::SpawnVanity() {
 }
 
 LWOOBJID SpawnSpawner(const VanityObject& object, const VanityObjectLocation& location) {
-	SceneObject obj;
+	SceneObject obj{};
 	obj.lot = object.m_LOT;
 	// guratantee we have no collisions
 	do {
@@ -268,7 +268,7 @@ void ParseXml(const std::string& file) {
 
 			for (auto* location = locations->FirstChildElement("location"); location != nullptr;
 				location = location->NextSiblingElement("location")) {
-				
+
 				// Get the location data
 				auto zoneID = GeneralUtils::TryParse<uint32_t>(location->Attribute("zone"));
 				auto x = GeneralUtils::TryParse<float>(location->Attribute("x"));
