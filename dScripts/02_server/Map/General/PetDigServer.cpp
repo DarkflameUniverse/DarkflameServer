@@ -1,5 +1,6 @@
 #include "dZoneManager.h"
 #include "PetDigServer.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -98,6 +99,17 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
 		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
+	}
+}
+
+void PetDigServer::OnUse(Entity* self, Entity* user) {
+	LOG_DEBUG("Treasure used! LWOOBJID: %d", self->GetObjectID());
+
+	auto* petComponent = PetComponent::GetActivePet(user->GetObjectID());
+	if (!petComponent) return;
+
+	if(petComponent->IsReadyToInteract()) {
+		petComponent->StartInteractTreasureDig();
 	}
 }
 

@@ -42,6 +42,7 @@ public:
 	bool GetDisableSaveLocation() { return m_DisableSaveLocation; }
 	bool GetMountsAllowed() { return m_MountsAllowed; }
 	bool GetPetsAllowed() { return m_PetsAllowed; }
+	float GetPetFollowRadius();
 	uint32_t GetUniqueMissionIdStartingValue();
 	bool CheckIfAccessibleZone(LWOMAPID zoneID);
 
@@ -50,6 +51,9 @@ public:
 		if (!m_WorldConfig) LoadWorldConfig();
 		return m_WorldConfig;
 	};
+
+	// Override world config (for debugging purposes)
+	void SetWorldConfig(WorldConfig* worldConfig) { m_WorldConfig = worldConfig; }
 
 private:
 	/**

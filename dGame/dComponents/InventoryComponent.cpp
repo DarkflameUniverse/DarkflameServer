@@ -1205,7 +1205,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	auto* current = PetComponent::GetActivePet(m_Parent->GetObjectID());
 
 	if (current != nullptr) {
-		current->Deactivate();
+		current->Deactivate(eHelpType::PET_DESPAWN_BY_OWNER_HIBERNATE);
 
 		if (current->GetDatabaseId() == item->GetSubKey()) {
 			return;
