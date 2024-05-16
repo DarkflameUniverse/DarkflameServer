@@ -24,7 +24,7 @@ namespace {
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
-	if (!command.aliases.empty()) {
+	if (command.aliases.empty()) {
 		CommandInfos[command.aliases[0]] = command;
 	}
 	for (const auto& alias : command.aliases) {
