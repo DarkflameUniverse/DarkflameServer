@@ -24,7 +24,9 @@ namespace {
 }
 
 void SlashCommandHandler::RegisterCommand(Command command) {
-
+	if (!command.aliases.empty()) {
+		CommandInfos[command.aliases[0]] = command;
+	}
 	for (const auto& alias : command.aliases) {
 		LOG_DEBUG("Registering command %s", alias.c_str());
 		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
@@ -35,10 +37,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 		}
 	}
 
-	// Inserting into CommandInfos using the first alias as the key
-	if (!command.aliases.empty()) {
-		CommandInfos[command.aliases[0]] = command;
-	}
 }
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
@@ -98,7 +96,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		} else {
 			// Let GameMasters know if the command doesn't exist or they don't have access
 			if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
-				feedback << "Command " << std::quoted(args) << " does not exist or you don't have access!";
+				feedback << "Command " << std::quoted(args) << "Command Does Not Exist";
 			}
 		}
 	}
