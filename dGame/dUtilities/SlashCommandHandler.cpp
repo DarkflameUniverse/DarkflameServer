@@ -94,7 +94,6 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 				}
 			}
 		} else {
-			// Let GameMasters know if the command doesn't exist or they don't have access
 			if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 				feedback << "Command " << std::quoted(args) << "Does Not Exist";
 			};
