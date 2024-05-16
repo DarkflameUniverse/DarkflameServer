@@ -99,7 +99,6 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		} else if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 			if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
 				feedback << "Command " << std::quoted(args) << "does not exist";
-			};
 		}
 		const auto feedbackStr = feedback.str();
 		if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
