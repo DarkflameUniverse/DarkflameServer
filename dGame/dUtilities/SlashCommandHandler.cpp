@@ -41,7 +41,7 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 
 	// Inserting into CommandInfos using the first alias as the key
 	if (!command.aliases.empty()) {
-		CommandInfos.insert(std::make_pair(command.aliases[0], command));
+		CommandInfos[command.aliases[0]] = command;
 	}
 }
 
