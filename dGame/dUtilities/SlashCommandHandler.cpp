@@ -38,7 +38,39 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			continue;
 		}
 	}
-	CommandInfos.insert(std::make_pair(command.aliases[0], command));
+	CommandInfos[command.aliases[0]] = command;
+}
+
+void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
+	auto input = GeneralUtils::UTF16ToWTF8(chat);
+	if (input.empty() || input.front() != '/') return;
+	const auto pos = input.find(' ');
+	std::string command = input.substr(1, pos - 1);
+
+	std::string args;
+	// make sure the space exists and isn't the last character
+	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
+	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
+
+	const auto commandItr = RegisteredCommands.find(command);
+	std::string error;
+	if (commandItr != RegisteredCommands.end()) {
+		auto& [alias, commandHandle] = *commandItr;
+		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
+			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
+			commandHandle.handle(entity, sysAddr, args);
+		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
+			// We don't need to tell civilians they aren't high enough level
+			error = "You are not high enough GM level to use \"" + command + "\"";
+		}
+	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
+		// We don't need to tell civilians commands don't exist
+		error = "Command " + command + " does not exist!";
+	}
+
+	if (!error.empty()) {
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
+	}
 }
 
 void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -92,38 +124,6 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	// Send feedback text
 	const auto feedbackStr = feedback.str();
 	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
-}
-
-void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
-	auto input = GeneralUtils::UTF16ToWTF8(chat);
-	if (input.empty() || input.front() != '/') return;
-	const auto pos = input.find(' ');
-	std::string command = input.substr(1, pos - 1);
-
-	std::string args;
-	// make sure the space exists and isn't the last character
-	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
-	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
-
-	const auto commandItr = RegisteredCommands.find(command);
-	std::string error;
-	if (commandItr != RegisteredCommands.end()) {
-		auto& [alias, commandHandle] = *commandItr;
-		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
-			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
-			commandHandle.handle(entity, sysAddr, args);
-		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
-			// We don't need to tell civilians they aren't high enough level
-			error = "You are not high enough GM level to use \"" + command + "\"";
-		}
-	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
-		// We don't need to tell civilians commands don't exist
-		error = "Command " + command + " does not exist!";
-	}
-
-	if (!error.empty()) {
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
-	}
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
