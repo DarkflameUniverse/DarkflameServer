@@ -16,10 +16,10 @@ add_dependencies(dGameTests conncpp_tests)
 
 # Apple needs some special linkage for the mariadb connector for tests.
 if(APPLE)
-	add_custom_command(TARGET dGameTests POST_BUILD
-		COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests
-		COMMAND otool ARGS -L dGameTests
-		WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+add_custom_command(TARGET dGameTests POST_BUILD
+	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests
+	COMMAND otool ARGS -L dGameTests
+	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main

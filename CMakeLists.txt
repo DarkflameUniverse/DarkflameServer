@@ -229,7 +229,6 @@ include_directories(
 	"tests/dCommonTests"
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
-	"tests/dGameTests/dScriptsTests"
 
 	SYSTEM "thirdparty/magic_enum/include/magic_enum"
 	SYSTEM "thirdparty/raknet/Source"
