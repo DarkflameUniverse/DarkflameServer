@@ -23,85 +23,6 @@ namespace {
 	std::map<std::string, Command> RegisteredCommands;
 }
 
-void SlashCommandHandler::RegisterCommand(Command command) {
-	if (command.aliases.empty()) {
-		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
-		return;
-	}
-
-	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
-		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
-		// Don't allow duplicate commands
-		if (!success) {
-			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
-			continue;
-		}
-	}
-
-	// Inserting into CommandInfos using the first alias as the key
-	if (!command.aliases.empty()) {
-		CommandInfos.insert(std::make_pair(command.aliases[0], command));
-	}
-}
-
-void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
-	auto input = GeneralUtils::UTF16ToWTF8(chat);
-	if (input.empty() || input.front() != '/') return;
-	const auto pos = input.find(' ');
-	std::string command = input.substr(1, pos - 1);
-
-	std::string args;
-	// make sure the space exists and isn't the last character
-	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
-	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
-
-	const auto commandItr = RegisteredCommands.find(command);
-	std::string error;
-	if (commandItr != RegisteredCommands.end()) {
-		auto& [alias, commandHandle] = *commandItr;
-		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
-			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
-			commandHandle.handle(entity, sysAddr, args);
-		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
-			// We don't need to tell civilians they aren't high enough level
-			error = "You are not high enough GM level to use \"" + command + "\"";
-		}
-	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
-		// We don't need to tell civilians commands don't exist
-		error = "Command " + command + " does not exist!";
-	}
-
-	if (!error.empty()) {
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
-	}
-}
-
-void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
-	AMFArrayValue args;
-
-	args.Insert("title", title);
-	args.Insert("message", message);
-
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-	//Notify chat about it
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
-
-	bitStream.Write<uint32_t>(title.size());
-	for (auto character : title) {
-		bitStream.Write<char>(character);
-	}
-
-	bitStream.Write<uint32_t>(message.size());
-	for (auto character : message) {
-		bitStream.Write<char>(character);
-	}
-
-	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-}
-
 void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 	std::ostringstream feedback;
 	constexpr size_t pageSize = 10; // Number of commands per page
@@ -153,6 +74,73 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	// Send feedback text
 	const auto feedbackStr = feedback.str();
 	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+}
+
+void SlashCommandHandler::RegisterCommand(Command command) {
+	if (command.aliases.empty()) {
+		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
+		return;
+	}
+
+	for (const auto& alias : command.aliases) {
+		LOG_DEBUG("Registering command %s", alias.c_str());
+		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
+		// Don't allow duplicate commands
+		if (!success) {
+			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
+			continue;
+		}
+	}
+
+	// Inserting into CommandInfos using the first alias as the key
+	CommandInfos.insert(std::make_pair(command.aliases[0], command));
+}
+
+void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
+	auto input = GeneralUtils::UTF16ToWTF8(chat);
+	if (input.empty() || input.front() != '/') return;
+	const auto pos = input.find(' ');
+	std::string command = input.substr(1, pos - 1);
+
+	std::string args;
+	// make sure the space exists and isn't the last character
+	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
+	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
+
+	const auto commandItr = RegisteredCommands.find(command);
+	std::string error;
+	if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
+		error = "Command " + command + " does not exist!";
+	}
+
+	if (!error.empty()) {
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(error));
+	}
+}
+
+void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
+	AMFArrayValue args;
+
+	args.Insert("title", title);
+	args.Insert("message", message);
+
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+
+	//Notify chat about it
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
+
+	bitStream.Write<uint32_t>(title.size());
+	for (auto character : title) {
+		bitStream.Write<char>(character);
+	}
+
+	bitStream.Write<uint32_t>(message.size());
+	for (auto character : message) {
+		bitStream.Write<char>(character);
+	}
+
+	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
 
 void SlashCommandHandler::Startup() {
