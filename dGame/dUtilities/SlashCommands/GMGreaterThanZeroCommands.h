@@ -1,3 +1,6 @@
+#ifndef GMGREATERTHANZEROCOMMANDS_H
+#define GMGREATERTHANZEROCOMMANDS_H
+
 namespace GMGreaterThanZeroCommands {
 	void Kick(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void MailItem(Entity* entity, const SystemAddress& sysAddr, const std::string args);
@@ -13,3 +16,5 @@ namespace GMGreaterThanZeroCommands {
 	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
+
+#endif  //!GMGREATERTHANZEROCOMMANDS_H
