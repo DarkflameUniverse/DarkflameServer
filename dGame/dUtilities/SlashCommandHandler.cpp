@@ -35,6 +35,8 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
 			continue;
 		}
+
+		CommandInfos.insert(std::make_pair(command.aliases[0], command));
 	}
 
 }
