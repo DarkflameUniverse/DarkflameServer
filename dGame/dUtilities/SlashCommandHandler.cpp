@@ -37,7 +37,7 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			continue;
 		}
 
-		CommandInfos.insert(std::make_pair(command.aliases[0], command));
+		CommandInfos[command.aliases[0]] = command;
 	}
 
 }
