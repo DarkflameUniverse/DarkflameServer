@@ -25,7 +25,8 @@ namespace {
 
 void SlashCommandHandler::RegisterCommand(Command command) {
 	if (command.aliases.empty()) {
-		CommandInfos[command.aliases[0]] = command;
+		LOG("Command %s has no aliases! Skipping!", command.help.c_str());
+		return;
 	}
 	for (const auto& alias : command.aliases) {
 		LOG_DEBUG("Registering command %s", alias.c_str());
