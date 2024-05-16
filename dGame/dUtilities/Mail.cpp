@@ -156,12 +156,11 @@ void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAdd
 	LUWString recipientRead(32);
 	packet.Read(recipientRead);
 
-	std::string subject = subjectRead.GetAsString();
-	std::string body = bodyRead.GetAsString();
-	std::string recipient = recipientRead.GetAsString();
+	const std::string subject = subjectRead.GetAsString();
+	const std::string body = bodyRead.GetAsString();
 
 	//Cleanse recipient:
-	recipient = std::regex_replace(recipient, std::regex("[^0-9a-zA-Z]+"), "");
+	const std::string recipient = std::regex_replace(recipientRead.GetAsString(), std::regex("[^0-9a-zA-Z]+"), "");
 
 	uint64_t unknown64 = 0;
 	LWOOBJID attachmentID;
@@ -256,11 +255,11 @@ void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sys
 	for (const auto& mail : playerMail) {
 		bitStream.Write(mail.id); //MailID
 
-		LUWString subject(mail.subject, 50);
+		const LUWString subject(mail.subject, 50);
 		bitStream.Write(subject); //subject
-		LUWString body(mail.body, 400);
+		const LUWString body(mail.body, 400);
 		bitStream.Write(body); //body
-		LUWString sender(mail.senderUsername, 32);
+		const LUWString sender(mail.senderUsername, 32);
 		bitStream.Write(sender); //sender
 		bitStream.Write(uint32_t(0)); // packing
 
