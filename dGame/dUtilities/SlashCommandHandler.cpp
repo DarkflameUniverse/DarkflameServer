@@ -91,9 +91,10 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 	// Check if page number is provided
 	if (!args.empty()) {
-		try {
-			page = std::stoi(args);
-		} catch (const std::exception&) {
+		std::optional<int> parsedPage = GeneralUtils::TryParse<int>(args);
+		if (parsedPage.has_value()) {
+			page = *parsedPage;
+		} else {
 			feedback << "Invalid page number.";
 			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
 			return;
@@ -113,12 +114,10 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 
 	// Display commands for the current page
 	feedback << "----- Commands (Page " << page << ") -----";
-	size_t count = 0;
 	for (size_t i = startIdx; i < endIdx; ++i) {
 		const auto& [alias, command] = accessibleCommands[i];
 		LOG("Help command: %s", alias.c_str());
 		feedback << "\n/" << alias << ": " << command.help;
-		++count;
 	}
 
 	// Send feedback text
