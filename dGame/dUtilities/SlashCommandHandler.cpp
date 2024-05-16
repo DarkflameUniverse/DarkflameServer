@@ -96,12 +96,12 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		} else {
 			// Let GameMasters know if the command doesn't exist or they don't have access
 			if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
-				feedback << "Command " << std::quoted(args) << "Command Does Not Exist";
-			}
+				feedback << "Command " << std::quoted(args) << "Does Not Exist";
+			};
 		}
+		const auto feedbackStr = feedback.str();
+		if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 	}
-	const auto feedbackStr = feedback.str();
-	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
@@ -127,7 +127,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	}
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-}
+};
 
 void SlashCommandHandler::Startup() {
 	// Register Dev Commands
