@@ -77,31 +77,6 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	}
 }
 
-void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
-	AMFArrayValue args;
-
-	args.Insert("title", title);
-	args.Insert("message", message);
-
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-	//Notify chat about it
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
-
-	bitStream.Write<uint32_t>(title.size());
-	for (auto character : title) {
-		bitStream.Write<char>(character);
-	}
-
-	bitStream.Write<uint32_t>(message.size());
-	for (auto character : message) {
-		bitStream.Write<char>(character);
-	}
-
-	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-}
-
 void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 	std::ostringstream feedback;
 	if (args.empty()) {
@@ -133,6 +108,31 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	}
 	const auto feedbackStr = feedback.str();
 	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+}
+
+void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
+	AMFArrayValue args;
+
+	args.Insert("title", title);
+	args.Insert("message", message);
+
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+
+	//Notify chat about it
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
+
+	bitStream.Write<uint32_t>(title.size());
+	for (auto character : title) {
+		bitStream.Write<char>(character);
+	}
+
+	bitStream.Write<uint32_t>(message.size());
+	for (auto character : message) {
+		bitStream.Write<char>(character);
+	}
+
+	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
 
 void SlashCommandHandler::Startup() {
