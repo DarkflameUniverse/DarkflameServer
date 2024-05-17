@@ -224,6 +224,16 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 	for (auto i = 0u; i < this->syncEntries.size(); ++i) {
 		auto entry = this->syncEntries.at(i);
 
+		if (entry.behavior->m_templateId == BehaviorTemplate::ATTACK_DELAY) {
+			auto* self = Game::entityManager->GetEntity(originator);
+			if (self) {
+				auto* destroyableComponent = self->GetComponent<DestroyableComponent>();
+				if (destroyableComponent && destroyableComponent->GetHealth() <= 0) {
+					continue;
+				}
+			}
+		}
+
 		if (entry.time > 0) {
 			entry.time -= deltaTime;
 
@@ -333,7 +343,7 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		}
 
 		// handle targeting the caster
-		if (candidate == caster){
+		if (candidate == caster) {
 			// if we aren't targeting self, erase, otherise increment and continue
 			if (!targetSelf) index = targets.erase(index);
 			else index++;
@@ -356,24 +366,24 @@ void BehaviorContext::FilterTargets(std::vector<Entity*>& targets, std::forward_
 		}
 
 		// if they are dead, then earse and continue
-		if (candidateDestroyableComponent->GetIsDead()){
+		if (candidateDestroyableComponent->GetIsDead()) {
 			index = targets.erase(index);
 			continue;
 		}
 
 		// if their faction is explicitly included, increment and continue
 		auto candidateFactions = candidateDestroyableComponent->GetFactionIDs();
-		if (CheckFactionList(includeFactionList, candidateFactions)){
+		if (CheckFactionList(includeFactionList, candidateFactions)) {
 			index++;
 			continue;
 		}
 
 		// check if they are a team member
-		if (targetTeam){
+		if (targetTeam) {
 			auto* team = TeamManager::Instance()->GetTeam(this->caster);
-			if (team){
+			if (team) {
 				// if we find a team member keep it and continue to skip enemy checks
-				if(std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()){
+				if (std::find(team->members.begin(), team->members.end(), candidate->GetObjectID()) != team->members.end()) {
 					index++;
 					continue;
 				}
@@ -419,8 +429,8 @@ bool BehaviorContext::CheckTargetingRequirements(const Entity* target) const {
 // returns true if any of the object factions are in the faction list
 bool BehaviorContext::CheckFactionList(std::forward_list<int32_t>& factionList, std::vector<int32_t>& objectsFactions) const {
 	if (factionList.empty() || objectsFactions.empty()) return false;
-	for (auto faction : factionList){
-		if(std::find(objectsFactions.begin(), objectsFactions.end(), faction) != objectsFactions.end()) return true;
+	for (auto faction : factionList) {
+		if (std::find(objectsFactions.begin(), objectsFactions.end(), faction) != objectsFactions.end()) return true;
 	}
 	return false;
 }

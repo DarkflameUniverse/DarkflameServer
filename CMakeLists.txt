@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
 project(Darkflame)
+
+# check if the path to the source directory contains a space
+if("${CMAKE_SOURCE_DIR}" MATCHES " ")
+	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
+endif()
+
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
