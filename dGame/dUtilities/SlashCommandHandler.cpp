@@ -20,7 +20,6 @@
 
 namespace {
 	std::map<std::string, Command> CommandInfos;
-	std::map<std::string, Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
 }
 
@@ -38,9 +37,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			LOG_DEBUG("Command alias %s is already registered! Skipping!", alias.c_str());
 			continue;
 		}
-	}
-	CommandInfos[command.aliases[0]] = command;
-}
 	}
 	CommandInfos[command.aliases[0]] = command;
 }
@@ -143,11 +139,6 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {
-		bitStream.Write<char>(character);
-	}
-
-	bitStream.Write<uint32_t>(message.size());
-	for (auto character : message) {
 		bitStream.Write<char>(character);
 	}
 
@@ -918,7 +909,6 @@ void SlashCommandHandler::Startup() {
 
 	Command HelpCommand{
 		.help = "Display command info",
-		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short descriptions.",
 		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short descriptions.",
 		.aliases = { "help", "h"},
 		.handle = GMZeroCommands::Help,
