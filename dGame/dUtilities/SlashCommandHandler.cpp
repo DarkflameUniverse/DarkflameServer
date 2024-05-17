@@ -141,6 +141,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 	for (auto character : title) {
 		bitStream.Write<char>(character);
 	}
+	bitStream.Write<uint32_t>(message.size());
 
 	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
