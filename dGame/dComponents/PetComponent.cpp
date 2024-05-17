@@ -210,23 +210,24 @@ void PetComponent::OnUse(Entity* originator) {
 	if (dpWorld::IsLoaded()) {
 		NiPoint3 attempt = petPosition + forward * interactionDistance;
 
-		float y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
+		NiPoint3 nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
 
-		while (std::abs(y - petPosition.y) > 4 && interactionDistance > 10) {
+		while (std::abs(nearestPoint.y - petPosition.y) > 4 && interactionDistance > 10) {
 			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
 
 			attempt = originatorPosition + forward * interactionDistance;
 
-			y = dpWorld::GetNavMesh()->GetHeightAtPoint(attempt);
+			nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
 
 			interactionDistance -= 0.5f;
 		}
 
-		position = attempt;
+		position = nearestPoint;
 	} else {
 		position = petPosition + forward * interactionDistance;
 	}
-
+	const auto [x, y, z] = position;
+	LOG("position.x %f position.y %f position.z %f", x, y, z);
 
 	auto rotation = NiQuaternion::LookAt(position, petPosition);
 
