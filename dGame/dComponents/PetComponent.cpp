@@ -32,6 +32,8 @@
 #include "eGameMasterLevel.h"
 #include "eMissionState.h"
 #include "dNavMesh.h"
+#include "eGameActivity.h"
+#include "eStateChangeType.h"
 
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::currentActivities{};
 std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
@@ -226,8 +228,6 @@ void PetComponent::OnUse(Entity* originator) {
 	} else {
 		position = petPosition + forward * interactionDistance;
 	}
-	const auto [x, y, z] = position;
-	LOG("position.x %f position.y %f position.z %f", x, y, z);
 
 	auto rotation = NiQuaternion::LookAt(position, petPosition);
 
@@ -247,11 +247,11 @@ void PetComponent::OnUse(Entity* originator) {
 		m_Parent->GetObjectID(),
 		LWOOBJID_EMPTY,
 		originator->GetObjectID(),
-		true,
+		false,
 		ePetTamingNotifyType::BEGIN,
-		petPosition,
-		position,
-		rotation,
+		NiPoint3Constant::ZERO,
+		NiPoint3Constant::ZERO,
+		NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f),
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -259,11 +259,18 @@ void PetComponent::OnUse(Entity* originator) {
 
 	m_Tamer = originator->GetObjectID();
 	SetStatus(5);
+	Game::entityManager->SerializeEntity(m_Parent);
 
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
 	// Notify the start of a pet taming minigame
 	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
+
+	auto* characterComponent = originator->GetComponent<CharacterComponent>();
+	if (characterComponent != nullptr) {
+		characterComponent->SetCurrentActivity(eGameActivity::PET_TAMING);
+		Game::entityManager->SerializeEntity(originator);
+	}
 }
 
 void PetComponent::Update(float deltaTime) {
@@ -628,6 +635,11 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
+	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	if (characterComponent != nullptr) {
+		characterComponent->SetCurrentActivity(eGameActivity::NONE);
+		Game::entityManager->SerializeEntity(tamer);
+	}
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 	auto* modelEntity = Game::entityManager->GetEntity(m_ModelId);
@@ -667,6 +679,11 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
+	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	if (characterComponent != nullptr) {
+		characterComponent->SetCurrentActivity(eGameActivity::NONE);
+		Game::entityManager->SerializeEntity(tamer);
+	}
 	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
 
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
@@ -713,6 +730,11 @@ void PetComponent::ClientFailTamingMinigame() {
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
+	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	if (characterComponent != nullptr) {
+		characterComponent->SetCurrentActivity(eGameActivity::NONE);
+		Game::entityManager->SerializeEntity(tamer);
+	}
 	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
 
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
