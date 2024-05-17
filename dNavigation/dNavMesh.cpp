@@ -126,9 +126,6 @@ NiPoint3 dNavMesh::NearestPoint(const NiPoint3& location, const float halfExtent
 		dtQueryFilter filter{};
 
 		auto hasPoly = m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, nearestPoint);
-		toReturn.x = nearestPoint[0];
-		toReturn.y = nearestPoint[1];
-		toReturn.z = nearestPoint[2];
 		if (hasPoly != DT_SUCCESS) {
 			toReturn = location;
 		} else {
