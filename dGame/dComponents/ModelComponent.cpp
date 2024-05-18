@@ -21,9 +21,11 @@ void ModelComponent::LoadBehaviors() {
 	auto behaviors = GeneralUtils::SplitString(m_Parent->GetVar<std::string>(u"userModelBehaviors"), ',');
 	for (const auto& behavior : behaviors) {
 		if (behavior.empty()) continue;
+
 		const auto behaviorId = GeneralUtils::TryParse<int32_t>(behavior);
 		if (!behaviorId.has_value() || behaviorId.value() == 0) continue;
-		LOG("Loading behavior %d", behaviorId.value());
+
+		LOG_DEBUG("Loading behavior %d", behaviorId.value());
 		auto& inserted = m_Behaviors.emplace_back();
 		inserted.SetBehaviorId(*behaviorId);
 		
@@ -31,7 +33,7 @@ void ModelComponent::LoadBehaviors() {
 		
 		tinyxml2::XMLDocument behaviorXml;
 		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
-		LOG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
+		LOG_DEBUG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
 
 		const auto* const behaviorRoot = behaviorXml.FirstChildElement("Behavior");
 		if (!behaviorRoot) {
@@ -108,6 +110,7 @@ std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSa
 		if (behavior.GetBehaviorId() == -1) continue;
 		auto& [id, behaviorData] = toReturn[i];
 		id = behavior.GetBehaviorId();
+
 		tinyxml2::XMLDocument doc;
 		auto* root = doc.NewElement("Behavior");
 		behavior.Serialize(*root);

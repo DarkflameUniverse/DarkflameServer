@@ -597,8 +597,11 @@ void PropertyManagementComponent::Load() {
 
 		std::ostringstream userModelBehavior;
 		bool firstAdded = false;
-		for (const auto& behavior : databaseModel.behaviors) {
-			if (behavior == LWOOBJID_EMPTY) continue;
+		for (auto behavior : databaseModel.behaviors) {
+			if (behavior < 0) {
+				LOG("Invalid behavior ID: %d, removing behavior reference from model", behavior);
+				behavior = 0;
+			}
 			if (firstAdded) userModelBehavior << ",";
 			userModelBehavior << behavior;
 			firstAdded = true;
