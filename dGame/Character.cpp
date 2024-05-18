@@ -239,7 +239,7 @@ void Character::SaveXMLToDatabase() {
 
 		auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 		// lzid garbage, binary concat of zoneID, zoneInstance and zoneClone
-		// if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
+		if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
 			uint64_t lzidConcat = zoneInfo.GetCloneID();
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetInstanceID());
 			lzidConcat = (lzidConcat << 16) | uint16_t(zoneInfo.GetMapID());
@@ -251,7 +251,7 @@ void Character::SaveXMLToDatabase() {
 
 			// Set the target scene, custom attribute
 			character->SetAttribute("tscene", m_TargetScene.c_str());
-		// }
+		}
 
 		auto emotes = character->FirstChildElement("ue");
 		if (!emotes) emotes = m_Doc.NewElement("ue");
