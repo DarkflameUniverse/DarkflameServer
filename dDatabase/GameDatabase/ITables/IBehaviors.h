@@ -1,5 +1,5 @@
-#ifndef __IBEHAVIORS__H__
-#define __IBEHAVIORS__H__
+#ifndef IBEHAVIORS_H
+#define IBEHAVIORS_H
 
 #include <cstdint>
 
@@ -19,4 +19,4 @@ public:
 	virtual void RemoveBehavior(const int32_t behaviorId) = 0;
 };
 
-#endif  //!__IBEHAVIORS__H__
+#endif  //!IBEHAVIORS_H
