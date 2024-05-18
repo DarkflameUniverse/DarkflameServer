@@ -44,46 +44,28 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
 	if (input.empty() || input.front() != '/') return;
-
 	const auto pos = input.find(' ');
 	std::string command = input.substr(1, pos - 1);
-	std::string args;
-	if (pos != std::string::npos && pos != input.size()) {
-		args = input.substr(pos + 1);
-	}
 
+	std::string args;
+	// make sure the space exists and isn't the last character
+	if (pos != std::string::npos && pos != input.size()) args = input.substr(input.find(' ') + 1);
 	LOG_DEBUG("Handling command \"%s\" with args \"%s\"", command.c_str(), args.c_str());
 
-	// Resolve command if it is an alias
-	std::string primaryCommand = command;
-	for (const auto& pair : RegisteredCommands) {
-		if (command == pair.first || std::find(pair.second.aliases.begin(), pair.second.aliases.end(), command) != pair.second.aliases.end()) {
-			primaryCommand = pair.first;
-			break;
-		}
-	}
-
-	if (args == "help") {
-		auto cmdIt = RegisteredCommands.find(primaryCommand);
-		if (cmdIt != RegisteredCommands.end()) {
-			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(cmdIt->second.info));
-			return;
-		}
-	}
-
-	auto commandItr = RegisteredCommands.find(primaryCommand);
+	const auto commandItr = RegisteredCommands.find(command);
 	std::string error;
 	if (commandItr != RegisteredCommands.end()) {
 		auto& [alias, commandHandle] = *commandItr;
 		if (entity->GetGMLevel() >= commandHandle.requiredLevel) {
-			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN)
-				Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
+			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
-		} else {
-			error = "You are not high enough GM level to use \"" + primaryCommand + "\"";
+		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
+			// We don't need to tell civilians they aren't high enough level
+			error = "You are not high enough GM level to use \"" + command + "\"";
 		}
-	} else {
-		error = "Command " + primaryCommand + " does not exist!";
+	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
+		// We don't need to tell civilians commands don't exist
+		error = "Command " + command + " does not exist!";
 	}
 
 	if (!error.empty()) {
@@ -95,6 +77,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	std::ostringstream feedback;
 	constexpr size_t pageSize = 10;
 
+	// Trim the args
 	std::string trimmedArgs = args;
 	trimmedArgs.erase(trimmedArgs.begin(), std::find_if_not(trimmedArgs.begin(), trimmedArgs.end(), [](unsigned char ch) {
 		return std::isspace(ch);
@@ -103,29 +86,17 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		return std::isspace(ch);
 		}).base(), trimmedArgs.end());
 
-	if (trimmedArgs == "help") {
-		feedback << "Use /help <page> to view commands or /<command> help to view detailed information about a specific command.";
-		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
-		return;
-	}
+	// Check if the argument is a number (for pagination)
+	if (trimmedArgs.empty() || std::all_of(trimmedArgs.begin(), trimmedArgs.end(), ::isdigit)) {
+		std::optional<int> parsedPage = trimmedArgs.empty() ? 1 : std::stoi(trimmedArgs);
+		size_t page = parsedPage.value_or(1);
 
-	if (trimmedArgs.empty()) {
-		trimmedArgs = "1";
-	}
-
-	std::optional<int> parsedPage = GeneralUtils::TryParse<int>(trimmedArgs);
-	if (parsedPage.has_value()) {
-		size_t page = *parsedPage;
-
-		// Display help with pagination
 		std::vector<std::pair<std::string, Command>> accessibleCommands;
 		for (const auto& [commandName, command] : CommandInfos) {
 			if (command.requiredLevel <= entity->GetGMLevel()) {
 				accessibleCommands.emplace_back(commandName, command);
 			}
 		}
-
-		// Sort commands alphabetically by their primary alias
 		std::sort(accessibleCommands.begin(), accessibleCommands.end(),
 			[](const auto& a, const auto& b) {
 				return a.second.aliases.at(0) < b.second.aliases.at(0);
@@ -156,20 +127,28 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	}
 
 	// If args is not a number, check if it matches a command alias
+	std::string commandToFind = trimmedArgs;
 	bool foundCommand = false;
 	for (const auto& [commandName, command] : CommandInfos) {
-		if (std::find(command.aliases.begin(), command.aliases.end(), trimmedArgs) == command.aliases.end()) continue;
+		if (commandName == commandToFind || std::find(command.aliases.begin(), command.aliases.end(), commandToFind) != command.aliases.end()) {
+			if (entity->GetGMLevel() < command.requiredLevel) {
+				feedback << "You do not have the required level to view this command info.";
+				foundCommand = true;
+				break;
+			}
 
-		if (entity->GetGMLevel() < command.requiredLevel) {
-			feedback << "You do not have the required level to view this command info.";
 			foundCommand = true;
+			feedback << "----- " << command.aliases.at(0) << " Info -----\n";
+			feedback << command.info << "\n";
+			if (command.aliases.size() > 1) {
+				feedback << "Aliases: ";
+				for (size_t i = 0; i < command.aliases.size(); ++i) {
+					if (i > 0) feedback << ", ";
+					feedback << command.aliases[i];
+				}
+			}
 			break;
 		}
-
-		foundCommand = true;
-		feedback << "----- " << command.aliases.at(0) << " Info -----\n";
-		feedback << command.info << "\n";
-		break;
 	}
 
 	if (!foundCommand) {
