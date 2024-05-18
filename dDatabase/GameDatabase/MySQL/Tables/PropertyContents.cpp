@@ -47,8 +47,8 @@ void MySQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& posi
 	ExecuteUpdate(
 		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, "
 		"behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?;",
-		position.x, position.y, position.z, rotation.x, rotation.y, rotation.z, rotation.w, propertyId,
-		behaviors[0].first, behaviors[1].first, behaviors[2].first, behaviors[3].first, behaviors[4].first);
+		position.x, position.y, position.z, rotation.x, rotation.y, rotation.z, rotation.w,
+		behaviors[0].first, behaviors[1].first, behaviors[2].first, behaviors[3].first, behaviors[4].first, propertyId);
 }
 
 void MySQLDatabase::RemoveModel(const LWOOBJID& modelId) {

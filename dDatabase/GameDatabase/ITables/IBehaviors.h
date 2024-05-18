@@ -13,6 +13,7 @@ public:
 		std::string behaviorInfo;
 	};
 
+	// This Add also takes care of updating if it exists.
 	virtual void AddBehavior(const Info& info) = 0;
 	virtual void RemoveBehavior(const uint32_t behaviorId) = 0;
 };
