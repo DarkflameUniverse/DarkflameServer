@@ -1,6 +1,8 @@
 #include "Action.h"
 #include "Amf3.h"
 
+#include "tinyxml2.h"
+
 Action::Action(const AMFArrayValue& arguments) {
 	for (const auto& [paramName, paramValue] : arguments.GetAssociative()) {
 		if (paramName == "Type") {
@@ -30,5 +32,17 @@ void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 		actionArgs->Insert(m_ValueParameterName, m_ValueParameterString);
 	} else {
 		actionArgs->Insert(m_ValueParameterName, m_ValueParameterDouble);
+	}
+}
+
+void Action::Serialize(tinyxml2::XMLElement& action) const {
+	action.SetAttribute("Type", m_Type.c_str());
+
+	if (m_ValueParameterName.empty()) return;
+
+	if (m_ValueParameterName == "Message") {
+		action.SetAttribute(m_ValueParameterName.c_str(), m_ValueParameterString.c_str());
+	} else {
+		action.SetAttribute(m_ValueParameterName.c_str(), m_ValueParameterDouble);
 	}
 }

@@ -6,6 +6,7 @@
 
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
+#include "tinyxml2.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
@@ -71,4 +72,23 @@ void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
 	if (msg.GetBehaviorIndex() >= m_Behaviors.size() || m_Behaviors.at(msg.GetBehaviorIndex()).GetBehaviorId() != msg.GetBehaviorId()) return;
 	m_Behaviors.erase(m_Behaviors.begin() + msg.GetBehaviorIndex());
 	// TODO move to the inventory
+}
+
+std::array<std::pair<LWOOBJID, std::string>, 5> ModelComponent::GetBehaviorsForSave() const {
+	std::array<std::pair<LWOOBJID, std::string>, 5> toReturn;
+	for (auto i = 0; i < m_Behaviors.size(); i++) {
+		const auto& behavior = m_Behaviors.at(i);
+		if (behavior.GetBehaviorId() == -1) continue;
+		auto& [id, behaviorData] = toReturn[i];
+		id = behavior.GetBehaviorId();
+		tinyxml2::XMLDocument doc;
+		auto* root = doc.NewElement("Behavior");
+		behavior.Serialize(*root);
+		doc.InsertFirstChild(root);
+
+		tinyxml2::XMLPrinter printer(0, false, 0);
+		doc.Print(&printer);
+		behaviorData = printer.CStr();
+	}
+	return toReturn;
 }

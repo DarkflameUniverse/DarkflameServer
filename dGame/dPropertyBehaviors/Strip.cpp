@@ -2,6 +2,7 @@
 
 #include "Amf3.h"
 #include "ControlBehaviorMsgs.h"
+#include "tinyxml2.h"
 
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
@@ -83,4 +84,13 @@ void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	for (const auto& action : m_Actions) {
 		action.SendBehaviorBlocksToClient(*actions);
 	}
-};
+}
+
+void Strip::Serialize(tinyxml2::XMLElement& strip) const {
+	auto* const positionElement = strip.InsertNewChildElement("Position");
+	m_Position.Serialize(*positionElement);
+	for (const auto& action : m_Actions) {
+		auto* const actionElement = strip.InsertNewChildElement("Action");
+		action.Serialize(*actionElement);
+	}
+}

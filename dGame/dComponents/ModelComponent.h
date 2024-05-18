@@ -109,6 +109,8 @@ public:
 	
 	void VerifyBehaviors();
 
+	std::array<std::pair<LWOOBJID, std::string>, 5> GetBehaviorsForSave() const;
+
 private:
 	/**
 	 * The behaviors of the model

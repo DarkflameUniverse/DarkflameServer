@@ -21,9 +21,11 @@
 #include "eObjectBits.h"
 #include "CharacterComponent.h"
 #include "PlayerManager.h"
+#include "ModelComponent.h"
 
 #include <vector>
 #include "CppScripts.h"
+#include <ranges>
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
@@ -610,6 +612,12 @@ void PropertyManagementComponent::Save() {
 		return;
 	}
 
+	const auto* const owner = GetOwner();
+	if (!owner) return;
+
+	const auto* const character = owner->GetCharacter();
+	if (!character) return;
+
 	auto present = Database::Get()->GetPropertyModels(propertyId);
 
 	std::vector<LWOOBJID> modelIds;
@@ -624,6 +632,20 @@ void PropertyManagementComponent::Save() {
 		if (entity == nullptr) {
 			continue;
 		}
+		auto* modelComponent = entity->GetComponent<ModelComponent>();
+		if (!modelComponent) continue;
+		const auto modelBehaviors = modelComponent->GetBehaviorsForSave();
+
+		// save the behaviors of the model
+		for (const auto& [behaviorId, behaviorStr] : modelBehaviors) {
+			if (behaviorStr.empty() || behaviorId == LWOOBJID_EMPTY) continue;
+			IBehaviors::Info info {
+				.behaviorId = behaviorId,
+				.characterId = character->GetID(),
+				.behaviorInfo = behaviorStr
+			};
+			Database::Get()->AddBehavior(info);
+		}
 
 		const auto position = entity->GetPosition();
 		const auto rotation = entity->GetRotation();
@@ -635,10 +657,13 @@ void PropertyManagementComponent::Save() {
 			model.position = position;
 			model.rotation = rotation;
 			model.ugcId = 0;
+			for (auto i = 0; i < model.behaviors.size(); i++) {
+				model.behaviors[i] = modelBehaviors[i].first;
+			}
 
 			Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_" + std::to_string(model.lot) + "_name");
 		} else {
-			Database::Get()->UpdateModelPositionRotation(id, position, rotation);
+			Database::Get()->UpdateModel(id, position, rotation, modelBehaviors);
 		}
 	}
 

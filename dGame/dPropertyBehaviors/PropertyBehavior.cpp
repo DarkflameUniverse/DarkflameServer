@@ -3,6 +3,7 @@
 #include "Amf3.h"
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
+#include "tinyxml2.h"
 
 PropertyBehavior::PropertyBehavior() {
 	m_LastEditedState = BehaviorState::HOME_STATE;
@@ -123,4 +124,18 @@ void PropertyBehavior::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	executionState->InsertArray("strips");
 
 	// TODO Serialize the execution state of the behavior
+}
+
+void PropertyBehavior::Serialize(tinyxml2::XMLElement& behavior) const {
+	behavior.SetAttribute("id", m_BehaviorId);
+	behavior.SetAttribute("name", m_Name.c_str());
+	behavior.SetAttribute("isLocked", isLocked);
+	behavior.SetAttribute("isLoot", isLoot);
+
+	for (const auto& [stateId, state] : m_States) {
+		if (state.IsEmpty()) continue;
+		auto* const stateElement = behavior.InsertNewChildElement("State");
+		stateElement->SetAttribute("id", static_cast<uint32_t>(stateId));
+		state.Serialize(*stateElement);
+	}
 }

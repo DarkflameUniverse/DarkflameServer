@@ -187,7 +187,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 
 	auto zoneInfo = Game::zoneManager->GetZone()->GetZoneID();
 
-	if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
+	// if (zoneInfo.GetMapID() != 0 && zoneInfo.GetCloneID() == 0 && !Game::zoneManager->GetDisableSaveLocation()) {
 		character->SetAttribute("lzx", m_Position.x);
 		character->SetAttribute("lzy", m_Position.y);
 		character->SetAttribute("lzz", m_Position.z);
@@ -195,7 +195,7 @@ void ControllablePhysicsComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 		character->SetAttribute("lzry", m_Rotation.y);
 		character->SetAttribute("lzrz", m_Rotation.z);
 		character->SetAttribute("lzrw", m_Rotation.w);
-	}
+	// }
 }
 
 void ControllablePhysicsComponent::SetPosition(const NiPoint3& pos) {
