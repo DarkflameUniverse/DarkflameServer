@@ -1,6 +1,7 @@
 #ifndef __IPROPERTIESCONTENTS__H__
 #define __IPROPERTIESCONTENTS__H__
 
+#include <array>
 #include <cstdint>
 #include <string_view>
 
