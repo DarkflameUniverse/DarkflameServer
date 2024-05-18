@@ -27,3 +27,8 @@ void StripUiPosition::Serialize(tinyxml2::XMLElement& position) const {
 	position.SetAttribute("x", m_XPosition);
 	position.SetAttribute("y", m_YPosition);
 }
+
+void StripUiPosition::Deserialize(const tinyxml2::XMLElement& position) {
+	position.QueryDoubleAttribute("x", &m_XPosition);
+	position.QueryDoubleAttribute("y", &m_YPosition);
+}

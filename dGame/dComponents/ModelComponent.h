@@ -28,6 +28,8 @@ public:
 
 	ModelComponent(Entity* parent);
 
+	void LoadBehaviors();
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
 	/**
@@ -109,7 +111,7 @@ public:
 	
 	void VerifyBehaviors();
 
-	std::array<std::pair<LWOOBJID, std::string>, 5> GetBehaviorsForSave() const;
+	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
 
 private:
 	/**

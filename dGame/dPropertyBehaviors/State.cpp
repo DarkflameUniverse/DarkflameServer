@@ -145,3 +145,10 @@ void State::Serialize(tinyxml2::XMLElement& state) const {
 		strip.Serialize(*stripElement);
 	}
 }
+
+void State::Deserialize(const tinyxml2::XMLElement& state) {
+	for (const auto* stripElement = state.FirstChildElement("Strip"); stripElement; stripElement = stripElement->NextSiblingElement("Strip")) {
+		auto& strip = m_Strips.emplace_back();
+		strip.Deserialize(*stripElement);
+	}
+}

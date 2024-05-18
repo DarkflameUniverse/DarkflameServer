@@ -139,3 +139,17 @@ void PropertyBehavior::Serialize(tinyxml2::XMLElement& behavior) const {
 		state.Serialize(*stateElement);
 	}
 }
+
+
+void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
+	m_Name = behavior.Attribute("name");
+	behavior.QueryBoolAttribute("isLocked", &isLocked);
+	behavior.QueryBoolAttribute("isLoot", &isLoot);
+
+	for (const auto* stateElement = behavior.FirstChildElement("State"); stateElement; stateElement = stateElement->NextSiblingElement("State")) {
+		int32_t stateId = -1;
+		stateElement->QueryIntAttribute("id", &stateId);
+		if (stateId < 0 || stateId > 5) continue;
+		m_States[static_cast<BehaviorState>(stateId)].Deserialize(*stateElement);
+	}
+}

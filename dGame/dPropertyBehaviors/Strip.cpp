@@ -94,3 +94,15 @@ void Strip::Serialize(tinyxml2::XMLElement& strip) const {
 		action.Serialize(*actionElement);
 	}
 }
+
+void Strip::Deserialize(const tinyxml2::XMLElement& strip) {
+	const auto* positionElement = strip.FirstChildElement("Position");
+	if (positionElement) {
+		m_Position.Deserialize(*positionElement);
+	}
+
+	for (const auto* actionElement = strip.FirstChildElement("Action"); actionElement; actionElement = actionElement->NextSiblingElement("Action")) {
+		auto& action = m_Actions.emplace_back();
+		action.Deserialize(*actionElement);
+	}
+}

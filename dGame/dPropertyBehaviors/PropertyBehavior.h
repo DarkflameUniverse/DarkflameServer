@@ -30,6 +30,7 @@ public:
 	void SetBehaviorId(int32_t id) noexcept { m_BehaviorId = id; }
 
 	void Serialize(tinyxml2::XMLElement& behavior) const;
+	void Deserialize(const tinyxml2::XMLElement& behavior);
 private:
 
 	// The states this behavior has.

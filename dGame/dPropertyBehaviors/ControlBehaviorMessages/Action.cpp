@@ -40,9 +40,40 @@ void Action::Serialize(tinyxml2::XMLElement& action) const {
 
 	if (m_ValueParameterName.empty()) return;
 
+	action.SetAttribute("ValueParameterName", m_ValueParameterName.c_str());
+
 	if (m_ValueParameterName == "Message") {
-		action.SetAttribute(m_ValueParameterName.c_str(), m_ValueParameterString.c_str());
+		action.SetAttribute("Value", m_ValueParameterString.c_str());
 	} else {
-		action.SetAttribute(m_ValueParameterName.c_str(), m_ValueParameterDouble);
+		action.SetAttribute("Value", m_ValueParameterDouble);
+	}
+}
+
+void Action::Deserialize(const tinyxml2::XMLElement& action) {
+	const char* type = nullptr;
+	action.QueryAttribute("Type", &type);
+	if (!type) {
+		LOG("No type found for an action?");
+		return;
+	}
+
+	m_Type = type;
+
+	const char* valueParameterName = nullptr;
+	action.QueryAttribute("ValueParameterName", &valueParameterName);
+	if (valueParameterName) {
+		m_ValueParameterName = valueParameterName;
+
+		if (m_ValueParameterName == "Message") {
+			const char* value = nullptr;
+			action.QueryAttribute("Value", &value);
+			if (value) {
+				m_ValueParameterString = value;
+			} else {
+				LOG("No value found for an action message?");
+			}
+		} else {
+			action.QueryDoubleAttribute("Value", &m_ValueParameterDouble);
+		}
 	}
 }

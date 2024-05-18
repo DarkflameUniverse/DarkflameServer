@@ -18,6 +18,7 @@ public:
 	bool IsEmpty() const;
 
 	void Serialize(tinyxml2::XMLElement& state) const;
+	void Deserialize(const tinyxml2::XMLElement& state);
 private:
 	std::vector<Strip> m_Strips;
 };

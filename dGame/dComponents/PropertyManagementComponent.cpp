@@ -595,6 +595,17 @@ void PropertyManagementComponent::Load() {
 			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
 		}
 
+		std::ostringstream userModelBehavior;
+		bool firstAdded = false;
+		for (const auto& behavior : databaseModel.behaviors) {
+			if (behavior == LWOOBJID_EMPTY) continue;
+			if (firstAdded) userModelBehavior << ",";
+			userModelBehavior << behavior;
+			firstAdded = true;
+		}
+
+		settings.push_back(new LDFData<std::string>(u"userModelBehaviors", userModelBehavior.str()));
+
 		node->config = settings;
 
 		const auto spawnerId = Game::zoneManager->MakeSpawner(info);
@@ -638,7 +649,7 @@ void PropertyManagementComponent::Save() {
 
 		// save the behaviors of the model
 		for (const auto& [behaviorId, behaviorStr] : modelBehaviors) {
-			if (behaviorStr.empty() || behaviorId == LWOOBJID_EMPTY) continue;
+			if (behaviorStr.empty() || behaviorId == -1 || behaviorId == 0) continue;
 			IBehaviors::Info info {
 				.behaviorId = behaviorId,
 				.characterId = character->GetID(),
