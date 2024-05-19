@@ -493,6 +493,11 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 		return;
 	}
 
+	auto* const groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		LoadGroupXml(*groups);
+	}
+
 	m_Consumable = inventoryElement->IntAttribute("csl", LOT_NULL);
 
 	auto* bag = bags->FirstChildElement();
@@ -640,6 +645,15 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 
 		bags->LinkEndChild(bag);
 	}
+
+	auto* groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		groups->DeleteChildren();
+	} else {
+		groups = inventoryElement->InsertNewChildElement("grps");
+	}
+
+	UpdateGroupXml(*groups);
 
 	auto* items = inventoryElement->FirstChildElement("items");
 
@@ -1601,18 +1615,18 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 }
 
 
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
 	else return false;
 	return SetSkill(behaviorSlot, skillId);
 }
 
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
@@ -1627,7 +1641,7 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 
 void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 	if (groupUpdate.groupId.empty()) return;
- 
+
 	if (groupUpdate.inventory != eInventoryType::BRICKS && groupUpdate.inventory != eInventoryType::MODELS) {
 		LOG("Invalid inventory type for grouping %s", StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
@@ -1641,32 +1655,32 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 	}
 
 	switch (groupUpdate.command) {
-		case GroupUpdateCommand::ADD: {
-			auto& group = groups[groupUpdate.groupId];
-			group.groupName = groupUpdate.groupName;
-			group.inventory = groupUpdate.inventory;
-			break;
-		}
-		case GroupUpdateCommand::ADD_LOT: {
-			groups[groupUpdate.groupId].lots.insert(groupUpdate.lot);
-			break;
-		}
-		case GroupUpdateCommand::REMOVE: {
-			groups.erase(groupUpdate.groupId);
-			break;
-		}
-		case GroupUpdateCommand::REMOVE_LOT: {
-			groups[groupUpdate.groupId].lots.erase(groupUpdate.lot);
-			break;
-		}
-		case GroupUpdateCommand::MODIFY: {
-			groups[groupUpdate.groupId].groupName = groupUpdate.groupName;
-			break;
-		}
-		default: {
-			LOG("Invalid group update command %i", groupUpdate.command);
-			break;
-		}
+	case GroupUpdateCommand::ADD: {
+		auto& group = groups[groupUpdate.groupId];
+		group.groupName = groupUpdate.groupName;
+		group.inventory = groupUpdate.inventory;
+		break;
+	}
+	case GroupUpdateCommand::ADD_LOT: {
+		groups[groupUpdate.groupId].lots.insert(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE: {
+		groups.erase(groupUpdate.groupId);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE_LOT: {
+		groups[groupUpdate.groupId].lots.erase(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::MODIFY: {
+		groups[groupUpdate.groupId].groupName = groupUpdate.groupName;
+		break;
+	}
+	default: {
+		LOG("Invalid group update command %i", groupUpdate.command);
+		break;
+	}
 	}
 
 	// debug printing of groups
@@ -1675,5 +1689,59 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		for (const auto& lot : group.lots) {
 			LOG("Lot %i", lot);
 		}
+	}
+}
+
+void InventoryComponent::UpdateGroupXml(tinyxml2::XMLElement& groups) const {
+	for (const auto& [inventory, groupsData] : m_Groups) {
+		for (const auto& [groupId, group] : groupsData) {
+			auto* const groupElement = groups.InsertNewChildElement("grp");
+
+			groupElement->SetAttribute("id", groupId.c_str());
+			groupElement->SetAttribute("n", group.groupName.c_str());
+			groupElement->SetAttribute("t", static_cast<uint32_t>(group.inventory));
+			groupElement->SetAttribute("u", 0);
+			std::ostringstream lots;
+			bool first = true;
+			for (const auto lot : group.lots) {
+				if (!first) lots << ' ';
+				first = false;
+
+				lots << lot;
+			}
+			groupElement->SetAttribute("l", lots.str().c_str());
+		}
+	}
+}
+
+void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
+	auto* groupElement = groups.FirstChildElement("grp");
+
+	while (groupElement) {
+		const char* groupId = nullptr;
+		const char* groupName = nullptr;
+		const char* lots = nullptr;
+		eInventoryType inventory = eInventoryType::INVALID;
+
+		groupElement->QueryStringAttribute("id", &groupId);
+		groupElement->QueryStringAttribute("n", &groupName);
+		groupElement->QueryStringAttribute("l", &lots);
+		groupElement->QueryAttribute("t", reinterpret_cast<int*>(&inventory));
+
+		if (!groupId || !groupName || !lots) {
+			LOG("Failed to load group from xml id %i name %i lots %i",
+				groupId == nullptr, groupName == nullptr, lots == nullptr);
+		} else {
+			auto& group = m_Groups[inventory][groupId];
+			group.groupName = groupName;
+			group.inventory = inventory;
+
+			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
+				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
+				if (lot) group.lots.insert(*lot);
+			}
+		}
+
+		groupElement = groupElement->NextSiblingElement("grp");
 	}
 }

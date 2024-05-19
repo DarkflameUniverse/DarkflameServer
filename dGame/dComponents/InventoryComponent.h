@@ -511,6 +511,9 @@ private:
 	 * @param document the xml doc to load from
 	 */
 	void UpdatePetXml(tinyxml2::XMLDocument& document);
+
+	void LoadGroupXml(const tinyxml2::XMLElement& groups);
+	void UpdateGroupXml(tinyxml2::XMLElement& groups) const;
 };
 
 #endif
