@@ -1654,6 +1654,11 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		return;
 	}
 
+	if (groupUpdate.command == GroupUpdateCommand::ADD && groups.size() >= MaximumGroupCount) {
+		LOG("Cannot add group to inventory %s. Maximum group count reached.", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
 	switch (groupUpdate.command) {
 	case GroupUpdateCommand::ADD: {
 		auto& group = groups[groupUpdate.groupId];

@@ -62,6 +62,8 @@ public:
 		GroupUpdateCommand command;
 	};
 
+	static constexpr uint32_t MaximumGroupCount = 50;
+
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	InventoryComponent(Entity* parent);
 
