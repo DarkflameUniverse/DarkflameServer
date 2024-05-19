@@ -37,6 +37,7 @@
 #include "CDScriptComponentTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
+#include "StringifiedEnum.h"
 
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
@@ -1624,3 +1625,55 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	return true;
 }
 
+void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
+	if (groupUpdate.groupId.empty()) return;
+ 
+	if (groupUpdate.inventory != eInventoryType::BRICKS && groupUpdate.inventory != eInventoryType::MODELS) {
+		LOG("Invalid inventory type for grouping %s", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	auto& groups = m_Groups[groupUpdate.inventory];
+
+	if (groupUpdate.command != GroupUpdateCommand::ADD && !groups.contains(groupUpdate.groupId)) {
+		LOG("Group %i not found in inventory %s. Cannot process command.", groupUpdate.groupId, StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	switch (groupUpdate.command) {
+		case GroupUpdateCommand::ADD: {
+			auto& group = groups[groupUpdate.groupId];
+			group.groupName = groupUpdate.groupName;
+			group.inventory = groupUpdate.inventory;
+			break;
+		}
+		case GroupUpdateCommand::ADD_LOT: {
+			groups[groupUpdate.groupId].lots.insert(groupUpdate.lot);
+			break;
+		}
+		case GroupUpdateCommand::REMOVE: {
+			groups.erase(groupUpdate.groupId);
+			break;
+		}
+		case GroupUpdateCommand::REMOVE_LOT: {
+			groups[groupUpdate.groupId].lots.erase(groupUpdate.lot);
+			break;
+		}
+		case GroupUpdateCommand::MODIFY: {
+			groups[groupUpdate.groupId].groupName = groupUpdate.groupName;
+			break;
+		}
+		default: {
+			LOG("Invalid group update command %i", groupUpdate.command);
+			break;
+		}
+	}
+
+	// debug printing of groups
+	for (const auto& [groupId, group] : groups) {
+		LOG("Group %s: %s inventory %s", groupId.c_str(), group.groupName.c_str(), StringifiedEnum::ToString(group.inventory).data());
+		for (const auto& lot : group.lots) {
+			LOG("Lot %i", lot);
+		}
+	}
+}

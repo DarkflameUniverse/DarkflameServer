@@ -37,6 +37,31 @@ enum class eItemType : int32_t;
  */
 class InventoryComponent final : public Component {
 public:
+	struct Group {
+		// Custom name assigned by the user.
+		std::string groupName;
+		// All the lots the user has in the group.
+		std::set<LOT> lots;
+		// The inventory this group belongs to.
+		eInventoryType inventory;
+	};
+
+	enum class GroupUpdateCommand {
+		ADD,
+		ADD_LOT,
+		MODIFY,
+		REMOVE,
+		REMOVE_LOT,
+	};
+
+	struct GroupUpdate {
+		std::string groupId;
+		std::string groupName;
+		LOT lot;
+		eInventoryType inventory;
+		GroupUpdateCommand command;
+	};
+
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
 	InventoryComponent(Entity* parent);
 
@@ -367,14 +392,23 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
+	void UpdateGroup(const GroupUpdate& groupUpdate);
+	void RemoveGroup(const std::string& groupId);
+
 	~InventoryComponent() override;
 
 private:
+	/**
+	 * The key is the inventory the group belongs to, the value maps' key is the id for the group.
+	 * This is only used for bricks and model inventories.
+	 */
+	std::map<eInventoryType, std::map<std::string, Group>> m_Groups{ { eInventoryType::BRICKS, {} }, { eInventoryType::MODELS, {} } };
+
 	/**
 	 * All the inventory this entity possesses
 	 */
