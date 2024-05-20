@@ -477,6 +477,10 @@ private:
 	 * @param document the xml doc to load from
 	 */
 	void UpdatePetXml(tinyxml2::XMLDocument& document);
+
+	void SaveItemConfigXml(const tinyxml2::XMLElement& x, Item* item);
+
+	void LoadItemConfigXml(const tinyxml2::XMLElement& x, Item* item);
 };
 
 #endif
