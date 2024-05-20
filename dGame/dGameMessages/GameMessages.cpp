@@ -412,7 +412,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		bitStream.Write(qUnexpectedRotation.w);
 	}
 
-	SEND_PACKET_BROADCAST;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
 }
 
 void GameMessages::SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr) {
