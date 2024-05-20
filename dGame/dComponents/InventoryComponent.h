@@ -38,6 +38,7 @@ enum class eItemType : int32_t;
 class InventoryComponent final : public Component {
 public:
 	struct Group {
+		// Generated ID for the group. The ID is sent by the client and has the format user_group + Math.random() * UINT_MAX.
 		std::string groupId;
 		// Custom name assigned by the user.
 		std::string groupName;
