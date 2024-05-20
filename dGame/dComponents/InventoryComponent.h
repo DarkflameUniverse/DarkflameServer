@@ -54,6 +54,8 @@ public:
 		REMOVE_LOT,
 	};
 
+	// Based on the command, certain fields will be used or not used.
+	// for example, ADD_LOT wont use groupName, MODIFY wont use lots, etc.
 	struct GroupUpdate {
 		std::string groupId;
 		std::string groupName;
