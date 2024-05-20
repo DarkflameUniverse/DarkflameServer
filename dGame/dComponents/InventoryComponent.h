@@ -38,12 +38,11 @@ enum class eItemType : int32_t;
 class InventoryComponent final : public Component {
 public:
 	struct Group {
+		std::string groupId;
 		// Custom name assigned by the user.
 		std::string groupName;
 		// All the lots the user has in the group.
 		std::set<LOT> lots;
-		// The inventory this group belongs to.
-		eInventoryType inventory;
 	};
 
 	enum class GroupUpdateCommand {
@@ -409,7 +408,7 @@ private:
 	 * The key is the inventory the group belongs to, the value maps' key is the id for the group.
 	 * This is only used for bricks and model inventories.
 	 */
-	std::map<eInventoryType, std::map<std::string, Group>> m_Groups{ { eInventoryType::BRICKS, {} }, { eInventoryType::MODELS, {} } };
+	std::map<eInventoryType, std::vector<Group>> m_Groups{ { eInventoryType::BRICKS, {} }, { eInventoryType::MODELS, {} } };
 
 	/**
 	 * All the inventory this entity possesses

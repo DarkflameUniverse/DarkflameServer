@@ -39,6 +39,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "StringifiedEnum.h"
 
+#include <ranges>
+
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -1648,8 +1650,11 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 	}
 
 	auto& groups = m_Groups[groupUpdate.inventory];
+	auto groupItr = std::ranges::find_if(groups, [&groupUpdate](const Group& group) {
+		return group.groupId == groupUpdate.groupId;
+		});
 
-	if (groupUpdate.command != GroupUpdateCommand::ADD && !groups.contains(groupUpdate.groupId)) {
+	if (groupUpdate.command != GroupUpdateCommand::ADD && groupItr == groups.end()) {
 		LOG("Group %i not found in inventory %s. Cannot process command.", groupUpdate.groupId, StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
 	}
@@ -1661,25 +1666,25 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 
 	switch (groupUpdate.command) {
 	case GroupUpdateCommand::ADD: {
-		auto& group = groups[groupUpdate.groupId];
+		auto& group = groups.emplace_back();
+		group.groupId = groupUpdate.groupId;
 		group.groupName = groupUpdate.groupName;
-		group.inventory = groupUpdate.inventory;
 		break;
 	}
 	case GroupUpdateCommand::ADD_LOT: {
-		groups[groupUpdate.groupId].lots.insert(groupUpdate.lot);
+		groupItr->lots.insert(groupUpdate.lot);
 		break;
 	}
 	case GroupUpdateCommand::REMOVE: {
-		groups.erase(groupUpdate.groupId);
+		groups.erase(groupItr);
 		break;
 	}
 	case GroupUpdateCommand::REMOVE_LOT: {
-		groups[groupUpdate.groupId].lots.erase(groupUpdate.lot);
+		groupItr->lots.erase(groupUpdate.lot);
 		break;
 	}
 	case GroupUpdateCommand::MODIFY: {
-		groups[groupUpdate.groupId].groupName = groupUpdate.groupName;
+		groupItr->groupName = groupUpdate.groupName;
 		break;
 	}
 	default: {
@@ -1687,24 +1692,16 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		break;
 	}
 	}
-
-	// debug printing of groups
-	for (const auto& [groupId, group] : groups) {
-		LOG("Group %s: %s inventory %s", groupId.c_str(), group.groupName.c_str(), StringifiedEnum::ToString(group.inventory).data());
-		for (const auto& lot : group.lots) {
-			LOG("Lot %i", lot);
-		}
-	}
 }
 
 void InventoryComponent::UpdateGroupXml(tinyxml2::XMLElement& groups) const {
 	for (const auto& [inventory, groupsData] : m_Groups) {
-		for (const auto& [groupId, group] : groupsData) {
+		for (const auto& group : groupsData) {
 			auto* const groupElement = groups.InsertNewChildElement("grp");
 
-			groupElement->SetAttribute("id", groupId.c_str());
+			groupElement->SetAttribute("id", group.groupId.c_str());
 			groupElement->SetAttribute("n", group.groupName.c_str());
-			groupElement->SetAttribute("t", static_cast<uint32_t>(group.inventory));
+			groupElement->SetAttribute("t", static_cast<uint32_t>(inventory));
 			groupElement->SetAttribute("u", 0);
 			std::ostringstream lots;
 			bool first = true;
@@ -1726,20 +1723,20 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 		const char* groupId = nullptr;
 		const char* groupName = nullptr;
 		const char* lots = nullptr;
-		eInventoryType inventory = eInventoryType::INVALID;
+		uint32_t inventory = eInventoryType::INVALID;
 
 		groupElement->QueryStringAttribute("id", &groupId);
 		groupElement->QueryStringAttribute("n", &groupName);
 		groupElement->QueryStringAttribute("l", &lots);
-		groupElement->QueryAttribute("t", reinterpret_cast<int*>(&inventory));
+		groupElement->QueryAttribute("t", &inventory);
 
 		if (!groupId || !groupName || !lots) {
 			LOG("Failed to load group from xml id %i name %i lots %i",
 				groupId == nullptr, groupName == nullptr, lots == nullptr);
 		} else {
-			auto& group = m_Groups[inventory][groupId];
+			auto& group = m_Groups[static_cast<eInventoryType>(inventory)].emplace_back();
+			group.groupId = groupId;
 			group.groupName = groupName;
-			group.inventory = inventory;
 
 			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
 				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
