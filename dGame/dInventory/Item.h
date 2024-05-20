@@ -117,6 +117,12 @@ public:
 	std::vector<LDFBaseData*>& GetConfig();
 
 	/**
+	 * Returns current config info for this item, e.g. for rockets
+	 * @return current config info for this item
+	 */
+	std::vector<LDFBaseData*> GetConfig() const;
+
+	/**
 	 * Returns the database info for this item
 	 * @return the database info for this item
 	 */

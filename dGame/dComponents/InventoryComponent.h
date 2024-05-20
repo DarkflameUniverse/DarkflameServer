@@ -478,9 +478,9 @@ private:
 	 */
 	void UpdatePetXml(tinyxml2::XMLDocument& document);
 
-	void SaveItemConfigXml(const tinyxml2::XMLElement& x, Item* item);
+	void SaveItemConfigXml(tinyxml2::XMLElement& i, const Item* const item) const;
 
-	void LoadItemConfigXml(const tinyxml2::XMLElement& x, Item* item);
+	void LoadItemConfigXml(const tinyxml2::XMLElement& i, Item* const item);
 };
 
 #endif

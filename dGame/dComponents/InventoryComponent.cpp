@@ -590,19 +590,9 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
-			std::vector<LDFBaseData*> config;
+			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			auto* extraInfo = itemElement->FirstChildElement("x");
-
-			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
-
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-
-				config.push_back(moduleAssembly);
-			}
-
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			LoadItemConfigXml(*itemElement, item);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -708,17 +698,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
-				}
-
-				auto* extraInfo = document.NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
-			}
+			SaveItemConfigXml(*itemElement, item);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -1632,18 +1612,18 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 }
 
 
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
 	else return false;
 	return SetSkill(behaviorSlot, skillId);
 }
 
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
@@ -1656,10 +1636,34 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	return true;
 }
 
-void InventoryComponent::SaveItemConfigXml(const tinyxml2::XMLElement& x, Item* item) {
+void InventoryComponent::SaveItemConfigXml(tinyxml2::XMLElement& i, const Item* const item) const {
+	tinyxml2::XMLElement* x = nullptr;
 
+	for (const auto* config : item->GetConfig()) {
+		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
+		const auto saveKey = ExtraSettingSaveAbbreviations.find(key);
+		if (saveKey == ExtraSettingSaveAbbreviations.end()) {
+			continue;
+		}
+
+		if (!x) {
+			x = i.InsertNewChildElement("x");
+		}
+
+		const auto dataToSave = config->GetString(false);
+		x->SetAttribute(saveKey->second.c_str(), dataToSave.c_str());
+	}
 }
 
-void InventoryComponent::LoadItemConfigXml(const tinyxml2::XMLElement& x, Item* item) {
+void InventoryComponent::LoadItemConfigXml(const tinyxml2::XMLElement& i, Item* const item) {
+	const auto* x = i.FirstChildElement("x");
+	if (!x) return;
 
+	for (const auto& pair : ExtraSettingLoadAbbreviations) {
+		const auto* data = x->Attribute(pair.first.c_str());
+		if (!data) continue;
+
+		const auto value = pair.second + "=" + data;
+		item->GetConfig().push_back(LDFBaseData::DataFromString(value));
+	}
 }

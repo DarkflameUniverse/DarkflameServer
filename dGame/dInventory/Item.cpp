@@ -122,6 +122,10 @@ uint32_t Item::GetSlot() const {
 	return slot;
 }
 
+std::vector<LDFBaseData*> Item::GetConfig() const {
+	return config;
+}
+
 std::vector<LDFBaseData*>& Item::GetConfig() {
 	return config;
 }
