@@ -38,6 +38,38 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
+namespace {
+	const std::map<std::string, std::string> ExtraSettingSaveAbbreviations = {
+		{ "assemblyPartLOTs", "ma" },
+		{ "blueprintID", "b" },
+		{ "userModelID", "ui" },
+		{ "userModelName", "un" },
+		{ "userModelDesc", "ud" },
+		{ "userModelHasBhvr", "ub" },
+		{ "userModelBehaviors", "ubh" },
+		{ "userModelBehaviorSourceID", "ubs" },
+		{ "userModelPhysicsType", "up" },
+		{ "userModelMod", "um" },
+		{ "userModelOpt", "uo" },
+		{ "reforgedLOT", "rl" },
+	};
+
+	const std::map<std::string, std::string> ExtraSettingLoadAbbreviations = {
+		{ "ma", "assemblyPartLOTs" },
+		{ "b", "blueprintID" },
+		{ "ui", "userModelID" },
+		{ "un", "userModelName" },
+		{ "ud", "userModelDesc" },
+		{ "ub", "userModelHasBhvr" },
+		{ "ubh", "userModelBehaviors" },
+		{ "ubs", "userModelBehaviorSourceID" },
+		{ "up", "userModelPhysicsType" },
+		{ "um", "userModelMod" },
+		{ "uo", "userModelOpt" },
+		{ "rl", "reforgedLOT" },
+	};
+}
+
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -1624,3 +1656,10 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	return true;
 }
 
+void InventoryComponent::SaveItemConfigXml(const tinyxml2::XMLElement& x, Item* item) {
+
+}
+
+void InventoryComponent::LoadItemConfigXml(const tinyxml2::XMLElement& x, Item* item) {
+
+}
