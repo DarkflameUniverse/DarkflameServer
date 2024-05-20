@@ -1655,7 +1655,7 @@ void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
 		});
 
 	if (groupUpdate.command != GroupUpdateCommand::ADD && groupItr == groups.end()) {
-		LOG("Group %i not found in inventory %s. Cannot process command.", groupUpdate.groupId, StringifiedEnum::ToString(groupUpdate.inventory).data());
+		LOG("Group %i not found in inventory %s. Cannot process command.", groupUpdate.groupId.c_str(), StringifiedEnum::ToString(groupUpdate.inventory).data());
 		return;
 	}
 
