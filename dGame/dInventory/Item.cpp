@@ -28,7 +28,7 @@
 #include "CDPackageComponentTable.h"
 
 namespace {
-	const std::map<std::string, std::string> ExtraSettingSaveAbbreviations = {
+	const std::map<std::string, std::string> ExtraSettingAbbreviations = {
 		{ "assemblyPartLOTs", "ma" },
 		{ "blueprintID", "b" },
 		{ "userModelID", "ui" },
@@ -41,21 +41,6 @@ namespace {
 		{ "userModelMod", "um" },
 		{ "userModelOpt", "uo" },
 		{ "reforgedLOT", "rl" },
-	};
-
-	const std::map<std::string, std::string> ExtraSettingLoadAbbreviations = {
-		{ "ma", "assemblyPartLOTs" },
-		{ "b", "blueprintID" },
-		{ "ui", "userModelID" },
-		{ "un", "userModelName" },
-		{ "ud", "userModelDesc" },
-		{ "ub", "userModelHasBhvr" },
-		{ "ubh", "userModelBehaviors" },
-		{ "ubs", "userModelBehaviorSourceID" },
-		{ "up", "userModelPhysicsType" },
-		{ "um", "userModelMod" },
-		{ "uo", "userModelOpt" },
-		{ "rl", "reforgedLOT" },
 	};
 }
 
@@ -557,8 +542,8 @@ void Item::SaveConfigXml(tinyxml2::XMLElement& i) const {
 
 	for (const auto* config : this->config) {
 		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
-		const auto saveKey = ExtraSettingSaveAbbreviations.find(key);
-		if (saveKey == ExtraSettingSaveAbbreviations.end()) {
+		const auto saveKey = ExtraSettingAbbreviations.find(key);
+		if (saveKey == ExtraSettingAbbreviations.end()) {
 			continue;
 		}
 
@@ -575,11 +560,11 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 	const auto* x = i.FirstChildElement("x");
 	if (!x) return;
 
-	for (const auto& pair : ExtraSettingLoadAbbreviations) {
-		const auto* data = x->Attribute(pair.first.c_str());
+	for (const auto& pair : ExtraSettingAbbreviations) {
+		const auto* data = x->Attribute(pair.second.c_str());
 		if (!data) continue;
 
-		const auto value = pair.second + "=" + data;
+		const auto value = pair.first + "=" + data;
 		config.push_back(LDFBaseData::DataFromString(value));
 	}
 }
