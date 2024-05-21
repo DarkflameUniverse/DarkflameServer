@@ -38,38 +38,6 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
-namespace {
-	const std::map<std::string, std::string> ExtraSettingSaveAbbreviations = {
-		{ "assemblyPartLOTs", "ma" },
-		{ "blueprintID", "b" },
-		{ "userModelID", "ui" },
-		{ "userModelName", "un" },
-		{ "userModelDesc", "ud" },
-		{ "userModelHasBhvr", "ub" },
-		{ "userModelBehaviors", "ubh" },
-		{ "userModelBehaviorSourceID", "ubs" },
-		{ "userModelPhysicsType", "up" },
-		{ "userModelMod", "um" },
-		{ "userModelOpt", "uo" },
-		{ "reforgedLOT", "rl" },
-	};
-
-	const std::map<std::string, std::string> ExtraSettingLoadAbbreviations = {
-		{ "ma", "assemblyPartLOTs" },
-		{ "b", "blueprintID" },
-		{ "ui", "userModelID" },
-		{ "un", "userModelName" },
-		{ "ud", "userModelDesc" },
-		{ "ub", "userModelHasBhvr" },
-		{ "ubh", "userModelBehaviors" },
-		{ "ubs", "userModelBehaviorSourceID" },
-		{ "up", "userModelPhysicsType" },
-		{ "um", "userModelMod" },
-		{ "uo", "userModelOpt" },
-		{ "rl", "reforgedLOT" },
-	};
-}
-
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -592,7 +560,7 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 
 			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			LoadItemConfigXml(*itemElement, item);
+			item->LoadConfigXml(*itemElement);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -698,7 +666,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			SaveItemConfigXml(*itemElement, item);
+			item->SaveConfigXml(*itemElement);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -1634,36 +1602,4 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	GameMessages::SendAddSkill(m_Parent, skillId, slot);
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
-}
-
-void InventoryComponent::SaveItemConfigXml(tinyxml2::XMLElement& i, const Item* const item) const {
-	tinyxml2::XMLElement* x = nullptr;
-
-	for (const auto* config : item->GetConfig()) {
-		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
-		const auto saveKey = ExtraSettingSaveAbbreviations.find(key);
-		if (saveKey == ExtraSettingSaveAbbreviations.end()) {
-			continue;
-		}
-
-		if (!x) {
-			x = i.InsertNewChildElement("x");
-		}
-
-		const auto dataToSave = config->GetString(false);
-		x->SetAttribute(saveKey->second.c_str(), dataToSave.c_str());
-	}
-}
-
-void InventoryComponent::LoadItemConfigXml(const tinyxml2::XMLElement& i, Item* const item) {
-	const auto* x = i.FirstChildElement("x");
-	if (!x) return;
-
-	for (const auto& pair : ExtraSettingLoadAbbreviations) {
-		const auto* data = x->Attribute(pair.first.c_str());
-		if (!data) continue;
-
-		const auto value = pair.second + "=" + data;
-		item->GetConfig().push_back(LDFBaseData::DataFromString(value));
-	}
 }

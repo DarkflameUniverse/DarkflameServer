@@ -9,6 +9,10 @@
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
 
+namespace tinyxml2 {
+	class XMLElement;
+};
+
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped
  * TODO: ideally this should be a component
@@ -219,6 +223,10 @@ public:
 	 * Removes the item from the linked inventory
 	 */
 	void RemoveFromInventory();
+
+	void SaveConfigXml(tinyxml2::XMLElement& i) const;
+
+	void LoadConfigXml(const tinyxml2::XMLElement& i);
 
 private:
 	/**
