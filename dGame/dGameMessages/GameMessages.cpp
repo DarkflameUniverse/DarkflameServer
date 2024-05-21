@@ -2235,7 +2235,6 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 	}
 	filterCheck.name = GeneralUtils::UTF16ToWTF8(name);
 	LOG("names %s desc %s", filterCheck.name.c_str(), filterCheck.description.c_str());
-	if (filterCheck.name.empty() || filterCheck.description.empty()) return;
 
 	PropertyManagementComponent::Instance()->UpdatePropertyDetails(filterCheck);
 }
@@ -2666,7 +2665,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintID", blueprintID));
 		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
 		info.settings.push_back(new LDFData<int>(u"modelType", 2));
 		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));

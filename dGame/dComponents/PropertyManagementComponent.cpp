@@ -154,7 +154,7 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
-void PropertyManagementComponent::UpdatePropertyDetails(const UpdatePropertyWithFilterCheck& update) {
+void PropertyManagementComponent::UpdatePropertyDetails(UpdatePropertyWithFilterCheck& update) {
 	if (owner == LWOOBJID_EMPTY) return;
 
 	if (update.isProperty) {
@@ -174,8 +174,19 @@ void PropertyManagementComponent::UpdatePropertyDetails(const UpdatePropertyWith
 		auto* entity = Game::entityManager->GetEntity(update.worldId);
 		if (!entity) return;
 
-		entity->SetVar<std::string>(u"userModelName", update.name);
-		entity->SetVar<std::string>(u"userModelDesc", update.description);
+		if (update.name.empty()) {
+			update.name = "Objects_" + std::to_string(entity->GetLOT()) + "_name";
+			entity->EraseVar(u"userModelName");
+		} else {
+			entity->SetVar<std::string>(u"userModelName", update.name);
+		}
+
+		if (update.description.empty()) {
+			entity->EraseVar(u"userModelDesc");
+		} else {
+			entity->SetVar<std::string>(u"userModelDesc", update.description);
+		}
+
 		auto* owner = GetOwner();
 		if (!owner) return;
 
@@ -373,11 +384,14 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 		auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
-		info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
-		info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
-		info.nodes[0]->config.push_back(new LDFData<int>(u"modelType", 2));
-		info.nodes[0]->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		// If empty, insert the default config data since it doesn't exist yet
+		if (info.nodes[0]->config.empty()) {
+			info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
+			info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
+			info.nodes[0]->config.push_back(new LDFData<int>(u"modelType", 2));
+			info.nodes[0]->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
+			info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		}
 
 		auto* model = spawner->Spawn();
 
@@ -457,7 +471,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		std::vector<LDFBaseData*> settings;
 
 		//fill our settings with BBB gurbage
-		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", model->GetVar<LWOOBJID>(u"blueprintid"));
+		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintID", model->GetVar<LWOOBJID>(u"blueprintID"));
 		LDFBaseData* userModelDesc = new LDFData<std::u16string>(u"userModelDesc", u"A cool model you made!");
 		LDFBaseData* userModelHasBhvr = new LDFData<bool>(u"userModelHasBhvr", false);
 		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", model->GetVar<LWOOBJID>(u"userModelID"));
@@ -601,18 +615,15 @@ void PropertyManagementComponent::Load() {
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
-			settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
-			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-			settings.push_back(new LDFData<int>(u"modelType", 2));
-			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
+			settings.push_back(new LDFData<LWOOBJID>(u"blueprintID", blueprintID));
 		} else {
-			settings.push_back(new LDFData<int>(u"modelType", 2));
-			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
 			settings.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
-			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
 		}
+
+		settings.push_back(new LDFData<int>(u"modelType", 2));
+		settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
 
 		node->config = settings;
 

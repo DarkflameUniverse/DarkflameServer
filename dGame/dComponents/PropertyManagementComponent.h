@@ -102,7 +102,7 @@ public:
 	 * @param name the name to set for the property
 	 * @param description the description to set for the property
 	 */
-	void UpdatePropertyDetails(const UpdatePropertyWithFilterCheck& update);
+	void UpdatePropertyDetails(UpdatePropertyWithFilterCheck& update);
 
 	/**
 	 * Makes this property owned by the passed player ID, storing it in the database
