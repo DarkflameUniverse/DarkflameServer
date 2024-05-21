@@ -2166,3 +2166,12 @@ void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
 }
+
+void Entity::EraseVar(const std::u16string& name) {
+	for (auto it = m_Settings.begin(); it != m_Settings.end(); ++it) {
+		if ((*it)->GetKey() == name) {
+			m_Settings.erase(it);
+			return;
+		}
+	}
+}

@@ -299,6 +299,7 @@ public:
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
 
+	void EraseVar(const std::u16string& name);
 protected:
 	LWOOBJID m_ObjectID;
 
