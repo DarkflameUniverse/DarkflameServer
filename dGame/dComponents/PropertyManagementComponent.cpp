@@ -21,7 +21,9 @@
 #include "eObjectBits.h"
 #include "CharacterComponent.h"
 #include "PlayerManager.h"
+#include "ItemComponent.h"
 
+#include <ranges>
 #include <vector>
 #include "CppScripts.h"
 
@@ -152,21 +154,39 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	Database::Get()->UpdatePropertyModerationInfo(info);
 }
 
-void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::string description) {
+void PropertyManagementComponent::UpdatePropertyDetails(const UpdatePropertyWithFilterCheck& update) {
 	if (owner == LWOOBJID_EMPTY) return;
 
-	propertyName = name;
+	if (update.isProperty) {
+		propertyName = update.name;
 
-	propertyDescription = description;
+		propertyDescription = update.description;
 
-	IProperty::Info info;
-	info.id = propertyId;
-	info.name = propertyName;
-	info.description = propertyDescription;
+		IProperty::Info info;
+		info.id = propertyId;
+		info.name = propertyName;
+		info.description = propertyDescription;
 
-	Database::Get()->UpdatePropertyDetails(info);
+		Database::Get()->UpdatePropertyDetails(info);
 
-	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
+		OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
+	} else {
+		auto* entity = Game::entityManager->GetEntity(update.worldId);
+		if (!entity) return;
+
+		entity->SetVar<std::string>(u"userModelName", update.name);
+		entity->SetVar<std::string>(u"userModelDesc", update.description);
+		auto* owner = GetOwner();
+		if (!owner) return;
+
+		GameMessages::SendSetName(update.worldId, GeneralUtils::ASCIIToUTF16(update.name), owner->GetSystemAddress());
+		auto* itemComponent = entity->GetComponent<ItemComponent>();
+		if (itemComponent) {
+			itemComponent->UpdateDescription(GeneralUtils::ASCIIToUTF16(update.description));
+		}
+
+		Game::entityManager->SerializeEntity(entity);
+	}
 }
 
 bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
@@ -195,7 +215,7 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 
 	auto prop_path = zone->GetPath(m_Parent->GetVarAsString(u"propertyName"));
 
-	if (prop_path){
+	if (prop_path) {
 		if (!prop_path->property.displayName.empty()) name = prop_path->property.displayName;
 		description = prop_path->property.displayDesc;
 	}
@@ -325,12 +345,13 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		return;
 	}
 
-	item->SetCount(item->GetCount() - 1);
-
 	auto* node = new SpawnerNode();
 
 	node->position = position;
 	node->rotation = rotation;
+	node->config = item->GetConfig();
+
+	item->SetCount(item->GetCount() - 1);
 
 	ObjectIDManager::RequestPersistentID([this, node, modelLOT, entity, position, rotation, originalRotation](uint32_t persistentId) {
 		SpawnerInfo info{};
@@ -484,7 +505,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 		return;
 	}
 
-	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, {}, LWOOBJID_EMPTY, false);
+	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, model->GetSettings(), LWOOBJID_EMPTY, false);
 
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 

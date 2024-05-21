@@ -10,19 +10,9 @@
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
-
-	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 }
 
 void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
-	// ItemComponent Serialization.  Pets do not get this serialization.
-	if (!m_Parent->HasComponent(eReplicaComponentType::PET)) {
-		outBitStream.Write1();
-		outBitStream.Write<LWOOBJID>(m_userModelID != LWOOBJID_EMPTY ? m_userModelID : m_Parent->GetObjectID());
-		outBitStream.Write<int>(0);
-		outBitStream.Write0();
-	}
-
 	//actual model component:
 	outBitStream.Write1(); // Yes we are writing model info
 	outBitStream.Write0(); // Is pickable

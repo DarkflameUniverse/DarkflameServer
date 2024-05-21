@@ -660,7 +660,7 @@ void Entity::Initialize() {
 	}
 
 	PetComponent* petComponent;
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM) > 0 && !TryGetComponent(eReplicaComponentType::PET, petComponent) && !HasComponent(eReplicaComponentType::MODEL)) {
+	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::ITEM) > 0) {
 		AddComponent<ItemComponent>();
 	}
 
@@ -901,6 +901,14 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 			for (size_t i = 0; i < name.size(); ++i) {
 				outBitStream.Write<uint16_t>(name[i]);
 			}
+		} else if (HasVar(u"userModelName")) {
+			const auto& name = GetVar<std::string>(u"userModelName");
+			outBitStream.Write<uint8_t>(uint8_t(name.size()));
+
+			for (size_t i = 0; i < name.size(); ++i) {
+				outBitStream.Write<uint16_t>(name[i]);
+			}
+
 		} else {
 			const auto& name = GetVar<std::string>(u"npcName");
 			outBitStream.Write<uint8_t>(uint8_t(name.size()));

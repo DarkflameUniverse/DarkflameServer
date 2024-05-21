@@ -126,9 +126,4 @@ private:
 	 * The rotation original of the model
 	 */
 	NiQuaternion m_OriginalRotation;
-
-	/**
-	 * The ID of the user that made the model
-	 */
-	LWOOBJID m_userModelID;
 };

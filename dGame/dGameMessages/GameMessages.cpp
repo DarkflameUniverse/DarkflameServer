@@ -2207,19 +2207,17 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity,
 }
 
 void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool isProperty{};
-	LWOOBJID objectId{};
+	PropertyManagementComponent::UpdatePropertyWithFilterCheck filterCheck{};
 	LWOOBJID playerId{};
-	LWOOBJID worldId{};
 	uint32_t nameLength{};
 	std::u16string name{};
 	uint32_t descriptionLength{};
 	std::u16string description{};
 
-	inStream.Read(isProperty);
-	inStream.Read(objectId);
+	inStream.Read(filterCheck.isProperty);
+	inStream.Read(filterCheck.objectId);
 	inStream.Read(playerId);
-	inStream.Read(worldId);
+	inStream.Read(filterCheck.worldId);
 
 	inStream.Read(descriptionLength);
 	for (uint32_t i = 0; i < descriptionLength; ++i) {
@@ -2227,6 +2225,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 		inStream.Read(character);
 		description.push_back(character);
 	}
+	filterCheck.description = GeneralUtils::UTF16ToWTF8(description);
 
 	inStream.Read(nameLength);
 	for (uint32_t i = 0; i < nameLength; ++i) {
@@ -2234,8 +2233,11 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 		inStream.Read(character);
 		name.push_back(character);
 	}
+	filterCheck.name = GeneralUtils::UTF16ToWTF8(name);
+	LOG("names %s desc %s", filterCheck.name.c_str(), filterCheck.description.c_str());
+	if (filterCheck.name.empty() || filterCheck.description.empty()) return;
 
-	PropertyManagementComponent::Instance()->UpdatePropertyDetails(GeneralUtils::UTF16ToWTF8(name), GeneralUtils::UTF16ToWTF8(description));
+	PropertyManagementComponent::Instance()->UpdatePropertyDetails(filterCheck);
 }
 
 void GameMessages::HandleQueryPropertyData(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {

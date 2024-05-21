@@ -17,12 +17,12 @@ enum class PropertyPrivacyOption {
 	/**
 	 * Your friends can visit your property
 	 */
-	 Friends = 1,
+	Friends = 1,
 
-	 /**
-	  * Requires Mythran approval, everyone can visit your property
-	  */
-	  Public = 2
+	/**
+	 * Requires Mythran approval, everyone can visit your property
+	 */
+	Public = 2
 };
 
 /**
@@ -30,6 +30,13 @@ enum class PropertyPrivacyOption {
  */
 class PropertyManagementComponent final : public Component {
 public:
+	struct UpdatePropertyWithFilterCheck {
+		LWOOBJID objectId;
+		LWOOBJID worldId;
+		bool isProperty;
+		std::string name;
+		std::string description;
+	};
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_MANAGEMENT;
 	PropertyManagementComponent(Entity* parent);
 	static PropertyManagementComponent* Instance();
@@ -95,7 +102,7 @@ public:
 	 * @param name the name to set for the property
 	 * @param description the description to set for the property
 	 */
-	void UpdatePropertyDetails(std::string name, std::string description);
+	void UpdatePropertyDetails(const UpdatePropertyWithFilterCheck& update);
 
 	/**
 	 * Makes this property owned by the passed player ID, storing it in the database
