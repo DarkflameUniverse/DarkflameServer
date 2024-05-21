@@ -76,6 +76,9 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	constexpr size_t pageSize = 10;
 
 	std::string trimmedArgs = args;
+	trimmedArgs.erase(trimmedArgs.begin(), std::find_if_not(trimmedArgs.begin(), trimmedArgs.end(), [](unsigned char ch) {
+		return std::isspace(ch);
+		}));
 	trimmedArgs.erase(std::find_if_not(trimmedArgs.rbegin(), trimmedArgs.rend(), [](unsigned char ch) {
 		return std::isspace(ch);
 		}).base(), trimmedArgs.end());
@@ -84,17 +87,12 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	if (trimmedArgs.empty() || parsedPage.has_value()) {
 		size_t page = parsedPage.value_or(1);
 
-		std::vector<std::pair<std::string, Command>> accessibleCommands;
+		std::map<std::string, Command> accessibleCommands;
 		for (const auto& [commandName, command] : CommandInfos) {
 			if (command.requiredLevel <= entity->GetGMLevel()) {
-				accessibleCommands.emplace_back(commandName, command);
+				accessibleCommands.emplace(commandName, command);
 			}
 		}
-
-		std::sort(accessibleCommands.begin(), accessibleCommands.end(),
-			[](const auto& a, const auto& b) {
-				return a.second.aliases.at(0) < b.second.aliases.at(0);
-			});
 
 		size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
 
@@ -104,13 +102,13 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 			return;
 		}
 
-		size_t startIdx = (page - 1) * pageSize;
-		size_t endIdx = std::min(startIdx + pageSize, accessibleCommands.size());
+		auto it = accessibleCommands.begin();
+		std::advance(it, (page - 1) * pageSize);
+		size_t endIdx = std::min(page * pageSize, accessibleCommands.size());
 
 		feedback << "----- Commands (Page " << page << " of " << totalPages << ") -----";
-		for (size_t i = startIdx; i < endIdx; ++i) {
-			const auto& [alias, command] = accessibleCommands[i];
-			feedback << "\n/" << alias << ": " << command.help;
+		for (size_t i = (page - 1) * pageSize; i < endIdx; ++i, ++it) {
+			feedback << "\n/" << it->first << ": " << it->second.help;
 		}
 
 		const auto feedbackStr = feedback.str();
@@ -120,31 +118,22 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		return;
 	}
 
-	// If args is not a number, check if it matches a command alias
-	bool foundCommand = false;
-	for (const auto& [commandName, command] : CommandInfos) {
-		if (commandName == trimmedArgs || std::find(command.aliases.begin(), command.aliases.end(), trimmedArgs) != command.aliases.end()) {
-			if (entity->GetGMLevel() < command.requiredLevel) {
-				feedback << "You do not have the required level to view this command info.";
-				foundCommand = true;
-				break;
-			}
+	auto it = std::find_if(CommandInfos.begin(), CommandInfos.end(), [&trimmedArgs](const auto& pair) {
+		return pair.first == trimmedArgs || std::find(pair.second.aliases.begin(), pair.second.aliases.end(), trimmedArgs) != pair.second.aliases.end();
+		});
 
-			foundCommand = true;
-			feedback << "----- " << command.aliases.at(0) << " Info -----\n";
-			feedback << command.info << "\n";
-			if (command.aliases.size() > 1) {
-				feedback << "Aliases: ";
-				for (size_t i = 0; i < command.aliases.size(); ++i) {
-					if (i > 0) feedback << ", ";
-					feedback << command.aliases[i];
-				}
+	if (it != CommandInfos.end() && entity->GetGMLevel() >= it->second.requiredLevel) {
+		const auto& command = it->second;
+		feedback << "----- " << it->first << " Info -----\n";
+		feedback << command.info << "\n";
+		if (command.aliases.size() > 1) {
+			feedback << "Aliases: ";
+			for (size_t i = 0; i < command.aliases.size(); ++i) {
+				if (i > 0) feedback << ", ";
+				feedback << command.aliases[i];
 			}
-			break;
 		}
-	}
-
-	if (!foundCommand) {
+	} else {
 		feedback << "Command not found.";
 	}
 
@@ -152,31 +141,6 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	if (!feedbackStr.empty()) {
 		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
 	}
-}
-
-void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
-	AMFArrayValue args;
-
-	args.Insert("title", title);
-	args.Insert("message", message);
-
-	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-	//Notify chat about it
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
-
-	bitStream.Write<uint32_t>(title.size());
-	for (auto character : title) {
-		bitStream.Write<char>(character);
-	}
-
-	bitStream.Write<uint32_t>(message.size());
-	for (auto character : message) {
-		bitStream.Write<char>(character);
-	}
-
-	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 }
 
 void SlashCommandHandler::Startup() {
