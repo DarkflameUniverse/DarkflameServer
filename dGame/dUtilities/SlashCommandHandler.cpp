@@ -79,7 +79,7 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	trimmedArgs.erase(trimmedArgs.begin(), std::find_if_not(trimmedArgs.begin(), trimmedArgs.end(), [](unsigned char ch) {
 		return std::isspace(ch);
 		}));
-	std::optional<int> parsedPage = GeneralUtils::TryParse<int>(trimmedArgs);
+	std::optional<uint32_t> parsedPage = GeneralUtils::TryParse<uint32_t>(trimmedArgs);
 	if (trimmedArgs.empty() || parsedPage.has_value()) {
 		size_t page = parsedPage.value_or(1);
 
