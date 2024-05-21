@@ -143,6 +143,31 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 	}
 }
 
+void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
+	AMFArrayValue args;
+
+	args.Insert("title", title);
+	args.Insert("message", message);
+
+	GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+
+	//Notify chat about it
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
+
+	bitStream.Write<uint32_t>(title.size());
+	for (auto character : title) {
+		bitStream.Write<char>(character);
+	}
+
+	bitStream.Write<uint32_t>(message.size());
+	for (auto character : message) {
+		bitStream.Write<char>(character);
+	}
+
+	Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+}
+
 void SlashCommandHandler::Startup() {
 	// Register Dev Commands
 	Command SetGMLevelCommand{
