@@ -534,6 +534,7 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 
 	inventoryComponent->AddItem(model->GetLOT(), 1, eLootSourceType::DELETION, INVALID, model->GetSettings(), LWOOBJID_EMPTY, false);
 
+	// figure out how to get the actual item we picked up instead of just the first lot we find
 	auto* item = inventoryComponent->FindItemByLot(model->GetLOT());
 
 	if (item == nullptr) {
