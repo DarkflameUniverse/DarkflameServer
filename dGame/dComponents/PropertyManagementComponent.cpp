@@ -385,12 +385,25 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
 		// If empty, insert the default config data since it doesn't exist yet
-		if (info.nodes[0]->config.empty()) {
-			info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
-			info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
-			info.nodes[0]->config.push_back(new LDFData<int>(u"modelType", 2));
-			info.nodes[0]->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
-			info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
+
+		if (!node->HasVar(u"modelBehaviors")) {
+			node->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
+		}
+
+		if (!node->HasVar(u"userModelID")) {
+			node->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
+		}
+
+		if (!node->HasVar(u"modelType")) {
+			node->config.push_back(new LDFData<int>(u"modelType", 2));
+		}
+
+		if (!node->HasVar(u"propertyObjectID")) {
+			node->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		}
+
+		if (!node->HasVar(u"componentWhitelist")) {
+			node->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
 		}
 
 		auto* model = spawner->Spawn();
@@ -607,25 +620,21 @@ void PropertyManagementComponent::Load() {
 
 		info.spawnerID = databaseModel.id;
 
-		std::vector<LDFBaseData*> settings;
-
 		//BBB property models need to have extra stuff set for them:
 		if (databaseModel.lot == 14) {
 			LWOOBJID blueprintID = databaseModel.ugcId;
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
-			settings.push_back(new LDFData<LWOOBJID>(u"blueprintID", blueprintID));
+			if (!node->HasVar(u"blueprintID")) node->config.push_back(new LDFData<LWOOBJID>(u"blueprintID", blueprintID));
 		} else {
-			settings.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
+			if (!node->HasVar(u"modelBehaviors")) node->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
 		}
 
-		settings.push_back(new LDFData<int>(u"modelType", 2));
-		settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-		settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
-
-		node->config = settings;
+		if (!node->HasVar(u"modelType")) node->config.push_back(new LDFData<int>(u"modelType", 2));
+		if (!node->HasVar(u"componentWhitelist")) node->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		if (!node->HasVar(u"propertyObjectID")) node->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		if (!node->HasVar(u"userModelID")) node->config.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
 
 		const auto spawnerId = Game::zoneManager->MakeSpawner(info);
 

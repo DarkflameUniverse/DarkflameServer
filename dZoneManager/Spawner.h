@@ -10,6 +10,7 @@
 #include <functional>
 #include "LDFFormat.h"
 #include "EntityInfo.h"
+#include <string_view>
 
 struct SpawnerNode {
 	NiPoint3 position = NiPoint3Constant::ZERO;
@@ -18,6 +19,8 @@ struct SpawnerNode {
 	uint32_t nodeMax = 1;
 	std::vector<LWOOBJID> entities;
 	std::vector<LDFBaseData*> config;
+
+	bool HasVar(const std::u16string_view view);
 };
 
 struct SpawnerInfo {

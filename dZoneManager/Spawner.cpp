@@ -7,6 +7,15 @@
 #include "GeneralUtils.h"
 #include "dZoneManager.h"
 
+bool SpawnerNode::HasVar(const std::u16string_view view) {
+	for (const auto* data : config) {
+		if (data->GetKey() == view) {
+			return true;
+		}
+	}
+	return false;
+}
+
 Spawner::Spawner(const SpawnerInfo info) {
 	m_Info = info;
 	m_Active = m_Info.activeOnLoad && info.spawnActivator;
