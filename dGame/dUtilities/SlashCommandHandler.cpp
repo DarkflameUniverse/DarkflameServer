@@ -8,6 +8,7 @@
 #include "SlashCommandHandler.h"
 
 #include <iomanip>
+#include <ranges>
 
 #include "DEVGMCommands.h"
 #include "GMGreaterThanZeroCommands.h"
@@ -118,8 +119,8 @@ void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const st
 		return;
 	}
 
-	auto it = std::find_if(CommandInfos.begin(), CommandInfos.end(), [&trimmedArgs](const auto& pair) {
-		return pair.first == trimmedArgs || std::find(pair.second.aliases.begin(), pair.second.aliases.end(), trimmedArgs) != pair.second.aliases.end();
+	auto it = std::ranges::find_if(CommandInfos, [&trimmedArgs](const auto& pair) {
+		return std::ranges::find(pair.second.aliases, trimmedArgs) != pair.second.aliases.end();
 		});
 
 	if (it != CommandInfos.end() && entity->GetGMLevel() >= it->second.requiredLevel) {
