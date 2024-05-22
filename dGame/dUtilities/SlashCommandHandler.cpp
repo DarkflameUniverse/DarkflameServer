@@ -1048,4 +1048,116 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(InstanceInfoCommand);
 
+	//Commands that are handled by the client
+
+	Command faqCommand{
+		.help = "Show the LU FAQ Page",
+		.info = "Show the LU FAQ Page",
+		.aliases = {"faq","faqs"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(faqCommand);
+
+	Command teamChatCommand{
+		.help = "Send a message to your teammates.",
+		.info = "Send a message to your teammates.",
+		.aliases = {"team","t"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(teamChatCommand);
+
+	Command showStoreCommand{
+		.help = "Show the LEGO shop page.",
+		.info = "Show the LEGO shop page.",
+		.aliases = {"shop","store"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(showStoreCommand);
+
+	Command minigamesCommand{
+		.help = "Show the LEGO minigames page!",
+		.info = "Show the LEGO minigames page!",
+		.aliases = {"minigames"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(minigamesCommand);
+
+	Command forumsCommand{
+		.help = "Show the LU Forums!",
+		.info = "Show the LU Forums!",
+		.aliases = {"forums"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(forumsCommand);
+
+	Command exitGameCommand{
+		.help = "Exit to desktop",
+		.info = "Exit to desktop",
+		.aliases = {"exit","quit"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(exitGameCommand);
+
+	Command thumbsUpCommand{
+		.help = "Oh, yeah!",
+		.info = "Oh, yeah!",
+		.aliases = {"thumb","thumbs","thumbsup"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(thumbsUpCommand);
+
+	Command victoryCommand{
+		.help = "Victory!",
+		.info = "Victory!",
+		.aliases = {"Victory!"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(victoryCommand);
+
+	Command backflipCommand{
+		.help = "Do a flip!",
+		.info = "Do a flip!",
+		.aliases = {"backflip"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(backflipCommand);
+
+	Command clapCommand{
+		.help = "A round of applause!",
+		.info = "A round of applause!",
+		.aliases = {"clap"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(clapCommand);
+
+	Command logoutCharacterCommand{
+		.help = "Returns you to the character select screen.",
+		.info = "Returns you to the character select screen.",
+		.aliases = {"camp","logoutcharacter"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(logoutCharacterCommand);
+
+	Command sayCommand{
+		.help = "Say something outloud so that everyone can hear you",
+		.info = "Say something outloud so that everyone can hear you",
+		.aliases = {"s","say"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(sayCommand);
+
+
+
 }
