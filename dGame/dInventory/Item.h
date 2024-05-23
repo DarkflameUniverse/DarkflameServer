@@ -9,6 +9,10 @@
 #include "eInventoryType.h"
 #include "eLootSourceType.h"
 
+namespace tinyxml2 {
+	class XMLElement;
+};
+
 /**
  * An item that can be stored in an inventory and optionally consumed or equipped
  * TODO: ideally this should be a component
@@ -117,6 +121,12 @@ public:
 	std::vector<LDFBaseData*>& GetConfig();
 
 	/**
+	 * Returns current config info for this item, e.g. for rockets
+	 * @return current config info for this item
+	 */
+	std::vector<LDFBaseData*> GetConfig() const;
+
+	/**
 	 * Returns the database info for this item
 	 * @return the database info for this item
 	 */
@@ -213,6 +223,10 @@ public:
 	 * Removes the item from the linked inventory
 	 */
 	void RemoveFromInventory();
+
+	void SaveConfigXml(tinyxml2::XMLElement& i) const;
+
+	void LoadConfigXml(const tinyxml2::XMLElement& i);
 
 private:
 	/**
