@@ -224,5 +224,9 @@ namespace GMZeroCommands {
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 	}
+
+	//For client side commands
+	void ClientHandled(Entity* entity, const SystemAddress& sysAddr, const std::string args) {}
+
 };
 

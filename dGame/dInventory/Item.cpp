@@ -562,3 +562,35 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 		config.push_back(LDFBaseData::DataFromString(value));
 	}
 }
+
+void Item::SaveConfigXml(tinyxml2::XMLElement& i) const {
+	tinyxml2::XMLElement* x = nullptr;
+
+	for (const auto* config : this->config) {
+		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
+		const auto saveKey = ExtraSettingAbbreviations.find(key);
+		if (saveKey == ExtraSettingAbbreviations.end()) {
+			continue;
+		}
+
+		if (!x) {
+			x = i.InsertNewChildElement("x");
+		}
+
+		const auto dataToSave = config->GetString(false);
+		x->SetAttribute(saveKey->second.c_str(), dataToSave.c_str());
+	}
+}
+
+void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
+	const auto* x = i.FirstChildElement("x");
+	if (!x) return;
+
+	for (const auto& pair : ExtraSettingAbbreviations) {
+		const auto* data = x->Attribute(pair.second.c_str());
+		if (!data) continue;
+
+		const auto value = pair.first + "=" + data;
+		config.push_back(LDFBaseData::DataFromString(value));
+	}
+}
