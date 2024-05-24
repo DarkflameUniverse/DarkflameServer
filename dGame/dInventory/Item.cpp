@@ -529,6 +529,12 @@ void Item::RemoveFromInventory() {
 
 Item::~Item() {
 	delete preconditions;
+
+	for (auto* value : config) {
+		delete value;
+	}
+
+	config.clear();
 }
 
 void Item::SaveConfigXml(tinyxml2::XMLElement& i) const {
