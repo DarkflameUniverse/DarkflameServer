@@ -236,7 +236,7 @@ namespace GMZeroCommands {
 			return;
 		}
 
-		auto itemId = GeneralUtils::TryParse<int32_t>(splitArgs[1]);
+		auto itemId = GeneralUtils::TryParse<LWOOBJID>(splitArgs[1]);
 
 		if (!itemId.has_value()) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
