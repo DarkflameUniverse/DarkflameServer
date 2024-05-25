@@ -700,7 +700,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
 			(scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
-			(scriptName == "scripts\\empty.lua")
+			(scriptName == "scripts\\empty.lua") ||
+			(scriptName == "scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua")
 			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
