@@ -39,6 +39,7 @@ enum class eQuickBuildFailReason : uint32_t;
 enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
 enum class eVendorTransactionResult : uint32_t;
+enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t;
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -589,6 +590,7 @@ namespace GameMessages {
 	//NT:
 
 	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response);
 
 	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
 

@@ -99,6 +99,7 @@
 #include "ActivityManager.h"
 #include "PlayerManager.h"
 #include "eVendorTransactionResult.h"
+#include "eReponseMoveItemBetweenInventoryTypeCode.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
@@ -4564,16 +4565,31 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream&
 	if (inStream.ReadBit()) inStream.Read(itemLOT);
 
 	if (invTypeDst == invTypeSrc) {
+		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
 		return;
 	}
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
-	if (inventoryComponent != nullptr) {
+	if (inventoryComponent) {
 		if (itemID != LWOOBJID_EMPTY) {
 			auto* item = inventoryComponent->FindItemById(itemID);
 
-			if (!item) return;
+			if (!item) {
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_ITEM_NOT_FOUND);
+				return;
+			} 
+
+			if (item->GetLot() == 6086) { // Thinking hat
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_CANT_MOVE_THINKING_HAT);
+				return;
+			}
+			
+			auto* destInv = inventoryComponent->GetInventory(invTypeDst);
+			if (destInv && destInv->GetEmptySlots() == 0) {
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_INV_FULL);
+				return;
+			}
 
 			// Despawn the pet if we are moving that pet to the vault.
 			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
@@ -4582,8 +4598,30 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream&
 			}
 
 			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
+			SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::SUCCESS);
 		}
+	} else {
+		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
 	}
+}
+
+void GameMessages::SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(eGameMessageType::RESPONSE_MOVE_ITEM_BETWEEN_INVENTORY_TYPES);
+
+	bitStream.Write(inventoryTypeDestination != eInventoryType::ITEMS);
+	if (inventoryTypeDestination != eInventoryType::ITEMS) bitStream.Write(inventoryTypeDestination);
+
+	bitStream.Write(inventoryTypeSource != eInventoryType::ITEMS);
+	if (inventoryTypeSource != eInventoryType::ITEMS) bitStream.Write(inventoryTypeSource);
+
+	bitStream.Write(response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
+	if (response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC) bitStream.Write(response);
+
+	SEND_PACKET;
 }
 
 
