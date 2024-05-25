@@ -175,7 +175,6 @@ void PropertyManagementComponent::UpdatePropertyDetails(UpdatePropertyWithFilter
 		if (!entity) return;
 
 		if (update.name.empty()) {
-			update.name = "Objects_" + std::to_string(entity->GetLOT()) + "_name";
 			entity->EraseVar(u"userModelName");
 		} else {
 			entity->SetVar<std::string>(u"userModelName", update.name);
@@ -360,7 +359,9 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 	node->position = position;
 	node->rotation = rotation;
-	node->config = item->GetConfig();
+	for (const auto config : item->GetConfig()) {
+		node->config.push_back(config->Copy());
+	}
 
 	item->SetCount(item->GetCount() - 1);
 
