@@ -11,6 +11,7 @@
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
 #include "eKillType.h"
+#include "Observable.h"
 
 namespace Loot {
 	class Info;
@@ -299,6 +300,11 @@ public:
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
 
+	/**
+	 * @brief The observable for player entity position updates.
+	 */
+	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
+	
 protected:
 	LWOOBJID m_ObjectID;
 
