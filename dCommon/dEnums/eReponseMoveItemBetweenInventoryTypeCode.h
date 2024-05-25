@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-enum class eReponseMoveItemBetweenInventoryTypeCode : uint32_t {
+enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t {
 	SUCCESS,
 	FAIL_GENERIC,
 	FAIL_INV_FULL,
