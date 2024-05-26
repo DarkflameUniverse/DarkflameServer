@@ -580,6 +580,7 @@ namespace {
 		{"scripts\\02_server\\Map\\AM\\L_SKULLKIN_DRILL_STAND.lua", []() {return new AmSkullkinDrillStand();}},
 		{"scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua", []() {return new AmSkullkinTower();}},
 		{"scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua", []() {return new AmDarklingDragon();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua", []() {return new AmDarklingDragon();}},
 		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua", []() {return new BaseEnemyApe();}},
 		{"scripts\\02_server\\Map\\AM\\L_BLUE_X.lua", []() {return new AmBlueX();}},
 		{"scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua", []() {return new AmTeapotServer();}},
@@ -654,6 +655,7 @@ namespace {
 
 		//Pickups
 		{"scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(1);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(10000);}},
 		{"scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(100);}},
 		{"scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(10);}},
 		{"scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(100000);}},
