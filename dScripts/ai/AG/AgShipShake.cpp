@@ -55,10 +55,13 @@ void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("ShipShakeExplode", 5.0f);
 
-		if (shipFxObject2) { RenderComponent::PlayAnimation(shipFxObject2, u"explosion"); }
+		if (shipFxObject2)
+			RenderComponent::PlayAnimation(shipFxObject2, u"explosion");
 	} else if (timerName == "ShipShakeExplode") {
-		if (shipFxObject) { RenderComponent::PlayAnimation(shipFxObject, u"idle"); }
-		if (shipFxObject2) { RenderComponent::PlayAnimation(shipFxObject2, u"idle"); }
+		if (shipFxObject)
+			RenderComponent::PlayAnimation(shipFxObject, u"idle");
+		if (shipFxObject2)
+			RenderComponent::PlayAnimation(shipFxObject2, u"idle");
 	}
 }
 
