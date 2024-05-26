@@ -24,6 +24,9 @@ void AgShipShake::OnStartup(Entity* self) {
 }
 
 void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
+	auto* shipFxObject = GetEntityInGroup(ShipFX);
+	auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
+	auto* debrisObject = GetEntityInGroup(DebrisFX);
 	if (timerName == "ShipShakeIdle") {
 		auto* ref = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"ShakeObject"));
 
@@ -39,14 +42,12 @@ void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
 		if (ref)
 			GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(ref, FXName, ref->GetObjectID(), 500.0f);
 
-		auto* debrisObject = GetEntityInGroup(DebrisFX);
 
 		if (debrisObject)
 			GameMessages::SendPlayFXEffect(debrisObject, -1, u"DebrisFall", "Debris", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
 
 		const auto randomFx = GeneralUtils::GenerateRandomNumber<int>(0, 3);
 
-		auto* shipFxObject = GetEntityInGroup(ShipFX);
 		if (shipFxObject) {
 			std::string effectType = "shipboom" + std::to_string(randomFx);
 			GameMessages::SendPlayFXEffect(shipFxObject, 559, GeneralUtils::ASCIIToUTF16(effectType), "FX", LWOOBJID_EMPTY, 1.0f, 1.0f, true);
@@ -54,15 +55,9 @@ void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
 
 		self->AddTimer("ShipShakeExplode", 5.0f);
 
-		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
-		if (shipFxObject2)
-			RenderComponent::PlayAnimation(shipFxObject2, u"explosion");
+		if (shipFxObject2) { RenderComponent::PlayAnimation(shipFxObject2, u"explosion"); }
 	} else if (timerName == "ShipShakeExplode") {
-		auto* shipFxObject = GetEntityInGroup(ShipFX);
-		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
-
 		if (shipFxObject) { RenderComponent::PlayAnimation(shipFxObject, u"idle"); }
-
 		if (shipFxObject2) { RenderComponent::PlayAnimation(shipFxObject2, u"idle"); }
 	}
 }
