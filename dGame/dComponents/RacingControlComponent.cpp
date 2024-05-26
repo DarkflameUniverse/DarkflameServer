@@ -25,6 +25,7 @@
 #include "LeaderboardManager.h"
 #include "dZoneManager.h"
 #include "CDActivitiesTable.h"
+#include "eStateChangeType.h"
 #include <ctime>
 
 #ifndef M_PI
@@ -76,6 +77,9 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 	}
 
 	m_LoadedPlayers++;
+
+	// not live accurate to stun the player but prevents them from using skills during the race that are not meant to be used.
+	GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY, true, true, true, true, true, true, true, true, true);
 
 	LOG("Loading player %i",
 		m_LoadedPlayers);
