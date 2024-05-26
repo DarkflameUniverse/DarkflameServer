@@ -24,27 +24,7 @@ void AgShipShake::OnStartup(Entity* self) {
 }
 
 void AgShipShake::OnTimerDone(Entity* self, std::string timerName) {
-	if (timerName == "FloaterScale") {
-		int scaleType = GeneralUtils::GenerateRandomNumber<int>(1, 5);
-
-		RenderComponent::PlayAnimation(self, u"scale_0" + GeneralUtils::to_u16string(scaleType));
-		self->AddTimer("FloaterPath", 0.4);
-	} else if (timerName == "FloaterPath") {
-		int pathType = GeneralUtils::GenerateRandomNumber<int>(1, 4);
-		int randTime = GeneralUtils::GenerateRandomNumber<int>(20, 25);
-
-		RenderComponent::PlayAnimation(self, u"path_0" + (GeneralUtils::to_u16string(pathType)));
-		self->AddTimer("FloaterScale", randTime);
-	} else if (timerName == "ShipShakeExplode") {
-		DoShake(self, true);
-	} else if (timerName == "ShipShakeIdle") {
-		DoShake(self, false);
-	}
-}
-
-void AgShipShake::DoShake(Entity* self, bool explodeIdle) {
-
-	if (!explodeIdle) {
+	if (timerName == "ShipShakeIdle") {
 		auto* ref = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"ShakeObject"));
 
 		const auto randomTime = self->GetVar<int>(u"RandomTime");
@@ -77,15 +57,13 @@ void AgShipShake::DoShake(Entity* self, bool explodeIdle) {
 		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
 		if (shipFxObject2)
 			RenderComponent::PlayAnimation(shipFxObject2, u"explosion");
-	} else {
+	} else if (timerName == "ShipShakeExplode") {
 		auto* shipFxObject = GetEntityInGroup(ShipFX);
 		auto* shipFxObject2 = GetEntityInGroup(ShipFX2);
 
-		if (shipFxObject)
-			RenderComponent::PlayAnimation(shipFxObject, u"idle");
+		if (shipFxObject) { RenderComponent::PlayAnimation(shipFxObject, u"idle"); }
 
-		if (shipFxObject2)
-			RenderComponent::PlayAnimation(shipFxObject2, u"idle");
+		if (shipFxObject2) { RenderComponent::PlayAnimation(shipFxObject2, u"idle"); }
 	}
 }
 
