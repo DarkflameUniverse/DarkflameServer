@@ -14,6 +14,7 @@
 #include "AgShipPlayerDeathTrigger.h"
 #include "AgShipPlayerShockServer.h"
 #include "AgSpaceStuff.h"
+#include "AgShipShake.h"
 #include "AgImagSmashable.h"
 #include "NpcNpSpacemanBob.h"
 #include "StoryBoxInteractServer.h"
@@ -341,6 +342,7 @@ namespace {
 		{ "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua", []() { return new AgShipPlayerDeathTrigger(); } },
 		{"scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua", []() { return new NpcNpSpacemanBob(); } },
 		{"scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua", []() { return new AgSpaceStuff();} },
+		{"scripts\\ai\\AG\\L_AG_SHIP_SHAKE.lua", []() { return new AgShipShake();}},
 		{"scripts\\ai\\AG\\L_AG_SHIP_PLAYER_SHOCK_SERVER.lua", []() { return new AgShipPlayerShockServer();} },
 		{"scripts\\ai\\AG\\L_AG_IMAG_SMASHABLE.lua", []() { return new AgImagSmashable();} },
 		{"scripts\\02_server\\Map\\General\\L_STORY_BOX_INTERACT_SERVER.lua", []() { return new StoryBoxInteractServer();} },
