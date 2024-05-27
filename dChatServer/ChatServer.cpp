@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has disconnected, erasing their connected players from the list.");
 	} else if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {

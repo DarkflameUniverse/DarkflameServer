@@ -661,7 +661,7 @@ void HandlePacketChat(Packet* packet) {
 }
 
 void HandleMasterPacket(Packet* packet) {
-
+	if (packet->length < 2) return;
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
 	switch (static_cast<eMasterMessageType>(packet->data[3])) {
 	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
