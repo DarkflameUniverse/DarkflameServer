@@ -201,7 +201,7 @@ void OnTerminate() {
 }
 
 void MakeBacktrace() {
-	struct sigaction sigact;
+	struct sigaction sigact{};
 
 	sigact.sa_sigaction = CritErrHdlr;
 	sigact.sa_flags = SA_RESTART | SA_SIGINFO;

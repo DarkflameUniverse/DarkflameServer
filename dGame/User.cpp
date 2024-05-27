@@ -12,6 +12,7 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	m_AccountID = 0;
 	m_Username = "";
 	m_SessionKey = "";
+	m_MuteExpire = 0;
 
 	m_MaxGMLevel = eGameMasterLevel::CIVILIAN; //The max GM level this account can assign to it's characters
 	m_LastCharID = 0;

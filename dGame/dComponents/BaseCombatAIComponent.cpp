@@ -29,7 +29,8 @@
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
-	SetAiState(AiState::spawn);
+	m_DirtyStateOrTarget = true;
+	m_State = AiState::spawn;
 	m_Timer = 1.0f;
 	m_StartPosition = parent->GetPosition();
 	m_MovementAI = nullptr;
