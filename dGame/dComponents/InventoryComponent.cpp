@@ -877,8 +877,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	UnequipScripts(item);
 
-	PurgeProxies(item);
-
 	Game::entityManager->SerializeEntity(m_Parent);
 
 	// Trigger property event
@@ -886,6 +884,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
