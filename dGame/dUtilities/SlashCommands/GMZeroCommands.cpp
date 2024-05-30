@@ -225,36 +225,6 @@ namespace GMZeroCommands {
 		ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 	}
 
-	void ItemDescription(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
-		
-		auto requestId = GeneralUtils::TryParse<int32_t>(splitArgs[0]);
-		
-		if (!requestId.has_value()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
-			return;
-		}
-
-		auto itemId = GeneralUtils::TryParse<LWOOBJID>(splitArgs[1]);
-
-		if (!itemId.has_value()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
-			return;
-		}
-
-		std::stringstream messageName;
-		messageName << "desc" << requestId.value();
-
-		AMFArrayValue amfArgs;
-
-		amfArgs.Insert("t", true);
-		amfArgs.Insert("d", "Test description");
-		amfArgs.Insert("n", messageName.str());
-
-		GameMessages::SendUIMessageServerToSingleClient(entity, sysAddr, messageName.str(), amfArgs);
-	}
-
 	//For client side commands
 	void ClientHandled(Entity* entity, const SystemAddress& sysAddr, const std::string args) {}
 

@@ -6,7 +6,8 @@ set(DGAME_SOURCES "Character.cpp"
 		"TeamManager.cpp"
 		"TradingManager.cpp"
 		"User.cpp"
-		"UserManager.cpp")
+		"UserManager.cpp"
+		"Nejlika.cpp")
 
 include_directories(
 	${PROJECT_SOURCE_DIR}/dScripts

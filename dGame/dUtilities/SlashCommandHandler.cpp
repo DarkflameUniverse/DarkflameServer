@@ -1427,13 +1427,4 @@ void SlashCommandHandler::Startup() {
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(removeIgnoreCommand);
-
-	Command itemDescriptionCommand{
-		.help = "Special UI command, does nothing when used in chat.",
-		.info = "Special UI command, does nothing when used in chat.",
-		.aliases = {"d"},
-		.handle = GMZeroCommands::ItemDescription,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
-	};
-	RegisterCommand(itemDescriptionCommand);
 }

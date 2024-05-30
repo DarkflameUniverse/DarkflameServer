@@ -41,6 +41,7 @@ namespace {
 		{ "userModelMod", "um" },
 		{ "userModelOpt", "uo" },
 		{ "reforgedLOT", "rl" },
+		{ "modifiers", "mod" }
 	};
 }
 
