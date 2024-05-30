@@ -102,6 +102,7 @@
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
+#include "eItemType.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -5352,7 +5353,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
 
 	if (bConfirmed) {
-		if (eInvType == eInventoryType::MODELS) {
+		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
+		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
 			item->DisassembleModel(iStackCount);
 		}
 		auto lot = item->GetLot();
