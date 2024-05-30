@@ -161,7 +161,7 @@ const EquipmentMap& InventoryComponent::GetEquippedItems() const {
 	return m_Equipped;
 }
 
-void InventoryComponent::AddItem(
+std::vector<LWOOBJID> InventoryComponent::AddItem(
 	const LOT lot,
 	const uint32_t count,
 	eLootSourceType lootSourceType,
@@ -175,90 +175,90 @@ void InventoryComponent::AddItem(
 	const int32_t sourceType,
 	const bool bound,
 	int32_t preferredSlot) {
+
+	std::vector<LWOOBJID> toReturn;
+	LOG("AddItem called with parameters: LOT %i, Count %u, LootSourceType %i, InventoryType %i, Parent %llu, ShowFlyingLoot %i, IsModMoveAndEquip %i, SubKey %llu, InventorySourceType %i, SourceType %i, Bound %i, PreferredSlot %i",
+		lot, count, lootSourceType, inventoryType, parent, showFlyingLoot, isModMoveAndEquip, subKey, inventorySourceType, sourceType, bound, preferredSlot);
+
 	if (count == 0) {
 		LOG("Attempted to add 0 of item (%i) to the inventory!", lot);
-
-		return;
+		return toReturn;
 	}
 
 	if (!Inventory::IsValidItem(lot)) {
 		if (lot > 0) {
 			LOG("Attempted to add invalid item (%i) to the inventory!", lot);
 		}
-
-		return;
+		return toReturn;
 	}
 
 	if (inventoryType == INVALID) {
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
+		LOG("InventoryType was INVALID, found InventoryType %i for LOT %i", inventoryType, lot);
 	}
 
 	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(eReplicaComponentType::MISSION));
-
 	auto* inventory = GetInventory(inventoryType);
+	LOG("Retrieved inventory of type %i", inventoryType);
 
 	if (!config.empty() || bound) {
+		LOG("Adding item with config or bound. Config size: %lu, Bound: %i", config.size(), bound);
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
 			LOG("Failed to find empty slot for inventory (%i)!", inventoryType);
-
-			return;
+			return toReturn;
 		}
 
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
+		toReturn.push_back(item->GetId());
+		invTransferred.push_back(item->GetId());
+		LOG("Created new item with LOT %i in slot %i", lot, slot);
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
+			LOG("Progressing mission for adding item with LOT %i, count %u", lot, count);
 			missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
 		}
-
-		return;
+		return toReturn;
 	}
 
 	const auto info = Inventory::FindItemComponent(lot);
+	LOG("Retrieved item component info for LOT %i", lot);
 
 	auto left = count;
-
 	int32_t outOfSpace = 0;
-
 	auto stack = static_cast<uint32_t>(info.stackSize);
-
 	bool isBrick = inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1);
 
-	// info.itemType of 1 is item type brick
 	if (isBrick) {
 		stack = UINT32_MAX;
 	} else if (stack == 0) {
 		stack = 1;
 	}
 
-	auto* existing = FindItemByLot(lot, inventoryType);
+	LOG("Stack size determined: %u, IsBrick: %i", stack, isBrick);
 
+	auto* existing = FindItemByLot(lot, inventoryType);
 	if (existing != nullptr) {
 		const auto delta = std::min<uint32_t>(left, stack - existing->GetCount());
-
 		left -= delta;
-
 		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot, lootSourceType);
+		LOG("Updated existing item with LOT %i, new count %u", lot, existing->GetCount());
 
 		if (isModMoveAndEquip) {
 			existing->Equip();
-
+			LOG("Equipped item with LOT %i", lot);
 			isModMoveAndEquip = false;
 		}
 	}
 
-	// If we have some leftover and we aren't bricks, make a new stack
 	while (left > 0 && (!isBrick || (isBrick && !existing))) {
 		const auto size = std::min(left, stack);
-
 		left -= size;
 
 		int32_t slot;
-
 		if (preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot)) {
 			slot = preferredSlot;
-
 			preferredSlot = -1;
 		} else {
 			slot = inventory->FindEmptySlot();
@@ -266,33 +266,49 @@ void InventoryComponent::AddItem(
 
 		if (slot == -1) {
 			outOfSpace += size;
+			LOG("No empty slot found, out of space for %u items of LOT %i", size, lot);
 
 			switch (sourceType) {
 			case 0:
-				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn't have room for it.", lot, size);
+				LOG("Sent mail for lost reward: LOT %i, count %u", lot, size);
 				break;
-
 			case 1:
 				for (size_t i = 0; i < size; i++) {
 					GameMessages::SendDropClientLoot(this->m_Parent, this->m_Parent->GetObjectID(), lot, 0, this->m_Parent->GetPosition(), 1);
 				}
-
+				LOG("Dropped client loot for LOT %i, count %u", lot, size);
 				break;
-
 			default:
 				break;
 			}
-
 			continue;
 		}
+
 		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
+		toReturn.push_back(item->GetId());
+		invTransferred.push_back(item->GetId());
+		LOG("Created new item with LOT %i in slot %i, count %u", lot, slot, size);
 
 		isModMoveAndEquip = false;
 	}
 
 	if (missions != nullptr && !IsTransferInventory(inventoryType)) {
+		LOG("Progressing mission for adding item with LOT %i, count %u", lot, count - outOfSpace);
 		missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
 	}
+
+	LOG("AddItem completed for LOT %i, count %u", lot, count);
+
+	if (!toReturn.empty()) {
+		for (const auto& id : toReturn) {
+			LOG("LWOOBJID IN TORETURN %llu", id);
+		}
+		for (const auto& id : invTransferred) {
+			LOG("LWOOBJID IN INVTRANSFERRED %llu", id);
+		}
+	}
+	return toReturn;
 }
 
 bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
@@ -318,6 +334,7 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
+	std::vector<LWOOBJID> objIds;
 	if (item == nullptr) {
 		return;
 	}
@@ -344,7 +361,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			objIds = AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
 
 			item->SetCount(item->GetCount() - delta, false, false);
 
@@ -359,7 +376,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		objIds = AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}

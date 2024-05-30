@@ -95,7 +95,7 @@ public:
 	 * @param preferredSlot the preferred slot to store this item
 	 * @param lootSourceType The source of the loot.  Defaults to none.
 	 */
-	void AddItem(
+	std::vector<LWOOBJID> AddItem(
 		LOT lot,
 		uint32_t count,
 		eLootSourceType lootSourceType = eLootSourceType::NONE,
@@ -367,7 +367,7 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
@@ -379,7 +379,7 @@ private:
 	 * All the inventory this entity possesses
 	 */
 	std::map<eInventoryType, Inventory*> m_Inventories;
-
+	std::vector<LWOOBJID> invTransferred;
 	/**
 	 * The skills that this entity currently has active
 	 */
