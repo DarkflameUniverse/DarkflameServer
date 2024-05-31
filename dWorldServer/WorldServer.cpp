@@ -529,6 +529,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacketChat(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("Lost our connection to chat, zone(%i), instance(%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 
@@ -542,7 +543,7 @@ void HandlePacketChat(Packet* packet) {
 		chatConnected = true;
 	}
 
-	if (packet->data[0] == ID_USER_PACKET_ENUM) {
+	if (packet->data[0] == ID_USER_PACKET_ENUM && packet->length >= 4) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
 			switch (static_cast<eChatMessageType>(packet->data[3])) {
 				case eChatMessageType::WORLD_ROUTE_PACKET: {
@@ -557,8 +558,9 @@ void HandlePacketChat(Packet* packet) {
 
 					//Write our stream outwards:
 					CBITSTREAM;
-					for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-						bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					unsigned char data;
+					while (inStream.Read(data)) {
+						bitStream.Write(data);
 					}
 
 					SEND_PACKET; //send routed packet to player
@@ -659,7 +661,7 @@ void HandlePacketChat(Packet* packet) {
 }
 
 void HandleMasterPacket(Packet* packet) {
-
+	if (packet->length < 2) return;
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
 	switch (static_cast<eMasterMessageType>(packet->data[3])) {
 	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
@@ -785,6 +787,7 @@ void HandleMasterPacket(Packet* packet) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) return;
@@ -1207,8 +1210,8 @@ void HandlePacket(Packet* packet) {
 
 		//Now write the rest of the data:
 		auto data = inStream.GetData();
-		for (uint32_t i = 0; i < size; ++i) {
-			bitStream.Write(data[i + 23]);
+		for (uint32_t i = 23; i - 23 < size && i < packet->length; ++i) {
+			bitStream.Write(data[i]);
 		}
 
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);

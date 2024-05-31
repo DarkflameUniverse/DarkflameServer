@@ -382,6 +382,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
 		LOG("A server has disconnected");
 

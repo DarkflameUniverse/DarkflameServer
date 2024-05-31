@@ -875,8 +875,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	RemoveSlot(item->GetInfo().equipLocation);
 
-	PurgeProxies(item);
-
 	UnequipScripts(item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -886,6 +884,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
@@ -1505,10 +1505,10 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	const auto root = item->GetParent();
 
 	if (root != LWOOBJID_EMPTY) {
-		item = FindItemById(root);
+		Item* itemRoot = FindItemById(root);
 
-		if (item != nullptr) {
-			UnEquipItem(item);
+		if (itemRoot != nullptr) {
+			UnEquipItem(itemRoot);
 		}
 
 		return;

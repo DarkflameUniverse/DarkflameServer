@@ -27,6 +27,8 @@ Character::Character(uint32_t id, User* parentUser) {
 	m_ID = id;
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
+	m_GMLevel = eGameMasterLevel::CIVILIAN;
+	m_PermissionMap = static_cast<ePermissionMap>(0);
 }
 
 Character::~Character() {
