@@ -477,6 +477,8 @@ private:
 	 * @param document the xml doc to load from
 	 */
 	void UpdatePetXml(tinyxml2::XMLDocument& document);
+	void ManageVendorBuybackInventory(std::vector<LWOOBJID>& itemVector, Item* newItem, Inventory* inventory, bool removeItem);
+	bool RemoveItemById(LWOOBJID itemId, eInventoryType inventoryType, const bool ignoreBound, const bool silent);
 };
 
 #endif
