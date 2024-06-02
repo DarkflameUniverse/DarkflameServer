@@ -7,7 +7,19 @@ set(DGAME_SOURCES "Character.cpp"
 		"TradingManager.cpp"
 		"User.cpp"
 		"UserManager.cpp"
-		"Nejlika.cpp")
+		"ModifierTemplate.cpp"
+		"ModifierInstance.cpp"
+		"ModifierRarity.cpp"
+		"ModifierType.cpp"
+		"ModifierScale.cpp"
+		"ModifierName.cpp"
+		"ModifierNameTemplate.cpp"
+		"NejlikaData.cpp"
+		"AdditionalItemData.cpp"
+		"EntityTemplate.cpp"
+		"AdditionalEntityData.cpp"
+		"NejlikaHooks.cpp"
+		)
 
 include_directories(
 	${PROJECT_SOURCE_DIR}/dScripts

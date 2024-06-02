@@ -7,7 +7,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
-#include "Implementation.h"
+#include "Observable.h"
 
 namespace CppScripts {
 	class Script;
@@ -464,8 +464,8 @@ public:
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
-	static Implementation<bool, const Entity*> IsEnemyImplentation;
-	static Implementation<bool, const Entity*> IsFriendImplentation;
+	// Damaged entity, offender, skillID, damage
+	static Observable<Entity*, LWOOBJID, uint32_t, uint32_t&> OnDamageCalculation;
 
 private:
 	/**

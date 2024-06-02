@@ -22,6 +22,7 @@
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
+#include "Observable.h"
 
 class Entity;
 class ItemSet;
@@ -373,6 +374,12 @@ public:
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
 	~InventoryComponent() override;
+
+	static Observable<InventoryComponent*, Item*> OnItemCreated;
+	static Observable<InventoryComponent*, Item*> OnItemDestroyed;
+	static Observable<InventoryComponent*, Item*> OnItemEquipped;
+	static Observable<InventoryComponent*, Item*> OnItemUnequipped;
+	static Observable<InventoryComponent*, Item*> OnItemLoaded;
 
 private:
 	/**

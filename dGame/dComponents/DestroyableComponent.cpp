@@ -38,8 +38,7 @@
 
 #include "CDComponentsRegistryTable.h"
 
-Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
-Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
+Observable<Entity*, LWOOBJID, uint32_t, uint32_t&> DestroyableComponent::OnDamageCalculation;
 
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
@@ -421,7 +420,6 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
-	if (IsEnemyImplentation.ExecuteWithDefault(other, false)) return true;
 	if (m_Parent->IsPlayer() && other->IsPlayer()) {
 		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (!thisCharacterComponent) return false;
@@ -444,7 +442,6 @@ bool DestroyableComponent::IsEnemy(const Entity* other) const {
 }
 
 bool DestroyableComponent::IsFriend(const Entity* other) const {
-	if (IsFriendImplentation.ExecuteWithDefault(other, false)) return true;
 	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
@@ -574,6 +571,8 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 		return;
 	}
+
+	OnDamageCalculation(m_Parent, source, skillID, damage);
 
 	// If this entity has damage reduction, reduce the damage to a minimum of 1
 	if (m_DamageReduction > 0 && damage > 0) {

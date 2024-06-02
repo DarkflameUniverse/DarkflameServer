@@ -212,6 +212,8 @@ void Inventory::AddManagedItem(Item* item) {
 	items.insert_or_assign(id, item);
 
 	free--;
+
+	component->OnItemLoaded(component, item);
 }
 
 void Inventory::RemoveManagedItem(Item* item) {
@@ -226,6 +228,8 @@ void Inventory::RemoveManagedItem(Item* item) {
 	items.erase(id);
 
 	free++;
+
+	component->OnItemDestroyed(component, item);
 }
 
 eInventoryType Inventory::FindInventoryTypeForLot(const LOT lot) {

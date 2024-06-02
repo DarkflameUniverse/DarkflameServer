@@ -115,6 +115,12 @@ public:
 	void SetThreat(LWOOBJID offender, float threat);
 
 	/**
+	 * Get all threats for this entity
+	 * @return all threats for this entity
+	 */
+	const std::map<LWOOBJID, float>& GetThreats() const;
+
+	/**
 	 * Gets the position where the entity spawned
 	 * @return the position where the entity spawned
 	 */

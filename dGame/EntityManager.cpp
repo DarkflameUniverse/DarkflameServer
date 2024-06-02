@@ -26,6 +26,9 @@
 #include "GhostComponent.h"
 #include <ranges>
 
+Observable<Entity*> EntityManager::OnEntityCreated;
+Observable<Entity*> EntityManager::OnEntityDestroyed;
+
 // Configure which zones have ghosting disabled, mostly small worlds.
 std::vector<LWOMAPID> EntityManager::m_GhostingExcludedZones = {
 	// Small zones
@@ -138,6 +141,9 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 		m_SpawnPoints.insert_or_assign(GeneralUtils::UTF16ToWTF8(spawnName), entity->GetObjectID());
 	}
 
+	// Notify observers that a new entity has been created
+	OnEntityCreated(entity);
+
 	return entity;
 }
 
@@ -160,6 +166,9 @@ void EntityManager::DestroyEntity(Entity* entity) {
 	if (entity->GetNetworkId() != 0) {
 		DestructEntity(entity);
 	}
+
+	// Notify observers that an entity is about to be destroyed
+	OnEntityDestroyed(entity);
 
 	// Delete this entity at the end of the frame
 	ScheduleForDeletion(id);

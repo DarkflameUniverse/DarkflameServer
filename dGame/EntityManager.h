@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "dCommonVars.h"
+#include "Observable.h"
 
 class Entity;
 class EntityInfo;
@@ -71,6 +72,9 @@ public:
 	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
 	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+
+	static Observable<Entity*> OnEntityCreated;
+	static Observable<Entity*> OnEntityDestroyed;
 
 private:
 	void SerializeEntities();

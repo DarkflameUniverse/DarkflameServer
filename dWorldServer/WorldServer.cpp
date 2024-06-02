@@ -81,6 +81,8 @@
 #include "eLoginResponse.h"
 #include "SlashCommandHandler.h"
 
+#include "NejlikaHooks.h"
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -314,6 +316,8 @@ int main(int argc, char** argv) {
 
 	// Register slash commands if not in zone 0
 	if (zoneID != 0) SlashCommandHandler::Startup();
+
+	nejlika::NejlikaHooks::InstallHooks();
 
 	Game::logger->Flush(); // once immediately before the main loop
 	while (true) {

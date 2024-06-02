@@ -38,6 +38,12 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 
+Observable<InventoryComponent*, Item*> InventoryComponent::OnItemCreated;
+Observable<InventoryComponent*, Item*> InventoryComponent::OnItemDestroyed;
+Observable<InventoryComponent*, Item*> InventoryComponent::OnItemEquipped;
+Observable<InventoryComponent*, Item*> InventoryComponent::OnItemUnequipped;
+Observable<InventoryComponent*, Item*> InventoryComponent::OnItemLoaded;
+
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -286,6 +292,8 @@ void InventoryComponent::AddItem(
 			continue;
 		}
 		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
+
+		OnItemCreated(this, item);
 
 		isModMoveAndEquip = false;
 	}
@@ -571,6 +579,8 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			}
 
 			itemElement = itemElement->NextSiblingElement();
+
+			OnItemLoaded(this, item);
 		}
 
 		bag = bag->NextSiblingElement();
@@ -849,6 +859,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 
 	EquipScripts(item);
 
+	OnItemEquipped(this, item);
+
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
@@ -878,6 +890,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 	PurgeProxies(item);
 
 	UnequipScripts(item);
+
+	OnItemUnequipped(this, item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
 

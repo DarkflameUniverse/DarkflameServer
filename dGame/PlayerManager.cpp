@@ -18,6 +18,8 @@ void PlayerManager::AddPlayer(Entity* player) {
 
 	if (iter == m_Players.end()) {
 		m_Players.push_back(player);
+
+		OnPlayerAdded(player);
 	}
 }
 
@@ -27,6 +29,8 @@ bool PlayerManager::RemovePlayer(Entity* player) {
 	const bool toReturn = iter != m_Players.end();
 	if (toReturn) {
 		m_Players.erase(iter);
+
+		OnPlayerRemoved(player);
 	}
 
 	return toReturn;

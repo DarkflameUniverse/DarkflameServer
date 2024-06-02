@@ -36,6 +36,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_Disabled = false;
 	m_SkillEntries = {};
 	m_SoftTimer = 5.0f;
+	m_StunImmune = true;
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
@@ -369,9 +370,9 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 
 			m_Timer = 0;
 
-			m_SkillTime = result.skillTime;
+			m_SkillTime = result.skillTime / 2.0f;
 
-			entry.cooldown = entry.abilityCooldown + m_SkillTime;
+			entry.cooldown = 0.1f; //entry.abilityCooldown + m_SkillTime;
 
 			m_SkillEntries[i] = entry;
 
@@ -619,6 +620,10 @@ void BaseCombatAIComponent::SetThreat(LWOOBJID offender, float threat) {
 	m_DirtyThreat = true;
 }
 
+const std::map<LWOOBJID, float>& BaseCombatAIComponent::GetThreats() const {
+	return m_ThreatEntries;
+}
+
 const NiPoint3& BaseCombatAIComponent::GetStartPosition() const {
 	return m_StartPosition;
 }
@@ -679,7 +684,7 @@ void BaseCombatAIComponent::OnAggro() {
 		return;
 	}
 
-	m_MovementAI->SetHaltDistance(m_AttackRadius);
+	m_MovementAI->SetHaltDistance(0);
 
 	NiPoint3 targetPos = target->GetPosition();
 	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
@@ -713,7 +718,7 @@ void BaseCombatAIComponent::OnTether() {
 		return;
 	}
 
-	m_MovementAI->SetHaltDistance(m_AttackRadius);
+	m_MovementAI->SetHaltDistance(0);
 
 	NiPoint3 targetPos = target->GetPosition();
 	NiPoint3 currentPos = m_MovementAI->ApproximateLocation();

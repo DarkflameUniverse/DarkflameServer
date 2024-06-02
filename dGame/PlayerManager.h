@@ -2,6 +2,7 @@
 #define __PLAYERMANAGER__H__
 
 #include "dCommonVars.h"
+#include "Observable.h"
 
 #include <string>
 
@@ -20,6 +21,9 @@ namespace PlayerManager {
 	Entity* GetPlayer(LWOOBJID playerID);
 
 	const std::vector<Entity*>& GetAllPlayers();
+
+	static Observable<Entity*> OnPlayerAdded;
+	static Observable<Entity*> OnPlayerRemoved;
 };
 
 #endif  //!__PLAYERMANAGER__H__
