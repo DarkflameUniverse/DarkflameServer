@@ -5,7 +5,7 @@
 
 #include <map>
 #include <stack>
-
+#include <queue>
 
 #include "BehaviorSlot.h"
 #include "tinyxml2.h"
@@ -95,7 +95,7 @@ public:
 	 * @param preferredSlot the preferred slot to store this item
 	 * @param lootSourceType The source of the loot.  Defaults to none.
 	 */
-	std::vector<LWOOBJID> AddItem(
+	void AddItem(
 		LOT lot,
 		uint32_t count,
 		eLootSourceType lootSourceType = eLootSourceType::NONE,
@@ -372,6 +372,22 @@ public:
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
+	/**
+	 * Called during AddItem to manage the vendor buyback inventory if the inventory is of that type
+	 *
+	 * @param newItem The item ID which is being moved to the vendor buyback inventory
+	 * @param inventory The entity/vendor's inventory
+	*/
+	void ManageVendorBuybackInventory(LWOOBJID newItem, Inventory* inventory);
+
+	/**
+	 * Called in ManageVendorBuybackInventory to remove an item given the ItemId
+	 *
+	 * @param itemId item ID for item being removed
+	 * @param inventoryType inventory type
+	*/
+	void RemoveItem(LWOOBJID itemId, eInventoryType inventoryType);
+
 	~InventoryComponent() override;
 
 private:
@@ -379,7 +395,10 @@ private:
 	 * All the inventory this entity possesses
 	 */
 	std::map<eInventoryType, Inventory*> m_Inventories;
-	std::vector<LWOOBJID> invTransferred;
+	/**
+	 *A queue of LWOOBJIDs representing the buybackItems which are sold to a vendor
+	*/
+	std::queue<LWOOBJID> buybackItems;
 	/**
 	 * The skills that this entity currently has active
 	 */
@@ -477,8 +496,6 @@ private:
 	 * @param document the xml doc to load from
 	 */
 	void UpdatePetXml(tinyxml2::XMLDocument& document);
-	void ManageVendorBuybackInventory(std::vector<LWOOBJID>& itemVector, Item* newItem, Inventory* inventory, bool removeItem);
-	bool RemoveItemById(LWOOBJID itemId, eInventoryType inventoryType, const bool ignoreBound, const bool silent);
 };
 
 #endif

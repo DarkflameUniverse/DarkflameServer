@@ -161,7 +161,7 @@ const EquipmentMap& InventoryComponent::GetEquippedItems() const {
 	return m_Equipped;
 }
 
-std::vector<LWOOBJID> InventoryComponent::AddItem(
+void InventoryComponent::AddItem(
 	const LOT lot,
 	const uint32_t count,
 	eLootSourceType lootSourceType,
@@ -176,90 +176,76 @@ std::vector<LWOOBJID> InventoryComponent::AddItem(
 	const bool bound,
 	int32_t preferredSlot) {
 
-	std::vector<LWOOBJID> toReturn;
-	LOG("AddItem called with parameters: LOT %i, Count %u, LootSourceType %i, InventoryType %i, Parent %llu, ShowFlyingLoot %i, IsModMoveAndEquip %i, SubKey %llu, InventorySourceType %i, SourceType %i, Bound %i, PreferredSlot %i",
-		lot, count, lootSourceType, inventoryType, parent, showFlyingLoot, isModMoveAndEquip, subKey, inventorySourceType, sourceType, bound, preferredSlot);
-
 	if (count == 0) {
-		LOG("Attempted to add 0 of item (%i) to the inventory!", lot);
-		return toReturn;
+		return;
 	}
 
 	if (!Inventory::IsValidItem(lot)) {
 		if (lot > 0) {
-			LOG("Attempted to add invalid item (%i) to the inventory!", lot);
 		}
-		return toReturn;
+		return;
 	}
 
 	if (inventoryType == INVALID) {
 		inventoryType = Inventory::FindInventoryTypeForLot(lot);
-		LOG("InventoryType was INVALID, found InventoryType %i for LOT %i", inventoryType, lot);
 	}
 
 	auto* missions = static_cast<MissionComponent*>(this->m_Parent->GetComponent(eReplicaComponentType::MISSION));
+
 	auto* inventory = GetInventory(inventoryType);
-	LOG("Retrieved inventory of type %i", inventoryType);
 
 	if (!config.empty() || bound) {
-		LOG("Adding item with config or bound. Config size: %lu, Bound: %i", config.size(), bound);
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
-			LOG("Failed to find empty slot for inventory (%i)!", inventoryType);
-			return toReturn;
+			return;
 		}
 
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
-		LOG("Created new item with ID %llu, LOT %i in slot %i", item->GetId(), lot, slot);
 
 		// Check if inventory type is VENDOR_BUYBACK and manage the inventory size
-		if (inventoryType == VENDOR_BUYBACK) {
-			LOG("InventoryType is VENDOR_BUYBACK, managing vendor buyback inventory");
-			ManageVendorBuybackInventory(invTransferred, item, inventory, false);
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK) {
+			ManageVendorBuybackInventory(item->GetId(), inventory);
 		}
 
-		toReturn.push_back(item->GetId());
-		LOG("Added item with ID %llu to return vector", item->GetId());
-
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
-			LOG("Progressing mission for adding item with LOT %i, count %u", lot, count);
 			missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count, IsTransferInventory(inventorySourceType));
 		}
 
-		return toReturn;
+		return;
 	}
 
 	const auto info = Inventory::FindItemComponent(lot);
-	LOG("Retrieved item component info for LOT %i", lot);
 
 	auto left = count;
+
 	int32_t outOfSpace = 0;
+
 	auto stack = static_cast<uint32_t>(info.stackSize);
+
 	bool isBrick = inventoryType == eInventoryType::BRICKS || (stack == 0 && info.itemType == 1);
 
+	// info.itemType of 1 is item type brick
 	if (isBrick) {
 		stack = UINT32_MAX;
 	} else if (stack == 0) {
 		stack = 1;
 	}
 
-	LOG("Stack size determined: %u, IsBrick: %i", stack, isBrick);
 
 	auto* existing = FindItemByLot(lot, inventoryType);
 	if (existing != nullptr) {
 		const auto delta = std::min<uint32_t>(left, stack - existing->GetCount());
 		left -= delta;
 		existing->SetCount(existing->GetCount() + delta, false, true, showFlyingLoot, lootSourceType);
-		LOG("Updated existing item with LOT %i, new count %u", lot, existing->GetCount());
 
 		if (isModMoveAndEquip) {
 			existing->Equip();
-			LOG("Equipped item with LOT %i", lot);
 			isModMoveAndEquip = false;
 		}
 	}
 
+	// If we have some leftover and we aren't bricks, make a new stack
 	while (left > 0 && (!isBrick || (isBrick && !existing))) {
 		const auto size = std::min(left, stack);
 		left -= size;
@@ -294,13 +280,10 @@ std::vector<LWOOBJID> InventoryComponent::AddItem(
 		}
 
 		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
-		toReturn.push_back(item->GetId());
-		LOG("Created new item with LOT %i in slot %i, count %u", lot, slot, size);
 
 		// Check if inventory type is VENDOR_BUYBACK and manage the inventory size
-		if (inventoryType == VENDOR_BUYBACK) {
-			LOG("InventoryType is VENDOR_BUYBACK, managing vendor buyback inventory");
-			ManageVendorBuybackInventory(invTransferred, item, inventory, true);
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK) {
+			ManageVendorBuybackInventory(item->GetId(), inventory);
 		}
 
 		isModMoveAndEquip = false;
@@ -311,17 +294,7 @@ std::vector<LWOOBJID> InventoryComponent::AddItem(
 		missions->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", count - outOfSpace, IsTransferInventory(inventorySourceType));
 	}
 
-	LOG("AddItem completed for LOT %i, count %u", lot, count);
-
-	if (!toReturn.empty()) {
-		for (const auto& id : toReturn) {
-			LOG("LWOOBJID in toReturn: %llu", id);
-		}
-		for (const auto& id : invTransferred) {
-			LOG("LWOOBJID in invTransferred: %llu", id);
-		}
-	}
-	return toReturn;
+	return;
 }
 
 bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
@@ -347,7 +320,6 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
-	std::vector<LWOOBJID> objIds;
 	if (item == nullptr) {
 		return;
 	}
@@ -374,7 +346,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 			left -= delta;
 
-			objIds = AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
+			AddItem(lot, delta, eLootSourceType::NONE, inventory, {}, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, LWOOBJID_EMPTY, origin->GetType(), 0, false, preferredSlot);
 
 			item->SetCount(item->GetCount() - delta, false, false);
 
@@ -389,7 +361,7 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 
 		const auto delta = std::min<uint32_t>(item->GetCount(), count);
 
-		objIds = AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
+		AddItem(lot, delta, eLootSourceType::NONE, inventory, config, LWOOBJID_EMPTY, showFlyingLot, isModMoveAndEquip, subkey, origin->GetType(), 0, item->GetBound(), preferredSlot);
 
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
@@ -1634,61 +1606,31 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	return true;
 }
 
-void InventoryComponent::ManageVendorBuybackInventory(std::vector<LWOOBJID>& itemVector, Item* newItem, Inventory* inventory, bool removeItem) {
-	const size_t maxVendorBuybackItems = 26;
-	static std::vector<int> freeSlots; // Keep track of free slots
+void InventoryComponent::ManageVendorBuybackInventory(LWOOBJID newItem, Inventory* inventory) {
+	const size_t maxVendorBuybackItems = 27;
 
-	LOG("ManageVendorBuybackInventory called. ItemVector size: %lu, NewItem ID: %llu, RemoveItem: %i", itemVector.size(), newItem->GetId(), removeItem);
+	if (buybackItems.size() == 26) {
+		LWOOBJID oldestItemId = buybackItems.front();
+		buybackItems.pop();
 
-	if (itemVector.size() >= maxVendorBuybackItems) {
-		if (!freeSlots.empty()) {
-			int slotToUse = freeSlots.back();
-			freeSlots.pop_back();
-			itemVector[slotToUse] = newItem->GetId();
-			LOG("Using free slot %i for new item with ID %llu", slotToUse, newItem->GetId());
-		} else {
-			auto oldestItemId = itemVector.back(); // Get the ID of the oldest item
-			itemVector.pop_back(); // Remove the oldest item from the vector
-			LOG("ItemVector size exceeded maxVendorBuybackItems. Removing oldest item with ID: %llu", oldestItemId);
-
-			// Remove the oldest item from the inventory
-			RemoveItemById(oldestItemId, inventory->GetType(), true, false);
-			LOG("Removed oldest item with LWOOBJID %llu from VENDOR_BUYBACK inventory to maintain max size", oldestItemId);
-
-			itemVector.insert(itemVector.begin(), newItem->GetId());
-			LOG("Added newest item with LWOOBJID %llu to VENDOR_BUYBACK inventory", newItem->GetId());
-		}
-	} else {
-		itemVector.insert(itemVector.begin(), newItem->GetId());
-		LOG("Added newest item with LWOOBJID %llu to VENDOR_BUYBACK inventory", newItem->GetId());
+		RemoveItem(oldestItemId, inventory->GetType());
 	}
+	if (buybackItems.size() >= maxVendorBuybackItems) {
+		LWOOBJID oldestItemId = buybackItems.front();
+		buybackItems.pop();
+
+		RemoveItem(oldestItemId, inventory->GetType());
+	}
+
+	buybackItems.push(newItem);
 }
 
-bool InventoryComponent::RemoveItemById(LWOOBJID itemId, eInventoryType inventoryType, const bool ignoreBound, const bool silent) {
-	LOG("RemoveItemById called with parameters: ItemId %llu, InventoryType %i, IgnoreBound %i, Silent %i", itemId, inventoryType, ignoreBound, silent);
-
-	auto* inventory = GetInventory(inventoryType);
-	if (!inventory) {
-		LOG("No inventory found for InventoryType %i", inventoryType);
-		return false;
-	}
-
-	// Find the item in the inventory by its ID
+void InventoryComponent::RemoveItem(LWOOBJID itemId, eInventoryType inventoryType) {
 	auto* item = FindItemById(itemId);
-	if (!item) {
-		LOG("No item found with ItemId %llu", itemId);
-		return false;
+	if (item) {
+		item->SetCount(0);
+		LOG("Item with ItemId %llu removed (count set to 0)", itemId);
+	} else {
+		LOG("Item with ItemId %llu not found, cannot remove", itemId);
 	}
-
-	// Track the slot being freed
-	int slot = item->GetSlot();
-	static std::vector<int> freeSlots;
-	freeSlots.push_back(slot);
-	LOG("Slot %i added to freeSlots", slot);
-
-	// Set count to 0 to remove the item
-	item->SetCount(0, silent);
-	LOG("Item with ItemId %llu removed (count set to 0)", itemId);
-
-	return true;
 }
