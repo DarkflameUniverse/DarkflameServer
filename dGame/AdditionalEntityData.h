@@ -7,6 +7,9 @@
 
 #include "ModifierInstance.h"
 #include "EntityTemplate.h"
+#include "UpgradeTriggerType.h"
+
+#include <unordered_set>
 
 namespace nejlika
 {
@@ -40,6 +43,14 @@ public:
 
 	LOT GetLOT() const { return lot; }
 
+	const std::unordered_set<LWOOBJID>& GetUpgradeItems() const { return upgradeItems; }
+
+	void AddUpgradeItem(LWOOBJID id) { upgradeItems.insert(id); }
+
+	void RemoveUpgradeItem(LWOOBJID id) { upgradeItems.erase(id); }
+
+	std::vector<ModifierInstance> TriggerUpgradeItems(UpgradeTriggerType triggerType);
+
 private:
 	void RollStandardModifiers(int32_t level);
 
@@ -47,6 +58,7 @@ private:
 
 	std::vector<ModifierInstance> standardModifiers;
 	std::vector<ModifierInstance> activeModifiers;
+	std::unordered_set<LWOOBJID> upgradeItems;
 
 	LWOOBJID id;
 	LOT lot;

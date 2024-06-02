@@ -26,6 +26,8 @@ enum class ModifierType : uint8_t
 
 	Psychic,
 
+	Damage,
+
 	Invalid
 };
 

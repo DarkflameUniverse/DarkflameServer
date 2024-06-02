@@ -5,6 +5,7 @@
 #include "Component.h"
 #include "eCharacterVersion.h"
 #include "eReplicaComponentType.h"
+#include "Observable.h"
 
 /**
  * Component that handles level progression and serilization.
@@ -80,6 +81,8 @@ public:
 	 * Set the Base Speed retroactively of the entity
 	 */
 	void SetRetroactiveBaseSpeed();
+
+	static Observable<LevelProgressionComponent*> OnLevelUp;
 
 private:
 	/**

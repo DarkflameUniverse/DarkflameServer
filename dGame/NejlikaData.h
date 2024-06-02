@@ -7,6 +7,7 @@
 #include "EntityTemplate.h"
 #include "AdditionalItemData.h"
 #include "AdditionalEntityData.h"
+#include "UpgradeTemplate.h"
 
 namespace nejlika::NejlikaData
 {
@@ -20,6 +21,8 @@ const std::optional<AdditionalItemData*> GetAdditionalItemData(LWOOBJID id);
 const std::optional<AdditionalEntityData*> GetAdditionalEntityData(LWOOBJID id);
 
 const std::optional<EntityTemplate*> GetEntityTemplate(LOT lot);
+
+const std::optional<UpgradeTemplate*> GetUpgradeTemplate(LOT lot);
 
 void SetAdditionalItemData(LWOOBJID id, AdditionalItemData data);
 

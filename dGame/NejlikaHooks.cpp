@@ -17,6 +17,7 @@
 #include <PlayerManager.h>
 #include <eGameMessageType.h>
 #include <dServer.h>
+#include <Item.h>
 
 #include "NejlikaData.h"
 
@@ -39,6 +40,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 	InventoryComponent::OnItemCreated += [](InventoryComponent* component, Item* item) {
 		const auto& itemType = static_cast<eItemType>(item->GetInfo().itemType);
 
+		/*
 		static const std::unordered_set<eItemType> listOfHandledItems {
 			eItemType::HAT,
 			eItemType::CHEST,
@@ -51,7 +53,9 @@ void nejlika::NejlikaHooks::InstallHooks()
 		if (listOfHandledItems.find(itemType) == listOfHandledItems.end()) {
 			return;
 		}
+		*/
 
+		// No to the Thinking Hat
 		if (item->GetLot() == 6086) {
 			return;
 		}
@@ -69,6 +73,24 @@ void nejlika::NejlikaHooks::InstallHooks()
 		additionalData.RollModifiers(item, levelProgressionComponent->GetLevel());
 
 		SetAdditionalItemData(item->GetId(), additionalData);
+
+		auto entityDataOpt = GetAdditionalEntityData(component->GetParent()->GetObjectID());
+
+		if (!entityDataOpt.has_value()) {
+			return;
+		}
+
+		auto& entityData = *entityDataOpt.value();
+
+		auto upgradeTemplateOpt = GetUpgradeTemplate(item->GetLot());
+
+		if (!upgradeTemplateOpt.has_value()) {
+			return;
+		}
+
+		auto& upgradeTemplate = *upgradeTemplateOpt.value();
+
+		entityData.AddUpgradeItem(item->GetId());
 	};
 
 	EntityManager::OnEntityCreated += [](Entity* entity) {
@@ -89,6 +111,29 @@ void nejlika::NejlikaHooks::InstallHooks()
 		auto& additionalData = *additionalDataOpt.value();
 
 		additionalData.ApplyToEntity();
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (!inventoryComponent) {
+			return;
+		}
+
+		// Loop through all items and check if they are upgrade items
+		const auto& inventories = inventoryComponent->GetInventories();
+
+		for (const auto& [type, inventory] : inventories) {
+			for (const auto& [id, item] : inventory->GetItems()) {
+				const auto upgradeTemplateOpt = GetUpgradeTemplate(item->GetLot());
+
+				if (!upgradeTemplateOpt.has_value()) {
+					continue;
+				}
+
+				const auto& upgradeTemplate = *upgradeTemplateOpt.value();
+
+				additionalData.AddUpgradeItem(id);
+			}
+		}
 	};
 
 	EntityManager::OnEntityDestroyed += [](Entity* entity) {
@@ -101,6 +146,38 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 	InventoryComponent::OnItemDestroyed += [](InventoryComponent* component, Item* item) {
 		UnsetAdditionalItemData(item->GetId());
+
+		auto entityDataOpt = GetAdditionalEntityData(component->GetParent()->GetObjectID());
+
+		if (!entityDataOpt.has_value()) {
+			return;
+		}
+
+		auto& entityData = *entityDataOpt.value();
+
+		entityData.RemoveUpgradeItem(item->GetId());
+	};
+
+	LevelProgressionComponent::OnLevelUp += [](LevelProgressionComponent* component) {
+		auto* parent = component->GetParent();
+
+		auto entityDataOpt = GetAdditionalEntityData(parent->GetObjectID());
+
+		if (!entityDataOpt.has_value()) {
+			return;
+		}
+
+		auto& entityData = *entityDataOpt.value();
+
+		entityData.ApplyToEntity();
+
+		auto* inventoryComponent = parent->GetComponent<InventoryComponent>();
+
+		if (!inventoryComponent) {
+			return;
+		}
+
+		inventoryComponent->AddItem(2097253, 1, eLootSourceType::LEVEL_REWARD);
 	};
 
 	InventoryComponent::OnItemEquipped += [](InventoryComponent* component, Item* item) {
@@ -260,6 +337,11 @@ void nejlika::NejlikaHooks::InstallHooks()
 			modifiers.insert(modifiers.end(), skillModifiers.begin(), skillModifiers.end());
 		}
 
+		// Upgrades
+		const auto upgradeModifiers = offenderEntity.TriggerUpgradeItems(UpgradeTriggerType::OnHit);
+
+		modifiers.insert(modifiers.end(), upgradeModifiers.begin(), upgradeModifiers.end());
+
 		std::unordered_set<ModifierType> damageTypes;
 
 		for (const auto& modifier : modifiers) {
@@ -275,13 +357,14 @@ void nejlika::NejlikaHooks::InstallHooks()
 				damageTypes.insert(modifier.GetType());
 			}
 		}
-
 		// Remove the following: Offensive, Defensive, Health, Armor, Imagination
 		damageTypes.erase(ModifierType::Offensive);
 		damageTypes.erase(ModifierType::Defensive);
 		damageTypes.erase(ModifierType::Health);
 		damageTypes.erase(ModifierType::Armor);
 		damageTypes.erase(ModifierType::Imagination);
+		damageTypes.erase(ModifierType::Damage);
+		damageTypes.erase(ModifierType::Invalid);
 
 		uint32_t totalDamage = 0;
 
@@ -291,11 +374,12 @@ void nejlika::NejlikaHooks::InstallHooks()
 			// Calculate resistance, can't go below 20% of the original damage
 			const auto resistance = std::max(1 - (damagedEntity.CalculateResistance(type) / 100), 0.2f);
 
-			damageValue *= resistance;
+			float reductedDamage = damageValue * resistance;
 
-			totalDamage += static_cast<uint32_t>(damageValue);
+			totalDamage += static_cast<uint32_t>(reductedDamage);
 
-			std::cout << "Damage type: " << magic_enum::enum_name(type) << " - " << damageValue << std::endl << " Resistance: " << resistance << std::endl;
+			std::cout << "Damage type: " << magic_enum::enum_name(type) << " - " << damageValue << std::endl;
+			std::cout << "Resistance: " << resistance << " - " << reductedDamage << std::endl;
 			std::cout << "Heath left: " << damaged->GetComponent<DestroyableComponent>()->GetHealth() << std::endl;
 		}
 
@@ -325,12 +409,23 @@ void nejlika::NejlikaHooks::InstallHooks()
 			roll = std::min(roll, 5.0f);
 			totalDamage += static_cast<uint32_t>(totalDamage * roll);
 
+			const auto effectName = std::to_string(GeneralUtils::GenerateRandomNumber<uint32_t>());
+			const auto damagedID = damaged->GetObjectID();
+
 			GameMessages::SendPlayFXEffect(
-				damaged->GetObjectID(),
-				20041,
-				u"onhit",
-				std::to_string(GeneralUtils::GenerateRandomNumber<uint32_t>())
+				damagedID,
+				1531,
+				u"create",
+				effectName
 			);
+
+			damaged->AddCallbackTimer(0.5f, [damaged, effectName] () {
+				GameMessages::SendStopFXEffect(
+					damaged,
+					true,
+					effectName
+				);
+			});
 		}
 
 		// Add a random +10% to the damage

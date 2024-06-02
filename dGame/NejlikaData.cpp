@@ -20,6 +20,8 @@ std::unordered_map<LWOOBJID, nejlika::AdditionalEntityData> additionalEntityData
 
 std::unordered_map<LOT, nejlika::EntityTemplate> entityTemplates;
 
+std::unordered_map<LOT, nejlika::UpgradeTemplate> upgradeTemplates;
+
 }
 
 const std::unordered_map<ModifierNameType,std::vector<ModifierNameTemplate>>& nejlika::NejlikaData::GetModifierNameTemplates()
@@ -64,6 +66,16 @@ const std::optional<EntityTemplate*> nejlika::NejlikaData::GetEntityTemplate(LOT
 
 	if (it != entityTemplates.end()) {
 		return std::optional<EntityTemplate*>(&it->second);
+	}
+
+	return std::nullopt;
+}
+
+const std::optional<UpgradeTemplate*> nejlika::NejlikaData::GetUpgradeTemplate(LOT lot) {
+	const auto& it = upgradeTemplates.find(lot);
+
+	if (it != upgradeTemplates.end()) {
+		return std::optional<UpgradeTemplate*>(&it->second);
 	}
 
 	return std::nullopt;
@@ -147,5 +159,17 @@ void nejlika::NejlikaData::LoadNejlikaData()
 	}
 
 	LOG("Loaded %d entity templates", entityTemplates.size());
+
+	if (json.contains("upgrade-templates"))
+	{
+		const auto& upgradeTemplatesArray = json["upgrade-templates"];
+
+		for (const auto& value : upgradeTemplatesArray)
+		{
+			auto upgradeTemplate = UpgradeTemplate(value);
+
+			upgradeTemplates[upgradeTemplate.GetLot()] = upgradeTemplate;
+		}
+	}
 }
 

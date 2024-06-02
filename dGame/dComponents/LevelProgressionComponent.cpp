@@ -6,6 +6,8 @@
 
 #include "CDRewardsTable.h"
 
+Observable<LevelProgressionComponent*> LevelProgressionComponent::OnLevelUp;
+
 LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
 	m_Parent = parent;
 	m_Level = 1;
@@ -80,6 +82,8 @@ void LevelProgressionComponent::HandleLevelUp() {
 	}
 	// Tell the client we have finished sending level rewards.
 	if (rewardingItem) GameMessages::NotifyLevelRewards(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), m_Level, !rewardingItem);
+
+	OnLevelUp(this);
 }
 
 void LevelProgressionComponent::SetRetroactiveBaseSpeed(){

@@ -7,6 +7,9 @@
 #include <InventoryComponent.h>
 #include <BaseCombatAIComponent.h>
 #include <TeamManager.h>
+#include <Item.h>
+
+using namespace nejlika;
 
 float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, ModifierOperator op, bool resistance) const
 {
@@ -86,14 +89,70 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 	
 	float multiplicative = CalculateModifier(type, additionalModifiers, ModifierOperator::Multiplicative, false);
 
-	std::cout << "Scaler: " << scaler << " Additive: " << additive << " Multiplicative: " << multiplicative << std::endl;
+	static const std::unordered_set<ModifierType> damageTypes = {
+		ModifierType::Slashing,
+		ModifierType::Piercing,
+		ModifierType::Bludgeoning,
+		ModifierType::Fire,
+		ModifierType::Cold,
+		ModifierType::Lightning,
+		ModifierType::Corruption,
+		ModifierType::Psychic
+	};
 
-	return (scaler + additive) * (1 + multiplicative / 100);
+	if (damageTypes.contains(type)) {
+		additive += CalculateModifier(ModifierType::Damage, additionalModifiers, ModifierOperator::Additive, false);
+		multiplicative += CalculateModifier(ModifierType::Damage, additionalModifiers, ModifierOperator::Multiplicative, false);
+	}
+
+	float total = (scaler + additive) * (1 + multiplicative / 100);
+
+	std::cout << "Scaler: " << scaler << " Additive: " << additive << " Multiplicative: " << multiplicative << " Total: " << total << std::endl;
+
+	return total;
 }
 
 float nejlika::AdditionalEntityData::CalculateResistance(ModifierType type) const
 {
 	return CalculateModifier(type, ModifierOperator::Multiplicative, true);
+}
+
+std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType) {
+	auto* entity = Game::entityManager->GetEntity(id);
+
+	if (entity == nullptr) {
+		return {};
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr) {
+		return {};
+	}
+
+	std::vector<ModifierInstance> result;
+
+	for (const auto& itemID : upgradeItems) {
+		auto* item = inventoryComponent->FindItemById(itemID);
+
+		if (item == nullptr) {
+			continue;
+		}
+
+		const auto upgradeDataOpt = NejlikaData::GetUpgradeTemplate(item->GetLot());
+
+		if (!upgradeDataOpt.has_value()) {
+			continue;
+		}
+
+		const auto& upgradeData = *upgradeDataOpt.value();
+
+		const auto modifiers = upgradeData.Trigger(item->GetCount(), triggerType, id);
+
+		result.insert(result.end(), modifiers.begin(), modifiers.end());
+	}
+
+	return result;
 }
 
 void nejlika::AdditionalEntityData::RollStandardModifiers(int32_t level) {

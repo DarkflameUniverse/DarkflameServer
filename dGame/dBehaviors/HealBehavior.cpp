@@ -24,7 +24,13 @@ void HealBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_strea
 		return;
 	}
 
-	destroyable->Heal(this->m_health);
+	auto maxHealth = destroyable->GetMaxHealth();
+
+	// 1 health is 5% of the max health, minimum of 5 health
+	auto health = static_cast<int32_t>(maxHealth * 0.05f) * this->m_health;
+	health = std::max(5u, health);
+
+	destroyable->Heal(health);
 }
 
 
