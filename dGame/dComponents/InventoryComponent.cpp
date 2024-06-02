@@ -1,6 +1,7 @@
 #include "InventoryComponent.h"
 
 #include <sstream>
+#include <ranges>
 
 #include "Entity.h"
 #include "Item.h"
@@ -194,7 +195,12 @@ void InventoryComponent::AddItem(
 
 	auto* inventory = GetInventory(inventoryType);
 
+
 	if (!config.empty() || bound) {
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK && buybackItems.size() >= 27) {
+			RemoveItem(buybackItems.back());
+			buybackItems.pop_back();
+		}
 		const auto slot = preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot) ? preferredSlot : inventory->FindEmptySlot();
 
 		if (slot == -1) {
@@ -202,10 +208,8 @@ void InventoryComponent::AddItem(
 		}
 
 		auto* item = new Item(lot, inventory, slot, count, config, parent, showFlyingLoot, isModMoveAndEquip, subKey, bound, lootSourceType);
-
-		// Check if inventory type is VENDOR_BUYBACK and manage the inventory size
-		if (inventoryType == eInventoryType::VENDOR_BUYBACK) {
-			ManageVendorBuybackInventory(item->GetId(), inventory);
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK && buybackItems.size() <= 27) {
+			buybackItems.push_front(item->GetId());
 		}
 
 		if (missions != nullptr && !IsTransferInventory(inventoryType)) {
@@ -250,6 +254,11 @@ void InventoryComponent::AddItem(
 		const auto size = std::min(left, stack);
 		left -= size;
 
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK && buybackItems.size() >= 27) {
+			RemoveItem(buybackItems.back());
+			buybackItems.pop_back();
+		}
+
 		int32_t slot;
 		if (preferredSlot != -1 && inventory->IsSlotEmpty(preferredSlot)) {
 			slot = preferredSlot;
@@ -280,10 +289,8 @@ void InventoryComponent::AddItem(
 		}
 
 		auto* item = new Item(lot, inventory, slot, size, {}, parent, showFlyingLoot, isModMoveAndEquip, subKey, false, lootSourceType);
-
-		// Check if inventory type is VENDOR_BUYBACK and manage the inventory size
-		if (inventoryType == eInventoryType::VENDOR_BUYBACK) {
-			ManageVendorBuybackInventory(item->GetId(), inventory);
+		if (inventoryType == eInventoryType::VENDOR_BUYBACK && buybackItems.size() <= 27) {
+			buybackItems.push_front(item->GetId());
 		}
 
 		isModMoveAndEquip = false;
@@ -325,6 +332,9 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 	}
 
 	auto* origin = item->GetInventory();
+	if (origin->GetType() == eInventoryType::VENDOR_BUYBACK) {
+		buybackItems.erase(std::ranges::find(buybackItems, item->GetId()));
+	}
 
 	const auto lot = item->GetLot();
 
@@ -366,6 +376,16 @@ void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType in
 		item->SetCount(item->GetCount() - delta, false, false);
 	}
 
+
+	// if (origin->GetType() == eInventoryType::VENDOR_BUYBACK) {
+	// 	auto& items = origin->GetItems();
+	// 	int32_t slotItr = 0;
+	// 	for (auto* item : items | std::views::values) {
+	// 		GameMessages::SendMoveItemInInventory(m_Parent->GetObjectID(), m_Parent->GetSystemAddress(), inventory, item->GetId(), origin->GetType(), 0, slotItr);
+	// 		item->SetSlot(slotItr);
+	// 		slotItr++;
+	// 	}
+	// }
 	auto* missionComponent = m_Parent->GetComponent<MissionComponent>();
 
 	if (missionComponent != nullptr) {
@@ -1606,26 +1626,7 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	return true;
 }
 
-void InventoryComponent::ManageVendorBuybackInventory(LWOOBJID newItem, Inventory* inventory) {
-	const size_t maxVendorBuybackItems = 27;
-
-	if (buybackItems.size() == 26) {
-		LWOOBJID oldestItemId = buybackItems.front();
-		buybackItems.pop();
-
-		RemoveItem(oldestItemId, inventory->GetType());
-	}
-	if (buybackItems.size() >= maxVendorBuybackItems) {
-		LWOOBJID oldestItemId = buybackItems.front();
-		buybackItems.pop();
-
-		RemoveItem(oldestItemId, inventory->GetType());
-	}
-
-	buybackItems.push(newItem);
-}
-
-void InventoryComponent::RemoveItem(LWOOBJID itemId, eInventoryType inventoryType) {
+void InventoryComponent::RemoveItem(LWOOBJID itemId) {
 	auto* item = FindItemById(itemId);
 	if (item) {
 		item->SetCount(0);

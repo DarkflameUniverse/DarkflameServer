@@ -373,20 +373,11 @@ public:
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
 	/**
-	 * Called during AddItem to manage the vendor buyback inventory if the inventory is of that type
-	 *
-	 * @param newItem The item ID which is being moved to the vendor buyback inventory
-	 * @param inventory The entity/vendor's inventory
-	*/
-	void ManageVendorBuybackInventory(LWOOBJID newItem, Inventory* inventory);
-
-	/**
 	 * Called in ManageVendorBuybackInventory to remove an item given the ItemId
 	 *
 	 * @param itemId item ID for item being removed
-	 * @param inventoryType inventory type
 	*/
-	void RemoveItem(LWOOBJID itemId, eInventoryType inventoryType);
+	void RemoveItem(LWOOBJID itemId);
 
 	~InventoryComponent() override;
 
@@ -398,7 +389,7 @@ private:
 	/**
 	 *A queue of LWOOBJIDs representing the buybackItems which are sold to a vendor
 	*/
-	std::queue<LWOOBJID> buybackItems;
+	std::deque<LWOOBJID> buybackItems;
 	/**
 	 * The skills that this entity currently has active
 	 */

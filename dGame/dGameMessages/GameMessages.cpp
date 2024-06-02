@@ -980,7 +980,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-	});
+		});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -5110,12 +5110,12 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* en
 	}
 
 	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-	|| !player->GetCharacter()
-	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+		|| !player->GetCharacter()
+		|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
 	player->AddCallbackTimer(0.5f, [player]() {
 		if (!player) return;
 		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
-	});
+		});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -6208,5 +6208,29 @@ void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string t
 	bitStream.Write<uint32_t>(text.size());
 	bitStream.Write(text);
 	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}
+
+void GameMessages::SendMoveItemInInventory(
+	const LWOOBJID objectId,
+	const SystemAddress& sysAddr,
+	eInventoryType destination,
+	const LWOOBJID item,
+	const eInventoryType source,
+	const int32_t responseCode,
+	const int32_t slot) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(eGameMessageType::MOVE_ITEM_IN_INVENTORY);
+
+	bitStream.Write(destination != eInventoryType::INVALID);
+	if (destination != eInventoryType::INVALID) bitStream.Write(destination);
+	bitStream.Write(item);
+	bitStream.Write(source);
+	bitStream.Write(responseCode);
+	bitStream.Write(slot);
+
 	SEND_PACKET;
 }
