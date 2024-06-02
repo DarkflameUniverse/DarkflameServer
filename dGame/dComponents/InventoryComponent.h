@@ -5,7 +5,7 @@
 
 #include <map>
 #include <stack>
-
+#include <queue>
 
 #include "BehaviorSlot.h"
 #include "tinyxml2.h"
@@ -367,10 +367,17 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
+
+	/**
+	 * Called in ManageVendorBuybackInventory to remove an item given the ItemId
+	 *
+	 * @param itemId item ID for item being removed
+	*/
+	void RemoveItem(LWOOBJID itemId);
 
 	~InventoryComponent() override;
 
@@ -379,7 +386,10 @@ private:
 	 * All the inventory this entity possesses
 	 */
 	std::map<eInventoryType, Inventory*> m_Inventories;
-
+	/**
+	 *A queue of LWOOBJIDs representing the buybackItems which are sold to a vendor
+	*/
+	std::deque<LWOOBJID> buybackItems;
 	/**
 	 * The skills that this entity currently has active
 	 */

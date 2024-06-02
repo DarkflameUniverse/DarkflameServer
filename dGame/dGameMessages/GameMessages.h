@@ -666,6 +666,16 @@ namespace GameMessages {
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
+
+	void SendMoveItemInInventory(
+		const LWOOBJID objectId,
+		const SystemAddress& sysAddr,
+		eInventoryType destination,
+		const LWOOBJID item,
+		const eInventoryType source,
+		const int32_t responseCode,
+		const int32_t slot
+	);
 };
 
 #endif // GAMEMESSAGES_H
