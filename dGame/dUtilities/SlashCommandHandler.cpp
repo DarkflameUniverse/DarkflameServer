@@ -929,6 +929,15 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FindPlayerCommand);
 
+	Command SpectateCommand{
+		.help = "Spectate a player",
+		.info = "Specify a player name to spectate. They must be in the same world as you. Leave blank to stop spectating",
+		.aliases = { "spectate", "follow" },
+		.handle = GMGreaterThanZeroCommands::Spectate,
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+	};
+	RegisterCommand(SpectateCommand);
+
 	// Register GM Zero Commands
 
 	Command HelpCommand{

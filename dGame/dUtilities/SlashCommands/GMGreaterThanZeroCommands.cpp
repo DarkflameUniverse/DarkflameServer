@@ -322,4 +322,19 @@ namespace GMGreaterThanZeroCommands {
 		request.Serialize(bitStream);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 	}
+
+	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, entity->GetObjectID());
+			return;
+		}
+
+		auto player = PlayerManager::GetPlayer(args);
+		if (!player) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
+			return;
+		}
+		GameMessages::SendSlashCommandFeedbackText(entity, u"Spectating Player");
+		GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, player->GetObjectID());
+	}
 }
