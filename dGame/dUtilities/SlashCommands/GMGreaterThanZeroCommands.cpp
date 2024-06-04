@@ -325,6 +325,7 @@ namespace GMGreaterThanZeroCommands {
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		if (args.empty()) {
+			GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, entity->GetObjectID());
 			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
 			return;
 		}
