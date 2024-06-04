@@ -8,6 +8,7 @@
 #include "EntityInfo.h"
 #include "EntityManager.h"
 #include "dConfig.h"
+#include "dZoneManager.h"
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -34,6 +35,8 @@ protected:
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
 		Game::entityManager = new EntityManager();
+		Game::zoneManager = new dZoneManager();
+		Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
 
 		// Create a CDClientManager instance and load from defaults
 		CDClientManager::LoadValuesFromDefaults();
@@ -42,6 +45,7 @@ protected:
 	void TearDownDependencies() {
 		if (Game::server) delete Game::server;
 		if (Game::entityManager) delete Game::entityManager;
+		if (Game::zoneManager) delete Game::zoneManager;
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;

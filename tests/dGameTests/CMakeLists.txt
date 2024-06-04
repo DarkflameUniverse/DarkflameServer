@@ -9,6 +9,7 @@ add_subdirectory(dGameMessagesTests)
 list(APPEND DGAMETEST_SOURCES ${DGAMEMESSAGES_TESTS})
 
 file(COPY ${GAMEMESSAGE_TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${COMPONENT_TEST_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})

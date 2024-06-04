@@ -8,9 +8,15 @@ foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
 	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
 endforeach()
 
+add_subdirectory(TestSQL)
+
+foreach(file ${DDATABSE_DATABSES_TEST_SQL_SOURCES})
+	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "TestSQL/${file}")
+endforeach()
+
 add_library(dDatabaseGame STATIC ${DDATABASE_GAMEDATABASE_SOURCES})
 target_include_directories(dDatabaseGame PUBLIC "."
-	"ITables" PRIVATE "MySQL"
+	"ITables" PRIVATE "MySQL" "TestSQL"
 	"${PROJECT_SOURCE_DIR}/dCommon"
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 )
