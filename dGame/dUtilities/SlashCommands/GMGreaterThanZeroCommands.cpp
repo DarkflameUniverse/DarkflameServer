@@ -324,9 +324,16 @@ namespace GMGreaterThanZeroCommands {
 	}
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		if (args.empty()) GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+		if (args.empty()) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+			return;
+		}
+
 		auto player = PlayerManager::GetPlayer(args);
-		if (!player) GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
+		if (!player) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
+			return;
+		}
 		GameMessages::SendSlashCommandFeedbackText(entity, u"Spectating Player");
 		GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, player->GetObjectID());
 	}
