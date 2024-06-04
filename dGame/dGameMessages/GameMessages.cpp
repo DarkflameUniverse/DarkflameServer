@@ -6220,7 +6220,8 @@ void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(eGameMessageType::FORCE_CAMERA_TARGET_CYCLE);
 	bitStream.Write(bForceCycling);
-	bitStream.Write(cyclingMode);
+	bitStream.Write(cyclingMode != eCameraTargetCyclingMode::ALLOW_CYCLE_TEAMMATES);
+	if (cyclingMode != eCameraTargetCyclingMode::ALLOW_CYCLE_TEAMMATES) bitStream.Write(cyclingMode);
 	bitStream.Write(optionalTargetID);
 
 	auto sysAddr = entity->GetSystemAddress();
