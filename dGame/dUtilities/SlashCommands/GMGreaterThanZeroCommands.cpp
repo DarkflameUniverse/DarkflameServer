@@ -324,7 +324,7 @@ namespace GMGreaterThanZeroCommands {
 	}
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		if (args.length() <= 0) GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+		if (args.empty()) GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
 		auto player = PlayerManager::GetPlayer(args);
 		if (!player) GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
 		GameMessages::SendSlashCommandFeedbackText(entity, u"Spectating Player");
