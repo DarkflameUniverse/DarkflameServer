@@ -6212,3 +6212,17 @@ void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string t
 	auto sysAddr = entity->GetSystemAddress();
 	SEND_PACKET;
 }
+
+void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::FORCE_CAMERA_TARGET_CYCLE);
+	bitStream.Write(bForceCycling);
+	bitStream.Write(cyclingMode);
+	bitStream.Write(optionalTargetID);
+
+	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}

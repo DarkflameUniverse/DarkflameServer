@@ -40,6 +40,11 @@ enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
 enum class eVendorTransactionResult : uint32_t;
 
+enum class eCameraTargetCyclingMode : int32_t {
+	ALLOW_CYCLE_TEAMMATES,
+	DISALLOW_CYCLING
+};
+
 namespace GameMessages {
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
@@ -666,6 +671,7 @@ namespace GameMessages {
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
+	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
 };
 
 #endif // GAMEMESSAGES_H
