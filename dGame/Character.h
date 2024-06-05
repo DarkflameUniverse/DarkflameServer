@@ -460,6 +460,10 @@ public:
 
 	User* GetParentUser() const { return m_ParentUser; }
 
+	void _doQuickXMLDataParse() { DoQuickXMLDataParse(); }
+
+	void _setXmlData(const std::string& xmlData) { m_XMLData = xmlData; }
+
 private:
 	void UpdateInfoFromDatabase();
 	/**
