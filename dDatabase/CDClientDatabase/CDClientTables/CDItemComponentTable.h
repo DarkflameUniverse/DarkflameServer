@@ -33,7 +33,7 @@ struct CDItemComponent {
 	uint32_t itemRating;                //!< ???
 	bool isTwoHanded;               //!< Whether or not the item is double handed
 	uint32_t minNumRequired;            //!< Maybe the minimum number required for a mission, or to own this object?
-	uint32_t delResIndex;               //!< ???
+	uint32_t delResIndex;               //!< Relates to DeletionRestrictions Table
 	uint32_t currencyLOT;               //!< ???
 	uint32_t altCurrencyCost;           //!< ???
 	std::string subItems;              //!< A comma seperate string of sub items (maybe for multi-itemed things like faction test gear set)

@@ -1,0 +1,16 @@
+#ifndef __EDELETIONRESTRICTIONSCHECKTYPE__H__
+#define __EDELETIONRESTRICTIONSCHECKTYPE__H__
+
+#include <cstdint>
+
+enum class eDeletionRestrictionsCheckType : uint32_t {
+	INCLUDE_LOTS,
+	EXCLUDE_LOTS,
+	ANY_OF_THESE,
+	ALL_OF_THESE,
+	ZONE,
+	RESTRICTED,
+	MAX
+};
+
+#endif  //!__EDELETIONRESTRICTIONSCHECKTYPE__H__
