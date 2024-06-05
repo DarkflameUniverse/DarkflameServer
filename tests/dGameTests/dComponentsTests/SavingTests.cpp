@@ -2,6 +2,7 @@
 #include "Character.h"
 #include "Entity.h"
 #include "tinyxml2.h"
+#include "BuffComponent.h"
 
 class SavingTest : public GameDependenciesTest {
 protected:
@@ -23,6 +24,7 @@ protected:
 		character->_setXmlData(printer.CStr());
 		doc.Clear();
 		character->_doQuickXMLDataParse();
+		entity->AddComponent<BuffComponent>()->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 	}
 
 	void TearDown() override {
@@ -41,9 +43,9 @@ TEST_F(SavingTest, EntityLevelTest) {
 	doc.Print(&printer);
 	std::string xmlDataModified(printer.CStr());
 	doc.Clear();
-	std::ofstream oldXml("./test_xml_data_original.xml");
-	std::ofstream newXml("./test_xml_data_new.xml");
-	oldXml << xmlDataOriginal;
-	newXml << xmlDataModified;
+	// std::ofstream oldXml("./test_xml_data_original.xml");
+	// std::ofstream newXml("./test_xml_data_new.xml");
+	// oldXml << xmlDataOriginal;
+	// newXml << xmlDataModified;
 	LOG("Component count: %i Same: %i", entity->GetComponents().size(), xmlDataOriginal == xmlDataModified);
 }
