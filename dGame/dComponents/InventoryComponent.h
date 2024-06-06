@@ -372,6 +372,8 @@ public:
 
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
+	void UnsetSkill(BehaviorSlot slot);
+	void ResetSkill(BehaviorSlot slot);
 
 	~InventoryComponent() override;
 

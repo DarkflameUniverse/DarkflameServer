@@ -2,6 +2,8 @@
 
 #include "ModifierTemplate.h"
 #include "UpgradeTriggerType.h"
+#include "UpgradeTriggerCondition.h"
+#include <InventoryComponent.h>
 
 #include <dCommonVars.h>
 
@@ -21,6 +23,10 @@ public:
 
 	float CalculateChance(int32_t level) const;
 
+	bool CheckConditions(LWOOBJID origin) const;
+
+	void OnTrigger(LWOOBJID origin) const;
+
 	static std::vector<ModifierInstance> Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin);
 
 	// Getters
@@ -37,7 +43,11 @@ private:
 	};
 	
 	std::vector<UpgradeScale> chance;
+	std::vector<UpgradeTriggerCondition> conditions;
 	UpgradeTriggerType triggerType;
+	int32_t equipSkillID = 0;
+	bool unequipSkill = false;
+	BehaviorSlot equipSkillSlot = BehaviorSlot::Invalid;
 	std::vector<ModifierTemplate> modifiers;
 	int32_t effectID = 0;
 	std::string effectType = "";

@@ -2,6 +2,7 @@
 
 #include "GeneralUtils.h"
 #include "GameMessages.h"
+#include "InventoryComponent.h"
 
 #include <magic_enum.hpp>
 #include <iostream>
@@ -48,6 +49,28 @@ nlohmann::json nejlika::UpgradeEffect::ToJson() const
 		json["effect-type"] = effectType;
 	}
 
+	if (!conditions.empty()) {
+		nlohmann::json conditionsJson = nlohmann::json::array();
+
+		for (const auto& condition : conditions) {
+			conditionsJson.push_back(magic_enum::enum_name(condition));
+		}
+
+		json["conditions"] = conditionsJson;
+	}
+
+	if (equipSkillID != 0) {
+		json["grant-skill-id"] = equipSkillID;
+	}
+
+	if (equipSkillSlot != BehaviorSlot::Invalid) {
+		json["grant-skill-slot"] = magic_enum::enum_name(equipSkillSlot);
+	}
+
+	if (unequipSkill) {
+		json["unequip-skill"] = true;
+	}
+
 	return json;
 }
 
@@ -70,9 +93,11 @@ void nejlika::UpgradeEffect::Load(const nlohmann::json& json)
 
 	modifiers.clear();
 
-	for (const auto& modifier : json["modifiers"]) {
-		ModifierTemplate effect(modifier);
-		modifiers.push_back(effect);
+	if (json.contains("modifiers")){
+		for (const auto& modifier : json["modifiers"]) {
+			ModifierTemplate effect(modifier);
+			modifiers.push_back(effect);
+		}
 	}
 
 	if (json.contains("chance")) {
@@ -93,6 +118,26 @@ void nejlika::UpgradeEffect::Load(const nlohmann::json& json)
 	if (json.contains("effect-type")) {
 		effectType = json["effect-type"].get<std::string>();
 	}
+
+	if (json.contains("conditions")) {
+		conditions.clear();
+
+		for (const auto& condition : json["conditions"]) {
+			conditions.push_back(magic_enum::enum_cast<UpgradeTriggerCondition>(condition.get<std::string>()).value_or(UpgradeTriggerCondition::None));
+		}
+	}
+
+	if (json.contains("grant-skill-id")) {
+		equipSkillID = json["grant-skill-id"].get<int32_t>();
+	}
+
+	if (json.contains("grant-skill-slot")) {
+		equipSkillSlot = magic_enum::enum_cast<BehaviorSlot>(json["grant-skill-slot"].get<std::string>()).value_or(BehaviorSlot::Invalid);
+	}
+
+	if (json.contains("unequip-skill")) {
+		unequipSkill = json["unequip-skill"].get<bool>();
+	}
 }
 
 float nejlika::UpgradeEffect::CalculateChance(int32_t level) const {
@@ -112,11 +157,97 @@ float nejlika::UpgradeEffect::CalculateChance(int32_t level) const {
 	return value;
 }
 
+bool nejlika::UpgradeEffect::CheckConditions(LWOOBJID origin) const {
+	auto* entity = Game::entityManager->GetEntity(origin);
+
+	if (!entity) {
+		return false;
+	}
+
+	auto* inventory = entity->GetComponent<InventoryComponent>();
+
+	if (!inventory) {
+		return false;
+	}
+
+	const auto& skills = inventory->GetSkills();
+	const auto& equipped = inventory->GetEquippedItems();
+
+	for (const auto& condition : conditions) {
+		switch (condition) {
+		case UpgradeTriggerCondition::None:
+			break;
+		case UpgradeTriggerCondition::Unarmed:
+			if (equipped.contains("special_r")) {
+				return false;
+			}
+			break;
+		case UpgradeTriggerCondition::Melee:
+			if (!equipped.contains("special_r")) {
+				return false;
+			}
+			break;
+		case UpgradeTriggerCondition::TwoHanded:
+		{
+			if (!equipped.contains("special_r")) {
+				return false;
+			}
+
+			const auto& weaponLot = equipped.at("special_r").lot;
+
+			const auto& info = Inventory::FindItemComponent(weaponLot);
+
+			if (!info.isTwoHanded) {
+				return false;
+			}
+			break;
+		}
+		case UpgradeTriggerCondition::Shield:
+			if (!equipped.contains("special_l")) {
+				return false;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	return true;
+}
+
+void nejlika::UpgradeEffect::OnTrigger(LWOOBJID origin) const {
+	auto* entity = Game::entityManager->GetEntity(origin);
+
+	if (!entity) {
+		return;
+	}
+
+	auto* inventory = entity->GetComponent<InventoryComponent>();
+
+	if (!inventory) {
+		return;
+	}
+
+	if (equipSkillID != 0) {
+		std::cout << "Granting skill: " << equipSkillID << " to entity: " << origin << " in slot: " << magic_enum::enum_name(equipSkillSlot) << std::endl;
+		inventory->SetSkill(equipSkillSlot, equipSkillID);
+	}
+	
+	if (unequipSkill) {
+		std::cout << "Unequipping skill from entity: " << origin << " in slot: " << magic_enum::enum_name(equipSkillSlot) << std::endl;
+		inventory->ResetSkill(equipSkillSlot);
+	}
+}
+
 std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin) {
 	std::vector<ModifierInstance> result;
 
 	for (const auto& modifier : modifiers) {
 		if (modifier.GetTriggerType() != triggerType) {
+			continue;
+		}
+
+		if (!modifier.CheckConditions(origin)) {
 			continue;
 		}
 
@@ -126,9 +257,17 @@ std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<
 			continue;
 		}
 
+		std::cout << "Triggering effect trigger type: " << magic_enum::enum_name(triggerType) << std::endl;
+
+		modifier.OnTrigger(origin);
+
 		auto instances = modifier.GenerateModifiers(level);
 
 		result.insert(result.end(), instances.begin(), instances.end());
+
+		if (modifier.effectID == 0) {
+			continue;
+		}
 
 		GameMessages::SendPlayFXEffect(
 			origin,

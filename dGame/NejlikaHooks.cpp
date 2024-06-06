@@ -91,6 +91,8 @@ void nejlika::NejlikaHooks::InstallHooks()
 		auto& upgradeTemplate = *upgradeTemplateOpt.value();
 
 		entityData.AddUpgradeItem(item->GetId());
+
+		entityData.TriggerUpgradeItems(UpgradeTriggerType::Equip);
 	};
 
 	EntityManager::OnEntityCreated += [](Entity* entity) {
@@ -134,6 +136,8 @@ void nejlika::NejlikaHooks::InstallHooks()
 				additionalData.AddUpgradeItem(id);
 			}
 		}
+
+		additionalData.TriggerUpgradeItems(UpgradeTriggerType::Equip);
 	};
 
 	EntityManager::OnEntityDestroyed += [](Entity* entity) {
@@ -192,6 +196,8 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 		auto& entityData = *entityDataOpt.value();
 
+		entityData.TriggerUpgradeItems(UpgradeTriggerType::Equip);
+
 		entityData.ApplyToEntity();
 
 		const auto itemDataOpt = GetAdditionalItemData(item->GetId());
@@ -231,6 +237,8 @@ void nejlika::NejlikaHooks::InstallHooks()
 		}
 
 		auto& entityData = *entityDataOpt.value();
+
+		entityData.TriggerUpgradeItems(UpgradeTriggerType::UnEquip);
 
 		entityData.ApplyToEntity();
 	};

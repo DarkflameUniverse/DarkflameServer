@@ -1617,3 +1617,31 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }
+
+void InventoryComponent::UnsetSkill(BehaviorSlot slot) {
+	const auto index = m_Skills.find(slot);
+	if (index == m_Skills.end()) return;
+	const auto old = index->second;
+	GameMessages::SendRemoveSkill(m_Parent, old);
+	m_Skills.erase(slot);
+}
+
+void InventoryComponent::ResetSkill(BehaviorSlot slot) {
+	const auto index = m_Skills.find(slot);
+	if (index == m_Skills.end()) return;
+	const auto old = index->second;
+	GameMessages::SendRemoveSkill(m_Parent, old);
+	m_Skills.erase(slot);
+	
+	// Loop through all equipped items and find the first item that can be equipped in the slot
+	for (const auto& pair : m_Equipped) {
+		const auto item = pair.second;
+		const auto info = Inventory::FindItemComponent(item.lot);
+		const auto behaviorSlot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+
+		if (behaviorSlot == slot) {
+			SetSkill(slot, FindSkill(item.lot));
+			return;
+		}
+	}
+}
