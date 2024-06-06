@@ -5,6 +5,7 @@
 #include "MessageIdentifiers.h"
 #include "BitStream.h"
 #include <string>
+#include <algorithm>
 
 enum class eConnectionType : uint16_t;
 
