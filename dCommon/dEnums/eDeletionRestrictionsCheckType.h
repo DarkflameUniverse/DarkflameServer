@@ -8,8 +8,8 @@ enum class eDeletionRestrictionsCheckType : uint32_t {
 	EXCLUDE_LOTS,
 	ANY_OF_THESE,
 	ALL_OF_THESE,
-	ZONE,
-	RESTRICTED,
+	WHILE_IN_ZONE,
+	ALWAYS_RESTRICTED,
 	MAX
 };
 

@@ -35,7 +35,7 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 				} 
 			}
 		}
-		entry.checkType = static_cast<eDeletionRestrictionsCheckType>(tableData.getIntField("checkType", 6));
+		entry.checkType = static_cast<eDeletionRestrictionsCheckType>(tableData.getIntField("checkType", 6)); // MAX
 
 		entries.push_back(entry);
 		tableData.nextRow();
