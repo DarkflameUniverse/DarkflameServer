@@ -1,10 +1,16 @@
 #include "CDDeletionRestrictionsTable.h"
 #include "GeneralUtils.h"
+#include "eDeletionRestrictionsCheckType.h"
 
-//! Constructor
+CDDeletionRestriction CDDeletionRestrictionsTable::Default = {
+	.id = 0,
+	.restricted = false,
+	.ids = {},
+	.checkType = eDeletionRestrictionsCheckType::MAX
+};
+
 void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 
-	// First, get the size of the table
 	uint32_t size = 0;
 	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM CurrencyTable");
 	while (!tableSize.eof()) {
@@ -15,14 +21,11 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 
 	tableSize.finalize();
 
-	// Reserve the size
 	auto& entries = GetEntriesMutable();
-	entries.reserve(size);
 
-	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM DeletionRestrictions");
 	while (!tableData.eof()) {
-		CDDeletionRestrictions entry;
+		CDDeletionRestriction entry;
 		entry.id = tableData.getIntField("id", -1);
 		if (entry.id == -1) continue;
 		entry.restricted = tableData.getIntField("restricted", -1);
@@ -37,17 +40,18 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 		}
 		entry.checkType = static_cast<eDeletionRestrictionsCheckType>(tableData.getIntField("checkType", 6)); // MAX
 
-		entries.push_back(entry);
+		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
 	}
 
 	tableData.finalize();
 }
 
-std::vector<CDDeletionRestrictions> CDDeletionRestrictionsTable::Query(std::function<bool(CDDeletionRestrictions)> predicate) {
-	std::vector<CDDeletionRestrictions> data = cpplinq::from(GetEntries())
-		>> cpplinq::where(predicate)
-		>> cpplinq::to_vector();
-
-	return data;
+const CDDeletionRestriction& CDDeletionRestrictionsTable::GetByID(uint32_t id) {
+	auto& entries = GetEntries();
+	const auto& it = entries.find(id);
+	if (it != entries.end()) {
+		return it->second;
+	}
+	return Default;
 }

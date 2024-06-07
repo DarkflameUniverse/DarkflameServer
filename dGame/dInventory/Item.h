@@ -228,6 +228,13 @@ public:
 
 	void LoadConfigXml(const tinyxml2::XMLElement& i);
 
+	bool CanDeleteItem(Item* item);
+
+	bool CheckDeletionRestriction(uint32_t delResIndex, LOT item);
+
+	bool CheckDeletionRestrictionRecursion(std::set<uint32_t>& delResIndexs, uint32_t delResIndex);
+
+
 private:
 	/**
 	 * The object ID of this item
