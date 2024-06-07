@@ -35,7 +35,6 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 		tableData.nextRow();
 	}
 
-	tableData.finalize();
 }
 
 const CDDeletionRestriction& CDDeletionRestrictionsTable::GetByID(uint32_t id) {
