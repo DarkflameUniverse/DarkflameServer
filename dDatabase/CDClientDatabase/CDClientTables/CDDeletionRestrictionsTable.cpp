@@ -10,8 +10,6 @@ CDDeletionRestriction CDDeletionRestrictionsTable::Default = {
 };
 
 void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
-
-
 	auto& entries = GetEntriesMutable();
 
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM DeletionRestrictions");
@@ -25,7 +23,7 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 			for (const auto& idstr : GeneralUtils::SplitString(raw_ids, ',')) {
 				if (!idstr.empty()) {
 					const auto id = GeneralUtils::TryParse<int32_t>(idstr);
-					if (id) entry.ids.push_back(id);
+					if (id) entry.ids.push_back(id.value());
 				} 
 			}
 		}
