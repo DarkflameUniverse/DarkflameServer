@@ -11,15 +11,6 @@ CDDeletionRestriction CDDeletionRestrictionsTable::Default = {
 
 void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 
-	uint32_t size = 0;
-	auto tableSize = CDClientDatabase::ExecuteQuery("SELECT COUNT(*) FROM CurrencyTable");
-	while (!tableSize.eof()) {
-		size = tableSize.getIntField(0, 0);
-
-		tableSize.nextRow();
-	}
-
-	tableSize.finalize();
 
 	auto& entries = GetEntriesMutable();
 
