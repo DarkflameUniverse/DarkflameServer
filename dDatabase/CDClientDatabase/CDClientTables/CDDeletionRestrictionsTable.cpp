@@ -24,8 +24,8 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 		if (!raw_ids.empty()) {
 			for (const auto& idstr : GeneralUtils::SplitString(raw_ids, ',')) {
 				if (!idstr.empty()) {
-					const auto id = GeneralUtils::TryParse<int32_t>(idstr).value_or(-1);
-					if (id != -1) entry.ids.push_back(id);
+					const auto id = GeneralUtils::TryParse<int32_t>(idstr);
+					if (id) entry.ids.push_back(id);
 				} 
 			}
 		}
