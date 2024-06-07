@@ -27,7 +27,7 @@ void CDDeletionRestrictionsTable::LoadValuesFromDatabase() {
 				} 
 			}
 		}
-		entry.checkType = static_cast<eDeletionRestrictionsCheckType>(tableData.getIntField("checkType", 6)); // MAX
+		entry.checkType = static_cast<eDeletionRestrictionsCheckType>(tableData.getIntField("checkType", static_cast<int>(eDeletionRestrictionsCheckType::MAX)));
 
 		entries.insert(std::make_pair(entry.id, entry));
 		tableData.nextRow();
