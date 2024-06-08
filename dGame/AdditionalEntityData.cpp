@@ -7,7 +7,10 @@
 #include <InventoryComponent.h>
 #include <BaseCombatAIComponent.h>
 #include <TeamManager.h>
+#include <ControllablePhysicsComponent.h>
 #include <Item.h>
+
+#include <queue>
 
 using namespace nejlika;
 
@@ -117,6 +120,11 @@ float nejlika::AdditionalEntityData::CalculateResistance(ModifierType type) cons
 	return CalculateModifier(type, ModifierOperator::Multiplicative, true);
 }
 
+float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type) const
+{
+	return 1 + CalculateModifier(type, ModifierOperator::Multiplicative, false);
+}
+
 std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType) {
 	auto* entity = Game::entityManager->GetEntity(id);
 
@@ -153,6 +161,99 @@ std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems
 	}
 
 	return result;
+}
+
+void nejlika::AdditionalEntityData::InitializeSkills() {
+	auto* entity = Game::entityManager->GetEntity(id);
+
+	if (entity == nullptr) {
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr) {
+		return;
+	}
+	
+	struct entry {
+		LWOOBJID id;
+		int32_t priority;
+
+		entry(LWOOBJID id, int32_t priority) : id(id), priority(priority) {}
+	};
+
+	std::vector<entry> items;
+
+	for (const auto& itemID : upgradeItems) {
+		auto* item = inventoryComponent->FindItemById(itemID);
+
+		if (item == nullptr) {
+			continue;
+		}
+		
+		const auto priority = item->GetSlot();
+
+		items.push_back(entry(itemID, priority));
+	}
+
+	std::sort(items.begin(), items.end(), [](const entry& a, const entry& b) {
+		return a.priority < b.priority;
+	});
+
+	for (const auto& item : items) {
+		AddSkills(item.id);
+	}
+}
+
+void nejlika::AdditionalEntityData::AddSkills(LWOOBJID item) {
+	if (!upgradeItems.contains(item)) {
+		return;
+	}
+
+	auto* entity = Game::entityManager->GetEntity(id);
+
+	if (entity == nullptr) {
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr) {
+		return;
+	}
+
+	auto* itemData = inventoryComponent->FindItemById(item);
+
+	if (itemData == nullptr) {
+		return;
+	}
+
+	const auto upgradeDataOpt = NejlikaData::GetUpgradeTemplate(itemData->GetLot());
+
+	if (!upgradeDataOpt.has_value()) {
+		return;
+	}
+
+	const auto& upgradeData = *upgradeDataOpt.value();
+
+	LOG("Adding skills for item %i", id);
+
+	upgradeData.AddSkills(id);
+}
+
+void nejlika::AdditionalEntityData::RemoveSkills(LOT lot) {
+	const auto upgradeDataOpt = NejlikaData::GetUpgradeTemplate(lot);
+
+	if (!upgradeDataOpt.has_value()) {
+		return;
+	}
+
+	const auto& upgradeData = *upgradeDataOpt.value();
+
+	LOG("Removing skills for item %i", id);
+
+	upgradeData.RemoveSkills(id);
 }
 
 void nejlika::AdditionalEntityData::RollStandardModifiers(int32_t level) {
@@ -250,6 +351,11 @@ void nejlika::AdditionalEntityData::ApplyToEntity() {
 
 	if (!entity->IsPlayer()) {
 		destroyable->SetImagination(destroyable->GetMaxImagination());
+	}
+
+	if (entity->IsPlayer()) {
+		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
+		if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(CalculateMultiplier(ModifierType::Speed));
 	}
 
 	initialized = true;

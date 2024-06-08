@@ -10,6 +10,7 @@ enum class UpgradeTriggerType
 	OnHit,
 	Equip,
 	UnEquip,
+	Active
 };
 
 }

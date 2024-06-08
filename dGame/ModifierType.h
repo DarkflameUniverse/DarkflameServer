@@ -24,9 +24,15 @@ enum class ModifierType : uint8_t
 	Lightning,
 	Corruption,
 
+	Elemental,
+
 	Psychic,
 
 	Damage,
+
+	Speed,
+
+	AttackSpeed,
 
 	Invalid
 };

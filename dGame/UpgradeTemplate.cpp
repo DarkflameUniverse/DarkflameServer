@@ -46,4 +46,15 @@ std::vector<ModifierInstance> nejlika::UpgradeTemplate::Trigger(int32_t level, U
 	return UpgradeEffect::Trigger(passives, level, triggerType, origin);
 }
 
+void nejlika::UpgradeTemplate::AddSkills(LWOOBJID origin) const {
+	for (const auto& passive : passives) {
+		passive.AddSkill(origin);
+	}
+}
+
+void nejlika::UpgradeTemplate::RemoveSkills(LWOOBJID origin) const {
+	for (const auto& passive : passives) {
+		passive.RemoveSkill(origin);
+	}
+}
 

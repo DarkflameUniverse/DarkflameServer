@@ -97,6 +97,7 @@
 #include "CDZoneTableTable.h"
 
 Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
+Observable<Entity*> Entity::OnReadyForUpdates;
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -1778,6 +1779,12 @@ float Entity::GetDefaultScale() const {
 
 void Entity::SetOwnerOverride(const LWOOBJID value) {
 	m_OwnerOverride = value;
+}
+
+void Entity::SetPlayerReadyForUpdates() {
+	m_PlayerIsReadyForUpdates = true;
+
+	OnReadyForUpdates(this);
 }
 
 bool Entity::GetIsGhostingCandidate() const {

@@ -63,14 +63,6 @@ nlohmann::json nejlika::UpgradeEffect::ToJson() const
 		json["grant-skill-id"] = equipSkillID;
 	}
 
-	if (equipSkillSlot != BehaviorSlot::Invalid) {
-		json["grant-skill-slot"] = magic_enum::enum_name(equipSkillSlot);
-	}
-
-	if (unequipSkill) {
-		json["unequip-skill"] = true;
-	}
-
 	return json;
 }
 
@@ -129,14 +121,6 @@ void nejlika::UpgradeEffect::Load(const nlohmann::json& json)
 
 	if (json.contains("grant-skill-id")) {
 		equipSkillID = json["grant-skill-id"].get<int32_t>();
-	}
-
-	if (json.contains("grant-skill-slot")) {
-		equipSkillSlot = magic_enum::enum_cast<BehaviorSlot>(json["grant-skill-slot"].get<std::string>()).value_or(BehaviorSlot::Invalid);
-	}
-
-	if (json.contains("unequip-skill")) {
-		unequipSkill = json["unequip-skill"].get<bool>();
 	}
 }
 
@@ -227,16 +211,6 @@ void nejlika::UpgradeEffect::OnTrigger(LWOOBJID origin) const {
 	if (!inventory) {
 		return;
 	}
-
-	if (equipSkillID != 0) {
-		std::cout << "Granting skill: " << equipSkillID << " to entity: " << origin << " in slot: " << magic_enum::enum_name(equipSkillSlot) << std::endl;
-		inventory->SetSkill(equipSkillSlot, equipSkillID);
-	}
-	
-	if (unequipSkill) {
-		std::cout << "Unequipping skill from entity: " << origin << " in slot: " << magic_enum::enum_name(equipSkillSlot) << std::endl;
-		inventory->ResetSkill(equipSkillSlot);
-	}
 }
 
 std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin) {
@@ -278,4 +252,48 @@ std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<
 	}
 
 	return result;
+}
+
+void nejlika::UpgradeEffect::AddSkill(LWOOBJID origin) const {
+	auto* entity = Game::entityManager->GetEntity(origin);
+
+	if (!entity) {
+		return;
+	}
+
+	auto* inventory = entity->GetComponent<InventoryComponent>();
+
+	if (!inventory) {
+		return;
+	}
+
+	if (triggerType != UpgradeTriggerType::Active) {
+		return;
+	}
+
+	if (equipSkillID != 0) {
+		inventory->SetSkill(equipSkillID);
+	}
+}
+
+void nejlika::UpgradeEffect::RemoveSkill(LWOOBJID origin) const {
+	auto* entity = Game::entityManager->GetEntity(origin);
+
+	if (!entity) {
+		return;
+	}
+
+	auto* inventory = entity->GetComponent<InventoryComponent>();
+
+	if (!inventory) {
+		return;
+	}
+
+	if (triggerType != UpgradeTriggerType::Active) {
+		return;
+	}
+
+	if (equipSkillID != 0) {
+		inventory->UnsetSkill(equipSkillID);
+	}
 }

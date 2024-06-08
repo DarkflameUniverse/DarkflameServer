@@ -8,6 +8,7 @@
 #include "AdditionalItemData.h"
 #include "AdditionalEntityData.h"
 #include "UpgradeTemplate.h"
+#include "Lookup.h"
 
 namespace nejlika::NejlikaData
 {
@@ -33,5 +34,7 @@ void UnsetAdditionalItemData(LWOOBJID id);
 void UnsetAdditionalEntityData(LWOOBJID id);
 
 void LoadNejlikaData();
+
+const Lookup& GetLookup();
 
 }

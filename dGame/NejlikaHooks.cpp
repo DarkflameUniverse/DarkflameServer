@@ -18,6 +18,9 @@
 #include <eGameMessageType.h>
 #include <dServer.h>
 #include <Item.h>
+#include <SkillComponent.h>
+#include <MissionComponent.h>
+#include <eMissionState.h>
 
 #include "NejlikaData.h"
 
@@ -91,8 +94,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 		auto& upgradeTemplate = *upgradeTemplateOpt.value();
 
 		entityData.AddUpgradeItem(item->GetId());
-
-		entityData.TriggerUpgradeItems(UpgradeTriggerType::Equip);
+		entityData.AddSkills(item->GetId());
 	};
 
 	EntityManager::OnEntityCreated += [](Entity* entity) {
@@ -137,7 +139,26 @@ void nejlika::NejlikaHooks::InstallHooks()
 			}
 		}
 
-		additionalData.TriggerUpgradeItems(UpgradeTriggerType::Equip);
+		additionalData.InitializeSkills();
+	};
+
+	Entity::OnReadyForUpdates += [](Entity* entity) {
+		if (!entity->IsPlayer())
+		{
+			return;
+		}
+		
+		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:main"), BehaviorSlot::Head);
+		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary"), BehaviorSlot::Offhand);
+		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary"), BehaviorSlot::Neck);
+
+		auto* missionComponent = entity->GetComponent<MissionComponent>();
+
+		if (missionComponent) {
+			if (missionComponent->GetMissionState(1732) != eMissionState::COMPLETE) {
+				missionComponent->CompleteMission(1732, true, false);
+			}
+		}
 	};
 
 	EntityManager::OnEntityDestroyed += [](Entity* entity) {
@@ -149,17 +170,18 @@ void nejlika::NejlikaHooks::InstallHooks()
 	};
 
 	InventoryComponent::OnItemDestroyed += [](InventoryComponent* component, Item* item) {
-		UnsetAdditionalItemData(item->GetId());
-
 		auto entityDataOpt = GetAdditionalEntityData(component->GetParent()->GetObjectID());
 
 		if (!entityDataOpt.has_value()) {
+			UnsetAdditionalItemData(item->GetId());
 			return;
 		}
 
 		auto& entityData = *entityDataOpt.value();
 
 		entityData.RemoveUpgradeItem(item->GetId());
+		entityData.RemoveSkills(item->GetLot());
+		UnsetAdditionalItemData(item->GetId());
 	};
 
 	LevelProgressionComponent::OnLevelUp += [](LevelProgressionComponent* component) {
@@ -181,7 +203,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 			return;
 		}
 
-		inventoryComponent->AddItem(2097253, 1, eLootSourceType::LEVEL_REWARD);
+		inventoryComponent->AddItem(NejlikaData::GetLookup().GetValue("intro:upgrades:level-token"), 1, eLootSourceType::MODERATION);
 	};
 
 	InventoryComponent::OnItemEquipped += [](InventoryComponent* component, Item* item) {
@@ -243,6 +265,147 @@ void nejlika::NejlikaHooks::InstallHooks()
 		entityData.ApplyToEntity();
 	};
 
+	SkillComponent::OnSkillCast += [](SkillComponent* skillComponent, uint32_t skillID, bool success) {
+		std::cout << "Skill cast: " << skillID << " - " << success << std::endl;
+		
+		auto* inventoryComponent = skillComponent->GetParent()->GetComponent<InventoryComponent>();
+
+		if (!inventoryComponent) {
+			return;
+		}
+
+		auto* entity = skillComponent->GetParent();
+
+		auto skills = inventoryComponent->GetSkills();
+
+		const auto primaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:main");
+		const auto secondaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary");
+		const auto tertiaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary");
+
+		if (skillID == primaryTrigger || skillID == secondaryTrigger || skillID == tertiaryTrigger) {
+		}
+		else
+		{
+			/*
+			const auto primarySkills = skills[BehaviorSlot::Primary];
+
+			// If the skillID is in the primary skills, ignore this
+			if (primarySkills.contains(skillID)) {
+				if (entity->HasVar(u"skill-cast") && entity->GetVar<size_t>(u"skill-cast") == 0) {
+					GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
+					GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
+					GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
+				}
+
+				return;
+			}
+
+			if (entity->HasVar(u"skill-cast")) {
+				entity->SetVar(u"skill-cast", static_cast<size_t>(0));
+			}
+
+			if (entity->HasVar(u"skill-cast-slot")) {
+				BehaviorSlot slot = static_cast<BehaviorSlot>(entity->GetVar<int32_t>(u"skill-cast-slot"));
+
+				auto primarySkills = inventoryComponent->GetSkills();
+
+				for (const auto& skill : primarySkills[slot]) {
+					GameMessages::SendRemoveSkill(entity, skill);
+				}
+			}
+
+			LOG("Restoring triggers via skill");
+
+			// Restore the triggers
+			GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
+			GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
+			GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
+			*/
+
+			return;
+		}
+
+		static const std::vector<BehaviorSlot> slotOrder = {
+			BehaviorSlot::Head,
+			BehaviorSlot::Offhand,
+			BehaviorSlot::Neck
+		};
+
+		std::set<uint32_t> selectedSkills;
+		BehaviorSlot slot = BehaviorSlot::Invalid;
+
+		if (skillID == primaryTrigger) {
+			selectedSkills = skills[BehaviorSlot::Head];
+			slot = BehaviorSlot::Head;
+		} else if (skillID == secondaryTrigger) {
+			selectedSkills = skills[BehaviorSlot::Offhand];
+			slot = BehaviorSlot::Offhand;
+		} else if (skillID == tertiaryTrigger) {
+			selectedSkills = skills[BehaviorSlot::Neck];
+			slot = BehaviorSlot::Neck;
+		}
+
+		if (selectedSkills.empty()) {
+			return;
+		}
+		else {
+			GameMessages::SendRemoveSkill(entity, primaryTrigger);
+			GameMessages::SendRemoveSkill(entity, secondaryTrigger);
+			GameMessages::SendRemoveSkill(entity, tertiaryTrigger);
+		}
+
+		int32_t i = 0;
+		for (const auto& skill : selectedSkills) {
+			if (i >= 3) {
+				break;
+			}
+
+			GameMessages::SendAddSkill(entity, skill, slotOrder[i]);
+			i++;
+		}
+
+		const auto randomNumber = GeneralUtils::GenerateRandomNumber<size_t>();
+
+		entity->SetVar(u"skill-cast", randomNumber);
+		entity->SetVar(u"skill-cast-slot", static_cast<int32_t>(slot));
+
+		entity->AddCallbackTimer(1.0f, [entity, randomNumber, primaryTrigger, secondaryTrigger, tertiaryTrigger]() {
+			if (!entity->HasVar(u"skill-cast")) {
+				return;
+			}
+
+			const auto currentRandom = entity->GetVar<size_t>(u"skill-cast");
+			
+			if (currentRandom != randomNumber) {
+				return;
+			}
+
+			entity->SetVar(u"skill-cast", static_cast<size_t>(0));
+
+			LOG("Restoring triggers via timeout");
+
+			// Remove the skills
+			auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+			if (!inventoryComponent) {
+				return;
+			}
+
+			BehaviorSlot slot = static_cast<BehaviorSlot>(entity->GetVar<int32_t>(u"skill-cast-slot"));
+
+			auto primarySkills = inventoryComponent->GetSkills();
+
+			for (const auto& skill : primarySkills[slot]) {
+				GameMessages::SendRemoveSkill(entity, skill);
+			}
+
+			// Restore the triggers
+			GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
+			GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
+			GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
+		});
+	};
+
 	DestroyableComponent::OnDamageCalculation += [](Entity* damaged, LWOOBJID offender, uint32_t skillID, uint32_t& damage) {
 		std::cout << "Calculating damage with skill: " << skillID << std::endl;
 
@@ -299,7 +462,14 @@ void nejlika::NejlikaHooks::InstallHooks()
 			std::cout << "Found " << skills.size() << " skills." << std::endl;
 
 			// omg...
-			for (const auto& [slot, skill] : skills) {
+			for (const auto& [slot, skillSet] : skills) {
+				if (skillSet.empty())
+				{
+					continue;
+				}
+
+				const auto& skill = *skillSet.begin();
+
 				std::cout << "Found skill: " << skill << std::endl;
 				
 				if (skill != skillID) {
@@ -372,6 +542,8 @@ void nejlika::NejlikaHooks::InstallHooks()
 		damageTypes.erase(ModifierType::Armor);
 		damageTypes.erase(ModifierType::Imagination);
 		damageTypes.erase(ModifierType::Damage);
+		damageTypes.erase(ModifierType::Speed);
+		damageTypes.erase(ModifierType::AttackSpeed);
 		damageTypes.erase(ModifierType::Invalid);
 
 		uint32_t totalDamage = 0;
@@ -441,8 +613,10 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 		damage = totalDamage;
 
+		auto attackSpeed = offenderEntity.CalculateModifier(ModifierType::AttackSpeed, modifiers, level);
+
 		if (offfendEntity->IsPlayer()) {
-			offfendEntity->AddCallbackTimer(0.0f, [offfendEntity, skillID]() {
+			offfendEntity->AddCallbackTimer(0.0f, [offfendEntity, skillID, attackSpeed]() {
 				CBITSTREAM;
 				CMSGHEADER;
 
@@ -452,7 +626,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 				bitStream.Write(eGameMessageType::MODIFY_SKILL_COOLDOWN);
 
 				bitStream.Write1();
-				bitStream.Write<float>(-10.0f);
+				bitStream.Write<float>(attackSpeed);
 				bitStream.Write<int32_t>(static_cast<int32_t>(skillID));
 
 				LOG("Sending cooldown reduction for skill: %d", skillID);

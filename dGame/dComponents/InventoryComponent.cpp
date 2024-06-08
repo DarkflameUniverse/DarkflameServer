@@ -1127,15 +1127,31 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 
 	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
 
-	if (slot == BehaviorSlot::Invalid) {
+	if (slot != BehaviorSlot::Primary) {
 		return;
 	}
 
+	const auto skill = FindSkill(lot);
+	
 	const auto index = m_Skills.find(slot);
 
-	const auto skill = FindSkill(lot);
+	if (index != m_Skills.end()) {
+		const auto old = index->second;
 
-	SetSkill(slot, skill);
+		if (!old.empty()) {
+			const auto firstElem = *old.begin();
+
+			GameMessages::SendRemoveSkill(m_Parent, firstElem);
+		}
+	}
+
+	m_Skills.erase(slot);
+
+	if (skill != 0) {
+		m_Skills.insert_or_assign(slot, std::set<uint32_t>{ skill });
+
+		GameMessages::SendAddSkill(m_Parent, skill, slot);
+	}
 }
 
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
@@ -1143,7 +1159,7 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 
 	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
 
-	if (slot == BehaviorSlot::Invalid) {
+	if (slot != BehaviorSlot::Primary) {
 		return;
 	}
 
@@ -1155,12 +1171,16 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 
 	const auto old = index->second;
 
-	GameMessages::SendRemoveSkill(m_Parent, old);
+	if (!old.empty()) {
+		const auto firstElem = *old.begin();
+
+		GameMessages::SendRemoveSkill(m_Parent, firstElem);
+	}
 
 	m_Skills.erase(slot);
 
 	if (slot == BehaviorSlot::Primary) {
-		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
+		m_Skills.insert_or_assign(BehaviorSlot::Primary, std::set<uint32_t>{ 1 });
 
 		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
@@ -1608,40 +1628,46 @@ bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
-	if (index != m_Skills.end()) {
-		const auto old = index->second;
-		GameMessages::SendRemoveSkill(m_Parent, old);
+	if (index == m_Skills.end()) {
+		m_Skills.insert_or_assign(slot, std::set<uint32_t>{ skillId });
+	} else {
+		auto& existing = index->second;
+		existing.insert(skillId);
 	}
 
-	GameMessages::SendAddSkill(m_Parent, skillId, slot);
-	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }
 
-void InventoryComponent::UnsetSkill(BehaviorSlot slot) {
-	const auto index = m_Skills.find(slot);
-	if (index == m_Skills.end()) return;
-	const auto old = index->second;
-	GameMessages::SendRemoveSkill(m_Parent, old);
-	m_Skills.erase(slot);
-}
-
-void InventoryComponent::ResetSkill(BehaviorSlot slot) {
-	const auto index = m_Skills.find(slot);
-	if (index == m_Skills.end()) return;
-	const auto old = index->second;
-	GameMessages::SendRemoveSkill(m_Parent, old);
-	m_Skills.erase(slot);
-	
-	// Loop through all equipped items and find the first item that can be equipped in the slot
-	for (const auto& pair : m_Equipped) {
-		const auto item = pair.second;
-		const auto info = Inventory::FindItemComponent(item.lot);
-		const auto behaviorSlot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
-
-		if (behaviorSlot == slot) {
-			SetSkill(slot, FindSkill(item.lot));
-			return;
-		}
+void InventoryComponent::UnsetSkill(uint32_t skillId) {
+	for (auto& pair : m_Skills) {
+		auto& skills = pair.second;
+		skills.erase(skillId);
 	}
 }
+
+void InventoryComponent::SetSkill(uint32_t skillId) {
+	UnsetSkill(skillId);
+
+	const auto& slotA = m_Skills.find(BehaviorSlot::Head);
+	const auto& slotB = m_Skills.find(BehaviorSlot::Neck);
+	const auto& slotC = m_Skills.find(BehaviorSlot::Offhand);
+
+	// Pick the first one which has less than 3 skills
+	std::set<uint32_t>* slot = nullptr;
+
+	if (slotA == m_Skills.end() || slotA->second.size() < 3) {
+		slot = &m_Skills[BehaviorSlot::Head];
+	} else if (slotB == m_Skills.end() || slotB->second.size() < 3) {
+		slot = &m_Skills[BehaviorSlot::Neck];
+	} else if (slotC == m_Skills.end() || slotC->second.size() < 3) {
+		slot = &m_Skills[BehaviorSlot::Offhand];
+	}
+
+	if (slot == nullptr) {
+		return;
+	}
+
+	slot->insert(skillId);
+}
+
+

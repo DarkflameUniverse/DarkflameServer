@@ -35,6 +35,9 @@ public:
 
 	UpgradeTriggerType GetTriggerType() const { return triggerType; }
 
+	void AddSkill(LWOOBJID origin) const;
+	void RemoveSkill(LWOOBJID origin) const;
+
 private:
 	struct UpgradeScale
 	{
@@ -46,8 +49,6 @@ private:
 	std::vector<UpgradeTriggerCondition> conditions;
 	UpgradeTriggerType triggerType;
 	int32_t equipSkillID = 0;
-	bool unequipSkill = false;
-	BehaviorSlot equipSkillSlot = BehaviorSlot::Invalid;
 	std::vector<ModifierTemplate> modifiers;
 	int32_t effectID = 0;
 	std::string effectType = "";

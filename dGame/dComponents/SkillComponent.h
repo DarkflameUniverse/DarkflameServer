@@ -14,6 +14,7 @@
 #include "Entity.h"
 #include "Logger.h"
 #include "eReplicaComponentType.h"
+#include "Observable.h"
 
 struct ProjectileSyncEntry {
 	LWOOBJID id = LWOOBJID_EMPTY;
@@ -183,6 +184,9 @@ public:
 	 * @returns a unique ID for the next skill calculation
 	 */
 	uint32_t GetUniqueSkillId();
+
+	// SkillComponent, SkillID, Success
+	static Observable<SkillComponent*, uint32_t, bool> OnSkillCast;
 
 private:
 	/**

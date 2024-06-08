@@ -33,6 +33,14 @@ public:
 
 	float CalculateResistance(ModifierType type) const;
 
+	/**
+	 * @brief Calculate the multiplier for a given modifier type. With a base value of 1.0.
+	 * 
+	 * @param type The modifier type.
+	 * @return The multiplier.
+	 */
+	float CalculateMultiplier(ModifierType type) const;
+
 	void ApplyToEntity();
 
 	void CheckForRescale(AdditionalEntityData* other);
@@ -50,6 +58,11 @@ public:
 	void RemoveUpgradeItem(LWOOBJID id) { upgradeItems.erase(id); }
 
 	std::vector<ModifierInstance> TriggerUpgradeItems(UpgradeTriggerType triggerType);
+
+	void InitializeSkills();
+
+	void AddSkills(LWOOBJID item);
+	void RemoveSkills(LOT lot);
 
 private:
 	void RollStandardModifiers(int32_t level);

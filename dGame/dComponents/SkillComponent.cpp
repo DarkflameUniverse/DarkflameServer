@@ -31,6 +31,8 @@ ProjectileSyncEntry::ProjectileSyncEntry() {
 
 std::unordered_map<uint32_t, uint32_t> SkillComponent::m_skillBehaviorCache = {};
 
+Observable<SkillComponent*, uint32_t, bool> SkillComponent::OnSkillCast;
+
 bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t skillUid, RakNet::BitStream& bitStream, const LWOOBJID target, uint32_t skillID) {
 	auto* context = new BehaviorContext(this->m_Parent->GetObjectID());
 
@@ -47,6 +49,8 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 	behavior->Handle(context, bitStream, branch);
 
 	context->ExecuteUpdates();
+
+	OnSkillCast(this, skillID, !context->failed);
 
 	return !context->failed;
 }

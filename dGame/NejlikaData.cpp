@@ -4,6 +4,7 @@
 #include "dConfig.h"
 #include "json.hpp"
 #include "Logger.h"
+#include "Lookup.h"
 
 #include <fstream>
 
@@ -22,6 +23,13 @@ std::unordered_map<LOT, nejlika::EntityTemplate> entityTemplates;
 
 std::unordered_map<LOT, nejlika::UpgradeTemplate> upgradeTemplates;
 
+nejlika::Lookup lookup;
+
+}
+
+const nejlika::Lookup& nejlika::NejlikaData::GetLookup()
+{
+	return lookup;
 }
 
 const std::unordered_map<ModifierNameType,std::vector<ModifierNameTemplate>>& nejlika::NejlikaData::GetModifierNameTemplates()
@@ -170,6 +178,13 @@ void nejlika::NejlikaData::LoadNejlikaData()
 
 			upgradeTemplates[upgradeTemplate.GetLot()] = upgradeTemplate;
 		}
+	}
+
+	const auto& lookupFile = Game::config->GetValue("lookup");
+
+	if (!lookupFile.empty())
+	{
+		lookup = Lookup(lookupFile);
 	}
 }
 

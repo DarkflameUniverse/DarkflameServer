@@ -368,12 +368,12 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+	const std::map<BehaviorSlot, std::set<uint32_t>>& GetSkills(){ return m_Skills; };
 
-	bool SetSkill(int slot, uint32_t skillId);
+	bool SetSkill(int32_t slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
-	void UnsetSkill(BehaviorSlot slot);
-	void ResetSkill(BehaviorSlot slot);
+	void UnsetSkill(uint32_t skillId);
+	void SetSkill(uint32_t skillId);
 
 	~InventoryComponent() override;
 
@@ -389,10 +389,12 @@ private:
 	 */
 	std::map<eInventoryType, Inventory*> m_Inventories;
 
+	std::map<BehaviorSlot, uint32_t> m_ActivatorSkills;
+
 	/**
 	 * The skills that this entity currently has active
 	 */
-	std::map<BehaviorSlot, uint32_t> m_Skills;
+	std::map<BehaviorSlot, std::set<uint32_t>> m_Skills;
 
 	/**
 	 * The pets this entity has, mapped by object ID and pet info

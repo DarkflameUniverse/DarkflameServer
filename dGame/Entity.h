@@ -117,7 +117,7 @@ public:
 
 	void SetOwnerOverride(LWOOBJID value);
 
-	void SetPlayerReadyForUpdates() { m_PlayerIsReadyForUpdates = true; }
+	void SetPlayerReadyForUpdates();
 
 	void SetObservers(int8_t value);
 
@@ -304,6 +304,8 @@ public:
 	 * @brief The observable for player entity position updates.
 	 */
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
+
+	static Observable<Entity*> OnReadyForUpdates;
 	
 protected:
 	LWOOBJID m_ObjectID;

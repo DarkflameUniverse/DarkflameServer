@@ -29,6 +29,9 @@ public:
 
 	std::vector<ModifierInstance> Trigger(int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin) const;
 
+	void AddSkills(LWOOBJID origin) const;
+	void RemoveSkills(LWOOBJID origin) const;
+
 private:
 	std::string name = "";
 	int32_t lot = 0;
