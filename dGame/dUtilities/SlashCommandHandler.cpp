@@ -31,7 +31,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 	}
 
 	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
 		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
 		// Don't allow duplicate commands
 		if (!success) {
