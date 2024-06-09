@@ -21,6 +21,7 @@ public:
 	~dServerMock() {};
 	RakNet::BitStream* GetMostRecentBitStream() { return sentBitStream; };
 	void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast) override { sentBitStream = &bitStream; };
+	void SetZoneId(unsigned int zoneId) { mZoneID = zoneId; }
 };
 
 class GameDependenciesTest : public ::testing::Test {
