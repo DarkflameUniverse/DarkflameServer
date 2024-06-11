@@ -398,25 +398,6 @@ void RacingControlComponent::HandleMessageBoxResponse(Entity* player, int32_t bu
 		GameMessages::SendNotifyRacingClient(
 			m_Parent->GetObjectID(), 2, 0, LWOOBJID_EMPTY, u"",
 			player->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
-
-		auto* missionComponent = player->GetComponent<MissionComponent>();
-
-		if (missionComponent == nullptr) return;
-
-		missionComponent->Progress(eMissionTaskType::RACING, 0, static_cast<LWOOBJID>(eRacingTaskParam::COMPETED_IN_RACE)); // Progress task for competing in a race
-		missionComponent->Progress(eMissionTaskType::RACING, data->smashedTimes, static_cast<LWOOBJID>(eRacingTaskParam::SAFE_DRIVER)); // Finish a race without being smashed.
-
-		// If solo racing is enabled OR if there are 3 players in the race, progress placement tasks.
-		if (m_SoloRacing || m_LoadedPlayers > 2) {
-			missionComponent->Progress(eMissionTaskType::RACING, data->finished, static_cast<LWOOBJID>(eRacingTaskParam::FINISH_WITH_PLACEMENT)); // Finish in 1st place on a race
-			if (data->finished == 1) {
-				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS)); // Finish in 1st place on multiple tracks.
-				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::WIN_RACE_IN_WORLD)); // Finished first place in specific world.
-			}
-			if (data->finished == m_LoadedPlayers) {
-				missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::LAST_PLACE_FINISH)); // Finished first place in specific world.
-			}
-		}
 	} else if ((id == "ACT_RACE_EXIT_THE_RACE?" || id == "Exit") && button == m_ActivityExitConfirm) {
 		auto* vehicle = Game::entityManager->GetEntity(data->vehicleID);
 
@@ -869,6 +850,21 @@ void RacingControlComponent::Update(float deltaTime) {
 						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
 						// Entire race time
 						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, static_cast<LWOOBJID>(eRacingTaskParam::TOTAL_TRACK_TIME));
+
+						missionComponent->Progress(eMissionTaskType::RACING, 0, static_cast<LWOOBJID>(eRacingTaskParam::COMPETED_IN_RACE)); // Progress task for competing in a race
+						missionComponent->Progress(eMissionTaskType::RACING, player.smashedTimes, static_cast<LWOOBJID>(eRacingTaskParam::SAFE_DRIVER)); // Finish a race without being smashed.
+
+						// If solo racing is enabled OR if there are 3 players in the race, progress placement tasks.
+						if (m_SoloRacing || m_RacingPlayers.size() > 2) {
+							missionComponent->Progress(eMissionTaskType::RACING, player.finished, static_cast<LWOOBJID>(eRacingTaskParam::FINISH_WITH_PLACEMENT)); // Finish in 1st place on a race
+							if (player.finished == 1) {
+								missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::FIRST_PLACE_MULTIPLE_TRACKS)); // Finish in 1st place on multiple tracks.
+								missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::WIN_RACE_IN_WORLD)); // Finished first place in specific world.
+							}
+							if (player.finished == m_RacingPlayers.size()) {
+								missionComponent->Progress(eMissionTaskType::RACING, Game::zoneManager->GetZone()->GetWorldID(), static_cast<LWOOBJID>(eRacingTaskParam::LAST_PLACE_FINISH)); // Finished first place in specific world.
+							}
+						}
 
 						auto* characterComponent = playerEntity->GetComponent<CharacterComponent>();
 						if (characterComponent != nullptr) {
