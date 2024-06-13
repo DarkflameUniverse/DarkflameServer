@@ -188,7 +188,7 @@ private:
 	/**
 	 * All of the active skills mapped by their unique ID.
 	 */
-	std::map<uint32_t, BehaviorContext*> m_managedBehaviors;
+	std::multimap<uint32_t, BehaviorContext*> m_managedBehaviors;
 
 	/**
 	 * All active projectiles.

@@ -38,7 +38,7 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->skillID = skillID;
 
-	this->m_managedBehaviors.insert_or_assign(skillUid, context);
+	this->m_managedBehaviors.insert({ skillUid, context });
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
@@ -52,17 +52,24 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 }
 
 void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syncId, RakNet::BitStream& bitStream) {
-	const auto index = this->m_managedBehaviors.find(skillUid);
+	const auto index = this->m_managedBehaviors.equal_range(skillUid);
 
-	if (index == this->m_managedBehaviors.end()) {
+	if (index.first == this->m_managedBehaviors.end()) {
 		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
 
-	auto* context = index->second;
+	bool foundSyncId = false;
+	for (auto it = index.first; it != index.second && !foundSyncId; ++it) {
+		const auto& context = it->second;
 
-	context->SyncBehavior(syncId, bitStream);
+		foundSyncId = context->SyncBehavior(syncId, bitStream);
+	}
+
+	if (!foundSyncId) {
+		LOG("Failed to find sync id (%i) for skill with uid (%i)!", syncId, skillUid);
+	}
 }
 
 
@@ -138,7 +145,7 @@ void SkillComponent::Update(const float deltaTime) {
 		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
-	std::map<uint32_t, BehaviorContext*> keep{};
+	std::multimap<uint32_t, BehaviorContext*> keep{};
 
 	for (const auto& pair : this->m_managedBehaviors) {
 		auto* context = pair.second;
@@ -176,7 +183,7 @@ void SkillComponent::Update(const float deltaTime) {
 			}
 		}
 
-		keep.insert_or_assign(pair.first, context);
+		keep.insert({ pair.first, context });
 	}
 
 	this->m_managedBehaviors = keep;
@@ -285,7 +292,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 		return { false, 0 };
 	}
 
-	this->m_managedBehaviors.insert_or_assign(context->skillUId, context);
+	this->m_managedBehaviors.insert({ context->skillUId, context });
 
 	if (!clientInitalized) {
 		// Echo start skill

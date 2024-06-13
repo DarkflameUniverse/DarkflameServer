@@ -31,7 +31,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 	}
 
 	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
 		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
 		// Don't allow duplicate commands
 		if (!success) {
@@ -928,6 +927,15 @@ void SlashCommandHandler::Startup() {
 		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
 	};
 	RegisterCommand(FindPlayerCommand);
+
+	Command SpectateCommand{
+		.help = "Spectate a player",
+		.info = "Specify a player name to spectate. They must be in the same world as you. Leave blank to stop spectating",
+		.aliases = { "spectate", "follow" },
+		.handle = GMGreaterThanZeroCommands::Spectate,
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+	};
+	RegisterCommand(SpectateCommand);
 
 	// Register GM Zero Commands
 
