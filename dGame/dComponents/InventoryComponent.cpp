@@ -558,19 +558,9 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
-			std::vector<LDFBaseData*> config;
+			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			auto* extraInfo = itemElement->FirstChildElement("x");
-
-			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
-
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-
-				config.push_back(moduleAssembly);
-			}
-
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			item->LoadConfigXml(*itemElement);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -676,17 +666,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
-				}
-
-				auto* extraInfo = document.NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
-			}
+			item->SaveConfigXml(*itemElement);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -895,8 +875,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	RemoveSlot(item->GetInfo().equipLocation);
 
-	PurgeProxies(item);
-
 	UnequipScripts(item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -906,6 +884,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
@@ -1525,10 +1505,10 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	const auto root = item->GetParent();
 
 	if (root != LWOOBJID_EMPTY) {
-		item = FindItemById(root);
+		Item* itemRoot = FindItemById(root);
 
-		if (item != nullptr) {
-			UnEquipItem(item);
+		if (itemRoot != nullptr) {
+			UnEquipItem(itemRoot);
 		}
 
 		return;
@@ -1600,18 +1580,18 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 }
 
 
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
 	else return false;
 	return SetSkill(behaviorSlot, skillId);
 }
 
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
@@ -1623,4 +1603,3 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }
-

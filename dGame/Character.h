@@ -464,22 +464,22 @@ private:
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
 	 */
-	uint32_t m_ID;
+	uint32_t m_ID{};
 
 	/**
 	 * The 64-bit unique ID used in the game.
 	 */
-	LWOOBJID m_ObjectID;
+	LWOOBJID m_ObjectID{ LWOOBJID_EMPTY };
 
 	/**
 	 * The user that owns this character.
 	 */
-	User* m_ParentUser;
+	User* m_ParentUser{};
 
 	/**
 	 * If the character is in game, this is the entity that it represents, else nullptr.
 	 */
-	Entity* m_OurEntity;
+	Entity* m_OurEntity{};
 
 	/**
 	 * 0-9, the Game Master level of this character.
@@ -506,17 +506,17 @@ private:
 	/**
 	 * Whether the custom name of this character is rejected
 	 */
-	bool m_NameRejected;
+	bool m_NameRejected{};
 
 	/**
 	 * The current amount of coins of this character
 	 */
-	int64_t m_Coins;
+	int64_t m_Coins{};
 
 	/**
 	 * Whether the character is building
 	 */
-	bool m_BuildMode;
+	bool m_BuildMode{};
 
 	/**
 	 * The items equipped by the character on world load
@@ -583,7 +583,7 @@ private:
 	/**
 	 * The ID of the properties of this character
 	 */
-	uint32_t m_PropertyCloneID;
+	uint32_t m_PropertyCloneID{};
 
 	/**
 	 * The XML data for this character, stored as string
@@ -613,7 +613,7 @@ private:
 	/**
 	 * The last time this character logged in
 	 */
-	uint64_t m_LastLogin;
+	uint64_t m_LastLogin{};
 
 	/**
 	 * The gameplay flags this character has (not just true values)

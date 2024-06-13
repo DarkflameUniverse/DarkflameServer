@@ -105,7 +105,7 @@ void BehaviorContext::ExecuteUpdates() {
 	this->scheduledUpdates.clear();
 }
 
-void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bitStream) {
+bool BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bitStream) {
 	BehaviorSyncEntry entry;
 	auto found = false;
 
@@ -128,7 +128,7 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bit
 	if (!found) {
 		LOG("Failed to find behavior sync entry with sync id (%i)!", syncId);
 
-		return;
+		return false;
 	}
 
 	auto* behavior = entry.behavior;
@@ -137,10 +137,11 @@ void BehaviorContext::SyncBehavior(const uint32_t syncId, RakNet::BitStream& bit
 	if (behavior == nullptr) {
 		LOG("Invalid behavior for sync id (%i)!", syncId);
 
-		return;
+		return false;
 	}
 
 	behavior->Sync(this, bitStream, branch);
+	return true;
 }
 
 

@@ -40,6 +40,7 @@
 #include "BitStreamUtils.h"
 #include "Start.h"
 #include "Server.h"
+#include "CDZoneTableTable.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -277,6 +278,17 @@ int main(int argc, char** argv) {
 	PersistentIDManager::Initialize();
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
 
+	//Get CDClient initial information
+	try {
+		CDClientManager::LoadValuesFromDatabase();
+	} catch (CppSQLite3Exception& e) {
+		LOG("Failed to initialize CDServer SQLite Database");
+		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
+		LOG("Error: %s", e.errorMessage());
+		LOG("Error Code: %i", e.errorCode());
+		return EXIT_FAILURE;
+	}
+
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "0") {
 		StartChatServer();
@@ -382,6 +394,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
 		LOG("A server has disconnected");
 
