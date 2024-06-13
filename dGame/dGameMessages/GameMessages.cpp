@@ -6312,6 +6312,8 @@ void GameMessages::HandleUpdateInventoryGroupContents(RakNet::BitStream& inStrea
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
+}
+
 void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID) {
 	CBITSTREAM;
 	CMSGHEADER;
