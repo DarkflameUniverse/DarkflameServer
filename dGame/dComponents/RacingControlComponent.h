@@ -78,7 +78,7 @@ struct RacingPlayerInfo {
 	/**
 	 * The current lap time of the player
 	 */
-	std::chrono::system_clock::time_point lapTime;
+	std::chrono::high_resolution_clock::time_point lapTime;
 
 	/**
 	 * The number of times this player smashed their car
@@ -232,7 +232,7 @@ private:
 	/**
 	 * The time the race was started
 	 */
-	std::chrono::system_clock::time_point m_StartTime;
+	std::chrono::high_resolution_clock::time_point m_StartTime;
 
 	/**
 	 * Timer for tracking how long a player was alone in this race

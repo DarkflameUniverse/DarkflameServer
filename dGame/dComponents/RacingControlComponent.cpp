@@ -828,8 +828,8 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Reached the start point, lapped
 			if (respawnIndex == 0) {
-				auto now = std::chrono::high_resolution_clock::now();
-				auto lapTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - (player.lap == 0 ? m_StartTime : player.lapTime));
+				const auto now = std::chrono::high_resolution_clock::now();
+				const auto lapTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - (player.lap == 0 ? m_StartTime : player.lapTime));
 
 				// Cheating check
 				if (lapTime.count() < 40000) {
