@@ -566,19 +566,9 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
-			std::vector<LDFBaseData*> config;
+			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			auto* extraInfo = itemElement->FirstChildElement("x");
-
-			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
-
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-
-				config.push_back(moduleAssembly);
-			}
-
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			item->LoadConfigXml(*itemElement);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -693,17 +683,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
-				}
-
-				auto* extraInfo = document.NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
-			}
+			item->SaveConfigXml(*itemElement);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -912,8 +892,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	RemoveSlot(item->GetInfo().equipLocation);
 
-	PurgeProxies(item);
-
 	UnequipScripts(item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -923,6 +901,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
@@ -1542,10 +1522,10 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	const auto root = item->GetParent();
 
 	if (root != LWOOBJID_EMPTY) {
-		item = FindItemById(root);
+		Item* itemRoot = FindItemById(root);
 
-		if (item != nullptr) {
-			UnEquipItem(item);
+		if (itemRoot != nullptr) {
+			UnEquipItem(itemRoot);
 		}
 
 		return;

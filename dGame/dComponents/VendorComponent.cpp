@@ -76,8 +76,8 @@ void VendorComponent::RefreshInventory(bool isCreation) {
 				if (vendorItems.empty()) break;
 				auto randomItemIndex = GeneralUtils::GenerateRandomNumber<int32_t>(0, vendorItems.size() - 1);
 				const auto& randomItem = vendorItems.at(randomItemIndex);
-				vendorItems.erase(vendorItems.begin() + randomItemIndex);
 				if (SetupItem(randomItem.itemid)) m_Inventory.push_back(SoldItem(randomItem.itemid, randomItem.sortPriority));
+				vendorItems.erase(vendorItems.begin() + randomItemIndex);
 			}
 		}
 	}
