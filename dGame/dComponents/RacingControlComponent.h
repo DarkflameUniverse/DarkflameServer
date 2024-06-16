@@ -8,6 +8,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include <chrono>
 
  /**
   * Information for each player in the race
@@ -72,12 +73,12 @@ struct RacingPlayerInfo {
 	/**
 	 * The fastest lap time of the player
 	 */
-	time_t bestLapTime = 0;
+	std::chrono::milliseconds bestLapTime;
 
 	/**
 	 * The current lap time of the player
 	 */
-	time_t lapTime = 0;
+	std::chrono::high_resolution_clock::time_point lapTime;
 
 	/**
 	 * The number of times this player smashed their car
@@ -97,7 +98,7 @@ struct RacingPlayerInfo {
 	/**
 	 * Unused
 	 */
-	time_t raceTime = 0;
+	std::chrono::milliseconds raceTime;
 };
 
 /**
@@ -231,7 +232,7 @@ private:
 	/**
 	 * The time the race was started
 	 */
-	time_t m_StartTime;
+	std::chrono::high_resolution_clock::time_point m_StartTime;
 
 	/**
 	 * Timer for tracking how long a player was alone in this race
