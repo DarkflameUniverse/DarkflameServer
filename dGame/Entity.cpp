@@ -225,7 +225,7 @@ void Entity::Initialize() {
 
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 
 		AddComponent<RenderComponent>();
 
@@ -649,7 +649,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 			auto* destroyableComponent = AddComponent<DestroyableComponent>();
 			destroyableComponent->SetHealth(1);
