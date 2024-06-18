@@ -673,6 +673,9 @@ namespace GameMessages {
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 
 	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
+
+	void HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
 };
 

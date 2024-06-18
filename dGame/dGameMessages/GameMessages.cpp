@@ -6251,6 +6251,69 @@ void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string t
 	SEND_PACKET;
 }
 
+void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
+	std::string action;
+	std::u16string groupName;
+	InventoryComponent::GroupUpdate groupUpdate;
+	bool locked{}; // All groups are locked by default
+
+	uint32_t size{};
+	if (!inStream.Read(size)) return;
+	action.resize(size);
+	if (!inStream.Read(action.data(), size)) return;
+
+	if (!inStream.Read(size)) return;
+	groupUpdate.groupId.resize(size);
+	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
+
+	if (!inStream.Read(size)) return;
+	groupName.resize(size);
+	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
+
+	if (!inStream.Read(groupUpdate.inventory)) return;
+	if (!inStream.Read(locked)) return;
+
+	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(groupName);
+
+	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD;
+	else if (action == "MODIFY") groupUpdate.command = InventoryComponent::GroupUpdateCommand::MODIFY;
+	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE;
+	else {
+		LOG("Invalid action %s", action.c_str());
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
+}
+
+void GameMessages::HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
+	std::string action;
+	InventoryComponent::GroupUpdate groupUpdate;
+
+	uint32_t size{};
+	if (!inStream.Read(size)) return;
+	action.resize(size);
+	if (!inStream.Read(action.data(), size)) return;
+
+	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD_LOT;
+	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE_LOT;
+	else {
+		LOG("Invalid action %s", action.c_str());
+		return;
+	}
+
+	if (!inStream.Read(size)) return;
+	groupUpdate.groupId.resize(size);
+	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
+
+	if (!inStream.Read(groupUpdate.inventory)) return;
+	if (!inStream.Read(groupUpdate.lot)) return;
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
+}
+
 void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID) {
 	CBITSTREAM;
 	CMSGHEADER;
