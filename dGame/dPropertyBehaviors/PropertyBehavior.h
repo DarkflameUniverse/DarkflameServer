@@ -3,6 +3,10 @@
 
 #include "State.h"
 
+namespace tinyxml2 {
+	class XMLElement;
+}
+
 enum class BehaviorState : uint32_t;
 
 class AMFArrayValue;
@@ -25,6 +29,8 @@ public:
 	[[nodiscard]] int32_t GetBehaviorId() const noexcept { return m_BehaviorId; }
 	void SetBehaviorId(int32_t id) noexcept { m_BehaviorId = id; }
 
+	void Serialize(tinyxml2::XMLElement& behavior) const;
+	void Deserialize(const tinyxml2::XMLElement& behavior);
 private:
 
 	// The states this behavior has.
