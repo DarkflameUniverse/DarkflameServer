@@ -17,7 +17,7 @@ public:
 	void OnStartup(Entity* self) override;
 	void OnDie(Entity* self, Entity* killer) override;
 
-	static Entity* GetClosestTresure(NiPoint3 position);
+	static Entity* GetClosestTreasure(NiPoint3 position);
 
 private:
 	static void ProgressPetDigMissions(const Entity* owner, const Entity* chest);
