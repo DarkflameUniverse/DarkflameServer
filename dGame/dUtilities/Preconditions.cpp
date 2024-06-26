@@ -26,7 +26,7 @@ Precondition::Precondition(const uint32_t condition) {
 	if (result.eof()) {
 		this->type = PreconditionType::ItemEquipped;
 		this->count = 1;
-		this->values = { 0 };
+		this->values = { 0u };
 
 		LOG("Failed to find precondition of id (%i)!", condition);
 
