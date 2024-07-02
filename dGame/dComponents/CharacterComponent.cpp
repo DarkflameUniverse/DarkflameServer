@@ -331,10 +331,12 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	if (m_ClaimCodes[2] != 0) character->SetAttribute("co2", m_ClaimCodes[2]);
 	if (m_ClaimCodes[3] != 0) character->SetAttribute("co3", m_ClaimCodes[3]);
 
+	// Tests have been written up to here
+
 	character->SetAttribute("ls", m_Uscore);
 	// Custom attribute to keep track of reputation.
 	character->SetAttribute("rpt", GetReputation());
-	character->SetAttribute("stt", StatisticsToString().c_str());
+	character->SetAttribute("stt", StatisticsToString().c_str()); // and also this already tested :)
 
 	// Set the zone statistics of the form <zs><s/> ... <s/></zs>
 	auto zoneStatistics = character->FirstChildElement("zs");

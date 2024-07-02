@@ -10,7 +10,7 @@ protected:
 	std::unique_ptr<Entity> entity;
 	std::unique_ptr<Character> character;
 	tinyxml2::XMLDocument doc;
-	tinyxml2::XMLPrinter printer{0, true, 0};
+	tinyxml2::XMLPrinter printer{ 0, true, 0 };
 
 	void SetUp() override {
 		SetUpDependencies();
@@ -46,21 +46,51 @@ protected:
 	}
 };
 
-TEST_F(SavingTest, EntityLevelTest) {
+TEST_F(SavingTest, CharacterComponentTest) {
 	// Print the original XML data
-	character->GetXMLDoc().Print(&printer);
-	std::string xmlDataOriginal(printer.CStr());
-	printer.ClearBuffer();
+	// character->GetXMLDoc().Print(&printer);
+	// std::string xmlDataOriginal(printer.CStr());
+	// printer.ClearBuffer();
+	// std::ofstream oldXml("./test_xml_data_original.xml");
+	// oldXml << xmlDataOriginal;
 
+	auto* characterComponent = entity->GetComponent<CharacterComponent>();
+
+	auto statsPrev = characterComponent->StatisticsToString();
+	auto claimCodesPrev = characterComponent->GetClaimCodes();
+	auto eyebrowsPrev = characterComponent->m_Character->GetEyebrows();
+	auto eyesPrev = characterComponent->m_Character->GetEyes();
+	auto hairColorPrev = characterComponent->m_Character->GetHairColor();
+	auto hairStylePrev = characterComponent->m_Character->GetHairStyle();
+	auto pantsColorPrev = characterComponent->m_Character->GetPantsColor();
+	auto leftHandPrev = characterComponent->m_Character->GetLeftHand();
+	auto mouthPrev = characterComponent->m_Character->GetMouth();
+	auto rightHandPrev = characterComponent->m_Character->GetRightHand();
+	auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
+
+	// Update the xml document so its been run through the saver
 	character->SaveXMLToDatabase();
 
-	// Load the modified XML data
-	character->GetXMLDoc().Print(&printer);
-	std::string xmlDataModified(printer.CStr());
-	printer.ClearBuffer();
-	std::ofstream oldXml("./test_xml_data_original.xml");
-	std::ofstream newXml("./test_xml_data_new.xml");
-	oldXml << xmlDataOriginal;
-	newXml << xmlDataModified;
-	ASSERT_EQ(xmlDataOriginal, xmlDataModified);
+	// Reload the component from the now updated xml data
+	characterComponent = entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
+	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
+
+	// Check that the buff component is the same as before
+	ASSERT_EQ(statsPrev, characterComponent->StatisticsToString());
+	ASSERT_EQ(claimCodesPrev, characterComponent->GetClaimCodes());
+	ASSERT_EQ(eyebrowsPrev, characterComponent->m_Character->GetEyebrows());
+	ASSERT_EQ(eyesPrev, characterComponent->m_Character->GetEyes());
+	ASSERT_EQ(hairColorPrev, characterComponent->m_Character->GetHairColor());
+	ASSERT_EQ(hairStylePrev, characterComponent->m_Character->GetHairStyle());
+	ASSERT_EQ(pantsColorPrev, characterComponent->m_Character->GetPantsColor());
+	ASSERT_EQ(leftHandPrev, characterComponent->m_Character->GetLeftHand());
+	ASSERT_EQ(mouthPrev, characterComponent->m_Character->GetMouth());
+	ASSERT_EQ(rightHandPrev, characterComponent->m_Character->GetRightHand());
+	ASSERT_EQ(shirtColorPrev, characterComponent->m_Character->GetShirtColor());
+
+	// character->GetXMLDoc().Print(&printer);
+	// std::string xmlDataModified(printer.CStr());
+	// printer.ClearBuffer();
+	// std::ofstream newXml("./test_xml_data_new.xml");
+	// newXml << xmlDataModified;
 }

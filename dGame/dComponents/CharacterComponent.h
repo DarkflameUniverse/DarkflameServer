@@ -307,6 +307,8 @@ public:
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
 
+	const std::array<uint64_t, 4>& GetClaimCodes() const { return m_ClaimCodes; };
+
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
 	 */
