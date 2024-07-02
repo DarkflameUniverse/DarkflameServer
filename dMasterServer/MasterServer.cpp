@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
 
 		const auto checkIsAdmin = []() {
 			std::string admin;
-			std::cout << "What level of privilege should this account have? Please enter a number between 0 and 9 inclusive. No entry will default to 0." << std::endl;
+			std::cout << "What level of privilege should this account have? Please enter a number between 0 (Player) and 9 (Admin) inclusive. No entry will default to 0." << std::endl;
 			std::cin >> admin;
 			return admin;
 			};
