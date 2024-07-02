@@ -188,11 +188,11 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
-		auto checkIsAdmin = []() {
+		const auto checkIsAdmin = []() {
 			std::string admin;
-			std::cout << "Should this account have administrator privileges? y will set their GameMaster level to 9, anything else will set the GameMaster level to 0. [y/n]? ";
+			std::cout << "What level of privilege should this account have? Please enter a number between 0 and 9 inclusive. No entry will default to 0." << std::endl;
 			std::cin >> admin;
-			return admin == "y" || admin == "yes";
+			return admin;
 			};
 
 		auto accountId = Database::Get()->GetAccountInfo(username);
@@ -232,8 +232,12 @@ int main(int argc, char** argv) {
 			std::cin >> admin;
 			bool updateAdmin = admin == "y" || admin == "yes";
 			if (updateAdmin) {
-				bool isOperator = checkIsAdmin();
-				Database::Get()->UpdateAccountGmLevel(accountId->id, isOperator ? eGameMasterLevel::OPERATOR : eGameMasterLevel::CIVILIAN);
+				auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+				if (gmLevel > 9 || gmLevel < 0) {
+					LOG("Invalid admin level.  Defaulting to 0");
+					gmLevel = 0;
+				}
+				Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
 			}
 
 			return EXIT_SUCCESS;
@@ -269,8 +273,12 @@ int main(int argc, char** argv) {
 
 		accountId = Database::Get()->GetAccountInfo(username);
 		if (accountId) {
-			bool isOperator = checkIsAdmin();
-			Database::Get()->UpdateAccountGmLevel(accountId->id, isOperator ? eGameMasterLevel::OPERATOR : eGameMasterLevel::CIVILIAN);
+			auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+			if (gmLevel > 9 || gmLevel < 0) {
+				LOG("Invalid admin level.  Defaulting to 0");
+				gmLevel = 0;
+			}
+			Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
 		}
 
 		return EXIT_SUCCESS;
