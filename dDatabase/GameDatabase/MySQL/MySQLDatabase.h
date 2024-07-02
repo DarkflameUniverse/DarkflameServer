@@ -111,6 +111,7 @@ public:
 	void AddBehavior(const IBehaviors::Info& info) override;
 	std::string GetBehavior(const int32_t behaviorId) override;
 	void RemoveBehavior(const int32_t characterId) override;
+	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 private:
 
 	// Generic query functions that can be used for any query.

@@ -41,6 +41,7 @@
 #include "Start.h"
 #include "Server.h"
 #include "CDZoneTableTable.h"
+#include "eGameMasterLevel.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -187,15 +188,20 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
+		auto checkIsAdmin = []() {
+			std::string admin;
+			std::cout << "Should this account have administrator privileges? y will set their GameMaster level to 9, anything else will set the GameMaster level to 0. [y/n]? ";
+			std::cin >> admin;
+			return admin == "y" || admin == "yes";
+			};
+
 		auto accountId = Database::Get()->GetAccountInfo(username);
-		if (accountId) {
+		if (accountId && accountId->id != 0) {
 			LOG("Account with name \"%s\" already exists", username.c_str());
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
 			if (prompt == "y" || prompt == "yes") {
-				if (accountId->id == 0) return EXIT_FAILURE;
-
 				//Read the password from the console without echoing it.
 #ifdef __linux__
 		//This function is obsolete, but it only meant to be used by the
@@ -220,6 +226,16 @@ int main(int argc, char** argv) {
 			} else {
 				LOG("Account \"%s\" was not updated.", username.c_str());
 			}
+
+			std::cout << "Update admin privileges? [y/n]? ";
+			std::string admin;
+			std::cin >> admin;
+			bool updateAdmin = admin == "y" || admin == "yes";
+			if (updateAdmin) {
+				bool isOperator = checkIsAdmin();
+				Database::Get()->UpdateAccountGmLevel(accountId->id, isOperator ? eGameMasterLevel::OPERATOR : eGameMasterLevel::CIVILIAN);
+			}
+
 			return EXIT_SUCCESS;
 		}
 
@@ -250,6 +266,13 @@ int main(int argc, char** argv) {
 		}
 
 		LOG("Account created successfully!");
+
+		accountId = Database::Get()->GetAccountInfo(username);
+		if (accountId) {
+			bool isOperator = checkIsAdmin();
+			Database::Get()->UpdateAccountGmLevel(accountId->id, isOperator ? eGameMasterLevel::OPERATOR : eGameMasterLevel::CIVILIAN);
+		}
+
 		return EXIT_SUCCESS;
 	}
 
@@ -558,7 +581,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(sessionKey);
 			LUString username;
 			inStream.Read(username);
-	
+
 			for (auto it : activeSessions) {
 				if (it.second == username.string) {
 					activeSessions.erase(it.first);
