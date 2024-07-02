@@ -199,6 +199,26 @@ void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
 			i++;
 			continue;
 		}
+
+		if (this->skillUId != 0 && !clientInitalized) {
+			EchoSyncSkill echo;
+			echo.bDone = true;
+			echo.uiSkillHandle = this->skillUId;
+			echo.uiBehaviorHandle = entry.handle;
+
+			RakNet::BitStream bitStream{};
+			entry.behavior->SyncCalculation(this, bitStream, entry.branchContext);
+
+			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
+
+			RakNet::BitStream message;
+			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+			message.Write(this->originator);
+			echo.Serialize(message);
+
+			Game::server->Send(message, UNASSIGNED_SYSTEM_ADDRESS, true);
+		}
+
 		this->syncEntries.erase(this->syncEntries.begin() + i);
 	}
 }

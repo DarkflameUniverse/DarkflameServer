@@ -27,6 +27,8 @@ void DamageAbsorptionBehavior::Handle(BehaviorContext* context, RakNet::BitStrea
 	destroyable->SetIsShielded(true);
 
 	context->RegisterTimerBehavior(this, branch, target->GetObjectID());
+
+	Game::entityManager->SerializeEntity(target);
 }
 
 void DamageAbsorptionBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
@@ -52,7 +54,13 @@ void DamageAbsorptionBehavior::Timer(BehaviorContext* context, BehaviorBranchCon
 
 	const auto toRemove = std::min(present, this->m_absorbAmount);
 
-	destroyable->SetDamageToAbsorb(present - toRemove);
+	const auto remaining = present - toRemove;
+
+	destroyable->SetDamageToAbsorb(remaining);
+
+	destroyable->SetIsShielded(remaining > 0);
+
+	Game::entityManager->SerializeEntity(target);
 }
 
 void DamageAbsorptionBehavior::Load() {
