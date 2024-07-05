@@ -11,7 +11,9 @@ enum class UpgradeTriggerCondition
 	Unarmed,
 	Melee,
 	TwoHanded,
-	Shield
+	Shield,
+	PrimaryAbility,
+	UseSkill
 };
 
 }

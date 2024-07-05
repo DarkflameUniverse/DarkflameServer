@@ -5,6 +5,7 @@
 
 nejlika::ModifierInstance::ModifierInstance(const nlohmann::json& config) {
 	type = magic_enum::enum_cast<ModifierType>(config["type"].get<std::string>()).value_or(ModifierType::Invalid);
+	convertTo = magic_enum::enum_cast<ModifierType>(config["convert-to"].get<std::string>()).value_or(ModifierType::Invalid);
 	value = config["value"].get<float>();
 	
 	if (config.contains("op")) {
@@ -32,6 +33,7 @@ nlohmann::json nejlika::ModifierInstance::ToJson() const
 	nlohmann::json config;
 
 	config["type"] = magic_enum::enum_name(type);
+	config["convert-to"] = magic_enum::enum_name(convertTo);
 	config["value"] = value;
 	config["op"] = magic_enum::enum_name(op);
 	config["resistance"] = isResistance;

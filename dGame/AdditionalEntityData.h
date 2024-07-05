@@ -8,6 +8,7 @@
 #include "ModifierInstance.h"
 #include "EntityTemplate.h"
 #include "UpgradeTriggerType.h"
+#include "TriggerParameters.h"
 
 #include <unordered_set>
 
@@ -41,6 +42,24 @@ public:
 	 */
 	float CalculateMultiplier(ModifierType type) const;
 
+	/**
+	 * @brief Calculate the multiplier for a given modifier type. With a base value of 1.0.
+	 * 
+	 * @param type The modifier type.
+	 * @param additionalModifiers Additional modifiers to apply.
+	 * @return The multiplier.
+	 */
+	float CalculateMultiplier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers) const;
+
+	/**
+	 * @brief Calculate damage conversation mapping.
+	 * 
+	 * @param additionalModifiers Additional modifiers to apply.
+	 * 
+	 * @return The damage conversion mapping.
+	 */
+	std::unordered_map<ModifierType, std::unordered_map<ModifierType, float>> CalculateDamageConversion(std::vector<ModifierInstance>& additionalModifiers) const;
+
 	void ApplyToEntity();
 
 	void CheckForRescale(AdditionalEntityData* other);
@@ -56,6 +75,8 @@ public:
 	void AddUpgradeItem(LWOOBJID id) { upgradeItems.insert(id); }
 
 	void RemoveUpgradeItem(LWOOBJID id) { upgradeItems.erase(id); }
+
+	std::vector<ModifierInstance> TriggerUpgradeItems(UpgradeTriggerType triggerType, const TriggerParameters& params);
 
 	std::vector<ModifierInstance> TriggerUpgradeItems(UpgradeTriggerType triggerType);
 

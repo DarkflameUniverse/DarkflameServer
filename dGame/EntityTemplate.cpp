@@ -66,7 +66,8 @@ std::vector<nejlika::ModifierInstance> nejlika::EntityTemplate::GenerateModifier
 			scaler.isResistance,
 			ModifierCategory::Player,
 			0,
-			""
+			"",
+			ModifierType::Invalid
 		);
 
 		modifiers.push_back(modifier);

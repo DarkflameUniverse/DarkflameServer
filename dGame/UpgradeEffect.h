@@ -4,6 +4,7 @@
 #include "UpgradeTriggerType.h"
 #include "UpgradeTriggerCondition.h"
 #include <InventoryComponent.h>
+#include "TriggerParameters.h"
 
 #include <dCommonVars.h>
 
@@ -23,11 +24,11 @@ public:
 
 	float CalculateChance(int32_t level) const;
 
-	bool CheckConditions(LWOOBJID origin) const;
+	bool CheckConditions(LWOOBJID origin, const TriggerParameters& params) const;
 
 	void OnTrigger(LWOOBJID origin) const;
 
-	static std::vector<ModifierInstance> Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin);
+	static std::vector<ModifierInstance> Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin, const TriggerParameters& params);
 
 	// Getters
 

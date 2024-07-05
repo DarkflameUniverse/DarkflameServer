@@ -59,16 +59,33 @@ nejlika::ModifierTemplate::ModifierTemplate(const nlohmann::json& config) {
 		types = {};
 	}
 
-	if (!config.contains("scaling"))
+	if (config.contains("convert-to"))
 	{
-		throw std::runtime_error("Modifier template is missing scaling.");
+		convertTo = magic_enum::enum_cast<ModifierType>(config["convert-to"].get<std::string>()).value_or(ModifierType::Invalid);
 	}
-	
-	const auto scaling = config["scaling"];
-
-	for (const auto& scaler : scaling)
+	else
 	{
-		scales.push_back(ModifierScale(scaler));
+		convertTo = ModifierType::Invalid;
+	}
+
+	if (config.contains("scaling"))
+	{
+		const auto scaling = config["scaling"];
+
+		for (const auto& scaler : scaling)
+		{
+			scales.push_back(ModifierScale(scaler));
+		}
+	}
+
+	if (config.contains("polynomial"))
+	{
+		const auto polynomialConfig = config["polynomial"];
+
+		for (const auto& term : polynomialConfig)
+		{
+			polynomial.push_back(term.get<float>());
+		}
 	}
 
 	if (config.contains("category"))
@@ -144,14 +161,31 @@ nlohmann::json nejlika::ModifierTemplate::ToJson() const {
 		}
 	}
 
-	nlohmann::json scaling;
-
-	for (const auto& scale : scales)
+	if (!scales.empty())
 	{
-		scaling.push_back(scale.ToJson());
+		nlohmann::json scaling;
+
+		for (const auto& scale : scales)
+		{
+			scaling.push_back(scale.ToJson());
+		}
+
+		config["scaling"] = scaling;
 	}
 
-	config["scaling"] = scaling;
+	if (!polynomial.empty())
+	{
+		nlohmann::json polynomialConfig;
+
+		for (const auto& term : polynomial)
+		{
+			polynomialConfig.push_back(term);
+		}
+
+		config["polynomial"] = polynomialConfig;
+	}
+
+	config["convert-to"] = magic_enum::enum_name(convertTo);
 
 	config["category"] = magic_enum::enum_name(category);
 	config["resistance"] = isResistance;
@@ -209,9 +243,119 @@ std::vector<ModifierInstance> nejlika::ModifierTemplate::GenerateModifiers(int32
 	return modifiers;
 }
 
+std::string nejlika::ModifierTemplate::GenerateHtmlString(const std::vector<ModifierTemplate>& modifiers, int32_t level) {
+	std::stringstream ss;
+
+	// target -> resistance -> op -> type -> (min, max)
+	std::unordered_map<ModifierCategory, std::unordered_map<bool, std::unordered_map<ModifierOperator, std::unordered_map<ModifierType, std::pair<float, float>>>>> modifierMap;
+
+	for (const auto& modifier : modifiers) {
+		for (const auto& type : modifier.types) {
+			if (type == ModifierType::Invalid) {
+				continue;
+			}
+
+			if (!modifier.polynomial.empty())
+			{
+				float value = 0.0f;
+
+				int32_t power = 0;
+				for (const auto& term : modifier.polynomial)
+				{
+					value += term * std::pow(level, power);
+
+					power++;
+				}
+
+				modifierMap[modifier.category][modifier.isResistance][modifier.operatorType][type] = {value, value};
+
+				continue;
+			}
+
+			ModifierScale scale;
+			bool found = false;
+
+			// Select the scale with the highest level that is less than or equal to the current level
+			for (const auto& s : modifier.scales) {
+				if (s.GetLevel() <= level && s.GetLevel() > scale.GetLevel()) {
+					scale = s;
+					found = true;
+				}
+			}
+
+			if (!found) {
+				continue;
+			}
+			
+			modifierMap[modifier.category][modifier.isResistance][modifier.operatorType][type] = {scale.GetMin(), scale.GetMax()};
+		}
+	}
+
+	// Resistances and addatives are not separated, pet and player are
+	// Summarize the resistances and addatives
+	for (const auto& target : modifierMap) {
+		if (target.first == ModifierCategory::Pet) {
+			ss << "\n<font color=\"#D0AB62\">Pets:</font>\n";
+		}
+		
+		for (const auto& resistance : target.second) {
+
+			ss << "\n<font color=\"#D0AB62\">";
+
+			ss << ((resistance.first) ? "Resistances" : "Modifiers");
+
+			ss << ":</font>\n";
+
+			for (const auto& math : resistance.second) {
+				for (const auto& modifier : math.second) {
+					ss << "<font color=\"" << GetModifierTypeColor(modifier.first) << "\">";
+					
+					ss << magic_enum::enum_name<ModifierType>(modifier.first) << ": ";
+
+					ss << ((modifier.second.first > 0) ? "+" : "-");
+					
+					ss << std::fixed << std::setprecision(0) << std::abs(modifier.second.first);
+
+					if (modifier.second.first != modifier.second.second)
+					{
+						ss << "/";
+
+						ss << ((modifier.second.second > 0) ? "+" : "-");
+						
+						ss << std::fixed << std::setprecision(0) << std::abs(modifier.second.second);
+					}
+
+					if (math.first == ModifierOperator::Multiplicative) {
+						ss << "%";
+					}
+
+					ss << "</font>\n";
+				}
+			}
+		}
+	}
+
+	return ss.str();
+}
+
 std::optional<ModifierInstance> nejlika::ModifierTemplate::GenerateModifier(ModifierType type, int32_t level) const {
 	ModifierScale scale;
 	bool found = false;
+
+	if (!polynomial.empty())
+	{
+		float value = 0.0f;
+
+		int32_t power = 0;
+		for (const auto& term : polynomial)
+		{
+			value += term * std::pow(level, power);
+
+			power++;
+		}
+
+		return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo);
+	}
 
 	// Select the scale with the highest level that is less than or equal to the current level
 	for (const auto& s : scales) {
@@ -227,5 +371,5 @@ std::optional<ModifierInstance> nejlika::ModifierTemplate::GenerateModifier(Modi
 
 	float value = GeneralUtils::GenerateRandomNumber<float>(scale.GetMin(), scale.GetMax());
 
-	return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType);
+	return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo);
 }

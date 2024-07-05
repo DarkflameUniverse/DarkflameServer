@@ -1,6 +1,7 @@
 #include "InventoryComponent.h"
 
 #include <sstream>
+#include <algorithm>
 
 #include "Entity.h"
 #include "Item.h"
@@ -43,6 +44,7 @@ Observable<InventoryComponent*, Item*> InventoryComponent::OnItemDestroyed;
 Observable<InventoryComponent*, Item*> InventoryComponent::OnItemEquipped;
 Observable<InventoryComponent*, Item*> InventoryComponent::OnItemUnequipped;
 Observable<InventoryComponent*, Item*> InventoryComponent::OnItemLoaded;
+Observable<InventoryComponent*, Item*> InventoryComponent::OnCountChanged;
 
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
@@ -1131,27 +1133,13 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto skill = FindSkill(lot);
+	if (m_PrimarySkill != 0) {
+		GameMessages::SendRemoveSkill(m_Parent, m_PrimarySkill);
+	}
 	
-	const auto index = m_Skills.find(slot);
+	m_PrimarySkill = FindSkill(lot);
 
-	if (index != m_Skills.end()) {
-		const auto old = index->second;
-
-		if (!old.empty()) {
-			const auto firstElem = *old.begin();
-
-			GameMessages::SendRemoveSkill(m_Parent, firstElem);
-		}
-	}
-
-	m_Skills.erase(slot);
-
-	if (skill != 0) {
-		m_Skills.insert_or_assign(slot, std::set<uint32_t>{ skill });
-
-		GameMessages::SendAddSkill(m_Parent, skill, slot);
-	}
+	GameMessages::SendAddSkill(m_Parent, m_PrimarySkill, slot);
 }
 
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
@@ -1163,27 +1151,11 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto index = m_Skills.find(slot);
+	GameMessages::SendRemoveSkill(m_Parent, m_PrimarySkill);
 
-	if (index == m_Skills.end()) {
-		return;
-	}
+	m_PrimarySkill = 1;
 
-	const auto old = index->second;
-
-	if (!old.empty()) {
-		const auto firstElem = *old.begin();
-
-		GameMessages::SendRemoveSkill(m_Parent, firstElem);
-	}
-
-	m_Skills.erase(slot);
-
-	if (slot == BehaviorSlot::Primary) {
-		m_Skills.insert_or_assign(BehaviorSlot::Primary, std::set<uint32_t>{ 1 });
-
-		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
-	}
+	GameMessages::SendAddSkill(m_Parent, m_PrimarySkill, BehaviorSlot::Primary);
 }
 
 void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
@@ -1358,6 +1330,71 @@ void InventoryComponent::SetNPCItems(const std::vector<LOT>& items) {
 	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+bool InventoryComponent::AddSkill(uint32_t skillId) {
+	if (std::find(m_Skills.begin(), m_Skills.end(), skillId) != m_Skills.end()) {
+		return false;
+	}
+
+	m_Skills.push_back(skillId);
+
+	UpdateSkills();
+
+	return true;
+}
+
+bool InventoryComponent::RemoveSkill(uint32_t skillId) {
+	const auto index = std::find(m_Skills.begin(), m_Skills.end(), skillId);
+
+	if (index == m_Skills.end()) {
+		return false;
+	}
+
+	m_Skills.erase(index);
+
+	UpdateSkills();
+
+	return true;
+}
+
+
+void InventoryComponent::UpdateSkills() {
+	// There are two skills active at the same time. If the rotation index is greater than the amount of skills / 2, set it to the max number is can be.
+	// This is to prevent the rotation index from going out of bounds.
+	if (m_SkillRotationIndex * 2 >= m_Skills.size()) {
+		m_SkillRotationIndex = 0;
+	}
+
+	const auto startIndex = m_SkillRotationIndex * 2;
+	
+	const auto activeSkillA = m_Skills.size() > startIndex ? m_Skills[startIndex] : 0;
+	const auto activeSkillB = m_Skills.size() > startIndex + 1 ? m_Skills[startIndex + 1] : 0;
+
+	std::cout << "Skill rotation index: " << m_SkillRotationIndex << " Active skills: " << activeSkillA << " " << activeSkillB << "\n";
+	
+	GameMessages::SendRemoveSkill(m_Parent, m_ActiveSkills.first);
+	GameMessages::SendRemoveSkill(m_Parent, m_ActiveSkills.second);
+
+	m_ActiveSkills = { activeSkillA, activeSkillB };
+
+	if (activeSkillA != 0) {
+		GameMessages::SendAddSkill(m_Parent, activeSkillA, BehaviorSlot::Head);
+	}
+
+	if (activeSkillB != 0) {
+		GameMessages::SendAddSkill(m_Parent, activeSkillB, BehaviorSlot::Offhand);
+	}
+}
+
+void InventoryComponent::RotateSkills() {
+	m_SkillRotationIndex++;
+
+	if (m_SkillRotationIndex * 2 >= m_Skills.size()) {
+		m_SkillRotationIndex = 0;
+	}
+
+	UpdateSkills();
 }
 
 InventoryComponent::~InventoryComponent() {
@@ -1613,61 +1650,5 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 	}
 }
 
-
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
-	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
-	else return false;
-	return SetSkill(behaviorSlot, skillId);
-}
-
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
-	if (skillId == 0) return false;
-	const auto index = m_Skills.find(slot);
-	if (index == m_Skills.end()) {
-		m_Skills.insert_or_assign(slot, std::set<uint32_t>{ skillId });
-	} else {
-		auto& existing = index->second;
-		existing.insert(skillId);
-	}
-
-	return true;
-}
-
-void InventoryComponent::UnsetSkill(uint32_t skillId) {
-	for (auto& pair : m_Skills) {
-		auto& skills = pair.second;
-		skills.erase(skillId);
-	}
-}
-
-void InventoryComponent::SetSkill(uint32_t skillId) {
-	UnsetSkill(skillId);
-
-	const auto& slotA = m_Skills.find(BehaviorSlot::Head);
-	const auto& slotB = m_Skills.find(BehaviorSlot::Neck);
-	const auto& slotC = m_Skills.find(BehaviorSlot::Offhand);
-
-	// Pick the first one which has less than 3 skills
-	std::set<uint32_t>* slot = nullptr;
-
-	if (slotA == m_Skills.end() || slotA->second.size() < 3) {
-		slot = &m_Skills[BehaviorSlot::Head];
-	} else if (slotB == m_Skills.end() || slotB->second.size() < 3) {
-		slot = &m_Skills[BehaviorSlot::Neck];
-	} else if (slotC == m_Skills.end() || slotC->second.size() < 3) {
-		slot = &m_Skills[BehaviorSlot::Offhand];
-	}
-
-	if (slot == nullptr) {
-		return;
-	}
-
-	slot->insert(skillId);
-}
 
 

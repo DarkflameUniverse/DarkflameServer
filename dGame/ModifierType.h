@@ -12,31 +12,72 @@ enum class ModifierType : uint8_t
 	Armor,
 	Imagination,
 
+	Physique,
+	Cunning,
+	Spirit,
+
 	Offensive,
 	Defensive,
 	
-	Slashing,
-	Piercing,
-	Bludgeoning,
-
+	// Normal Types
+	Physical,
 	Fire,
 	Cold,
 	Lightning,
-	Corruption,
+	Acid,
+	Vitality,
+	Pierce,
+	Corruption, // Aether
+	Psychic, // Chaos
 
-	Elemental,
-
-	Psychic,
+	// Duration Types
+	InternalDisassembly, // Internal Trauma
+	InternalDisassemblyDuration,
+	Burn,
+	BurnDuration,
+	Frostburn,
+	FrostburnDuration,
+	Poison,
+	PoisonDuration,
+	VitalityDecay,
+	VitalityDecayDuration,
+	Electrocute,
+	ElectrocuteDuration,
+	Seperation, // Bleeding
+	SeperationDuration,
+	
+	// Special
+	Elemental, // Even split between Fire, Cold, Lightning
 
 	Damage,
 
 	Speed,
 
 	AttackSpeed,
+	SkillModifier,
+
+	Slow,
+	ArmorPiercing,
+
+	CriticalDamage,
+	ChanceToBlock,
+	HealthDrain,
 
 	Invalid
 };
 
 const std::string& GetModifierTypeColor(ModifierType type);
+
+const std::string& GetModifierTypeName(ModifierType type);
+
+const ModifierType GetResistanceType(ModifierType type);
+
+const bool IsNormalDamageType(ModifierType type);
+
+const bool IsOverTimeType(ModifierType type);
+
+const ModifierType GetOverTimeType(ModifierType type);
+
+const ModifierType GetDurationType(ModifierType type);
 
 }

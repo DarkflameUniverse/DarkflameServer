@@ -201,6 +201,8 @@ void Item::SetCount(const uint32_t value, const bool silent, const bool disassem
 
 	count = value;
 
+	InventoryComponent::OnCountChanged(inventory->GetComponent(), this);
+
 	if (count == 0) {
 		RemoveFromInventory();
 	}

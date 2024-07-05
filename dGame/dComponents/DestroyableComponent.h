@@ -384,8 +384,9 @@ public:
 	 * @param source the attacker that caused this damage
 	 * @param skillID the skill that damaged this entity
 	 * @param echo whether or not to serialize the damage
+	 * @param isDamageOverTime whether or not this damage is over time
 	 */
-	void Damage(uint32_t damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true);
+	void Damage(uint32_t damage, LWOOBJID source, uint32_t skillID = 0, bool echo = true, bool isDamageOverTime = false);
 
 	/**
 	 * Smashes this entity, notifying all clients

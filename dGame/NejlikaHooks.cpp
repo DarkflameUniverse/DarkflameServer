@@ -27,8 +27,7 @@
 using namespace nejlika;
 using namespace nejlika::NejlikaData;
 
-void nejlika::NejlikaHooks::InstallHooks()
-{
+void nejlika::NejlikaHooks::InstallHooks() {
 	Command itemDescriptionCommand{
 		.help = "Special UI command, does nothing when used in chat.",
 		.info = "Special UI command, does nothing when used in chat.",
@@ -95,6 +94,26 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 		entityData.AddUpgradeItem(item->GetId());
 		entityData.AddSkills(item->GetId());
+
+		entityData.ApplyToEntity();
+	};
+
+	InventoryComponent::OnCountChanged += [](InventoryComponent* component, Item* item) {
+		auto entityDataOpt = GetAdditionalEntityData(component->GetParent()->GetObjectID());
+
+		if (!entityDataOpt.has_value()) {
+			return;
+		}
+
+		auto& entityData = *entityDataOpt.value();
+
+		auto upgradeTemplateOpt = GetUpgradeTemplate(item->GetLot());
+
+		if (!upgradeTemplateOpt.has_value()) {
+			return;
+		}
+
+		entityData.ApplyToEntity();
 	};
 
 	EntityManager::OnEntityCreated += [](Entity* entity) {
@@ -103,9 +122,9 @@ void nejlika::NejlikaHooks::InstallHooks()
 		if (!destroyable) {
 			return;
 		}
-		
+
 		SetAdditionalEntityData(entity->GetObjectID(), AdditionalEntityData(entity->GetObjectID(), entity->GetLOT()));
-		
+
 		auto additionalDataOpt = GetAdditionalEntityData(entity->GetObjectID());
 
 		if (!additionalDataOpt.has_value()) {
@@ -143,13 +162,12 @@ void nejlika::NejlikaHooks::InstallHooks()
 	};
 
 	Entity::OnReadyForUpdates += [](Entity* entity) {
-		if (!entity->IsPlayer())
-		{
+		if (!entity->IsPlayer()) {
 			return;
 		}
-		
-		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:main"), BehaviorSlot::Head);
-		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary"), BehaviorSlot::Offhand);
+
+		//GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:main"), BehaviorSlot::Head);
+		//GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary"), BehaviorSlot::Offhand);
 		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary"), BehaviorSlot::Neck);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
@@ -158,7 +176,24 @@ void nejlika::NejlikaHooks::InstallHooks()
 			if (missionComponent->GetMissionState(1732) != eMissionState::COMPLETE) {
 				missionComponent->CompleteMission(1732, true, false);
 			}
+
+			if (missionComponent->GetMissionState(173) != eMissionState::COMPLETE) {
+				missionComponent->CompleteMission(173, true, false);
+
+				auto* destroyable = entity->GetComponent<DestroyableComponent>();
+
+				destroyable->SetMaxImagination(6);
+				destroyable->SetImagination(6);
+			}
 		}
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (!inventoryComponent) {
+			return;
+		}
+
+		inventoryComponent->UpdateSkills();
 	};
 
 	EntityManager::OnEntityDestroyed += [](Entity* entity) {
@@ -203,7 +238,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 			return;
 		}
 
-		inventoryComponent->AddItem(NejlikaData::GetLookup().GetValue("intro:upgrades:level-token"), 1, eLootSourceType::MODERATION);
+		inventoryComponent->AddItem(NejlikaData::GetLookup().GetValue("intro:upgrades:level-token"), 3, eLootSourceType::MODERATION);
 	};
 
 	InventoryComponent::OnItemEquipped += [](InventoryComponent* component, Item* item) {
@@ -232,7 +267,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 		const auto& itemData = *itemDataOpt.value();
 
 		const auto itemId = item->GetId();
-		
+
 		std::cout << "Sending effects for item: " << itemId << " with " << itemData.GetModifierInstances().size() << " modifiers." << std::endl;
 
 		for (const auto& modifier : itemData.GetModifierInstances()) {
@@ -247,9 +282,9 @@ void nejlika::NejlikaHooks::InstallHooks()
 					GeneralUtils::UTF8ToUTF16(effectType),
 					std::to_string(GeneralUtils::GenerateRandomNumber<uint32_t>())
 				);
-			});
+				});
 		}
-	};
+		};
 
 	InventoryComponent::OnItemUnequipped += [](InventoryComponent* component, Item* item) {
 		const auto entityDataOpt = GetAdditionalEntityData(component->GetParent()->GetObjectID());
@@ -263,11 +298,11 @@ void nejlika::NejlikaHooks::InstallHooks()
 		entityData.TriggerUpgradeItems(UpgradeTriggerType::UnEquip);
 
 		entityData.ApplyToEntity();
-	};
+		};
 
 	SkillComponent::OnSkillCast += [](SkillComponent* skillComponent, uint32_t skillID, bool success) {
 		std::cout << "Skill cast: " << skillID << " - " << success << std::endl;
-		
+
 		auto* inventoryComponent = skillComponent->GetParent()->GetComponent<InventoryComponent>();
 
 		if (!inventoryComponent) {
@@ -283,127 +318,11 @@ void nejlika::NejlikaHooks::InstallHooks()
 		const auto tertiaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary");
 
 		if (skillID == primaryTrigger || skillID == secondaryTrigger || skillID == tertiaryTrigger) {
-		}
-		else
-		{
-			/*
-			const auto primarySkills = skills[BehaviorSlot::Primary];
-
-			// If the skillID is in the primary skills, ignore this
-			if (primarySkills.contains(skillID)) {
-				if (entity->HasVar(u"skill-cast") && entity->GetVar<size_t>(u"skill-cast") == 0) {
-					GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
-					GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
-					GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
-				}
-
-				return;
-			}
-
-			if (entity->HasVar(u"skill-cast")) {
-				entity->SetVar(u"skill-cast", static_cast<size_t>(0));
-			}
-
-			if (entity->HasVar(u"skill-cast-slot")) {
-				BehaviorSlot slot = static_cast<BehaviorSlot>(entity->GetVar<int32_t>(u"skill-cast-slot"));
-
-				auto primarySkills = inventoryComponent->GetSkills();
-
-				for (const auto& skill : primarySkills[slot]) {
-					GameMessages::SendRemoveSkill(entity, skill);
-				}
-			}
-
-			LOG("Restoring triggers via skill");
-
-			// Restore the triggers
-			GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
-			GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
-			GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
-			*/
-
+		} else {
 			return;
 		}
 
-		static const std::vector<BehaviorSlot> slotOrder = {
-			BehaviorSlot::Head,
-			BehaviorSlot::Offhand,
-			BehaviorSlot::Neck
-		};
-
-		std::set<uint32_t> selectedSkills;
-		BehaviorSlot slot = BehaviorSlot::Invalid;
-
-		if (skillID == primaryTrigger) {
-			selectedSkills = skills[BehaviorSlot::Head];
-			slot = BehaviorSlot::Head;
-		} else if (skillID == secondaryTrigger) {
-			selectedSkills = skills[BehaviorSlot::Offhand];
-			slot = BehaviorSlot::Offhand;
-		} else if (skillID == tertiaryTrigger) {
-			selectedSkills = skills[BehaviorSlot::Neck];
-			slot = BehaviorSlot::Neck;
-		}
-
-		if (selectedSkills.empty()) {
-			return;
-		}
-		else {
-			GameMessages::SendRemoveSkill(entity, primaryTrigger);
-			GameMessages::SendRemoveSkill(entity, secondaryTrigger);
-			GameMessages::SendRemoveSkill(entity, tertiaryTrigger);
-		}
-
-		int32_t i = 0;
-		for (const auto& skill : selectedSkills) {
-			if (i >= 3) {
-				break;
-			}
-
-			GameMessages::SendAddSkill(entity, skill, slotOrder[i]);
-			i++;
-		}
-
-		const auto randomNumber = GeneralUtils::GenerateRandomNumber<size_t>();
-
-		entity->SetVar(u"skill-cast", randomNumber);
-		entity->SetVar(u"skill-cast-slot", static_cast<int32_t>(slot));
-
-		entity->AddCallbackTimer(1.0f, [entity, randomNumber, primaryTrigger, secondaryTrigger, tertiaryTrigger]() {
-			if (!entity->HasVar(u"skill-cast")) {
-				return;
-			}
-
-			const auto currentRandom = entity->GetVar<size_t>(u"skill-cast");
-			
-			if (currentRandom != randomNumber) {
-				return;
-			}
-
-			entity->SetVar(u"skill-cast", static_cast<size_t>(0));
-
-			LOG("Restoring triggers via timeout");
-
-			// Remove the skills
-			auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-
-			if (!inventoryComponent) {
-				return;
-			}
-
-			BehaviorSlot slot = static_cast<BehaviorSlot>(entity->GetVar<int32_t>(u"skill-cast-slot"));
-
-			auto primarySkills = inventoryComponent->GetSkills();
-
-			for (const auto& skill : primarySkills[slot]) {
-				GameMessages::SendRemoveSkill(entity, skill);
-			}
-
-			// Restore the triggers
-			GameMessages::SendAddSkill(entity, primaryTrigger, BehaviorSlot::Head);
-			GameMessages::SendAddSkill(entity, secondaryTrigger, BehaviorSlot::Offhand);
-			GameMessages::SendAddSkill(entity, tertiaryTrigger, BehaviorSlot::Neck);
-		});
+		inventoryComponent->RotateSkills();
 	};
 
 	DestroyableComponent::OnDamageCalculation += [](Entity* damaged, LWOOBJID offender, uint32_t skillID, uint32_t& damage) {
@@ -432,10 +351,10 @@ void nejlika::NejlikaHooks::InstallHooks()
 		if (baseCombatAIComponent) {
 			baseCombatAIComponent->SetThreat(offender, 1);
 		}
-		
+
 		damagedEntity.CheckForRescale(&offenderEntity);
 		offenderEntity.CheckForRescale(&damagedEntity);
-		
+
 		int32_t level = offenderEntity.GetLevel();
 
 		auto* offfendEntity = Game::entityManager->GetEntity(offender);
@@ -453,49 +372,34 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 		LOT itemLot = 0;
 		LWOOBJID itemId = 0;
+		BehaviorSlot itemSlot = BehaviorSlot::Invalid;
 
 		auto* inventoryComponent = offfendEntity->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent) {
-			const auto& skills = inventoryComponent->GetSkills();
-
-			std::cout << "Found " << skills.size() << " skills." << std::endl;
+			const auto& equipped = inventoryComponent->GetEquippedItems();
 
 			// omg...
-			for (const auto& [slot, skillSet] : skills) {
-				if (skillSet.empty())
-				{
-					continue;
-				}
+			for (const auto& [equippedSlot, itemDetails] : equipped) {
+				std::cout << "Found equipped item: " << itemDetails.lot << std::endl;
 
-				const auto& skill = *skillSet.begin();
+				const auto info = Inventory::FindItemComponent(itemDetails.lot);
 
-				std::cout << "Found skill: " << skill << std::endl;
-				
+				const auto skill = InventoryComponent::FindSkill(itemDetails.lot);
+
 				if (skill != skillID) {
 					continue;
 				}
 
-				const auto& equipped = inventoryComponent->GetEquippedItems();
+				const auto itemBehaviorSlot = InventoryComponent::FindBehaviorSlot(static_cast<eItemType>(info.itemType));
 
-				for (const auto& [equippedSlot, itemDetails] : equipped) {
-					std::cout << "Found equipped item: " << itemDetails.lot << std::endl;
+				itemLot = itemDetails.lot;
+				itemId = itemDetails.id;
+				itemSlot = itemBehaviorSlot;
 
-					const auto info = Inventory::FindItemComponent(itemDetails.lot);
+				std::cout << "Found item: " << itemLot << std::endl;
 
-					const auto itemBehaviorSlot = InventoryComponent::FindBehaviorSlot(static_cast<eItemType>(info.itemType));
-
-					std::cout << "Comparing slots: " << static_cast<int32_t>(itemBehaviorSlot) << " - " << static_cast<int32_t>(slot) << std::endl;
-
-					if (itemBehaviorSlot == slot) {
-						itemLot = itemDetails.lot;
-						itemId = itemDetails.id;
-
-						std::cout << "Found item: " << itemLot << std::endl;
-
-						break;
-					}
-				}
+				break;
 			}
 		}
 
@@ -503,7 +407,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 
 		const auto& skillTemplateIt = std::find_if(skillTemplates.begin(), skillTemplates.end(), [skillID](const auto& it) {
 			return it.GetLOT() == skillID;
-		});
+			});
 
 		std::vector<ModifierInstance> modifiers;
 
@@ -515,8 +419,12 @@ void nejlika::NejlikaHooks::InstallHooks()
 			modifiers.insert(modifiers.end(), skillModifiers.begin(), skillModifiers.end());
 		}
 
+		TriggerParameters params;
+		params.SkillID = skillID;
+		params.SelectedBehaviorSlot = itemSlot;
+
 		// Upgrades
-		const auto upgradeModifiers = offenderEntity.TriggerUpgradeItems(UpgradeTriggerType::OnHit);
+		const auto upgradeModifiers = offenderEntity.TriggerUpgradeItems(UpgradeTriggerType::OnHit, params);
 
 		modifiers.insert(modifiers.end(), upgradeModifiers.begin(), upgradeModifiers.end());
 
@@ -535,30 +443,82 @@ void nejlika::NejlikaHooks::InstallHooks()
 				damageTypes.insert(modifier.GetType());
 			}
 		}
-		// Remove the following: Offensive, Defensive, Health, Armor, Imagination
-		damageTypes.erase(ModifierType::Offensive);
-		damageTypes.erase(ModifierType::Defensive);
-		damageTypes.erase(ModifierType::Health);
-		damageTypes.erase(ModifierType::Armor);
-		damageTypes.erase(ModifierType::Imagination);
-		damageTypes.erase(ModifierType::Damage);
-		damageTypes.erase(ModifierType::Speed);
-		damageTypes.erase(ModifierType::AttackSpeed);
-		damageTypes.erase(ModifierType::Invalid);
 
 		uint32_t totalDamage = 0;
 
+		std::unordered_map<ModifierType, std::pair<float, float>> durationTypes;
+		std::unordered_map<ModifierType, float> tmpDamageValues;
+
 		for (const auto& type : damageTypes) {
+			if (nejlika::IsOverTimeType(type)) {
+				float damageValue = offenderEntity.CalculateModifier(type, modifiers, level);
+
+				// Calculate resistance, can't go below 20% of the original damage
+				const auto resistance = std::max(1 - (damagedEntity.CalculateResistance(type) / 100), 0.2f);
+
+				float reductedDamage = damageValue * resistance;
+
+				const auto durationType = nejlika::GetDurationType(type);
+
+				const auto duration = offenderEntity.CalculateModifier(durationType, modifiers, level);
+
+				const auto durationResistance = std::max(1 - (damagedEntity.CalculateResistance(durationType) / 100), 0.2f);
+
+				float reductedDuration = duration * durationResistance;
+
+				durationTypes[type] = std::make_pair(reductedDamage, reductedDuration);
+
+				continue;
+			}
+
+			if (!nejlika::IsNormalDamageType(type)) {
+				continue;
+			}
+
 			float damageValue = offenderEntity.CalculateModifier(type, modifiers, level);
 
+			tmpDamageValues[type] = damageValue;
+		}
+
+		// Type A -> Type B -> (0-100) how much of type A is converted to type B
+		const auto converationMap = offenderEntity.CalculateDamageConversion(modifiers);
+
+		std::unordered_map<ModifierType, float> finalDamageValues;
+
+		for (const auto& [typeA, typeBMap] : converationMap) {
+			const auto& typeAValue = tmpDamageValues.find(typeA);
+
+			if (typeAValue == tmpDamageValues.end()) {
+				continue;
+			}
+
+			const auto& typeAValueFloat = typeAValue->second;
+
+			for (const auto& [typeB, conversion] : typeBMap) {
+				const auto& typeBValue = tmpDamageValues.find(typeB);
+
+				if (typeBValue == tmpDamageValues.end()) {
+					continue;
+				}
+
+				const auto& typeBValueFloat = typeBValue->second;
+
+				const auto convertedValue = typeAValueFloat * conversion;
+
+				finalDamageValues[typeA] += typeAValueFloat - convertedValue;
+				finalDamageValues[typeB] += typeBValueFloat + convertedValue;
+			}
+		}
+
+		for (const auto& [type, damage] : finalDamageValues) {
 			// Calculate resistance, can't go below 20% of the original damage
 			const auto resistance = std::max(1 - (damagedEntity.CalculateResistance(type) / 100), 0.2f);
 
-			float reductedDamage = damageValue * resistance;
+			float reductedDamage = damage * resistance;
 
 			totalDamage += static_cast<uint32_t>(reductedDamage);
 
-			std::cout << "Damage type: " << magic_enum::enum_name(type) << " - " << damageValue << std::endl;
+			std::cout << "Damage type: " << magic_enum::enum_name(type) << " - " << damage << std::endl;
 			std::cout << "Resistance: " << resistance << " - " << reductedDamage << std::endl;
 			std::cout << "Heath left: " << damaged->GetComponent<DestroyableComponent>()->GetHealth() << std::endl;
 		}
@@ -572,22 +532,70 @@ void nejlika::NejlikaHooks::InstallHooks()
 		if (offenderModifiers == 0) offenderModifiers = 1;
 		if (defensiveModifiers == 0) defensiveModifiers = 1;
 
-		auto ratio = offenderModifiers / defensiveModifiers;
+		// https://www.grimdawn.com/guide/gameplay/combat/#q20
+		auto pth = ((
+			((offenderModifiers / ((defensiveModifiers / 3.5) + offenderModifiers)) * 300) * 0.3
+		) + (
+			((((offenderModifiers * 3.25) + 10000) - (defensiveModifiers * 3.25)) / 100) * 0.7)
+		) - 50;
 
-		// Ratio can not ge below 1.05
-		ratio = std::max(ratio, 1.05f);
+		if (pth < 60) pth = 60;
 
-		// Roll a number between 0 and ratio
-		float roll = GeneralUtils::GenerateRandomNumber<size_t>() / static_cast<float>(std::numeric_limits<size_t>::max());
+		float roll = GeneralUtils::GenerateRandomNumber<size_t>(0, std::max(static_cast<int32_t>(pth), 100));
 
-		roll *= ratio;
+		bool isCritical = false;
+		bool isHit = false;
+		float damageMultiplier = 1.0f;
 
-		std::cout << "Offensive: " << offenderModifiers << " Defensive: " << defensiveModifiers << " Ratio: " << ratio << " Roll: " << roll << std::endl;
+		if (roll > pth) {
+			// Miss
+			isHit = false;
+		} else {
+			// Hit
+			isHit = true;
 
-		// If the roll is above 1, the damage is increased by 1+roll, to a maximum of 5x the damage
-		if (roll > 1) {
-			roll = std::min(roll, 5.0f);
-			totalDamage += static_cast<uint32_t>(totalDamage * roll);
+			if (pth >= 135) {
+				if (roll <= 134) damageMultiplier = 1.5f;
+				else if (roll <= 129) damageMultiplier = 1.4f;
+				else if (roll <= 124) damageMultiplier = 1.3f;
+				else if (roll <= 119) damageMultiplier = 1.2f;
+				else if (roll <= 104) damageMultiplier = 1.1f;
+			} else if (pth >= 130) {
+				if (roll <= 129) damageMultiplier = 1.4f;
+				else if (roll <= 124) damageMultiplier = 1.3f;
+				else if (roll <= 119) damageMultiplier = 1.2f;
+				else if (roll <= 104) damageMultiplier = 1.1f;
+			} else if (pth >= 120) {
+				if (roll <= 119) damageMultiplier = 1.3f;
+				else if (roll <= 104) damageMultiplier = 1.2f;
+				else if (roll <= 89) damageMultiplier = 1.1f;
+			} else if (pth >= 105) {
+				if (roll <= 104) damageMultiplier = 1.2f;
+				else if (roll <= 89) damageMultiplier = 1.1f;
+			} else if (pth >= 90) {
+				if (roll <= 89) damageMultiplier = 1.1f;
+			} else if (pth < 70) {
+				damageMultiplier = pth / 70.0f;
+			}
+
+			if (damageMultiplier > 1.0f) {
+				isCritical = true;
+
+				damageMultiplier *= offenderEntity.CalculateMultiplier(ModifierType::CriticalDamage, modifiers);
+			}
+		}
+
+		if (isHit) {
+			// Add a random +5% to the damage
+			totalDamage += static_cast<uint32_t>(totalDamage * (GeneralUtils::GenerateRandomNumber<int32_t>(0, 5) / 100.0f));
+
+			damage = totalDamage;
+		} else {
+			damage = totalDamage = 0;
+		}
+
+		if (isCritical) {
+			totalDamage = static_cast<uint32_t>(totalDamage * damageMultiplier);
 
 			const auto effectName = std::to_string(GeneralUtils::GenerateRandomNumber<uint32_t>());
 			const auto damagedID = damaged->GetObjectID();
@@ -599,7 +607,7 @@ void nejlika::NejlikaHooks::InstallHooks()
 				effectName
 			);
 
-			damaged->AddCallbackTimer(0.5f, [damaged, effectName] () {
+			damaged->AddCallbackTimer(0.5f, [damaged, effectName]() {
 				GameMessages::SendStopFXEffect(
 					damaged,
 					true,
@@ -607,11 +615,6 @@ void nejlika::NejlikaHooks::InstallHooks()
 				);
 			});
 		}
-
-		// Add a random +10% to the damage
-		totalDamage += static_cast<uint32_t>(totalDamage * (GeneralUtils::GenerateRandomNumber<int32_t>(0, 10) / 100.0f));
-
-		damage = totalDamage;
 
 		auto attackSpeed = offenderEntity.CalculateModifier(ModifierType::AttackSpeed, modifiers, level);
 
@@ -634,19 +637,91 @@ void nejlika::NejlikaHooks::InstallHooks()
 				SEND_PACKET_BROADCAST;
 			});
 		}
+
+		// Apply over time damage.
+		// Times are rounded to the nearest 0.5s
+		for (const auto& [type, damageDuration] : durationTypes) {
+			if (damageDuration.first == 0) {
+				continue;
+			}
+
+			const auto duration = static_cast<int32_t>(damageDuration.second * 2);
+
+			if (duration == 0) {
+				continue;
+			}
+
+			const auto damagePerTick = static_cast<int32_t>(damageDuration.first / duration);
+
+			auto* destroyable = damaged->GetComponent<DestroyableComponent>();
+
+			if (!destroyable) {
+				continue;
+			}
+			
+			for (size_t i = 0; i < duration; i++)
+			{
+				damaged->AddCallbackTimer(i * 0.5f, [offender, damaged, damagePerTick]() {
+					auto* destroyable = damaged->GetComponent<DestroyableComponent>();
+
+					if (!destroyable) {
+						return;
+					}
+
+					destroyable->Damage(offender, damagePerTick, 0, true, true);
+				});
+			}
+		}
+
+		/* Moved to DestroyableComponent
+		std::stringstream damageUIMessage;
+
+		auto damagedPosition = damaged->GetPosition();
+
+		// Add a slight random offset to the damage position
+		damagedPosition.x += (rand() % 10 - 5) / 5.0f;
+		damagedPosition.y += (rand() % 10 - 5) / 5.0f;
+		damagedPosition.z += (rand() % 10 - 5) / 5.0f;
+
+		int colorR = 255;
+		int colorG = 255;
+		int colorB = 255;
+		int colorA = 0;
+
+		if (damaged->IsPlayer()) {
+			// Make the damage red
+			colorR = 0;
+			colorG = 255;
+			colorB = 0;
+			colorA = 0;
+		}
+
+		const auto damageText = isHit ? std::to_string(totalDamage) : "Miss";
+
+		damageUIMessage << 0.0825 << ";" << 0.12 << ";" << damagedPosition.x << ";" << damagedPosition.y + 4.5f << ";" << damagedPosition.z << ";" << 0.1 << ";";
+		damageUIMessage << 200 << ";" << 200 << ";" << 0.5 << ";" << 1.0 << ";" << damageText << ";" << 4 << ";" << 4 << ";" << colorR << ";" << colorG << ";" << colorB << ";";
+		damageUIMessage << colorA;
+
+		const auto damageUIStr = damageUIMessage.str();
+
+		if (damaged->IsPlayer()) {
+			damaged->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
+		} else if (offfendEntity->IsPlayer()) {
+			offfendEntity->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
+		}*/
 	};
 }
 
 
 void nejlika::NejlikaHooks::ItemDescription(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 	auto splitArgs = GeneralUtils::SplitString(args, ' ');
-	if (splitArgs.size() < 2) {
+	if (splitArgs.size() < 3) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Invalid arguments.");
 		return;
 	}
-	
+
 	auto requestId = GeneralUtils::TryParse<int32_t>(splitArgs[0]).value_or(-1);
-	
+
 	if (requestId == -1) {
 		ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
 		return;
@@ -656,34 +731,70 @@ void nejlika::NejlikaHooks::ItemDescription(Entity* entity, const SystemAddress&
 
 	auto itemId = GeneralUtils::TryParse<LWOOBJID>(splitArgs[1]).value_or(LWOOBJID_EMPTY);
 
-	if (itemId == LWOOBJID_EMPTY) {
-		ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
-		return;
-	}
-	
-	const auto itemDataOpt = GetAdditionalItemData(itemId);
+	auto lot = GeneralUtils::TryParse<LOT>(splitArgs[2]).value_or(0);
 
-	if (!itemDataOpt.has_value()) {
+	if (lot == 0) {
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid item LOT.");
 		return;
 	}
 
-	auto& itemDetails = *itemDataOpt.value();
-
-	const auto& modifiers = itemDetails.GetModifierInstances();
-	const auto& names = itemDetails.GetModifierNames();
-
-	if (modifiers.empty() && names.empty()) {
-		return;
-	}
+	std::cout << "Item ID: " << itemId << std::endl;
+	std::cout << "Item LOT: " << lot << std::endl;
 
 	std::stringstream name;
 	std::stringstream desc;
 
-	name << "NAME";
+	if (itemId == LWOOBJID_EMPTY) {
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
 
-	desc << ModifierName::GenerateHtmlString(names) << "\n";
-	
-	desc << ModifierInstance::GenerateHtmlString(modifiers);
+		const auto& itemTemplateVec = NejlikaData::GetModifierNameTemplates(ModifierNameType::Object);
+
+		const auto itemTemplateIt = std::find_if(itemTemplateVec.begin(), itemTemplateVec.end(), [lot](const auto& it) {
+			return it.GetLOT() == static_cast<int32_t>(lot);
+			});
+
+		if (itemTemplateIt == itemTemplateVec.end()) {
+			name << "<font color=\"#D0AB62\">NAME</font>";
+			desc << "DESC";
+		} else {
+			const auto& itemTemplate = *itemTemplateIt;
+
+			const auto& modifiers = itemTemplate.GetModifiers();
+
+			// Get the entity level
+			auto* levelProgressionComponent = entity->GetComponent<LevelProgressionComponent>();
+
+			if (!levelProgressionComponent) {
+				return;
+			}
+
+			auto level = levelProgressionComponent->GetLevel();
+
+			name << "<font color=\"#D0AB62\">NAME</font>";
+			desc << ModifierTemplate::GenerateHtmlString(modifiers, level);
+		}
+	} else {
+		const auto itemDataOpt = GetAdditionalItemData(itemId);
+
+		if (!itemDataOpt.has_value()) {
+			name << "<font color=\"#D0AB62\">NAME</font>";
+			desc << "DESC";
+		} else {
+			auto& itemDetails = *itemDataOpt.value();
+
+			const auto& modifiers = itemDetails.GetModifierInstances();
+			const auto& names = itemDetails.GetModifierNames();
+
+			if (modifiers.empty() && names.empty()) {
+				name << "<font color=\"#D0AB62\">NAME</font>";
+				desc << "DESC";
+			} else {
+				name << ModifierName::GenerateHtmlString(names);
+
+				desc << ModifierInstance::GenerateHtmlString(modifiers);
+			}
+		}
+	}
 
 	std::cout << "Sending item name: " << name.str() << std::endl;
 	std::cout << "Sending item desc: " << desc.str() << std::endl;

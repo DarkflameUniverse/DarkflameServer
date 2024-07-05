@@ -1347,23 +1347,17 @@ namespace DEVGMCommands {
 
 	void SetSkillSlot(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.size() < 2) return;
+		if (splitArgs.size() < 1) return;
 
 		auto* const inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (inventoryComponent) {
-			const auto slot = GeneralUtils::TryParse<BehaviorSlot>(splitArgs[0]);
-			if (!slot) {
-				ChatPackets::SendSystemMessage(sysAddr, u"Error getting slot.");
+			const auto skillId = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
+			if (!skillId) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill.");
 				return;
 			} else {
-				const auto skillId = GeneralUtils::TryParse<uint32_t>(splitArgs[1]);
-				if (!skillId) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Error getting skill.");
-					return;
-				} else {
-					if (inventoryComponent->SetSkill(slot.value(), skillId.value())) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
-					else ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot failed");
-				}
+				if (inventoryComponent->AddSkill(skillId.value())) ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot successfully");
+				else ChatPackets::SendSystemMessage(sysAddr, u"Set skill to slot failed");
 			}
 		}
 	}

@@ -141,7 +141,7 @@ float nejlika::UpgradeEffect::CalculateChance(int32_t level) const {
 	return value;
 }
 
-bool nejlika::UpgradeEffect::CheckConditions(LWOOBJID origin) const {
+bool nejlika::UpgradeEffect::CheckConditions(LWOOBJID origin, const TriggerParameters& params) const {
 	auto* entity = Game::entityManager->GetEntity(origin);
 
 	if (!entity) {
@@ -159,6 +159,15 @@ bool nejlika::UpgradeEffect::CheckConditions(LWOOBJID origin) const {
 
 	for (const auto& condition : conditions) {
 		switch (condition) {
+		case UpgradeTriggerCondition::PrimaryAbility:
+			if (params.SelectedBehaviorSlot != BehaviorSlot::Primary) {
+				return false;
+			}
+			break;
+		case UpgradeTriggerCondition::UseSkill:
+			if (params.SkillID != equipSkillID) {
+				return false;
+			}
 		case UpgradeTriggerCondition::None:
 			break;
 		case UpgradeTriggerCondition::Unarmed:
@@ -213,7 +222,7 @@ void nejlika::UpgradeEffect::OnTrigger(LWOOBJID origin) const {
 	}
 }
 
-std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin) {
+std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<UpgradeEffect>& modifiers, int32_t level, UpgradeTriggerType triggerType, LWOOBJID origin, const TriggerParameters& params) {
 	std::vector<ModifierInstance> result;
 
 	for (const auto& modifier : modifiers) {
@@ -221,7 +230,7 @@ std::vector<ModifierInstance> nejlika::UpgradeEffect::Trigger(const std::vector<
 			continue;
 		}
 
-		if (!modifier.CheckConditions(origin)) {
+		if (!modifier.CheckConditions(origin, params)) {
 			continue;
 		}
 
@@ -272,7 +281,7 @@ void nejlika::UpgradeEffect::AddSkill(LWOOBJID origin) const {
 	}
 
 	if (equipSkillID != 0) {
-		inventory->SetSkill(equipSkillID);
+		inventory->AddSkill(equipSkillID);
 	}
 }
 
@@ -294,6 +303,6 @@ void nejlika::UpgradeEffect::RemoveSkill(LWOOBJID origin) const {
 	}
 
 	if (equipSkillID != 0) {
-		inventory->UnsetSkill(equipSkillID);
+		inventory->RemoveSkill(equipSkillID);
 	}
 }

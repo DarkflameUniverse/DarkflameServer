@@ -19,6 +19,10 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, Modifi
 	float total = 0;
 
 	for (const auto& modifier : activeModifiers) {
+		if (modifier.GetConvertTo() != ModifierType::Invalid) {
+			continue;
+		}
+
 		if (modifier.GetType() != type || modifier.GetOperator() != op || modifier.IsResistance() != resistance) {
 			continue;
 		}
@@ -33,6 +37,10 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 	float total = 0;
 
 	for (const auto& modifier : additionalModifiers) {
+		if (modifier.GetConvertTo() != ModifierType::Invalid) {
+			continue;
+		}
+
 		if (modifier.GetType() != type || modifier.GetOperator() != op || modifier.IsResistance() != resistance) {
 			continue;
 		}
@@ -92,18 +100,18 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 	
 	float multiplicative = CalculateModifier(type, additionalModifiers, ModifierOperator::Multiplicative, false);
 
-	static const std::unordered_set<ModifierType> damageTypes = {
-		ModifierType::Slashing,
-		ModifierType::Piercing,
-		ModifierType::Bludgeoning,
+	static const std::unordered_set<ModifierType> elementalDamage = {
 		ModifierType::Fire,
 		ModifierType::Cold,
-		ModifierType::Lightning,
-		ModifierType::Corruption,
-		ModifierType::Psychic
+		ModifierType::Lightning
 	};
 
-	if (damageTypes.contains(type)) {
+	if (elementalDamage.contains(type)) {
+		additive += CalculateModifier(ModifierType::Elemental, additionalModifiers, ModifierOperator::Additive, false) / elementalDamage.size();
+		multiplicative += CalculateModifier(ModifierType::Elemental, additionalModifiers, ModifierOperator::Multiplicative, false) / elementalDamage.size();
+	}
+
+	if (nejlika::IsNormalDamageType(type) || nejlika::IsOverTimeType(type)) {
 		additive += CalculateModifier(ModifierType::Damage, additionalModifiers, ModifierOperator::Additive, false);
 		multiplicative += CalculateModifier(ModifierType::Damage, additionalModifiers, ModifierOperator::Multiplicative, false);
 	}
@@ -117,6 +125,8 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 
 float nejlika::AdditionalEntityData::CalculateResistance(ModifierType type) const
 {
+	type = nejlika::GetResistanceType(type);
+
 	return CalculateModifier(type, ModifierOperator::Multiplicative, true);
 }
 
@@ -125,7 +135,7 @@ float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type) cons
 	return 1 + CalculateModifier(type, ModifierOperator::Multiplicative, false);
 }
 
-std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType) {
+std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType, const TriggerParameters& params) {
 	auto* entity = Game::entityManager->GetEntity(id);
 
 	if (entity == nullptr) {
@@ -155,12 +165,16 @@ std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems
 
 		const auto& upgradeData = *upgradeDataOpt.value();
 
-		const auto modifiers = upgradeData.Trigger(item->GetCount(), triggerType, id);
+		const auto modifiers = upgradeData.Trigger(item->GetCount(), triggerType, id, params);
 
 		result.insert(result.end(), modifiers.begin(), modifiers.end());
 	}
 
 	return result;
+}
+
+std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType) {
+	return TriggerUpgradeItems(triggerType, {});
 }
 
 void nejlika::AdditionalEntityData::InitializeSkills() {
@@ -282,6 +296,62 @@ void nejlika::AdditionalEntityData::RollStandardModifiers(int32_t level) {
 	}
 }
 
+float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers) const {
+    return 1 + CalculateModifier(type, additionalModifiers, ModifierOperator::Multiplicative, false);
+}
+
+std::unordered_map<ModifierType, std::unordered_map<ModifierType, float>> nejlika::AdditionalEntityData::CalculateDamageConversion(std::vector<ModifierInstance>& additionalModifiers) const {
+	std::unordered_map<ModifierType, std::unordered_map<ModifierType, float>> conversion;
+
+	for (const auto& modifier : activeModifiers) {
+		if (modifier.GetConvertTo() == ModifierType::Invalid) {
+			continue;
+		}
+
+		conversion[modifier.GetType()][modifier.GetConvertTo()] += modifier.GetValue();
+	}
+
+	for (const auto& modifier : additionalModifiers) {
+		if (modifier.GetConvertTo() == ModifierType::Invalid) {
+			continue;
+		}
+
+		conversion[modifier.GetType()][modifier.GetConvertTo()] += modifier.GetValue();
+	}
+
+	// Third pass: adjust bidirectional conversions
+	auto copy = conversion; // Create a copy to iterate over
+	for (const auto& [type, convertMap] : copy) {
+		for (const auto& [convertTo, value] : convertMap) {
+			if (conversion[convertTo][type] > 0) {
+				if (value > conversion[convertTo][type]) {
+					conversion[type][convertTo] -= conversion[convertTo][type];
+					conversion[convertTo][type] = 0; // Ensure no negative values
+				} else {
+					conversion[convertTo][type] -= value;
+					conversion[type][convertTo] = 0; // Ensure no negative values
+				}
+			}
+		}
+	}
+
+	// Fourth pass: if a type converts to multiple types, and the sum of the conversion values is greater than 100, normalize the values
+	for (const auto& [type, convertMap] : conversion) {
+		float sum = 0;
+		for (const auto& [convertTo, value] : convertMap) {
+			sum += value;
+		}
+
+		if (sum > 100) {
+			for (const auto& [convertTo, value] : convertMap) {
+				conversion[type][convertTo] = value / sum * 100;
+			}
+		}
+	}
+
+	return conversion;
+}
+
 void nejlika::AdditionalEntityData::ApplyToEntity() {
 	const auto templateDataOpt = NejlikaData::GetEntityTemplate(lot);
 
@@ -331,6 +401,31 @@ void nejlika::AdditionalEntityData::ApplyToEntity() {
 			const auto& itemData = *itemDataOpt.value();
 
 			const auto& itemModifiers = itemData.GetModifierInstances();
+
+			activeModifiers.insert(activeModifiers.end(), itemModifiers.begin(), itemModifiers.end());
+		}
+
+		for (const auto& upgradeItem : upgradeItems) {
+			auto* item = inventoryComponent->FindItemById(upgradeItem);
+
+			if (item == nullptr) {
+				continue;
+			}
+
+			LOG("Applying upgrade item %i", item->GetLot());
+
+			const auto itemDataOpt = NejlikaData::GetUpgradeTemplate(item->GetLot());
+
+			if (!itemDataOpt.has_value()) {
+				LOG("Upgrade item %i has no data", item->GetLot());
+				continue;
+			}
+
+			const auto& itemData = *itemDataOpt.value();
+
+			const auto& itemModifiers = itemData.GenerateModifiers(item->GetCount());
+
+			LOG("Upgrade item %i has %i modifiers with level %i", item->GetLot(), itemModifiers.size(), item->GetCount());
 
 			activeModifiers.insert(activeModifiers.end(), itemModifiers.begin(), itemModifiers.end());
 		}

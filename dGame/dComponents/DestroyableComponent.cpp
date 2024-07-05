@@ -556,7 +556,7 @@ void DestroyableComponent::Repair(const uint32_t armor) {
 }
 
 
-void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo) {
+void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32_t skillID, bool echo, bool isDamageOverTime) {
 	if (GetHealth() <= 0) {
 		return;
 	}
@@ -572,7 +572,9 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	OnDamageCalculation(m_Parent, source, skillID, damage);
+	if (!isDamageOverTime) {
+		OnDamageCalculation(m_Parent, source, skillID, damage);
+	}
 
 	// If this entity has damage reduction, reduce the damage to a minimum of 1
 	if (m_DamageReduction > 0 && damage > 0) {
@@ -639,6 +641,42 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 	for (const auto& cb : m_OnHitCallbacks) {
 		cb(attacker);
+	}
+
+	std::stringstream damageUIMessage;
+
+	auto damagedPosition = m_Parent->GetPosition();
+
+	// Add a slight random offset to the damage position
+	damagedPosition.x += (rand() % 10 - 5) / 5.0f;
+	damagedPosition.y += (rand() % 10 - 5) / 5.0f;
+	damagedPosition.z += (rand() % 10 - 5) / 5.0f;
+
+	int colorR = 255;
+	int colorG = 255;
+	int colorB = 255;
+	int colorA = 0;
+
+	if (m_Parent->IsPlayer()) {
+		// Make the damage red
+		colorR = 0;
+		colorG = 255;
+		colorB = 0;
+		colorA = 0;
+	}
+
+	const auto damageText = damage != 0 ? std::to_string(damage) : "Miss";
+
+	damageUIMessage << 0.0825 << ";" << 0.12 << ";" << damagedPosition.x << ";" << damagedPosition.y + 4.5f << ";" << damagedPosition.z << ";" << 0.1 << ";";
+	damageUIMessage << 200 << ";" << 200 << ";" << 0.5 << ";" << 1.0 << ";" << damageText << ";" << 4 << ";" << 4 << ";" << colorR << ";" << colorG << ";" << colorB << ";";
+	damageUIMessage << colorA;
+
+	const auto damageUIStr = damageUIMessage.str();
+
+	if (m_Parent->IsPlayer()) {
+		m_Parent->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
+	} else if (attacker->IsPlayer()) {
+		attacker->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	if (health != 0) {

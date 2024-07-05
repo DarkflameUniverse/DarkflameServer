@@ -107,6 +107,13 @@ void nejlika::NejlikaData::UnsetAdditionalEntityData(LWOOBJID id) {
 
 void nejlika::NejlikaData::LoadNejlikaData()
 {
+	const auto& lookupFile = Game::config->GetValue("lookup");
+
+	if (!lookupFile.empty())
+	{
+		lookup = Lookup(lookupFile);
+	}
+
 	modifierNameTemplates.clear();
 
 	// Load data from json file
@@ -178,13 +185,6 @@ void nejlika::NejlikaData::LoadNejlikaData()
 
 			upgradeTemplates[upgradeTemplate.GetLot()] = upgradeTemplate;
 		}
-	}
-
-	const auto& lookupFile = Game::config->GetValue("lookup");
-
-	if (!lookupFile.empty())
-	{
-		lookup = Lookup(lookupFile);
 	}
 }
 

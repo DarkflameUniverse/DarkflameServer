@@ -368,12 +368,14 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	const std::map<BehaviorSlot, std::set<uint32_t>>& GetSkills(){ return m_Skills; };
+	uint32_t GetPrimarySkill() const { return m_PrimarySkill; }
 
-	bool SetSkill(int32_t slot, uint32_t skillId);
-	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
-	void UnsetSkill(uint32_t skillId);
-	void SetSkill(uint32_t skillId);
+	const std::vector<uint32_t>& GetSkills(){ return m_Skills; };
+
+	bool AddSkill(uint32_t skillId);
+	bool RemoveSkill(uint32_t skillId);
+	void RotateSkills();
+	void UpdateSkills();
 
 	~InventoryComponent() override;
 
@@ -382,6 +384,7 @@ public:
 	static Observable<InventoryComponent*, Item*> OnItemEquipped;
 	static Observable<InventoryComponent*, Item*> OnItemUnequipped;
 	static Observable<InventoryComponent*, Item*> OnItemLoaded;
+	static Observable<InventoryComponent*, Item*> OnCountChanged;
 
 private:
 	/**
@@ -391,10 +394,16 @@ private:
 
 	std::map<BehaviorSlot, uint32_t> m_ActivatorSkills;
 
+	uint32_t m_PrimarySkill = 0;
+
 	/**
 	 * The skills that this entity currently has active
 	 */
-	std::map<BehaviorSlot, std::set<uint32_t>> m_Skills;
+	std::vector<uint32_t> m_Skills;
+
+	std::pair<uint32_t, uint32_t> m_ActiveSkills;
+
+	uint32_t m_SkillRotationIndex = 0;
 
 	/**
 	 * The pets this entity has, mapped by object ID and pet info
