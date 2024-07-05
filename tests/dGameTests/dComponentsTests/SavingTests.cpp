@@ -56,18 +56,19 @@ TEST_F(SavingTest, CharacterComponentTest) {
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 
-	auto statsPrev = characterComponent->StatisticsToString();
-	auto claimCodesPrev = characterComponent->GetClaimCodes();
-	auto eyebrowsPrev = characterComponent->m_Character->GetEyebrows();
-	auto eyesPrev = characterComponent->m_Character->GetEyes();
-	auto hairColorPrev = characterComponent->m_Character->GetHairColor();
-	auto hairStylePrev = characterComponent->m_Character->GetHairStyle();
-	auto pantsColorPrev = characterComponent->m_Character->GetPantsColor();
-	auto leftHandPrev = characterComponent->m_Character->GetLeftHand();
-	auto shirtStylePrev = characterComponent->m_Character->GetShirtStyle();
-	auto mouthPrev = characterComponent->m_Character->GetMouth();
-	auto rightHandPrev = characterComponent->m_Character->GetRightHand();
-	auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
+	const auto statsPrev = characterComponent->StatisticsToString();
+	const auto claimCodesPrev = characterComponent->GetClaimCodes();
+	const auto eyebrowsPrev = characterComponent->m_Character->GetEyebrows();
+	const auto eyesPrev = characterComponent->m_Character->GetEyes();
+	const auto hairColorPrev = characterComponent->m_Character->GetHairColor();
+	const auto hairStylePrev = characterComponent->m_Character->GetHairStyle();
+	const auto pantsColorPrev = characterComponent->m_Character->GetPantsColor();
+	const auto leftHandPrev = characterComponent->m_Character->GetLeftHand();
+	const auto shirtStylePrev = characterComponent->m_Character->GetShirtStyle();
+	const auto mouthPrev = characterComponent->m_Character->GetMouth();
+	const auto rightHandPrev = characterComponent->m_Character->GetRightHand();
+	const auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
+	const auto zoneStatsPrev = characterComponent->GetZoneStatistics();
 
 	// Update the xml document so its been run through the saver
 	character->SaveXMLToDatabase();
@@ -77,24 +78,10 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 
 	// Check that the buff component is the same as before which means resaving data and loading it back in didn't change anything
-	ASSERT_EQ(statsPrev, characterComponent->StatisticsToString());
-	ASSERT_EQ(claimCodesPrev, characterComponent->GetClaimCodes());
-	ASSERT_EQ(eyebrowsPrev, characterComponent->m_Character->GetEyebrows());
-	ASSERT_EQ(eyesPrev, characterComponent->m_Character->GetEyes());
-	ASSERT_EQ(hairColorPrev, characterComponent->m_Character->GetHairColor());
-	ASSERT_EQ(hairStylePrev, characterComponent->m_Character->GetHairStyle());
-	ASSERT_EQ(pantsColorPrev, characterComponent->m_Character->GetPantsColor());
-	ASSERT_EQ(leftHandPrev, characterComponent->m_Character->GetLeftHand());
-	ASSERT_EQ(mouthPrev, characterComponent->m_Character->GetMouth());
-	ASSERT_EQ(rightHandPrev, characterComponent->m_Character->GetRightHand());
-	ASSERT_EQ(shirtStylePrev, characterComponent->m_Character->GetShirtStyle());
-	ASSERT_EQ(shirtColorPrev, characterComponent->m_Character->GetShirtColor());
-	
-	// Check that no data was lost during the saving process.
 	ASSERT_EQ("32114;69;343;13;163;2;181;2;388;252;146;24451;25;9022;41898;42186;42524;4404;0;0;0;0;0;0;0;0;0;", characterComponent->StatisticsToString());
-	
-	// need a variable because the macro does not support {}
-	const std::array<uint64_t, 4> correctCodes = { 1073741968, 0, 0, 0 };
+
+	// need a variable because the macros do not support {}
+	constexpr std::array<uint64_t, 4> correctCodes = { 1073741968, 0, 0, 0 };
 	ASSERT_EQ(correctCodes, characterComponent->GetClaimCodes());
 	ASSERT_EQ(1, characterComponent->m_Character->GetEyebrows());
 	ASSERT_EQ(2, characterComponent->m_Character->GetEyes());
@@ -105,9 +92,23 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	ASSERT_EQ(3, characterComponent->m_Character->GetMouth());
 	ASSERT_EQ(27187396, characterComponent->m_Character->GetRightHand());
 	ASSERT_EQ(13, characterComponent->m_Character->GetShirtColor());
-	
+
+	const std::map<LWOMAPID, ZoneStatistics> correctZoneStats =
+	{
+	{ 1000, { .m_AchievementsCollected = 0, .m_BricksCollected = 0, .m_CoinsCollected = 4, .m_EnemiesSmashed = 0, .m_QuickBuildsCompleted = 0 } },
+	{ 1100, { .m_AchievementsCollected = 1, .m_BricksCollected = 54, .m_CoinsCollected = 584, .m_EnemiesSmashed = 34, .m_QuickBuildsCompleted = 0 } },
+	{ 1101, { .m_AchievementsCollected = 7, .m_BricksCollected = 0, .m_CoinsCollected = 750, .m_EnemiesSmashed = 100, .m_QuickBuildsCompleted = 7 } },
+	{ 1200, { .m_AchievementsCollected = 51, .m_BricksCollected = 9, .m_CoinsCollected = 26724, .m_EnemiesSmashed = 0, .m_QuickBuildsCompleted = 3 } },
+	{ 1250, { .m_AchievementsCollected = 1, .m_BricksCollected = 1, .m_CoinsCollected = 158, .m_EnemiesSmashed = 15, .m_QuickBuildsCompleted = 1 } },
+	{ 1800, { .m_AchievementsCollected = 4, .m_BricksCollected = 5, .m_CoinsCollected = 3894, .m_EnemiesSmashed = 14, .m_QuickBuildsCompleted = 2 } },
+	};
+
+	ASSERT_EQ(correctZoneStats, characterComponent->GetZoneStatistics());
+
 	// Fails currently due to not reading style from xml
-	// ASSERT_EQ(27, characterComponent->m_Character->GetShirtStyle());
+	// Should the value be fixed, this test will fail and will match the above
+	// only then will this comment be removed.
+	ASSERT_NE(27, characterComponent->m_Character->GetShirtStyle());
 
 	// character->GetXMLDoc().Print(&printer);
 	// std::string xmlDataModified(printer.CStr());
