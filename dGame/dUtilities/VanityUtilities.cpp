@@ -285,7 +285,6 @@ void ParseXml(const std::string& file) {
 				}
 
 				if (zoneID.value() != currentZoneID) {
-					LOG_DEBUG("Skipping (%s) %i location because it is in %i and not the current zone (%i)", name, lot, zoneID.value(), currentZoneID);
 					continue;
 				}
 

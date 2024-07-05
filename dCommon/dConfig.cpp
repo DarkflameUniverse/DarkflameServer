@@ -1,6 +1,7 @@
 #include "dConfig.h"
 
 #include <sstream>
+#include <algorithm>
 
 #include "BinaryPathFinder.h"
 #include "GeneralUtils.h"

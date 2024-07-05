@@ -1,7 +1,10 @@
 #include "MySQLDatabase.h"
 
 std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWOOBJID& propertyId) {
-	auto result = ExecuteSelect("SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id FROM properties_contents WHERE property_id = ?;", propertyId);
+	auto result = ExecuteSelect(
+		"SELECT id, lot, x, y, z, rx, ry, rz, rw, ugc_id, "
+		"behavior_1, behavior_2, behavior_3, behavior_4, behavior_5 "
+		"FROM properties_contents WHERE property_id = ?;", propertyId);
 
 	std::vector<IPropertyContents::Model> toReturn;
 	toReturn.reserve(result->rowsCount());
@@ -17,6 +20,12 @@ std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWO
 		model.rotation.y = result->getFloat("ry");
 		model.rotation.z = result->getFloat("rz");
 		model.ugcId = result->getUInt64("ugc_id");
+		model.behaviors[0] = result->getInt("behavior_1");
+		model.behaviors[1] = result->getInt("behavior_2");
+		model.behaviors[2] = result->getInt("behavior_3");
+		model.behaviors[3] = result->getInt("behavior_4");
+		model.behaviors[4] = result->getInt("behavior_5");
+
 		toReturn.push_back(std::move(model));
 	}
 	return toReturn;
@@ -32,21 +41,23 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 			model.id, propertyId, model.ugcId == 0 ? std::nullopt : std::optional(model.ugcId), static_cast<uint32_t>(model.lot),
 			model.position.x, model.position.y, model.position.z, model.rotation.x, model.rotation.y, model.rotation.z, model.rotation.w,
 			name, "", // Model description.  TODO implement this.
-			0, // behavior 1.  TODO implement this.
-			0, // behavior 2.  TODO implement this.
-			0, // behavior 3.  TODO implement this.
-			0, // behavior 4.  TODO implement this.
-			0 // behavior 5.  TODO implement this.
+			model.behaviors[0], // behavior 1
+			model.behaviors[1], // behavior 2
+			model.behaviors[2], // behavior 3
+			model.behaviors[3], // behavior 4
+			model.behaviors[4] // behavior 5
 		);
 	} catch (sql::SQLException& e) {
 		LOG("Error inserting new property model: %s", e.what());
 	}
 }
 
-void MySQLDatabase::UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) {
+void MySQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
 	ExecuteUpdate(
-		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ? WHERE id = ?;",
-		position.x, position.y, position.z, rotation.x, rotation.y, rotation.z, rotation.w, propertyId);
+		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, "
+		"behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?;",
+		position.x, position.y, position.z, rotation.x, rotation.y, rotation.z, rotation.w,
+		behaviors[0].first, behaviors[1].first, behaviors[2].first, behaviors[3].first, behaviors[4].first, propertyId);
 }
 
 void MySQLDatabase::RemoveModel(const LWOOBJID& modelId) {
