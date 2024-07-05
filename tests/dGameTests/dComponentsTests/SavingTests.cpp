@@ -69,11 +69,14 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	const auto rightHandPrev = characterComponent->m_Character->GetRightHand();
 	const auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
 	const auto zoneStatsPrev = characterComponent->GetZoneStatistics();
+	const auto uscorePrev = characterComponent->GetUScore();
+	const auto reputationPrev = characterComponent->GetReputation();
 
 	// Update the xml document so its been run through the saver
 	character->SaveXMLToDatabase();
 
-	// Reload the component from the now updated xml data
+	// Reload the component and character from the now updated xml data
+	character->_doQuickXMLDataParse();
 	characterComponent = entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
 	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 
@@ -104,6 +107,8 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	};
 
 	ASSERT_EQ(correctZoneStats, characterComponent->GetZoneStatistics());
+	ASSERT_EQ(7510, characterComponent->GetUScore());
+	ASSERT_EQ(300, characterComponent->GetReputation());
 
 	// Fails currently due to not reading style from xml
 	// Should the value be fixed, this test will fail and will match the above
