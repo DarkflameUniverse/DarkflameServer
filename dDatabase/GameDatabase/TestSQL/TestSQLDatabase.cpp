@@ -168,7 +168,7 @@ void TestSQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const I
 
 }
 
-void TestSQLDatabase::UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) {
+void TestSQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
 
 }
 
@@ -286,5 +286,17 @@ void TestSQLDatabase::InsertRewardCode(const uint32_t account_id, const uint32_t
 
 std::vector<uint32_t> TestSQLDatabase::GetRewardCodesByAccountID(const uint32_t account_id) {
 	return {};
+}
+
+void TestSQLDatabase::AddBehavior(const IBehaviors::Info& info) {
+
+}
+
+std::string TestSQLDatabase::GetBehavior(const int32_t behaviorId) {
+	return {};
+}
+
+void TestSQLDatabase::RemoveBehavior(const int32_t behaviorId) {
+
 }
 

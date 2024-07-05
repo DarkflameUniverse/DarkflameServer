@@ -64,6 +64,7 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	auto hairStylePrev = characterComponent->m_Character->GetHairStyle();
 	auto pantsColorPrev = characterComponent->m_Character->GetPantsColor();
 	auto leftHandPrev = characterComponent->m_Character->GetLeftHand();
+	auto shirtStylePrev = characterComponent->m_Character->GetShirtStyle();
 	auto mouthPrev = characterComponent->m_Character->GetMouth();
 	auto rightHandPrev = characterComponent->m_Character->GetRightHand();
 	auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
@@ -75,7 +76,7 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	characterComponent = entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
 	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 
-	// Check that the buff component is the same as before
+	// Check that the buff component is the same as before which means resaving data and loading it back in didn't change anything
 	ASSERT_EQ(statsPrev, characterComponent->StatisticsToString());
 	ASSERT_EQ(claimCodesPrev, characterComponent->GetClaimCodes());
 	ASSERT_EQ(eyebrowsPrev, characterComponent->m_Character->GetEyebrows());
@@ -86,7 +87,27 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	ASSERT_EQ(leftHandPrev, characterComponent->m_Character->GetLeftHand());
 	ASSERT_EQ(mouthPrev, characterComponent->m_Character->GetMouth());
 	ASSERT_EQ(rightHandPrev, characterComponent->m_Character->GetRightHand());
+	ASSERT_EQ(shirtStylePrev, characterComponent->m_Character->GetShirtStyle());
 	ASSERT_EQ(shirtColorPrev, characterComponent->m_Character->GetShirtColor());
+	
+	// Check that no data was lost during the saving process.
+	ASSERT_EQ("32114;69;343;13;163;2;181;2;388;252;146;24451;25;9022;41898;42186;42524;4404;0;0;0;0;0;0;0;0;0;", characterComponent->StatisticsToString());
+	
+	// need a variable because the macro does not support {}
+	const std::array<uint64_t, 4> correctCodes = { 1073741968, 0, 0, 0 };
+	ASSERT_EQ(correctCodes, characterComponent->GetClaimCodes());
+	ASSERT_EQ(1, characterComponent->m_Character->GetEyebrows());
+	ASSERT_EQ(2, characterComponent->m_Character->GetEyes());
+	ASSERT_EQ(9, characterComponent->m_Character->GetHairColor());
+	ASSERT_EQ(8, characterComponent->m_Character->GetHairStyle());
+	ASSERT_EQ(3, characterComponent->m_Character->GetPantsColor());
+	ASSERT_EQ(27634704, characterComponent->m_Character->GetLeftHand());
+	ASSERT_EQ(3, characterComponent->m_Character->GetMouth());
+	ASSERT_EQ(27187396, characterComponent->m_Character->GetRightHand());
+	ASSERT_EQ(13, characterComponent->m_Character->GetShirtColor());
+	
+	// Fails currently due to not reading style from xml
+	// ASSERT_EQ(27, characterComponent->m_Character->GetShirtStyle());
 
 	// character->GetXMLDoc().Print(&printer);
 	// std::string xmlDataModified(printer.CStr());

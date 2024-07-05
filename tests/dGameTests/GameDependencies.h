@@ -9,6 +9,8 @@
 #include "EntityManager.h"
 #include "dConfig.h"
 #include "dZoneManager.h"
+#include "GameDatabase/TestSQL/TestSQLDatabase.h"
+#include "Database.h"
 #include <gtest/gtest.h>
 
 class dZoneManager;
@@ -38,6 +40,7 @@ protected:
 		Game::entityManager = new EntityManager();
 		Game::zoneManager = new dZoneManager();
 		Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
+		Database::_setDatabase(new TestSQLDatabase()); // this new is managed by the Database
 
 		// Create a CDClientManager instance and load from defaults
 		CDClientManager::LoadValuesFromDefaults();

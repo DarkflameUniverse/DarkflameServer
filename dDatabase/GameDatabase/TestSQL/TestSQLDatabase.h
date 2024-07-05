@@ -52,7 +52,7 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) override;
 	void RemoveUnreferencedUgcModels() override;
 	void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) override;
-	void UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) override;
+	void UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) override;
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
@@ -86,6 +86,9 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<IIgnoreList::Info> GetIgnoreList(const uint32_t playerId) override;
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
+	virtual void AddBehavior(const IBehaviors::Info& info);
+	virtual std::string GetBehavior(const int32_t behaviorId);
+	virtual void RemoveBehavior(const int32_t behaviorId);
 };
 
 #endif  //!TESTSQLDATABASE_H
