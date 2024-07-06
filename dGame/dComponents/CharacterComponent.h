@@ -313,6 +313,10 @@ public:
 
 	const std::map<LWOMAPID, ZoneStatistics>& GetZoneStatistics() const { return m_ZoneStatistics; };
 
+	const std::u16string& GetLastRocketConfig() const { return m_LastRocketConfig; };
+
+	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
+
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
 	 */

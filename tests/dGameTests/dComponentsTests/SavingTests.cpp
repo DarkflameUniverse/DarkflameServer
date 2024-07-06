@@ -32,7 +32,6 @@ protected:
 		character->_doQuickXMLDataParse();
 		character->LoadXmlRespawnCheckpoints();
 
-		entity->AddComponent<BuffComponent>()->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 		entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS)->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 	}
 
@@ -56,28 +55,13 @@ TEST_F(SavingTest, CharacterComponentTest) {
 
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 
-	const auto statsPrev = characterComponent->StatisticsToString();
-	const auto claimCodesPrev = characterComponent->GetClaimCodes();
-	const auto eyebrowsPrev = characterComponent->m_Character->GetEyebrows();
-	const auto eyesPrev = characterComponent->m_Character->GetEyes();
-	const auto hairColorPrev = characterComponent->m_Character->GetHairColor();
-	const auto hairStylePrev = characterComponent->m_Character->GetHairStyle();
-	const auto pantsColorPrev = characterComponent->m_Character->GetPantsColor();
-	const auto leftHandPrev = characterComponent->m_Character->GetLeftHand();
-	const auto shirtStylePrev = characterComponent->m_Character->GetShirtStyle();
-	const auto mouthPrev = characterComponent->m_Character->GetMouth();
-	const auto rightHandPrev = characterComponent->m_Character->GetRightHand();
-	const auto shirtColorPrev = characterComponent->m_Character->GetShirtColor();
-	const auto zoneStatsPrev = characterComponent->GetZoneStatistics();
-	const auto uscorePrev = characterComponent->GetUScore();
-	const auto reputationPrev = characterComponent->GetReputation();
-
 	// Update the xml document so its been run through the saver
 	character->SaveXMLToDatabase();
 
 	// Reload the component and character from the now updated xml data
+	const auto prevTotalTime = characterComponent->GetTotalTimePlayed();
 	character->_doQuickXMLDataParse();
-	characterComponent = entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
+	entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
 	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 
 	// Check that the buff component is the same as before which means resaving data and loading it back in didn't change anything
@@ -114,6 +98,8 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	// Should the value be fixed, this test will fail and will match the above
 	// only then will this comment be removed.
 	ASSERT_NE(27, characterComponent->m_Character->GetShirtStyle());
+	ASSERT_EQ(u"0:1:4719+1:4720+1:4721", characterComponent->GetLastRocketConfig());
+	ASSERT_EQ(prevTotalTime, characterComponent->GetTotalTimePlayed());
 
 	// character->GetXMLDoc().Print(&printer);
 	// std::string xmlDataModified(printer.CStr());
