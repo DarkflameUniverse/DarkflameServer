@@ -300,3 +300,7 @@ void TestSQLDatabase::RemoveBehavior(const int32_t behaviorId) {
 
 }
 
+void TestSQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
+
+}
+

@@ -86,9 +86,10 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<IIgnoreList::Info> GetIgnoreList(const uint32_t playerId) override;
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
-	virtual void AddBehavior(const IBehaviors::Info& info);
-	virtual std::string GetBehavior(const int32_t behaviorId);
-	virtual void RemoveBehavior(const int32_t behaviorId);
+	void AddBehavior(const IBehaviors::Info& info) override;
+	std::string GetBehavior(const int32_t behaviorId) override;
+	void RemoveBehavior(const int32_t behaviorId) override;
+	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 };
 
 #endif  //!TESTSQLDATABASE_H
