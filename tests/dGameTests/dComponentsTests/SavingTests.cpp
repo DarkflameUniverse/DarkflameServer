@@ -79,6 +79,10 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	ASSERT_EQ(3, characterComponent->m_Character->GetMouth());
 	ASSERT_EQ(27187396, characterComponent->m_Character->GetRightHand());
 	ASSERT_EQ(13, characterComponent->m_Character->GetShirtColor());
+	ASSERT_EQ(7510, characterComponent->GetUScore());
+	ASSERT_EQ(300, characterComponent->GetReputation());
+	ASSERT_EQ(u"0:1:4719+1:4720+1:4721", characterComponent->GetLastRocketConfig());
+	ASSERT_EQ(prevTotalTime, characterComponent->GetTotalTimePlayed());
 
 	const std::map<LWOMAPID, ZoneStatistics> correctZoneStats =
 	{
@@ -91,19 +95,9 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	};
 
 	ASSERT_EQ(correctZoneStats, characterComponent->GetZoneStatistics());
-	ASSERT_EQ(7510, characterComponent->GetUScore());
-	ASSERT_EQ(300, characterComponent->GetReputation());
 
 	// Fails currently due to not reading style from xml
 	// Should the value be fixed, this test will fail and will match the above
 	// only then will this comment be removed.
 	ASSERT_NE(27, characterComponent->m_Character->GetShirtStyle());
-	ASSERT_EQ(u"0:1:4719+1:4720+1:4721", characterComponent->GetLastRocketConfig());
-	ASSERT_EQ(prevTotalTime, characterComponent->GetTotalTimePlayed());
-
-	// character->GetXMLDoc().Print(&printer);
-	// std::string xmlDataModified(printer.CStr());
-	// printer.ClearBuffer();
-	// std::ofstream newXml("./test_xml_data_new.xml");
-	// newXml << xmlDataModified;
 }
