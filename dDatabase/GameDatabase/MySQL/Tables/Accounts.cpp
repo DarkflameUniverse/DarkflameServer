@@ -35,3 +35,7 @@ void MySQLDatabase::UpdateAccountPassword(const uint32_t accountId, const std::s
 void MySQLDatabase::InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) {
 	ExecuteInsert("INSERT INTO accounts (name, password, gm_level) VALUES (?, ?, ?);", username, bcryptpassword, static_cast<int32_t>(eGameMasterLevel::OPERATOR));
 }
+
+void MySQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
+	ExecuteUpdate("UPDATE accounts SET gm_level = ? WHERE id = ?;", static_cast<int32_t>(gmLevel), accountId);
+}
