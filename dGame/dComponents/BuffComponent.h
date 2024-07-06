@@ -26,24 +26,6 @@ struct BuffParameter {
  * Meta information about a buff that can be applied, e.g. how long it's applied, who applied it, etc.
  */
 struct Buff {
-	bool operator==(const Buff& other) const {
-		return id == other.id &&
-			time == other.time &&
-			tick == other.tick &&
-			tickTime == other.tickTime &&
-			stacks == other.stacks &&
-			source == other.source &&
-			behaviorID == other.behaviorID &&
-			cancelOnDamaged == other.cancelOnDamaged &&
-			cancelOnDeath == other.cancelOnDeath &&
-			cancelOnLogout == other.cancelOnLogout &&
-			cancelOnRemoveBuff == other.cancelOnRemoveBuff &&
-			cancelOnUi == other.cancelOnUi &&
-			cancelOnUnequip == other.cancelOnUnequip &&
-			cancelOnZone == other.cancelOnZone &&
-			applyOnTeammates == other.applyOnTeammates &&
-			refCount == other.refCount;
-	}
 	int32_t id = 0;
 	float time = 0;
 	float tick = 0;
@@ -151,9 +133,6 @@ public:
 	 * @return
 	 */
 	const std::vector<BuffParameter>& GetBuffParameters(int32_t buffId);
-
-	const std::map<int32_t, Buff>& GetBuffs() const { return m_Buffs; }
-	const std::set<int32_t>& GetBuffsToRemove() const { return m_BuffsToRemove; }
 
 private:
 	/**
