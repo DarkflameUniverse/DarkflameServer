@@ -58,9 +58,20 @@ enum class ModifierType : uint8_t
 
 	Slow,
 	ArmorPiercing,
+	ReducedStunDuration,
+	SkillCooldownReduction,
+	SkillRecharge,
+	BlockRecovery,
+	BlockChance,
+	Block,
+	HealthRegen,
+	ImaginationRegen,
+	AttacksPerSecond,
+	ImaginationCost,
+	MainWeaponDamage,
+	Stun,
 
 	CriticalDamage,
-	ChanceToBlock,
 	HealthDrain,
 
 	Invalid
@@ -75,6 +86,8 @@ const ModifierType GetResistanceType(ModifierType type);
 const bool IsNormalDamageType(ModifierType type);
 
 const bool IsOverTimeType(ModifierType type);
+
+const bool IsDurationType(ModifierType type);
 
 const ModifierType GetOverTimeType(ModifierType type);
 

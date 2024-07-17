@@ -33,7 +33,7 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, Modifi
 	return total;
 }
 
-float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers, ModifierOperator op, bool resistance) const {
+float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers, ModifierOperator op, bool resistance) const {
 	float total = 0;
 
 	for (const auto& modifier : additionalModifiers) {
@@ -71,8 +71,6 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, int32_
 
 	float multiplicative = CalculateModifier(type, ModifierOperator::Multiplicative, false);
 
-	std::cout << "Scaler: " << scaler << " Additive: " << additive << " Multiplicative: " << multiplicative << std::endl;
-
 	return (scaler + additive) * (1 + multiplicative / 100);
 }
 
@@ -80,7 +78,7 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type) const 
 	return CalculateModifier(type, level);
 }
 
-float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers, int32_t level) const
+float nejlika::AdditionalEntityData::CalculateFinalModifier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers, int32_t level) const
 {
 	const auto templateDataOpt = NejlikaData::GetEntityTemplate(lot);
 
@@ -106,6 +104,42 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 		ModifierType::Lightning
 	};
 
+	if (type == ModifierType::Health) {
+		if (lot == 1) additive += 25;
+		additive += CalculateModifier(ModifierType::Physique, additionalModifiers, ModifierOperator::Additive, false) * 2.5f;
+		additive += CalculateModifier(ModifierType::Cunning, additionalModifiers, ModifierOperator::Additive, false) * 1.0f;
+		additive += CalculateModifier(ModifierType::Spirit, additionalModifiers, ModifierOperator::Additive, false) * 1.0f;
+	}
+	else if (type == ModifierType::Imagination) {
+		additive += CalculateModifier(ModifierType::Spirit, additionalModifiers, ModifierOperator::Additive, false) * 2.0f;
+	}
+	else if (type == ModifierType::Seperation || type == ModifierType::InternalDisassembly || type == ModifierType::Physical) {
+		multiplicative += CalculateModifier(ModifierType::Cunning, additionalModifiers, ModifierOperator::Additive, false) * 0.33f;
+	}
+	else if (type == ModifierType::Pierce) {
+		multiplicative += CalculateModifier(ModifierType::Cunning, additionalModifiers, ModifierOperator::Additive, false) * 0.285f;
+	}
+	else if (nejlika::IsOverTimeType(type) || nejlika::IsNormalDamageType(type)) {
+		multiplicative += CalculateModifier(ModifierType::Spirit, additionalModifiers, ModifierOperator::Additive, false) * 0.33f;
+	}
+	else if (type == ModifierType::ImaginationRegen) {
+		const auto spirit = CalculateModifier(ModifierType::Spirit, additionalModifiers, ModifierOperator::Additive, false);
+		additive += spirit * 0.01f + 1;
+		multiplicative += spirit * 0.25f;
+	}
+	else if (type == ModifierType::HealthRegen) {
+		const auto physique = CalculateModifier(ModifierType::Physique, additionalModifiers, ModifierOperator::Additive, false);
+		additive += physique * 0.04f;
+	}
+	else if (type == ModifierType::Defensive) {
+		additive += CalculateModifier(ModifierType::Physique, additionalModifiers, ModifierOperator::Additive, false) * 0.5f;
+		if (lot == 1) additive += level * 10;
+	}
+	else if (type == ModifierType::Offensive) {
+		additive += CalculateModifier(ModifierType::Cunning, additionalModifiers, ModifierOperator::Additive, false) * 0.5f;
+		if (lot == 1) additive += level * 10;
+	}
+
 	if (elementalDamage.contains(type)) {
 		additive += CalculateModifier(ModifierType::Elemental, additionalModifiers, ModifierOperator::Additive, false) / elementalDamage.size();
 		multiplicative += CalculateModifier(ModifierType::Elemental, additionalModifiers, ModifierOperator::Multiplicative, false) / elementalDamage.size();
@@ -117,8 +151,6 @@ float nejlika::AdditionalEntityData::CalculateModifier(ModifierType type, std::v
 	}
 
 	float total = (scaler + additive) * (1 + multiplicative / 100);
-
-	std::cout << "Scaler: " << scaler << " Additive: " << additive << " Multiplicative: " << multiplicative << " Total: " << total << std::endl;
 
 	return total;
 }
@@ -132,7 +164,7 @@ float nejlika::AdditionalEntityData::CalculateResistance(ModifierType type) cons
 
 float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type) const
 {
-	return 1 + CalculateModifier(type, ModifierOperator::Multiplicative, false);
+	return 100 + CalculateModifier(type, ModifierOperator::Multiplicative, false);
 }
 
 std::vector<ModifierInstance> nejlika::AdditionalEntityData::TriggerUpgradeItems(UpgradeTriggerType triggerType, const TriggerParameters& params) {
@@ -270,6 +302,53 @@ void nejlika::AdditionalEntityData::RemoveSkills(LOT lot) {
 	upgradeData.RemoveSkills(id);
 }
 
+std::vector<ModifierInstance> nejlika::AdditionalEntityData::CalculateMainWeaponDamage() {
+	auto* entity = Game::entityManager->GetEntity(id);
+
+	if (entity == nullptr) {
+		return {};
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent == nullptr) {
+		return {};
+	}
+
+	Item* mainWeapon = nullptr;
+
+	for (const auto& [location, item] : inventoryComponent->GetEquippedItems()) {
+		if (location == "special_r") {
+			mainWeapon = inventoryComponent->FindItemById(item.id);
+			break;
+		}
+	}
+
+	if (mainWeapon == nullptr) {
+		return {};
+	}
+
+	const auto additionalItemDataOpt = NejlikaData::GetAdditionalItemData(mainWeapon->GetId());
+
+	if (!additionalItemDataOpt.has_value()) {
+		return {};
+	}
+
+	const auto& additionalItemData = *additionalItemDataOpt.value();
+
+	std::vector<ModifierInstance> result;
+
+	for (const auto& modifier : additionalItemData.GetModifierInstances()) {
+		if (nejlika::IsNormalDamageType(modifier.GetType()) || nejlika::IsOverTimeType(modifier.GetType()) || nejlika::IsDurationType(modifier.GetType())) {
+			if (modifier.GetOperator() == ModifierOperator::Additive && modifier.GetUpgradeName().empty()) {
+				result.push_back(modifier);
+			}
+		}
+	}
+
+	return result;
+}
+
 void nejlika::AdditionalEntityData::RollStandardModifiers(int32_t level) {
 	standardModifiers.clear();
 
@@ -296,8 +375,40 @@ void nejlika::AdditionalEntityData::RollStandardModifiers(int32_t level) {
 	}
 }
 
-float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers) const {
-    return 1 + CalculateModifier(type, additionalModifiers, ModifierOperator::Multiplicative, false);
+void nejlika::AdditionalEntityData::TriggerPassiveRegeneration() {
+	auto* entity = Game::entityManager->GetEntity(id);
+
+	if (entity == nullptr) {
+		return;
+	}
+
+	auto* destroyable = entity->GetComponent<DestroyableComponent>();
+
+	if (destroyable == nullptr) {
+		return;
+	}
+
+	const auto healthRegen = CalculateFinalModifier(ModifierType::HealthRegen, {}, level);
+	const auto imaginationRegen = CalculateFinalModifier(ModifierType::ImaginationRegen, {}, level);
+
+	if (healthRegen > 0) {
+		destroyable->SetHealth(std::min(destroyable->GetHealth() + static_cast<int32_t>(healthRegen), static_cast<int32_t>(destroyable->GetMaxHealth())));
+	}
+
+	if (imaginationRegen > 0) {
+		destroyable->SetImagination(std::min(destroyable->GetImagination() + static_cast<int32_t>(imaginationRegen), static_cast<int32_t>(destroyable->GetMaxImagination())));
+	}
+
+	Game::entityManager->SerializeEntity(entity);
+
+	// Trigger it again in 1 second
+	entity->AddCallbackTimer(1.0f, [this]() {
+		TriggerPassiveRegeneration();
+	});
+}
+
+float nejlika::AdditionalEntityData::CalculateMultiplier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers) const {
+    return 100 + CalculateModifier(type, additionalModifiers, ModifierOperator::Multiplicative, false);
 }
 
 std::unordered_map<ModifierType, std::unordered_map<ModifierType, float>> nejlika::AdditionalEntityData::CalculateDamageConversion(std::vector<ModifierInstance>& additionalModifiers) const {
@@ -402,7 +513,15 @@ void nejlika::AdditionalEntityData::ApplyToEntity() {
 
 			const auto& itemModifiers = itemData.GetModifierInstances();
 
-			activeModifiers.insert(activeModifiers.end(), itemModifiers.begin(), itemModifiers.end());
+			for (const auto& modifier : itemModifiers) {
+				if (nejlika::IsNormalDamageType(modifier.GetType()) || nejlika::IsOverTimeType(modifier.GetType()) || nejlika::IsDurationType(modifier.GetType())) {
+					if (modifier.GetOperator() == ModifierOperator::Additive && modifier.GetUpgradeName().empty()) {
+						continue;
+					}
+				}
+
+				activeModifiers.push_back(modifier);
+			}
 		}
 
 		for (const auto& upgradeItem : upgradeItems) {
@@ -431,11 +550,11 @@ void nejlika::AdditionalEntityData::ApplyToEntity() {
 		}
 	}
 
-	destroyable->SetMaxHealth(static_cast<int32_t>(CalculateModifier(ModifierType::Health, level)));
-	destroyable->SetMaxArmor(static_cast<int32_t>(CalculateModifier(ModifierType::Armor, level)));
-	if (!entity->IsPlayer()) {
-		destroyable->SetMaxImagination(static_cast<int32_t>(CalculateModifier(ModifierType::Imagination, level)));
-	}
+	destroyable->SetMaxHealth(static_cast<int32_t>(CalculateFinalModifier(ModifierType::Health, {}, level)));
+	destroyable->SetMaxArmor(static_cast<int32_t>(CalculateFinalModifier(ModifierType::Armor, {}, level)));
+	//if (!entity->IsPlayer()) {
+		destroyable->SetMaxImagination(static_cast<int32_t>(CalculateFinalModifier(ModifierType::Imagination, {}, level)));
+	//}
 
 	if (initialized) {
 		return;
@@ -444,14 +563,16 @@ void nejlika::AdditionalEntityData::ApplyToEntity() {
 	destroyable->SetHealth(destroyable->GetMaxHealth());
 	destroyable->SetArmor(destroyable->GetMaxArmor());
 
-	if (!entity->IsPlayer()) {
+	//if (!entity->IsPlayer()) {
 		destroyable->SetImagination(destroyable->GetMaxImagination());
-	}
+	//}
 
 	if (entity->IsPlayer()) {
 		auto* controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
-		if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(CalculateMultiplier(ModifierType::Speed));
+		if (controllablePhysicsComponent) controllablePhysicsComponent->SetSpeedMultiplier(CalculateMultiplier(ModifierType::Speed) / 100.0f);
 	}
+
+	TriggerPassiveRegeneration();
 
 	initialized = true;
 }

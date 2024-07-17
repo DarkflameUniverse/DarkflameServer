@@ -24,18 +24,18 @@ public:
 
 	float CalculateModifier(ModifierType type, ModifierOperator op, bool resistance) const;
 
-	float CalculateModifier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers, ModifierOperator op, bool resistance) const;
+	float CalculateModifier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers, ModifierOperator op, bool resistance) const;
 
 	float CalculateModifier(ModifierType type, int32_t level) const;
 
 	float CalculateModifier(ModifierType type) const;
 
-	float CalculateModifier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers, int32_t level) const;
+	float CalculateFinalModifier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers, int32_t level) const;
 
 	float CalculateResistance(ModifierType type) const;
 
 	/**
-	 * @brief Calculate the multiplier for a given modifier type. With a base value of 1.0.
+	 * @brief Calculate the multiplier for a given modifier type. With a base value of 100 (%).
 	 * 
 	 * @param type The modifier type.
 	 * @return The multiplier.
@@ -43,13 +43,13 @@ public:
 	float CalculateMultiplier(ModifierType type) const;
 
 	/**
-	 * @brief Calculate the multiplier for a given modifier type. With a base value of 1.0.
+	 * @brief Calculate the multiplier for a given modifier type. With a base value of 100 (%).
 	 * 
 	 * @param type The modifier type.
 	 * @param additionalModifiers Additional modifiers to apply.
 	 * @return The multiplier.
 	 */
-	float CalculateMultiplier(ModifierType type, std::vector<ModifierInstance>& additionalModifiers) const;
+	float CalculateMultiplier(ModifierType type, const std::vector<ModifierInstance>& additionalModifiers) const;
 
 	/**
 	 * @brief Calculate damage conversation mapping.
@@ -85,8 +85,14 @@ public:
 	void AddSkills(LWOOBJID item);
 	void RemoveSkills(LOT lot);
 
+	const std::vector<ModifierInstance>& GetActiveModifiers() const { return activeModifiers; }
+
+	std::vector<ModifierInstance> CalculateMainWeaponDamage();
+
 private:
 	void RollStandardModifiers(int32_t level);
+
+	void TriggerPassiveRegeneration();
 
 	bool initialized = false;
 

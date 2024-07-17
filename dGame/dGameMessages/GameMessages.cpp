@@ -977,7 +977,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 
 				int32_t imaginationToRestore = levelComponent->GetLevel() >= 45 ? 20 : 6;
 				if (imaginationToRestore > destroyableComponent->GetMaxImagination()) imaginationToRestore = destroyableComponent->GetMaxImagination();
-				destroyableComponent->SetImagination(imaginationToRestore);
+				destroyableComponent->SetImagination(destroyableComponent->GetMaxImagination());
 			}
 		}
 	});

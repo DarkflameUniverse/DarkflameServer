@@ -67,7 +67,8 @@ std::vector<nejlika::ModifierInstance> nejlika::EntityTemplate::GenerateModifier
 			ModifierCategory::Player,
 			0,
 			"",
-			ModifierType::Invalid
+			ModifierType::Invalid,
+			""
 		);
 
 		modifiers.push_back(modifier);

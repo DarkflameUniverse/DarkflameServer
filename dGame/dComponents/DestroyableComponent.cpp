@@ -675,7 +675,7 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 
 	if (m_Parent->IsPlayer()) {
 		m_Parent->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
-	} else if (attacker->IsPlayer()) {
+	} else if (attacker != nullptr && attacker->IsPlayer()) {
 		attacker->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 

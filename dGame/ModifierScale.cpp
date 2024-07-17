@@ -4,6 +4,10 @@ nejlika::ModifierScale::ModifierScale(const nlohmann::json & json)
 {
 	level = json["level"].get<int32_t>();
 
+	const auto rasio = 1; //45.0f / 85.0f;
+
+	level = std::max(1, static_cast<int32_t>(level * rasio));
+
 	if (json.contains("min")) {
 		min = json["min"].get<float>();
 	}

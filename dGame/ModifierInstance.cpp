@@ -51,8 +51,23 @@ std::string nejlika::ModifierInstance::GenerateHtmlString(const std::vector<Modi
 	// target -> resistance -> op -> type -> value
 	std::unordered_map<ModifierCategory, std::unordered_map<bool, std::unordered_map<ModifierOperator, std::unordered_map<ModifierType, float>>>> modifierMap;
 
+	bool hasConvertTo = false;
+	bool hasSkillModifier = false;
+	
 	for (const auto& modifier : modifiers) {
 		if (modifier.type == ModifierType::Invalid) {
+			continue;
+		}
+
+		if (modifier.GetConvertTo() != ModifierType::Invalid)
+		{
+			hasConvertTo = true;
+			continue;
+		}
+
+		if (!modifier.GetUpgradeName().empty())
+		{
+			hasSkillModifier = true;
 			continue;
 		}
 
@@ -67,25 +82,29 @@ std::string nejlika::ModifierInstance::GenerateHtmlString(const std::vector<Modi
 		}
 		
 		for (const auto& resistance : target.second) {
-
-			ss << "\n<font color=\"#D0AB62\">";
-
-			ss << ((resistance.first) ? "Resistances" : "Modifiers");
-
-			ss << ":</font>\n";
-
 			for (const auto& math : resistance.second) {
 				for (const auto& modifier : math.second) {
-					ss << "<font color=\"" << GetModifierTypeColor(modifier.first) << "\">";
+					ss << "<font color=\"#FFFFFF\">";
 					
-					ss << magic_enum::enum_name<ModifierType>(modifier.first) << ": ";
-
-					ss << ((modifier.second > 0) ? "+" : "-");
+					ss << ((modifier.second > 0) ? (math.first == ModifierOperator::Multiplicative ? "+" : "") : "-");
 					
-					ss << std::fixed << std::setprecision(0) << std::abs(modifier.second);
+					ss << std::fixed << std::setprecision(1) << std::abs(modifier.second);
 
 					if (math.first == ModifierOperator::Multiplicative) {
 						ss << "%";
+					}
+
+					ss << "</font> <font color=\"#D0AB62\">";
+
+					ss << " " << nejlika::GetModifierTypeName(modifier.first);	
+					
+					if (resistance.first) {
+						// If the ss now ends with 'Damage' remove it
+						if (ss.str().substr(ss.str().size() - 7) == " Damage") {
+							ss.seekp(-7, std::ios_base::end);
+						}
+
+						ss << " " << "Resistance";
 					}
 
 					ss << "</font>\n";
@@ -93,6 +112,59 @@ std::string nejlika::ModifierInstance::GenerateHtmlString(const std::vector<Modi
 			}
 		}
 	}
+	
+	if (hasSkillModifier)
+	{
+		for (const auto& modifier : modifiers) {
+			if (modifier.type != ModifierType::SkillModifier) {
+				continue;
+			}
 
+			ss << "<font color=\"" << GetModifierTypeColor(modifier.type) << "\">";
+			
+			ss << ((modifier.value > 0) ? "+" : "-");
+			
+			ss << std::fixed << std::setprecision(0) << std::abs(modifier.value);
+
+			ss << " to ";
+
+			ss << modifier.GetUpgradeName();
+
+			ss << "</font>\n";
+		}
+	}
+
+	if (hasConvertTo)
+	{
+		for (const auto& modifier : modifiers) {
+			if (modifier.GetConvertTo() == ModifierType::Invalid)
+			{
+				continue;
+			}
+			
+			if (modifier.type == ModifierType::Invalid) {
+				continue;
+			}
+
+			ss << "<font color=\"#FFFFFF\">";
+			
+			// +xx/yy% of T1 converted to T2
+			ss << ((modifier.value > 0) ? "" : "-");
+
+			ss << std::fixed << std::setprecision(0) << std::abs(modifier.value);
+
+			ss << "%</font> <font color=\"#D0AB62\">";
+
+			ss << " of ";
+
+			ss << nejlika::GetModifierTypeName(modifier.type);
+
+			ss << " converted to ";
+
+			ss << nejlika::GetModifierTypeName(modifier.GetConvertTo());
+
+			ss << "</font>\n";
+		}
+	}
 	return ss.str();
 }

@@ -187,8 +187,9 @@ public:
 	/**
 	 * Stuns the entity for a certain amount of time, will not work if the entity is stun immune
 	 * @param time the time to stun the entity, if stunnable
+	 * @param ignoreImmunity whether to ignore the stun immunity of the entity
 	 */
-	void Stun(float time);
+	void Stun(float time, bool ignoreImmunity = false);
 
 	/**
 	 * Gets the radius that will cause this entity to get aggro'd, causing a target chase

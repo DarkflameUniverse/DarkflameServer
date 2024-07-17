@@ -185,8 +185,8 @@ public:
 	 */
 	uint32_t GetUniqueSkillId();
 
-	// SkillComponent, SkillID, Success
-	static Observable<SkillComponent*, uint32_t, bool> OnSkillCast;
+	// SkillComponent, SkillID, Success, skillUID
+	static Observable<SkillComponent*, uint32_t, bool&, uint32_t> OnSkillCast;
 
 private:
 	/**

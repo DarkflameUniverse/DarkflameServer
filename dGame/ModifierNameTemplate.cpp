@@ -57,7 +57,14 @@ nejlika::ModifierNameTemplate::ModifierNameTemplate(const nlohmann::json & json)
 	{
 		for (const auto& modifier : json["modifiers"])
 		{
-			modifiers.push_back(ModifierTemplate(modifier));
+			const auto modifierTemplate = ModifierTemplate(modifier);
+
+			if (modifierTemplate.GetTypes().empty() || modifierTemplate.GetTypes().at(0) == ModifierType::Invalid)
+			{
+				continue;
+			}
+
+			modifiers.push_back(modifierTemplate);
 		}
 	}
 
@@ -68,6 +75,10 @@ nejlika::ModifierNameTemplate::ModifierNameTemplate(const nlohmann::json & json)
 		if (levels.contains("min"))
 		{
 			minLevel = levels["min"].get<int32_t>();
+
+			const auto rasio = 1; //45.0f / 85.0f;
+
+			minLevel = std::max(1, static_cast<int32_t>(minLevel * rasio));
 		}
 		else
 		{

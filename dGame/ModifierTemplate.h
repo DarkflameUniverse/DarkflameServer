@@ -59,6 +59,8 @@ public:
 
 	std::string GetEffectType() const { return effectType; }
 
+	const std::string& GetUpgradeName() const { return upgradeName; }
+
 	void SetTypes(const std::vector<ModifierType>& types) { this->types = types; }
 
 	void SetConvertTo(ModifierType convertTo) { this->convertTo = convertTo; }
@@ -74,6 +76,8 @@ public:
 	void SetEffectID(uint32_t effectID) { this->effectID = effectID; }
 
 	void SetEffectType(const std::string& effectType) { this->effectType = effectType; }
+
+	void SetUpgradeName(const std::string& upgradeName) { this->upgradeName = upgradeName; }
 	
 	/**
 	 * @brief Generate a HTML string representation of a set of modifier templates.
@@ -98,6 +102,7 @@ private:
 	bool isResistance;
 	uint32_t effectID;
 	std::string effectType;
+	std::string upgradeName;
 
 };
 

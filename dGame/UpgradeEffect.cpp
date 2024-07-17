@@ -306,3 +306,50 @@ void nejlika::UpgradeEffect::RemoveSkill(LWOOBJID origin) const {
 		inventory->RemoveSkill(equipSkillID);
 	}
 }
+
+std::string nejlika::UpgradeEffect::GenerateHtmlString(const std::vector<UpgradeEffect>& effects, int32_t level) {
+	std::stringstream ss;
+
+	for (const auto& effect : effects) {
+		const auto chance = effect.CalculateChance(level);
+
+
+		for (const auto& condition : effect.conditions) {
+			if (condition == UpgradeTriggerCondition::None || condition == UpgradeTriggerCondition::UseSkill) {
+				continue;
+			}
+
+			ss << "<font color=\"#D0AB62\">";
+
+			switch (condition) {
+			case UpgradeTriggerCondition::PrimaryAbility:
+				ss << "On main-hand attack";
+				break;
+			case UpgradeTriggerCondition::Melee:
+				ss << "Requires melee weapon";
+				break;
+			case UpgradeTriggerCondition::TwoHanded:
+				ss << "Requires two-handed weapon";
+				break;
+			case UpgradeTriggerCondition::Shield:
+				ss << "Requires a shield";
+				break;
+			case UpgradeTriggerCondition::Unarmed:
+				ss << "Requires unarmed attack";
+				break;
+			}
+
+			ss << "</font>\n\n";
+		}
+		
+		if (chance < 1.0f) { 
+			ss << "<font color=\"#FFFFFF\">" << chance * 100 << "%</font><font color=\"#D0AB62\"> chance to trigger</font>\n";
+		}
+
+		std::cout << "Level " << level << " chance: " << chance << std::endl;
+
+		ss << ModifierInstance::GenerateHtmlString(effect.GenerateModifiers(level));
+	}
+
+	return ss.str();
+}

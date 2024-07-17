@@ -22,10 +22,15 @@
 #include <MissionComponent.h>
 #include <eMissionState.h>
 
+#include "NejlikaHelpers.h"
 #include "NejlikaData.h"
 
 using namespace nejlika;
 using namespace nejlika::NejlikaData;
+
+namespace {
+	std::unordered_map<LWOOBJID, std::unordered_map<uint32_t, std::vector<ModifierInstance>>> uniqueSkillModifiers;
+}
 
 void nejlika::NejlikaHooks::InstallHooks() {
 	Command itemDescriptionCommand{
@@ -37,25 +42,37 @@ void nejlika::NejlikaHooks::InstallHooks() {
 	};
 	SlashCommandHandler::RegisterCommand(itemDescriptionCommand);
 
+	Command modificationssCommand{
+		.help = "Displays active modifications.",
+		.info = "Displays active modifications.",
+		.aliases = {"stats"},
+		.handle = [](Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+			auto entityDataOpt = GetAdditionalEntityData(entity->GetObjectID());
+
+			if (!entityDataOpt.has_value()) {
+				return;
+			}
+
+			auto& entityData = *entityDataOpt.value();
+
+			std::vector<ModifierInstance> modifiers = entityData.GetActiveModifiers();
+
+			std::stringstream ss;
+
+			ss << "Active modifications: " << std::endl;
+
+			ss << ModifierInstance::GenerateHtmlString(modifiers);
+
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(ss.str()));
+		},
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	SlashCommandHandler::RegisterCommand(modificationssCommand);
+
 	LoadNejlikaData();
 
 	InventoryComponent::OnItemCreated += [](InventoryComponent* component, Item* item) {
 		const auto& itemType = static_cast<eItemType>(item->GetInfo().itemType);
-
-		/*
-		static const std::unordered_set<eItemType> listOfHandledItems {
-			eItemType::HAT,
-			eItemType::CHEST,
-			eItemType::LEGS,
-			eItemType::NECK,
-			eItemType::LEFT_HAND,
-			eItemType::RIGHT_HAND
-		};
-
-		if (listOfHandledItems.find(itemType) == listOfHandledItems.end()) {
-			return;
-		}
-		*/
 
 		// No to the Thinking Hat
 		if (item->GetLot() == 6086) {
@@ -133,11 +150,10 @@ void nejlika::NejlikaHooks::InstallHooks() {
 
 		auto& additionalData = *additionalDataOpt.value();
 
-		additionalData.ApplyToEntity();
-
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
 		if (!inventoryComponent) {
+			additionalData.ApplyToEntity();
 			return;
 		}
 
@@ -158,6 +174,8 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			}
 		}
 
+		additionalData.ApplyToEntity();
+
 		additionalData.InitializeSkills();
 	};
 
@@ -166,8 +184,6 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			return;
 		}
 
-		//GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:main"), BehaviorSlot::Head);
-		//GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary"), BehaviorSlot::Offhand);
 		GameMessages::SendAddSkill(entity, NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary"), BehaviorSlot::Neck);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
@@ -300,7 +316,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 		entityData.ApplyToEntity();
 		};
 
-	SkillComponent::OnSkillCast += [](SkillComponent* skillComponent, uint32_t skillID, bool success) {
+	SkillComponent::OnSkillCast += [](SkillComponent* skillComponent, uint32_t skillID, bool& success, uint32_t skillUID) {
 		std::cout << "Skill cast: " << skillID << " - " << success << std::endl;
 
 		auto* inventoryComponent = skillComponent->GetParent()->GetComponent<InventoryComponent>();
@@ -312,17 +328,155 @@ void nejlika::NejlikaHooks::InstallHooks() {
 		auto* entity = skillComponent->GetParent();
 
 		auto skills = inventoryComponent->GetSkills();
-
-		const auto primaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:main");
-		const auto secondaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:secondary");
 		const auto tertiaryTrigger = NejlikaData::GetLookup().GetValue("intro:skills:proxy:tertiary");
 
-		if (skillID == primaryTrigger || skillID == secondaryTrigger || skillID == tertiaryTrigger) {
-		} else {
+		if (skillID == tertiaryTrigger) {
+			inventoryComponent->RotateSkills();
+		}
+
+		const auto entityDataOpt = GetAdditionalEntityData(entity->GetObjectID());
+
+		if (!entityDataOpt.has_value()) {
 			return;
 		}
 
-		inventoryComponent->RotateSkills();
+		auto& entityData = *entityDataOpt.value();
+
+		const auto& skillTemplates = GetModifierNameTemplates(ModifierNameType::Skill);
+
+		const auto& skillTemplateIt = std::find_if(skillTemplates.begin(), skillTemplates.end(), [skillID](const auto& it) {
+			return it.GetLOT() == skillID;
+			});
+
+		std::vector<ModifierInstance> modifiers;
+
+		if (skillTemplateIt != skillTemplates.end()) {
+			const auto& skillTemplate = *skillTemplateIt;
+
+			const auto skillModifiers = skillTemplate.GenerateModifiers(entityData.GetLevel());
+
+			modifiers.insert(modifiers.end(), skillModifiers.begin(), skillModifiers.end());
+		}
+
+		LOT itemLot = 0;
+		LWOOBJID itemId = 0;
+		BehaviorSlot itemSlot = BehaviorSlot::Invalid;
+
+		if (inventoryComponent) {
+			const auto& equipped = inventoryComponent->GetEquippedItems();
+
+			// omg...
+			for (const auto& [equippedSlot, itemDetails] : equipped) {
+				std::cout << "Found equipped item: " << itemDetails.lot << std::endl;
+
+				const auto info = Inventory::FindItemComponent(itemDetails.lot);
+
+				const auto skill = InventoryComponent::FindSkill(itemDetails.lot);
+
+				if (skill != skillID) {
+					continue;
+				}
+
+				const auto itemBehaviorSlot = InventoryComponent::FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+
+				itemLot = itemDetails.lot;
+				itemId = itemDetails.id;
+				itemSlot = itemBehaviorSlot;
+
+				std::cout << "Found item: " << itemLot << std::endl;
+
+				break;
+			}
+		}
+
+		TriggerParameters params;
+		params.SkillID = skillID;
+		params.SelectedBehaviorSlot = itemSlot;
+
+		// Upgrades
+		const auto upgradeModifiers = entityData.TriggerUpgradeItems(UpgradeTriggerType::OnCast, params);
+
+		auto unionModifiersUpgradeModifiers = modifiers;
+		unionModifiersUpgradeModifiers.insert(unionModifiersUpgradeModifiers.end(), upgradeModifiers.begin(), upgradeModifiers.end());
+
+		const auto& imaginationCost = entityData.CalculateFinalModifier(ModifierType::ImaginationCost, unionModifiersUpgradeModifiers, entityData.GetLevel());
+
+		auto* destroyable = entity->GetComponent<DestroyableComponent>();
+
+		if (destroyable != nullptr) {
+			if (destroyable->GetImagination() < imaginationCost) {
+				NejlikaHelpers::RenderDamageText("Insufficient imagination!", entity, entity, 4.0f);
+			}
+			else {
+				destroyable->SetImagination(destroyable->GetImagination() - imaginationCost);
+
+				Game::entityManager->SerializeEntity(entity);
+
+				// Insert into the unique skill modifiers
+				const auto& uniqueSkillModifiersIt = uniqueSkillModifiers.find(entity->GetObjectID());
+
+				if (uniqueSkillModifiersIt != uniqueSkillModifiers.end()) {
+					auto& uniqueSkillModifiersMap = uniqueSkillModifiersIt->second;
+
+					uniqueSkillModifiersMap[skillID] = upgradeModifiers;
+				}
+				else {
+					uniqueSkillModifiers[entity->GetObjectID()] = { { skillID, upgradeModifiers } };
+				}
+
+				entity->AddCallbackTimer(10.0f, [entity, skillID]() {
+					const auto& uniqueSkillModifiersIt = uniqueSkillModifiers.find(entity->GetObjectID());
+
+					if (uniqueSkillModifiersIt != uniqueSkillModifiers.end()) {
+						auto& uniqueSkillModifiersMap = uniqueSkillModifiersIt->second;
+
+						const auto& uniqueSkillModifiersSkillIt = uniqueSkillModifiersMap.find(skillID);
+
+						if (uniqueSkillModifiersSkillIt != uniqueSkillModifiersMap.end()) {
+							uniqueSkillModifiersMap.erase(uniqueSkillModifiersSkillIt);
+						}
+					}
+				});
+
+				modifiers.insert(modifiers.end(), upgradeModifiers.begin(), upgradeModifiers.end());
+			}
+		}
+
+		float attackSpeed = 0;
+
+		if (itemSlot == BehaviorSlot::Primary) {
+			auto attacksPerSecond = entityData.CalculateFinalModifier(ModifierType::AttacksPerSecond, modifiers, entityData.GetLevel());
+			attacksPerSecond = std::max(attacksPerSecond, 1.0f);
+			const auto attackSpeedMod = entityData.CalculateMultiplier(ModifierType::AttackSpeed, modifiers);
+			attackSpeed = (1.0f / attacksPerSecond) * ((attackSpeedMod / 100.0f)) / 2.0f; // 2.0f to account for animation times
+			LOG("Attack speed: %f, attacks per second: %f, attack speed mod: %f", attackSpeed, attacksPerSecond, attackSpeedMod);
+		}
+		else {
+			const auto skillRecharge = entityData.CalculateFinalModifier(ModifierType::SkillRecharge, modifiers, entityData.GetLevel());
+			const auto skillCooldownMod = entityData.CalculateMultiplier(ModifierType::SkillCooldownReduction, modifiers);
+			attackSpeed = skillRecharge * (skillCooldownMod / 100.0f);
+			LOG("Skill recharge: %f, skill cooldown mod: %f", skillRecharge, skillCooldownMod);
+		}
+
+		if (entity->IsPlayer()) {
+			entity->AddCallbackTimer(0.0f, [entity, skillID, attackSpeed]() {
+				CBITSTREAM;
+				CMSGHEADER;
+
+				const auto objectID = entity->GetObjectID();
+
+				bitStream.Write(objectID);
+				bitStream.Write(eGameMessageType::MODIFY_SKILL_COOLDOWN);
+
+				bitStream.Write1();
+				bitStream.Write<float>(attackSpeed);
+				bitStream.Write<int32_t>(static_cast<int32_t>(skillID));
+
+				LOG("Sending cooldown reduction for skill: %d: %f", skillID, attackSpeed);
+
+				SEND_PACKET_BROADCAST;
+			});
+		}
 	};
 
 	DestroyableComponent::OnDamageCalculation += [](Entity* damaged, LWOOBJID offender, uint32_t skillID, uint32_t& damage) {
@@ -403,13 +557,23 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			}
 		}
 
+		std::vector<ModifierInstance> modifiers;
+
+		if (itemSlot == BehaviorSlot::Primary) {
+			const auto mainWeaponDamage = offenderEntity.CalculateMainWeaponDamage();
+
+			for (const auto& modifier : mainWeaponDamage) {
+				std::cout << "Main weapon damage: " << magic_enum::enum_name(modifier.GetType()) << " - " << modifier.GetValue() << std::endl;
+			}
+
+			modifiers.insert(modifiers.end(), mainWeaponDamage.begin(), mainWeaponDamage.end());
+		}
+
 		const auto& skillTemplates = GetModifierNameTemplates(ModifierNameType::Skill);
 
 		const auto& skillTemplateIt = std::find_if(skillTemplates.begin(), skillTemplates.end(), [skillID](const auto& it) {
 			return it.GetLOT() == skillID;
 			});
-
-		std::vector<ModifierInstance> modifiers;
 
 		if (skillTemplateIt != skillTemplates.end()) {
 			const auto& skillTemplate = *skillTemplateIt;
@@ -428,6 +592,20 @@ void nejlika::NejlikaHooks::InstallHooks() {
 
 		modifiers.insert(modifiers.end(), upgradeModifiers.begin(), upgradeModifiers.end());
 
+		const auto& uniqueSkillModifiersIt = uniqueSkillModifiers.find(offender);
+
+		if (uniqueSkillModifiersIt != uniqueSkillModifiers.end()) {
+			const auto& uniqueSkillModifiersMap = uniqueSkillModifiersIt->second;
+
+			const auto& uniqueSkillModifiersSkillIt = uniqueSkillModifiersMap.find(skillID);
+
+			if (uniqueSkillModifiersSkillIt != uniqueSkillModifiersMap.end()) {
+				const auto& uniqueSkillModifiersVec = uniqueSkillModifiersSkillIt->second;
+
+				modifiers.insert(modifiers.end(), uniqueSkillModifiersVec.begin(), uniqueSkillModifiersVec.end());
+			}
+		}
+
 		std::unordered_set<ModifierType> damageTypes;
 
 		for (const auto& modifier : modifiers) {
@@ -444,14 +622,28 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			}
 		}
 
-		uint32_t totalDamage = 0;
+		int32_t totalDamage = 0;
 
 		std::unordered_map<ModifierType, std::pair<float, float>> durationTypes;
 		std::unordered_map<ModifierType, float> tmpDamageValues;
+		
+		const auto mainWeaponDamageModifier = (offenderEntity.CalculateMultiplier(ModifierType::MainWeaponDamage, modifiers) - 100.0f) / 100.0f;
 
+		if (mainWeaponDamageModifier > 0.0f) {
+			const auto mainWeaponDamage = offenderEntity.CalculateMainWeaponDamage();
+
+			for (auto modifier : mainWeaponDamage) {
+				const auto damageValue = modifier.GetValue();
+
+				modifier.SetValue(damageValue * mainWeaponDamageModifier);
+
+				modifiers.push_back(modifier);	
+			}
+		}
+		
 		for (const auto& type : damageTypes) {
 			if (nejlika::IsOverTimeType(type)) {
-				float damageValue = offenderEntity.CalculateModifier(type, modifiers, level);
+				float damageValue = offenderEntity.CalculateFinalModifier(type, modifiers, level);
 
 				// Calculate resistance, can't go below 20% of the original damage
 				const auto resistance = std::max(1 - (damagedEntity.CalculateResistance(type) / 100), 0.2f);
@@ -460,7 +652,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 
 				const auto durationType = nejlika::GetDurationType(type);
 
-				const auto duration = offenderEntity.CalculateModifier(durationType, modifiers, level);
+				const auto duration = offenderEntity.CalculateFinalModifier(durationType, modifiers, level);
 
 				const auto durationResistance = std::max(1 - (damagedEntity.CalculateResistance(durationType) / 100), 0.2f);
 
@@ -475,7 +667,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 				continue;
 			}
 
-			float damageValue = offenderEntity.CalculateModifier(type, modifiers, level);
+			float damageValue = offenderEntity.CalculateFinalModifier(type, modifiers, level);
 
 			tmpDamageValues[type] = damageValue;
 		}
@@ -485,7 +677,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 
 		std::unordered_map<ModifierType, float> finalDamageValues;
 
-		for (const auto& [typeA, typeBMap] : converationMap) {
+		/*for (const auto& [typeA, typeBMap] : converationMap) {
 			const auto& typeAValue = tmpDamageValues.find(typeA);
 
 			if (typeAValue == tmpDamageValues.end()) {
@@ -508,6 +700,13 @@ void nejlika::NejlikaHooks::InstallHooks() {
 				finalDamageValues[typeA] += typeAValueFloat - convertedValue;
 				finalDamageValues[typeB] += typeBValueFloat + convertedValue;
 			}
+		}*/
+
+		// Add the remaining values
+		for (const auto& [type, value] : tmpDamageValues) {
+			if (finalDamageValues.find(type) == finalDamageValues.end()) {
+				finalDamageValues[type] = value;
+			}
 		}
 
 		for (const auto& [type, damage] : finalDamageValues) {
@@ -516,7 +715,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 
 			float reductedDamage = damage * resistance;
 
-			totalDamage += static_cast<uint32_t>(reductedDamage);
+			totalDamage += static_cast<int32_t>(reductedDamage);
 
 			std::cout << "Damage type: " << magic_enum::enum_name(type) << " - " << damage << std::endl;
 			std::cout << "Resistance: " << resistance << " - " << reductedDamage << std::endl;
@@ -581,21 +780,25 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			if (damageMultiplier > 1.0f) {
 				isCritical = true;
 
-				damageMultiplier *= offenderEntity.CalculateMultiplier(ModifierType::CriticalDamage, modifiers);
+				damageMultiplier *= (offenderEntity.CalculateMultiplier(ModifierType::CriticalDamage, modifiers) / 100.0f);
 			}
 		}
 
 		if (isHit) {
 			// Add a random +5% to the damage
-			totalDamage += static_cast<uint32_t>(totalDamage * (GeneralUtils::GenerateRandomNumber<int32_t>(0, 5) / 100.0f));
+			totalDamage += static_cast<int32_t>(totalDamage * (GeneralUtils::GenerateRandomNumber<int32_t>(0, 5) / 100.0f));
 
 			damage = totalDamage;
 		} else {
 			damage = totalDamage = 0;
 		}
 
+		if (totalDamage < 0 || damage < 0) {
+			totalDamage = damage = 0;
+		}
+
 		if (isCritical) {
-			totalDamage = static_cast<uint32_t>(totalDamage * damageMultiplier);
+			totalDamage = static_cast<int32_t>(totalDamage * damageMultiplier);
 
 			const auto effectName = std::to_string(GeneralUtils::GenerateRandomNumber<uint32_t>());
 			const auto damagedID = damaged->GetObjectID();
@@ -616,26 +819,15 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			});
 		}
 
-		auto attackSpeed = offenderEntity.CalculateModifier(ModifierType::AttackSpeed, modifiers, level);
+		if (damage == 0) {
+			return;
+		}
 
-		if (offfendEntity->IsPlayer()) {
-			offfendEntity->AddCallbackTimer(0.0f, [offfendEntity, skillID, attackSpeed]() {
-				CBITSTREAM;
-				CMSGHEADER;
+		const auto stunDuration = offenderEntity.CalculateFinalModifier(ModifierType::Stun, modifiers, level);
 
-				const auto entity = offfendEntity->GetObjectID();
-
-				bitStream.Write(entity);
-				bitStream.Write(eGameMessageType::MODIFY_SKILL_COOLDOWN);
-
-				bitStream.Write1();
-				bitStream.Write<float>(attackSpeed);
-				bitStream.Write<int32_t>(static_cast<int32_t>(skillID));
-
-				LOG("Sending cooldown reduction for skill: %d", skillID);
-
-				SEND_PACKET_BROADCAST;
-			});
+		if (baseCombatAIComponent && stunDuration > 0) {
+			LOG("Stunning for %f seconds", stunDuration);
+			baseCombatAIComponent->Stun(stunDuration, true);
 		}
 
 		// Apply over time damage.
@@ -651,7 +843,7 @@ void nejlika::NejlikaHooks::InstallHooks() {
 				continue;
 			}
 
-			const auto damagePerTick = static_cast<int32_t>(damageDuration.first / duration);
+			const auto damagePerTick = static_cast<int32_t>(damageDuration.first);
 
 			auto* destroyable = damaged->GetComponent<DestroyableComponent>();
 
@@ -661,54 +853,20 @@ void nejlika::NejlikaHooks::InstallHooks() {
 			
 			for (size_t i = 0; i < duration; i++)
 			{
-				damaged->AddCallbackTimer(i * 0.5f, [offender, damaged, damagePerTick]() {
+				damaged->AddCallbackTimer(i * 0.5f, [type, offender, damaged, damagePerTick]() {
+
+					auto* offenderEntity = Game::entityManager->GetEntity(offender);
+
 					auto* destroyable = damaged->GetComponent<DestroyableComponent>();
 
 					if (!destroyable) {
 						return;
 					}
 
-					destroyable->Damage(offender, damagePerTick, 0, true, true);
+					destroyable->Damage(damagePerTick, offender, 0, true, true);
 				});
 			}
 		}
-
-		/* Moved to DestroyableComponent
-		std::stringstream damageUIMessage;
-
-		auto damagedPosition = damaged->GetPosition();
-
-		// Add a slight random offset to the damage position
-		damagedPosition.x += (rand() % 10 - 5) / 5.0f;
-		damagedPosition.y += (rand() % 10 - 5) / 5.0f;
-		damagedPosition.z += (rand() % 10 - 5) / 5.0f;
-
-		int colorR = 255;
-		int colorG = 255;
-		int colorB = 255;
-		int colorA = 0;
-
-		if (damaged->IsPlayer()) {
-			// Make the damage red
-			colorR = 0;
-			colorG = 255;
-			colorB = 0;
-			colorA = 0;
-		}
-
-		const auto damageText = isHit ? std::to_string(totalDamage) : "Miss";
-
-		damageUIMessage << 0.0825 << ";" << 0.12 << ";" << damagedPosition.x << ";" << damagedPosition.y + 4.5f << ";" << damagedPosition.z << ";" << 0.1 << ";";
-		damageUIMessage << 200 << ";" << 200 << ";" << 0.5 << ";" << 1.0 << ";" << damageText << ";" << 4 << ";" << 4 << ";" << colorR << ";" << colorG << ";" << colorB << ";";
-		damageUIMessage << colorA;
-
-		const auto damageUIStr = damageUIMessage.str();
-
-		if (damaged->IsPlayer()) {
-			damaged->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
-		} else if (offfendEntity->IsPlayer()) {
-			offfendEntity->SetNetworkVar<std::string>(u"renderText", damageUIStr, UNASSIGNED_SYSTEM_ADDRESS);
-		}*/
 	};
 }
 
@@ -744,34 +902,110 @@ void nejlika::NejlikaHooks::ItemDescription(Entity* entity, const SystemAddress&
 	std::stringstream name;
 	std::stringstream desc;
 
-	if (itemId == LWOOBJID_EMPTY) {
-		ChatPackets::SendSystemMessage(sysAddr, u"Invalid item ID.");
+	const auto& upgradeItemOpt = NejlikaData::GetUpgradeTemplate(lot);
 
+	if (upgradeItemOpt.has_value()) {
+		const auto& upgradeItem = *upgradeItemOpt.value();
+
+		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+		if (!inventoryComponent) {
+			return;
+		}
+
+		auto amount = inventoryComponent->GetLotCount(lot);
+
+		if (itemId == LWOOBJID_EMPTY) {
+			amount++;
+		}
+
+		const auto& modifiers = upgradeItem.GenerateModifiers(amount);
+
+		name << "<font color=\"#D0AB62\">NAME</font>";
+
+		desc << "DESC" << "\n\n";
+
+		desc << "<font color=\"#D0AB62\">Level " << amount << "/" << upgradeItem.GetMaxLevel() << "</font>\n";
+
+		desc << ModifierInstance::GenerateHtmlString(modifiers);
+
+		const auto& passives = upgradeItem.GetPassives();
+
+		desc << UpgradeEffect::GenerateHtmlString(passives, amount);
+	} else if (itemId == LWOOBJID_EMPTY) {
 		const auto& itemTemplateVec = NejlikaData::GetModifierNameTemplates(ModifierNameType::Object);
+		
+		auto* levelProgressionComponent = entity->GetComponent<LevelProgressionComponent>();
 
-		const auto itemTemplateIt = std::find_if(itemTemplateVec.begin(), itemTemplateVec.end(), [lot](const auto& it) {
-			return it.GetLOT() == static_cast<int32_t>(lot);
-			});
+		if (!levelProgressionComponent) {
+			return;
+		}
 
-		if (itemTemplateIt == itemTemplateVec.end()) {
-			name << "<font color=\"#D0AB62\">NAME</font>";
-			desc << "DESC";
-		} else {
-			const auto& itemTemplate = *itemTemplateIt;
+		std::vector<const nejlika::ModifierNameTemplate*> availableTemplates;
+		const nejlika::ModifierNameTemplate* lowestLevelTemplate = nullptr;
+		std::vector<const nejlika::ModifierNameTemplate*> lowestLevelTemplates;
 
-			const auto& modifiers = itemTemplate.GetModifiers();
+		for (const auto& itemTemplate : itemTemplateVec) {
+			auto level = static_cast<int32_t>(levelProgressionComponent->GetLevel());
 
-			// Get the entity level
-			auto* levelProgressionComponent = entity->GetComponent<LevelProgressionComponent>();
-
-			if (!levelProgressionComponent) {
-				return;
+			if (itemTemplate.GetLOT() != static_cast<int32_t>(lot)) {
+				continue;
 			}
 
-			auto level = levelProgressionComponent->GetLevel();
+			if (lowestLevelTemplate == nullptr) {
+				lowestLevelTemplate = &itemTemplate;
+			}
+			else if (lowestLevelTemplate->GetMinLevel() > level) {
+				lowestLevelTemplate = &itemTemplate;
+				lowestLevelTemplates.clear();
+			}
+			else if (lowestLevelTemplate->GetMinLevel() == level) {
+				lowestLevelTemplates.push_back(&itemTemplate);
+			}
+			
+			if (itemTemplate.GetMinLevel() > level || itemTemplate.GetMaxLevel() < level) {
+				continue;
+			}
 
-			name << "<font color=\"#D0AB62\">NAME</font>";
-			desc << ModifierTemplate::GenerateHtmlString(modifiers, level);
+			availableTemplates.push_back(&itemTemplate);
+		}
+
+		// Add the lowest level template if no other template was found
+		if (availableTemplates.empty() && lowestLevelTemplate != nullptr) {
+			availableTemplates.push_back(lowestLevelTemplate);
+
+			// Add all templates with the same level
+			availableTemplates.insert(availableTemplates.end(), lowestLevelTemplates.begin(), lowestLevelTemplates.end());
+		}
+		
+		name << "<font color=\"#D0AB62\">NAME</font>";
+
+		if (availableTemplates.empty()) {
+			desc << "DESC";
+		} else {
+			if (availableTemplates.size() > 1) {
+				desc << "<font color=\"#D0AB62\">One of:</font>\n";
+			}
+			for (size_t i = 0; i < availableTemplates.size(); i++) {
+				const auto& itemTemplate = *availableTemplates[i];
+
+				const auto& modifiers = itemTemplate.GetModifiers();
+
+				// Get the entity level
+				auto* levelProgressionComponent = entity->GetComponent<LevelProgressionComponent>();
+
+				if (!levelProgressionComponent) {
+					return;
+				}
+
+				auto level = std::max(static_cast<int32_t>(levelProgressionComponent->GetLevel()), itemTemplate.GetMinLevel());
+
+				desc << ModifierTemplate::GenerateHtmlString(modifiers, level);
+
+				if (i < availableTemplates.size() - 1) {
+					desc << "\n<font color=\"#D0AB62\">or</font>\n";
+				}
+			}
 		}
 	} else {
 		const auto itemDataOpt = GetAdditionalItemData(itemId);

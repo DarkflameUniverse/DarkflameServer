@@ -16,8 +16,11 @@ class ModifierInstance
 {
 public:
 	ModifierInstance(
-		ModifierType type, float value, ModifierOperator op, bool isResistance, ModifierCategory category, uint32_t effectID, const std::string& effectType, ModifierType convertTo
-	) : type(type), value(value), op(op), isResistance(isResistance), category(category), effectID(effectID), effectType(effectType), convertTo(convertTo) {}
+		ModifierType type, float value, ModifierOperator op, bool isResistance, ModifierCategory category, uint32_t effectID, const std::string& effectType, ModifierType convertTo,
+		const std::string& upgradeName
+	) : type(type), value(value), op(op), isResistance(isResistance), category(category), effectID(effectID), effectType(effectType), convertTo(convertTo),
+		upgradeName(upgradeName)
+	{}
 
 	/**
 	 * @brief Construct a new Modifier Instance object from a json configuration.
@@ -59,6 +62,8 @@ public:
 
 	std::string GetEffectType() const { return effectType; }
 
+	std::string GetUpgradeName() const { return upgradeName; }
+
 	void SetType(ModifierType type) { this->type = type; }
 
 	void SetConvertTo(ModifierType convertTo) { this->convertTo = convertTo; }
@@ -75,6 +80,8 @@ public:
 
 	void SetEffectType(const std::string& effectType) { this->effectType = effectType; }
 
+	void SetUpgradeName(const std::string& upgradeName) { this->upgradeName = upgradeName; }
+
 private:
 	ModifierType type;
 	ModifierType convertTo;
@@ -84,6 +91,7 @@ private:
 	ModifierCategory category;
 	uint32_t effectID;
 	std::string effectType;
+	std::string upgradeName;
 };
 
 }

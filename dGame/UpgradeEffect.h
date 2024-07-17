@@ -38,6 +38,15 @@ public:
 
 	void AddSkill(LWOOBJID origin) const;
 	void RemoveSkill(LWOOBJID origin) const;
+	
+	/**
+	 * @brief Generate a HTML string representation of a set of upgrade effects.
+	 * 
+	 * @param modifiers The upgrade effects to generate the HTML string for.
+	 * @param level The level of the upgrade effects.
+	 * @return The HTML string.
+	 */
+	static std::string GenerateHtmlString(const std::vector<UpgradeEffect>& effects, int32_t level);
 
 private:
 	struct UpgradeScale

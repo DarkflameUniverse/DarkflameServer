@@ -3,6 +3,8 @@
 #include <magic_enum.hpp>
 #include <random>
 #include <algorithm>
+#include <sstream>
+#include <iostream>
 
 using namespace nejlika;
 
@@ -133,6 +135,11 @@ nejlika::ModifierTemplate::ModifierTemplate(const nlohmann::json& config) {
 			category = ModifierCategory::Player;
 		}
 	}
+
+	if (config.contains("skill"))
+	{
+		upgradeName = config["skill"].get<std::string>();
+	}
 }
 
 nlohmann::json nejlika::ModifierTemplate::ToJson() const {
@@ -191,6 +198,12 @@ nlohmann::json nejlika::ModifierTemplate::ToJson() const {
 	config["resistance"] = isResistance;
 	config["effect-id"] = effectID;
 	config["effect-type"] = effectType;
+	config["operator"] = magic_enum::enum_name(operatorType);
+
+	if (!upgradeName.empty())
+	{
+		config["skill"] = upgradeName;
+	}
 
 	return config;
 }
@@ -249,9 +262,24 @@ std::string nejlika::ModifierTemplate::GenerateHtmlString(const std::vector<Modi
 	// target -> resistance -> op -> type -> (min, max)
 	std::unordered_map<ModifierCategory, std::unordered_map<bool, std::unordered_map<ModifierOperator, std::unordered_map<ModifierType, std::pair<float, float>>>>> modifierMap;
 
+	bool hasConvertTo = false;
+	bool hasSkillModifier = false;
+
 	for (const auto& modifier : modifiers) {
+		if (modifier.GetConvertTo() != ModifierType::Invalid)
+		{
+			hasConvertTo = true;
+			continue;
+		}
+
+		if (!modifier.GetUpgradeName().empty())
+		{
+			hasSkillModifier = true;
+			continue;
+		}
+
 		for (const auto& type : modifier.types) {
-			if (type == ModifierType::Invalid) {
+			if (type == ModifierType::Invalid || type == ModifierType::SkillModifier) {
 				continue;
 			}
 
@@ -299,38 +327,124 @@ std::string nejlika::ModifierTemplate::GenerateHtmlString(const std::vector<Modi
 		}
 		
 		for (const auto& resistance : target.second) {
-
-			ss << "\n<font color=\"#D0AB62\">";
-
-			ss << ((resistance.first) ? "Resistances" : "Modifiers");
-
-			ss << ":</font>\n";
-
 			for (const auto& math : resistance.second) {
 				for (const auto& modifier : math.second) {
-					ss << "<font color=\"" << GetModifierTypeColor(modifier.first) << "\">";
-					
-					ss << magic_enum::enum_name<ModifierType>(modifier.first) << ": ";
+					ss << "<font color=\"#FFFFFF\">";
 
-					ss << ((modifier.second.first > 0) ? "+" : "-");
+					ss << ((modifier.second.first > 0) ? (math.first == ModifierOperator::Multiplicative ? "+" : "") : "-");
 					
-					ss << std::fixed << std::setprecision(0) << std::abs(modifier.second.first);
+					ss << std::fixed << std::setprecision(1) << std::abs(modifier.second.first);
 
 					if (modifier.second.first != modifier.second.second)
 					{
 						ss << "/";
 
-						ss << ((modifier.second.second > 0) ? "+" : "-");
-						
-						ss << std::fixed << std::setprecision(0) << std::abs(modifier.second.second);
+						ss << std::fixed << std::setprecision(1) << std::abs(modifier.second.second);
 					}
 
 					if (math.first == ModifierOperator::Multiplicative) {
 						ss << "%";
 					}
+					
+					ss << "</font> <font color=\"#D0AB62\">";
+
+					ss << " " << nejlika::GetModifierTypeName(modifier.first);
+					
+					if (resistance.first) {
+						// If the ss now ends with 'Damage' remove it
+						if (ss.str().substr(ss.str().size() - 6) == "Damage") {
+							ss.seekp(-6, std::ios_base::end);
+						}
+
+						ss << " " << "Resistance";
+					}
 
 					ss << "</font>\n";
 				}
+			}
+		}
+	}
+
+	if (hasSkillModifier)
+	{
+		for (const auto& modifier : modifiers) {
+			for (const auto& type : modifier.types) {
+				if (type != ModifierType::SkillModifier) {
+					continue;
+				}
+
+				const auto& scalors = modifier.GetScales();
+
+				if (scalors.empty())
+				{
+					continue;
+				}
+
+				const auto& m = scalors[0];
+
+				ss << "<font color=\"" << GetModifierTypeColor(type) << "\">";
+				
+				ss << ((m.GetMin() > 0) ? "+" : "-");
+				
+				ss << std::fixed << std::setprecision(0) << std::abs(m.GetMin());
+
+				ss << " to ";
+
+				ss << modifier.GetUpgradeName();
+
+				ss << "</font>\n";
+			}
+		}
+	}
+
+	if (hasConvertTo)
+	{
+		for (const auto& modifier : modifiers) {
+			if (modifier.GetConvertTo() == ModifierType::Invalid)
+			{
+				continue;
+			}
+			
+			for (const auto& type : modifier.types) {
+				if (type == ModifierType::Invalid) {
+					continue;
+				}
+
+				const auto& scalors = modifier.GetScales();
+
+				auto m = scalors[0];
+
+				for (const auto& s : scalors) {
+					if (s.GetLevel() <= level && s.GetLevel() > m.GetLevel()) {
+						m = s;
+					}
+				}
+
+				ss << "<font color=\"#FFFFFF\">";
+
+				// +xx/yy% of T1 converted to T2
+				ss << ((m.GetMin() > 0) ? "" : "-");
+
+				ss << std::fixed << std::setprecision(0) << std::abs(m.GetMin());
+
+				if (m.GetMin() != m.GetMax())
+				{
+					ss << "/";
+
+					ss << std::fixed << std::setprecision(0) << std::abs(m.GetMax());
+				}
+
+				ss << "%</font> <font color=\"#D0AB62\">";
+
+				ss << " of ";
+
+				ss << nejlika::GetModifierTypeName(type);
+
+				ss << " converted to ";
+
+				ss << nejlika::GetModifierTypeName(modifier.GetConvertTo());
+
+				ss << "</font>\n";
 			}
 		}
 	}
@@ -354,12 +468,13 @@ std::optional<ModifierInstance> nejlika::ModifierTemplate::GenerateModifier(Modi
 			power++;
 		}
 
-		return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo);
+		return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo, upgradeName);
 	}
 
 	// Select the scale with the highest level that is less than or equal to the current level
 	for (const auto& s : scales) {
-		if (s.GetLevel() <= level && s.GetLevel() > scale.GetLevel()) {
+		if ((s.GetLevel() <= level) && (s.GetLevel() > scale.GetLevel())) {
+			std::cout << "Found scale: " << s.GetMin() << " - " << s.GetMax() << " for level " << s.GetLevel() << std::endl;
 			scale = s;
 			found = true;
 		}
@@ -369,7 +484,18 @@ std::optional<ModifierInstance> nejlika::ModifierTemplate::GenerateModifier(Modi
 		return std::nullopt;
 	}
 
-	float value = GeneralUtils::GenerateRandomNumber<float>(scale.GetMin(), scale.GetMax());
+	float value = 0;
+	
+	if (scale.GetMax() == scale.GetMin())
+	{
+		value = scale.GetMin();
+	}
+	else
+	{
+		value = (GeneralUtils::GenerateRandomNumber<uint32_t>(0, 100) / 100.0f) * (scale.GetMax() - scale.GetMin()) + scale.GetMin();
+	}
+	
+	std::cout << "Generated modifier: " << value << " with level " << level << " for type: " << magic_enum::enum_name(type) << std::endl;
 
-	return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo);
+	return ModifierInstance(type, value, operatorType, isResistance, category, effectID, effectType, convertTo, upgradeName);
 }

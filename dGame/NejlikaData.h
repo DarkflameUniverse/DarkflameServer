@@ -35,6 +35,8 @@ void UnsetAdditionalEntityData(LWOOBJID id);
 
 void LoadNejlikaData();
 
+void LoadNejlikaDataFile(const std::string& path);
+
 const Lookup& GetLookup();
 
 }

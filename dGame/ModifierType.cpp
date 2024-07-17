@@ -53,6 +53,27 @@ const std::unordered_map<ModifierType, std::string> nameMap = {
 	{ModifierType::VitalityDecayDuration, "Vitality Decay Duration"},
 	{ModifierType::Seperation, "Seperation"},
 	{ModifierType::SeperationDuration, "Seperation Duration"},
+	{ModifierType::Elemental, "Elemental Damage"},
+	{ModifierType::Damage, "Damage"},
+	{ModifierType::Speed, "Speed"},
+	{ModifierType::AttackSpeed, "Attack Speed"},
+	{ModifierType::BlockRecovery, "Block Recovery Speed"},
+	{ModifierType::BlockChance, "Chance to Block"},
+	{ModifierType::Block, "Damage to Block"},
+	{ModifierType::CriticalDamage, "Critical-hit Damage"},
+	{ModifierType::HealthDrain, "Damage converted to Health"},
+	{ModifierType::ArmorPiercing, "Armor Piercing"},
+	{ModifierType::ReducedStunDuration, "Reduced Stun Duration"},
+	{ModifierType::SkillCooldownReduction, "Skill Cooldown Reduction"},
+	{ModifierType::SkillRecharge, "Skill Recharge Time"},
+	{ModifierType::Slow, "Slow"},
+	{ModifierType::Physique, "Physique"},
+	{ModifierType::Cunning, "Cunning"},
+	{ModifierType::Spirit, "Imagination"},
+	{ModifierType::AttacksPerSecond, "Attacks per Second"},
+	{ModifierType::ImaginationCost, "Imagination Cost"},
+	{ModifierType::MainWeaponDamage, "Main Weapon Damage"},
+	{ModifierType::Stun, "Target Stun Duration"}
 };
 
 const std::unordered_map<ModifierType, ModifierType> resistanceMap = {
@@ -113,6 +134,16 @@ const std::unordered_set<ModifierType> isOverTimeMap = {
 	ModifierType::VitalityDecay,
 	ModifierType::Electrocute,
 	ModifierType::Seperation
+};
+
+const std::unordered_set<ModifierType> isDurationType = {
+	ModifierType::InternalDisassemblyDuration,
+	ModifierType::BurnDuration,
+	ModifierType::FrostburnDuration,
+	ModifierType::PoisonDuration,
+	ModifierType::VitalityDecayDuration,
+	ModifierType::ElectrocuteDuration,
+	ModifierType::SeperationDuration
 };
 
 }
@@ -178,4 +209,8 @@ const ModifierType nejlika::GetDurationType(ModifierType type) {
 
 const bool nejlika::IsOverTimeType(ModifierType type) {
 	return isOverTimeMap.find(type) != isOverTimeMap.end();
+}
+
+const bool nejlika::IsDurationType(ModifierType type) {
+	return isDurationType.find(type) != isDurationType.end();
 }

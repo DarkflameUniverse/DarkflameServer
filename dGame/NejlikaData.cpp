@@ -117,18 +117,39 @@ void nejlika::NejlikaData::LoadNejlikaData()
 	modifierNameTemplates.clear();
 
 	// Load data from json file
-	const auto& filename = Game::config->GetValue("nejlika");
+	const auto& directory_name = Game::config->GetValue("nejlika");
 
-	if (filename.empty())
+	if (directory_name.empty())
 	{
 		return;
 	}
-	
-	std::ifstream file(filename);
+
+	// Loop through all files in the directory
+	for (const auto& entry : std::filesystem::directory_iterator(directory_name))
+	{
+		if (!entry.is_regular_file())
+		{
+			continue;
+		}
+
+		// It has to end on .mod.json
+		const auto& path = entry.path().string();
+
+		if (path.size() < 9 || path.substr(path.size() - 9) != ".mod.json")
+		{
+			continue;
+		}
+
+		LoadNejlikaDataFile(entry.path().string());
+	}
+}
+
+void nejlika::NejlikaData::LoadNejlikaDataFile(const std::string& path) {
+	std::ifstream file(path);
 
 	if (!file.is_open())
 	{
-		LOG("Failed to open nejlika data file: %s", filename.c_str());
+		LOG("Failed to open nejlika data file: %s", path.c_str());
 		return;
 	}
 
@@ -144,19 +165,21 @@ void nejlika::NejlikaData::LoadNejlikaData()
 		return;
 	}
 
-	if (!json.contains("modifier-templates"))
+	if (json.contains("modifier-templates"))
 	{
-		LOG("nejlika data file does not contain modifier-templates");
-		return;
-	}
+		const auto& modifierTemplates = json["modifier-templates"];
 
-	const auto& modifierTemplates = json["modifier-templates"];
+		for (const auto& value : modifierTemplates)
+		{
+			auto modifierTemplate = ModifierNameTemplate(value);
 
-	for (const auto& value : modifierTemplates)
-	{
-		auto modifierTemplate = ModifierNameTemplate(value);
+			if (modifierTemplate.GetModifiers().empty())
+			{
+				continue;
+			}
 
-		modifierNameTemplates[modifierTemplate.GetType()].push_back(modifierTemplate);
+			modifierNameTemplates[modifierTemplate.GetType()].push_back(modifierTemplate);
+		}
 	}
 
 	LOG("Loaded %d modifier templates", modifierNameTemplates.size());
@@ -186,5 +209,7 @@ void nejlika::NejlikaData::LoadNejlikaData()
 			upgradeTemplates[upgradeTemplate.GetLot()] = upgradeTemplate;
 		}
 	}
+
+	LOG("Loaded %d upgrade templates", upgradeTemplates.size());
 }
 

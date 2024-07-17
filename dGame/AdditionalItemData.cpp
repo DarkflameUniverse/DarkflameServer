@@ -210,17 +210,30 @@ void nejlika::AdditionalItemData::RollModifiers(Item* item, int32_t level) {
 
 	const auto& itemTemplateVec = NejlikaData::GetModifierNameTemplates(ModifierNameType::Object);
 
-	const auto itemTemplateIt = std::find_if(itemTemplateVec.begin(), itemTemplateVec.end(), [item](const auto& it) {
-		return it.GetLOT() == static_cast<int32_t>(item->GetLot());
-	});
+	std::vector<const ModifierNameTemplate*> availableObjects;
 
-	if (itemTemplateIt != itemTemplateVec.end()) {
-		const auto& itemTemplate = *itemTemplateIt;
+	for (const auto& itemTemplate : itemTemplateVec) {
+		if (itemTemplate.GetMinLevel() > level || itemTemplate.GetMaxLevel() < level) {
+			continue;
+		}
 
-		const auto itemModifiers = itemTemplate.GenerateModifiers(level);
+		if (itemTemplate.GetLOT() != static_cast<int32_t>(item->GetLot())) {
+			continue;
+		}
 
-		modifierInstances.insert(modifierInstances.end(), itemModifiers.begin(), itemModifiers.end());
+		availableObjects.push_back(&itemTemplate);
 	}
+
+	if (availableObjects.empty()) {
+		Save(item);
+		return;
+	}
+
+	const auto& itemTemplate = *availableObjects[GeneralUtils::GenerateRandomNumber<uint32_t>() % availableObjects.size()];
+
+	const auto itemModifiers = itemTemplate.GenerateModifiers(level);
+
+	modifierInstances.insert(modifierInstances.end(), itemModifiers.begin(), itemModifiers.end());
 
 	Save(item);
 }

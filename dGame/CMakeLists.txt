@@ -22,6 +22,7 @@ set(DGAME_SOURCES "Character.cpp"
 		"UpgradeTemplate.cpp"
 		"UpgradeEffect.cpp"
 		"Lookup.cpp"
+		"NejlikaHelpers.cpp"
 		)
 
 include_directories(

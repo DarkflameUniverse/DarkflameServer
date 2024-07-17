@@ -767,8 +767,8 @@ void BaseCombatAIComponent::SetTetherSpeed(float value) {
 	m_TetherSpeed = value;
 }
 
-void BaseCombatAIComponent::Stun(const float time) {
-	if (m_StunImmune || m_StunTime > time) {
+void BaseCombatAIComponent::Stun(const float time, const bool ignoreImmunity) {
+	if ((!ignoreImmunity && m_StunImmune) || m_StunTime > time) {
 		return;
 	}
 
