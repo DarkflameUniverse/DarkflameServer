@@ -215,20 +215,20 @@ void PetDigServer::SpawnPet(Entity* self, const Entity* owner, const DigInfo dig
 	Game::entityManager->ConstructEntity(spawnedPet);
 }
 
-Entity* PetDigServer::GetClosestTresure(NiPoint3 position) {
+Entity* PetDigServer::GetClosestTreasure(NiPoint3 position) {
 	float closestDistance = 0;
 	Entity* closest = nullptr;
 
-	for (const auto tresureId : treasures) {
-		auto* tresure = Game::entityManager->GetEntity(tresureId);
+	for (const auto treasureId : treasures) {
+		auto* treasure = Game::entityManager->GetEntity(treasureId);
 
-		if (tresure == nullptr) continue;
+		if (treasure == nullptr) continue;
 
-		float distance = Vector3::DistanceSquared(tresure->GetPosition(), position);
+		float distance = Vector3::DistanceSquared(treasure->GetPosition(), position);
 
 		if (closest == nullptr || distance < closestDistance) {
 			closestDistance = distance;
-			closest = tresure;
+			closest = treasure;
 		}
 	}
 
