@@ -45,7 +45,6 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	m_LoadedPlayers = 0;
 	m_LoadTimer = 0;
 	m_Finished = 0;
-	m_StartTime = 0;
 	m_EmptyTimer = 0;
 	m_SoloRacing = Game::config->GetValue("solo_racing") == "1";
 
@@ -427,9 +426,9 @@ void RacingControlComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 		outBitStream.Write(player.playerID);
 
 		outBitStream.Write(player.data[0]);
-		if (player.finished != 0) outBitStream.Write<float>(player.raceTime);
+		if (player.finished != 0) outBitStream.Write<float>(player.raceTime.count() / 1000.0f);
 		else outBitStream.Write(player.data[1]);
-		if (player.finished != 0) outBitStream.Write<float>(player.bestLapTime);
+		if (player.finished != 0) outBitStream.Write<float>(player.bestLapTime.count() / 1000.0f);
 		else outBitStream.Write(player.data[2]);
 		if (player.finished == 1) outBitStream.Write<float>(1.0f);
 		else outBitStream.Write(player.data[3]);
@@ -490,8 +489,8 @@ void RacingControlComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 			if (player.finished == 0) continue;
 			outBitStream.Write1(); // Has more data
 			outBitStream.Write(player.playerID);
-			outBitStream.Write<float>(player.bestLapTime);
-			outBitStream.Write<float>(player.raceTime);
+			outBitStream.Write<float>(player.bestLapTime.count() / 1000.0f);
+			outBitStream.Write<float>(player.raceTime.count() / 1000.0f);
 		}
 
 		outBitStream.Write0(); // No more data
@@ -721,7 +720,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 				Game::entityManager->SerializeEntity(m_Parent);
 
-				m_StartTime = std::time(nullptr);
+				m_StartTime = std::chrono::high_resolution_clock::now();
 			}
 
 			m_StartTimer += deltaTime;
@@ -810,22 +809,23 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Reached the start point, lapped
 			if (respawnIndex == 0) {
-				time_t lapTime = std::time(nullptr) - (player.lap == 0 ? m_StartTime : player.lapTime);
+				const auto now = std::chrono::high_resolution_clock::now();
+				const auto lapTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - (player.lap == 0 ? m_StartTime : player.lapTime));
 
 				// Cheating check
-				if (lapTime < 40) {
+				if (lapTime.count() < 40000) {
 					continue;
 				}
 
-				player.lap++;
+				player.lapTime = now;
 
-				player.lapTime = std::time(nullptr);
-
-				if (player.bestLapTime == 0 || player.bestLapTime > lapTime) {
+				if (player.bestLapTime > lapTime || player.lap == 0) {
 					player.bestLapTime = lapTime;
 
 					LOG("Best lap time (%llu)", lapTime);
 				}
+
+				player.lap++;
 
 				auto* missionComponent =
 					playerEntity->GetComponent<MissionComponent>();
@@ -833,23 +833,21 @@ void RacingControlComponent::Update(float deltaTime) {
 				if (missionComponent != nullptr) {
 
 					// Progress lap time tasks
-					missionComponent->Progress(eMissionTaskType::RACING, (lapTime) * 1000, static_cast<LWOOBJID>(eRacingTaskParam::LAP_TIME));
+					missionComponent->Progress(eMissionTaskType::RACING, lapTime.count(), static_cast<LWOOBJID>(eRacingTaskParam::LAP_TIME));
 
 					if (player.lap == 3) {
 						m_Finished++;
 						player.finished = m_Finished;
 
-						const auto raceTime =
-							(std::time(nullptr) - m_StartTime);
+						const auto raceTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_StartTime);
 
 						player.raceTime = raceTime;
 
-						LOG("Completed time %llu, %llu",
-							raceTime, raceTime * 1000);
+						LOG("Completed time %llums %fs", raceTime.count(), raceTime.count() / 1000.0f);
 
-						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime.count()) / 1000, static_cast<float>(player.bestLapTime.count()) / 1000, static_cast<float>(player.finished == 1));
 						// Entire race time
-						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, static_cast<LWOOBJID>(eRacingTaskParam::TOTAL_TRACK_TIME));
+						missionComponent->Progress(eMissionTaskType::RACING, player.raceTime.count(), static_cast<LWOOBJID>(eRacingTaskParam::TOTAL_TRACK_TIME));
 
 						missionComponent->Progress(eMissionTaskType::RACING, 0, static_cast<LWOOBJID>(eRacingTaskParam::COMPETED_IN_RACE)); // Progress task for competing in a race
 						missionComponent->Progress(eMissionTaskType::RACING, player.smashedTimes, static_cast<LWOOBJID>(eRacingTaskParam::SAFE_DRIVER)); // Finish a race without being smashed.
@@ -873,8 +871,8 @@ void RacingControlComponent::Update(float deltaTime) {
 					}
 				}
 
-				LOG("Lapped (%i) in (%llu)", player.lap,
-					lapTime);
+				LOG("Lapped (%i) in (%llums %fs)", player.lap,
+					lapTime.count(), lapTime.count() / 1000.0f);
 			}
 
 			LOG("Reached point (%i)/(%i)", player.respawnIndex,
