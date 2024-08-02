@@ -40,8 +40,8 @@ void Character::UpdateInfoFromDatabase() {
 	auto charInfo = Database::Get()->GetCharacterInfo(m_ID);
 
 	if (charInfo) {
-		m_Name = charInfo->name; 
-		m_UnapprovedName = charInfo->pendingName; 
+		m_Name = charInfo->name;
+		m_UnapprovedName = charInfo->pendingName;
 		m_NameRejected = charInfo->needsRename;
 		m_PropertyCloneID = charInfo->cloneId;
 		m_PermissionMap = charInfo->permissionMap;

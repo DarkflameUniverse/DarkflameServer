@@ -25,6 +25,8 @@ struct ZoneStatistics {
 	uint64_t m_CoinsCollected;
 	uint64_t m_EnemiesSmashed;
 	uint64_t m_QuickBuildsCompleted;
+
+	bool operator==(const ZoneStatistics& rhs) const = default;
 };
 
 /**
@@ -279,9 +281,9 @@ public:
 	 */
 	void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
 
-	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
+	void SetCurrentInteracting(LWOOBJID objectID) { m_CurrentInteracting = objectID; };
 
-	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+	LWOOBJID GetCurrentInteracting() { return m_CurrentInteracting; };
 
 	/**
 	 * Sends a player to another zone with an optional clone ID
@@ -306,6 +308,14 @@ public:
 	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
+
+	const std::array<uint64_t, 4>& GetClaimCodes() const { return m_ClaimCodes; };
+
+	const std::map<LWOMAPID, ZoneStatistics>& GetZoneStatistics() const { return m_ZoneStatistics; };
+
+	const std::u16string& GetLastRocketConfig() const { return m_LastRocketConfig; };
+
+	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.
