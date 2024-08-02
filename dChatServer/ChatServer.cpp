@@ -20,6 +20,7 @@
 #include "eWorldMessageType.h"
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
+#include "ChatWebApi.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -36,7 +37,7 @@ namespace Game {
 	AssetManager* assetManager = nullptr;
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
-	PlayerContainer playerContainer;
+	PlayerContainer playerContainer;	
 }
 
 void HandlePacket(Packet* packet);
@@ -122,6 +123,9 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
+	// start the web api thread
+	std::thread webAPIThread(ChatWebApi::Listen, ourPort);
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
@@ -174,6 +178,10 @@ int main(int argc, char** argv) {
 	delete Game::server;
 	delete Game::logger;
 	delete Game::config;
+	
+	// rejoin the web api thread
+	ChatWebApi::Stop();
+	webAPIThread.join();
 
 	return EXIT_SUCCESS;
 }
