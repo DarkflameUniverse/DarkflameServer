@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "Implementation.h"
 
 namespace CppScripts {
 	class Script;
@@ -462,6 +463,9 @@ public:
 
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
+
+	static Implementation<bool, const Entity*> IsEnemyImplentation;
+	static Implementation<bool, const Entity*> IsFriendImplentation;
 
 private:
 	/**
