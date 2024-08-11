@@ -186,7 +186,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 
 	if (count < 0) {
 		if (mission->IsMission() && type == eMissionTaskType::GATHER && InAllTargets(value)) {
-			if (parameters.size() > 0 && (parameters[0] & 1) != 0) {
+			if (parameters.size() > 0 && (parameters[0] & 4) != 0) {
 				return;
 			}
 
