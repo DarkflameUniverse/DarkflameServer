@@ -723,10 +723,10 @@ void nejlika::NejlikaHooks::InstallHooks() {
 		}
 
 		// Get the offenders Offensive modifier
-		auto offenderModifiers = offenderEntity.CalculateModifier(ModifierType::Offensive, level);
+		auto offenderModifiers = offenderEntity.CalculateFinalModifier(ModifierType::Offensive, modifiers, level);
 
 		// Get the defenders Defensive modifier
-		auto defensiveModifiers = damagedEntity.CalculateModifier(ModifierType::Defensive, level);
+		auto defensiveModifiers = damagedEntity.CalculateFinalModifier(ModifierType::Defensive, level);
 
 		if (offenderModifiers == 0) offenderModifiers = 1;
 		if (defensiveModifiers == 0) defensiveModifiers = 1;

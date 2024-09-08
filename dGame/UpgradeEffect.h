@@ -62,6 +62,8 @@ private:
 	std::vector<ModifierTemplate> modifiers;
 	int32_t effectID = 0;
 	std::string effectType = "";
+	std::vector<ModifierTemplate> debuffs;
+	std::vector<UpgradeScale> debuffDuration;
 };
 
 }
