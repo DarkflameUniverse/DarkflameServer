@@ -554,8 +554,6 @@ void MovementRecord::Act(Entity* actor) {
 		controllableComponent->SetVelocity(velocity);
 		controllableComponent->SetAngularVelocity(angularVelocity);
 		controllableComponent->SetIsOnGround(onGround);
-		controllableComponent->SetDirtyVelocity(dirtyVelocity);
-		controllableComponent->SetDirtyAngularVelocity(dirtyAngularVelocity);
 	}
 
 	Game::entityManager->SerializeEntity(actor);
