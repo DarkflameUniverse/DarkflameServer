@@ -10,6 +10,9 @@
 #include "MissionComponent.h"
 #include "dConfig.h"
 #include "PlayerManager.h"
+#include "SlashCommandHandler.h"
+#include "ChatPackets.h"
+#include "InventoryComponent.h"
 
 using namespace Cinema;
 
@@ -93,7 +96,95 @@ bool Cinema::Scene::IsPlayerInShowingDistance(Entity* player) const {
 	return distance <= m_ShowingDistance;
 }
 
+bool Cinema::Scene::IsPlayerInMaximumShowingDistance(Entity* player) const {
+	if (player == nullptr) {
+		return false;
+	}
+
+	if (m_MaximumShowingDistance == 0.0f) {
+		return true;
+	}
+
+	const auto& position = player->GetPosition();
+
+	auto distance = NiPoint3::Distance(position, m_Center);
+
+	return distance <= m_MaximumShowingDistance;
+}
+
 void Cinema::Scene::AutoLoadScenesForZone(LWOMAPID zone) {
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "record-act" },
+		.handle = CommandRecordAct,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "record-start" },
+		.handle = CommandRecordStart,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "record-stop" },
+		.handle = CommandRecordStop,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "record-save" },
+		.handle = CommandRecordSave,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "record-load" },
+		.handle = CommandRecordLoad,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "prefab-spawn" },
+		.handle = CommandPrefabSpawn,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "prefab-destroy" },
+		.handle = CommandPrefabDestroy,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "scene-act" },
+		.handle = CommandSceneAct,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "scene-setup" },
+		.handle = CommandSceneSetup,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
 	const auto& scenesRoot = Game::config->GetValue("scenes_directory");
 
 	if (scenesRoot.empty()) {
@@ -322,6 +413,12 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 		scene.m_ShowingDistance = scene.m_Bounds * 2.0f;
 	}
 
+	if (root->Attribute("maximumShowingDistance")) {
+		scene.m_MaximumShowingDistance = root->FloatAttribute("maximumShowingDistance");
+	} else {
+		scene.m_MaximumShowingDistance = scene.m_ShowingDistance * 2.0f;
+	}
+
 	if (root->Attribute("chanceToPlay")) {
 		scene.m_ChanceToPlay = root->FloatAttribute("chanceToPlay");
 	}
@@ -381,4 +478,166 @@ Scene& Cinema::Scene::LoadFromFile(std::string file) {
 	m_Scenes.emplace(file, scene);
 
 	return m_Scenes[file];
+}
+
+void Cinema::Scene::CommandRecordAct(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	EntityInfo info;
+	info.lot = 0;
+	info.pos = entity->GetPosition();
+	info.rot = entity->GetRotation();
+	info.scale = 1;
+	info.spawner = nullptr;
+	info.spawnerID = entity->GetObjectID();
+	info.spawnerNodeID = 0;
+	info.settings = {
+		new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+		new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+	};
+
+	// If there is an argument, set the lot
+	const auto lotOptional = GeneralUtils::TryParse<LOT>(splitArgs[0]);
+	if (lotOptional) {
+		info.lot = lotOptional.value();
+	} else {
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+		return;
+	}
+
+	// Spawn it
+	auto* actor = Game::entityManager->CreateEntity(info);
+
+	// If there is an argument, set the actors name
+	if (args.size() > 1) {
+		actor->SetVar(u"npcName", args[1]);
+	}
+
+	// Construct it
+	Game::entityManager->ConstructEntity(actor);
+
+	auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (record) {
+		record->Act(actor);
+	} else {
+		LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+	}
+}
+
+void Cinema::Scene::CommandRecordStart(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+	Cinema::Recording::Recorder::StartRecording(entity->GetObjectID());
+
+	auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (record) {
+		if (args.size() > 0 && splitArgs[0] == "clear") {
+			record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+		}
+		else if (args.size() > 0 && splitArgs[0] == "copy") {
+			record->AddRecord(new Cinema::Recording::ClearEquippedRecord());
+
+			auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+
+			if (inventoryComponent) {
+				for (const auto& [k, v] : inventoryComponent->GetEquippedItems()) {
+					auto* equipmentRecord = new Cinema::Recording::EquipRecord();
+					equipmentRecord->item = v.lot;
+
+					record->AddRecord(equipmentRecord);
+				}
+			}
+		}
+	} else {
+		LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+	}
+}
+
+void Cinema::Scene::CommandRecordStop(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	Cinema::Recording::Recorder::StopRecording(entity->GetObjectID());
+}
+
+void Cinema::Scene::CommandRecordSave(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	auto* record = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (record) {
+		record->SaveToFile(splitArgs[0]);
+	} else {
+		LOG("Failed to get recorder for objectID: %llu", entity->GetObjectID());
+	}
+}
+
+void Cinema::Scene::CommandRecordLoad(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	auto* record = Cinema::Recording::Recorder::LoadFromFile(splitArgs[0]);
+
+	if (record) {
+		Cinema::Recording::Recorder::AddRecording(entity->GetObjectID(), record);
+	} else {
+		LOG("Failed to load recording from file: %s", splitArgs[0].c_str());
+	}
+}
+
+void Cinema::Scene::CommandPrefabSpawn(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	const auto& prefab = Cinema::Prefab::LoadFromFile(splitArgs[0]);
+
+	float scale = 1.0f;
+
+	if (args.size() >= 2) {
+		const auto scaleOptional = GeneralUtils::TryParse<float>(splitArgs[1]);
+		if (scaleOptional) {
+			scale = scaleOptional.value();
+		}
+	}
+
+	size_t id = prefab.Instantiate(entity->GetPosition(), scale);
+
+	ChatPackets::SendSystemMessage(sysAddr, u"Spawned prefab with ID: " + GeneralUtils::to_u16string(id));
+}
+
+void Cinema::Scene::CommandPrefabDestroy(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	size_t id = GeneralUtils::TryParse<size_t>(splitArgs[0]).value_or(0);
+
+	if (id == 0) {
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid prefab ID.");
+		return;
+	}
+
+	Cinema::Prefab::DestroyInstance(id);
+
+	ChatPackets::SendSystemMessage(sysAddr, u"Destroyed prefab with ID: " + GeneralUtils::to_u16string(id));
+
+	return;
+}
+
+void Cinema::Scene::CommandSceneAct(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	auto& scene = Cinema::Scene::LoadFromFile(splitArgs[0]);
+
+	scene.Act(entity);
+}
+
+void Cinema::Scene::CommandSceneSetup(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	auto& scene = Cinema::Scene::LoadFromFile(splitArgs[0]);
+
+	scene.Rehearse();
 }

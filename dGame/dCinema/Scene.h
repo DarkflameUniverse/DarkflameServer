@@ -67,6 +67,13 @@ public:
 	bool IsPlayerInShowingDistance(Entity* player) const;
 
 	/**
+	 * @brief Checks if a given player is within the maximum showing distance of the scene.
+	 * 
+	 * @param player The player to check.
+	 */
+	bool IsPlayerInMaximumShowingDistance(Entity* player) const;
+
+	/**
 	 * @brief Act the scene.
 	 * 
 	 * @param player The player to act the scene for (or nullptr to act for all players).
@@ -101,6 +108,7 @@ private:
 	NiPoint3 m_Center;
 	float m_Bounds = 0.0f;
 	float m_ShowingDistance = 0.0f;
+	float m_MaximumShowingDistance = 0.0f;
 	float m_ChanceToPlay = 1.0f;
 	bool m_Repeatable = true;
 
@@ -115,6 +123,16 @@ private:
 	std::unordered_set<LWOOBJID> m_VisitedPlayers;
 
 	static std::unordered_map<std::string, Scene> m_Scenes;
+
+	static void CommandRecordAct(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandRecordStart(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandRecordStop(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandRecordSave(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandRecordLoad(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandPrefabSpawn(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandPrefabDestroy(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandSceneAct(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandSceneSetup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 };
 
 } // namespace Cinema

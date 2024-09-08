@@ -41,7 +41,7 @@ void Play::CheckForAudience() {
 		m_PlayerHasBeenInsideBounds = true;
 	}
 	
-	if (!scene->IsPlayerInShowingDistance(player)) {
+	if (!scene->IsPlayerInMaximumShowingDistance(player)) {
 		if (m_PlayerHasBeenInsideBounds) {
 			Conclude();
 		}
