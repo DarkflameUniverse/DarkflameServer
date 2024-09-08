@@ -129,7 +129,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 
 	auto result = query.execQuery();
 
-	if (result.eof() || result.fieldIsNull(0)) {
+	if (result.eof() || result.fieldIsNull("animation_length")) {
 		result.finalize();
 
 		m_DurationCache[effectId] = 0;
@@ -139,7 +139,7 @@ void RenderComponent::PlayEffect(const int32_t effectId, const std::u16string& e
 		return;
 	}
 
-	effect.time = static_cast<float>(result.getFloatField(0));
+	effect.time = static_cast<float>(result.getFloatField("animation_length"));
 
 	result.finalize();
 

@@ -94,35 +94,6 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	SendNotification(sysAddr, 1); //Show the "one new mail" message
 }
 
-//Because we need it:
-std::string ReadWStringAsString(RakNet::BitStream& bitStream, uint32_t size) {
-	std::string toReturn = "";
-	uint8_t buffer;
-	bool isFinishedReading = false;
-
-	for (uint32_t i = 0; i < size; ++i) {
-		bitStream.Read(buffer);
-		if (!isFinishedReading) toReturn.push_back(buffer);
-		if (buffer == '\0') isFinishedReading = true; //so we don't continue to read garbage as part of the string.
-		bitStream.Read(buffer); //Read the null term
-	}
-
-	return toReturn;
-}
-
-void WriteStringAsWString(RakNet::BitStream& bitStream, std::string str, uint32_t size) {
-	uint32_t sizeToFill = size - str.size();
-
-	for (uint32_t i = 0; i < str.size(); ++i) {
-		bitStream.Write(str[i]);
-		bitStream.Write(uint8_t(0));
-	}
-
-	for (uint32_t i = 0; i < sizeToFill; ++i) {
-		bitStream.Write(uint16_t(0));
-	}
-}
-
 void Mail::HandleMailStuff(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
 	int mailStuffID = 0;
 	packet.Read(mailStuffID);
@@ -176,11 +147,20 @@ void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAdd
 		return;
 	}
 
-	std::string subject = ReadWStringAsString(packet, 50);
-	std::string body = ReadWStringAsString(packet, 400);
-	std::string recipient = ReadWStringAsString(packet, 32);
+	LUWString subjectRead(50);
+	packet.Read(subjectRead);
+
+	LUWString bodyRead(400);
+	packet.Read(bodyRead);
+	
+	LUWString recipientRead(32);
+	packet.Read(recipientRead);
+
+	const std::string subject = subjectRead.GetAsString();
+	const std::string body = bodyRead.GetAsString();
+
 	//Cleanse recipient:
-	recipient = std::regex_replace(recipient, std::regex("[^0-9a-zA-Z]+"), "");
+	const std::string recipient = std::regex_replace(recipientRead.GetAsString(), std::regex("[^0-9a-zA-Z]+"), "");
 
 	uint64_t unknown64 = 0;
 	LWOOBJID attachmentID;
@@ -267,40 +247,44 @@ void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sys
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAIL);
 	bitStream.Write(int(MailMessageID::MailData));
-	bitStream.Write(int(0));
+	bitStream.Write(int(0)); // throttled
 
-	bitStream.Write<uint16_t>(playerMail.size());
+	bitStream.Write<uint16_t>(playerMail.size()); // size
 	bitStream.Write<uint16_t>(0);
 
 	for (const auto& mail : playerMail) {
 		bitStream.Write(mail.id); //MailID
 
-		WriteStringAsWString(bitStream, mail.subject.c_str(), 50); //subject
-		WriteStringAsWString(bitStream, mail.body.c_str(), 400); //body
-		WriteStringAsWString(bitStream, mail.senderUsername.c_str(), 32); //sender
+		const LUWString subject(mail.subject, 50);
+		bitStream.Write(subject); //subject
+		const LUWString body(mail.body, 400);
+		bitStream.Write(body); //body
+		const LUWString sender(mail.senderUsername, 32);
+		bitStream.Write(sender); //sender
+		bitStream.Write(uint32_t(0)); // packing
 
-		bitStream.Write(uint32_t(0));
-		bitStream.Write(uint64_t(0));
+		bitStream.Write(uint64_t(0)); // attachedCurrency
 
 		bitStream.Write(mail.itemID); //Attachment ID
 		LOT lot = mail.itemLOT;
 		if (lot <= 0) bitStream.Write(LOT(-1));
 		else bitStream.Write(lot);
-		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint32_t(0)); // packing
 
-		bitStream.Write(mail.itemSubkey); //Attachment subKey
-		bitStream.Write<uint16_t>(mail.itemCount); //Attachment count
+		bitStream.Write(mail.itemSubkey); // Attachment subKey
 
-		bitStream.Write(uint32_t(0));
-		bitStream.Write(uint16_t(0));
+		bitStream.Write<uint16_t>(mail.itemCount); // Attachment count
+		bitStream.Write(uint8_t(0)); // subject type (used for auction)
+		bitStream.Write(uint8_t(0)); // packing
+		bitStream.Write(uint32_t(0)); //  packing
 
-		bitStream.Write<uint64_t>(mail.timeSent); //time sent (twice?)
-		bitStream.Write<uint64_t>(mail.timeSent);
+		bitStream.Write<uint64_t>(mail.timeSent); // expiration date
+		bitStream.Write<uint64_t>(mail.timeSent);// send date
 		bitStream.Write<uint8_t>(mail.wasRead); //was read
 
-		bitStream.Write(uint8_t(0));
-		bitStream.Write(uint16_t(0));
-		bitStream.Write(uint32_t(0));
+		bitStream.Write(uint8_t(0)); // isLocalized
+		bitStream.Write(uint16_t(0)); // packing
+		bitStream.Write(uint32_t(0)); // packing
 	}
 
 	Game::server->Send(bitStream, sysAddr, false);

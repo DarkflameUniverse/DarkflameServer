@@ -40,6 +40,8 @@
 #include "BitStreamUtils.h"
 #include "Start.h"
 #include "Server.h"
+#include "CDZoneTableTable.h"
+#include "eGameMasterLevel.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -186,15 +188,20 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
+		const auto checkIsAdmin = []() {
+			std::string admin;
+			std::cout << "What level of privilege should this account have? Please enter a number between 0 (Player) and 9 (Admin) inclusive. No entry will default to 0." << std::endl;
+			std::cin >> admin;
+			return admin;
+			};
+
 		auto accountId = Database::Get()->GetAccountInfo(username);
-		if (accountId) {
+		if (accountId && accountId->id != 0) {
 			LOG("Account with name \"%s\" already exists", username.c_str());
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
 			if (prompt == "y" || prompt == "yes") {
-				if (accountId->id == 0) return EXIT_FAILURE;
-
 				//Read the password from the console without echoing it.
 #ifdef __linux__
 		//This function is obsolete, but it only meant to be used by the
@@ -219,6 +226,20 @@ int main(int argc, char** argv) {
 			} else {
 				LOG("Account \"%s\" was not updated.", username.c_str());
 			}
+
+			std::cout << "Update admin privileges? [y/n]? ";
+			std::string admin;
+			std::cin >> admin;
+			bool updateAdmin = admin == "y" || admin == "yes";
+			if (updateAdmin) {
+				auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+				if (gmLevel > 9 || gmLevel < 0) {
+					LOG("Invalid admin level.  Defaulting to 0");
+					gmLevel = 0;
+				}
+				Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
+			}
+
 			return EXIT_SUCCESS;
 		}
 
@@ -249,6 +270,17 @@ int main(int argc, char** argv) {
 		}
 
 		LOG("Account created successfully!");
+
+		accountId = Database::Get()->GetAccountInfo(username);
+		if (accountId) {
+			auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+			if (gmLevel > 9 || gmLevel < 0) {
+				LOG("Invalid admin level.  Defaulting to 0");
+				gmLevel = 0;
+			}
+			Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
+		}
+
 		return EXIT_SUCCESS;
 	}
 
@@ -276,6 +308,17 @@ int main(int argc, char** argv) {
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
+
+	//Get CDClient initial information
+	try {
+		CDClientManager::LoadValuesFromDatabase();
+	} catch (CppSQLite3Exception& e) {
+		LOG("Failed to initialize CDServer SQLite Database");
+		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
+		LOG("Error: %s", e.errorMessage());
+		LOG("Error Code: %i", e.errorCode());
+		return EXIT_FAILURE;
+	}
 
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "0") {
@@ -382,6 +425,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
 		LOG("A server has disconnected");
 
@@ -545,7 +589,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(sessionKey);
 			LUString username;
 			inStream.Read(username);
-	
+
 			for (auto it : activeSessions) {
 				if (it.second == username.string) {
 					activeSessions.erase(it.first);

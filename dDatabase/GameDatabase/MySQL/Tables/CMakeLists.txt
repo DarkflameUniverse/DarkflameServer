@@ -2,6 +2,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"Accounts.cpp"
 	"AccountsRewardCodes.cpp"
 	"ActivityLog.cpp"
+	"Behaviors.cpp"
 	"BugReports.cpp"
 	"CharInfo.cpp"
 	"CharXml.cpp"

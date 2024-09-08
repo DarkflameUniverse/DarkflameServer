@@ -466,8 +466,8 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 		return false;
 	}
 
-	if (!result.fieldIsNull(0)) {
-		const auto type = std::string(result.getStringField(0));
+	if (!result.fieldIsNull("type")) {
+		const auto type = std::string(result.getStringField("type"));
 
 		result.finalize();
 
@@ -504,10 +504,8 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 }
 
 
-void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	if (doc == nullptr) return;
-
-	auto* mis = doc->FirstChildElement("obj")->FirstChildElement("mis");
+void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+	auto* mis = doc.FirstChildElement("obj")->FirstChildElement("mis");
 
 	if (mis == nullptr) return;
 
@@ -523,7 +521,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 		auto* mission = new Mission(this, missionId);
 
-		mission->LoadFromXml(doneM);
+		mission->LoadFromXml(*doneM);
 
 		doneM = doneM->NextSiblingElement();
 
@@ -540,7 +538,7 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 
 		auto* mission = new Mission(this, missionId);
 
-		mission->LoadFromXml(currentM);
+		mission->LoadFromXml(*currentM);
 
 		if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
 			mission->SetUniqueMissionOrderID(missionOrder);
@@ -554,25 +552,23 @@ void MissionComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 }
 
 
-void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	if (doc == nullptr) return;
-
+void MissionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	auto shouldInsertMis = false;
 
-	auto* obj = doc->FirstChildElement("obj");
+	auto* obj = doc.FirstChildElement("obj");
 
 	auto* mis = obj->FirstChildElement("mis");
 
 	if (mis == nullptr) {
-		mis = doc->NewElement("mis");
+		mis = doc.NewElement("mis");
 
 		shouldInsertMis = true;
 	}
 
 	mis->DeleteChildren();
 
-	auto* done = doc->NewElement("done");
-	auto* cur = doc->NewElement("cur");
+	auto* done = doc.NewElement("done");
+	auto* cur = doc.NewElement("cur");
 
 	for (const auto& pair : m_Missions) {
 		auto* mission = pair.second;
@@ -580,10 +576,10 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 		if (mission) {
 			const auto complete = mission->IsComplete();
 
-			auto* m = doc->NewElement("m");
+			auto* m = doc.NewElement("m");
 
 			if (complete) {
-				mission->UpdateXml(m);
+				mission->UpdateXml(*m);
 
 				done->LinkEndChild(m);
 
@@ -591,7 +587,7 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
 			}
 			if (mission->IsMission()) m->SetAttribute("o", mission->GetUniqueMissionOrderID());
 
-			mission->UpdateXml(m);
+			mission->UpdateXml(*m);
 
 			cur->LinkEndChild(m);
 		}

@@ -27,13 +27,13 @@ public:
 	 * Save data from this componennt to character XML
 	 * @param doc the document to write data to
 	 */
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Load base data for this component from character XML
 	 * @param doc the document to read data from
 	 */
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Gets the current level of the entity

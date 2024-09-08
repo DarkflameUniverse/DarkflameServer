@@ -1,3 +1,7 @@
+2.3 - Dragonmaw functional, new slash command system, vanity system overhaul
+2.2 - Code cleanup and QoL fixes
+2.1 - Bug and crash fixes
+2.0 - Whole lot of fixed bugs and implemented features
 1.0 - Final cleanup and bug fixing for public release
 0.9 - Includes BBB without the need for a UGC server, cannon cove minigame, and bug fixes.
 0.8 - Added Ninjago! and it's various features + frakjaw minigame. AG survival now works.

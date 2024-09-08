@@ -47,11 +47,11 @@ void SwitchMultipleBehavior::Load() {
 	auto result = query.execQuery();
 
 	while (!result.eof()) {
-		const auto behavior_id = static_cast<uint32_t>(result.getFloatField(1));
+		const auto behavior_id = static_cast<uint32_t>(result.getFloatField("behavior"));
 
 		auto* behavior = CreateBehavior(behavior_id);
 
-		auto value = result.getFloatField(2);
+		auto value = result.getFloatField("value");
 
 		this->m_behaviors.emplace_back(value, behavior);
 

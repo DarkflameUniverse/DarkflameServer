@@ -99,9 +99,11 @@
 #include "ActivityManager.h"
 #include "PlayerManager.h"
 #include "eVendorTransactionResult.h"
+#include "eReponseMoveItemBetweenInventoryTypeCode.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
+#include "eItemType.h"
 
 #include "Recorder.h"
 
@@ -377,8 +379,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 
 	const auto lot = entity->GetLOT();
 
-	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449) {
-		iDesiredWaypointIndex = 0;
+	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308) {
+		iDesiredWaypointIndex = (lot == 11306 || lot == 11308) ? 1 : 0;
 		iIndex = 0;
 		nextIndex = 0;
 		bStopAtDesiredWaypoint = true;
@@ -420,7 +422,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 		bitStream.Write(qUnexpectedRotation.w);
 	}
 
-	SEND_PACKET_BROADCAST;
+	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
+	SEND_PACKET;
 }
 
 void GameMessages::SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr) {
@@ -2671,17 +2674,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		LDFBaseData* ldfBlueprintID = new LDFData<LWOOBJID>(u"blueprintid", blueprintID);
-		LDFBaseData* componentWhitelist = new LDFData<int>(u"componentWhitelist", 1);
-		LDFBaseData* modelType = new LDFData<int>(u"modelType", 2);
-		LDFBaseData* propertyObjectID = new LDFData<bool>(u"propertyObjectID", true);
-		LDFBaseData* userModelID = new LDFData<LWOOBJID>(u"userModelID", newIDL);
-
-		info.settings.push_back(ldfBlueprintID);
-		info.settings.push_back(componentWhitelist);
-		info.settings.push_back(modelType);
-		info.settings.push_back(propertyObjectID);
-		info.settings.push_back(userModelID);
+		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		info.settings.push_back(new LDFData<int>(u"modelType", 2));
+		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", newIDL));
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
@@ -4577,16 +4574,31 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream&
 	if (inStream.ReadBit()) inStream.Read(itemLOT);
 
 	if (invTypeDst == invTypeSrc) {
+		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
 		return;
 	}
 
 	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 
-	if (inventoryComponent != nullptr) {
+	if (inventoryComponent) {
 		if (itemID != LWOOBJID_EMPTY) {
 			auto* item = inventoryComponent->FindItemById(itemID);
 
-			if (!item) return;
+			if (!item) {
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_ITEM_NOT_FOUND);
+				return;
+			} 
+
+			if (item->GetLot() == 6086) { // Thinking hat
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_CANT_MOVE_THINKING_HAT);
+				return;
+			}
+			
+			auto* destInv = inventoryComponent->GetInventory(invTypeDst);
+			if (destInv && destInv->GetEmptySlots() == 0) {
+				SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_INV_FULL);
+				return;
+			}
 
 			// Despawn the pet if we are moving that pet to the vault.
 			auto* petComponent = PetComponent::GetActivePet(entity->GetObjectID());
@@ -4595,8 +4607,30 @@ void GameMessages::HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream&
 			}
 
 			inventoryComponent->MoveItemToInventory(item, invTypeDst, iStackCount, showFlyingLoot, false, false, destSlot);
+			SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::SUCCESS);
 		}
+	} else {
+		SendResponseMoveItemBetweenInventoryTypes(entity->GetObjectID(), sysAddr, invTypeDst, invTypeSrc, eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
 	}
+}
+
+void GameMessages::SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(eGameMessageType::RESPONSE_MOVE_ITEM_BETWEEN_INVENTORY_TYPES);
+
+	bitStream.Write(inventoryTypeDestination != eInventoryType::ITEMS);
+	if (inventoryTypeDestination != eInventoryType::ITEMS) bitStream.Write(inventoryTypeDestination);
+
+	bitStream.Write(inventoryTypeSource != eInventoryType::ITEMS);
+	if (inventoryTypeSource != eInventoryType::ITEMS) bitStream.Write(inventoryTypeSource);
+
+	bitStream.Write(response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC);
+	if (response != eReponseMoveItemBetweenInventoryTypeCode::FAIL_GENERIC) bitStream.Write(response);
+
+	SEND_PACKET;
 }
 
 
@@ -4674,7 +4708,7 @@ void GameMessages::HandleBuyFromVendor(RakNet::BitStream& inStream, Entity* enti
 	if (!user) return;
 	Entity* player = Game::entityManager->GetEntity(user->GetLoggedInChar());
 	if (!player) return;
-	
+
 	// handle buying normal items
 	auto* vendorComponent = entity->GetComponent<VendorComponent>();
 	if (vendorComponent) {
@@ -5316,7 +5350,7 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
 	bool iObjIDIsDefault = false;
-	LWOOBJID iObjID;
+	LWOOBJID iObjID = LWOOBJID_EMPTY;
 	bool iObjTemplateIsDefault = false;
 	LOT iObjTemplate = LOT_NULL;
 	bool iRequestingObjIDIsDefault = false;
@@ -5377,17 +5411,18 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	iStackCount = std::min<uint32_t>(item->GetCount(), iStackCount);
 
 	if (bConfirmed) {
-		if (eInvType == eInventoryType::MODELS) {
+		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
+		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
 			item->DisassembleModel(iStackCount);
 		}
-
+		auto lot = item->GetLot();
 		item->SetCount(item->GetCount() - iStackCount, true);
 		Game::entityManager->SerializeEntity(entity);
 
 		auto* missionComponent = entity->GetComponent<MissionComponent>();
 
 		if (missionComponent != nullptr) {
-			missionComponent->Progress(eMissionTaskType::GATHER, item->GetLot(), LWOOBJID_EMPTY, "", -iStackCount);
+			missionComponent->Progress(eMissionTaskType::GATHER, lot, LWOOBJID_EMPTY, "", -iStackCount);
 		}
 	}
 }
@@ -6222,4 +6257,94 @@ void GameMessages::HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Ent
 	auto* characterComponent = entity->GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 	characterComponent->SetCurrentInteracting(LWOOBJID_EMPTY);
+}
+
+void GameMessages::SendSlashCommandFeedbackText(Entity* entity, std::u16string text) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::SLASH_COMMAND_TEXT_FEEDBACK);
+	bitStream.Write<uint32_t>(text.size());
+	bitStream.Write(text);
+	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}
+
+void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
+	std::string action;
+	std::u16string groupName;
+	InventoryComponent::GroupUpdate groupUpdate;
+	bool locked{}; // All groups are locked by default
+
+	uint32_t size{};
+	if (!inStream.Read(size)) return;
+	action.resize(size);
+	if (!inStream.Read(action.data(), size)) return;
+
+	if (!inStream.Read(size)) return;
+	groupUpdate.groupId.resize(size);
+	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
+
+	if (!inStream.Read(size)) return;
+	groupName.resize(size);
+	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
+
+	if (!inStream.Read(groupUpdate.inventory)) return;
+	if (!inStream.Read(locked)) return;
+
+	groupUpdate.groupName = GeneralUtils::UTF16ToWTF8(groupName);
+
+	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD;
+	else if (action == "MODIFY") groupUpdate.command = InventoryComponent::GroupUpdateCommand::MODIFY;
+	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE;
+	else {
+		LOG("Invalid action %s", action.c_str());
+		return;
+	}
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
+}
+
+void GameMessages::HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
+	std::string action;
+	InventoryComponent::GroupUpdate groupUpdate;
+
+	uint32_t size{};
+	if (!inStream.Read(size)) return;
+	action.resize(size);
+	if (!inStream.Read(action.data(), size)) return;
+
+	if (action == "ADD") groupUpdate.command = InventoryComponent::GroupUpdateCommand::ADD_LOT;
+	else if (action == "REMOVE") groupUpdate.command = InventoryComponent::GroupUpdateCommand::REMOVE_LOT;
+	else {
+		LOG("Invalid action %s", action.c_str());
+		return;
+	}
+
+	if (!inStream.Read(size)) return;
+	groupUpdate.groupId.resize(size);
+	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
+
+	if (!inStream.Read(groupUpdate.inventory)) return;
+	if (!inStream.Read(groupUpdate.lot)) return;
+
+	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
+	if (inventoryComponent) inventoryComponent->UpdateGroup(groupUpdate);
+}
+
+void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::FORCE_CAMERA_TARGET_CYCLE);
+	bitStream.Write(bForceCycling);
+	bitStream.Write(cyclingMode != eCameraTargetCyclingMode::ALLOW_CYCLE_TEAMMATES);
+	if (cyclingMode != eCameraTargetCyclingMode::ALLOW_CYCLE_TEAMMATES) bitStream.Write(cyclingMode);
+	bitStream.Write(optionalTargetID);
+
+	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
 }

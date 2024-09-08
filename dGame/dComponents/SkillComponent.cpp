@@ -38,7 +38,7 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 
 	context->skillID = skillID;
 
-	this->m_managedBehaviors.insert_or_assign(skillUid, context);
+	this->m_managedBehaviors.insert({ skillUid, context });
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
 
@@ -52,17 +52,24 @@ bool SkillComponent::CastPlayerSkill(const uint32_t behaviorId, const uint32_t s
 }
 
 void SkillComponent::SyncPlayerSkill(const uint32_t skillUid, const uint32_t syncId, RakNet::BitStream& bitStream) {
-	const auto index = this->m_managedBehaviors.find(skillUid);
+	const auto index = this->m_managedBehaviors.equal_range(skillUid);
 
-	if (index == this->m_managedBehaviors.end()) {
+	if (index.first == this->m_managedBehaviors.end()) {
 		LOG("Failed to find skill with uid (%i)!", skillUid, syncId);
 
 		return;
 	}
 
-	auto* context = index->second;
+	bool foundSyncId = false;
+	for (auto it = index.first; it != index.second && !foundSyncId; ++it) {
+		const auto& context = it->second;
 
-	context->SyncBehavior(syncId, bitStream);
+		foundSyncId = context->SyncBehavior(syncId, bitStream);
+	}
+
+	if (!foundSyncId) {
+		LOG("Failed to find sync id (%i) for skill with uid (%i)!", syncId, skillUid);
+	}
 }
 
 
@@ -99,7 +106,7 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 		return;
 	}
 
-	const auto behavior_id = static_cast<uint32_t>(result.getIntField(0));
+	const auto behavior_id = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
 	result.finalize();
 
@@ -138,7 +145,7 @@ void SkillComponent::Update(const float deltaTime) {
 		for (const auto& pair : this->m_managedBehaviors) pair.second->UpdatePlayerSyncs(deltaTime);
 	}
 
-	std::map<uint32_t, BehaviorContext*> keep{};
+	std::multimap<uint32_t, BehaviorContext*> keep{};
 
 	for (const auto& pair : this->m_managedBehaviors) {
 		auto* context = pair.second;
@@ -176,7 +183,7 @@ void SkillComponent::Update(const float deltaTime) {
 			}
 		}
 
-		keep.insert_or_assign(pair.first, context);
+		keep.insert({ pair.first, context });
 	}
 
 	this->m_managedBehaviors = keep;
@@ -227,7 +234,7 @@ void SkillComponent::RegisterCalculatedProjectile(const LWOOBJID projectileId, B
 	this->m_managedProjectiles.push_back(entry);
 }
 
-bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID) {
+bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LWOOBJID optionalOriginatorID, const int32_t castType, const NiQuaternion rotationOverride) {
 	uint32_t behaviorId = -1;
 	// try to find it via the cache
 	const auto& pair = m_skillBehaviorCache.find(skillId);
@@ -247,11 +254,19 @@ bool SkillComponent::CastSkill(const uint32_t skillId, LWOOBJID target, const LW
 		return false;
 	}
 
-	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID).success;
+	return CalculateBehavior(skillId, behaviorId, target, false, false, optionalOriginatorID, castType, rotationOverride).success;
 }
 
 
-SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, const uint32_t behaviorId, const LWOOBJID target, const bool ignoreTarget, const bool clientInitalized, const LWOOBJID originatorOverride) {
+SkillExecutionResult SkillComponent::CalculateBehavior(
+	const uint32_t skillId,
+	const uint32_t behaviorId,
+	const LWOOBJID target,
+	const bool ignoreTarget,
+	const bool clientInitalized,
+	const LWOOBJID originatorOverride,
+	const int32_t castType,
+	const NiQuaternion rotationOverride) {
 	RakNet::BitStream bitStream{};
 
 	auto* behavior = Behavior::CreateBehavior(behaviorId);
@@ -277,13 +292,13 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 		return { false, 0 };
 	}
 
-	this->m_managedBehaviors.insert_or_assign(context->skillUId, context);
+	this->m_managedBehaviors.insert({ context->skillUId, context });
 
 	if (!clientInitalized) {
 		// Echo start skill
 		EchoStartSkill start;
 
-		start.iCastType = 0;
+		start.iCastType = castType;
 		start.skillID = skillId;
 		start.uiSkillHandle = context->skillUId;
 		start.optionalOriginatorID = context->originator;
@@ -293,6 +308,10 @@ SkillExecutionResult SkillComponent::CalculateBehavior(const uint32_t skillId, c
 
 		if (originator != nullptr) {
 			start.originatorRot = originator->GetRotation();
+		}
+
+		if (rotationOverride != NiQuaternionConstant::IDENTITY) {
+			start.originatorRot = rotationOverride;
 		}
 		//start.optionalTargetID = target;
 
@@ -413,7 +432,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 		return;
 	}
 
-	const auto behaviorId = static_cast<uint32_t>(result.getIntField(0));
+	const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
 	result.finalize();
 
@@ -464,7 +483,7 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 	behavior->UnCast(&context, { target });
 }
 
-SkillComponent::SkillComponent(Entity* parent): Component(parent) {
+SkillComponent::SkillComponent(Entity* parent) : Component(parent) {
 	this->m_skillUid = 0;
 }
 

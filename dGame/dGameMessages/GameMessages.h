@@ -39,6 +39,12 @@ enum class eQuickBuildFailReason : uint32_t;
 enum class eQuickBuildState : uint32_t;
 enum class BehaviorSlot : int32_t;
 enum class eVendorTransactionResult : uint32_t;
+enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t;
+
+enum class eCameraTargetCyclingMode : int32_t {
+	ALLOW_CYCLE_TEAMMATES,
+	DISALLOW_CYCLING
+};
 
 namespace GameMessages {
 	class PropertyDataMessage;
@@ -589,6 +595,7 @@ namespace GameMessages {
 	//NT:
 
 	void HandleRequestMoveItemBetweenInventoryTypes(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void SendResponseMoveItemBetweenInventoryTypes(LWOOBJID objectId, const SystemAddress& sysAddr, eInventoryType inventoryTypeDestination, eInventoryType inventoryTypeSource, eReponseMoveItemBetweenInventoryTypeCode response);
 
 	void SendShowActivityCountdown(LWOOBJID objectId, bool bPlayAdditionalSound, bool bPlayCountdownSound, std::u16string sndName, int32_t stateToPlaySoundOn, const SystemAddress& sysAddr);
 
@@ -664,6 +671,12 @@ namespace GameMessages {
 	void HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
 	void HandleCancelDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity);
+
+	void SendSlashCommandFeedbackText(Entity* entity, std::u16string text);
+
+	void HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
+	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
 };
 
 #endif // GAMEMESSAGES_H

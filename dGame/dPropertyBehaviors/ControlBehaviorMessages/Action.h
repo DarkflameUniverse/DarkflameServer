@@ -3,6 +3,10 @@
 
 #include <string>
 
+namespace tinyxml2 {
+	class XMLElement;
+};
+
 class AMFArrayValue;
 
 /**
@@ -20,6 +24,8 @@ public:
 
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 
+	void Serialize(tinyxml2::XMLElement& action) const;
+	void Deserialize(const tinyxml2::XMLElement& action);
 private:
 	double m_ValueParameterDouble{ 0.0 };
 	std::string m_Type{ "" };

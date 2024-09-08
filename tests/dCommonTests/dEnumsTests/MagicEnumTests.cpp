@@ -121,7 +121,7 @@ TEST(MagicEnumTest, eGameMessageTypeTest) {
 namespace {
 	template <typename T>
 	void AssertEnumArraySorted(const T& eArray) {
-		for (int i = 0; i < eArray->size(); ++i) {
+		for (int i = 0; i < eArray->size() - 1; ++i) {
 			const auto entryCurr = eArray->at(i).first;
 			LOG_EARRAY(eArray, i, entryCurr);
 			const auto entryNext = eArray->at(++i).first;

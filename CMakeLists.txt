@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
 project(Darkflame)
+
+# check if the path to the source directory contains a space
+if("${CMAKE_SOURCE_DIR}" MATCHES " ")
+	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
+endif()
+
 include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -73,7 +79,8 @@ if(UNIX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
-	add_compile_options("/wd4267" "/utf-8")
+	# Also disable non-portable MSVC volatile behavior
+	add_compile_options("/wd4267" "/utf-8" "/volatile:iso")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -103,7 +110,7 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
 # Copy resource files on first build
-set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blacklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)

@@ -226,7 +226,7 @@ void Entity::Initialize() {
 
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 
 		AddComponent<RenderComponent>();
 
@@ -477,8 +477,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
-		auto* xmlDoc = m_Character ? m_Character->GetXMLDoc() : nullptr;
-		AddComponent<InventoryComponent>(xmlDoc);
+		AddComponent<InventoryComponent>();
 	}
 	// if this component exists, then we initialize it. it's value is always 0
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
@@ -651,7 +650,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 			auto* destroyableComponent = AddComponent<DestroyableComponent>();
 			destroyableComponent->SetHealth(1);
@@ -1245,7 +1244,7 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 	outBitStream.Write0();
 }
 
-void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
+void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
 	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
 	//Naturally, we don't include any non-player components in this update function.
 
@@ -1536,7 +1535,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
+			waitForDeathAnimation = !destroyableComponent->GetIsSmashable() && destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
@@ -1636,10 +1635,8 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
-
 					auto* skillComponent = GetComponent<SkillComponent>();
-					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID());
+					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
@@ -1844,6 +1841,12 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetPosition();
+	}
+
 	return NiPoint3Constant::ZERO;
 }
 
@@ -1870,6 +1873,12 @@ const NiQuaternion& Entity::GetRotation() const {
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternionConstant::IDENTITY;
@@ -1900,6 +1909,12 @@ void Entity::SetPosition(const NiPoint3& position) {
 		vehicel->SetPosition(position);
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetPosition(position);
+	}
+
 	Game::entityManager->SerializeEntity(this);
 }
 
@@ -1926,6 +1941,12 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetRotation(rotation);
 	}
 
 	Game::entityManager->SerializeEntity(this);

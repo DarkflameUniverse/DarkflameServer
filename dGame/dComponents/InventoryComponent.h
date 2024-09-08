@@ -37,13 +37,42 @@ enum class eItemType : int32_t;
  */
 class InventoryComponent final : public Component {
 public:
+	struct Group {
+		// Generated ID for the group. The ID is sent by the client and has the format user_group + Math.random() * UINT_MAX.
+		std::string groupId;
+		// Custom name assigned by the user.
+		std::string groupName;
+		// All the lots the user has in the group.
+		std::set<LOT> lots;
+	};
+
+	enum class GroupUpdateCommand {
+		ADD,
+		ADD_LOT,
+		MODIFY,
+		REMOVE,
+		REMOVE_LOT,
+	};
+
+	// Based on the command, certain fields will be used or not used.
+	// for example, ADD_LOT wont use groupName, MODIFY wont use lots, etc.
+	struct GroupUpdate {
+		std::string groupId;
+		std::string groupName;
+		LOT lot;
+		eInventoryType inventory;
+		GroupUpdateCommand command;
+	};
+
+	static constexpr uint32_t MaximumGroupCount = 50;
+
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
-	explicit InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document = nullptr);
+	InventoryComponent(Entity* parent);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadXml(tinyxml2::XMLDocument* document);
-	void UpdateXml(tinyxml2::XMLDocument* document) override;
+	void LoadXml(const tinyxml2::XMLDocument& document);
+	void UpdateXml(tinyxml2::XMLDocument& document) override;
 
 	/**
 	 * Returns an inventory of the specified type, if it exists
@@ -367,14 +396,23 @@ public:
 	 */
 	void UnequipScripts(Item* unequippedItem);
 
-	std::map<BehaviorSlot, uint32_t> GetSkills(){ return m_Skills; };
+	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
+	void UpdateGroup(const GroupUpdate& groupUpdate);
+	void RemoveGroup(const std::string& groupId);
+
 	~InventoryComponent() override;
 
 private:
+	/**
+	 * The key is the inventory the group belongs to, the value maps' key is the id for the group.
+	 * This is only used for bricks and model inventories.
+	 */
+	std::map<eInventoryType, std::vector<Group>> m_Groups{ { eInventoryType::BRICKS, {} }, { eInventoryType::MODELS, {} } };
+
 	/**
 	 * All the inventory this entity possesses
 	 */
@@ -470,13 +508,16 @@ private:
 	 * Saves all the pet information stored in inventory items to the database
 	 * @param document the xml doc to save to
 	 */
-	void LoadPetXml(tinyxml2::XMLDocument* document);
+	void LoadPetXml(const tinyxml2::XMLDocument& document);
 
 	/**
 	 * Loads all the pet information from an xml doc into items
 	 * @param document the xml doc to load from
 	 */
-	void UpdatePetXml(tinyxml2::XMLDocument* document);
+	void UpdatePetXml(tinyxml2::XMLDocument& document);
+
+	void LoadGroupXml(const tinyxml2::XMLElement& groups);
+	void UpdateGroupXml(tinyxml2::XMLElement& groups) const;
 };
 
 #endif

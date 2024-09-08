@@ -26,17 +26,18 @@ Precondition::Precondition(const uint32_t condition) {
 	if (result.eof()) {
 		this->type = PreconditionType::ItemEquipped;
 		this->count = 1;
-		this->values = { 0 };
+		this->values.clear();
+		this->values.push_back(0);
 
 		LOG("Failed to find precondition of id (%i)!", condition);
 
 		return;
 	}
 
-	this->type = static_cast<PreconditionType>(result.fieldIsNull(0) ? 0 : result.getIntField(0));
+	this->type = static_cast<PreconditionType>(result.fieldIsNull("type") ? 0 : result.getIntField("type"));
 
-	if (!result.fieldIsNull(1)) {
-		std::istringstream stream(result.getStringField(1));
+	if (!result.fieldIsNull("targetLOT")) {
+		std::istringstream stream(result.getStringField("targetLOT"));
 		std::string token;
 
 		while (std::getline(stream, token, ',')) {
@@ -45,7 +46,7 @@ Precondition::Precondition(const uint32_t condition) {
 		}
 	}
 
-	this->count = result.fieldIsNull(2) ? 1 : result.getIntField(2);
+	this->count = result.fieldIsNull("targetCount") ? 1 : result.getIntField("targetCount");
 
 	result.finalize();
 }

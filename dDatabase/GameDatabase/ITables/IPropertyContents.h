@@ -1,6 +1,7 @@
 #ifndef __IPROPERTIESCONTENTS__H__
 #define __IPROPERTIESCONTENTS__H__
 
+#include <array>
 #include <cstdint>
 #include <string_view>
 
@@ -16,6 +17,7 @@ public:
 		LWOOBJID id{};
 		LOT lot{};
 		uint32_t ugcId{};
+		std::array<int32_t, 5> behaviors{};
 	};
 
 	// Inserts a new UGC model into the database.
@@ -32,7 +34,7 @@ public:
 	virtual void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) = 0;
 
 	// Update the model position and rotation for the given property id.
-	virtual void UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) = 0;
+	virtual void UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) = 0;
 
 	// Remove the model for the given property id.
 	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
