@@ -272,14 +272,16 @@ void Cinema::Scene::CheckTicket(Entity* player) {
 		}
 	}
 
-	if (!IsPlayerInShowingDistance(player)) {
-		m_HasBeenOutside.emplace(player->GetObjectID());
+	if (m_ShowingDistance != 0.0f) {
+		if (!IsPlayerInShowingDistance(player)) {
+			m_HasBeenOutside.emplace(player->GetObjectID());
 
-		return;
-	}
+			return;
+		}
 
-	if (m_HasBeenOutside.find(player->GetObjectID()) == m_HasBeenOutside.end()) {
-		return;
+		if (m_HasBeenOutside.find(player->GetObjectID()) == m_HasBeenOutside.end()) {
+			return;
+		}
 	}
 
 	m_Audience.emplace(player->GetObjectID());

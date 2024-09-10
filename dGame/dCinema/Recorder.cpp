@@ -217,6 +217,10 @@ void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records
 	if (concludeRecord) {
 		if (variables != nullptr) {
 			variables->Conclude();
+
+			if (concludeRecord->cleanUp) {
+				variables->CleanUp();
+			}
 		}
 	}
 
@@ -1044,11 +1048,17 @@ void Cinema::Recording::ConcludeRecord::Serialize(tinyxml2::XMLDocument& documen
 
 	element->SetAttribute("t", m_Delay);
 
+	element->SetAttribute("cleanUp", true);
+
 	parent->InsertEndChild(element);
 }
 
 void Cinema::Recording::ConcludeRecord::Deserialize(tinyxml2::XMLElement* element) {
 	m_Delay = element->DoubleAttribute("t");
+
+	if (element->Attribute("cleanUp")) {
+		cleanUp = element->BoolAttribute("clean-up");
+	}
 }
 
 Cinema::Recording::VisibilityRecord::VisibilityRecord(bool visible) {

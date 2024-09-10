@@ -287,6 +287,8 @@ public:
 class ConcludeRecord : public Record
 {
 public:
+	bool cleanUp = false;
+
 	ConcludeRecord() = default;
 
 	void Act(Entity* actor) override;
