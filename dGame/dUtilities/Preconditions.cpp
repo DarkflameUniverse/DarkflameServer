@@ -139,21 +139,13 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::DoesNotHaveItem:
 		return inventoryComponent->IsEquipped(value) < count;
 	case PreconditionType::HasAchievement:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::COMPLETE;
+		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::MissionAvailable:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::AVAILABLE;
+		return missionComponent->GetMissionState(value) >= eMissionState::AVAILABLE;
 	case PreconditionType::OnMission:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::ACTIVE;
+		return missionComponent->GetMissionState(value) >= eMissionState::ACTIVE;
 	case PreconditionType::MissionComplete:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr ? false : mission->GetMissionState() >= eMissionState::COMPLETE;
+		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
 		return false; // TODO
 	case PreconditionType::HasFlag:
