@@ -134,6 +134,8 @@ private:
 	static void CommandSceneAct(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	static void CommandSceneSetup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	static void CommandCompanion(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandCinematic(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandGhostReference(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 };
 
 } // namespace Cinema

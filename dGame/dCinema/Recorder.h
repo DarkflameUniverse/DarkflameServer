@@ -454,4 +454,20 @@ public:
 	void Deserialize(tinyxml2::XMLElement* element) override;
 };
 
+class CinematicRecord : public Record
+{
+public:
+	std::string cinematic;
+
+	CinematicRecord() = default;
+
+	CinematicRecord(const std::string& cinematic);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
+
 }

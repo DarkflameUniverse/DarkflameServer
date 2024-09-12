@@ -15,6 +15,7 @@
 #include "InventoryComponent.h"
 #include "MovementAIComponent.h"
 #include "Recorder.h"
+#include "GhostComponent.h"
 
 using namespace Cinema;
 
@@ -192,6 +193,22 @@ void Cinema::Scene::AutoLoadScenesForZone(LWOMAPID zone) {
 		.info = "",
 		.aliases = { "companion" },
 		.handle = CommandCompanion,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "cinematic" },
+		.handle = CommandCinematic,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "ghost" },
+		.handle = CommandGhostReference,
 		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
 	});
 
@@ -696,4 +713,30 @@ void Cinema::Scene::CommandCompanion(Entity* entity, const SystemAddress& sysAdd
 	actor->AddCallbackTimer(1.0f, [actor, follow]() {
 		Cinema::Recording::CompanionRecord::SetCompanion(actor, follow);
 	});
+}
+
+void Cinema::Scene::CommandCinematic(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	const auto path = splitArgs[0];
+
+	GameMessages::SendPlayCinematic(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(path), sysAddr);
+}
+
+void Cinema::Scene::CommandGhostReference(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	auto* ghostComponent = entity->GetComponent<GhostComponent>();
+
+	if (ghostComponent == nullptr) {
+		ChatPackets::SendSystemMessage(sysAddr, u"Entity does not have a ghost component.");
+		return;
+	}
+
+	const auto& ref = ghostComponent->GetGhostReferencePoint();
+
+	std::stringstream ss;
+
+	ss << "<" << ref.x << ", " << ref.y << ", " << ref.z << ">";
+
+	ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(ss.str()));
 }

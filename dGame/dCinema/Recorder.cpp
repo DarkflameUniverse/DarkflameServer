@@ -322,6 +322,18 @@ void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records
 		}
 	}
 
+	auto* cinematicRecord = dynamic_cast<CinematicRecord*>(record);
+
+	if (cinematicRecord) {
+		if (variables != nullptr) {
+			auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+			if (playerEntity) {
+				GameMessages::SendPlayCinematic(playerEntity->GetObjectID(), GeneralUtils::UTF8ToUTF16(cinematicRecord->cinematic), playerEntity->GetSystemAddress());
+			}
+		}
+	}
+
 	// Check if the record is a visibility record
 	auto* visibilityRecord = dynamic_cast<VisibilityRecord*>(record);
 
@@ -518,6 +530,8 @@ void Cinema::Recording::Recorder::LoadRecords(tinyxml2::XMLElement* root, std::v
 			record = new SpawnRecord();
 		} else if (name == "MissionRecord") {
 			record = new MissionRecord();
+		} else if (name == "CinematicRecord") {
+			record = new CinematicRecord();
 		} else {
 			LOG("Unknown record type: %s", name.c_str());
 			continue;
@@ -1468,4 +1482,26 @@ void Cinema::Recording::MissionRecord::Deserialize(tinyxml2::XMLElement* element
 	m_Delay = element->DoubleAttribute("t");
 }
 
+Cinema::Recording::CinematicRecord::CinematicRecord(const std::string& cinematic) {
+	this->cinematic = cinematic;
+}
+
+void Cinema::Recording::CinematicRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::CinematicRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CinematicRecord");
+
+	element->SetAttribute("cinematic", cinematic.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::CinematicRecord::Deserialize(tinyxml2::XMLElement* element) {
+	cinematic = element->Attribute("cinematic");
+
+	m_Delay = element->DoubleAttribute("t");
+}
 
