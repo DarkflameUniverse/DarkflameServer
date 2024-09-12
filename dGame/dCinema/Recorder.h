@@ -398,5 +398,60 @@ public:
 	void Deserialize(tinyxml2::XMLElement* element) override;
 };
 
+class CompanionRecord : public Record
+{
+public:
+	std::vector<Record*> records;
+	
+	CompanionRecord() = default;
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+
+	static void SetCompanion(Entity* actor, LWOOBJID player);
+};
+
+class SpawnRecord : public Record
+{
+public:
+	LOT lot = LOT_NULL;
+
+	NiPoint3 position;
+
+	NiQuaternion rotation;
+
+	std::vector<Record*> onSpawnRecords;
+
+	std::vector<Record*> onDespawnRecords;
+
+	SpawnRecord() = default;
+
+	SpawnRecord(LOT lot, const NiPoint3& position, const NiQuaternion& rotation);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
+
+class MissionRecord : public Record
+{
+public:
+	int32_t mission;
+
+	MissionRecord() = default;
+
+	MissionRecord(const int32_t& mission);
+
+	void Act(Entity* actor) override;
+
+	void Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) override;
+	
+	void Deserialize(tinyxml2::XMLElement* element) override;
+};
 
 }

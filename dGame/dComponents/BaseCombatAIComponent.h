@@ -121,6 +121,12 @@ public:
 	const NiPoint3& GetStartPosition() const;
 
 	/**
+	 * Sets the position where the entity spawned
+	 * @param position the position where the entity spawned
+	 */
+	void SetStartPosition(const NiPoint3& position);
+
+	/**
 	 * Removes all threats for this entities, and thus chances for it attacking other entities
 	 */
 	void ClearThreat();
@@ -195,6 +201,54 @@ public:
 	 * @param value the aggro radius to set
 	 */
 	void SetAggroRadius(float value);
+
+	/**
+	 * Gets the soft tether radius
+	 * @return the soft tether radius
+	 */
+	float GetSoftTetherRadius() const;
+
+	/**
+	 * Sets the soft tether radius
+	 * @param value the soft tether radius
+	 */
+	void SetSoftTetherRadius(float value);
+
+	/**
+	 * Gets the hard tether radius
+	 * @return the hard tether radius
+	 */
+	float GetHardTetherRadius() const;
+
+	/**
+	 * Sets the hard tether radius
+	 * @param value the hard tether radius
+	 */
+	void SetHardTetherRadius(float value);
+
+	/**
+	 * Get the position that the entity should stay around
+	 * @return the focus position
+	 */
+	const NiPoint3& GetFocusPosition() const;
+
+	/**
+	 * Set the position that the entity should stay around
+	 * @param position the focus position
+	 */
+	void SetFocusPosition(const NiPoint3& position);
+
+	/**
+	 * Get the radius that the entity should stay around the focus position
+	 * @return the focus radius
+	 */
+	float GetFocusRadius() const;
+
+	/**
+	 * Set the radius that the entity should stay around the focus position
+	 * @param radius the focus radius
+	 */
+	void SetFocusRadius(float radius);
 
 	/**
 	 * Makes the entity look at a certain point in space
@@ -381,6 +435,16 @@ private:
 	 *
 	 */
 	bool m_DirtyStateOrTarget = false;
+
+	/**
+	 * A position that the entity should stay around
+	 */
+	NiPoint3 m_FocusPosition;
+
+	/**
+	 * How far the entity should stay from the focus position
+	 */
+	float m_FocusRadius = 0;
 
 	/**
 	 * Whether the current entity is a mech enemy, needed as mechs tether radius works differently

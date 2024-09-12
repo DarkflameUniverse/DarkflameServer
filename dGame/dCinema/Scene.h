@@ -133,6 +133,7 @@ private:
 	static void CommandPrefabDestroy(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	static void CommandSceneAct(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	static void CommandSceneSetup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	static void CommandCompanion(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 };
 
 } // namespace Cinema

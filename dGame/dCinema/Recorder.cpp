@@ -10,6 +10,7 @@
 #include "ServerPreconditions.h"
 #include "MovementAIComponent.h"
 #include "BaseCombatAIComponent.h"
+#include "MissionComponent.h"
 
 using namespace Cinema::Recording;
 
@@ -84,7 +85,14 @@ void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records
 		} else if (!forkRecord->precondition.empty()) {
 			auto precondtion = Preconditions::CreateExpression(forkRecord->precondition);
 
-			success = precondtion.Check(actor);
+			auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+			if (playerEntity != nullptr) {
+				success = precondtion.Check(playerEntity);
+			}
+			else {
+				success = true;
+			}
 		} else {
 			success = true;
 		}
@@ -220,6 +228,96 @@ void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records
 
 			if (concludeRecord->cleanUp) {
 				variables->CleanUp();
+			}
+		}
+	}
+
+	// Check if the record is a companion record
+	auto* companionRecord = dynamic_cast<CompanionRecord*>(record);
+
+	if (companionRecord && variables != nullptr) {
+		EntityInfo info;
+		info.lot = actor->GetLOT();
+		info.pos = actor->GetPosition();
+		info.rot = actor->GetRotation();
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = variables->player;
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// Spawn it
+		auto* companion = Game::entityManager->CreateEntity(info);
+
+		// Construct it
+		Game::entityManager->ConstructEntity(companion);
+
+		CompanionRecord::SetCompanion(companion, variables->player);
+
+		if (!companionRecord->records.empty()) {
+			ActingDispatch(companion, companionRecord->records, 0, variables);
+		}
+
+		variables->entities.emplace(companion->GetObjectID());
+	}
+
+	auto* spawnRecord = dynamic_cast<SpawnRecord*>(record);
+
+	if (spawnRecord && variables != nullptr) {
+		EntityInfo info;
+		info.lot = spawnRecord->lot;
+		info.pos = spawnRecord->position;
+		info.rot = spawnRecord->rotation;
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = variables->player;
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// Spawn it
+		auto* entity = Game::entityManager->CreateEntity(info);
+
+		// Construct it
+		Game::entityManager->ConstructEntity(entity);
+
+		variables->entities.emplace(entity->GetObjectID());
+
+		if (!spawnRecord->onSpawnRecords.empty()) {
+			ActingDispatch(entity, spawnRecord->onSpawnRecords, 0, variables);
+		}
+
+		entity->AddDieCallback([entity, variables, spawnRecord]() {
+			variables->entities.erase(entity->GetObjectID());
+
+			ActingDispatch(entity, spawnRecord->onDespawnRecords, 0, variables);
+		});
+
+		auto* combatAIComponent = entity->GetComponent<BaseCombatAIComponent>();
+
+		if (combatAIComponent) {
+			combatAIComponent->SetAggroRadius(200);
+			combatAIComponent->SetSoftTetherRadius(200);
+			combatAIComponent->SetHardTetherRadius(200);
+			combatAIComponent->SetTarget(variables->player);
+		}
+	}
+
+	auto* missionRecord = dynamic_cast<MissionRecord*>(record);
+
+	if (missionRecord && variables != nullptr) {
+		auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+		if (playerEntity) {
+			auto* missionComponent = playerEntity->GetComponent<MissionComponent>();
+
+			if (missionComponent) {
+				missionComponent->CompleteMission(missionRecord->mission);
 			}
 		}
 	}
@@ -414,6 +512,12 @@ void Cinema::Recording::Recorder::LoadRecords(tinyxml2::XMLElement* root, std::v
 			record = new PathFindRecord();
 		} else if (name == "CombatAIRecord") {
 			record = new CombatAIRecord();
+		} else if (name == "CompanionRecord") {
+			record = new CompanionRecord();
+		} else if (name == "SpawnRecord") {
+			record = new SpawnRecord();
+		} else if (name == "MissionRecord") {
+			record = new MissionRecord();
 		} else {
 			LOG("Unknown record type: %s", name.c_str());
 			continue;
@@ -1198,3 +1302,170 @@ void Cinema::Recording::CombatAIRecord::Deserialize(tinyxml2::XMLElement* elemen
 
 	m_Delay = element->DoubleAttribute("t");
 }
+
+void Cinema::Recording::CompanionRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::CompanionRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CompanionRecord");
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+	
+}
+
+void Cinema::Recording::CompanionRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+
+	records.clear();
+
+	Recorder::LoadRecords(element, records);
+}
+
+void CompanionProtcol(Entity* entity, LWOOBJID follow) {
+	auto* followEntity = Game::entityManager->GetEntity(follow);
+
+	if (followEntity == nullptr) {
+		return;
+	}
+
+	auto* movementAI = entity->GetComponent<MovementAIComponent>();
+
+	if (movementAI == nullptr) {
+		movementAI = entity->AddComponent<MovementAIComponent>(MovementAIInfo());
+	}
+
+	if (movementAI == nullptr) {
+		return;
+	}
+
+	auto* combatAI = entity->GetComponent<BaseCombatAIComponent>();
+
+	if (combatAI == nullptr) {
+		return;
+	}
+
+	const auto distance = NiPoint3::Distance(entity->GetPosition(), followEntity->GetPosition());
+
+	combatAI->SetStartPosition(followEntity->GetPosition());
+	combatAI->SetSoftTetherRadius(15.0f);
+	combatAI->SetHardTetherRadius(25.0f);
+	combatAI->SetFocusPosition(followEntity->GetPosition());
+	combatAI->SetFocusRadius(5.0f);
+	auto& info = movementAI->GetInfo();
+	info.wanderChance = 1.0f;
+	info.wanderDelayMin = 0.5f;
+	info.wanderDelayMax = 1.0f;
+	info.wanderSpeed = 1.0f;
+
+	/*if (distance > 50.0f) {
+		movementAI->Warp(followEntity->GetPosition());
+
+		Game::entityManager->SerializeEntity(entity);
+	}*/
+
+	/*if (distance > 30.0f) {
+		movementAI->SetDestination(followEntity->GetPosition());
+		movementAI->SetHaltDistance(5.0f);
+		movementAI->SetMaxSpeed(1.0f);
+
+		if (combatAI) {
+			combatAI->SetDisabled(true);
+		}
+	}
+	else {
+		if (combatAI) {
+			combatAI->SetDisabled(false);
+		}
+	}*/
+
+	entity->AddCallbackTimer(1.0f, [entity, follow]() {
+		CompanionProtcol(entity, follow);
+	});
+}
+
+void Cinema::Recording::CompanionRecord::SetCompanion(Entity* actor, LWOOBJID player) {
+	CompanionProtcol(actor, player);
+}
+
+Cinema::Recording::SpawnRecord::SpawnRecord(LOT lot, const NiPoint3& position, const NiQuaternion& rotation) {
+	this->lot = lot;
+	this->position = position;
+	this->rotation = rotation;
+}
+
+void Cinema::Recording::SpawnRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::SpawnRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("SpawnRecord");
+
+	element->SetAttribute("lot", lot);
+	element->SetAttribute("x", position.x);
+	element->SetAttribute("y", position.y);
+	element->SetAttribute("z", position.z);
+
+	element->SetAttribute("qx", rotation.x);
+	element->SetAttribute("qy", rotation.y);
+	element->SetAttribute("qz", rotation.z);
+	element->SetAttribute("qw", rotation.w);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::SpawnRecord::Deserialize(tinyxml2::XMLElement* element) {
+	lot = element->IntAttribute("lot");
+
+	position.x = element->FloatAttribute("x");
+	position.y = element->FloatAttribute("y");
+	position.z = element->FloatAttribute("z");
+	
+	if (element->Attribute("qx")) {
+		rotation.x = element->FloatAttribute("qx");
+		rotation.y = element->FloatAttribute("qy");
+		rotation.z = element->FloatAttribute("qz");
+		rotation.w = element->FloatAttribute("qw");
+	}
+
+	m_Delay = element->DoubleAttribute("t");
+
+	auto* onSpawn = element->FirstChildElement("OnSpawn");
+
+	if (onSpawn) {
+		Recorder::LoadRecords(onSpawn, onSpawnRecords);
+	}
+
+	auto* onDespawn = element->FirstChildElement("OnDespawn");
+
+	if (onDespawn) {
+		Recorder::LoadRecords(onDespawn, onDespawnRecords);
+	}
+}
+
+Cinema::Recording::MissionRecord::MissionRecord(const int32_t& mission) {
+	this->mission = mission;
+}
+
+void Cinema::Recording::MissionRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::MissionRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("MissionRecord");
+
+	element->SetAttribute("mission", mission);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::MissionRecord::Deserialize(tinyxml2::XMLElement* element) {
+	mission = element->IntAttribute("mission");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+

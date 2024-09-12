@@ -13,6 +13,8 @@
 #include "SlashCommandHandler.h"
 #include "ChatPackets.h"
 #include "InventoryComponent.h"
+#include "MovementAIComponent.h"
+#include "Recorder.h"
 
 using namespace Cinema;
 
@@ -182,6 +184,14 @@ void Cinema::Scene::AutoLoadScenesForZone(LWOMAPID zone) {
 		.info = "",
 		.aliases = { "scene-setup" },
 		.handle = CommandSceneSetup,
+		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
+	});
+
+	SlashCommandHandler::RegisterCommand(Command{
+		.help = "",
+		.info = "",
+		.aliases = { "companion" },
+		.handle = CommandCompanion,
 		.requiredLevel = eGameMasterLevel::LEAD_MODERATOR
 	});
 
@@ -642,4 +652,48 @@ void Cinema::Scene::CommandSceneSetup(Entity* entity, const SystemAddress& sysAd
 	auto& scene = Cinema::Scene::LoadFromFile(splitArgs[0]);
 
 	scene.Rehearse();
+}
+
+void Cinema::Scene::CommandCompanion(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+	const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+	if (splitArgs.empty()) return;
+
+	EntityInfo info;
+	info.lot = 0;
+	info.pos = entity->GetPosition();
+	info.rot = entity->GetRotation();
+	info.scale = 1;
+	info.spawner = nullptr;
+	info.spawnerID = entity->GetObjectID();
+	info.spawnerNodeID = 0;
+	info.settings = {
+		new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+		new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+	};
+
+	// If there is an argument, set the lot
+	const auto lotOptional = GeneralUtils::TryParse<LOT>(splitArgs[0]);
+	if (lotOptional) {
+		info.lot = lotOptional.value();
+	} else {
+		ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+		return;
+	}
+
+	// Spawn it
+	auto* actor = Game::entityManager->CreateEntity(info);
+
+	// If there is an argument, set the actors name
+	if (args.size() > 1) {
+		actor->SetVar(u"npcName", args[1]);
+	}
+
+	// Construct it
+	Game::entityManager->ConstructEntity(actor);
+
+	const auto follow = entity->GetObjectID();
+
+	actor->AddCallbackTimer(1.0f, [actor, follow]() {
+		Cinema::Recording::CompanionRecord::SetCompanion(actor, follow);
+	});
 }
