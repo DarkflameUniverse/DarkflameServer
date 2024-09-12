@@ -1,0 +1,11 @@
+<Prefab>
+    <Object lot="359" x="0" y="0" z="0" rx="0" ry="0" rz="0"/>
+    <Object lot="53" x="0" y="5" z="0" rx="0" rz="0">
+        <Effect id="60073"/>
+    </Object>
+    <Object lot="359" x="0" y="5" z="0" rx="0" ry="0" rz="0"/>
+    <Object lot="359" x="0" y="10" z="0" rx="0" ry="0" rz="0"/>
+    <Object lot="53" x="0" y="0" z="0" rx="0" rz="0"/>
+    <Object lot="53" x="0" y="10" z="0" rx="0" rz="0"/>
+    <Object lot="53" x="0" y="15" z="0" rx="0" rz="0"/>
+</Prefab>

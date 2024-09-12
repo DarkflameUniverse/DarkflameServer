@@ -81,6 +81,9 @@
 #include "eLoginResponse.h"
 #include "SlashCommandHandler.h"
 
+#include "ServerPreconditions.h"
+#include "Scene.h"
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -301,6 +304,16 @@ int main(int argc, char** argv) {
 
 		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
+
+	// Load server-side preconditions if they exist
+	const auto& preconditionsPath = Game::config->GetValue("server_preconditions_path");
+
+	if (!preconditionsPath.empty()) {
+		ServerPreconditions::LoadPreconditions(preconditionsPath);
+	}
+
+	// Load scenes for the zone
+	Cinema::Scene::AutoLoadScenesForZone(zoneID);
 
 	uint32_t currentFrameDelta = highFrameDelta;
 	// These values are adjust them selves to the current framerate should it update.
@@ -1317,6 +1330,12 @@ void HandlePacket(Packet* packet) {
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+
+			auto* recorder = Cinema::Recording::Recorder::GetRecorder(user->GetLoggedInChar());
+
+			if (recorder != nullptr) {
+				recorder->AddRecord(new Cinema::Recording::SpeakRecord(sMessage));
+			}
 		}
 
 		break;
