@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
 
 		//Warning if we ran slow
 		if (deltaTime > currentFrameDelta) {
-			LOG("We're running behind, dT: %f > %f (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
+			LOG("We're running behind, dT: %f > %i (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
