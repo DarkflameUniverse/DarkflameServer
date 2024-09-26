@@ -86,7 +86,7 @@ private:
 	void SetupForMasterConnection();
 	bool ConnectToMaster();
 
-private:
+protected:
 	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
