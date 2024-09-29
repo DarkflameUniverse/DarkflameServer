@@ -96,6 +96,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
+Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
+
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
@@ -2133,6 +2135,8 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+
+	OnPlayerPositionUpdate.Notify(this, update);
 }
 
 const SystemAddress& Entity::GetSystemAddress() const {
