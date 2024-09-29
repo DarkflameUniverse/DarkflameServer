@@ -40,6 +40,7 @@ services:
       - MYSQL_PASSWORD=${MARIADB_PASSWORD:?error}
       - EXTERNAL_IP=${EXTERNAL_IP:-localhost}
       - CLIENT_NET_VERSION=${CLIENT_NET_VERSION:-171022}
+      - MAXIMUM_OUTGOING_BANDWIDTH=${MAXIMUM_OUTGOING_BANDWIDTH:0}
     depends_on:
       - darkflamedb
     ports:
