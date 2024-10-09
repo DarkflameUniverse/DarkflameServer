@@ -143,8 +143,12 @@ namespace GMZeroCommands {
 		LWOMAPID newZone = 0;
 
 		if (currentZone == 1001 || currentZone % 100 == 0) {
-			ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
-			return;
+			if (currentZone == 2101 || 2100) {
+				newZone = 2000;
+			} else {
+				ChatPackets::SendSystemMessage(sysAddr, u"You are not in an instanced zone.");
+				return;
+			}
 		} else {
 			newZone = (currentZone / 100) * 100;
 		}

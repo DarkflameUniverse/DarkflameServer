@@ -33,6 +33,24 @@ void InstanceExitTransferPlayerToLastNonInstance::OnMessageBoxResponse(Entity* s
 			// Sanity check
 			if (lastInstance == 0) {
 				switch (Game::server->GetZoneID()) {
+				case 2100:
+					lastInstance = 2000;
+					break;
+				case 2001:
+					lastInstance = 2000;
+					break;
+				case 1402:
+					lastInstance = 1400;
+					break;
+				default:
+					lastInstance = 1100;
+					break;
+				}
+			}
+			if (lastInstance == 1300) {
+				switch (Game::server->GetZoneID()) {
+				case 2100:
+					lastInstance = 2000;
 				case 2001:
 					lastInstance = 2000;
 					break;

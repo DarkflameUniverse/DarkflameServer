@@ -1,5 +1,6 @@
 #include "NjRailPostServer.h"
 #include "QuickBuildComponent.h"
+#include "SkillComponent.h"
 #include "EntityManager.h"
 
 void NjRailPostServer::OnStartup(Entity* self) {
@@ -36,6 +37,40 @@ void NjRailPostServer::OnQuickBuildNotifyState(Entity* self, eQuickBuildState st
 			return;
 
 		relatedRail->NotifyObject(self, "PostDied");
+	}
+}
+
+void NjRailPostServer::OnUse(Entity* self, Entity* user) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+
+	if (quickBuildComponent != nullptr && quickBuildComponent->GetState() != eQuickBuildState::COMPLETED &&
+	self->GetVar<int>(u"SpinnerIsUp") == 1) {		
+
+
+		self->SetVar<LWOOBJID>(u"lastUserID", user->GetObjectID());
+
+		self->AddTimer("FailRebuild", 1);	
+	}	
+
+}
+
+void NjRailPostServer::OnTimerDone(Entity* self, std::string timerName) {
+	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
+	const auto playerID = self->GetVar<LWOOBJID>(u"lastUserID");
+	auto* player = Game::entityManager->GetEntity(playerID);
+	
+	if (!player) return;
+	if (timerName == "FailRebuild") {	
+		auto* skillComponent = player->GetComponent<SkillComponent>();
+		
+		quickBuildComponent->ResetQuickBuild(true);
+		skillComponent->CalculateBehavior(1672, 40837, playerID, true);
+		
+		auto dir = player->GetRotation().GetForwardVector();
+		dir.y = 15;
+		dir.x = -dir.x * 20;
+		dir.z = -dir.z * 20;
+		GameMessages::SendKnockback(player->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 1000, dir);	
 	}
 }
 

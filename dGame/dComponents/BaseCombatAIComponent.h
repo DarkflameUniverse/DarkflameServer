@@ -387,6 +387,12 @@ private:
 	 * @return whether this entity is a mech
 	 */
 	bool IsMech();
+
+
+	int FTExclusiveTargetPosX;
+	int FTExclusiveCurrentPosY;
+	int FTExclusiveTargetPosZ;
+	int FTExclusiveEnemyLOT;
 };
 
 #endif // BASECOMBATAICOMPONENT_H

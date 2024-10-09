@@ -529,6 +529,14 @@ void ActivityInstance::StartZone() {
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);
 				player->GetCharacter()->SetZoneClone(zoneClone);
+				
+//				>fire temple ft<			
+//				Fuck it, just manually port target scenes here instead of HF connection							
+				if (zoneID == 2100) {
+					player->GetCharacter()->SetTargetScene("Entrance");
+				}	
+//				>Fire Temple ft< 		
+		
 			}
 
 			WorldPackets::SendTransferToWorld(player->GetSystemAddress(), serverIP, serverPort, mythranShift);

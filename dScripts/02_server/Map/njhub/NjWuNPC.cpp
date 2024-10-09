@@ -62,4 +62,31 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 			return;
 		}
 	}
+	
+	// Fire temple intro audio sequence
+	// (Just copy above idk lol)
+	
+	if (missionID == 2093) {
+		
+		auto* character = target->GetCharacter();
+		auto* missionComponent = target->GetComponent<MissionComponent>();
+		if (character == nullptr || missionComponent == nullptr)
+			return;
+
+		switch (missionState) {
+		case eMissionState::AVAILABLE:
+		case eMissionState::COMPLETE_AVAILABLE:
+		{
+			self->SetNetworkVar(u"introready", 1);
+			return;
+		}
+		case eMissionState::READY_TO_COMPLETE:
+		case eMissionState::COMPLETE_READY_TO_COMPLETE:	
+		{
+			self->SetNetworkVar(u"introready", 0);			
+		}
+		default:
+			return;
+		}
+	}	
 }

@@ -318,6 +318,28 @@ void GameMessages::SendPlayerSetCameraCyclingMode(const LWOOBJID& objectID, cons
 	SEND_PACKET;
 }
 
+void GameMessages::SendStopNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(entity->GetObjectID());
+	bitStream.Write(eGameMessageType::STOP_ND_AUDIO_EMITTER);
+	bitStream.Write0(); // callback message data {lwoobjid}
+	bitStream.Write0(); // audio emitterid {uint32_t}
+
+	uint32_t length = audioGUID.size();
+	bitStream.Write(length);
+	for (uint32_t k = 0; k < length; k++) {
+		bitStream.Write<char>(audioGUID[k]);
+	}
+
+	bitStream.Write<uint32_t>(0); // size of NDAudioMetaEventName (then print the string like the guid)
+	bitStream.Write0(); // result {bool}
+	bitStream.Write0(); // m_TargetObjectIDForNDAudioCallbackMessages {lwoobjid}
+
+	SEND_PACKET_BROADCAST;
+}
+
 void GameMessages::SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID) {
 	CBITSTREAM;
 	CMSGHEADER;

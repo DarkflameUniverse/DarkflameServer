@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <sstream>
 #include <vector>
+#include <map>
 
 #include "SkillComponent.h"
 #include "QuickBuildComponent.h"
@@ -26,6 +27,7 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
+#include "dZoneManager.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
@@ -684,6 +686,13 @@ void BaseCombatAIComponent::OnAggro() {
 
 	NiPoint3 targetPos = target->GetPosition();
 	NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	FTExclusiveTargetPosX = target->GetPosition().x;
+	FTExclusiveCurrentPosY = m_MovementAI->GetParent()->GetPosition().y;	
+	FTExclusiveTargetPosZ = target->GetPosition().z;	
+	NiPoint3 FTExclusiveNoYPos = NiPoint3(FTExclusiveTargetPosX, FTExclusiveCurrentPosY, FTExclusiveTargetPosZ);
+	
+	FTExclusiveEnemyLOT = m_MovementAI->GetParent()->GetLOT();
+// obscure names to remember don't delete ^^
 
 	// If the player's position is within range, attack
 	if (Vector3::DistanceSquared(currentPos, targetPos) <= m_AttackRadius * m_AttackRadius) {
@@ -700,6 +709,28 @@ void BaseCombatAIComponent::OnAggro() {
 		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
 
 		m_MovementAI->SetDestination(targetPos);
+
+// 	Since firetemple rooms comprised of flat surfaces, lock Y axis movement instead of making a navmesh	
+		if (Game::zoneManager->GetZoneID().GetMapID() == 2100 || Game::zoneManager->GetZoneID().GetMapID() == 2101) {				
+			m_MovementAI->SetDestination(targetPos);			
+			if (FTExclusiveEnemyLOT != 13999 && FTExclusiveEnemyLOT != 14000) {		
+				m_MovementAI->SetDestination(FTExclusiveNoYPos);							
+			} 
+			// Exclude for bone vultures since well... they fly!	^^^	
+			
+			
+			//	Unrelated stuff -> set garmadon's saved health
+			if (FTExclusiveEnemyLOT == 16810) {
+				auto* parentEntity = m_MovementAI->GetParent();
+				auto* parentDestroyable = parentEntity->GetComponent<DestroyableComponent>();	
+				
+				const auto savedHealth = parentEntity->GetVar<int>(u"CurrentHealth");
+
+				parentDestroyable->SetHealth(savedHealth);
+			}
+		}
+
+//	End here  ^^
 
 		SetAiState(AiState::tether);
 	}

@@ -294,6 +294,9 @@
 #include "ShardArmor.h"
 #include "TeslaPack.h"
 #include "StunImmunity.h"
+//Equipment fire temple
+#include "RubyShardPack.h"
+#include "OnyxShardPack.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -331,6 +334,40 @@
 #include <map>
 #include <string>
 #include <functional>
+
+// Fire Temple
+#include "FtZoneControl.h"
+#include "FtLeg.h"
+#include "FtMovingDoor.h"
+#include "FtMovingDoor4Statues.h"
+#include "FtWavesManager.h"
+#include "ElevatorSpinner.h"
+#include "BladesKillcountEvent.h"
+#include "SimpleOnceMover.h"
+#include "SpinnerSeesaw.h"
+#include "BaseInteractDropLootChest.h"
+#include "InstanceDragon.h"
+#include "SpinnerHighBlade.h"
+#include "SpinnerHighBladeGen.h"
+#include "NjElementDragonPetServer.h"
+#include "NjElementPetServer.h"
+#include "DoorIndicatorServer.h"
+#include "SpawnerSpinner30.h"
+#include "FtFlameJetServer.h"
+#include "TiersKillcountEvent.h"
+#include "SpinnerLowBlade.h"
+#include "SpinnerDart.h"
+#include "MillstoneEvent.h"
+#include "Button70.h"
+#include "SpawnerSpinner71.h"
+#include "FtMillstoneCinematic.h"
+#include "FtLowBlades.h"
+#include "SpinnerWaves.h"
+
+#include "FtGarmadonTornado.h"
+#include "FtBossManager.h"
+#include "FtBossActivators.h"
+
 
 namespace {
 	// This is in the translation unit instead of the header to prevent weird linker errors
@@ -642,7 +679,10 @@ namespace {
 		{"scripts\\equipmenttriggers\\gempack.lua", []() {return new GemPack();}},
 		{"scripts\\equipmenttriggers\\shardarmor.lua", []() {return new ShardArmor();}},
 		{"scripts\\equipmenttriggers\\coilbackpack.lua", []() {return new TeslaPack();}},
-		{"scripts\\EquipmentScripts\\stunImmunity.lua", []() {return new StunImmunity();}},
+		{"scripts\\EquipmentScripts\\stunImmunity.lua", []() {return new StunImmunity();}},		
+		//Equipment fire temple
+		{"scripts\\equipmenttriggers\\rubyshardpack.lua", []() {return new RubyShardPack();}},
+		{"scripts\\equipmenttriggers\\obyxshardpack.lua", []() {return new OnyxShardPack();}},
 
 		//FB
 		{"scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua", []() {return new RockHydrantBroken();}},
@@ -687,6 +727,38 @@ namespace {
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
 
+
+		//Fire Temple
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_ZONE_FIRE_TEMPLE_SERVER.lua", []() { return new FtZoneControl(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_LEG.lua", []() { return new FtLeg(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MOVING_DOOR.lua", []() { return new FtMovingDoor(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MOVING_DOOR_4STATUES.lua", []() { return new FtMovingDoor4Statues(); } },	
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_WAVES_MANAGER_SERVER.lua", []() { return new FtWavesManager(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BASE_INTERACT_DROP_LOOT_CHEST.lua", []() { return new BaseInteractDropLootChest(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SIMPLE_ONCE_MOVER.lua", []() { return new SimpleOnceMover(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BLADES_KILLCOUNT_EVENT.lua", []() { return new BladesKillcountEvent(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_ELEVATORSPINNER.lua", []() { return new ElevatorSpinner(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_SEESAW.lua", []() { return new SpinnerSeesaw(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPAWN_ELEMENT_PET_SERVER.lua", []() { return new NjElementDragonPetServer(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_ELEMENT_PET_SERVER.lua", []() { return new NjElementPetServer(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_INSTANCE_DRAGON.lua", []() { return new InstanceDragon(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_HIGHBLADE_GENERIC.lua", []() { return new SpinnerHighBladeGen(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_HIGHBLADE.lua", []() { return new SpinnerHighBlade(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_DOOR_INDICATOR_SERVER.lua", []() { return new DoorIndicatorServer(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPAWNER_SPINNER30.lua", []() { return new SpawnerSpinner30(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_FLAME_JET_SERVER.lua", []() { return new FtFlameJetServer(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_3TIER_KILLCOUNT_EVENT.lua", []() { return new TiersKillcountEvent(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_LOWBLADE.lua", []() { return new SpinnerLowBlade(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_DART.lua", []() { return new SpinnerDart(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MILLSTONE_EVENT.lua", []() { return new MillstoneEvent(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BUTTON70.lua", []() { return new Button70(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPAWNER_SPINNER71.lua", []() { return new SpawnerSpinner71(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MILLSTONE_CINEMATIC.lua", []() { return new FtMillstoneCinematic(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_LOWBLADES.lua", []() { return new FtLowBlades(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_ELEVATORSPINNER_WAVES.lua", []() { return new SpinnerWaves(); } },		
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BOSS_GARMADON_TORNADO.lua", []() { return new FtGarmadonTornado(); } },		
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BOSS_MANAGER_SERVER.lua", []() { return new FtBossManager(); } },		
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BOSS_ACTIVATORS_SERVER.lua", []() { return new FtBossActivators(); } },			
 	};
 };
 
