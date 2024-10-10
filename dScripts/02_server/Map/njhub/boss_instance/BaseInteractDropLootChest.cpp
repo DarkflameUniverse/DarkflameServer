@@ -8,7 +8,7 @@
 void BaseInteractDropLootChest::OnUse(Entity* self, Entity* user) {
 
 	if (self->GetLOT() == 16842) {
-		if (self->GetNetworkVar<int>(u"WasOpened") == 0) {
+		if (self->GetNetworkVar<int>(u"WasOpened") != 1) {
 			const auto teamSize = self->GetVar<int>(u"playercount");
 			if (teamSize ==	2) {	
 				self->SetVar<int32_t>(u"smashable_loot_matrix", 906);
@@ -52,18 +52,7 @@ void BaseInteractDropLootChest::OnUse(Entity* self, Entity* user) {
         self->SetVar<LWOOBJID>(u"UserId4", user->GetObjectID());
     } else if (userID5 == LWOOBJID(0)) {
         self->SetVar<LWOOBJID>(u"UserId5", user->GetObjectID());
-    }
-
-
-//	old for reference
-//	Need to alter client script to implement
-
-//	if (self->GetNetworkVar<bool>(u"bInUse")) {
-//		return;
-//	}	
-//	self->SetNetworkVar<bool>(u"bInUse", true);	
-	
-	
+    }	
 
 	if (self->GetVarAsString(u"trigger_id") == "25:2" && self->GetVar<int>(u"GateOpened") != 1) {
 		
@@ -108,7 +97,9 @@ void BaseInteractDropLootChest::BaseUse(Entity* self, Entity* user) {
 				auto* memberEntity = Game::entityManager->GetEntity(memberID);
 				Loot::DropLoot(memberEntity, self, lootMatrix, 0, 0);
 			}		
-		}
+		} else {
+			Loot::DropLoot(user, self, lootMatrix, 0, 0);
+		}	
 	}
 	
 
