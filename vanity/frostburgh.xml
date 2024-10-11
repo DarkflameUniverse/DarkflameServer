@@ -1,0 +1,14 @@
+<objects>
+	<!--nimbus to frostburgh-->
+	<object lot="12442">
+		<config>
+			<key>checkPrecondition=0:47</key>
+			<key>rocketLaunchPrecondition=0:47</key>
+			<key>rocketUseLaunchPrecondition=7:1</key>
+			<key>transferZoneID=0:1260</key>			
+		</config>
+		<locations>
+			<location zone="1200" x="-362.17" y="290" z="209.85" rw="0.92" rx="0.0" ry="-0.38" rz="0.0" />
+		</locations>
+	</object>
+</objects>

@@ -3,6 +3,8 @@
 #include "SkillComponent.h"
 #include "Character.h"
 
+//	Temp place to store DartSpinner Fire Activator
+
 void NjRailActivatorsServer::OnUse(Entity* self, Entity* user) {
 	const auto flag = self->GetVar<int32_t>(u"RailFlagNum");
 	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();
@@ -24,6 +26,19 @@ void NjRailActivatorsServer::OnUse(Entity* self, Entity* user) {
 		self->AddTimer("FailRebuild", 1);	
 	}	
 }
+
+void NjRailActivatorsServer::OnQuickBuildComplete(Entity* self, Entity* target) {	
+	if (self->GetVar<std::u16string>(u"RailGroup") == u"DartSpinnersFRail2") {
+		const auto EndpostEntity = Game::entityManager->GetEntitiesInGroup("DartSpinnersFRail2");		
+		for (auto* endpost : EndpostEntity) {
+			auto* quickBuildComponent = endpost->GetComponent<QuickBuildComponent>();	
+			if (quickBuildComponent == nullptr || quickBuildComponent->GetState() == eQuickBuildState::COMPLETED) {
+				self->SetNetworkVar<bool>(u"NetworkNotActive", false);	
+				self->SetVar<bool>(u"NotActive", false);	
+			}	
+		}			
+	}
+}	
 
 void NjRailActivatorsServer::OnTimerDone(Entity* self, std::string timerName) {
 	auto* quickBuildComponent = self->GetComponent<QuickBuildComponent>();

@@ -736,7 +736,7 @@ namespace {
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_WAVES_MANAGER_SERVER.lua", []() { return new FtWavesManager(); } },
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BASE_INTERACT_DROP_LOOT_CHEST.lua", []() { return new BaseInteractDropLootChest(); } },
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SIMPLE_ONCE_MOVER.lua", []() { return new SimpleOnceMover(); } },
-		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BLADES_KILLCOUNT_EVENT.lua", []() { return new BladesKillcountEvent(); } },
+		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BSPINNERS_VOL.lua", []() { return new BladesKillcountEvent(); } },
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_ELEVATORSPINNER.lua", []() { return new ElevatorSpinner(); } },
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPINNER_SEESAW.lua", []() { return new SpinnerSeesaw(); } },
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_SPAWN_ELEMENT_PET_SERVER.lua", []() { return new NjElementDragonPetServer(); } },

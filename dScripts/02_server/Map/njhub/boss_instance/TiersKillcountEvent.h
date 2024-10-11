@@ -9,13 +9,9 @@ public:
 
 	void OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) override;
 
-	void SpawnLegs(Entity* self, const std::string& loc);
+	void RunDieCallbacks(Entity* self);
 
-	void OnChildLoaded(Entity* self, Entity* child);
-
-	void NotifyDie(Entity* self, Entity* other, Entity* killer);
-
-	void OnChildRemoved(Entity* self, Entity* child);
+	void EntitySmashed(Entity* self);
 
 	void OnTimerDone(Entity* self, std::string timerName) override;
 

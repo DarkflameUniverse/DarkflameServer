@@ -77,31 +77,18 @@ void ElevatorSpinner::OnSkillEventFired(Entity* self, Entity* caster, const std:
 		const auto AttachedPath = self->GetVar<std::u16string>(u"attached_path");
 		if (AttachedPath == u"ZSpinner01") {			
 			self->SetNetworkVar(u"lowmed", 1);	
-			self->AddTimer("FlourishLowMed", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner12" || AttachedPath == u"ZSpinner13" ) {			
+		} else if (AttachedPath == u"ZSpinner12" || AttachedPath == u"ZSpinner13" ) {			
 			self->SetNetworkVar(u"lowshort", 1);	
-			self->AddTimer("FlourishLowShort", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner14") {			
-			self->SetNetworkVar(u"lowshort", 1);	
-			self->AddTimer("FlourishLowShortFinal", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner52" || AttachedPath == u"ZSpinner51") {			
-			self->SetNetworkVar(u"midshort", 1);	
-			self->AddTimer("FlourishMidShort", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner59") {			
-			self->SetNetworkVar(u"midmed", 1);	
-			self->AddTimer("FlourishMidMed", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner57" || AttachedPath == u"ZSpinner64") {			
-			self->SetNetworkVar(u"midmed", 1);	
-			self->AddTimer("FlourishMidMed2", 1.4f);	
-		}
-		else if (AttachedPath == u"ZSpinner58" || AttachedPath == u"ZSpinner65" || AttachedPath == u"ZSpinner50") {			
-			self->SetNetworkVar(u"midshort", 1);	
-			self->AddTimer("FlourishMidShort2", 1.4f);	
+		} else if (AttachedPath == u"ZSpinner14") {			
+			self->SetNetworkVar(u"lowshort2", 1);	
+		} else if (AttachedPath == u"ZSpinner52" || AttachedPath == u"ZSpinner51") {			
+			self->SetNetworkVar(u"midshort", 1);		
+		} else if (AttachedPath == u"ZSpinner59") {			
+			self->SetNetworkVar(u"midmed", 1);		
+		} else if (AttachedPath == u"ZSpinner57" || AttachedPath == u"ZSpinner64") {			
+			self->SetNetworkVar(u"midmed2", 1);		
+		} else if (AttachedPath == u"ZSpinner58" || AttachedPath == u"ZSpinner65" || AttachedPath == u"ZSpinner50") {			
+			self->SetNetworkVar(u"midshort2", 1);	
 		}
 
 		if (caster1 != caster) {
@@ -258,32 +245,7 @@ void ElevatorSpinner::OnTimerDone(Entity* self, std::string timerName) {
 				}
 			}
 		}
-//	End	
-	}	
-	
-//	Flourish timers	
-	else if (timerName == "FlourishLowMed") {
-		self->SetNetworkVar(u"flourishlowmed", 1);	
 	}
-	else if (timerName == "FlourishLowShort") {
-		self->SetNetworkVar(u"flourishlowshort", 1);	
-	}	
-	else if (timerName == "FlourishLowShortFinal") {
-		self->SetNetworkVar(u"flourishlowshortfinal", 1);	
-	}	
-	else if (timerName == "FlourishMidShort") {
-		self->SetNetworkVar(u"flourishmidshort", 1);	
-	}	
-	else if (timerName == "FlourishMidShort2") {
-		self->SetNetworkVar(u"flourishmidshort2", 1);
-	}	
-	else if (timerName == "FlourishMidMed") {
-		self->SetNetworkVar(u"flourishmidmed", 1);
-	}
-	else if (timerName == "FlourishMidMed2") {
-		self->SetNetworkVar(u"flourishmidmed2", 1);
-	}	
-
 
 //Handle spinner sound orders
 	else if (timerName == "AscentGUID") {

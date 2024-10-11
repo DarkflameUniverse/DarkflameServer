@@ -55,8 +55,6 @@ void VanityUtilities::SpawnVanity() {
 		}
 	}
 
-	if (Game::config->GetValue("disable_vanity") == "1") return;
-
 	for (const auto& npc : objects) {
 		if (npc.m_ID == LWOOBJID_EMPTY) continue;
 		if (npc.m_LOT == 176){
@@ -70,9 +68,15 @@ void VanityUtilities::SpawnVanity() {
 
 	objects.clear();
 	loadedFiles.clear();
-
-	ParseXml((BinaryPathFinder::GetBinaryDir() / "vanity/root.xml").string());
-
+	
+	if (Game::config->GetValue("disable_vanity") == "0") {	
+		ParseXml((BinaryPathFinder::GetBinaryDir() / "vanity/root.xml").string());
+	} 
+	if (Game::config->GetValue("disable_frostburgh") == "0") {
+		ParseXml((BinaryPathFinder::GetBinaryDir() / "vanity/frostburgh_root.xml").string());
+	} 
+	
+	
 	// Loop through all objects
 	for (auto& object : objects) {
 		if (object.m_Locations.find(Game::server->GetZoneID()) == object.m_Locations.end()) continue;
