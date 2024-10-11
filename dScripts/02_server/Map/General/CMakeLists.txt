@@ -9,6 +9,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL
 	"ImaginationBackpackHealServer.cpp"
 	"MailBoxServer.cpp"
 	"NjRailSwitch.cpp"
+	"SimpleMoverSwitch.cpp"
 	"PetDigServer.cpp"
 	"PropertyDevice.cpp"
 	"PropertyPlatform.cpp"

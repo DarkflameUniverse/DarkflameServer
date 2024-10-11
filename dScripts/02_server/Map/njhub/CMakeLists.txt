@@ -14,6 +14,8 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB
 	"NjDragonEmblemChestServer.cpp"
 	"NjEarthDragonPetServer.cpp"
 	"NjEarthPetServer.cpp"
+	"NjFireRocks.cpp"
+	"NjFireRocksManager.cpp"
 	"NjGarmadonCelebration.cpp"
 	"NjJayMissionItems.cpp"
 	"NjNPCMissionSpinjitzuServer.cpp"
