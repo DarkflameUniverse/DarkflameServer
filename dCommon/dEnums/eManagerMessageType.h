@@ -1,9 +1,9 @@
-#ifndef __EMASTERMESSAGETYPE__H__
-#define __EMASTERMESSAGETYPE__H__
+#ifndef __EMANAGERMESSAGETYPE__H__
+#define __EMANAGERMESSAGETYPE__H__
 
 #include <cstdint>
 
-enum class eMasterMessageType : uint32_t {
+enum class eManagerMessageType : uint32_t {
 	REQUEST_PERSISTENT_ID = 1,
 	REQUEST_PERSISTENT_ID_RESPONSE,
 	REQUEST_ZONE_TRANSFER,
@@ -33,4 +33,4 @@ enum class eMasterMessageType : uint32_t {
 	NEW_SESSION_ALERT
 };
 
-#endif  //!__EMASTERMESSAGETYPE__H__
+#endif  //!__EMANAGERMESSAGETYPE__H__

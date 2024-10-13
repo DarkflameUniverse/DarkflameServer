@@ -16,6 +16,8 @@ class EntityManager;
 class dZoneManager;
 class PlayerContainer;
 
+#include "TransportPeerInterface.h"
+
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;
 	extern Logger* logger;
@@ -24,7 +26,7 @@ namespace Game {
 	extern dChatFilter* chatFilter;
 	extern dConfig* config;
 	extern std::mt19937 randomEngine;
-	extern RakPeerInterface* chatServer;
+	extern TransportPeerInterface* chatServer;
 	extern AssetManager* assetManager;
 	extern SystemAddress chatSysAddr;
 	extern signal_t lastSignal;

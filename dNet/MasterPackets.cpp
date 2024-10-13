@@ -1,23 +1,23 @@
 #include "MasterPackets.h"
 #include "BitStream.h"
 #include "dCommonVars.h"
-#include "dServer.h"
+#include "TransportLayer.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "eManagerMessageType.h"
 #include "BitStreamUtils.h"
 
 #include <string>
 
-void MasterPackets::SendPersistentIDRequest(dServer* server, uint64_t requestID) {
+void MasterPackets::SendPersistentIDRequest(TransportLayer* server, uint64_t requestID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_PERSISTENT_ID);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_PERSISTENT_ID);
 	bitStream.Write(requestID);
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }
 
-void MasterPackets::SendPersistentIDResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, uint32_t objID) {
+void MasterPackets::SendPersistentIDResponse(TransportLayer* server, const SystemAddress& sysAddr, uint64_t requestID, uint32_t objID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_PERSISTENT_ID_RESPONSE);
 
 	bitStream.Write(requestID);
 	bitStream.Write(objID);
@@ -25,21 +25,21 @@ void MasterPackets::SendPersistentIDResponse(dServer* server, const SystemAddres
 	server->Send(bitStream, sysAddr, false);
 }
 
-void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID) {
+void MasterPackets::SendZoneTransferRequest(TransportLayer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_ZONE_TRANSFER);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_ZONE_TRANSFER);
 
 	bitStream.Write(requestID);
 	bitStream.Write<uint8_t>(mythranShift);
 	bitStream.Write(zoneID);
 	bitStream.Write(cloneID);
 
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }
 
-void MasterPackets::SendZoneCreatePrivate(dServer* server, uint32_t zoneID, uint32_t cloneID, const std::string& password) {
+void MasterPackets::SendZoneCreatePrivate(TransportLayer* server, uint32_t zoneID, uint32_t cloneID, const std::string& password) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::CREATE_PRIVATE_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::CREATE_PRIVATE_ZONE);
 
 	bitStream.Write(zoneID);
 	bitStream.Write(cloneID);
@@ -49,12 +49,12 @@ void MasterPackets::SendZoneCreatePrivate(dServer* server, uint32_t zoneID, uint
 		bitStream.Write<char>(character);
 	}
 
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }
 
-void MasterPackets::SendZoneRequestPrivate(dServer* server, uint64_t requestID, bool mythranShift, const std::string& password) {
+void MasterPackets::SendZoneRequestPrivate(TransportLayer* server, uint64_t requestID, bool mythranShift, const std::string& password) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_PRIVATE_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_PRIVATE_ZONE);
 
 	bitStream.Write(requestID);
 	bitStream.Write<uint8_t>(mythranShift);
@@ -64,22 +64,22 @@ void MasterPackets::SendZoneRequestPrivate(dServer* server, uint64_t requestID, 
 		bitStream.Write<char>(character);
 	}
 
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }
 
-void MasterPackets::SendWorldReady(dServer* server, LWOMAPID zoneId, LWOINSTANCEID instanceId) {
+void MasterPackets::SendWorldReady(TransportLayer* server, LWOMAPID zoneId, LWOINSTANCEID instanceId) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::WORLD_READY);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::WORLD_READY);
 
 	bitStream.Write(zoneId);
 	bitStream.Write(instanceId);
 
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }
 
-void MasterPackets::SendZoneTransferResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, const std::string& serverIP, uint32_t serverPort) {
+void MasterPackets::SendZoneTransferResponse(TransportLayer* server, const SystemAddress& sysAddr, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, const std::string& serverIP, uint32_t serverPort) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_ZONE_TRANSFER_RESPONSE);
 
 	bitStream.Write(requestID);
 	bitStream.Write<uint8_t>(mythranShift);
@@ -109,9 +109,9 @@ void MasterPackets::HandleServerInfo(Packet* packet) {
 	//TODO: Actually mark this server as an available server in the manager
 }
 
-void MasterPackets::SendServerInfo(dServer* server, Packet* packet) {
+void MasterPackets::SendServerInfo(TransportLayer* server, Packet* packet) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SERVER_INFO);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::SERVER_INFO);
 
 	bitStream.Write(server->GetPort());
 	bitStream.Write(server->GetZoneID());
@@ -119,5 +119,5 @@ void MasterPackets::SendServerInfo(dServer* server, Packet* packet) {
 	bitStream.Write(server->GetServerType());
 	bitStream.Write(LUString(server->GetIP()));
 
-	server->SendToMaster(bitStream);
+	server->SendToManager(bitStream);
 }

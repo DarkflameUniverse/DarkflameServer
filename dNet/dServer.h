@@ -1,32 +1,14 @@
 #pragma once
 #include <string>
 #include <csignal>
-#include "RakPeerInterface.h"
-#include "ReplicaManager.h"
-#include "NetworkIDManager.h"
+#include <memory>
 
-class Logger;
-class dConfig;
-enum class eServerDisconnectIdentifiers : uint32_t;
+#include "TransportLayer.h"
 
-enum class ServerType : uint32_t {
-	Master,
-	Auth,
-	Chat,
-	World
+enum class TransportType : uint32_t {
+	RakNet,
+	Tcp
 };
-
-enum class ServiceId : uint32_t{
-	General = 0,
-	Auth = 1,
-	Chat = 2,
-	World = 4,
-	Client = 5,
-};
-
-namespace Game {
-	using signal_t = volatile std::sig_atomic_t;
-}
 
 class dServer {
 public:
@@ -45,73 +27,85 @@ public:
 		ServerType serverType,
 		dConfig* config,
 		Game::signal_t* shouldShutdown,
-		unsigned int zoneID = 0);
+		unsigned int zoneID = 0
+	);
+
 	~dServer();
 
 	Packet* ReceiveFromMaster();
+	
 	Packet* Receive();
+
 	void DeallocatePacket(Packet* packet);
+
 	void DeallocateMasterPacket(Packet* packet);
+
 	virtual void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast);
+
 	void SendToMaster(RakNet::BitStream& bitStream);
 
 	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
 
 	bool IsConnected(const SystemAddress& sysAddr);
-	const std::string& GetIP() const { return mIP; }
-	const int GetPort() const { return mPort; }
-	const int GetMaxConnections() const { return mMaxConnections; }
-	const bool GetIsEncrypted() const { return mUseEncryption; }
-	const bool GetIsInternal() const { return mIsInternal; }
-	const bool GetIsOkay() const { return mIsOkay; }
-	Logger* GetLogger() const { return mLogger; }
-	const bool GetIsConnectedToMaster() const { return mMasterConnectionActive; }
-	const unsigned int GetZoneID() const { return mZoneID; }
-	const int GetInstanceID() const { return mInstanceID; }
-	ReplicaManager* GetReplicaManager() { return mReplicaManager; }
-	void UpdateReplica();
-	void UpdateBandwidthLimit();
-	void UpdateMaximumMtuSize();
+
+	const std::string& GetIP() const;
+
+	const int GetPort() const;
+
+	const int GetMaxConnections() const;
+	
+	const bool GetIsEncrypted() const;
+
+	const bool GetIsInternal() const;
+
+	const bool GetIsOkay() const;
+
+	Logger* GetLogger() const;
+
+	const bool GetIsConnectedToMaster() const;
+
+	const unsigned int GetZoneID() const;
+
+	const int GetInstanceID() const;
 
 	int GetPing(const SystemAddress& sysAddr) const;
+
 	int GetLatestPing(const SystemAddress& sysAddr) const;
 
-	NetworkIDManager* GetNetworkIDManager() { return mNetIDManager; }
-
-	const ServerType GetServerType() const { return mServerType; }
-
-private:
-	bool Startup();
-	void Shutdown();
-	void SetupForMasterConnection();
-	bool ConnectToMaster();
-
-private:
-	Logger* mLogger = nullptr;
-	dConfig* mConfig = nullptr;
-	RakPeerInterface* mPeer = nullptr;
-	ReplicaManager* mReplicaManager = nullptr;
-	NetworkIDManager* mNetIDManager = nullptr;
+	const ServerType GetServerType() const;
 
 	/**
-	 * Whether or not to shut down the server.  Pointer to Game::lastSignal.
+	 * @brief Gets the transport layer.
+	 * 
+	 * @return The TransportLayer instance.
 	 */
-	Game::signal_t* mShouldShutdown = nullptr;
-	SocketDescriptor mSocketDescriptor;
-	std::string mIP;
-	int mPort;
-	int mMaxConnections;
-	unsigned int mZoneID;
-	int mInstanceID;
-	bool mUseEncryption;
-	bool mIsInternal;
-	bool mIsOkay;
-	bool mMasterConnectionActive;
-	ServerType mServerType;
+	const std::unique_ptr<TransportLayer>& GetTransportLayer() const;
 
-	RakPeerInterface* mMasterPeer = nullptr;
-	SocketDescriptor mMasterSocketDescriptor;
-	SystemAddress mMasterSystemAddress;
-	std::string mMasterIP;
-	int mMasterPort;
+	/**
+	 * @brief Gets the transport type.
+	 * 
+	 * @return The transport type.
+	 */
+	const TransportType GetTransportType() const;
+
+	/**
+	 * Implicit conversion to TransportLayer*.
+	 */
+	operator TransportLayer*() const {
+		return m_TransportLayer.get();
+	}
+
+	/**
+	 * @brief Get pointer to the TransportLayer.
+	 * 
+	 * @return Pointer to the TransportLayer.
+	 */
+	TransportLayer* GetTransportLayerPtr() const {
+		return m_TransportLayer.get();
+	}
+
+private:
+	TransportType m_TransportType;
+
+	std::unique_ptr<TransportLayer> m_TransportLayer;
 };

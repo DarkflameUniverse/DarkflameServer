@@ -10,7 +10,7 @@
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "eManagerMessageType.h"
 
 #include "Start.h"
 
@@ -157,7 +157,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 		LOG("Responding to pending request %llu -> %i (%i)", request, zoneId.GetMapID(), zoneId.GetCloneID());
 
 		MasterPackets::SendZoneTransferResponse(
-			Game::server,
+			Game::server->GetTransportLayerPtr(),
 			request.sysAddr,
 			request.id,
 			request.mythranShift,
@@ -177,7 +177,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
 
@@ -200,7 +200,7 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 		const auto& zoneId = instance->GetZoneID();
 
 		MasterPackets::SendZoneTransferResponse(
-			Game::server,
+			Game::server->GetTransportLayerPtr(),
 			request.sysAddr,
 			request.id,
 			request.mythranShift,
@@ -359,7 +359,7 @@ bool Instance::GetShutdownComplete() const {
 void Instance::Shutdown() {
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::SHUTDOWN);
 
 	Game::server->Send(bitStream, this->m_SysAddr, false);
 

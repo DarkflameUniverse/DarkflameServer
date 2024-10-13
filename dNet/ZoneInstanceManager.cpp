@@ -20,7 +20,7 @@ void ZoneInstanceManager::RequestZoneTransfer(dServer* server, uint32_t zoneID, 
 
 	this->requests.push_back(request);
 
-	MasterPackets::SendZoneTransferRequest(server, request->requestID, mythranShift, zoneID, zoneClone);
+	MasterPackets::SendZoneTransferRequest(server->GetTransportLayerPtr(), request->requestID, mythranShift, zoneID, zoneClone);
 }
 
 //! Handles a zone transfer response
@@ -58,7 +58,7 @@ void ZoneInstanceManager::HandleRequestZoneTransferResponse(Packet* packet) {
 }
 
 void ZoneInstanceManager::CreatePrivateZone(dServer* server, uint32_t zoneID, uint32_t zoneClone, const std::string& password) {
-	MasterPackets::SendZoneCreatePrivate(server, zoneID, zoneClone, password);
+	MasterPackets::SendZoneCreatePrivate(server->GetTransportLayerPtr(), zoneID, zoneClone, password);
 }
 
 void ZoneInstanceManager::RequestPrivateZone(
@@ -72,5 +72,5 @@ void ZoneInstanceManager::RequestPrivateZone(
 
 	this->requests.push_back(request);
 
-	MasterPackets::SendZoneRequestPrivate(server, request->requestID, mythranShift, password);
+	MasterPackets::SendZoneRequestPrivate(server->GetTransportLayerPtr(), request->requestID, mythranShift, password);
 }
