@@ -21,7 +21,7 @@
 #include "eLoginResponse.h"
 #include "eConnectionType.h"
 #include "eServerMessageType.h"
-#include "eMasterMessageType.h"
+#include "eManagerMessageType.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 namespace {
@@ -60,7 +60,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 
 	uint16_t port;
 	inStream.Read(port);
-	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over!");
+	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over, %i != %i!", port, packet->systemAddress.port);
 
 	inStream.IgnoreBytes(33);
 	
@@ -297,7 +297,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);

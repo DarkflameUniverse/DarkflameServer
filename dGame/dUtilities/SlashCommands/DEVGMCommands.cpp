@@ -45,9 +45,10 @@
 
 // Enums
 #include "eGameMasterLevel.h"
-#include "eMasterMessageType.h"
+#include "eManagerMessageType.h"
 #include "eInventoryType.h"
 #include "ePlayerFlag.h"
+#include <RakNetTransportLayer.h>
 
 
 namespace DEVGMCommands {
@@ -503,7 +504,7 @@ namespace DEVGMCommands {
 	void ShutdownUniverse(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
@@ -1247,8 +1248,16 @@ namespace DEVGMCommands {
 
 			scriptedActivityComponent->ReloadConfig();
 		}
-		Game::server->UpdateMaximumMtuSize();
-		Game::server->UpdateBandwidthLimit();
+
+		if (Game::server->GetTransportType() == TransportType::RakNet) {
+			const auto& transport = Game::server->GetTransportLayer();
+
+			auto* raknetTransport = static_cast<RakNetTransportLayer*>(transport.get());
+
+			raknetTransport->UpdateMaximumMtuSize();
+			raknetTransport->UpdateBandwidthLimit();
+		}
+
 		ChatPackets::SendSystemMessage(sysAddr, u"Successfully reloaded config for world!");
 	}
 
