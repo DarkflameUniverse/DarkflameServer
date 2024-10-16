@@ -47,8 +47,7 @@ void SpinnerDart::OnTimerDone(Entity* self, std::string timerName) {
 		self->AddTimer("IdleUp", 1.0f);	
 		
 //		Ascend sfx
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-		self->AddTimer("AscentGUID", 0.1f);
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");
 	}
 	
 	else if (timerName == "MoveDown") {	
@@ -66,8 +65,7 @@ void SpinnerDart::OnTimerDone(Entity* self, std::string timerName) {
 		self->CancelTimer("IdleUp");		
 		
 //		Descend sfx
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{40e86d71-084c-4149-884e-ab9b45b694dc}");	
-		self->AddTimer("DescentGUID", 0.1f);
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
 	}
 	
 	else if (timerName == "IdleUp") {	
@@ -120,12 +118,5 @@ void SpinnerDart::OnTimerDone(Entity* self, std::string timerName) {
 			}	
 		}
 	}	
-//Handle spinner sound orders
-	else if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");		
-	}
-	else if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}
 }
 

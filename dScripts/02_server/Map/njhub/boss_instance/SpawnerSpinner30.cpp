@@ -184,8 +184,7 @@ void SpawnerSpinner30::OnTimerDone(Entity* self, std::string timerName) {
 		RenderComponent::PlayAnimation(self, u"up");	
 		
 //		Ascend sfx
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-		self->AddTimer("AscentGUID", 0.1f);		
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
 	}
 	if (timerName == "BeetlesA") {
 		AIsActivated = 1;
@@ -211,14 +210,6 @@ void SpawnerSpinner30::OnTimerDone(Entity* self, std::string timerName) {
 		SpawnLegs(self, "BeetlesD1");	
 		SpawnLegs(self, "BeetlesD2");	
 	}
-	
-//Handle spinner sound orders
-	if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
-	}
-	if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}	
 }
 
 //Statue default val

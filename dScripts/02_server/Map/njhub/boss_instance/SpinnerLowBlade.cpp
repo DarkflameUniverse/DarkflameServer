@@ -12,10 +12,6 @@
 #include "SkillComponent.h"
 
 void SpinnerLowBlade::OnStartup(Entity* self) {
-	
-
-//	self->AddTimer("MoveBack", 21.8f);
-
 
 	self->SetNetworkVar(u"bIsInUse", false);
 	self->SetVar(u"bActive", true);
@@ -82,8 +78,8 @@ void SpinnerLowBlade::TriggerDrill(Entity* self) {
 	}
 	
 //	Ascend sfx
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-	self->AddTimer("AscentGUID", 0.1f);	
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
+	self->AddTimer("BladeGUID", 1.4f);		
 	
 }
 
@@ -121,8 +117,7 @@ void SpinnerLowBlade::OnTimerDone(Entity* self, std::string timerName) {
 //		Descend sfx
 		GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{dcd06295-949b-4179-8b99-129116def406}");	
 		GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{3062c5b2-b35a-4935-863f-a8c170aa1444}");	
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{40e86d71-084c-4149-884e-ab9b45b694dc}");	
-		self->AddTimer("DescentGUID", 0.1f);		
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");			
 //		End		
 		return;	
 	}
@@ -139,20 +134,12 @@ void SpinnerLowBlade::OnTimerDone(Entity* self, std::string timerName) {
 		RenderComponent::PlayAnimation(self, u"idle");
 	}
 	
-//Handle spinner sound orders
-	else if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
-		self->AddTimer("BladeGUID", 1.4f);		
-	}
+//Handle blades GUID
 	else if (timerName == "BladeGUID") {
 		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{dcd06295-949b-4179-8b99-129116def406}");
 		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{3062c5b2-b35a-4935-863f-a8c170aa1444}");			
 
 	}
-	else if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}
-
 }
 
 

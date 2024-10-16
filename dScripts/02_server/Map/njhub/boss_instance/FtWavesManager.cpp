@@ -2,9 +2,6 @@
 //	all the code got funneled into the timers
 //	goodluck trying to clean this :P
 
-
-
-
 #include "FtWavesManager.h"
 #include "GameMessages.h"
 #include "ProximityMonitorComponent.h"

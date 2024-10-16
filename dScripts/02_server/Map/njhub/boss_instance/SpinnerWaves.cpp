@@ -55,8 +55,7 @@ void SpinnerWaves::TriggerDrill(Entity* self) {
 	RenderComponent::PlayAnimation(self, u"up");
 	
 //	Ascend sfx
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-	self->AddTimer("AscentGUID", 0.1f);
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
 	
 //	Notify door
 	auto DoorEntity = Game::entityManager->GetEntitiesInGroup("WavesDoor");	
@@ -68,9 +67,8 @@ void SpinnerWaves::TriggerDrill(Entity* self) {
 
 
 void SpinnerWaves::OnTimerDone(Entity* self, std::string timerName) {
-	if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
-	} else if (timerName == "ActivateSpinner") {
+	
+	if (timerName == "ActivateSpinner") {
 		self->SetNetworkVar(u"bIsInUse", false);
 		self->SetVar(u"bActive", true);	
 		

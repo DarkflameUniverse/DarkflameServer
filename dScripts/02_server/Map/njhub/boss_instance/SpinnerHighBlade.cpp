@@ -88,8 +88,8 @@ void SpinnerHighBlade::SpinnerAscend(Entity* self) {
 	self->AddTimer("BladeRadius", 3.5f);
 	
 //	Ascend sfx
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-	self->AddTimer("AscentGUID", 0.1f);		
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
+	self->AddTimer("BladeGUID", 1.4f);		
 }	
 	
 void SpinnerHighBlade::SpinnerDescend(Entity* self) {	
@@ -100,8 +100,7 @@ void SpinnerHighBlade::SpinnerDescend(Entity* self) {
 	
 //	Descend sfx
 	GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{ab21b048-5d1a-40b3-9203-88b376f92087}");		
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{40e86d71-084c-4149-884e-ab9b45b694dc}");	
-	self->AddTimer("DescentGUID", 0.1f);	
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
 
 	self->AddTimer("Unlock", 4);		
 }
@@ -173,14 +172,7 @@ void SpinnerHighBlade::OnTimerDone(Entity* self, std::string timerName) {
 		self->SetNetworkVar(u"bIsInUse", false);
 		self->SetVar(u"bActive", true);		
 	}		
-//	Handle spinner sound orders
-	else if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
-		self->AddTimer("BladeGUID", 1.4f);		
-	}
-	else if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}
+//	Handle blades GUID
 	else if (timerName == "BladeGUID") {
 		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{ab21b048-5d1a-40b3-9203-88b376f92087}");	
 

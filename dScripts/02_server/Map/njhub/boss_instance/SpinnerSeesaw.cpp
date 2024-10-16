@@ -80,8 +80,7 @@ void SpinnerSeesaw::SpinnerAscend(Entity* self) {
 	RenderComponent::PlayAnimation(self, u"up");
 	
 //	Ascend sfx
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-	self->AddTimer("AscentGUID", 0.1f);		
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");			
 }	
 	
 void SpinnerSeesaw::SpinnerDescend(Entity* self) {	
@@ -92,8 +91,7 @@ void SpinnerSeesaw::SpinnerDescend(Entity* self) {
 	RenderComponent::PlayAnimation(self, u"down");
 	
 //	Descend sfx		
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{40e86d71-084c-4149-884e-ab9b45b694dc}");	
-	self->AddTimer("DescentGUID", 0.1f);	
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");		
 
 	self->AddTimer("Unlock", 4);		
 }
@@ -135,11 +133,4 @@ void SpinnerSeesaw::OnTimerDone(Entity* self, std::string timerName) {
 		}	
 		SpinnerDescend(self);	
 	}
-//	Handle spinner sound orders
-	else if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");		
-	}
-	else if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}	
 }

@@ -231,8 +231,7 @@ void SpawnerSpinner71::OnTimerDone(Entity* self, std::string timerName) {
 		RenderComponent::PlayAnimation(self, u"up");	
 		
 //		Ascend sfx
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-		self->AddTimer("AscentGUID", 0.1f);		
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");		
 
 	} else if (timerName == "SpawnBeetles") {
 		SpawnLegs(self, "Beetle1");	

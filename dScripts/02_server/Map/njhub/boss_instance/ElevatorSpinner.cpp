@@ -114,8 +114,7 @@ void ElevatorSpinner::TriggerDrill(Entity* self) {
 	RenderComponent::PlayAnimation(self, u"up");
 	
 //	Ascend sfx
-	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{5c30c263-00ae-42a2-80a3-2ae33c8f13fe}");	
-	self->AddTimer("AscentGUID", 0.1f);
+	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
 	
 //	Check if timed spinner
 	auto ResetTime = self->GetVar<int32_t>(u"reset_time");
@@ -156,8 +155,7 @@ void ElevatorSpinner::OnTimerDone(Entity* self, std::string timerName) {
 		self->AddTimer("DownAnim", 0.1f);
 
 //		Descend sfx
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{40e86d71-084c-4149-884e-ab9b45b694dc}");	
-		self->AddTimer("DescentGUID", 0.1f);
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
 		
 		self->AddTimer("Unlock", 2.5f);
 	}
@@ -248,9 +246,6 @@ void ElevatorSpinner::OnTimerDone(Entity* self, std::string timerName) {
 	}
 
 //Handle spinner sound orders
-	else if (timerName == "AscentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{7f770ade-b84c-46ad-b3ae-bdbace5985d4}");	
-	}
 //	TODO: Remake onwaypointreached to handle gamemessage version of platform resync since DLU's startpathing is shitty	
 //	^ All just to know when to end Movement sound loop
 	else if (timerName == "MovementGUID") {
@@ -258,10 +253,7 @@ void ElevatorSpinner::OnTimerDone(Entity* self, std::string timerName) {
 		if (!self->GetNetworkVar<bool>(u"bHasArrived")) {
 			self->AddTimer("MovementGUID", 1);
 		}
-	}
-	else if (timerName == "DescentGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
-	}		
+	}	
 }
 
 
