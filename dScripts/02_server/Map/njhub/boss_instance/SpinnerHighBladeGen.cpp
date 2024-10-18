@@ -79,7 +79,7 @@ void SpinnerHighBladeGen::SpinnerDescend(Entity* self) {
 	if (AttachedPath == u"ZSpinner53") {
 		GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{43d11dc0-a096-4595-8fbe-f95a4a0d951e}");	
 	} else {
-		GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{ab21b048-5d1a-40b3-9203-88b376f92087}");
+		GameMessages::SendStopNDAudioEmitter(self, self->GetSystemAddress(), "{b1bbe65e-330d-4ef6-a534-63e98dd199ec}");
 	}	
 	GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{97b60c03-51f2-45b6-80cc-ccbbef0d94cf}");	
 	
@@ -171,7 +171,7 @@ void SpinnerHighBladeGen::OnTimerDone(Entity* self, std::string timerName) {
 		if (AttachedPath == u"ZSpinner53") {
 			GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{43d11dc0-a096-4595-8fbe-f95a4a0d951e}");	
 		} else {
-			GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{ab21b048-5d1a-40b3-9203-88b376f92087}");	
+			GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{b1bbe65e-330d-4ef6-a534-63e98dd199ec}");	
 		}
 	}		
 }

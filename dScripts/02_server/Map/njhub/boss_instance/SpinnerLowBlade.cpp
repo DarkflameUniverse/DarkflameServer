@@ -136,9 +136,7 @@ void SpinnerLowBlade::OnTimerDone(Entity* self, std::string timerName) {
 	
 //Handle blades GUID
 	else if (timerName == "BladeGUID") {
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{dcd06295-949b-4179-8b99-129116def406}");
-		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{3062c5b2-b35a-4935-863f-a8c170aa1444}");			
-
+		GameMessages::SendPlayNDAudioEmitter(self, self->GetSystemAddress(), "{3062c5b2-b35a-4935-863f-a8c170aa1444}");		
 	}
 }
 
