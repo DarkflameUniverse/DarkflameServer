@@ -52,6 +52,7 @@ These commands are primarily for development and testing. The usage of many of t
 
 |Command|Usage|Description|Admin Level Requirement|
 |--- |--- |--- |--- |
+|resetmission|`/resetmission <mission id>`|Sets the state of the mission to accepted but not yet started.|0|
 |fix-stats|`/fix-stats`|Resets skills, buffs, and destroyables.|0|
 |join|`/join <password>`|Joins a private zone with given password.|0|
 |leave-zone|`/leave-zone` or <br> `/leavezone`|If you are in an instanced zone, transfers you to the closest main world. For example, if you are in an instance of Avant Gardens Survival or the Spider Queen Battle, you are sent to Avant Gardens. If you are in the Battle of Nimbus Station, you are sent to Nimbus Station.|0|
@@ -90,7 +91,6 @@ These commands are primarily for development and testing. The usage of many of t
 |pos|`/pos`|Displays your current position in chat and in the console.|8|
 |refillstats|`/refillstats`|Refills health, armor, and imagination to their maximum level.|8|
 |reforge|`/reforge <base item id> <reforged item id>`|Reforges an item.|8|
-|resetmission|`/resetmission <mission id>`|Sets the state of the mission to accepted but not yet started.|8|
 |rot|`/rot`|Displays your current rotation in chat and in the console.|8|
 |runmacro|`/runmacro <macro>`|Runs any command macro found in `./res/macros/`|8|
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|

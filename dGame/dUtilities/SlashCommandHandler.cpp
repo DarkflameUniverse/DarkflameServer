@@ -570,7 +570,7 @@ void SlashCommandHandler::Startup() {
 		.info = "Sets the state of the mission to accepted but not yet started",
 		.aliases = { "resetmission" },
 		.handle = DEVGMCommands::ResetMission,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(ResetMissionCommand);
 
