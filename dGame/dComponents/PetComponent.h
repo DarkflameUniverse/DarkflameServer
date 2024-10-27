@@ -205,7 +205,7 @@ public:
 	 *
 	 * @param item The item that represents this pet in the inventory.
 	 */
-	void AddDrainImaginationTimer(Item* item, bool fromTaming = false);
+	void AddDrainImaginationTimer(bool fromTaming = false);
 
 private:
 
