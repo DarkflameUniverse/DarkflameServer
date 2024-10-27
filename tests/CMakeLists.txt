@@ -15,6 +15,9 @@ endif()
 add_custom_target(conncpp_tests
 	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
+add_custom_target(zlib_tests
+	${CMAKE_COMMAND} -E copy $<TARGET_FILE:zlib> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
 # Add the subdirectories
 add_subdirectory(dCommonTests)
 add_subdirectory(dGameTests)

@@ -17,7 +17,7 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 
 # Set our executable
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
-add_dependencies(dCommonTests conncpp_tests)
+add_dependencies(dCommonTests conncpp_tests zlib_tests)
 
 # Apple needs some special linkage for the mariadb connector for tests.
 if(APPLE)
