@@ -13,7 +13,8 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-22.04, macos-13, windows-2022-debug ]
+        os: [ windows-2022, ubuntu-22.04, macos-13 ]
+        cfg: [ debug, release ]
 
     steps:
     - uses: actions/checkout@v3
@@ -33,9 +34,9 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: "ci-${{matrix.os}}"
-        buildPreset: "ci-${{matrix.os}}"
-        testPreset: "ci-${{matrix.os}}"
+        configurePreset: "ci-${{matrix.os}}-${{matrix.cfg}}"
+        buildPreset: "ci-${{matrix.os}}-${{matrix.cfg}}"
+        testPreset: "ci-${{matrix.os}}-${{matrix.cfg}}"
     - name: artifacts
       uses: actions/upload-artifact@v3
       with:
