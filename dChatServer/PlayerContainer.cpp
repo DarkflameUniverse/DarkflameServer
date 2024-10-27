@@ -36,16 +36,19 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.playerID = playerId;
 
 	uint32_t len;
-	inStream.Read<uint32_t>(len);
+	if (!inStream.Read<uint32_t>(len)) return;
 
-	for (int i = 0; i < len; i++) {
-		char character; inStream.Read<char>(character);
-		data.playerName += character;
+	if (len > 33) {
+		LOG("Received a really long player name, probably a fake packet %i.", len);
+		return;
 	}
 
-	inStream.Read(data.zoneID);
-	inStream.Read(data.muteExpire);
-	inStream.Read(data.gmLevel);
+	data.playerName.resize(len);
+	inStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(data.playerName.data()), len);
+
+	if (!inStream.Read(data.zoneID)) return;
+	if (!inStream.Read(data.muteExpire)) return;
+	if (!inStream.Read(data.gmLevel)) return;
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
@@ -121,6 +124,11 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 	inStream.Read(playerID);
 	size_t membersSize = 0;
 	inStream.Read(membersSize);
+
+	if (membersSize >= 4) {
+		LOG("Tried to create a team with more than 4 players");
+		return;
+	}
 
 	std::vector<LWOOBJID> members;
 
