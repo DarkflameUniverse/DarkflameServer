@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build & Test (${{ matrix.os }})
+    name: Build & Test (${{ matrix.os }} - ${{ matrix.cfg }})
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
