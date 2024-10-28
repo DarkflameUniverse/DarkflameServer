@@ -49,3 +49,12 @@ function(UpdateConfigOption file_name old_option_name new_option_name)
 		file(APPEND ${file_name} "\n" ${current_value})
 	endif()
 endfunction()
+
+function(DoAppleMariaDBCopy target location)
+if(APPLE)
+	add_custom_command(TARGET ${target} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		${MARIADBCPP_SHARED_LIBRARY_LOCATION}
+		${location})
+	endif()
+endfunction()

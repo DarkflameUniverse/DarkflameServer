@@ -18,3 +18,4 @@ target_link_libraries(MasterServer ${COMMON_LIBRARIES} bcrypt dMasterServer dSer
 if(WIN32)
 	add_dependencies(MasterServer WorldServer AuthServer ChatServer)
 endif()
+DoAppleMariaDBCopy(MasterServer ${CMAKE_BINARY_DIR})
