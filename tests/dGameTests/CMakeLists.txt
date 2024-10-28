@@ -15,12 +15,7 @@ add_executable(dGameTests ${DGAMETEST_SOURCES})
 add_dependencies(dGameTests conncpp_tests)
 
 # Apple needs some special linkage for the mariadb connector for tests.
-if(APPLE)
-add_custom_command(TARGET dGameTests POST_BUILD
-	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests
-	COMMAND otool ARGS -L dGameTests
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-endif()
+DoAppleMariaDBCopy(dGameTests ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
 	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation)
