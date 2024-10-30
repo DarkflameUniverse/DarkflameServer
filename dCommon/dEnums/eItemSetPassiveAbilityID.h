@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EITEMSETPASSIVEABILITYID__H__
-#define __EITEMSETPASSIVEABILITYID__H__
+#ifndef EITEMSETPASSIVEABILITYID_H
+#define EITEMSETPASSIVEABILITYID_H
 
 enum class eItemSetPassiveAbilityID {
 	EngineerRank1 = 2,
@@ -55,4 +55,4 @@ enum class eItemSetPassiveAbilityID {
 	LightningSpinjitzu = 52
 };
 
-#endif  //!__EITEMSETPASSIVEABILITYID__H__
+#endif  //!EITEMSETPASSIVEABILITYID_H

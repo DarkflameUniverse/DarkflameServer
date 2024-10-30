@@ -1,5 +1,5 @@
-#ifndef __EBUILDTYPE__H__
-#define __EBUILDTYPE__H__
+#ifndef EBUILDTYPE_H
+#define EBUILDTYPE_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eBuildType :uint32_t {
 	ON_PROPERTY
 };
 
-#endif  //!__EBUILDTYPE__H__
+#endif  //!EBUILDTYPE_H

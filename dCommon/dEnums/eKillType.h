@@ -1,5 +1,5 @@
-#ifndef __EKILLTYPE__H__
-#define __EKILLTYPE__H__
+#ifndef EKILLTYPE_H
+#define EKILLTYPE_H
 
 #include <cstdint>
 
@@ -8,4 +8,4 @@ enum class eKillType : uint32_t {
 	SILENT
 };
 
-#endif  //!__EKILLTYPE__H__
+#endif  //!EKILLTYPE_H

@@ -1,5 +1,5 @@
-#ifndef __EMASTERMESSAGETYPE__H__
-#define __EMASTERMESSAGETYPE__H__
+#ifndef EMASTERMESSAGETYPE_H
+#define EMASTERMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -33,4 +33,4 @@ enum class eMasterMessageType : uint32_t {
 	NEW_SESSION_ALERT
 };
 
-#endif  //!__EMASTERMESSAGETYPE__H__
+#endif  //!EMASTERMESSAGETYPE_H

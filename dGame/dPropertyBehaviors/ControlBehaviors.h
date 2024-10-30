@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __CONTROLBEHAVIORS__H__
-#define __CONTROLBEHAVIORS__H__
+#ifndef CONTROLBEHAVIORS_H
+#define CONTROLBEHAVIORS_H
 
 #include <map>
 #include <optional>
@@ -65,4 +65,4 @@ private:
 	bool isInitialized = false;
 };
 
-#endif  //!__CONTROLBEHAVIORS__H__
+#endif  //!CONTROLBEHAVIORS_H

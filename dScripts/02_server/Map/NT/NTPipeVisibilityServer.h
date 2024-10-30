@@ -1,5 +1,5 @@
-#ifndef __NTPIPEVISIBILITYSERVER__H__
-#define __NTPIPEVISIBILITYSERVER__H__
+#ifndef NTPIPEVISIBILITYSERVER_H
+#define NTPIPEVISIBILITYSERVER_H
 
 #include "CppScripts.h"
 
@@ -8,4 +8,4 @@ public:
 	void OnQuickBuildComplete(Entity* self, Entity* target) override;
 };
 
-#endif  //!__NTPIPEVISIBILITYSERVER__H__
+#endif  //!NTPIPEVISIBILITYSERVER_H

@@ -1,5 +1,5 @@
-#ifndef __EWORLDMESSAGETYPE__H__
-#define __EWORLDMESSAGETYPE__H__
+#ifndef EWORLDMESSAGETYPE_H
+#define EWORLDMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -48,4 +48,4 @@ struct magic_enum::customize::enum_range<eWorldMessageType> {
 	static constexpr int max = 91;
 };
 
-#endif  //!__EWORLDMESSAGETYPE__H__
+#endif  //!EWORLDMESSAGETYPE_H

@@ -1,5 +1,5 @@
-#ifndef __GemPackBase__H__
-#define __GemPackBase__H__
+#ifndef GemPackBase_H
+#define GemPackBase_H
 
 #include "CppScripts.h"
 
@@ -16,4 +16,4 @@ private:
 	uint32_t m_SkillId = 0;
 };
 
-#endif  //!__GemPackBase__H__
+#endif  //!GemPackBase_H

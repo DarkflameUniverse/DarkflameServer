@@ -1,5 +1,5 @@
-#ifndef __ISERVERS__H__
-#define __ISERVERS__H__
+#ifndef ISERVERS_H
+#define ISERVERS_H
 
 #include <cstdint>
 #include <optional>
@@ -18,4 +18,4 @@ public:
 	virtual std::optional<MasterInfo> GetMasterInfo() = 0;
 };
 
-#endif  //!__ISERVERS__H__
+#endif  //!ISERVERS_H

@@ -1,5 +1,5 @@
-#ifndef __MYSQLDATABASE__H__
-#define __MYSQLDATABASE__H__
+#ifndef MYSQLDATABASE_H
+#define MYSQLDATABASE_H
 
 #include <conncpp.hpp>
 #include <memory>
@@ -251,4 +251,4 @@ inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::opti
 	}
 }
 
-#endif  //!__MYSQLDATABASE__H__
+#endif  //!MYSQLDATABASE_H

@@ -1,5 +1,5 @@
-#ifndef __WANDERINGVENDOR__H__
-#define __WANDERINGVENDOR__H__
+#ifndef WANDERINGVENDOR_H
+#define WANDERINGVENDOR_H
 
 #include "CppScripts.h"
 
@@ -10,4 +10,4 @@ public:
 	void OnTimerDone(Entity* self, std::string timerName) override;
 };
 
-#endif  //!__WANDERINGVENDOR__H__
+#endif  //!WANDERINGVENDOR_H

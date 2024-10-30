@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __BEHAVIORSTATES__H__
-#define __BEHAVIORSTATES__H__
+#ifndef BEHAVIORSTATES_H
+#define BEHAVIORSTATES_H
 
 #include <cstdint>
 
@@ -14,4 +14,4 @@ enum class BehaviorState : uint32_t {
     STAR_STATE                              //!< The STAR behavior state
 };
 
-#endif  //!__BEHAVIORSTATES__H__
+#endif  //!BEHAVIORSTATES_H

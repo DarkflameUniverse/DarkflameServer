@@ -1,5 +1,5 @@
-#ifndef __ADDACTIONMESSAGE__H__
-#define __ADDACTIONMESSAGE__H__
+#ifndef ADDACTIONMESSAGE_H
+#define ADDACTIONMESSAGE_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -27,4 +27,4 @@ private:
 	Action m_Action;
 };
 
-#endif  //!__ADDACTIONMESSAGE__H__
+#endif  //!ADDACTIONMESSAGE_H

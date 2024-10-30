@@ -1,5 +1,5 @@
-#ifndef __IPETNAMES__H__
-#define __IPETNAMES__H__
+#ifndef IPETNAMES_H
+#define IPETNAMES_H
 
 #include <cstdint>
 #include <optional>
@@ -18,4 +18,4 @@ public:
 	virtual std::optional<IPetNames::Info> GetPetNameInfo(const LWOOBJID& petId) = 0;
 };
 
-#endif  //!__IPETNAMES__H__
+#endif  //!IPETNAMES_H

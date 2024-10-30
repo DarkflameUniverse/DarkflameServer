@@ -1,5 +1,5 @@
-#ifndef __IUGC__H__
-#define __IUGC__H__
+#ifndef IUGC_H
+#define IUGC_H
 
 #include <cstdint>
 #include <sstream>
@@ -29,4 +29,4 @@ public:
 	// Inserts a new UGC model into the database.
 	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) = 0;
 };
-#endif  //!__IUGC__H__
+#endif  //!IUGC_H

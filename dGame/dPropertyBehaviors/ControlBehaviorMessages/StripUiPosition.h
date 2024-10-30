@@ -1,5 +1,5 @@
-#ifndef __STRIPUIPOSITION__H__
-#define __STRIPUIPOSITION__H__
+#ifndef STRIPUIPOSITION_H
+#define STRIPUIPOSITION_H
 
 class AMFArrayValue;
 
@@ -26,4 +26,4 @@ private:
 	double m_YPosition{ 0.0 };
 };
 
-#endif  //!__STRIPUIPOSITION__H__
+#endif  //!STRIPUIPOSITION_H

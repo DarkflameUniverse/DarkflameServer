@@ -1,5 +1,5 @@
-#ifndef __BLOCKDEFINITION__H__
-#define __BLOCKDEFINITION__H__
+#ifndef BLOCKDEFINITION_H
+#define BLOCKDEFINITION_H
 
 #include <string>
 
@@ -23,4 +23,4 @@ private:
 	float m_MaximumValue;
 };
 
-#endif  //!__BLOCKDEFINITION__H__
+#endif  //!BLOCKDEFINITION_H

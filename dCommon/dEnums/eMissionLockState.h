@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EMISSIONLOCKSTATE__H__
-#define __EMISSIONLOCKSTATE__H__
+#ifndef EMISSIONLOCKSTATE_H
+#define EMISSIONLOCKSTATE_H
 
 enum class eMissionLockState : int {
 	LOCKED,
@@ -9,4 +9,4 @@ enum class eMissionLockState : int {
 	UNLOCKED,
 };
 
-#endif  //!__EMISSIONLOCKSTATE__H__
+#endif  //!EMISSIONLOCKSTATE_H

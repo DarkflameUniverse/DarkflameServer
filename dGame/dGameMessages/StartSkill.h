@@ -1,5 +1,5 @@
-#ifndef __STARTSKILL__H__
-#define __STARTSKILL__H__
+#ifndef STARTSKILL_H
+#define STARTSKILL_H
 
 #include "dCommonVars.h"
 #include "NiPoint3.h"
@@ -139,4 +139,4 @@ public:
 	uint32_t uiSkillHandle = 0;
 };
 
-#endif  //!__STARTSKILL__H__
+#endif  //!STARTSKILL_H

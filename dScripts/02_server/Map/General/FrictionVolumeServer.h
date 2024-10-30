@@ -1,5 +1,5 @@
-#ifndef __FRICTIONVOLUMESERVER__H__
-#define __FRICTIONVOLUMESERVER__H__
+#ifndef FRICTIONVOLUMESERVER_H
+#define FRICTIONVOLUMESERVER_H
 
 #include "CppScripts.h"
 
@@ -10,4 +10,4 @@ private:
 	const float DefaultFrictionAmount = 1.5f;
 };
 
-#endif  //!__FRICTIONVOLUMESERVER__H__
+#endif  //!FRICTIONVOLUMESERVER_H

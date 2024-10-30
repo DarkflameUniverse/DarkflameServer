@@ -1,5 +1,5 @@
-#ifndef __DLUASSERT__H__
-#define __DLUASSERT__H__
+#ifndef DLUASSERT_H
+#define DLUASSERT_H
 
 #include <assert.h>
 
@@ -9,4 +9,4 @@
 #	define DluAssert(expression)
 #endif
 
-#endif  //!__DLUASSERT__H__
+#endif  //!DLUASSERT_H

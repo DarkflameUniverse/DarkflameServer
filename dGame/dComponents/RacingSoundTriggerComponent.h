@@ -1,5 +1,5 @@
-#ifndef __RACINGSOUNDTRIGGERCOMPONENT__H__
-#define __RACINGSOUNDTRIGGERCOMPONENT__H__
+#ifndef RACINGSOUNDTRIGGERCOMPONENT_H
+#define RACINGSOUNDTRIGGERCOMPONENT_H
 
 #include "SoundTriggerComponent.h"
 #include "eReplicaComponentType.h"
@@ -12,4 +12,4 @@ public:
 	RacingSoundTriggerComponent(Entity* parent) : SoundTriggerComponent(parent){};
 };
 
-#endif  //!__RACINGSOUNDTRIGGERCOMPONENT__H__
+#endif  //!RACINGSOUNDTRIGGERCOMPONENT_H

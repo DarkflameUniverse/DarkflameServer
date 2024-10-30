@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __VENTUREVISIONBEHAVIOR__H__
-#define __VENTUREVISIONBEHAVIOR__H__
+#ifndef VENTUREVISIONBEHAVIOR_H
+#define VENTUREVISIONBEHAVIOR_H
 
 #include "Behavior.h"
 
@@ -37,4 +37,4 @@ public:
 	void Load() override;
 };
 
-#endif  //!__VENTUREVISIONBEHAVIOR__H__
+#endif  //!VENTUREVISIONBEHAVIOR_H

@@ -1,5 +1,5 @@
-#ifndef __NIPOINT3_H__
-#define __NIPOINT3_H__
+#ifndef NIPOINT3_H
+#define NIPOINT3_H
 
 /*!
   \file NiPoint3.hpp
@@ -201,4 +201,4 @@ namespace NiPoint3Constant {
 // .inl file needed for code organization and to circumvent circular dependency issues
 #include "NiPoint3.inl"
 
-#endif // !__NIPOINT3_H__
+#endif // !NIPOINT3_H

@@ -1,5 +1,5 @@
-#ifndef __RACINGSTATSCOMPONENT__H__
-#define __RACINGSTATSCOMPONENT__H__
+#ifndef RACINGSTATSCOMPONENT_H
+#define RACINGSTATSCOMPONENT_H
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
@@ -11,4 +11,4 @@ public:
 	RacingStatsComponent(Entity* parent) : Component(parent) {}
 };
 
-#endif  //!__RACINGSTATSCOMPONENT__H__
+#endif  //!RACINGSTATSCOMPONENT_H

@@ -1,5 +1,5 @@
-#ifndef __MOVETOINVENTORYMESSAGE__H__
-#define __MOVETOINVENTORYMESSAGE__H__
+#ifndef MOVETOINVENTORYMESSAGE_H
+#define MOVETOINVENTORYMESSAGE_H
 
 #include "BehaviorMessageBase.h"
 
@@ -18,4 +18,4 @@ private:
 	uint32_t m_BehaviorIndex;
 };
 
-#endif  //!__MOVETOINVENTORYMESSAGE__H__
+#endif  //!MOVETOINVENTORYMESSAGE_H

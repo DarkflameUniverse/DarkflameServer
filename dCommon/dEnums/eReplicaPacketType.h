@@ -1,5 +1,5 @@
-#ifndef __EREPLICAPACKETTYPE__H__
-#define __EREPLICAPACKETTYPE__H__
+#ifndef EREPLICAPACKETTYPE_H
+#define EREPLICAPACKETTYPE_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eReplicaPacketType : uint8_t {
 	DESTRUCTION
 };
 
-#endif  //!__EREPLICAPACKETTYPE__H__
+#endif  //!EREPLICAPACKETTYPE_H

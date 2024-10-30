@@ -1,5 +1,5 @@
-#ifndef __ADDMESSAGE__H__
-#define __ADDMESSAGE__H__
+#ifndef ADDMESSAGE_H
+#define ADDMESSAGE_H
 
 #include "BehaviorMessageBase.h"
 
@@ -16,4 +16,4 @@ private:
 	uint32_t m_BehaviorIndex{ 0 };
 };
 
-#endif  //!__ADDMESSAGE__H__
+#endif  //!ADDMESSAGE_H

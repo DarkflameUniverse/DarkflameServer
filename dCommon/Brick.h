@@ -1,5 +1,5 @@
-#ifndef __BRICK__H__
-#define __BRICK__H__
+#ifndef BRICK_H
+#define BRICK_H
 
 #include <cstdint>
 
@@ -8,4 +8,4 @@ struct Brick {
 	uint32_t materialID;
 };
 
-#endif  //!__BRICK__H__
+#endif  //!BRICK_H

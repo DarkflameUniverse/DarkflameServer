@@ -1,5 +1,5 @@
-#ifndef __PHYSICSCOMPONENT__H__
-#define __PHYSICSCOMPONENT__H__
+#ifndef PHYSICSCOMPONENT_H
+#define PHYSICSCOMPONENT_H
 
 #include "Component.h"
 #include "NiPoint3.h"
@@ -39,4 +39,4 @@ protected:
 	bool m_DirtyPosition;
 };
 
-#endif  //!__PHYSICSCOMPONENT__H__
+#endif  //!PHYSICSCOMPONENT_H

@@ -1,5 +1,5 @@
-#ifndef __POSITIONUPDATE__H__
-#define __POSITIONUPDATE__H__
+#ifndef POSITIONUPDATE_H
+#define POSITIONUPDATE_H
 
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
@@ -33,4 +33,4 @@ struct PositionUpdate {
 	RemoteInputInfo remoteInputInfo;
 };
 
-#endif  //!__POSITIONUPDATE__H__
+#endif  //!POSITIONUPDATE_H

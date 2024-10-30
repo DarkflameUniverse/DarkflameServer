@@ -1,5 +1,5 @@
-#ifndef __IIGNORELIST__H__
-#define __IIGNORELIST__H__
+#ifndef IIGNORELIST_H
+#define IIGNORELIST_H
 
 #include <cstdint>
 #include <string>
@@ -17,4 +17,4 @@ public:
 	virtual void RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) = 0;
 };
 
-#endif  //!__IIGNORELIST__H__
+#endif  //!IIGNORELIST_H

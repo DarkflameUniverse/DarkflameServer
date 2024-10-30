@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EADDFRIENDRESPONSETYPE__H__
-#define __EADDFRIENDRESPONSETYPE__H__
+#ifndef EADDFRIENDRESPONSETYPE_H
+#define EADDFRIENDRESPONSETYPE_H
 
 #include <cstdint>
 
@@ -21,4 +21,4 @@ enum class eAddFriendResponseType : uint8_t {
 	FRIENDISFREETRIAL
 };
 
-#endif  //!__EADDFRIENDRESPONSETYPE__H__
+#endif  //!EADDFRIENDRESPONSETYPE_H

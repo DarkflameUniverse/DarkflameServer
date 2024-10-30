@@ -1,5 +1,5 @@
-#ifndef __ETRIGGERCOMMANDTYPE__H__
-#define __ETRIGGERCOMMANDTYPE__H__
+#ifndef ETRIGGERCOMMANDTYPE_H
+#define ETRIGGERCOMMANDTYPE_H
 
 // For info about Trigger Command see:
 // https://docs.lu-dev.net/en/latest/file-structures/lutriggers.html?highlight=trigger#possible-values-commands
@@ -116,4 +116,4 @@ public:
 	};
 };
 
-#endif  //!__ETRIGGERCOMMANDTYPE__H__
+#endif  //!ETRIGGERCOMMANDTYPE_H

@@ -1,5 +1,5 @@
-#ifndef FVRACEPILLARSERVER__H
-#define FVRACEPILLARSERVER__H
+#ifndef FVRACEPILLARSERVER_H
+#define FVRACEPILLARSERVER_H
 
 #include "CppScripts.h"
 
@@ -9,4 +9,4 @@ protected:
 	void PlayAnimation(const std::string animName, const std::string group, const LOT lot);
 };
 
-#endif // FVRACEPILLARSERVER__H
+#endif // FVRACEPILLARSERVER_H

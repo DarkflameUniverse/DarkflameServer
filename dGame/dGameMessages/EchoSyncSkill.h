@@ -1,5 +1,5 @@
-#ifndef __ECHOSYNCSKILL__H__
-#define __ECHOSYNCSKILL__H__
+#ifndef ECHOSYNCSKILL_H
+#define ECHOSYNCSKILL_H
 
 #include <string>
 
@@ -65,4 +65,4 @@ public:
 	uint32_t uiSkillHandle{};
 };
 
-#endif  //!__ECHOSYNCSKILL__H__
+#endif  //!ECHOSYNCSKILL_H

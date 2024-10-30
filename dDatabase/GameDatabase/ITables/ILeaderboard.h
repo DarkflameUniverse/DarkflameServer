@@ -1,5 +1,5 @@
-#ifndef __ILEADERBOARD__H__
-#define __ILEADERBOARD__H__
+#ifndef ILEADERBOARD_H
+#define ILEADERBOARD_H
 
 #include <cstdint>
 #include <optional>
@@ -11,4 +11,4 @@ public:
 	virtual std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) = 0;
 };
 
-#endif  //!__ILEADERBOARD__H__
+#endif  //!ILEADERBOARD_H

@@ -1,5 +1,5 @@
-#ifndef __CLIENTVERSION_H__
-#define __CLIENTVERSION_H__
+#ifndef CLIENTVERSION_H
+#define CLIENTVERSION_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ namespace ClientVersion {
 	constexpr uint16_t minor = 64;
 }
 
-#endif // !__CLIENTVERSION_H__
+#endif // !CLIENTVERSION_H

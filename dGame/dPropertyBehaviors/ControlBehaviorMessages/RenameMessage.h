@@ -1,5 +1,5 @@
-#ifndef __RENAMEMESSAGE__H__
-#define __RENAMEMESSAGE__H__
+#ifndef RENAMEMESSAGE_H
+#define RENAMEMESSAGE_H
 
 #include "BehaviorMessageBase.h"
 
@@ -17,4 +17,4 @@ private:
 	std::string m_Name;
 };
 
-#endif  //!__RENAMEMESSAGE__H__
+#endif  //!RENAMEMESSAGE_H

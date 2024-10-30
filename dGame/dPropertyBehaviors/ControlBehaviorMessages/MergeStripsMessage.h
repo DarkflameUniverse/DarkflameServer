@@ -1,5 +1,5 @@
-#ifndef __MERGESTRIPSMESSAGE__H__
-#define __MERGESTRIPSMESSAGE__H__
+#ifndef MERGESTRIPSMESSAGE_H
+#define MERGESTRIPSMESSAGE_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -32,4 +32,4 @@ private:
 	ActionContext m_DestinationActionContext;
 };
 
-#endif  //!__MERGESTRIPSMESSAGE__H__
+#endif  //!MERGESTRIPSMESSAGE_H

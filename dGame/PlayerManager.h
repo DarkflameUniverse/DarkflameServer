@@ -1,5 +1,5 @@
-#ifndef __PLAYERMANAGER__H__
-#define __PLAYERMANAGER__H__
+#ifndef PLAYERMANAGER_H
+#define PLAYERMANAGER_H
 
 #include "dCommonVars.h"
 
@@ -22,4 +22,4 @@ namespace PlayerManager {
 	const std::vector<Entity*>& GetAllPlayers();
 };
 
-#endif  //!__PLAYERMANAGER__H__
+#endif  //!PLAYERMANAGER_H

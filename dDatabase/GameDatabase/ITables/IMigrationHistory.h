@@ -1,5 +1,5 @@
-#ifndef __IMIGRATIONHISTORY__H__
-#define __IMIGRATIONHISTORY__H__
+#ifndef IMIGRATIONHISTORY_H
+#define IMIGRATIONHISTORY_H
 
 #include <string_view>
 
@@ -14,4 +14,4 @@ public:
 	// Insert the given migration into the migration history table.
 	virtual void InsertMigration(const std::string_view str) = 0;
 };
-#endif  //!__IMIGRATIONHISTORY__H__
+#endif  //!IMIGRATIONHISTORY_H

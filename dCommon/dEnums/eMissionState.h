@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __MISSIONSTATE__H__
-#define __MISSIONSTATE__H__
+#ifndef MISSIONSTATE_H
+#define MISSIONSTATE_H
 
 /**
  * Represents the possible states a mission can be in
@@ -53,4 +53,4 @@ enum class eMissionState : int {
 	COMPLETE_READY_TO_COMPLETE = 12
 };
 
-#endif  //!__MISSIONSTATE__H__
+#endif  //!MISSIONSTATE_H

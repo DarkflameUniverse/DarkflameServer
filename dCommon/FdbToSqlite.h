@@ -1,5 +1,5 @@
-#ifndef __FDBTOSQLITE__H__
-#define __FDBTOSQLITE__H__
+#ifndef FDBTOSQLITE_H
+#define FDBTOSQLITE_H
 
 #pragma once
 
@@ -142,4 +142,4 @@ namespace FdbToSqlite {
 	}; //! class FdbToSqlite
 }; //! namespace FdbToSqlite
 
-#endif  //!__FDBTOSQLITE__H__
+#endif  //!FDBTOSQLITE_H

@@ -1,5 +1,5 @@
-#ifndef __GHOSTCOMPONENT__H__
-#define __GHOSTCOMPONENT__H__
+#ifndef GHOSTCOMPONENT_H
+#define GHOSTCOMPONENT_H
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
@@ -51,4 +51,4 @@ private:
 	bool m_GhostOverride;
 };
 
-#endif  //!__GHOSTCOMPONENT__H__
+#endif  //!GHOSTCOMPONENT_H

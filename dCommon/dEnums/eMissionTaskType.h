@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EMISSIONTASKTYPE__H__
-#define __EMISSIONTASKTYPE__H__
+#ifndef EMISSIONTASKTYPE_H
+#define EMISSIONTASKTYPE_H
 
 enum class eMissionTaskType : int {
 	UNKNOWN = -1,
@@ -40,4 +40,4 @@ enum class eMissionTaskType : int {
 	DONATION
 };
 
-#endif  //!__EMISSIONTASKTYPE__H__
+#endif  //!EMISSIONTASKTYPE_H

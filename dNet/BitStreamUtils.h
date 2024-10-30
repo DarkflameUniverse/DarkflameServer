@@ -1,5 +1,5 @@
-#ifndef __BITSTREAMUTILS__H__
-#define __BITSTREAMUTILS__H__
+#ifndef BITSTREAMUTILS_H
+#define BITSTREAMUTILS_H
 
 #include "GeneralUtils.h"
 #include "MessageIdentifiers.h"
@@ -102,4 +102,4 @@ namespace RakNet {
 	}
 };
 
-#endif  //!__BITSTREAMUTILS__H__
+#endif  //!BITSTREAMUTILS_H

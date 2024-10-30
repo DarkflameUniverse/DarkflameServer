@@ -1,5 +1,5 @@
-#ifndef __STRIP__H__
-#define __STRIP__H__
+#ifndef STRIP_H
+#define STRIP_H
 
 #include "Action.h"
 #include "StripUiPosition.h"
@@ -27,4 +27,4 @@ private:
 	StripUiPosition m_Position;
 };
 
-#endif  //!__STRIP__H__
+#endif  //!STRIP_H

@@ -1,5 +1,5 @@
-#ifndef __EQUICKBUILDFAILREASON__H__
-#define __EQUICKBUILDFAILREASON__H__
+#ifndef EQUICKBUILDFAILREASON_H
+#define EQUICKBUILDFAILREASON_H
 
 #include <cstdint>
 
@@ -10,4 +10,4 @@ enum class eQuickBuildFailReason : uint32_t {
 	BUILD_ENDED
 };
 
-#endif  //!__EQUICKBUILDFAILREASON__H__
+#endif  //!EQUICKBUILDFAILREASON_H

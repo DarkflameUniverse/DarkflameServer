@@ -1,5 +1,5 @@
-#ifndef __ACTION__H__
-#define __ACTION__H__
+#ifndef ACTION_H
+#define ACTION_H
 
 #include <string>
 
@@ -33,4 +33,4 @@ private:
 	std::string m_ValueParameterString{ "" };
 };
 
-#endif  //!__ACTION__H__
+#endif  //!ACTION_H

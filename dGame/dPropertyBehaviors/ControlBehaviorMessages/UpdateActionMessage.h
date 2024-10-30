@@ -1,5 +1,5 @@
-#ifndef __UPDATEACTIONMESSAGE__H__
-#define __UPDATEACTIONMESSAGE__H__
+#ifndef UPDATEACTIONMESSAGE_H
+#define UPDATEACTIONMESSAGE_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -27,4 +27,4 @@ private:
 	Action m_Action;
 }; 
 
-#endif  //!__UPDATEACTIONMESSAGE__H__
+#endif  //!UPDATEACTIONMESSAGE_H

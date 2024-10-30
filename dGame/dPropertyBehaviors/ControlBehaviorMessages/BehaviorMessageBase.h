@@ -1,5 +1,5 @@
-#ifndef __BEHAVIORMESSAGEBASE__H__
-#define __BEHAVIORMESSAGEBASE__H__
+#ifndef BEHAVIORMESSAGEBASE_H
+#define BEHAVIORMESSAGEBASE_H
 
 #include <stdexcept>
 #include <string>
@@ -26,4 +26,4 @@ protected:
 	int32_t m_BehaviorId{ DefaultBehaviorId };
 };
 
-#endif  //!__BEHAVIORMESSAGEBASE__H__
+#endif  //!BEHAVIORMESSAGEBASE_H

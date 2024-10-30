@@ -1,5 +1,5 @@
-#ifndef __GAMEDEPENDENCIES__H__
-#define __GAMEDEPENDENCIES__H__
+#ifndef GAMEDEPENDENCIES_H
+#define GAMEDEPENDENCIES_H
 
 #include "Game.h"
 #include "Logger.h"
@@ -52,4 +52,4 @@ protected:
 	EntityInfo info{};
 };
 
-#endif //!__GAMEDEPENDENCIES__H__
+#endif //!GAMEDEPENDENCIES_H

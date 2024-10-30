@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __BINARYPATHFINDER__H__
-#define __BINARYPATHFINDER__H__
+#ifndef BINARYPATHFINDER_H
+#define BINARYPATHFINDER_H
 
 #include <filesystem>
 
@@ -12,4 +12,4 @@ public:
 	static std::filesystem::path GetBinaryDir();
 };
 
-#endif  //!__BINARYPATHFINDER__H__
+#endif  //!BINARYPATHFINDER_H

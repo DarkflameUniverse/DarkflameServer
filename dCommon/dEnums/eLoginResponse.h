@@ -1,5 +1,5 @@
-#ifndef __ELOGINRESPONSE__H__
-#define __ELOGINRESPONSE__H__
+#ifndef ELOGINRESPONSE_H
+#define ELOGINRESPONSE_H
 
 #include <cstdint>
 
@@ -21,4 +21,4 @@ enum class eLoginResponse : uint8_t {
 	ACCOUNT_NOT_ACTIVATED
 };
 
-#endif  //!__ELOGINRESPONSE__H__
+#endif  //!ELOGINRESPONSE_H

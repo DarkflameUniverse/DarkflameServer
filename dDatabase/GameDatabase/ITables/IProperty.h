@@ -1,5 +1,5 @@
-#ifndef __IPROPERTY__H__
-#define __IPROPERTY__H__
+#ifndef IPROPERTY_H
+#define IPROPERTY_H
 
 #include <cstdint>
 #include <optional>
@@ -35,4 +35,4 @@ public:
 	// Insert a new property into the database.
 	virtual void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) = 0;
 };
-#endif  //!__IPROPERTY__H__
+#endif  //!IPROPERTY_H

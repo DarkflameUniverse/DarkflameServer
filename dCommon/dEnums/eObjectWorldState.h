@@ -1,5 +1,5 @@
-#ifndef __EOBJECTWORLDSTATE__H__
-#define __EOBJECTWORLDSTATE__H__
+#ifndef EOBJECTWORLDSTATE_H
+#define EOBJECTWORLDSTATE_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eObjectWorldState : uint32_t {
 	INVENTORY
 };
 
-#endif  //!__EOBJECTWORLDSTATE__H__
+#endif  //!EOBJECTWORLDSTATE_H

@@ -1,5 +1,5 @@
-#ifndef __ICHARXML__H__
-#define __ICHARXML__H__
+#ifndef ICHARXML_H
+#define ICHARXML_H
 
 #include <cstdint>
 #include <string>
@@ -17,4 +17,4 @@ public:
 	virtual void InsertCharacterXml(const uint32_t characterId, const std::string_view lxfml) = 0;
 };
 
-#endif  //!__ICHARXML__H__
+#endif  //!ICHARXML_H

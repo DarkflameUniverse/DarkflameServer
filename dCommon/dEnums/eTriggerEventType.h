@@ -1,5 +1,5 @@
-#ifndef __ETRIGGEREVENTTYPE__H__
-#define __ETRIGGEREVENTTYPE__H__
+#ifndef ETRIGGEREVENTTYPE_H
+#define ETRIGGEREVENTTYPE_H
 
 enum class eTriggerEventType {
 	INVALID,
@@ -50,4 +50,4 @@ public:
 	};
 };
 
-#endif  //!__ETRIGGEREVENTTYPE__H__
+#endif  //!ETRIGGEREVENTTYPE_H

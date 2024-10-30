@@ -1,5 +1,5 @@
-#ifndef __CHATIGNORELIST__H__
-#define __CHATIGNORELIST__H__
+#ifndef CHATIGNORELIST_H
+#define CHATIGNORELIST_H
 
 struct Packet;
 
@@ -24,4 +24,4 @@ namespace ChatIgnoreList {
 	};
 };
 
-#endif  //!__CHATIGNORELIST__H__
+#endif  //!CHATIGNORELIST_H

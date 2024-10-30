@@ -1,7 +1,7 @@
 #include "eMissionTaskType.h"
 
-#ifndef __ACHIEVEMENTCACHEKEY__H__
-#define __ACHIEVEMENTCACHEKEY__H__
+#ifndef ACHIEVEMENTCACHEKEY_H
+#define ACHIEVEMENTCACHEKEY_H
 
 class AchievementCacheKey {
 public:
@@ -42,4 +42,4 @@ namespace std {
 	};
 };
 
-#endif  //!__ACHIEVEMENTCACHEKEY__H__
+#endif  //!ACHIEVEMENTCACHEKEY_H

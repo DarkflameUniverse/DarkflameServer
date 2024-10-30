@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EANINMATIONFLAGS__H__
-#define __EANINMATIONFLAGS__H__
+#ifndef EANINMATIONFLAGS_H
+#define EANINMATIONFLAGS_H
 
 #include <cstdint>
 
@@ -41,4 +41,4 @@ enum class eAnimationFlags : uint32_t {
 	IDLE_MISC12
 };
 
-#endif  //!__EANINMATIONFLAGS__H__
+#endif  //!EANINMATIONFLAGS_H

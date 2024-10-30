@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EADDFRIENDRESPONSECODE__H__
-#define __EADDFRIENDRESPONSECODE__H__
+#ifndef EADDFRIENDRESPONSECODE_H
+#define EADDFRIENDRESPONSECODE_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eAddFriendResponseCode : uint8_t {
 	CANCELLED
 };
 
-#endif  //!__ADDFRIENDRESPONSECODE__H__
+#endif  //!ADDFRIENDRESPONSECODE_H

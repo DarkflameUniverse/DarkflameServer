@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EBUBBLETYPE__H__
-#define __EBUBBLETYPE__H__
+#ifndef EBUBBLETYPE_H
+#define EBUBBLETYPE_H
 
 #include <cstdint>
 
@@ -11,4 +11,4 @@ enum class eBubbleType : uint32_t {
 	SKUNK
 };
 
-#endif  //!__EBUBBLETYPE__H__
+#endif  //!EBUBBLETYPE_H

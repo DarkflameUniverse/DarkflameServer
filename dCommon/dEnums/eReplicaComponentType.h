@@ -1,5 +1,5 @@
-#ifndef __EREPLICACOMPONENTTYPE__H__
-#define __EREPLICACOMPONENTTYPE__H__
+#ifndef EREPLICACOMPONENTTYPE_H
+#define EREPLICACOMPONENTTYPE_H
 
 #include <cstdint>
 
@@ -124,4 +124,4 @@ enum class eReplicaComponentType : uint32_t {
 	DESTROYABLE = 1000 // Actually 7
 };
 
-#endif  //!__EREPLICACOMPONENTTYPE__H__
+#endif  //!EREPLICACOMPONENTTYPE_H

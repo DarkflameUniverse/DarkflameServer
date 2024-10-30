@@ -1,5 +1,5 @@
-#ifndef __EUSEITEMRESPONSE__H__
-#define __EUSEITEMRESPONSE__H__
+#ifndef EUSEITEMRESPONSE_H
+#define EUSEITEMRESPONSE_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eUseItemResponse : uint32_t {
 	MountsNotAllowed
 };
 
-#endif  //!__EUSEITEMRESPONSE__H__
+#endif  //!EUSEITEMRESPONSE_H

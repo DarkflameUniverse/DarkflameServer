@@ -1,5 +1,5 @@
-#ifndef __STATE__H__
-#define __STATE__H__
+#ifndef STATE_H
+#define STATE_H
 
 #include "Strip.h"
 
@@ -23,4 +23,4 @@ private:
 	std::vector<Strip> m_Strips;
 };
 
-#endif  //!__STATE__H__
+#endif  //!STATE_H

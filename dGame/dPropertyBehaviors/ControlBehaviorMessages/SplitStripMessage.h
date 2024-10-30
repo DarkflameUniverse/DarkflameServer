@@ -1,5 +1,5 @@
-#ifndef __SPLITSTRIPMESSAGE__H__
-#define __SPLITSTRIPMESSAGE__H__
+#ifndef SPLITSTRIPMESSAGE_H
+#define SPLITSTRIPMESSAGE_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -37,4 +37,4 @@ private:
 	std::vector<Action> m_TransferredActions;
 };
 
-#endif  //!__SPLITSTRIPMESSAGE__H__
+#endif  //!SPLITSTRIPMESSAGE_H

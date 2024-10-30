@@ -1,5 +1,5 @@
-#ifndef __WBLROBOTCITIZEN__H__
-#define __WBLROBOTCITIZEN__H__
+#ifndef WBLROBOTCITIZEN_H
+#define WBLROBOTCITIZEN_H
 
 #include "CppScripts.h"
 
@@ -10,4 +10,4 @@ public:
 	void OnTimerDone(Entity* self, std::string timerName) override;
 };
 
-#endif  //!__WBLROBOTCITIZEN__H__
+#endif  //!WBLROBOTCITIZEN_H

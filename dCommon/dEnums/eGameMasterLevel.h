@@ -1,5 +1,5 @@
-#ifndef __EGAMEMASTERLEVEL__H__
-#define __EGAMEMASTERLEVEL__H__
+#ifndef EGAMEMASTERLEVEL_H
+#define EGAMEMASTERLEVEL_H
 
 #include <cstdint>
 
@@ -17,4 +17,4 @@ enum class eGameMasterLevel : uint8_t {
 };
 
 
-#endif  //!__EGAMEMASTERLEVEL__H__
+#endif  //!EGAMEMASTERLEVEL_H

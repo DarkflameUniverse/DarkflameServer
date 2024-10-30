@@ -1,5 +1,5 @@
-#ifndef __EVENDORTRANSACTIONRESULT__
-#define __EVENDORTRANSACTIONRESULT__
+#ifndef EVENDORTRANSACTIONRESULT_H
+#define EVENDORTRANSACTIONRESULT_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eVendorTransactionResult : uint32_t {
 	DONATION_FULL
 };
 
-#endif // !__EVENDORTRANSACTIONRESULT__
+#endif // !EVENDORTRANSACTIONRESULT_H

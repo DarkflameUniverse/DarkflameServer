@@ -1,5 +1,5 @@
-#ifndef __PROPERTYBEHAVIOR__H__
-#define __PROPERTYBEHAVIOR__H__
+#ifndef PROPERTYBEHAVIOR_H
+#define PROPERTYBEHAVIOR_H
 
 #include "State.h"
 
@@ -54,4 +54,4 @@ private:
 	int32_t m_BehaviorId = -1;
 };
 
-#endif  //!__PROPERTYBEHAVIOR__H__
+#endif  //!PROPERTYBEHAVIOR_H

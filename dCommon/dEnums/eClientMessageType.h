@@ -1,5 +1,5 @@
-#ifndef __ECLIENTMESSAGETYPE__H__
-#define __ECLIENTMESSAGETYPE__H__
+#ifndef ECLIENTMESSAGETYPE_H
+#define ECLIENTMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -73,4 +73,4 @@ enum class eClientMessageType : uint32_t {
 	UGC_DOWNLOAD_FAILED = 120
 };
 
-#endif  //!__ECLIENTMESSAGETYPE__H__
+#endif  //!ECLIENTMESSAGETYPE_H

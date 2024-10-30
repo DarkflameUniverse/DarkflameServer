@@ -1,5 +1,5 @@
-#ifndef __IOBJECTIDTRACKER__H__
-#define __IOBJECTIDTRACKER__H__
+#ifndef IOBJECTIDTRACKER_H
+#define IOBJECTIDTRACKER_H
 
 #include <cstdint>
 #include <optional>
@@ -16,4 +16,4 @@ public:
 	virtual void UpdatePersistentId(const uint32_t newId) = 0;
 };
 
-#endif  //!__IOBJECTIDTRACKER__H__
+#endif  //!IOBJECTIDTRACKER_H

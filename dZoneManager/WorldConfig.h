@@ -1,5 +1,5 @@
-#ifndef __WORLDCONFIG__H__
-#define __WORLDCONFIG__H__
+#ifndef WORLDCONFIG_H
+#define WORLDCONFIG_H
 
 #include <cstdint>
 #include <string>
@@ -64,4 +64,4 @@ struct WorldConfig {
 	int32_t levelCapCurrencyConversion{};			//! The ratio of UScore (LEGO Score) to coins
 };
 
-#endif //! __WORLDCONFIG__H__
+#endif //! WORLDCONFIG_H

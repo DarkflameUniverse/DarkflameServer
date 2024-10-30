@@ -1,5 +1,5 @@
-#ifndef __NTNAOMIDIRTSERVER__H__
-#define __NTNAOMIDIRTSERVER__H__
+#ifndef NTNAOMIDIRTSERVER_H
+#define NTNAOMIDIRTSERVER_H
 
 #include "VisToggleNotifierServer.h"
 
@@ -8,4 +8,4 @@ public:
 	void OnStartup(Entity* self) override;
 };
 
-#endif  //!__NTNAOMIDIRTSERVER__H__
+#endif  //!NTNAOMIDIRTSERVER_H

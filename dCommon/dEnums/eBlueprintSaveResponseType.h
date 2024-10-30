@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EBLUEPRINTSAVERESPONSETYPE__H__
-#define __EBLUEPRINTSAVERESPONSETYPE__H__
+#ifndef EBLUEPRINTSAVERESPONSETYPE_H
+#define EBLUEPRINTSAVERESPONSETYPE_H
 
 #include <cstdint>
 
@@ -23,4 +23,4 @@ enum class eBlueprintSaveResponseType : uint32_t {
     FindMatchesFailed
 };
 
-#endif  //!__EBLUEPRINTSAVERESPONSETYPE__H__
+#endif  //!EBLUEPRINTSAVERESPONSETYPE_H

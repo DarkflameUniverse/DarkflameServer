@@ -1,5 +1,5 @@
-#ifndef __TRIGGERCOMPONENT__H__
-#define __TRIGGERCOMPONENT__H__
+#ifndef TRIGGERCOMPONENT_H
+#define TRIGGERCOMPONENT_H
 
 #include "Component.h"
 #include "LUTriggers.h"
@@ -53,4 +53,4 @@ private:
 
 	LUTriggers::Trigger* m_Trigger;
 };
-#endif  //!__TRIGGERCOMPONENT__H__
+#endif  //!TRIGGERCOMPONENT_H

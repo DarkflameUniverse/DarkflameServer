@@ -1,5 +1,5 @@
-#ifndef __REARRANGESTRIPMESSAGE__H__
-#define __REARRANGESTRIPMESSAGE__H__
+#ifndef REARRANGESTRIPMESSAGE_H
+#define REARRANGESTRIPMESSAGE_H
 
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
@@ -23,4 +23,4 @@ private:
 	ActionContext m_ActionContext;
 };
 
-#endif  //!__REARRANGESTRIPMESSAGE__H__
+#endif  //!REARRANGESTRIPMESSAGE_H

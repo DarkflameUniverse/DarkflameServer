@@ -1,5 +1,5 @@
-#ifndef __COLLECTIBLECOMPONENT__H__
-#define __COLLECTIBLECOMPONENT__H__
+#ifndef COLLECTIBLECOMPONENT_H
+#define COLLECTIBLECOMPONENT_H
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
@@ -15,4 +15,4 @@ private:
 	int16_t m_CollectibleId = 0;
 };
 
-#endif  //!__COLLECTIBLECOMPONENT__H__
+#endif  //!COLLECTIBLECOMPONENT_H

@@ -1,5 +1,5 @@
-#ifndef __DOCLIENTPROJECTILEIMPACT__H__
-#define __DOCLIENTPROJECTILEIMPACT__H__
+#ifndef DOCLIENTPROJECTILEIMPACT_H
+#define DOCLIENTPROJECTILEIMPACT_H
 
 #include "dCommonVars.h"
 
@@ -77,4 +77,4 @@ public:
 	std::string sBitStream;
 };
 
-#endif  //!__DOCLIENTPROJECTILEIMPACT__H__
+#endif  //!DOCLIENTPROJECTILEIMPACT_H

@@ -1,5 +1,5 @@
-#ifndef __ECINEMATICEVENT__H__
-#define __ECINEMATICEVENT__H__
+#ifndef ECINEMATICEVENT_H
+#define ECINEMATICEVENT_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eCinematicEvent : uint32_t {
 	ENDED,
 };
 
-#endif  //!__ECINEMATICEVENT__H__
+#endif  //!ECINEMATICEVENT_H

@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#ifndef __EPERMISSIONMAP__H__
-#define __EPERMISSIONMAP__H__
+#ifndef EPERMISSIONMAP_H
+#define EPERMISSIONMAP_H
 
 /**
  * Bitmap of permissions and restrictions for characters.
@@ -29,4 +29,4 @@ enum class ePermissionMap : uint64_t {
 	RestrictedChatAccess = 0x1 << 6,
 };
 
-#endif  //!__EPERMISSIONMAP__H__
+#endif  //!EPERMISSIONMAP_H

@@ -1,5 +1,5 @@
-#ifndef __STRINGIFIEDENUM_H__
-#define __STRINGIFIEDENUM_H__
+#ifndef STRINGIFIEDENUM_H
+#define STRINGIFIEDENUM_H
 
 #include <string>
 #include "magic_enum.hpp"
@@ -26,4 +26,4 @@ namespace StringifiedEnum {
 	}
 }
 
-#endif // !__STRINGIFIEDENUM_H__
+#endif // !STRINGIFIEDENUM_H

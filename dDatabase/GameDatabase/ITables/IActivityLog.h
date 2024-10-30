@@ -1,5 +1,5 @@
-#ifndef __IACTIVITYLOG__H__
-#define __IACTIVITYLOG__H__
+#ifndef IACTIVITYLOG_H
+#define IACTIVITYLOG_H
 
 #include <cstdint>
 
@@ -16,4 +16,4 @@ public:
 	virtual void UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) = 0;
 };
 
-#endif  //!__IACTIVITYLOG__H__
+#endif  //!IACTIVITYLOG_H

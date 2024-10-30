@@ -1,5 +1,5 @@
-#ifndef __IBUGREPORTS__H__
-#define __IBUGREPORTS__H__
+#ifndef IBUGREPORTS_H
+#define IBUGREPORTS_H
 
 #include <cstdint>
 #include <string_view>
@@ -17,4 +17,4 @@ public:
 	// Add a new bug report to the database.
 	virtual void InsertNewBugReport(const Info& info) = 0;
 };
-#endif  //!__IBUGREPORTS__H__
+#endif  //!IBUGREPORTS_H

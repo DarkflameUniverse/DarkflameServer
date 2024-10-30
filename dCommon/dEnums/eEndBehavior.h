@@ -1,5 +1,5 @@
-#ifndef __EENDBEHAVIOR__H__
-#define __EENDBEHAVIOR__H__
+#ifndef EENDBEHAVIOR_H
+#define EENDBEHAVIOR_H
 
 #include <cstdint>
 
@@ -8,4 +8,4 @@ enum class eEndBehavior : uint32_t {
 	WAIT
 };
 
-#endif  //!__EENDBEHAVIOR__H__
+#endif  //!EENDBEHAVIOR_H

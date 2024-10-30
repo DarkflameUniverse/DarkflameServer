@@ -1,5 +1,5 @@
 #pragma once
-#ifndef __NIPOINT3_H__
+#ifndef NIPOINT3_H
 #error "This should only be included inline in NiPoint3.h: Do not include directly!"
 #endif
 

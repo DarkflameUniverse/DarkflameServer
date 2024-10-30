@@ -1,5 +1,5 @@
-#ifndef __AMF3__H__
-#define __AMF3__H__
+#ifndef AMF3_H
+#define AMF3_H
 
 #include "dCommonVars.h"
 #include "Logger.h"
@@ -377,4 +377,4 @@ private:
 	AMFDense m_Dense;
 };
 
-#endif  //!__AMF3__H__
+#endif  //!AMF3_H

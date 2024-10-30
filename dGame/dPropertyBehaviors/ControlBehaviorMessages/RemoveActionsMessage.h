@@ -1,5 +1,5 @@
-#ifndef __REMOVEACTIONSMESSAGE__H__
-#define __REMOVEACTIONSMESSAGE__H__
+#ifndef REMOVEACTIONSMESSAGE_H
+#define REMOVEACTIONSMESSAGE_H
 
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
@@ -23,4 +23,4 @@ private:
 	ActionContext m_ActionContext;
 };
 
-#endif  //!__REMOVEACTIONSMESSAGE__H__
+#endif  //!REMOVEACTIONSMESSAGE_H

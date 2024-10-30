@@ -1,5 +1,5 @@
-#ifndef __CONTROLBEHAVIORMSGS__H__
-#define __CONTROLBEHAVIORMSGS__H__
+#ifndef CONTROLBEHAVIORMSGS_H
+#define CONTROLBEHAVIORMSGS_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -20,4 +20,4 @@
 #include "UpdateActionMessage.h"
 #include "UpdateStripUiMessage.h"
 
-#endif  //!__CONTROLBEHAVIORMSGS__H__
+#endif  //!CONTROLBEHAVIORMSGS_H

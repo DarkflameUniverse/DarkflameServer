@@ -1,5 +1,5 @@
-#ifndef __LUTRIGGERS__H__
-#define __LUTRIGGERS__H__
+#ifndef LUTRIGGERS_H
+#define LUTRIGGERS_H
 
 #include <string>
 #include <vector>
@@ -31,4 +31,4 @@ namespace LUTriggers {
 	};
 };
 
-#endif  //!__LUTRIGGERS__H__
+#endif  //!LUTRIGGERS_H

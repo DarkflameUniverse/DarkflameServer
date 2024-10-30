@@ -1,5 +1,5 @@
-#ifndef __ESTATECHANGETYPE__H__
-#define __ESTATECHANGETYPE__H__
+#ifndef ESTATECHANGETYPE_H
+#define ESTATECHANGETYPE_H
 
 #include <cstdint>
 
@@ -8,4 +8,4 @@ enum class eStateChangeType : uint32_t {
 	POP
 };
 
-#endif  //!__ESTATECHANGETYPE__H__
+#endif  //!ESTATECHANGETYPE_H

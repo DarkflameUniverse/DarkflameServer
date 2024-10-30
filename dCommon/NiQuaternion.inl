@@ -1,5 +1,5 @@
 #pragma once
-#ifndef __NIQUATERNION_H__
+#ifndef NIQUATERNION_H
 #error "This should only be included inline in NiQuaternion.h: Do not include directly!"
 #endif
 

@@ -1,5 +1,5 @@
-#ifndef __ESQLITEDATATYPE__H__
-#define __ESQLITEDATATYPE__H__
+#ifndef ESQLITEDATATYPE_H
+#define ESQLITEDATATYPE_H
 
 #include <cstdint>
 
@@ -13,4 +13,4 @@ enum class eSqliteDataType : int32_t {
 	TEXT_8 = 8
 };
 
-#endif  //!__ESQLITEDATATYPE__H__
+#endif  //!ESQLITEDATATYPE_H

@@ -1,5 +1,5 @@
-#ifndef __IACCOUNTS__H__
-#define __IACCOUNTS__H__
+#ifndef IACCOUNTS_H
+#define IACCOUNTS_H
 
 #include <cstdint>
 #include <optional>
@@ -38,4 +38,4 @@ public:
 	virtual void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) = 0;
 };
 
-#endif  //!__IACCOUNTS__H__
+#endif  //!IACCOUNTS_H

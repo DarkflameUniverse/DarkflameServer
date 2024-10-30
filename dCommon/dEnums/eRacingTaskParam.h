@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __ERACINGTASKPARAM__H__
-#define __ERACINGTASKPARAM__H__
+#ifndef ERACINGTASKPARAM_H
+#define ERACINGTASKPARAM_H
 
 #include <cstdint>
 
@@ -22,4 +22,4 @@ enum class eRacingTaskParam : int32_t {
 	SMASH_SPECIFIC_SMASHABLE
 };
 
-#endif  //!__ERACINGTASKPARAM__H__
+#endif  //!ERACINGTASKPARAM_H

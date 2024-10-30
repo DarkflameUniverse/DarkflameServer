@@ -1,5 +1,5 @@
-#ifndef __EGAMEMESSAGETYPE__H__
-#define __EGAMEMESSAGETYPE__H__
+#ifndef EGAMEMESSAGETYPE_H
+#define EGAMEMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -1611,4 +1611,4 @@ struct magic_enum::customize::enum_range<eGameMessageType> {
 	static constexpr int max = 1772;
 };
 
-#endif  //!__EGAMEMESSAGETYPE__H__
+#endif  //!EGAMEMESSAGETYPE_H

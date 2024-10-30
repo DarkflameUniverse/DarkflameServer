@@ -1,5 +1,5 @@
-#ifndef __ECONTROLSCHEME__H__
-#define __ECONTROLSCHEME__H__
+#ifndef ECONTROLSCHEME_H
+#define ECONTROLSCHEME_H
 
 #include <cstdint>
 
@@ -15,4 +15,4 @@ enum class eControlScheme : uint32_t {
 	SCHEME_WEAR_A_ROBOT //== freecam?
 };
 
-#endif  //!__ECONTROLSCHEME__H__
+#endif  //!ECONTROLSCHEME_H

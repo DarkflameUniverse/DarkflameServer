@@ -1,5 +1,5 @@
-#ifndef __CDCLIENTMANAGER__H__
-#define __CDCLIENTMANAGER__H__
+#ifndef CDCLIENTMANAGER_H
+#define CDCLIENTMANAGER_H
 
 #define UNUSED_TABLE(v)
 
@@ -41,4 +41,4 @@ T* CDClientManager::GetTable() {
 	return &T::Instance();
 };
 
-#endif  //!__CDCLIENTMANAGER__H__
+#endif  //!CDCLIENTMANAGER_H

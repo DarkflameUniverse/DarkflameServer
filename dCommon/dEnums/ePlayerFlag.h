@@ -1,5 +1,5 @@
-#ifndef __EPLAYERFLAG__H__
-#define __EPLAYERFLAG__H__
+#ifndef EPLAYERFLAG_H
+#define EPLAYERFLAG_H
 
 #include <cstdint>
 
@@ -170,4 +170,4 @@ enum ePlayerFlag : int32_t {
 	DLU_SKIP_CINEMATICS = 1'000'000,
 };
 
-#endif  //!__EPLAYERFLAG__H__
+#endif  //!EPLAYERFLAG_H

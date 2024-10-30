@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EINVENTORYTYPE__H__
-#define __EINVENTORYTYPE__H__
+#ifndef EINVENTORYTYPE_H
+#define EINVENTORYTYPE_H
 
 #include <cstdint>
 
@@ -65,4 +65,4 @@ struct magic_enum::customize::enum_range<eInventoryType> {
 	static constexpr int max = 16;
 };
 
-#endif  //!__EINVENTORYTYPE__H__
+#endif  //!EINVENTORYTYPE_H

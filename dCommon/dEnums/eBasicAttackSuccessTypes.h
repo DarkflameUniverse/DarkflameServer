@@ -1,5 +1,5 @@
-#ifndef __EBASICATTACKSUCCESSTYPES__H__
-#define __EBASICATTACKSUCCESSTYPES__H__
+#ifndef EBASICATTACKSUCCESSTYPES_H
+#define EBASICATTACKSUCCESSTYPES_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eBasicAttackSuccessTypes : uint8_t {
 	FAILIMMUNE
 };
 
-#endif  //!__EBASICATTACKSUCCESSTYPES__H__
+#endif  //!EBASICATTACKSUCCESSTYPES_H

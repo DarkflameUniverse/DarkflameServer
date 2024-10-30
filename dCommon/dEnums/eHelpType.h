@@ -1,6 +1,6 @@
 
-#ifndef __EHELPTYPE__H__
-#define __EHELPTYPE__H__
+#ifndef EHELPTYPE_H
+#define EHELPTYPE_H
 
 #include <cstdint>
 
@@ -38,4 +38,4 @@ enum class eHelpType : int32_t {
 	UI_INVENTORY_FULL_CANNOT_PICKUP_ITEM = 86
 };
 
-#endif  //!__EHELPTYPE__H__
+#endif  //!EHELPTYPE_H

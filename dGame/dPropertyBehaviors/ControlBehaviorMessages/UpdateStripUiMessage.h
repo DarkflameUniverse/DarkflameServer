@@ -1,5 +1,5 @@
-#ifndef __UPDATESTRIPUIMESSAGE__H__
-#define __UPDATESTRIPUIMESSAGE__H__
+#ifndef UPDATESTRIPUIMESSAGE_H
+#define UPDATESTRIPUIMESSAGE_H
 
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
@@ -24,4 +24,4 @@ private:
 	ActionContext m_ActionContext;
 };
 
-#endif  //!__UPDATESTRIPUIMESSAGE__H__
+#endif  //!UPDATESTRIPUIMESSAGE_H

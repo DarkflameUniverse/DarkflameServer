@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __FIREFIRSTSKILLONSTARTUP__H__
-#define __FIREFIRSTSKILLONSTARTUP__H__
+#ifndef FIREFIRSTSKILLONSTARTUP_H
+#define FIREFIRSTSKILLONSTARTUP_H
 
 #include "CppScripts.h"
 
@@ -9,4 +9,4 @@ public:
 	void OnStartup(Entity* self) override;
 };
 
-#endif  //!__FIREFIRSTSKILLONSTARTUP__H__
+#endif  //!FIREFIRSTSKILLONSTARTUP_H

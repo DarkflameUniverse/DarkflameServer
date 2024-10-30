@@ -1,5 +1,5 @@
-#ifndef __MINIGAMECONTROLCOMPONENT__H__
-#define __MINIGAMECONTROLCOMPONENT__H__
+#ifndef MINIGAMECONTROLCOMPONENT_H
+#define MINIGAMECONTROLCOMPONENT_H
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
@@ -12,4 +12,4 @@ public:
 	void Serialize(RakNet::BitStream& outBitStream, bool isConstruction);
 };
 
-#endif  //!__MINIGAMECONTROLCOMPONENT__H__
+#endif  //!MINIGAMECONTROLCOMPONENT_H

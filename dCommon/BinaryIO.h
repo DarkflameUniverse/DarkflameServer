@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __BINARYIO__H__
-#define __BINARYIO__H__
+#ifndef BINARYIO_H
+#define BINARYIO_H
 
 #include <iostream>
 #include <fstream>
@@ -71,4 +71,4 @@ namespace BinaryIO {
 	}
 }
 
-#endif  //!__BINARYIO__H__
+#endif  //!BINARYIO_H

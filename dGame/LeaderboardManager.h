@@ -1,5 +1,5 @@
-#ifndef __LEADERBOARDMANAGER__H__
-#define __LEADERBOARDMANAGER__H__
+#ifndef LEADERBOARDMANAGER_H
+#define LEADERBOARDMANAGER_H
 
 #include <map>
 #include <memory>
@@ -130,4 +130,4 @@ namespace LeaderboardManager {
 	extern std::map<GameID, Leaderboard::Type> leaderboardCache;
 };
 
-#endif  //!__LEADERBOARDMANAGER__H__
+#endif  //!LEADERBOARDMANAGER_H

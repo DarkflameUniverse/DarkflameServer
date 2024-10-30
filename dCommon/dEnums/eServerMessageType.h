@@ -1,5 +1,5 @@
-#ifndef __ESERVERMESSAGETYPE__H__
-#define __ESERVERMESSAGETYPE__H__
+#ifndef ESERVERMESSAGETYPE_H
+#define ESERVERMESSAGETYPE_H
 
 #include <cstdint>
 //! The Internal Server Packet Identifiers
@@ -9,4 +9,4 @@ enum class eServerMessageType : uint32_t {
 	GENERAL_NOTIFY
 };
 
-#endif  //!__ESERVERMESSAGETYPE__H__
+#endif  //!ESERVERMESSAGETYPE_H

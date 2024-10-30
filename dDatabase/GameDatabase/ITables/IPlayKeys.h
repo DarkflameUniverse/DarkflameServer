@@ -1,5 +1,5 @@
-#ifndef __IPLAYKEYS__H__
-#define __IPLAYKEYS__H__
+#ifndef IPLAYKEYS_H
+#define IPLAYKEYS_H
 
 #include <cstdint>
 #include <optional>
@@ -12,4 +12,4 @@ public:
 	virtual std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) = 0;
 };
 
-#endif  //!__IPLAYKEYS__H__
+#endif  //!IPLAYKEYS_H

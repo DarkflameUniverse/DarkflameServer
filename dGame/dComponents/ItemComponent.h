@@ -1,5 +1,5 @@
-#ifndef __ITEMCOMPONENT__H__
-#define __ITEMCOMPONENT__H__
+#ifndef ITEMCOMPONENT_H
+#define ITEMCOMPONENT_H
 
 #include "Component.h"
 #include "eReplicaComponentType.h"
@@ -13,4 +13,4 @@ public:
 	void Serialize(RakNet::BitStream& bitStream, bool isConstruction) override;
 };
 
-#endif  //!__ITEMCOMPONENT__H__
+#endif  //!ITEMCOMPONENT_H

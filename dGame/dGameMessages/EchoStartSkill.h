@@ -1,5 +1,5 @@
-#ifndef __ECHOSTARTSKILL__H__
-#define __ECHOSTARTSKILL__H__
+#ifndef ECHOSTARTSKILL_H
+#define ECHOSTARTSKILL_H
 
 #include "dCommonVars.h"
 #include "NiPoint3.h"
@@ -127,4 +127,4 @@ public:
 	uint32_t uiSkillHandle;
 };
 
-#endif  //!__ECHOSTARTSKILL__H__
+#endif  //!ECHOSTARTSKILL_H

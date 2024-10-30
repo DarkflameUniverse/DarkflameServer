@@ -1,5 +1,5 @@
-#ifndef __ERENAMERESPONSE__H__
-#define __ERENAMERESPONSE__H__
+#ifndef ERENAMERESPONSE_H
+#define ERENAMERESPONSE_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eRenameResponse : uint8_t {
 };
 
 
-#endif  //!__ERENAMERESPONSE__H__
+#endif  //!ERENAMERESPONSE_H

@@ -1,5 +1,5 @@
-#ifndef __EPHYSICSEFFECTTYPE__H__
-#define __EPHYSICSEFFECTTYPE__H__
+#ifndef EPHYSICSEFFECTTYPE_H
+#define EPHYSICSEFFECTTYPE_H
 
 
 #include <cstdint>
@@ -12,4 +12,4 @@ enum class ePhysicsEffectType : uint32_t {
 	FRICTION
 };
 
-#endif  //!__EPHYSICSEFFECTTYPE__H__
+#endif  //!EPHYSICSEFFECTTYPE_H

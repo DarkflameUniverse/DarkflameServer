@@ -1,5 +1,5 @@
-#ifndef __IFRIENDS__H__
-#define __IFRIENDS__H__
+#ifndef IFRIENDS_H
+#define IFRIENDS_H
 
 #include <cstdint>
 #include <optional>
@@ -29,4 +29,4 @@ public:
 	virtual void RemoveFriend(const uint32_t playerCharacterId, const uint32_t friendCharacterId) = 0;
 };
 
-#endif  //!__IFRIENDS__H__
+#endif  //!IFRIENDS_H

@@ -1,5 +1,5 @@
-#ifndef __REMOVESTRIPMESSAGE__H__
-#define __REMOVESTRIPMESSAGE__H__
+#ifndef REMOVESTRIPMESSAGE_H
+#define REMOVESTRIPMESSAGE_H
 
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
@@ -18,4 +18,4 @@ private:
 	ActionContext m_ActionContext;
 };
 
-#endif  //!__REMOVESTRIPMESSAGE__H__
+#endif  //!REMOVESTRIPMESSAGE_H

@@ -1,5 +1,5 @@
-#ifndef __ECHATMESSAGETYPE__H__
-#define __ECHATMESSAGETYPE__H__
+#ifndef ECHATMESSAGETYPE_H
+#define ECHATMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -77,4 +77,4 @@ enum class eChatMessageType :uint32_t {
 	CREATE_TEAM,
 };
 
-#endif  //!__ECHATMESSAGETYPE__H__
+#endif  //!ECHATMESSAGETYPE_H

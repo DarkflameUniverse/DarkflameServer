@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __ECHARACTERVERSION__H__
-#define __ECHARACTERVERSION__H__
+#ifndef ECHARACTERVERSION_H
+#define ECHARACTERVERSION_H
 
 #include <cstdint>
 
@@ -18,4 +18,4 @@ enum class eCharacterVersion : uint32_t {
 	UP_TO_DATE, // will become SPEED_BASE
 };
 
-#endif  //!__ECHARACTERVERSION__H__
+#endif  //!ECHARACTERVERSION_H

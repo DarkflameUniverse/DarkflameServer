@@ -1,5 +1,5 @@
-#ifndef __EPETTAMINGNOTIFYTYPE__H__
-#define __EPETTAMINGNOTIFYTYPE__H__
+#ifndef EPETTAMINGNOTIFYTYPE_H
+#define EPETTAMINGNOTIFYTYPE_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class ePetTamingNotifyType : uint32_t {
 	NAMINGPET
 };
 
-#endif  //!__EPETTAMINGNOTIFYTYPE__H__
+#endif  //!EPETTAMINGNOTIFYTYPE_H

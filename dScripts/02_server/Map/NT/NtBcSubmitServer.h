@@ -1,5 +1,5 @@
-#ifndef __NTBCSUBMITSERVER__H__
-#define __NTBCSUBMITSERVER__H__
+#ifndef NTBCSUBMITSERVER_H
+#define NTBCSUBMITSERVER_H
 
 #include "CppScripts.h"
 
@@ -8,4 +8,4 @@ public:
 	void OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) override;
 };
 
-#endif  //!__NTBCSUBMITSERVER__H__
+#endif  //!NTBCSUBMITSERVER_H

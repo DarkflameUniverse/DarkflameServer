@@ -1,5 +1,5 @@
-#ifndef __IPROPERTIESCONTENTS__H__
-#define __IPROPERTIESCONTENTS__H__
+#ifndef IPROPERTIESCONTENTS_H
+#define IPROPERTIESCONTENTS_H
 
 #include <array>
 #include <cstdint>
@@ -39,4 +39,4 @@ public:
 	// Remove the model for the given property id.
 	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
 };
-#endif  //!__IPROPERTIESCONTENTS__H__
+#endif  //!IPROPERTIESCONTENTS_H

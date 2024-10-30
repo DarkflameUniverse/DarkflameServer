@@ -1,5 +1,5 @@
-#ifndef __BRICKDATABASE__H__
-#define __BRICKDATABASE__H__
+#ifndef BRICKDATABASE_H
+#define BRICKDATABASE_H
 
 #pragma once
 
@@ -13,4 +13,4 @@ namespace BrickDatabase {
 	const BrickList& GetBricks(const LxfmlPath& lxfmlPath);
 };
 
-#endif  //!__BRICKDATABASE__H__
+#endif  //!BRICKDATABASE_H

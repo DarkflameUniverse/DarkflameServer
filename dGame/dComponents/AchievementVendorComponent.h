@@ -1,5 +1,5 @@
-#ifndef __ACHIEVEMENTVENDORCOMPONENT__H__
-#define __ACHIEVEMENTVENDORCOMPONENT__H__
+#ifndef ACHIEVEMENTVENDORCOMPONENT_H
+#define ACHIEVEMENTVENDORCOMPONENT_H
 
 #include "VendorComponent.h"
 #include "eReplicaComponentType.h"
@@ -22,4 +22,4 @@ private:
 };
 
 
-#endif  //!__ACHIEVEMENTVENDORCOMPONENT__H__
+#endif  //!ACHIEVEMENTVENDORCOMPONENT_H

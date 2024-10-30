@@ -1,5 +1,5 @@
-#ifndef __GAMEDATABASE__H__
-#define __GAMEDATABASE__H__
+#ifndef GAMEDATABASE_H
+#define GAMEDATABASE_H
 
 #include <optional>
 
@@ -56,4 +56,4 @@ public:
 	virtual void DeleteCharacter(const uint32_t characterId) = 0;
 };
 
-#endif  //!__GAMEDATABASE__H__
+#endif  //!GAMEDATABASE_H

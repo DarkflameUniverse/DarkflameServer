@@ -1,5 +1,5 @@
-#ifndef __EQUICKBUILDSTATE__H__
-#define __EQUICKBUILDSTATE__H__
+#ifndef EQUICKBUILDSTATE_H
+#define EQUICKBUILDSTATE_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eQuickBuildState : uint32_t {
 };
 
 
-#endif  //!__EQUICKBUILDSTATE__H__
+#endif  //!EQUICKBUILDSTATE_H

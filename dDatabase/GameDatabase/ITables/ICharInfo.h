@@ -1,5 +1,5 @@
-#ifndef __ICHARINFO__H__
-#define __ICHARINFO__H__
+#ifndef ICHARINFO_H
+#define ICHARINFO_H
 
 #include <cstdint>
 #include <optional>
@@ -46,4 +46,4 @@ public:
 	virtual void UpdateLastLoggedInCharacter(const uint32_t characterId) = 0;
 };
 
-#endif  //!__ICHARINFO__H__
+#endif  //!ICHARINFO_H

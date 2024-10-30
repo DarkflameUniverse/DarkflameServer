@@ -1,5 +1,5 @@
-#ifndef __CHEATDETECTION__H__
-#define __CHEATDETECTION__H__
+#ifndef CHEATDETECTION_H
+#define CHEATDETECTION_H
 
 #include "dCommonVars.h"
 
@@ -26,5 +26,5 @@ namespace CheatDetection {
 	void ReportCheat(User* user, const SystemAddress& sysAddr, const char* messageIfNotSender, ...);
 };
 
-#endif  //!__CHEATDETECTION__H__
+#endif  //!CHEATDETECTION_H
 

@@ -1,5 +1,5 @@
-#ifndef __EGAMEACTIVITY__H__
-#define __EGAMEACTIVITY__H__
+#ifndef EGAMEACTIVITY_H
+#define EGAMEACTIVITY_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eGameActivity : uint32_t {
 	PET_TAMING
 };
 
-#endif  //!__EGAMEACTIVITY__H__
+#endif  //!EGAMEACTIVITY_H

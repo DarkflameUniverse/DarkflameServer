@@ -1,5 +1,5 @@
-#ifndef __VISTOGGLENOTIFIERSERVER__H__
-#define __VISTOGGLENOTIFIERSERVER__H__
+#ifndef VISTOGGLENOTIFIERSERVER_H
+#define VISTOGGLENOTIFIERSERVER_H
 
 #include "CppScripts.h"
 
@@ -12,4 +12,4 @@ private:
 	std::map<int32_t, std::string> m_GameVariables;
 };
 
-#endif  //!__VISTOGGLENOTIFIERSERVER__H__
+#endif  //!VISTOGGLENOTIFIERSERVER_H

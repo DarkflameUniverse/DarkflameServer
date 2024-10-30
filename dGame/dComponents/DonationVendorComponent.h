@@ -1,5 +1,5 @@
-#ifndef __DONATIONVENDORCOMPONENT__H__
-#define __DONATIONVENDORCOMPONENT__H__
+#ifndef DONATIONVENDORCOMPONENT_H
+#define DONATIONVENDORCOMPONENT_H
 
 #include "VendorComponent.h"
 #include "eReplicaComponentType.h"
@@ -24,4 +24,4 @@ private:
 };
 
 
-#endif  //!__DONATIONVENDORCOMPONENT__H__
+#endif  //!DONATIONVENDORCOMPONENT_H

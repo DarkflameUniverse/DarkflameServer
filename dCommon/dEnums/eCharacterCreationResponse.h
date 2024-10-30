@@ -1,5 +1,5 @@
-#ifndef __ECHARACTERCREATIONRESPONSE__H__
-#define __ECHARACTERCREATIONRESPONSE__H__
+#ifndef ECHARACTERCREATIONRESPONSE_H
+#define ECHARACTERCREATIONRESPONSE_H
 
 #include <cstdint>
 
@@ -11,4 +11,4 @@ enum class eCharacterCreationResponse : uint8_t {
 	CUSTOM_NAME_IN_USE
 };
 
-#endif  //!__ECHARACTERCREATIONRESPONSE__H__
+#endif  //!ECHARACTERCREATIONRESPONSE_H

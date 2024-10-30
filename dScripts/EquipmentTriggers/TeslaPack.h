@@ -1,5 +1,5 @@
-#ifndef __TESLAPACK__H__
-#define __TESLAPACK__H__
+#ifndef TESLAPACK_H
+#define TESLAPACK_H
 
 #include "CoilBackpackBase.h"
 
@@ -10,4 +10,4 @@ private:
 	static const uint32_t skillId = 1001;
 };
 
-#endif  //!__TESLAPACK__H__
+#endif  //!TESLAPACK_H

@@ -1,5 +1,5 @@
-#ifndef __EAUTHMESSAGETYPE__H__
-#define __EAUTHMESSAGETYPE__H__
+#ifndef EAUTHMESSAGETYPE_H
+#define EAUTHMESSAGETYPE_H
 
 #include <cstdint>
 
@@ -12,4 +12,4 @@ enum class eAuthMessageType : uint32_t {
 	RUNTIME_CONFIG
 };
 
-#endif  //!__EAUTHMESSAGETYPE__H__
+#endif  //!EAUTHMESSAGETYPE_H

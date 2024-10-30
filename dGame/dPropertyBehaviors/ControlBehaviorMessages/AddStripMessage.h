@@ -1,5 +1,5 @@
-#ifndef __ADDSTRIPMESSAGE__H__
-#define __ADDSTRIPMESSAGE__H__
+#ifndef ADDSTRIPMESSAGE_H
+#define ADDSTRIPMESSAGE_H
 
 #include "ActionContext.h"
 #include "BehaviorMessageBase.h"
@@ -32,4 +32,4 @@ private:
 	std::vector<Action> m_ActionsToAdd;
 };
 
-#endif  //!__ADDSTRIPMESSAGE__H__
+#endif  //!ADDSTRIPMESSAGE_H

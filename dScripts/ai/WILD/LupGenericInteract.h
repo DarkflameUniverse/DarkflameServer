@@ -1,5 +1,5 @@
-#ifndef __LUCGENERICINTERACT__H__
-#define __LUCGENERICINTERACT__H__
+#ifndef LUCGENERICINTERACT_H
+#define LUCGENERICINTERACT_H
 
 #include "CppScripts.h"
 
@@ -8,5 +8,5 @@ public:
 	void OnUse(Entity* self, Entity* user) override;
 };
 
-#endif  //!__LUCGENERICINTERACT__H__
+#endif  //!LUCGENERICINTERACT_H
 

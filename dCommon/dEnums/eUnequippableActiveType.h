@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EUNEQUIPPABLEACTIVETYPE__H__
-#define __EUNEQUIPPABLEACTIVETYPE__H__
+#ifndef EUNEQUIPPABLEACTIVETYPE_H
+#define EUNEQUIPPABLEACTIVETYPE_H
 
 #include <cstdint>
 
@@ -11,4 +11,4 @@ enum class eUnequippableActiveType : int32_t {
 	MOUNT
 };
 
-#endif  //!__EUNEQUIPPABLEACTIVETYPE__H__
+#endif  //!EUNEQUIPPABLEACTIVETYPE_H

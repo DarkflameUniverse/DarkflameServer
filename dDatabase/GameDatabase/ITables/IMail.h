@@ -1,5 +1,5 @@
-#ifndef __IMAIL__H__
-#define __IMAIL__H__
+#ifndef IMAIL_H
+#define IMAIL_H
 
 #include <cstdint>
 #include <optional>
@@ -51,4 +51,4 @@ public:
 	virtual void DeleteMail(const uint64_t mailId) = 0;
 };
 
-#endif  //!__IMAIL__H__
+#endif  //!IMAIL_H

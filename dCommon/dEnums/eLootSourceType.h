@@ -1,5 +1,5 @@
-#ifndef __ELOOTSOURCETYPE__H__
-#define __ELOOTSOURCETYPE__H__
+#ifndef ELOOTSOURCETYPE_H
+#define ELOOTSOURCETYPE_H
 
 #include <cstdint>
 
@@ -28,4 +28,4 @@ enum class eLootSourceType : uint32_t {
 	RELOCATE
 };
 
-#endif  //!__ELOOTSOURCETYPE__H__
+#endif  //!ELOOTSOURCETYPE_H

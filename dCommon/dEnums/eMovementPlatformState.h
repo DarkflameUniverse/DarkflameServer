@@ -1,5 +1,5 @@
-#ifndef __EMOVEMENTPLATFORMSTATE__H__
-#define __EMOVEMENTPLATFORMSTATE__H__
+#ifndef EMOVEMENTPLATFORMSTATE_H
+#define EMOVEMENTPLATFORMSTATE_H
 
 #include <cstdint>
 
@@ -13,4 +13,4 @@ enum class eMovementPlatformState : uint32_t
 	Stopped = 0b01100
 };
 
-#endif  //!__EMOVEMENTPLATFORMSTATE__H__
+#endif  //!EMOVEMENTPLATFORMSTATE_H

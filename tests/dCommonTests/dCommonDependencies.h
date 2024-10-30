@@ -1,5 +1,5 @@
-#ifndef __DCOMMONDEPENDENCIES__H__
-#define __DCOMMONDEPENDENCIES__H__
+#ifndef DCOMMONDEPENDENCIES_H
+#define DCOMMONDEPENDENCIES_H
 
 #include "Game.h"
 #include "Logger.h"
@@ -21,4 +21,4 @@ protected:
 	}
 };
 
-#endif  //!__DCOMMONDEPENDENCIES__H__
+#endif  //!DCOMMONDEPENDENCIES_H

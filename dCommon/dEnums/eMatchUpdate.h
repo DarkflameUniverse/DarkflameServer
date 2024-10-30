@@ -1,5 +1,5 @@
-#ifndef __EMATCHUPDATE__H__
-#define __EMATCHUPDATE__H__
+#ifndef EMATCHUPDATE_H
+#define EMATCHUPDATE_H
 
 #include <cstdint>
 
@@ -14,4 +14,4 @@ enum class eMatchUpdate : int32_t {
 	PLAYER_UPDATE
 };
 
-#endif  //!__EMATCHUPDATE__H__
+#endif  //!EMATCHUPDATE_H

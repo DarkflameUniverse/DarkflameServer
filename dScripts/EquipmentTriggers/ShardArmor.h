@@ -1,5 +1,5 @@
-#ifndef __SHARDARMOR__H__
-#define __SHARDARMOR__H__
+#ifndef SHARDARMOR_H
+#define SHARDARMOR_H
 
 #include "CoilBackpackBase.h"
 
@@ -10,4 +10,4 @@ private:
 	static const uint32_t skillId = 1249;
 };
 
-#endif  //!__SHARDARMOR__H__
+#endif  //!SHARDARMOR_H

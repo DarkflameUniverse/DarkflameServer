@@ -1,5 +1,5 @@
-#ifndef __ECYCLINGMODE__H__
-#define __ECYCLINGMODE__H__
+#ifndef ECYCLINGMODE_H
+#define ECYCLINGMODE_H
 
 #include <cstdint>
 
@@ -8,4 +8,4 @@ enum class eCyclingMode : uint32_t {
 	DISALLOW_CYCLING
 };
 
-#endif  //!__ECYCLINGMODE__H__
+#endif  //!ECYCLINGMODE_H

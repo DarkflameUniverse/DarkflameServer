@@ -1,5 +1,5 @@
-#ifndef __LDFFORMAT__H__
-#define __LDFFORMAT__H__
+#ifndef LDFFORMAT_H
+#define LDFFORMAT_H
 
 // Custom Classes
 #include "dCommonVars.h"
@@ -220,4 +220,4 @@ template<> inline std::string LDFData<LWOOBJID>::GetValueString() const { return
 
 template<> inline std::string LDFData<std::string>::GetValueString() const { return this->value; }
 
-#endif  //!__LDFFORMAT__H__
+#endif  //!LDFFORMAT_H

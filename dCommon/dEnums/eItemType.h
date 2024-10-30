@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __EITEMTYPE__H__
-#define __EITEMTYPE__H__
+#ifndef EITEMTYPE_H
+#define EITEMTYPE_H
 
 #include <cstdint>
 
@@ -33,4 +33,4 @@ enum class eItemType : int32_t {
 	MOUNT
 };
 
-#endif  //!__EITEMTYPE__H__
+#endif  //!EITEMTYPE_H

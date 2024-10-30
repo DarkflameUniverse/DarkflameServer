@@ -1,5 +1,5 @@
-#ifndef __ACTIONCONTEXT__H__
-#define __ACTIONCONTEXT__H__
+#ifndef ACTIONCONTEXT_H
+#define ACTIONCONTEXT_H
 
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
@@ -24,4 +24,4 @@ private:
 	BehaviorState m_StateId{ BehaviorState::HOME_STATE };
 };
 
-#endif  //!__ACTIONCONTEXT__H__
+#endif  //!ACTIONCONTEXT_H

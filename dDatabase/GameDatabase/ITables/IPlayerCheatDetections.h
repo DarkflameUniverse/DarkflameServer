@@ -1,5 +1,5 @@
-#ifndef __IPLAYERCHEATDETECTIONS__H__
-#define __IPLAYERCHEATDETECTIONS__H__
+#ifndef IPLAYERCHEATDETECTIONS_H
+#define IPLAYERCHEATDETECTIONS_H
 
 #include <cstdint>
 #include <optional>
@@ -17,4 +17,4 @@ public:
 	virtual void InsertCheatDetection(const IPlayerCheatDetections::Info& info) = 0;
 };
 
-#endif  //!__IPLAYERCHEATDETECTIONS__H__
+#endif  //!IPLAYERCHEATDETECTIONS_H

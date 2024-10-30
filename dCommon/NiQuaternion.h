@@ -1,5 +1,5 @@
-#ifndef __NIQUATERNION_H__
-#define __NIQUATERNION_H__
+#ifndef NIQUATERNION_H
+#define NIQUATERNION_H
 
 // Custom Classes
 #include "NiPoint3.h"
@@ -155,4 +155,4 @@ namespace NiQuaternionConstant {
 // Include constexpr and inline function definitions in a seperate file for readability
 #include "NiQuaternion.inl"
 
-#endif // !__NIQUATERNION_H__
+#endif // !NIQUATERNION_H

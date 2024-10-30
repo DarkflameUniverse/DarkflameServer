@@ -1,5 +1,5 @@
-#ifndef __ETERMINATETYPE__H__
-#define __ETERMINATETYPE__H__
+#ifndef ETERMINATETYPE_H
+#define ETERMINATETYPE_H
 
 #include <cstdint>
 
@@ -9,4 +9,4 @@ enum class eTerminateType : uint32_t {
 	FROM_INTERACTION
 };
 
-#endif  //!__ETERMINATETYPE__H__
+#endif  //!ETERMINATETYPE_H

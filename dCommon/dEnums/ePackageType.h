@@ -1,5 +1,5 @@
-#ifndef __EPACKAGETYPE__H__
-#define __EPACKAGETYPE__H__
+#ifndef EPACKAGETYPE_H
+#define EPACKAGETYPE_H
 
 enum class ePackageType {
 	INVALID = -1,
@@ -10,4 +10,4 @@ enum class ePackageType {
 };
 
 
-#endif  //!__EPACKAGETYPE__H__
+#endif  //!EPACKAGETYPE_H

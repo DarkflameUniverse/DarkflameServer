@@ -1,5 +1,5 @@
-#ifndef __SCRIPTEDACTIVITYCOMPONENT__H__
-#define __SCRIPTEDACTIVITYCOMPONENT__H__
+#ifndef SCRIPTEDACTIVITYCOMPONENT_H
+#define SCRIPTEDACTIVITYCOMPONENT_H
 
 #include "ActivityComponent.h"
 #include "eReplicaComponentType.h"
@@ -12,4 +12,4 @@ public:
 	ScriptedActivityComponent(Entity* parent, int activityID) : ActivityComponent(parent, activityID){};
 };
 
-#endif  //!__SCRIPTEDACTIVITYCOMPONENT__H__
+#endif  //!SCRIPTEDACTIVITYCOMPONENT_H

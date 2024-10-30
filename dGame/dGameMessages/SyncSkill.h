@@ -1,5 +1,5 @@
-#ifndef __SYNCSKILL__H__
-#define __SYNCSKILL__H__
+#ifndef SYNCSKILL_H
+#define SYNCSKILL_H
 
 #include <cstdint>
 #include <string>
@@ -64,4 +64,4 @@ public:
 	uint32_t uiSkillHandle{};
 };
 
-#endif  //!__SYNCSKILL__H__
+#endif  //!SYNCSKILL_H

@@ -1,5 +1,5 @@
-#ifndef __REQUESTSERVERPROJECTILEIMPACT__H__
-#define __REQUESTSERVERPROJECTILEIMPACT__H__
+#ifndef REQUESTSERVERPROJECTILEIMPACT_H
+#define REQUESTSERVERPROJECTILEIMPACT_H
 
 #include "dCommonVars.h"
 #include "eGameMessageType.h"
@@ -69,4 +69,4 @@ public:
 	std::string sBitStream;
 };
 
-#endif  //!__REQUESTSERVERPROJECTILEIMPACT__H__
+#endif  //!REQUESTSERVERPROJECTILEIMPACT_H

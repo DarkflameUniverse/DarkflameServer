@@ -1,6 +1,6 @@
 
-#ifndef __EWAYPOINTCOMMANDTYPES__H__
-#define __EWAYPOINTCOMMANDTYPES__H__
+#ifndef EWAYPOINTCOMMANDTYPES_H
+#define EWAYPOINTCOMMANDTYPES_H
 
 #include <cstdint>
 
@@ -56,4 +56,4 @@ public:
 };
 
 
-#endif  //!__EWAYPOINTCOMMANDTYPES__H__
+#endif  //!EWAYPOINTCOMMANDTYPES_H

@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __DCOMMONVARS__H__
-#define __DCOMMONVARS__H__
+#ifndef DCOMMONVARS_H
+#define DCOMMONVARS_H
 
 #include <cstdint>
 #include <string>
@@ -158,4 +158,4 @@ public:
 	}
 };
 
-#endif  //!__DCOMMONVARS__H__
+#endif  //!DCOMMONVARS_H

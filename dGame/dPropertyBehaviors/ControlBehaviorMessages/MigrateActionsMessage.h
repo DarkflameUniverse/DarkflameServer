@@ -1,5 +1,5 @@
-#ifndef __MIGRATEACTIONSMESSAGE__H__
-#define __MIGRATEACTIONSMESSAGE__H__
+#ifndef MIGRATEACTIONSMESSAGE_H
+#define MIGRATEACTIONSMESSAGE_H
 
 #include "Action.h"
 #include "ActionContext.h"
@@ -35,4 +35,4 @@ private:
 	ActionContext m_DestinationActionContext;
 };
 
-#endif  //!__MIGRATEACTIONSMESSAGE__H__
+#endif  //!MIGRATEACTIONSMESSAGE_H

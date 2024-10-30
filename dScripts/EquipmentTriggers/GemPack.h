@@ -1,5 +1,5 @@
-#ifndef __GEMPACK__H__
-#define __GEMPACK__H__
+#ifndef GEMPACK_H
+#define GEMPACK_H
 
 #include "CoilBackpackBase.h"
 
@@ -10,4 +10,4 @@ private:
 	static const uint32_t skillId = 1488;
 };
 
-#endif  //!__GEMPACK__H__
+#endif  //!GEMPACK_H

@@ -1,5 +1,5 @@
-#ifndef __ECONNECTIONTYPE__H__
-#define __ECONNECTIONTYPE__H__
+#ifndef ECONNECTIONTYPE_H
+#define ECONNECTIONTYPE_H
 
 enum class eConnectionType : uint16_t {
 	SERVER = 0,
@@ -10,4 +10,4 @@ enum class eConnectionType : uint16_t {
 	MASTER
 };
 
-#endif  //!__ECONNECTIONTYPE__H__
+#endif  //!ECONNECTIONTYPE_H

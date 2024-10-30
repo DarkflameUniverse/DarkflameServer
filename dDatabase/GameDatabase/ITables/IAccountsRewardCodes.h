@@ -1,5 +1,5 @@
-#ifndef __IACCOUNTSREWARDCODES__H__
-#define __IACCOUNTSREWARDCODES__H__
+#ifndef IACCOUNTSREWARDCODES_H
+#define IACCOUNTSREWARDCODES_H
 
 #include <cstdint>
 #include <vector>
@@ -10,4 +10,4 @@ public:
 	virtual std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) = 0;
 };
 
-#endif  //!__IACCOUNTSREWARDCODES__H__
+#endif  //!IACCOUNTSREWARDCODES_H
