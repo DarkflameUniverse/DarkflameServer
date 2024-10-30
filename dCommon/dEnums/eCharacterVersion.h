@@ -15,6 +15,7 @@ enum class eCharacterVersion : uint32_t {
 	// Fixes vault size value
 	VAULT_SIZE,
 	// Fixes speed base value in level component
+	SPEED_BASE,
 	UP_TO_DATE, // will become SPEED_BASE
 };
 

@@ -79,7 +79,9 @@
 #include "PositionUpdate.h"
 #include "PlayerManager.h"
 #include "eLoginResponse.h"
+#include "MissionComponent.h"
 #include "SlashCommandHandler.h"
+#include "InventoryComponent.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -1043,7 +1045,9 @@ void HandlePacket(Packet* packet) {
 
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
-				if (!levelComponent) return;
+				auto* const inventoryComponent = player->GetComponent<InventoryComponent>();
+				const auto* const missionComponent = player->GetComponent<MissionComponent>();
+				if (!levelComponent || !missionComponent || !inventoryComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
 				switch (version) {
@@ -1060,7 +1064,23 @@ void HandlePacket(Packet* packet) {
 				case eCharacterVersion::VAULT_SIZE:
 					LOG("Updaing Speedbase");
 					levelComponent->SetRetroactiveBaseSpeed();
+					levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+				case eCharacterVersion::SPEED_BASE: {
+					LOG("Removing lots from NJ Jay missions bugged at foss");
+					// https://explorer.lu/missions/1789
+					const auto* mission = missionComponent->GetMission(1789);
+					if (mission && mission->IsComplete()) {
+						inventoryComponent->RemoveItem(14474, 1, eInventoryType::ITEMS);
+						inventoryComponent->RemoveItem(14474, 1, eInventoryType::VAULT_ITEMS);
+					}
+					// https://explorer.lu/missions/1927
+					mission = missionComponent->GetMission(1927);
+					if (mission && mission->IsComplete()) {
+						inventoryComponent->RemoveItem(14493, 1, eInventoryType::ITEMS);
+						inventoryComponent->RemoveItem(14493, 1, eInventoryType::VAULT_ITEMS);
+					}
 					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+				}
 				case eCharacterVersion::UP_TO_DATE:
 					break;
 				}
