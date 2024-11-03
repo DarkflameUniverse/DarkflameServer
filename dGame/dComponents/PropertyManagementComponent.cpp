@@ -253,6 +253,15 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	// Push equipped items
 	if (inventoryComponent) inventoryComponent->PushEquippedItems();
+
+	for (const auto obj : models | std::views::keys) {
+		auto* const model = Game::entityManager->GetEntity(obj);
+
+		if (!model) continue;
+
+		auto* const modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) modelComponent->SetIsRunning(false);
+	}
 }
 
 void PropertyManagementComponent::OnFinishBuilding() {
@@ -265,6 +274,14 @@ void PropertyManagementComponent::OnFinishBuilding() {
 	UpdateApprovedStatus(false);
 
 	Save();
+	for (const auto obj : models | std::views::keys) {
+		auto* const model = Game::entityManager->GetEntity(obj);
+
+		if (!model) continue;
+
+		auto* const modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) modelComponent->SetIsRunning(true);
+	}
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {

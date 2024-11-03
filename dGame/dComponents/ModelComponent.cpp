@@ -15,6 +15,7 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+	m_Running = false;
 }
 
 void ModelComponent::LoadBehaviors() {
@@ -67,6 +68,7 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 }
 
 void ModelComponent::Update(float deltaTime) {
+	if (!m_Running) return;
 	for (auto& behavior : m_Behaviors) behavior.Update(deltaTime);
 }
 

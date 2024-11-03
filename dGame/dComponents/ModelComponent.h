@@ -116,7 +116,11 @@ public:
 
 	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
 
+	void SetIsRunning(bool isRunning) { m_Running = isRunning; }
+	bool GetIsRunning() const { return m_Running; }
+
 private:
+	bool m_Running;
 	/**
 	 * The behaviors of the model
 	 * Note: This is a vector because the order of the behaviors matters when serializing to the client.
