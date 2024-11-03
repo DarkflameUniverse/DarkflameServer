@@ -11,6 +11,8 @@ class AMFArrayValue;
 
 class State {
 public:
+	void Update(float deltaTime);
+
 	template <typename Msg>
 	void HandleMsg(Msg& msg);
 

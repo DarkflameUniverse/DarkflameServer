@@ -29,6 +29,8 @@ public:
 
 	ModelComponent(Entity* parent);
 
+	void Update(float deltaTime) override;
+
 	void LoadBehaviors();
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

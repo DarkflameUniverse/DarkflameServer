@@ -17,6 +17,11 @@ class Action {
 public:
 	Action() = default;
 	Action(const AMFArrayValue& arguments);
+
+	void Update(float deltaTime);
+
+	bool Done() const noexcept;
+
 	[[nodiscard]] const std::string& GetType() const { return m_Type; };
 	[[nodiscard]] const std::string& GetValueParameterName() const { return m_ValueParameterName; };
 	[[nodiscard]] const std::string& GetValueParameterString() const { return m_ValueParameterString; };

@@ -4,6 +4,12 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 
+void State::Update(float deltaTime) {
+	for (auto& strip : m_Strips) {
+		strip.Update(deltaTime);
+	}
+}
+
 template <>
 void State::HandleMsg(AddStripMessage& msg) {
 	if (m_Strips.size() <= msg.GetActionContext().GetStripId()) {

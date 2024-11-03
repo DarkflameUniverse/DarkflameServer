@@ -14,6 +14,8 @@ class AMFArrayValue;
 
 class Strip {
 public:
+	void Update(float deltaTime);
+
 	template <typename Msg>
 	void HandleMsg(Msg& msg);
 
@@ -23,6 +25,8 @@ public:
 	void Serialize(tinyxml2::XMLElement& strip) const;
 	void Deserialize(const tinyxml2::XMLElement& strip);
 private:
+	uint32_t m_ActionIndex{ 0 };
+
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
 };

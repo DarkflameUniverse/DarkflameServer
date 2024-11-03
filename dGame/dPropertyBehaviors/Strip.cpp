@@ -4,6 +4,15 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 
+void Strip::Update(float deltaTime) {
+	if (m_Actions.empty() || m_ActionIndex >= m_Actions.size()) return;
+
+	auto& action = m_Actions[m_ActionIndex];
+	action.Update(deltaTime);
+	LOG("Running action %s", action.GetType().c_str());
+	if (action.Done()) m_ActionIndex++;
+}
+
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();

@@ -9,6 +9,12 @@ PropertyBehavior::PropertyBehavior() {
 	m_LastEditedState = BehaviorState::HOME_STATE;
 }
 
+void PropertyBehavior::Update(float deltaTime) {
+	for (auto& [stateId, state] : m_States) {
+		state.Update(deltaTime);
+	}
+}
+
 template<>
 void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);

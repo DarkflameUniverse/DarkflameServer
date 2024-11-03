@@ -22,6 +22,14 @@ Action::Action(const AMFArrayValue& arguments) {
 	}
 }
 
+void Action::Update(float deltaTime) {
+	// Do nothing
+}
+
+bool Action::Done() const noexcept {
+	return true;
+}
+
 void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	auto* const actionArgs = args.PushArray();
 	actionArgs->Insert("Type", m_Type);

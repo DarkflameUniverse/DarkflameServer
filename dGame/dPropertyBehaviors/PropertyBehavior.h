@@ -18,6 +18,8 @@ class PropertyBehavior {
 public:
 	PropertyBehavior();
 
+	void Update(float deltaTime);
+
 	template <typename Msg>
 	void HandleMsg(Msg& msg);
 
