@@ -4,11 +4,11 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 
-void Strip::Update(float deltaTime) {
+void Strip::Update(float deltaTime, const ModelComponent& modelComponent) {
 	if (m_Actions.empty() || m_ActionIndex >= m_Actions.size()) return;
 
 	auto& action = m_Actions[m_ActionIndex];
-	action.Update(deltaTime);
+	action.Update(deltaTime, modelComponent);
 	LOG("Running action %s", action.GetType().c_str());
 	if (action.Done()) m_ActionIndex++;
 }
@@ -17,41 +17,41 @@ template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
 	m_Position = msg.GetPosition();
-};
+}
 
 template <>
 void Strip::HandleMsg(AddActionMessage& msg) {
 	if (msg.GetActionIndex() == -1) return;
-	m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
-};
+	auto newAction = m_Actions.insert(m_Actions.begin() + msg.GetActionIndex(), msg.GetAction());
+}
 
 template <>
 void Strip::HandleMsg(UpdateStripUiMessage& msg) {
 	m_Position = msg.GetPosition();
-};
+}
 
 template <>
 void Strip::HandleMsg(RemoveStripMessage& msg) {
 	m_Actions.clear();
-};
+}
 
 template <>
 void Strip::HandleMsg(RemoveActionsMessage& msg) {
 	if (msg.GetActionIndex() >= m_Actions.size()) return;
 	m_Actions.erase(m_Actions.begin() + msg.GetActionIndex(), m_Actions.end());
-};
+}
 
 template <>
 void Strip::HandleMsg(UpdateActionMessage& msg) {
 	if (msg.GetActionIndex() >= m_Actions.size()) return;
 	m_Actions.at(msg.GetActionIndex()) = msg.GetAction();
-};
+}
 
 template <>
 void Strip::HandleMsg(RearrangeStripMessage& msg) {
 	if (msg.GetDstActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() >= m_Actions.size() || msg.GetSrcActionIndex() <= msg.GetDstActionIndex()) return;
 	std::rotate(m_Actions.begin() + msg.GetDstActionIndex(), m_Actions.begin() + msg.GetSrcActionIndex(), m_Actions.end());
-};
+}
 
 template <>
 void Strip::HandleMsg(SplitStripMessage& msg) {
@@ -63,7 +63,7 @@ void Strip::HandleMsg(SplitStripMessage& msg) {
 		m_Actions = msg.GetTransferredActions();
 		m_Position = msg.GetPosition();
 	}
-};
+}
 
 template <>
 void Strip::HandleMsg(MergeStripsMessage& msg) {
@@ -73,7 +73,7 @@ void Strip::HandleMsg(MergeStripsMessage& msg) {
 	} else {
 		m_Actions.insert(m_Actions.begin() + msg.GetDstActionIndex(), msg.GetMigratedActions().begin(), msg.GetMigratedActions().end());
 	}
-};
+}
 
 template <>
 void Strip::HandleMsg(MigrateActionsMessage& msg) {
@@ -84,7 +84,7 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 	} else {
 		m_Actions.insert(m_Actions.begin() + msg.GetDstActionIndex(), msg.GetMigratedActions().begin(), msg.GetMigratedActions().end());
 	}
-};
+}
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
 	m_Position.SendBehaviorBlocksToClient(args);

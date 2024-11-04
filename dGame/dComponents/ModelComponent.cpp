@@ -69,7 +69,7 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 
 void ModelComponent::Update(float deltaTime) {
 	if (!m_Running) return;
-	for (auto& behavior : m_Behaviors) behavior.Update(deltaTime);
+	for (auto& behavior : m_Behaviors) behavior.Update(deltaTime, *this);
 }
 
 void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {

@@ -22,7 +22,7 @@ Action::Action(const AMFArrayValue& arguments) {
 	}
 }
 
-void Action::Update(float deltaTime) {
+void Action::Update(float deltaTime, const ModelComponent& modelComponent) {
 	// Do nothing
 }
 

@@ -8,6 +8,7 @@ namespace tinyxml2 {
 };
 
 class AMFArrayValue;
+class ModelComponent;
 
 /**
  * @brief Sent if a ControlBehavior message has an Action associated with it
@@ -18,7 +19,7 @@ public:
 	Action() = default;
 	Action(const AMFArrayValue& arguments);
 
-	void Update(float deltaTime);
+	void Update(float deltaTime, const ModelComponent& modelComponent);
 
 	bool Done() const noexcept;
 

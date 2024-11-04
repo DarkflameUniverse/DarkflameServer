@@ -10,6 +10,7 @@ namespace tinyxml2 {
 enum class BehaviorState : uint32_t;
 
 class AMFArrayValue;
+class ModelComponent;
 
 /**
  * Represents the Entity of a Property Behavior and holds data associated with the behavior
@@ -18,7 +19,7 @@ class PropertyBehavior {
 public:
 	PropertyBehavior();
 
-	void Update(float deltaTime);
+	void Update(float deltaTime, const ModelComponent& modelComponent);
 
 	template <typename Msg>
 	void HandleMsg(Msg& msg);

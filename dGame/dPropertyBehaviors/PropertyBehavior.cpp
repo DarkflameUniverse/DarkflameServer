@@ -9,9 +9,9 @@ PropertyBehavior::PropertyBehavior() {
 	m_LastEditedState = BehaviorState::HOME_STATE;
 }
 
-void PropertyBehavior::Update(float deltaTime) {
+void PropertyBehavior::Update(float deltaTime, const ModelComponent& modelComponent) {
 	for (auto& [stateId, state] : m_States) {
-		state.Update(deltaTime);
+		state.Update(deltaTime, modelComponent);
 	}
 }
 

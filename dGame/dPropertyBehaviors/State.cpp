@@ -4,9 +4,9 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 
-void State::Update(float deltaTime) {
+void State::Update(float deltaTime, const ModelComponent& modelComponent) {
 	for (auto& strip : m_Strips) {
-		strip.Update(deltaTime);
+		strip.Update(deltaTime, modelComponent);
 	}
 }
 
@@ -16,7 +16,7 @@ void State::HandleMsg(AddStripMessage& msg) {
 		m_Strips.resize(msg.GetActionContext().GetStripId() + 1);
 	}
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(AddActionMessage& msg) {
@@ -25,7 +25,7 @@ void State::HandleMsg(AddActionMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(UpdateStripUiMessage& msg) {
@@ -34,7 +34,7 @@ void State::HandleMsg(UpdateStripUiMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(RemoveActionsMessage& msg) {
@@ -43,7 +43,7 @@ void State::HandleMsg(RemoveActionsMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(RearrangeStripMessage& msg) {
@@ -52,7 +52,7 @@ void State::HandleMsg(RearrangeStripMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(UpdateActionMessage& msg) {
@@ -61,7 +61,7 @@ void State::HandleMsg(UpdateActionMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(RemoveStripMessage& msg) {
@@ -70,7 +70,7 @@ void State::HandleMsg(RemoveStripMessage& msg) {
 	}
 
 	m_Strips.at(msg.GetActionContext().GetStripId()).HandleMsg(msg);
-};
+}
 
 template <>
 void State::HandleMsg(SplitStripMessage& msg) {
@@ -87,7 +87,7 @@ void State::HandleMsg(SplitStripMessage& msg) {
 
 		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
-};
+}
 
 template <>
 void State::HandleMsg(MergeStripsMessage& msg) {
@@ -104,7 +104,7 @@ void State::HandleMsg(MergeStripsMessage& msg) {
 
 		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
-};
+}
 
 template <>
 void State::HandleMsg(MigrateActionsMessage& msg) {
@@ -121,7 +121,7 @@ void State::HandleMsg(MigrateActionsMessage& msg) {
 
 		m_Strips.at(msg.GetDestinationActionContext().GetStripId()).HandleMsg(msg);
 	}
-};
+}
 
 bool State::IsEmpty() const {
 	for (const auto& strip : m_Strips) {

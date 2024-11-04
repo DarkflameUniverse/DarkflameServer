@@ -8,10 +8,11 @@ namespace tinyxml2 {
 }
 
 class AMFArrayValue;
+class ModelComponent;
 
 class State {
 public:
-	void Update(float deltaTime);
+	void Update(float deltaTime, const ModelComponent& modelComponent);
 
 	template <typename Msg>
 	void HandleMsg(Msg& msg);
