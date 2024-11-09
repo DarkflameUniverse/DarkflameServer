@@ -795,8 +795,6 @@ void PetComponent::Wander() {
 }
 
 void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
-	AddDrainImaginationTimer(item, fromTaming);
-
 	m_ItemId = item->GetId();
 	m_DatabaseId = item->GetSubKey();
 
@@ -807,6 +805,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	inventoryComponent->DespawnPet();
 
 	m_Owner = inventoryComponent->GetParent()->GetObjectID();
+	AddDrainImaginationTimer(fromTaming);
 
 	auto* owner = GetOwner();
 
@@ -859,17 +858,14 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 	}
 }
 
-void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
+void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 	if (Game::config->GetValue("pets_take_imagination") != "1") return;
 
-	auto playerInventory = item->GetInventory();
-	if (!playerInventory) return;
-
-	auto playerInventoryComponent = playerInventory->GetComponent();
-	if (!playerInventoryComponent) return;
-
-	auto playerEntity = playerInventoryComponent->GetParent();
-	if (!playerEntity) return;
+	auto* playerEntity = Game::entityManager->GetEntity(m_Owner);
+	if (!playerEntity) {
+		LOG("owner was null or didnt exist!");
+		return;
+	}
 
 	auto playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
 	if (!playerDestroyableComponent) return;
@@ -878,11 +874,15 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 	if (!fromTaming) playerDestroyableComponent->Imagine(-1);
 
 	// Set this to a variable so when this is called back from the player the timer doesn't fire off.
-	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [playerDestroyableComponent, this, item]() {
-		if (!playerDestroyableComponent) {
-			LOG("No petComponent and/or no playerDestroyableComponent");
+	m_Parent->AddCallbackTimer(m_PetInfo.imaginationDrainRate, [this]() {
+		const auto* owner = Game::entityManager->GetEntity(m_Owner);
+		if (!owner) {
+			LOG("owner was null or didnt exist!");
 			return;
 		}
+
+		const auto* playerDestroyableComponent = owner->GetComponent<DestroyableComponent>();
+		if (!playerDestroyableComponent) return;
 
 		// If we are out of imagination despawn the pet.
 		if (playerDestroyableComponent->GetImagination() == 0) {
@@ -893,14 +893,12 @@ void PetComponent::AddDrainImaginationTimer(Item* item, bool fromTaming) {
 			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 		}
 
-		this->AddDrainImaginationTimer(item);
+		this->AddDrainImaginationTimer();
 		});
 }
 
 void PetComponent::Deactivate() {
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "", LWOOBJID_EMPTY, 1, 1, true);
-
-	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
 
 	activePets.erase(m_Owner);
 
@@ -909,6 +907,8 @@ void PetComponent::Deactivate() {
 	auto* owner = GetOwner();
 
 	if (owner == nullptr) return;
+
+	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, owner->GetSystemAddress());
 
 	GameMessages::SendAddPetToPlayer(m_Owner, 0, u"", LWOOBJID_EMPTY, LOT_NULL, owner->GetSystemAddress());
 
@@ -1034,6 +1034,7 @@ Entity* PetComponent::GetParentEntity() const {
 }
 
 PetComponent::~PetComponent() {
+	m_Owner = LWOOBJID_EMPTY;
 }
 
 void PetComponent::SetPetNameForModeration(const std::string& petName) {

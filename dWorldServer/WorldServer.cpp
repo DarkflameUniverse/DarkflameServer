@@ -1001,7 +1001,6 @@ void HandlePacket(Packet* packet) {
 
 	case eWorldMessageType::CHARACTER_DELETE_REQUEST: {
 		UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
-		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
 		break;
 	}
 
