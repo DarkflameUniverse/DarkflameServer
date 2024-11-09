@@ -107,12 +107,16 @@ void FtBossManager::OnProximityUpdate(Entity* self, Entity* entering, std::strin
 
 
 
+
 			PlayCelebration(self, 26);
 
 			self->AddTimer("SpawnStartingPortal", 3);
 
-//			Teleport players 
-			self->AddTimer("TelePlayers", 0.2f);
+
+//			Teleport players / Wipe music
+			self->AddTimer("TelePlayers", 19.7f);
+			
+			self->SetNetworkVar(u"WipeMusic", 2);
 
 		}	
 	}
@@ -219,9 +223,6 @@ void FtBossManager::TeleportPlayers(Entity* self) {
 
 		GameMessages::SendPlayerReachedRespawnCheckpoint(player4, TestPos, self->GetRotation());				
 	}
-//	end		
-
-	self->SetNetworkVar(u"WipeMusic", 2);	
 }
 
 void FtBossManager::StartElement(Entity* self, std::string elementString) {
@@ -387,9 +388,10 @@ void FtBossManager::StartNewWave(Entity* self) {
 
 
 
-//		Teleport players 
-		self->AddTimer("TelePlayers", 0.2f);
+//		Teleport players / Wipe music
+		self->AddTimer("TelePlayers", 13.9f);
 
+		self->SetNetworkVar(u"WipeMusic", 2);
 		
 		self->AddTimer("SwapGarmadon", 0.6f);		
 
