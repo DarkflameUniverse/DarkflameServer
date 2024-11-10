@@ -23,6 +23,8 @@ public:
 
 	bool Done() const noexcept;
 
+	bool Running() const noexcept;
+
 	[[nodiscard]] const std::string& GetType() const { return m_Type; };
 	[[nodiscard]] const std::string& GetValueParameterName() const { return m_ValueParameterName; };
 	[[nodiscard]] const std::string& GetValueParameterString() const { return m_ValueParameterString; };

@@ -24,10 +24,22 @@ Action::Action(const AMFArrayValue& arguments) {
 
 void Action::Update(float deltaTime, const ModelComponent& modelComponent) {
 	// Do nothing
+	if (Running()) return;
+
+	// model component default speed is 3.0f
+	if (m_Type == "FlyUp") {
+
+	} else if (m_Type == "FlyDown") {
+		
+	}
 }
 
 bool Action::Done() const noexcept {
 	return true;
+}
+
+bool Action::Running() const noexcept {
+	return false;
 }
 
 void Action::SendBehaviorBlocksToClient(AMFArrayValue& args) const {
