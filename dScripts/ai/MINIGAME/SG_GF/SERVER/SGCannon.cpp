@@ -61,6 +61,7 @@ void SGCannon::OnStartup(Entity* self) {
 	if (simplePhysicsComponent != nullptr) {
 		simplePhysicsComponent->SetPhysicsMotionState(5);
 	}
+	Game::entityManager->SerializeEntity(self);
 }
 
 void SGCannon::OnPlayerLoaded(Entity* self, Entity* player) {

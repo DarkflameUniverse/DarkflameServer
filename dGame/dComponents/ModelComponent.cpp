@@ -7,6 +7,7 @@
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
+#include "SimplePhysicsComponent.h"
 
 #include "Database.h"
 
@@ -95,12 +96,24 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == msg.GetBehaviorId()) return;
 	m_Behaviors.insert(m_Behaviors.begin() + msg.GetBehaviorIndex(), PropertyBehavior());
 	m_Behaviors.at(msg.GetBehaviorIndex()).HandleMsg(msg);
+	auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+	if (simplePhysComponent) {
+		simplePhysComponent->SetPhysicsMotionState(1);
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
 }
 
 void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
 	if (msg.GetBehaviorIndex() >= m_Behaviors.size() || m_Behaviors.at(msg.GetBehaviorIndex()).GetBehaviorId() != msg.GetBehaviorId()) return;
 	m_Behaviors.erase(m_Behaviors.begin() + msg.GetBehaviorIndex());
 	// TODO move to the inventory
+	if (m_Behaviors.empty()) {
+		auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+		if (simplePhysComponent) {
+			simplePhysComponent->SetPhysicsMotionState(4);
+			Game::entityManager->SerializeEntity(m_Parent);
+		}
+	}
 }
 
 std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSave() const {
