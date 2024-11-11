@@ -51,6 +51,7 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 	outBitStream.Write(m_DirtyPhysicsMotionState || bIsInitialUpdate);
 	if (m_DirtyPhysicsMotionState || bIsInitialUpdate) {
 		outBitStream.Write<uint32_t>(m_PhysicsMotionState);
+		m_DirtyPhysicsMotionState = false;
 	}
 	PhysicsComponent::Serialize(outBitStream, bIsInitialUpdate);
 }
