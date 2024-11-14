@@ -5,7 +5,7 @@ void MySQLDatabase::CreateMigrationHistoryTable() {
 }
 
 bool MySQLDatabase::IsMigrationRun(const std::string_view str) {
-	return ExecuteSelect("SELECT name FROM migration_history WHERE name = ?;", str)->next();
+	return ExecuteSelect("SELECT name FROM migration_history WHERE name = \"%?%\";", str)->next();
 }
 
 void MySQLDatabase::InsertMigration(const std::string_view str) {
