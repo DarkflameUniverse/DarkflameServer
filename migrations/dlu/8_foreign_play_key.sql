@@ -1,1 +1,1 @@
-ALTER TABLE accounts MODIFY play_key_id INT DEFAULT NULL;
+ALTER TABLE accounts MODIFY play_key_id INTEGER DEFAULT NULL;

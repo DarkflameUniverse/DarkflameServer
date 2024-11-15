@@ -505,7 +505,6 @@ void EntityManager::UpdateGhosting(Entity* player) {
 
 			if (collectionId != 0) {
 				collectionId = static_cast<uint32_t>(collectionId) + static_cast<uint32_t>(Game::server->GetZoneID() << 8);
-
 				if (missionComponent->HasCollectible(collectionId)) {
 					continue;
 				}

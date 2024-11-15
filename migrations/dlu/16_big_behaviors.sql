@@ -1,1 +1,1 @@
-ALTER TABLE behaviors MODIFY behavior_info LONGTEXT DEFAULT NULL;
+ALTER TABLE behaviors MODIFY behavior_info TEXT DEFAULT NULL;
