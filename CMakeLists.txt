@@ -113,31 +113,39 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
+# Get DLU config directory
+if(DEFINED ENV{DLU_CONFIG_DIR})
+	set(DLU_CONFIG_DIR $ENV{DLU_CONFIG_DIR})
+else()
+	set(DLU_CONFIG_DIR ${PROJECT_BINARY_DIR})
+endif()
+message(STATUS "Variable: DLU_CONFIG_DIR = ${DLU_CONFIG_DIR}")
+
 # Copy resource files on first build
 set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
-UpdateConfigOption(${PROJECT_BINARY_DIR}/authconfig.ini "port" "auth_server_port")
-UpdateConfigOption(${PROJECT_BINARY_DIR}/chatconfig.ini "port" "chat_server_port")
-UpdateConfigOption(${PROJECT_BINARY_DIR}/masterconfig.ini "port" "master_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/authconfig.ini "port" "auth_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/chatconfig.ini "port" "chat_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/masterconfig.ini "port" "master_server_port")
 
 foreach(resource_file ${RESOURCE_FILES})
 	set(file_size 0)
 
-	if(EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
-		file(SIZE ${PROJECT_BINARY_DIR}/${resource_file} file_size)
+	if(EXISTS ${DLU_CONFIG_DIR}/${resource_file})
+		file(SIZE ${DLU_CONFIG_DIR}/${resource_file} file_size)
 	endif()
 
 	if(${file_size} EQUAL 0)
 		configure_file(
-			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
+			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${DLU_CONFIG_DIR}/${resource_file}
 			COPYONLY
 		)
-		message(STATUS "Moved " ${resource_file} " to project binary directory")
+		message(STATUS "Moved " ${resource_file} " to DLU config directory")
 	elseif(resource_file MATCHES ".ini")
 		message(STATUS "Checking " ${resource_file} " for missing config options")
-		file(READ ${PROJECT_BINARY_DIR}/${resource_file} current_file_contents)
+		file(READ ${DLU_CONFIG_DIR}/${resource_file} current_file_contents)
 		string(REPLACE "\\\n" "" current_file_contents ${current_file_contents})
 		string(REPLACE "\n" ";" current_file_contents ${current_file_contents})
 		set(parsed_current_file_contents "")
@@ -168,10 +176,10 @@ foreach(resource_file ${RESOURCE_FILES})
 					set(line_to_add ${line_to_add} ${line})
 
 					foreach(line_to_append ${line_to_add})
-						file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n" ${line_to_append})
+						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
 					endforeach()
 
-					file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n")
+					file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
 				endif()
 
 				set(line_to_add "")

@@ -11,6 +11,9 @@
       "displayName": "Default configure step",
       "description": "Use 'build' dir and Unix makefiles",
       "binaryDir": "${sourceDir}/build",
+	  "environment": {
+        "DLU_CONFIG_DIR": "${sourceDir}/build"
+	  },
       "generator": "Unix Makefiles"
     },
     {
@@ -82,9 +85,6 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
-      },
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS_INIT": "-Werror"
       }
     },
     {
@@ -94,7 +94,7 @@
         "clang-config",
         "debug-config"
       ],
-      "displayName": "[Debug] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
       "description": "Create a debug build using the Clang toolchain for Linux",
       "binaryDir": "${sourceDir}/build/clang-debug"
     },
@@ -105,7 +105,7 @@
         "clang-config",
         "relwithdebinfo-config"
       ],
-      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
       "description": "Create a release build with debug info using the Clang toolchain for Linux",
       "binaryDir": "${sourceDir}/build/clang-relwithdebinfo"
     },
@@ -116,7 +116,7 @@
         "clang-config",
         "release-config"
       ],
-      "displayName": "[Release] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
       "description": "Create a release build using the Clang toolchain for Linux",
       "binaryDir": "${sourceDir}/build/clang-release"
     },
@@ -176,99 +176,99 @@
     },
     {
       "name": "windows-msvc-debug",
+	  "inherits": "default",
       "configurePreset": "windows-msvc",
       "displayName": "[Debug] Windows (MSVC)",
       "description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
-      "configuration": "Debug",
-      "jobs": 2
+      "configuration": "Debug"
     },
     {
       "name": "windows-msvc-relwithdebinfo",
+	  "inherits": "default",
       "configurePreset": "windows-msvc",
       "displayName": "[RelWithDebInfo] Windows (MSVC)",
       "description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
-      "configuration": "RelWithDebInfo",
-      "jobs": 2
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "windows-msvc-release",
+	  "inherits": "default",
       "configurePreset": "windows-msvc",
       "displayName": "[Release] Windows (MSVC)",
       "description": "This preset is used to build in release mode using the MSVC toolchain on Windows",
-      "configuration": "Release",
-      "jobs": 2
+      "configuration": "Release"
       },
     {
       "name": "linux-clang-debug",
+	  "inherits": "default",
       "configurePreset": "linux-clang-debug",
-      "displayName": "[Debug] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
       "description": "This preset is used to build in debug mode using the Clang toolchain on Linux",
-      "configuration": "Debug",
-      "jobs": 2
+      "configuration": "Debug"
     },
     {
       "name": "linux-clang-relwithdebinfo",
+	  "inherits": "default",
       "configurePreset": "linux-clang-relwithdebinfo",
-      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
       "description": "This preset is used to build in release mode with debug info using the Clang toolchain on Linux",
-      "configuration": "RelWithDebInfo",
-      "jobs": 2
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-clang-release",
+	  "inherits": "default",
       "configurePreset": "linux-clang-release",
-      "displayName": "[Release] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
       "description": "This preset is used to build in release mode using the Clang toolchain on Linux",
-      "configuration": "Release",
-      "jobs": 2
+      "configuration": "Release"
     },
     {
       "name": "linux-gnu-debug",
+	  "inherits": "default",
       "configurePreset": "linux-gnu-debug",
       "displayName": "[Debug] Linux (GNU)",
       "description": "This preset is used to build in debug mode using the GNU toolchain on Linux",
-      "configuration": "Debug",
-      "jobs": 2
+      "configuration": "Debug"
     },
     {
       "name": "linux-gnu-relwithdebinfo",
+	  "inherits": "default",
       "configurePreset": "linux-gnu-relwithdebinfo",
       "displayName": "[RelWithDebInfo] Linux (GNU)",
       "description": "This preset is used to build in release mode with debug info using the GNU toolchain on Linux",
-      "configuration": "RelWithDebInfo",
-      "jobs": 2
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-gnu-release",
+	  "inherits": "default",
       "configurePreset": "linux-gnu-release",
       "displayName": "[Release] Linux (GNU)",
       "description": "This preset is used to build in release mode using the GNU toolchain on Linux",
-      "configuration": "Release",
-      "jobs": 2
+      "configuration": "Release"
     },
     {
       "name": "macos-debug",
+	  "inherits": "default",
       "configurePreset": "macos",
       "displayName": "[Debug] MacOS",
       "description": "This preset is used to build in debug mode on MacOS",
-      "configuration": "Debug",
-      "jobs": 2
+      "configuration": "Debug"
     },
     {
       "name": "macos-relwithdebinfo",
+	  "inherits": "default",
       "configurePreset": "macos",
       "displayName": "[RelWithDebInfo] MacOS",
       "description": "This preset is used to build in release mode with debug info on MacOS",
-      "configuration": "RelWithDebInfo",
-      "jobs": 2
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "macos-release",
+	  "inherits": "default",
       "configurePreset": "macos",
       "displayName": "[Release] MacOS",
       "description": "This preset is used to build in release mode on MacOS",
-      "configuration": "Release",
-      "jobs": 2
+      "configuration": "Release"
     }
   ],
   "testPresets": [
@@ -321,7 +321,7 @@
       "name": "linux-clang-debug",
       "inherits": "default",
       "configurePreset": "linux-clang-debug",
-      "displayName": "[Debug] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
       "description": "Runs all tests on a Linux Clang configuration",
       "configuration": "Release"
     },
@@ -329,7 +329,7 @@
       "name": "linux-clang-relwithdebinfo",
       "inherits": "default",
       "configurePreset": "linux-clang-relwithdebinfo",
-      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
       "description": "Runs all tests on a Linux Clang configuration",
       "configuration": "RelWithDebInfo"
     },
@@ -337,7 +337,7 @@
       "name": "linux-clang-release",
       "inherits": "default",
       "configurePreset": "linux-clang-release",
-      "displayName": "[Release] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
       "description": "Runs all tests on a Linux Clang configuration",
       "configuration": "Release"
     },
@@ -524,7 +524,7 @@
     },
     {
       "name": "linux-clang-debug",
-      "displayName": "[Debug] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
       "description": "Clang debug workflow preset for Linux",
       "steps": [
         {
@@ -543,7 +543,7 @@
     },
     {
       "name": "linux-clang-relwithdebinfo",
-      "displayName": "[RelWithDebInfo] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
       "description": "Clang release with debug info workflow preset for Linux",
       "steps": [
         {
@@ -562,7 +562,7 @@
     },
     {
       "name": "linux-clang-release",
-      "displayName": "[Release] Linux (Clang)",
+      "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
       "description": "Clang release workflow preset for Linux",
       "steps": [
         {
