@@ -1,6 +1,7 @@
 set(DSCRIPTS_SOURCES_AI_AG 
 	"AgShipPlayerDeathTrigger.cpp"
 	"AgSpaceStuff.cpp"
+    "AgShipShake.cpp"
 	"AgShipPlayerShockServer.cpp"
 	"AgImagSmashable.cpp"
 	"ActSharkPlayerDeathTrigger.cpp"

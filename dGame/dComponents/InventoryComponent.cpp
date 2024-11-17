@@ -37,6 +37,9 @@
 #include "CDScriptComponentTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
+#include "StringifiedEnum.h"
+
+#include <ranges>
 
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
@@ -492,6 +495,11 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 		return;
 	}
 
+	auto* const groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		LoadGroupXml(*groups);
+	}
+
 	m_Consumable = inventoryElement->IntAttribute("csl", LOT_NULL);
 
 	auto* bag = bags->FirstChildElement();
@@ -558,19 +566,9 @@ void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
-			std::vector<LDFBaseData*> config;
+			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			auto* extraInfo = itemElement->FirstChildElement("x");
-
-			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
-
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-
-				config.push_back(moduleAssembly);
-			}
-
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			item->LoadConfigXml(*itemElement);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -640,6 +638,15 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 		bags->LinkEndChild(bag);
 	}
 
+	auto* groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		groups->DeleteChildren();
+	} else {
+		groups = inventoryElement->InsertNewChildElement("grps");
+	}
+
+	UpdateGroupXml(*groups);
+
 	auto* items = inventoryElement->FirstChildElement("items");
 
 	if (items == nullptr) {
@@ -676,17 +683,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
-				}
-
-				auto* extraInfo = document.NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
-			}
+			item->SaveConfigXml(*itemElement);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -895,8 +892,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	RemoveSlot(item->GetInfo().equipLocation);
 
-	PurgeProxies(item);
-
 	UnequipScripts(item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -906,6 +901,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
@@ -1094,7 +1091,7 @@ void InventoryComponent::CheckItemSet(const LOT lot) {
 	auto result = query.execQuery();
 
 	while (!result.eof()) {
-		const auto id = result.getIntField(0);
+		const auto id = result.getIntField("setID");
 
 		bool found = false;
 
@@ -1525,10 +1522,10 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	const auto root = item->GetParent();
 
 	if (root != LWOOBJID_EMPTY) {
-		item = FindItemById(root);
+		Item* itemRoot = FindItemById(root);
 
-		if (item != nullptr) {
-			UnEquipItem(item);
+		if (itemRoot != nullptr) {
+			UnEquipItem(itemRoot);
 		}
 
 		return;
@@ -1600,18 +1597,18 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
 }
 
 
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
 	else return false;
 	return SetSkill(behaviorSlot, skillId);
 }
 
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
@@ -1624,3 +1621,109 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	return true;
 }
 
+void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
+	if (groupUpdate.groupId.empty()) return;
+
+	if (groupUpdate.inventory != eInventoryType::BRICKS && groupUpdate.inventory != eInventoryType::MODELS) {
+		LOG("Invalid inventory type for grouping %s", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	auto& groups = m_Groups[groupUpdate.inventory];
+	auto groupItr = std::ranges::find_if(groups, [&groupUpdate](const Group& group) {
+		return group.groupId == groupUpdate.groupId;
+		});
+
+	if (groupUpdate.command != GroupUpdateCommand::ADD && groupItr == groups.end()) {
+		LOG("Group %s not found in inventory %s. Cannot process command.", groupUpdate.groupId.c_str(), StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	if (groupUpdate.command == GroupUpdateCommand::ADD && groups.size() >= MaximumGroupCount) {
+		LOG("Cannot add group to inventory %s. Maximum group count reached.", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	switch (groupUpdate.command) {
+	case GroupUpdateCommand::ADD: {
+		auto& group = groups.emplace_back();
+		group.groupId = groupUpdate.groupId;
+		group.groupName = groupUpdate.groupName;
+		break;
+	}
+	case GroupUpdateCommand::ADD_LOT: {
+		groupItr->lots.insert(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE: {
+		groups.erase(groupItr);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE_LOT: {
+		groupItr->lots.erase(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::MODIFY: {
+		groupItr->groupName = groupUpdate.groupName;
+		break;
+	}
+	default: {
+		LOG("Invalid group update command %i", groupUpdate.command);
+		break;
+	}
+	}
+}
+
+void InventoryComponent::UpdateGroupXml(tinyxml2::XMLElement& groups) const {
+	for (const auto& [inventory, groupsData] : m_Groups) {
+		for (const auto& group : groupsData) {
+			auto* const groupElement = groups.InsertNewChildElement("grp");
+
+			groupElement->SetAttribute("id", group.groupId.c_str());
+			groupElement->SetAttribute("n", group.groupName.c_str());
+			groupElement->SetAttribute("t", static_cast<uint32_t>(inventory));
+			groupElement->SetAttribute("u", 0);
+			std::ostringstream lots;
+			bool first = true;
+			for (const auto lot : group.lots) {
+				if (!first) lots << ' ';
+				first = false;
+
+				lots << lot;
+			}
+			groupElement->SetAttribute("l", lots.str().c_str());
+		}
+	}
+}
+
+void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
+	auto* groupElement = groups.FirstChildElement("grp");
+
+	while (groupElement) {
+		const char* groupId = nullptr;
+		const char* groupName = nullptr;
+		const char* lots = nullptr;
+		uint32_t inventory = eInventoryType::INVALID;
+
+		groupElement->QueryStringAttribute("id", &groupId);
+		groupElement->QueryStringAttribute("n", &groupName);
+		groupElement->QueryStringAttribute("l", &lots);
+		groupElement->QueryAttribute("t", &inventory);
+
+		if (!groupId || !groupName || !lots) {
+			LOG("Failed to load group from xml id %i name %i lots %i",
+				groupId == nullptr, groupName == nullptr, lots == nullptr);
+		} else {
+			auto& group = m_Groups[static_cast<eInventoryType>(inventory)].emplace_back();
+			group.groupId = groupId;
+			group.groupName = groupName;
+
+			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
+				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
+				if (lot) group.lots.insert(*lot);
+			}
+		}
+
+		groupElement = groupElement->NextSiblingElement("grp");
+	}
+}

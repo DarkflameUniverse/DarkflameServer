@@ -3,6 +3,12 @@ project(Darkflame
 	HOMEPAGE_URL "https://github.com/DarkflameUniverse/DarkflameServer"
 	LANGUAGES C CXX
 )
+
+# check if the path to the source directory contains a space
+if("${CMAKE_SOURCE_DIR}" MATCHES " ")
+	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
+endif()
+
 include(CTest)
 
 set(CMAKE_C_STANDARD 99)

@@ -454,6 +454,16 @@ void Mission::YieldRewards() {
 		}
 	}
 
+	// Even with no repeatable column, reputation is repeatable
+	if (info.reward_reputation > 0) {
+		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, LWOOBJID_EMPTY, "", info.reward_reputation);
+		auto* const character = entity->GetComponent<CharacterComponent>();
+		if (character) {
+			character->SetReputation(character->GetReputation() + info.reward_reputation);
+			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+		}
+	}
+
 	if (m_Completions > 0) {
 		std::vector<std::pair<LOT, uint32_t>> items;
 
@@ -530,15 +540,6 @@ void Mission::YieldRewards() {
 
 		inventory->SetSize(inventory->GetSize() + info.reward_bankinventory);
 		modelInventory->SetSize(modelInventory->GetSize() + info.reward_bankinventory);
-	}
-
-	if (info.reward_reputation > 0) {
-		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, 0L, "", info.reward_reputation);
-		auto character = entity->GetComponent<CharacterComponent>();
-		if (character) {
-			character->SetReputation(character->GetReputation() + info.reward_reputation);
-			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
-		}
 	}
 
 	if (info.reward_maxhealth > 0) {

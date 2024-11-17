@@ -41,6 +41,7 @@
 #include "ScriptedActivityComponent.h"
 #include "SkillComponent.h"
 #include "TriggerComponent.h"
+#include "RigidbodyPhantomPhysicsComponent.h"
 
 // Enums
 #include "eGameMasterLevel.h"
@@ -704,7 +705,7 @@ namespace DEVGMCommands {
 		auto tables = query.execQuery();
 
 		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField(0)) + " - " + tables.getStringField(1);
+			std::string message = std::to_string(tables.getIntField("id")) + " - " + tables.getStringField("name");
 			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
 			tables.nextRow();
 		}
@@ -1129,8 +1130,13 @@ namespace DEVGMCommands {
 	void SpawnPhysicsVerts(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Go tell physics to spawn all the vertices:
 		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
-		for (auto en : entities) {
-			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+		for (const auto* en : entities) {
+			const auto* phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+			if (phys)
+				phys->SpawnVertices();
+		}
+		for (const auto* en : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)) {
+			const auto* phys = en->GetComponent<RigidbodyPhantomPhysicsComponent>();
 			if (phys)
 				phys->SpawnVertices();
 		}

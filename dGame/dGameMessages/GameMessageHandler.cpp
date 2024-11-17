@@ -685,6 +685,13 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	case eGameMessageType::REQUEST_VENDOR_STATUS_UPDATE:
 		GameMessages::SendVendorStatusUpdate(entity, sysAddr, true);
 		break;
+	case eGameMessageType::UPDATE_INVENTORY_GROUP:
+		GameMessages::HandleUpdateInventoryGroup(inStream, entity, sysAddr);
+		break;
+	case eGameMessageType::UPDATE_INVENTORY_GROUP_CONTENTS:
+		GameMessages::HandleUpdateInventoryGroupContents(inStream, entity, sysAddr);
+		break;
+
 	default:
 		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());
 		break;

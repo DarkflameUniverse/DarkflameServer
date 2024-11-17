@@ -14,6 +14,7 @@
 #include "AgShipPlayerDeathTrigger.h"
 #include "AgShipPlayerShockServer.h"
 #include "AgSpaceStuff.h"
+#include "AgShipShake.h"
 #include "AgImagSmashable.h"
 #include "NpcNpSpacemanBob.h"
 #include "StoryBoxInteractServer.h"
@@ -154,6 +155,11 @@
 #include "FvBounceOverWall.h"
 #include "FvFong.h"
 #include "FvMaelstromGeyser.h"
+#include "FvRaceDragon.h"
+#include "FvRacePillarABCServer.h"
+#include "FvRacePillarDServer.h"
+#include "RaceFireballs.h"
+#include "RaceShipLapColumnsServer.h"
 
 // FB Scripts
 #include "AgJetEffectServer.h"
@@ -179,6 +185,7 @@
 #include "RaceMaelstromGeiser.h"
 #include "FvRaceSmashEggImagineServer.h"
 #include "RaceSmashServer.h"
+#include "FvRacingColumns.h"
 
 // NT Scripts
 #include "NtSentinelWalkwayServer.h"
@@ -321,650 +328,391 @@
 #include "LupGenericInteract.h"
 #include "WblRobotCitizen.h"
 
+#include <map>
+#include <string>
+#include <functional>
+
 namespace {
-	// This is in the translation unit instead of the header to prevent wierd linker errors
-	InvalidScript* const InvalidToReturn = new InvalidScript();
-	std::map<std::string, CppScripts::Script*> m_Scripts;
+	// This is in the translation unit instead of the header to prevent weird linker errors
+	InvalidScript InvalidToReturn;
+	std::map<std::string, CppScripts::Script*> g_Scripts;
+	std::map<std::string, std::function<CppScripts::Script* ()>> scriptLoader = {
+
+		//VE / AG
+		{ "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua", []() { return new AgShipPlayerDeathTrigger(); } },
+		{"scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua", []() { return new NpcNpSpacemanBob(); } },
+		{"scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua", []() { return new AgSpaceStuff();} },
+		{"scripts\\ai\\AG\\L_AG_SHIP_SHAKE.lua", []() { return new AgShipShake();}},
+		{"scripts\\ai\\AG\\L_AG_SHIP_PLAYER_SHOCK_SERVER.lua", []() { return new AgShipPlayerShockServer();} },
+		{"scripts\\ai\\AG\\L_AG_IMAG_SMASHABLE.lua", []() { return new AgImagSmashable();} },
+		{"scripts\\02_server\\Map\\General\\L_STORY_BOX_INTERACT_SERVER.lua", []() { return new StoryBoxInteractServer();} },
+		{"scripts\\02_server\\Map\\General\\L_BINOCULARS.lua", []() { return new Binoculars();} },
+		{"scripts\\ai\\WILD\\L_ALL_CRATE_CHICKEN.lua", []() { return new AllCrateChicken();} },
+		// Broken? (below)
+		{"scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_SMASHABLE.lua", []() { return new RockHydrantSmashable();} },
+		{"scripts\\02_server\\Map\\SS\\L_SS_MODULAR_BUILD_SERVER.lua", []() { return new SsModularBuildServer();} },
+		{"scripts\\02_server\\Map\\Property\\AG_Small\\L_ZONE_AG_PROPERTY.lua", []() { return new ZoneAgProperty();} },
+		// this is done in Entity.cpp, not needed for our implementation (below)
+		{"scripts\\02_server\\Map\\General\\L_POI_MISSION.lua", []() { return new InvalidScript();} },
+		{"scripts\\02_server\\Map\\General\\L_TOUCH_MISSION_UPDATE_SERVER.lua", []() { return new TouchMissionUpdateServer();} },
+		{"scripts\\ai\\AG\\L_ACT_SHARK_PLAYER_DEATH_TRIGGER.lua", []() { return new ActSharkPlayerDeathTrigger();} },
+		{"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_MECH.lua", []() { return new BaseEnemyMech();} },
+		{"scripts\\zone\\AG\\L_ZONE_AG_SURVIVAL.lua", []() { return new ZoneAgSurvival();} },
+		{"scripts\\02_server\\Objects\\L_BUFF_STATION_SERVER.lua", []() { return new AgSurvivalBuffStation();} },
+		{"scripts\\ai\\AG\\L_AG_BUS_DOOR.lua", []() { return new AgBusDoor();} },
+		{"scripts\\02_server\\Equipment\\L_MAESTROM_EXTRACTICATOR_SERVER.lua", []() { return new MaestromExtracticatorServer();} },
+		{"scripts\\02_server\\Map\\AG\\L_AG_CAGED_BRICKS_SERVER.lua", []() { return new AgCagedBricksServer();} },
+		{"scripts\\02_server\\Map\\AG\\L_NPC_WISP_SERVER.lua", []() { return new NpcWispServer();} },
+		{"scripts\\02_server\\Map\\AG\\L_NPC_EPSILON_SERVER.lua", []() { return new NpcEpsilonServer();} },
+		{"scripts\\ai\\AG\\L_AG_TURRET.lua", []() {return new AgTurret();}},
+		{"scripts\\ai\\AG\\L_AG_TURRET_FOR_SHIP.lua", []() { return new AgTurret();}},
+		{"scripts\\02_server\\Map\\AG\\L_AG_LASER_SENSOR_SERVER.lua", []() {return new AgLaserSensorServer();}},
+		{"scripts\\02_server\\Map\\AG\\L_AG_MONUMENT_LASER_SERVER.lua", []() {return new AgMonumentLaserServer();}},
+		{"scripts\\ai\\AG\\L_AG_FANS.lua", []() {return new AgFans();}},
+		{"scripts\\02_server\\Map\\AG\\L_AG_MONUMENT_BIRDS.lua", []() {return new AgMonumentBirds();}},
+		{"scripts\\02_server\\Map\\AG\\L_REMOVE_RENTAL_GEAR.lua", []() {return new RemoveRentalGear();}},
+		{"scripts\\02_server\\Map\\AG\\L_NPC_NJ_ASSISTANT_SERVER.lua", []() {return new NpcNjAssistantServer();}},
+		{"scripts\\ai\\AG\\L_AG_SALUTING_NPCS.lua", []() {return new AgSalutingNpcs();}},
+		{"scripts\\ai\\AG\\L_AG_JET_EFFECT_SERVER.lua", []() {return new AgJetEffectServer();}},
+		{"scripts\\02_server\\Enemy\\AG\\L_BOSS_SPIDER_QUEEN_ENEMY_SERVER.lua", []() {return new BossSpiderQueenEnemyServer();}},
+		{"scripts\\02_server\\Map\\Property\\AG_Small\\L_ENEMY_SPIDER_SPAWNER.lua", []() {return new EnemySpiderSpawner();}},
+		{"scripts/02_server/Map/Property/AG_Small/L_ENEMY_SPIDER_SPAWNER.lua", []() {return new EnemySpiderSpawner();}},
+		{"scripts\\ai\\AG\\L_AG_QB_Elevator.lua", []() {return new AgQbElevator();}},
+		{"scripts\\ai\\PROPERTY\\AG\\L_AG_PROP_GUARD.lua", []() {return new AgPropGuard();}},
+		{"scripts\\02_server\\Map\\AG\\L_AG_BUGSPRAYER.lua", []() {return new AgBugsprayer();}},
+		{"scripts\\02_server\\Map\\AG\\L_NPC_AG_COURSE_STARTER.lua", []() {return new NpcAgCourseStarter();}},
+		{"scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_GOAL.lua", []() {return new AgMonumentRaceGoal();}},
+		{"scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_CANCEL.lua", []() {return new AgMonumentRaceCancel();}},
+		{"scripts\\02_server\\Map\\AG_Spider_Queen\\L_ZONE_AG_SPIDER_QUEEN.lua", []() {return new ZoneAgSpiderQueen();}},
+		{"scripts\\02_server\\Map\\AG_Spider_Queen\\L_SPIDER_BOSS_TREASURE_CHEST_SERVER.lua", []() {return new SpiderBossTreasureChestServer();}},
+		{"scripts\\02_server\\Map\\AG\\L_NPC_COWBOY_SERVER.lua", []() {return new NpcCowboyServer();}},
+		{"scripts\\02_server\\Map\\Property\\AG_Med\\L_ZONE_AG_MED_PROPERTY.lua", []() {return new ZoneAgMedProperty();}},
+		{"scripts\\ai\\AG\\L_AG_STROMBIE_PROPERTY.lua", []() {return new AgStromlingProperty();}},
+		{"scripts\\ai\\AG\\L_AG_DARKLING_MECH.lua", []() {return new BaseEnemyMech();}},
+		{"scripts\\ai\\AG\\L_AG_DARK_SPIDERLING.lua", []() {return new AgDarkSpiderling();}},
+		{"scripts\\ai\\PROPERTY\\L_PROP_GUARDS.lua", []() {return new AgPropguards();}},
+		{"scripts\\ai\\PROPERTY\\L_PROPERTY_FX_DAMAGE.lua", []() {return new PropertyFXDamage();}},
+		{"scripts\\02_server\\Map\\AG\\L_NPC_PIRATE_SERVER.lua", []() {return new NpcPirateServer();}},
+		{"scripts\\ai\\AG\\L_AG_PICNIC_BLANKET.lua", []() {return new AgPicnicBlanket();}},
+		{"scripts\\02_server\\Map\\Property\\L_PROPERTY_BANK_INTERACT_SERVER.lua", []() {return new PropertyBankInteract();}},
+		{"scripts\\02_server\\Enemy\\VE\\L_VE_MECH.lua", []() {return new VeMech();}},
+		{"scripts\\02_server\\Map\\VE\\L_MISSION_CONSOLE_SERVER.lua", []() {return new VeMissionConsole();}},
+		{"scripts\\02_server\\Map\\VE\\L_EPSILON_SERVER.lua", []() {return new VeEpsilonServer();}},
+
+		//NS
+		{"scripts\\ai\\NS\\L_NS_MODULAR_BUILD.lua", []() {return new NsModularBuild();}},
+		{"scripts\\ai\\NS\\L_NS_GET_FACTION_MISSION_SERVER.lua", []() {return new NsGetFactionMissionServer();}},
+		{"scripts\\ai\\NS\\L_NS_QB_IMAGINATION_STATUE.lua", []() {return new NsQbImaginationStatue();}},
+		{"scripts\\02_server\\Map\\NS\\CONCERT_CHOICEBUILD_MANAGER_SERVER.lua", []() {return new NsConcertChoiceBuildManager();}},
+		{"scripts\\ai\\NS\\L_NS_CONCERT_CHOICEBUILD.lua", []() {return new NsConcertChoiceBuild();}},
+		{"scripts\\ai\\NS\\L_NS_CONCERT_QUICKBUILD.lua", []() {return new NsConcertQuickBuild();}},
+		{"scripts\\ai\\AG\\L_AG_STAGE_PLATFORMS.lua", []() {return new AgStagePlatforms();}},
+		{"scripts\\ai\\NS\\L_NS_CONCERT_INSTRUMENT_QB.lua", []() {return new NsConcertInstrument();}},
+		{"scripts\\ai\\NS\\L_NS_JONNY_FLAG_MISSION_SERVER.lua", []() {return new NsJohnnyMissionServer();}},
+		{"scripts\\02_server\\Objects\\L_STINKY_FISH_TARGET.lua", []() {return new StinkyFishTarget();}},
+		{"scripts\\zone\\PROPERTY\\NS\\L_ZONE_NS_PROPERTY.lua", []() {return new ZoneNsProperty();}},
+		{"scripts\\02_server\\Map\\Property\\NS_Med\\L_ZONE_NS_MED_PROPERTY.lua", []() {return new ZoneNsMedProperty();}},
+		{"scripts\\02_server\\Map\\NS\\L_NS_TOKEN_CONSOLE_SERVER.lua", []() {return new NsTokenConsoleServer();}},
+		{"scripts\\02_server\\Map\\NS\\L_NS_LUP_TELEPORT.lua", []() {return new NsLupTeleport();}},
+		{"scripts\\02_server\\Map\\NS\\Waves\\L_ZONE_NS_WAVES.lua", []() {return new ZoneNsWaves();}},
+		{"scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HAMMERLING_ENEMY_SERVER.lua", []() {return new WaveBossHammerling();}},
+		{"scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_APE_ENEMY_SERVER.lua", []() {return new WaveBossApe();}},
+		{"scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_DARK_SPIDERLING_ENEMY_SERVER.lua", []() {return new WaveBossSpiderling();}},
+		{"scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HORESEMEN_ENEMY_SERVER.lua", []() {return new WaveBossHorsemen();}},
+		{"scripts\\02_server\\Minigame\\General\\L_MINIGAME_TREASURE_CHEST_SERVER.lua", []() {return new MinigameTreasureChestServer();}},
+		{"scripts\\02_server\\Map\\NS\\L_NS_LEGO_CLUB_DOOR.lua", []() {return new NsLegoClubDoor();}},
+		{"scripts/ai/NS/L_CL_RING.lua", []() {return new ClRing();}},
+		{"scripts\\ai\\WILD\\L_WILD_AMBIENTS.lua", []() {return new WildAmbients();}},
+		{"scripts\\ai\\NS\\NS_PP_01\\L_NS_PP_01_TELEPORT.lua", []() {return new PropertyDeathPlane();}},
+		{"scripts\\02_server\\Map\\General\\L_QB_SPAWNER.lua", []() {return new QbSpawner();}},
+		{"scripts\\ai\\AG\\L_AG_QB_Wall.lua", []() {return new AgQbWall();}},
+
+		//GF
+		{"scripts\\02_server\\Map\\GF\\L_GF_TORCH.lua", []() {return new GfTikiTorch();}},
+		{"scripts\\ai\\GF\\L_SPECIAL_FIREPIT.lua", []() {return new GfCampfire();}},
+		{"scripts\\ai\\GF\\L_GF_ORGAN.lua", []() {return new GfOrgan();}},
+		{"scripts\\ai\\GF\\L_GF_BANANA.lua", []() {return new GfBanana();}},
+		{"scripts\\ai\\GF\\L_GF_BANANA_CLUSTER.lua", []() {return new GfBananaCluster();}},
+		{"scripts/ai/GF/L_GF_JAILKEEP_MISSION.lua", []() {return new GfJailkeepMission();}},
+		{"scripts\\ai\\GF\\L_TRIGGER_AMBUSH.lua", []() {return new TriggerAmbush();}},
+		{"scripts\\02_server\\Map\\GF\\L_GF_CAPTAINS_CANNON.lua", []() {return new GfCaptainsCannon();}},
+		{"scripts\\02_server\\Map\\GF\\L_MAST_TELEPORT.lua", []() {return new MastTeleport();}},
+		{"scripts\\ai\\GF\\L_GF_JAIL_WALLS.lua", []() {return new GfJailWalls();}},
+		{"scripts\\02_server\\Map\\General\\L_QB_ENEMY_STUNNER.lua", []() {return new QbEnemyStunner();}},
+		//Technically also used once in AG (below)
+		{"scripts\\ai\\GF\\L_GF_PET_DIG_BUILD.lua", []() {return new PetDigBuild();}},
+		{"scripts\\02_server\\Map\\GF\\L_SPAWN_LION_SERVER.lua", []() {return new SpawnLionServer();}},
+		{"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_APE.lua", []() {return new BaseEnemyApe();}},
+		{"scripts\\02_server\\Enemy\\General\\L_GF_APE_SMASHING_QB.lua", []() {return new GfApeSmashingQB();}},
+		{"scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua", []() {return new ZoneGfProperty();}},
+		{"scripts\\ai\\GF\\L_GF_ARCHWAY.lua", []() {return new GfArchway();}},
+		{"scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua", []() {return new GfMaelstromGeyser();}},
+		{"scripts\\ai\\GF\\L_PIRATE_REP.lua", []() {return new PirateRep();}},
+		{"scripts\\ai\\GF\\L_GF_PARROT_CRASH.lua", []() {return new GfParrotCrash();}},
+
+		//SG
+		{"scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua", []() {return new SGCannon();}},
+		{"scripts\\ai\\MINIGAME\\SG_GF\\L_ZONE_SG_SERVER.lua", []() {return new ZoneSGServer();}},
+
+		//PR
+		{"scripts\\client\\ai\\PR\\L_PR_WHISTLE.lua", []() {return new PrWhistle();}},
+		{"scripts\\02_server\\Map\\PR\\L_PR_SEAGULL_FLY.lua", []() {return new PrSeagullFly();}},
+		{"scripts\\ai\\PETS\\L_HYDRANT_SMASHABLE.lua", []() {return new HydrantSmashable();}},
+		{"scripts\\02_server\\map\\PR\\L_HYDRANT_BROKEN.lua", []() {return new HydrantBroken();}},
+		{"scripts\\02_server\\Map\\General\\PET_DIG_SERVER.lua", []() {return new PetDigServer();}},
+		{"scripts\\02_server\\Map\\AM\\L_SKELETON_DRAGON_PET_DIG_SERVER.lua", []() {return new PetDigServer();}},
+		//{"scripts\\02_server\\Map\\AM\\L_SKELETON_DRAGON_PET_DIG_SERVER.lua", [](){return new PetDigServer();}},
+		{"scripts\\client\\ai\\PR\\L_CRAB_SERVER.lua", []() {return new CrabServer();}},
+		{"scripts\\02_server\\Pets\\L_PET_FROM_DIG_SERVER.lua", []() {return new PetFromDigServer();}},
+		{"scripts\\02_server\\Pets\\L_PET_FROM_OBJECT_SERVER.lua", []() {return new PetFromObjectServer();}},
+		{"scripts\\02_server\\Pets\\L_DAMAGING_PET.lua", []() {return new DamagingPets();}},
+		{"scripts\\02_server\\Map\\PR\\L_SPAWN_GRYPHON_SERVER.lua", []() {return new SpawnGryphonServer();}},
+
+		//FV
+		{"scripts\\02_server\\Map\\FV\\L_ACT_CANDLE.lua", []() {return new FvCandle();}},
+		{"scripts\\02_server\\Map\\FV\\L_ENEMY_RONIN_SPAWNER.lua", []() {return new EnemyRoninSpawner();}},
+		{"scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_CAVALRY.lua", []() {return new FvMaelstromCavalry();}},
+		{"scripts\\ai\\FV\\L_ACT_NINJA_TURRET_1.lua", []() {return new ActNinjaTurret();}},
+		{"scripts\\02_server\\Map\\FV\\L_FV_HORSEMEN_TRIGGER.lua", []() {return new FvHorsemenTrigger();}},
+		{"scripts\\ai\\FV\\L_FV_FLYING_CREVICE_DRAGON.lua", []() {return new FvFlyingCreviceDragon();}},
+		{"scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_DRAGON.lua", []() {return new FvMaelstromDragon();}},
+		{"scripts\\ai\\FV\\L_FV_DRAGON_SMASHING_GOLEM_QB.lua", []() {return new FvDragonSmashingGolemQb();}},
+		{"scripts\\02_server\\Enemy\\General\\L_TREASURE_CHEST_DRAGON_SERVER.lua", []() {return new TreasureChestDragonServer();}},
+		{"scripts\\ai\\GENERAL\\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua", []() {return new InstanceExitTransferPlayerToLastNonInstance();}},
+		{"scripts\\ai\\FV\\L_NPC_FREE_GF_NINJAS.lua", []() {return new FvFreeGfNinjas();}},
+		{"scripts\\ai\\FV\\L_FV_PANDA_SPAWNER_SERVER.lua", []() {return new FvPandaSpawnerServer();}},
+		{"scripts\\ai\\FV\\L_FV_PANDA_SERVER.lua", []() {return new FvPandaServer();}},
+		{"scripts\\zone\\PROPERTY\\FV\\L_ZONE_FV_PROPERTY.lua", []() {return new ZoneFvProperty();}},
+		{"scripts\\ai\\FV\\L_FV_BRICK_PUZZLE_SERVER.lua", []() {return new FvBrickPuzzleServer();}},
+		{"scripts\\ai\\FV\\L_FV_CONSOLE_LEFT_QUICKBUILD.lua", []() {return new FvConsoleLeftQuickbuild();}},
+		{"scripts\\ai\\FV\\L_FV_CONSOLE_RIGHT_QUICKBUILD.lua", []() {return new FvConsoleRightQuickbuild();}},
+		{"scripts\\ai\\FV\\L_FV_FACILITY_BRICK.lua", []() {return new FvFacilityBrick();}},
+		{"scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua", []() {return new FvFacilityPipes();}},
+		{"scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua", []() {return new ImgBrickConsoleQB();}},
+		{"scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua", []() {return new ActParadoxPipeFix();}},
+		{"scripts\\ai\\FV\\L_FV_NINJA_GUARDS.lua", []() {return new FvNinjaGuard();}},
+		{"scripts\\ai\\FV\\L_ACT_PASS_THROUGH_WALL.lua", []() {return new FvPassThroughWall();}},
+		{"scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua", []() {return new FvBounceOverWall();}},
+		{"scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua", []() {return new FvFong();}},
+		{"scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua", []() {return new FvMaelstromGeyser();}},
+		{"scripts\\02_server\\Map\\FV\\Racing\\RACE_SHIP_LAP_COLUMNS_SERVER.lua", []() {return new RaceShipLapColumnsServer();}},
+
+		//yes we know the lap numbers dont match the file name or anim. Thats what they desgined it as.
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP1_SERVER.lua", []() {return new FvRaceDragon("lap_01", 2);}},
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP2_SERVER.lua", []() {return new FvRaceDragon("lap_02", 0);}},
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_DRAGON_LAP3_SERVER.lua", []() {return new FvRaceDragon("lap_03", 1);}},
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_PILLAR_ABC_SERVER.lua", []() {return new FvRacePillarABCServer();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_PILLAR_D_SERVER.lua", []() {return new FvRacePillarDServer();}},
+		{"scripts\\02_server\\Map\\FV\\Racing\\RACE_FIREBALLS.lua", []() {return new RaceFireballs();}},
+
+		//Misc.
+		{"scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua", []() {return new ExplodingAsset();}},
+		{"scripts\\02_server\\Map\\General\\L_WISHING_WELL_SERVER.lua", []() {return new WishingWellServer();}},
+		{"scripts\\ai\\ACT\\L_ACT_PLAYER_DEATH_TRIGGER.lua", []() {return new ActPlayerDeathTrigger();}},
+		{"scripts\\02_server\\Map\\General\\L_GROWING_FLOWER_SERVER.lua", []() {return new GrowingFlower();}},
+		{"scripts\\02_server\\Map\\General\\L_TOKEN_CONSOLE_SERVER.lua", []() {return new TokenConsoleServer();}},
+		{"scripts\\ai\\ACT\\FootRace\\L_ACT_BASE_FOOT_RACE.lua", []() {return new BaseFootRaceManager();}},
+		{"scripts\\02_server\\Map\\General\\L_PROP_PLATFORM.lua", []() {return new PropertyPlatform();}},
+		{"scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua", []() {return new VeBricksampleServer();}},
+		{"scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua", []() {return new MailBoxServer();}},
+		{"scripts\\ai\\ACT\\L_ACT_MINE.lua", []() {return new ActMine();}},
+		{"scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua", []() {return new WanderingVendor();}},
+
+		//Racing
+		{"scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua", []() {return new RaceImagineCrateServer();}},
+		{"scripts\\ai\\ACT\\L_ACT_VEHICLE_DEATH_TRIGGER.lua", []() {return new ActVehicleDeathTrigger();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_POWERUP.lua", []() {return new RaceImaginePowerup();}},
+		{"scripts\\02_server\\Map\\FV\\Racing\\RACE_MAELSTROM_GEISER.lua", []() {return new RaceMaelstromGeiser();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\FV_RACE_SMASH_EGG_IMAGINE_SERVER.lua", []() {return new FvRaceSmashEggImagineServer();}},
+		{"scripts\\02_server\\Map\\FV\\Racing\\FV_RACING_COLUMNS.lua", []() {return new FvRacingColumns();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\RACE_SMASH_SERVER.lua", []() {return new RaceSmashServer();}},
+
+		//NT
+		{"scripts\\02_server\\Map\\NT\\L_NT_SENTINELWALKWAY_SERVER.lua", []() {return new NtSentinelWalkwayServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_PARADOXTELE_SERVER.lua", []() {return new NtParadoxTeleServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_DARKITECT_REVEAL_SERVER.lua", []() {return new NtDarkitectRevealServer();}},
+		{"scripts\\02_server\\Map\\General\\L_BANK_INTERACT_SERVER.lua", []() {return new BankInteractServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_VENTURESPEEDPAD_SERVER.lua", []() {return new NtVentureSpeedPadServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_VENTURE_CANNON_SERVER.lua", []() {return new NtVentureCannonServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_SERVER.lua", []() {return new NtCombatChallengeServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua", []() {return new NtCombatChallengeDummy();}},
+		{"scripts\\02_server\\Map\\NT\\\\L_NT_COMBAT_EXPLODING_TARGET.lua", []() {return new NtCombatChallengeExplodingDummy();}},
+		{"scripts\\02_server\\Map\\General\\L_BASE_INTERACT_DROP_LOOT_SERVER.lua", []() {return new BaseInteractDropLootServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_ASSEMBLYTUBE_SERVER.lua", []() {return new NtAssemblyTubeServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_PARADOX_PANEL_SERVER.lua", []() {return new NtParadoxPanelServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_IMAG_BEAM_BUFFER.lua", []() {return new NtImagBeamBuffer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_BEAM_IMAGINATION_COLLECTORS.lua", []() {return new NtBeamImaginationCollectors();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_DIRT_CLOUD_SERVER.lua", []() {return new NtDirtCloudServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_CONSOLE_TELEPORT_SERVER.lua", []() {return new NtConsoleTeleportServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_SPAWN_STEGO_SERVER.lua", []() {return new SpawnStegoServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_SPAWN_SABERCAT_SERVER.lua", []() {return new SpawnSaberCatServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_SPAWN_SHRAKE_SERVER.lua", []() {return new SpawnShrakeServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_DUKE_SERVER.lua", []() {return new NtDukeServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_HAEL_SERVER.lua", []() {return new NtHaelServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_FACTION_SPY_SERVER.lua", []() {return new NtFactionSpyServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_OVERBUILD_SERVER.lua", []() {return new NtOverbuildServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_VANDA_SERVER.lua", []() {return new NtVandaServer();}},
+		{"scripts\\02_server\\Map\\General\\L_FORCE_VOLUME_SERVER.lua", []() {return new ForceVolumeServer();}},
+		{"scripts\\02_server\\Map\\General\\L_FRICTION_VOLUME_SERVER.lua", []() {return new FrictionVolumeServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_XRAY_SERVER.lua", []() {return new NtXRayServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua", []() {return new NtSleepingGuard();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua", []() {return new NTImagimeterVisibility();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_PIPE_VISIBILITY_SERVER.lua", []() {return new NTPipeVisibilityServer();}},
+		{"scripts\\ai\\MINIGAME\\Objects\\MINIGAME_BLUE_MARK.lua", []() {return new MinigameBlueMark();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_NAOMI_BREADCRUMB_SERVER.lua", []() {return new NtNaomiBreadcrumbServer();}},
+		{"scripts\\02_server\\Map\\NT\\L_NT_NAOMI_DIRT_SERVER.lua", []() {return new NTNaomiDirtServer();}},
+
+		//AM Crux
+		{"scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua", []() {return new AmConsoleTeleportServer();}},
+		{"scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_FIN.lua", []() {return new RandomSpawnerFin();}},
+		{"scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_PIT.lua", []() {return new RandomSpawnerPit();}},
+		{"scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_STR.lua", []() {return new RandomSpawnerStr();}},
+		{"scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_ZIP.lua", []() {return new RandomSpawnerZip();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_MECH.lua", []() {return new AmDarklingMech();}},
+		{"scripts\\02_server\\Map\\AM\\L_BRIDGE.lua", []() {return new AmBridge();}},
+		{"scripts\\02_server\\Map\\AM\\L_DRAW_BRIDGE.lua", []() {return new AmDrawBridge();}},
+		{"scripts\\02_server\\Map\\AM\\L_SHIELD_GENERATOR.lua", []() {return new AmShieldGenerator();}},
+		{"scripts\\02_server\\Map\\AM\\L_SHIELD_GENERATOR_QUICKBUILD.lua", []() {return new AmShieldGeneratorQuickbuild();}},
+		{"scripts\\02_server\\Map\\AM\\L_DROPSHIP_COMPUTER.lua", []() {return new AmDropshipComputer();}},
+		{"scripts\\02_server\\Map\\AM\\L_SCROLL_READER_SERVER.lua", []() {return new AmScrollReaderServer();}},
+		{"scripts\\02_server\\Map\\AM\\L_TEMPLE_SKILL_VOLUME.lua", []() {return new AmTemplateSkillVolume();}},
+		{"scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF.lua", []() {return new EnemyNjBuff();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_SKELETON_ENGINEER.lua", []() {return new AmSkeletonEngineer();}},
+		{"scripts\\02_server\\Map\\AM\\L_SKULLKIN_DRILL.lua", []() {return new AmSkullkinDrill();}},
+		{"scripts\\02_server\\Map\\AM\\L_SKULLKIN_DRILL_STAND.lua", []() {return new AmSkullkinDrillStand();}},
+		{"scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua", []() {return new AmSkullkinTower();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua", []() {return new AmDarklingDragon();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua", []() {return new AmDarklingDragon();}},
+		{"scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua", []() {return new BaseEnemyApe();}},
+		{"scripts\\02_server\\Map\\AM\\L_BLUE_X.lua", []() {return new AmBlueX();}},
+		{"scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua", []() {return new AmTeapotServer();}},
+
+		//Ninjago
+		{"scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua", []() {return new NjGarmadonCelebration();}},
+		{"scripts\\02_server\\Map\\njhub\\L_WU_NPC.lua", []() {return new NjWuNPC();}},
+		{"scripts\\02_server\\Map\\njhub\\L_SCROLL_CHEST_SERVER.lua", []() {return new NjScrollChestServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_COLE_NPC.lua", []() {return new NjColeNPC();}},
+		{"scripts\\02_server\\Map\\njhub\\L_JAY_MISSION_ITEMS.lua", []() {return new NjJayMissionItems();}},
+		{"scripts\\02_server\\Map\\njhub\\L_NPC_MISSION_SPINJITZU_SERVER.lua", []() {return new NjNPCMissionSpinjitzuServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_ENEMY_SKELETON_SPAWNER.lua", []() {return new EnemySkeletonSpawner();}},
+		{"scripts\\02_server\\Map\\General\\L_NJ_RAIL_SWITCH.lua", []() {return new NjRailSwitch();}},
+		{"scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_ACTIVATORS_SERVER.lua", []() {return new NjRailActivatorsServer();}},
+		{"scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_POST_SERVER.lua", []() {return new NjRailPostServer();}},
+		{"scripts\\02_server\\Map\\General\\Ninjago\\L_ICE_RAIL_ACTIVATOR_SERVER.lua", []() {return new NjIceRailActivator();}},
+		{"scripts\\02_server\\Map\\njhub\\L_FALLING_TILE.lua", []() {return new FallingTile();}},
+		{"scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF_STUN_IMMUNITY.lua", []() {return new EnemyNjBuff();}},
+		{"scripts\\02_server\\Map\\njhub\\L_IMAGINATION_SHRINE_SERVER.lua", []() {return new ImaginationShrineServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_LIEUTENANT.lua", []() {return new Lieutenant();}},
+		{"scripts\\02_server\\Map\\njhub\\L_RAIN_OF_ARROWS.lua", []() {return new RainOfArrows();}},
+		{"scripts\\02_server\\Map\\njhub\\L_CAVE_PRISON_CAGE.lua", []() {return new CavePrisonCage();}},
+		{"scripts\\02_server\\Map\\njhub\\boss_instance\\L_MONASTERY_BOSS_INSTANCE_SERVER.lua", []() {return new NjMonastryBossInstance();}},
+		{"scripts\\02_server\\Map\\njhub\\L_CATAPULT_BOUNCER_SERVER.lua", []() {return new CatapultBouncerServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_CATAPULT_BASE_SERVER.lua", []() {return new CatapultBaseServer();}},
+		{"scripts\\02_server\\Map\\General\\Ninjago\\L_NJHUB_LAVA_PLAYER_DEATH_TRIGGER.lua", []() {return new NjhubLavaPlayerDeathTrigger();}},
+		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_NOOK_DOORS.lua", []() {return new MonCoreNookDoors();}},
+		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
+		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
+		{"scripts\\02_server\\Map\\njhub\\L_FLAME_JET_SERVER.lua", []() {return new FlameJetServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_BURNING_TILE.lua", []() {return new BurningTile();}},
+		{"scripts\\02_server\\Map\\njhub\\L_SPAWN_EARTH_PET_SERVER.lua", []() {return new NjEarthDragonPetServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_EARTH_PET_SERVER.lua", []() {return new NjEarthPetServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_DRAGON_EMBLEM_CHEST_SERVER.lua", []() {return new NjDragonEmblemChestServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_NYA_MISSION_ITEMS.lua", []() {return new NjNyaMissionitems();}},
+
+		//DLU
+		{"scripts\\02_server\\DLU\\DLUVanityTeleportingObject.lua", []() {return new DLUVanityTeleportingObject();}},
+
+		//Survival Minigame
+		{"scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_STROMBIE.lua", []() {return new AgSurvivalStromling();}},
+		{"scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_DARKLING_MECH.lua", []() {return new AgSurvivalMech();}},
+		{"scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_DARK_SPIDERLING.lua", []() {return new AgSurvivalSpiderling();}},
+
+		//Scripted Equipment
+		{"scripts\\EquipmentScripts\\Sunflower.lua", []() {return new Sunflower();}},
+		{"scripts/EquipmentScripts/AnvilOfArmor.lua", []() {return new AnvilOfArmor();}},
+		{"scripts/EquipmentScripts/FountainOfImagination.lua", []() {return new FountainOfImagination();}},
+		{"scripts/EquipmentScripts/CauldronOfLife.lua", []() {return new CauldronOfLife();}},
+		{"scripts\\02_server\\Equipment\\L_BOOTYDIG_SERVER.lua", []() {return new BootyDigServer();}},
+		{"scripts\\EquipmentScripts\\PersonalFortress.lua", []() {return new PersonalFortress();}},
+		{"scripts\\02_server\\Map\\General\\L_PROPERTY_DEVICE.lua", []() {return new PropertyDevice();}},
+		{"scripts\\02_server\\Map\\General\\L_IMAG_BACKPACK_HEALS_SERVER.lua", []() {return new ImaginationBackpackHealServer();}},
+		{"scripts\\ai\\GENERAL\\L_LEGO_DIE_ROLL.lua", []() {return new LegoDieRoll();}},
+		{"scripts\\EquipmentScripts\\BuccaneerValiantShip.lua", []() {return new BuccaneerValiantShip();}},
+		{"scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua", []() {return new FireFirstSkillonStartup();}},
+		{"scripts\\equipmenttriggers\\gempack.lua", []() {return new GemPack();}},
+		{"scripts\\equipmenttriggers\\shardarmor.lua", []() {return new ShardArmor();}},
+		{"scripts\\equipmenttriggers\\coilbackpack.lua", []() {return new TeslaPack();}},
+		{"scripts\\EquipmentScripts\\stunImmunity.lua", []() {return new StunImmunity();}},
+
+		//FB
+		{"scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua", []() {return new RockHydrantBroken();}},
+		{"scripts\\ai\\NS\\L_NS_WH_FANS.lua", []() {return new WhFans();}},
+
+		//WBL
+		{"scripts\\zone\\LUPs\\WBL_generic_zone.lua", []() {return new WblGenericZone();}},
+
+		//Alpha
+		{"scripts\\ai\\FV\\L_TRIGGER_GAS.lua", []() {return new TriggerGas();}},
+		{"scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua", []() {return new ActNinjaSensei();}},
+
+		//Pickups
+		{"scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(1);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(10000);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(100);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(10);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(100000);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_10_SILVER-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(1000);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_25_BRONZE-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(25);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_25_GOLD-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(250000);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_25_SILVER-COIN-SPAWNER.lua", []() {return new SpecialCoinSpawner(2500);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua", []() {return new SpecialPowerupSpawner(13);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER-2PT.lua", []() {return new SpecialPowerupSpawner(129);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua", []() {return new SpecialPowerupSpawner(5);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua", []() {return new SpecialPowerupSpawner(747);}},
+		{"scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua", []() {return new SpecialSpeedBuffSpawner();}},
+
+		//Wild
+		{"scripts\\ai\\WILD\\L_WILD_GF_RAT.lua", []() {return new WildAndScared();}},
+		{"scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua", []() {return new WildAndScared();}},
+		{"scripts\\ai\\WILD\\L_WILD_GF_GLOWBUG.lua", []() {return new WildGfGlowbug();}},
+		{"scripts\\ai\\WILD\\L_WILD_AMBIENT_CRAB.lua", []() {return new WildAmbientCrab();}},
+		{"scripts\\ai\\WILD\\L_WILD_PANTS.lua", []() {return new WildPants();}},
+		{"scripts\\ai\\WILD\\L_WILD_NINJA_BRICKS.lua", []() {return new WildNinjaBricks();}},
+		{"scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua", []() {return new WildNinjaStudent();}},
+		{"scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua", []() {return new WildNinjaSensei();}},
+		{"scripts\\ai\\WILD\\L_LUP_generic_interact.lua", []() {return new LupGenericInteract();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenBlue.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenGreen.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
+
+	};
 };
 
 CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
-	auto itr = m_Scripts.find(scriptName);
-	if (itr != m_Scripts.end()) {
+	auto itr = g_Scripts.find(scriptName);
+	if (itr != g_Scripts.end()) {
 		return itr->second;
 	}
 
-	Script* script = InvalidToReturn;
+	const auto itrTernary = scriptLoader.find(scriptName);
+	Script* script = itrTernary != scriptLoader.cend() ? itrTernary->second() : &InvalidToReturn;
 
-	//VE / AG:
-	if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_DEATH_TRIGGER.lua")
-		script = new AgShipPlayerDeathTrigger();
-	else if (scriptName == "scripts\\ai\\NP\\L_NPC_NP_SPACEMAN_BOB.lua")
-		script = new NpcNpSpacemanBob();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SPACE_STUFF.lua") // Broken, will (sometimes) display all animations at once on initial login
-		script = new AgSpaceStuff();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SHIP_PLAYER_SHOCK_SERVER.lua")
-		script = new AgShipPlayerShockServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_IMAG_SMASHABLE.lua")
-		script = new AgImagSmashable();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_STORY_BOX_INTERACT_SERVER.lua")
-		script = new StoryBoxInteractServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BINOCULARS.lua")
-		script = new Binoculars();
-	else if (scriptName == "scripts\\ai\\WILD\\L_ALL_CRATE_CHICKEN.lua")
-		script = new AllCrateChicken();
-	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_SMASHABLE.lua")
-		script = new RockHydrantSmashable(); // Broken?
-	else if (scriptName == "scripts\\02_server\\Map\\SS\\L_SS_MODULAR_BUILD_SERVER.lua")
-		script = new SsModularBuildServer();
-	else if (scriptName == "scripts\\02_server\\Map\\Property\\AG_Small\\L_ZONE_AG_PROPERTY.lua")
-		script = new ZoneAgProperty();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_POI_MISSION.lua")
-		script = new InvalidScript(); // this is done in Entity.cpp, not needed for our implementation
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_TOUCH_MISSION_UPDATE_SERVER.lua")
-		script = new TouchMissionUpdateServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_ACT_SHARK_PLAYER_DEATH_TRIGGER.lua")
-		script = new ActSharkPlayerDeathTrigger();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_MECH.lua")
-		script = new BaseEnemyMech();
-	else if (scriptName == "scripts\\zone\\AG\\L_ZONE_AG_SURVIVAL.lua")
-		script = new ZoneAgSurvival();
-	else if (scriptName == "scripts\\02_server\\Objects\\L_BUFF_STATION_SERVER.lua")
-		script = new AgSurvivalBuffStation();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_BUS_DOOR.lua")
-		script = new AgBusDoor();
-	else if (scriptName == "scripts\\02_server\\Equipment\\L_MAESTROM_EXTRACTICATOR_SERVER.lua")
-		script = new MaestromExtracticatorServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_AG_CAGED_BRICKS_SERVER.lua")
-		script = new AgCagedBricksServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_WISP_SERVER.lua")
-		script = new NpcWispServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_EPSILON_SERVER.lua")
-		script = new NpcEpsilonServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_TURRET.lua" || scriptName == "scripts\\ai\\AG\\L_AG_TURRET_FOR_SHIP.lua")
-		script = new AgTurret();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_AG_LASER_SENSOR_SERVER.lua")
-		script = new AgLaserSensorServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_AG_MONUMENT_LASER_SERVER.lua")
-		script = new AgMonumentLaserServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_FANS.lua")
-		script = new AgFans();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_AG_MONUMENT_BIRDS.lua")
-		script = new AgMonumentBirds();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_REMOVE_RENTAL_GEAR.lua")
-		script = new RemoveRentalGear();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_NJ_ASSISTANT_SERVER.lua")
-		script = new NpcNjAssistantServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_SALUTING_NPCS.lua")
-		script = new AgSalutingNpcs();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_JET_EFFECT_SERVER.lua")
-		script = new AgJetEffectServer();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AG\\L_BOSS_SPIDER_QUEEN_ENEMY_SERVER.lua")
-		script = new BossSpiderQueenEnemyServer();
-	else if (scriptName == "scripts\\02_server\\Map\\Property\\AG_Small\\L_ENEMY_SPIDER_SPAWNER.lua")
-		script = new EnemySpiderSpawner();
-	else if (scriptName == "scripts/02_server/Map/Property/AG_Small/L_ENEMY_SPIDER_SPAWNER.lua")
-		script = new EnemySpiderSpawner();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_QB_Elevator.lua")
-		script = new AgQbElevator();
-	else if (scriptName == "scripts\\ai\\PROPERTY\\AG\\L_AG_PROP_GUARD.lua")
-		script = new AgPropGuard();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_AG_BUGSPRAYER.lua")
-		script = new AgBugsprayer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_AG_COURSE_STARTER.lua")
-		script = new NpcAgCourseStarter();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_GOAL.lua")
-		script = new AgMonumentRaceGoal();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L__AG_MONUMENT_RACE_CANCEL.lua")
-		script = new AgMonumentRaceCancel();
-	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_ZONE_AG_SPIDER_QUEEN.lua")
-		script = new ZoneAgSpiderQueen();
-	else if (scriptName == "scripts\\02_server\\Map\\AG_Spider_Queen\\L_SPIDER_BOSS_TREASURE_CHEST_SERVER.lua")
-		script = new SpiderBossTreasureChestServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_COWBOY_SERVER.lua")
-		script = new NpcCowboyServer();
-	else if (scriptName == "scripts\\02_server\\Map\\Property\\AG_Med\\L_ZONE_AG_MED_PROPERTY.lua")
-		script = new ZoneAgMedProperty();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_STROMBIE_PROPERTY.lua")
-		script = new AgStromlingProperty();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARKLING_MECH.lua")
-		script = new BaseEnemyMech();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_DARK_SPIDERLING.lua")
-		script = new AgDarkSpiderling();
-	else if (scriptName == "scripts\\ai\\PROPERTY\\L_PROP_GUARDS.lua")
-		script = new AgPropguards();
-	else if (scriptName == "scripts\\ai\\PROPERTY\\L_PROPERTY_FX_DAMAGE.lua")
-		script = new PropertyFXDamage();
-	else if (scriptName == "scripts\\02_server\\Map\\AG\\L_NPC_PIRATE_SERVER.lua")
-		script = new NpcPirateServer();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_PICNIC_BLANKET.lua")
-		script = new AgPicnicBlanket();
-	else if (scriptName == "scripts\\02_server\\Map\\Property\\L_PROPERTY_BANK_INTERACT_SERVER.lua")
-		script = new PropertyBankInteract();
-	else if (scriptName == "scripts\\02_server\\Enemy\\VE\\L_VE_MECH.lua")
-		script = new VeMech();
-	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_MISSION_CONSOLE_SERVER.lua")
-		script = new VeMissionConsole();
-	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_EPSILON_SERVER.lua")
-		script = new VeEpsilonServer();
-	// Win32 thinks this if chain is too long, let's cut it up and serve it as a three course meal
-	//NS:
-	if (scriptName == "scripts\\ai\\NS\\L_NS_MODULAR_BUILD.lua")
-		script = new NsModularBuild();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_GET_FACTION_MISSION_SERVER.lua")
-		script = new NsGetFactionMissionServer();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_QB_IMAGINATION_STATUE.lua")
-		script = new NsQbImaginationStatue();
-	else if (scriptName == "scripts\\02_server\\Map\\NS\\CONCERT_CHOICEBUILD_MANAGER_SERVER.lua")
-		script = new NsConcertChoiceBuildManager();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_CONCERT_CHOICEBUILD.lua")
-		script = new NsConcertChoiceBuild();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_CONCERT_QUICKBUILD.lua")
-		script = new NsConcertQuickBuild();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_STAGE_PLATFORMS.lua")
-		script = new AgStagePlatforms();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_CONCERT_INSTRUMENT_QB.lua")
-		script = new NsConcertInstrument();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_JONNY_FLAG_MISSION_SERVER.lua")
-		script = new NsJohnnyMissionServer();
-	else if (scriptName == "scripts\\02_server\\Objects\\L_STINKY_FISH_TARGET.lua")
-		script = new StinkyFishTarget();
-	else if (scriptName == "scripts\\zone\\PROPERTY\\NS\\L_ZONE_NS_PROPERTY.lua")
-		script = new ZoneNsProperty();
-	else if (scriptName == "scripts\\02_server\\Map\\Property\\NS_Med\\L_ZONE_NS_MED_PROPERTY.lua")
-		script = new ZoneNsMedProperty();
-	else if (scriptName == "scripts\\02_server\\Map\\NS\\L_NS_TOKEN_CONSOLE_SERVER.lua")
-		script = new NsTokenConsoleServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NS\\L_NS_LUP_TELEPORT.lua")
-		script = new NsLupTeleport();
-	else if (scriptName == "scripts\\02_server\\Map\\NS\\Waves\\L_ZONE_NS_WAVES.lua")
-		script = new ZoneNsWaves();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HAMMERLING_ENEMY_SERVER.lua")
-		script = new WaveBossHammerling();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_APE_ENEMY_SERVER.lua")
-		script = new WaveBossApe();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_DARK_SPIDERLING_ENEMY_SERVER.lua")
-		script = new WaveBossSpiderling();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Waves\\L_WAVES_BOSS_HORESEMEN_ENEMY_SERVER.lua")
-		script = new WaveBossHorsemen();
-	else if (scriptName == "scripts\\02_server\\Minigame\\General\\L_MINIGAME_TREASURE_CHEST_SERVER.lua")
-		script = new MinigameTreasureChestServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NS\\L_NS_LEGO_CLUB_DOOR.lua")
-		script = new NsLegoClubDoor();
-	else if (scriptName == "scripts/ai/NS/L_CL_RING.lua")
-		script = new ClRing();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENTS.lua")
-		script = new WildAmbients();
-	else if (scriptName == "scripts\\ai\\NS\\NS_PP_01\\L_NS_PP_01_TELEPORT.lua")
-		script = new PropertyDeathPlane();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_QB_SPAWNER.lua")
-		script = new QbSpawner();
-	else if (scriptName == "scripts\\ai\\AG\\L_AG_QB_Wall.lua")
-		script = new AgQbWall();
-
-	//GF:
-	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_GF_TORCH.lua")
-		script = new GfTikiTorch();
-	else if (scriptName == "scripts\\ai\\GF\\L_SPECIAL_FIREPIT.lua")
-		script = new GfCampfire();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_ORGAN.lua")
-		script = new GfOrgan();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_BANANA.lua")
-		script = new GfBanana();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_BANANA_CLUSTER.lua")
-		script = new GfBananaCluster();
-	else if (scriptName == "scripts/ai/GF/L_GF_JAILKEEP_MISSION.lua")
-		script = new GfJailkeepMission();
-	else if (scriptName == "scripts\\ai\\GF\\L_TRIGGER_AMBUSH.lua")
-		script = new TriggerAmbush();
-	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_GF_CAPTAINS_CANNON.lua")
-		script = new GfCaptainsCannon();
-	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_MAST_TELEPORT.lua")
-		script = new MastTeleport();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_JAIL_WALLS.lua")
-		script = new GfJailWalls();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_QB_ENEMY_STUNNER.lua")
-		script = new QbEnemyStunner();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_PET_DIG_BUILD.lua")
-		script = new PetDigBuild(); // Technically also used once in AG
-	else if (scriptName == "scripts\\02_server\\Map\\GF\\L_SPAWN_LION_SERVER.lua")
-		script = new SpawnLionServer();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_APE.lua")
-		script = new BaseEnemyApe();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_GF_APE_SMASHING_QB.lua")
-		script = new GfApeSmashingQB();
-	else if (scriptName == "scripts\\zone\\PROPERTY\\GF\\L_ZONE_GF_PROPERTY.lua")
-		script = new ZoneGfProperty();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_ARCHWAY.lua")
-		script = new GfArchway();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_MAELSTROM_GEYSER.lua")
-		script = new GfMaelstromGeyser();
-	else if (scriptName == "scripts\\ai\\GF\\L_PIRATE_REP.lua")
-		script = new PirateRep();
-	else if (scriptName == "scripts\\ai\\GF\\L_GF_PARROT_CRASH.lua")
-		script = new GfParrotCrash();
-
-	// SG
-	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\SERVER\\SG_CANNON.lua")
-		script = new SGCannon();
-	else if (scriptName == "scripts\\ai\\MINIGAME\\SG_GF\\L_ZONE_SG_SERVER.lua")
-		script = new ZoneSGServer();
-
-	//PR:
-	else if (scriptName == "scripts\\client\\ai\\PR\\L_PR_WHISTLE.lua")
-		script = new PrWhistle();
-	if (scriptName == "scripts\\02_server\\Map\\PR\\L_PR_SEAGULL_FLY.lua")
-		script = new PrSeagullFly();
-	else if (scriptName == "scripts\\ai\\PETS\\L_HYDRANT_SMASHABLE.lua")
-		script = new HydrantSmashable();
-	else if (scriptName == "scripts\\02_server\\map\\PR\\L_HYDRANT_BROKEN.lua")
-		script = new HydrantBroken();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\PET_DIG_SERVER.lua" || scriptName == "scripts\\02_server\\Map\\AM\\L_SKELETON_DRAGON_PET_DIG_SERVER.lua")
-		script = new PetDigServer();
-	else if (scriptName == "scripts\\client\\ai\\PR\\L_CRAB_SERVER.lua")
-		script = new CrabServer();
-	else if (scriptName == "scripts\\02_server\\Pets\\L_PET_FROM_DIG_SERVER.lua")
-		script = new PetFromDigServer();
-	else if (scriptName == "scripts\\02_server\\Pets\\L_PET_FROM_OBJECT_SERVER.lua")
-		script = new PetFromObjectServer();
-	else if (scriptName == "scripts\\02_server\\Pets\\L_DAMAGING_PET.lua")
-		script = new DamagingPets();
-	else if (scriptName == "scripts\\02_server\\Map\\PR\\L_SPAWN_GRYPHON_SERVER.lua")
-		script = new SpawnGryphonServer();
-
-	//FV Scripts:
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_ACT_CANDLE.lua")
-		script = new FvCandle();
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_ENEMY_RONIN_SPAWNER.lua")
-		script = new EnemyRoninSpawner();
-	else if (scriptName == "scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_CAVALRY.lua")
-		script = new FvMaelstromCavalry();
-	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_TURRET_1.lua")
-		script = new ActNinjaTurret();
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_FV_HORSEMEN_TRIGGER.lua")
-		script = new FvHorsemenTrigger();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_FLYING_CREVICE_DRAGON.lua")
-		script = new FvFlyingCreviceDragon();
-	else if (scriptName == "scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_DRAGON.lua")
-		script = new FvMaelstromDragon();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_DRAGON_SMASHING_GOLEM_QB.lua")
-		script = new FvDragonSmashingGolemQb();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_TREASURE_CHEST_DRAGON_SERVER.lua")
-		script = new TreasureChestDragonServer();
-	else if (scriptName == "scripts\\ai\\GENERAL\\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua")
-		script = new InstanceExitTransferPlayerToLastNonInstance();
-	else if (scriptName == "scripts\\ai\\FV\\L_NPC_FREE_GF_NINJAS.lua")
-		script = new FvFreeGfNinjas();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_PANDA_SPAWNER_SERVER.lua")
-		script = new FvPandaSpawnerServer();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_PANDA_SERVER.lua")
-		script = new FvPandaServer();
-	else if (scriptName == "scripts\\zone\\PROPERTY\\FV\\L_ZONE_FV_PROPERTY.lua")
-		script = new ZoneFvProperty();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_BRICK_PUZZLE_SERVER.lua")
-		script = new FvBrickPuzzleServer();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_CONSOLE_LEFT_QUICKBUILD.lua")
-		script = new FvConsoleLeftQuickbuild();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_CONSOLE_RIGHT_QUICKBUILD.lua")
-		script = new FvConsoleRightQuickbuild();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_BRICK.lua")
-		script = new FvFacilityBrick();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_FACILITY_PIPES.lua")
-		script = new FvFacilityPipes();
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_IMG_BRICK_CONSOLE_QB.lua")
-		script = new ImgBrickConsoleQB();
-	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PARADOX_PIPE_FIX.lua")
-		script = new ActParadoxPipeFix();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_NINJA_GUARDS.lua")
-		script = new FvNinjaGuard();
-	else if (scriptName == "scripts\\ai\\FV\\L_ACT_PASS_THROUGH_WALL.lua")
-		script = new FvPassThroughWall();
-	else if (scriptName == "scripts\\ai\\FV\\L_ACT_BOUNCE_OVER_WALL.lua")
-		script = new FvBounceOverWall();
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\L_NPC_FONG.lua")
-		script = new FvFong();
-	else if (scriptName == "scripts\\ai\\FV\\L_FV_MAELSTROM_GEYSER.lua") {
-		script = new FvMaelstromGeyser();
-	}
-
-	//Misc:
-	if (scriptName == "scripts\\02_server\\Map\\General\\L_EXPLODING_ASSET.lua")
-		script = new ExplodingAsset();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_WISHING_WELL_SERVER.lua")
-		script = new WishingWellServer();
-	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_PLAYER_DEATH_TRIGGER.lua")
-		script = new ActPlayerDeathTrigger();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_GROWING_FLOWER_SERVER.lua")
-		script = new GrowingFlower();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_TOKEN_CONSOLE_SERVER.lua")
-		script = new TokenConsoleServer();
-	else if (scriptName == "scripts\\ai\\ACT\\FootRace\\L_ACT_BASE_FOOT_RACE.lua")
-		script = new BaseFootRaceManager();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_PROP_PLATFORM.lua")
-		script = new PropertyPlatform();
-	else if (scriptName == "scripts\\02_server\\Map\\VE\\L_VE_BRICKSAMPLE_SERVER.lua")
-		script = new VeBricksampleServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_MAIL_BOX_SERVER.lua")
-		script = new MailBoxServer();
-	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_MINE.lua")
-		script = new ActMine();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_WANDERING_VENDOR.lua")
-		script = new WanderingVendor();
-
-	//Racing:
-	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_CRATE_SERVER.lua")
-		script = new RaceImagineCrateServer();
-	else if (scriptName == "scripts\\ai\\ACT\\L_ACT_VEHICLE_DEATH_TRIGGER.lua")
-		script = new ActVehicleDeathTrigger();
-	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_IMAGINE_POWERUP.lua")
-		script = new RaceImaginePowerup();
-	else if (scriptName == "scripts\\02_server\\Map\\FV\\Racing\\RACE_MAELSTROM_GEISER.lua")
-		script = new RaceMaelstromGeiser();
-	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\FV_RACE_SMASH_EGG_IMAGINE_SERVER.lua")
-		script = new FvRaceSmashEggImagineServer();
-	else if (scriptName == "scripts\\ai\\RACING\\OBJECTS\\RACE_SMASH_SERVER.lua")
-		script = new RaceSmashServer();
-
-	//NT:
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SENTINELWALKWAY_SERVER.lua")
-		script = new NtSentinelWalkwayServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_PARADOXTELE_SERVER.lua")
-		script = new NtParadoxTeleServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_DARKITECT_REVEAL_SERVER.lua")
-		script = new NtDarkitectRevealServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BANK_INTERACT_SERVER.lua")
-		script = new BankInteractServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_VENTURESPEEDPAD_SERVER.lua")
-		script = new NtVentureSpeedPadServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_VENTURE_CANNON_SERVER.lua")
-		script = new NtVentureCannonServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_SERVER.lua")
-		script = new NtCombatChallengeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua")
-		script = new NtCombatChallengeDummy();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\\\L_NT_COMBAT_EXPLODING_TARGET.lua")
-		script = new NtCombatChallengeExplodingDummy();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_BASE_INTERACT_DROP_LOOT_SERVER.lua")
-		script = new BaseInteractDropLootServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_ASSEMBLYTUBE_SERVER.lua")
-		script = new NtAssemblyTubeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_PARADOX_PANEL_SERVER.lua")
-		script = new NtParadoxPanelServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAG_BEAM_BUFFER.lua")
-		script = new NtImagBeamBuffer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_BEAM_IMAGINATION_COLLECTORS.lua")
-		script = new NtBeamImaginationCollectors();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_DIRT_CLOUD_SERVER.lua")
-		script = new NtDirtCloudServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_CONSOLE_TELEPORT_SERVER.lua")
-		script = new NtConsoleTeleportServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_SPAWN_STEGO_SERVER.lua")
-		script = new SpawnStegoServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_SPAWN_SABERCAT_SERVER.lua")
-		script = new SpawnSaberCatServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_SPAWN_SHRAKE_SERVER.lua")
-		script = new SpawnShrakeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_DUKE_SERVER.lua")
-		script = new NtDukeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_HAEL_SERVER.lua")
-		script = new NtHaelServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_FACTION_SPY_SERVER.lua")
-		script = new NtFactionSpyServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_OVERBUILD_SERVER.lua")
-		script = new NtOverbuildServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_VANDA_SERVER.lua")
-		script = new NtVandaServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FORCE_VOLUME_SERVER.lua")
-		script = new ForceVolumeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_FRICTION_VOLUME_SERVER.lua")
-		script = new FrictionVolumeServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_XRAY_SERVER.lua")
-		script = new NtXRayServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_SLEEPING_GUARD.lua")
-		script = new NtSleepingGuard();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_IMAGIMETER_VISIBILITY_SERVER.lua")
-		script = new NTImagimeterVisibility();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_PIPE_VISIBILITY_SERVER.lua")
-		script = new NTPipeVisibilityServer();
-	else if (scriptName == "scripts\\ai\\MINIGAME\\Objects\\MINIGAME_BLUE_MARK.lua")
-		script = new MinigameBlueMark();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_BREADCRUMB_SERVER.lua")
-		script = new NtNaomiBreadcrumbServer();
-	else if (scriptName == "scripts\\02_server\\Map\\NT\\L_NT_NAOMI_DIRT_SERVER.lua")
-		script = new NTNaomiDirtServer();
-
-	//AM:
-	if (scriptName == "scripts\\02_server\\Map\\AM\\L_AM_CONSOLE_TELEPORT_SERVER.lua")
-		script = new AmConsoleTeleportServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_FIN.lua")
-		script = new RandomSpawnerFin();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_PIT.lua")
-		script = new RandomSpawnerPit();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_STR.lua")
-		script = new RandomSpawnerStr();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_RANDOM_SPAWNER_ZIP.lua")
-		script = new RandomSpawnerZip();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_MECH.lua")
-		script = new AmDarklingMech();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BRIDGE.lua")
-		script = new AmBridge();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_DRAW_BRIDGE.lua")
-		script = new AmDrawBridge();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SHIELD_GENERATOR.lua")
-		script = new AmShieldGenerator();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SHIELD_GENERATOR_QUICKBUILD.lua")
-		script = new AmShieldGeneratorQuickbuild();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_DROPSHIP_COMPUTER.lua")
-		script = new AmDropshipComputer();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SCROLL_READER_SERVER.lua")
-		script = new AmScrollReaderServer();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEMPLE_SKILL_VOLUME.lua")
-		script = new AmTemplateSkillVolume();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF.lua")
-		script = new EnemyNjBuff();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_SKELETON_ENGINEER.lua")
-		script = new AmSkeletonEngineer();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_DRILL.lua")
-		script = new AmSkullkinDrill();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_DRILL_STAND.lua")
-		script = new AmSkullkinDrillStand();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_SKULLKIN_TOWER.lua")
-		script = new AmSkullkinTower();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_NAMED_DARKLING_DRAGON.lua")
-		script = new AmDarklingDragon();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_DRAGON.lua")
-		script = new AmDarklingDragon();
-	else if (scriptName == "scripts\\02_server\\Enemy\\AM\\L_AM_DARKLING_APE.lua")
-		script = new BaseEnemyApe();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_BLUE_X.lua")
-		script = new AmBlueX();
-	else if (scriptName == "scripts\\02_server\\Map\\AM\\L_TEAPOT_SERVER.lua")
-		script = new AmTeapotServer();
-
-	// Ninjago
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_GARMADON_CELEBRATION_SERVER.lua")
-		script = new NjGarmadonCelebration();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_WU_NPC.lua")
-		script = new NjWuNPC();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_SCROLL_CHEST_SERVER.lua")
-		script = new NjScrollChestServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_COLE_NPC.lua")
-		script = new NjColeNPC();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_JAY_MISSION_ITEMS.lua")
-		script = new NjJayMissionItems();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_NPC_MISSION_SPINJITZU_SERVER.lua")
-		script = new NjNPCMissionSpinjitzuServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_ENEMY_SKELETON_SPAWNER.lua")
-		script = new EnemySkeletonSpawner();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_NJ_RAIL_SWITCH.lua")
-		script = new NjRailSwitch();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_ACTIVATORS_SERVER.lua")
-		script = new NjRailActivatorsServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\Ninjago\\L_RAIL_POST_SERVER.lua")
-		script = new NjRailPostServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\Ninjago\\L_ICE_RAIL_ACTIVATOR_SERVER.lua")
-		script = new NjIceRailActivator();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_FALLING_TILE.lua")
-		script = new FallingTile();
-	else if (scriptName == "scripts\\02_server\\Enemy\\General\\L_ENEMY_NJ_BUFF_STUN_IMMUNITY.lua")
-		script = new EnemyNjBuff();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_IMAGINATION_SHRINE_SERVER.lua")
-		script = new ImaginationShrineServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_LIEUTENANT.lua")
-		script = new Lieutenant();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_RAIN_OF_ARROWS.lua")
-		script = new RainOfArrows();
-	if (scriptName == "scripts\\02_server\\Map\\njhub\\L_CAVE_PRISON_CAGE.lua")
-		script = new CavePrisonCage();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\boss_instance\\L_MONASTERY_BOSS_INSTANCE_SERVER.lua")
-		script = new NjMonastryBossInstance();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_CATAPULT_BOUNCER_SERVER.lua")
-		script = new CatapultBouncerServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_CATAPULT_BASE_SERVER.lua")
-		script = new CatapultBaseServer();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\Ninjago\\L_NJHUB_LAVA_PLAYER_DEATH_TRIGGER.lua")
-		script = new NjhubLavaPlayerDeathTrigger();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_MON_CORE_NOOK_DOORS.lua")
-		script = new MonCoreNookDoors();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua")
-		script = new MonCoreSmashableDoors();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_FLAME_JET_SERVER.lua")
-		script = new FlameJetServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_BURNING_TILE.lua")
-		script = new BurningTile();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_SPAWN_EARTH_PET_SERVER.lua")
-		script = new NjEarthDragonPetServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_EARTH_PET_SERVER.lua")
-		script = new NjEarthPetServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_DRAGON_EMBLEM_CHEST_SERVER.lua")
-		script = new NjDragonEmblemChestServer();
-	else if (scriptName == "scripts\\02_server\\Map\\njhub\\L_NYA_MISSION_ITEMS.lua")
-		script = new NjNyaMissionitems();
-
-	//DLU:
-	else if (scriptName == "scripts\\02_server\\DLU\\DLUVanityTeleportingObject.lua")
-		script = new DLUVanityTeleportingObject();
-
-	// Survival minigame
-	else if (scriptName == "scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_STROMBIE.lua")
-		script = new AgSurvivalStromling();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_DARKLING_MECH.lua")
-		script = new AgSurvivalMech();
-	else if (scriptName == "scripts\\02_server\\Enemy\\Survival\\L_AG_SURVIVAL_DARK_SPIDERLING.lua")
-		script = new AgSurvivalSpiderling();
-
-	// Scripted equipment
-	else if (scriptName == "scripts\\EquipmentScripts\\Sunflower.lua")
-		script = new Sunflower();
-	else if (scriptName == "scripts/EquipmentScripts/AnvilOfArmor.lua")
-		script = new AnvilOfArmor();
-	else if (scriptName == "scripts/EquipmentScripts/FountainOfImagination.lua")
-		script = new FountainOfImagination();
-	else if (scriptName == "scripts/EquipmentScripts/CauldronOfLife.lua")
-		script = new CauldronOfLife();
-	else if (scriptName == "scripts\\02_server\\Equipment\\L_BOOTYDIG_SERVER.lua")
-		script = new BootyDigServer();
-	else if (scriptName == "scripts\\EquipmentScripts\\PersonalFortress.lua")
-		script = new PersonalFortress();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_PROPERTY_DEVICE.lua")
-		script = new PropertyDevice();
-	else if (scriptName == "scripts\\02_server\\Map\\General\\L_IMAG_BACKPACK_HEALS_SERVER.lua")
-		script = new ImaginationBackpackHealServer();
-	else if (scriptName == "scripts\\ai\\GENERAL\\L_LEGO_DIE_ROLL.lua")
-		script = new LegoDieRoll();
-	else if (scriptName == "scripts\\EquipmentScripts\\BuccaneerValiantShip.lua")
-		script = new BuccaneerValiantShip();
-	else if (scriptName == "scripts\\EquipmentScripts\\FireFirstSkillonStartup.lua")
-		script = new FireFirstSkillonStartup();
-	else if (scriptName == "scripts\\equipmenttriggers\\gempack.lua")
-		script = new GemPack();
-	else if (scriptName == "scripts\\equipmenttriggers\\shardarmor.lua")
-		script = new ShardArmor();
-	else if (scriptName == "scripts\\equipmenttriggers\\coilbackpack.lua")
-		script = new TeslaPack();
-	else if (scriptName == "scripts\\EquipmentScripts\\stunImmunity.lua")
-		script = new StunImmunity();
-
-	// FB
-	else if (scriptName == "scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua")
-		script = new RockHydrantBroken();
-	else if (scriptName == "scripts\\ai\\NS\\L_NS_WH_FANS.lua")
-		script = new WhFans();
-
-	// WBL
-	else if (scriptName == "scripts\\zone\\LUPs\\WBL_generic_zone.lua")
-		script = new WblGenericZone();
-
-	// Alpha
-	if (scriptName == "scripts\\ai\\FV\\L_TRIGGER_GAS.lua")
-		script = new TriggerGas();
-	else if (scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_SENSEI.lua")
-		script = new ActNinjaSensei();
-
-	// pickups
-	if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_BRONZE-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(1);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_GOLD-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(10000);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_1_SILVER-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(100);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_BRONZE-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(10);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_GOLD-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(100000);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_10_SILVER-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(1000);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_BRONZE-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(25);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_GOLD-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(250000);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_25_SILVER-COIN-SPAWNER.lua")
-		script = new SpecialCoinSpawner(2500);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER.lua")
-		script = new SpecialPowerupSpawner(13);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_IMAGINE-POWERUP-SPAWNER-2PT.lua")
-		script = new SpecialPowerupSpawner(129);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_LIFE-POWERUP-SPAWNER.lua")
-		script = new SpecialPowerupSpawner(5);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_ARMOR-POWERUP-SPAWNER.lua")
-		script = new SpecialPowerupSpawner(747);
-	else if (scriptName == "scripts\\ai\\SPEC\\L_SPECIAL_SPEED_BUFF_SPAWNER.lua")
-		script = new SpecialSpeedBuffSpawner();
-
-	// Wild
-	if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_RAT.lua" || scriptName == "scripts\\ai\\WILD\\L_WILD_GF_SNAIL.lua")
-		script = new WildAndScared();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_GF_GLOWBUG.lua")
-		script = new WildGfGlowbug();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_AMBIENT_CRAB.lua")
-		script = new WildAmbientCrab();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_PANTS.lua")
-		script = new WildPants();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_BRICKS.lua")
-		script = new WildNinjaBricks();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_STUDENT.lua")
-		script = new WildNinjaStudent();
-	else if (scriptName == "scripts\\ai\\WILD\\L_WILD_NINJA_SENSEI.lua")
-		script = new WildNinjaSensei();
-	else if (scriptName == "scripts\\ai\\WILD\\L_LUP_generic_interact.lua")
-		script = new LupGenericInteract();
-	else if (scriptName.rfind("scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizen", 0) == 0)
-		script = new WblRobotCitizen();
-
-	// handle invalid script reporting if the path is greater than zero and it's not an ignored script
-	// information not really needed for sys admins but is for developers
-	else if (script == InvalidToReturn) {
+	if (script == &InvalidToReturn) {
 		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
 			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
-			(scriptName =="scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
+			(scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
 			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
-			(scriptName == "scripts\\empty.lua")
+			(scriptName == "scripts\\empty.lua") ||
+			(scriptName == "scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua")
 			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
-	m_Scripts[scriptName] = script;
+	g_Scripts[scriptName] = script;
 	return script;
 }
 
 CppScripts::Script* const CppScripts::GetInvalidScript() {
-	return InvalidToReturn;
+	return &InvalidToReturn;
 }

@@ -18,6 +18,7 @@ class LDFBaseData;
 class Entity;
 class dpEntity;
 enum class ePhysicsEffectType : uint32_t ;
+enum class eReplicaComponentType : uint32_t;
 
 /**
  * Allows the creation of phantom physics for an entity: a physics object that is generally invisible but can be
@@ -33,11 +34,6 @@ public:
 	~PhantomPhysicsComponent() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-
-	/**
-	 * Creates the physics shape for this entity based on LDF data
-	 */
-	void CreatePhysics();
 
 	/**
 	 * Sets the direction this physics object is pointed at
@@ -109,7 +105,7 @@ public:
 	/**
 	 * Spawns an object at each of the vertices for debugging purposes
 	 */
-	void SpawnVertices();
+	void SpawnVertices() const;
 
 	/**
 	 * Legacy stuff no clue what this does
@@ -165,11 +161,6 @@ private:
 	 * The parent entity of this component
 	 */
 	dpEntity* m_dpEntity;
-
-	/**
-	 * Whether or not the physics object has been created yet
-	 */
-	bool m_HasCreatedPhysics = false;
 
 	/**
 	 * Whether or not this physics object represents an object that updates the respawn pos of an entity that crosses it

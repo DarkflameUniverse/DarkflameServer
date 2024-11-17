@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has disconnected, erasing their connected players from the list.");
 	} else if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
@@ -289,7 +290,11 @@ void HandlePacket(Packet* packet) {
 			Game::playerContainer.RemovePlayer(packet);
 			break;
 		case eChatMessageType::WHO:
+			ChatPacketHandler::HandleWho(packet);
+			break;
 		case eChatMessageType::SHOW_ALL:
+			ChatPacketHandler::HandleShowAll(packet);
+			break;
 		case eChatMessageType::USER_CHANNEL_CHAT_MESSAGE:
 		case eChatMessageType::WORLD_DISCONNECT_REQUEST:
 		case eChatMessageType::WORLD_PROXIMITY_RESPONSE:

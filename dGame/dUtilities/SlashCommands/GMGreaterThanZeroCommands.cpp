@@ -287,4 +287,54 @@ namespace GMGreaterThanZeroCommands {
 		std::string name = entity->GetCharacter()->GetName() + " - " + args;
 		GameMessages::SendSetName(entity->GetObjectID(), GeneralUtils::UTF8ToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
 	}
+
+	void ShowAll(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		bool displayZoneData = true;
+		bool displayIndividualPlayers = true;
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		
+		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
+		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
+
+		ShowAllRequest request {
+			.requestor = entity->GetObjectID(),
+			.displayZoneData = displayZoneData,
+			.displayIndividualPlayers = displayIndividualPlayers
+		};
+
+		CBITSTREAM;
+		request.Serialize(bitStream);
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
+
+	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"No player Given");
+			return;
+		}
+
+		FindPlayerRequest request {
+			.requestor = entity->GetObjectID(),
+			.playerName = LUWString(args)
+		};
+
+		CBITSTREAM;
+		request.Serialize(bitStream);
+		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+	}
+
+	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, entity->GetObjectID());
+			return;
+		}
+
+		auto player = PlayerManager::GetPlayer(args);
+		if (!player) {
+			GameMessages::SendSlashCommandFeedbackText(entity, u"Player not found");
+			return;
+		}
+		GameMessages::SendSlashCommandFeedbackText(entity, u"Spectating Player");
+		GameMessages::SendForceCameraTargetCycle(entity, false, eCameraTargetCyclingMode::DISALLOW_CYCLING, player->GetObjectID());
+	}
 }
