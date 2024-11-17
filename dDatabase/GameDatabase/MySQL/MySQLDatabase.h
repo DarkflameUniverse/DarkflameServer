@@ -112,6 +112,7 @@ public:
 	std::string GetBehavior(const int32_t behaviorId) override;
 	void RemoveBehavior(const int32_t characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
+	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
 private:
 
 	// Generic query functions that can be used for any query.
