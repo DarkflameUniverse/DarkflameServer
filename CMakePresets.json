@@ -9,7 +9,7 @@
 		{
 			"name": "default",
 			"displayName": "Default configure step",
-			"description": "Use 'build' dir and Unix makefiles"s,
+			"description": "Use 'build' dir and Unix makefiles",
 			"binaryDir": "${sourceDir}/build",
 			"environment": {
 				"DLU_CONFIG_DIR": "${sourceDir}/build"
@@ -49,6 +49,7 @@
 		},
 		{
 			"name": "windows-msvc",
+			"inherits": "default",
 			"displayName": "[Multi] Windows (MSVC)",
 			"description": "Set architecture to 64-bit (b/c RakNet)",
 			"generator": "Visual Studio 17 2022",

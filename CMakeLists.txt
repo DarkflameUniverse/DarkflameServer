@@ -90,10 +90,12 @@ elseif(WIN32)
 endif()
 
 # Our output dir
-set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
 #set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, forces all libraries to be built in series, which will slow down the build process
 
 # TODO make this not have to override the build type directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
@@ -267,7 +269,8 @@ endif()
 
 # Set warning flags
 if(MSVC)
-	add_compile_options("/W4")
+	# add_compile_options("/W4")
+	# Want to enable warnings eventually, but WAY too much noise right now
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	add_compile_options("-Wuninitialized" "-Wold-style-cast")
 else()
