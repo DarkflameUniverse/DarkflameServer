@@ -24,7 +24,7 @@
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "PlayerManager.h"
 
 //Component includes:
@@ -95,6 +95,8 @@
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
+
+Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -881,7 +883,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	// Update the chat server of our GM Level
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GMLEVEL_UPDATE);
 		bitStream.Write(m_ObjectID);
 		bitStream.Write(m_GMLevel);
 
@@ -2133,6 +2135,8 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+
+	OnPlayerPositionUpdate.Notify(this, update);
 }
 
 const SystemAddress& Entity::GetSystemAddress() const {
