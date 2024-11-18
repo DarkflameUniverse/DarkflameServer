@@ -38,3 +38,8 @@ void Database::Destroy(std::string source) {
 		LOG("Trying to destroy database when it's not connected!");
 	}
 }
+
+void Database::_setDatabase(GameDatabase* const db) {
+	if (database) delete database;
+	database = db;
+}

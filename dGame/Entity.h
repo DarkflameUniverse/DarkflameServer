@@ -11,6 +11,7 @@
 #include "NiQuaternion.h"
 #include "LDFFormat.h"
 #include "eKillType.h"
+#include "Observable.h"
 
 namespace Loot {
 	class Info;
@@ -146,7 +147,8 @@ public:
 
 	void AddComponent(eReplicaComponentType componentId, Component* component);
 
-	std::vector<ScriptComponent*> GetScriptComponents();
+	// This is expceted to never return nullptr, an assert checks this.
+	CppScripts::Script* const GetScript();
 
 	void Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName);
 	void Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName);
@@ -173,7 +175,7 @@ public:
 
 	void WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType);
 	void WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType);
-	void UpdateXMLDoc(tinyxml2::XMLDocument* doc);
+	void UpdateXMLDoc(tinyxml2::XMLDocument& doc);
 	void Update(float deltaTime);
 
 	// Events
@@ -295,8 +297,14 @@ public:
 
 	void ProcessPositionUpdate(PositionUpdate& update);
 
-	void SetScale(const float scale);
+	// Scale will only be communicated to the client when the construction packet is sent
+	void SetScale(const float scale) { m_Scale = scale; };
 
+	/**
+	 * @brief The observable for player entity position updates.
+	 */
+	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
+	
 protected:
 	LWOOBJID m_ObjectID;
 

@@ -38,6 +38,9 @@
 
 #include "CDComponentsRegistryTable.h"
 
+Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
+Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
+
 DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
@@ -185,8 +188,8 @@ void DestroyableComponent::Update(float deltaTime) {
 	m_DamageCooldownTimer -= deltaTime;
 }
 
-void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
+	auto* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;
@@ -207,8 +210,8 @@ void DestroyableComponent::LoadFromXml(tinyxml2::XMLDocument* doc) {
 	m_DirtyHealth = true;
 }
 
-void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument* doc) {
-	tinyxml2::XMLElement* dest = doc->FirstChildElement("obj")->FirstChildElement("dest");
+void DestroyableComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
+	tinyxml2::XMLElement* dest = doc.FirstChildElement("obj")->FirstChildElement("dest");
 	if (!dest) {
 		LOG("Failed to find dest tag!");
 		return;
@@ -389,9 +392,9 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 
 	if (result.eof()) return;
 
-	if (result.fieldIsNull(0)) return;
+	if (result.fieldIsNull("enemyList")) return;
 
-	const auto* list_string = result.getStringField(0);
+	const auto* list_string = result.getStringField("enemyList");
 
 	std::stringstream ss(list_string);
 	std::string token;
@@ -418,6 +421,7 @@ void DestroyableComponent::AddFaction(const int32_t factionID, const bool ignore
 }
 
 bool DestroyableComponent::IsEnemy(const Entity* other) const {
+	if (IsEnemyImplentation.ExecuteWithDefault(other, false)) return true;
 	if (m_Parent->IsPlayer() && other->IsPlayer()) {
 		auto* thisCharacterComponent = m_Parent->GetComponent<CharacterComponent>();
 		if (!thisCharacterComponent) return false;
@@ -440,6 +444,7 @@ bool DestroyableComponent::IsEnemy(const Entity* other) const {
 }
 
 bool DestroyableComponent::IsFriend(const Entity* other) const {
+	if (IsFriendImplentation.ExecuteWithDefault(other, false)) return true;
 	const auto* otherDestroyableComponent = other->GetComponent<DestroyableComponent>();
 	if (otherDestroyableComponent != nullptr) {
 		for (const auto enemyFaction : m_EnemyFactionIDs) {
@@ -785,16 +790,12 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 
 		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerDied(zoneControl, m_Parent);
-		}
+		if (zoneControl) zoneControl->GetScript()->OnPlayerDied(zoneControl, m_Parent);
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerDied(scriptEntity, m_Parent);
-				}
+				scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_Parent);
 			}
 		}
 	}

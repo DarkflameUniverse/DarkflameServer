@@ -19,7 +19,16 @@ add_library(bcrypt ${SOURCES_LIBBCRYPT})
 # Because we are not using the libbcrypt CMakeLists.txt, we need to include these headers for the library to use.
 # fortunately they are only needed for building the libbcrypt directory and nothing else, so these are marked private.
 
-target_include_directories(bcrypt PRIVATE "libbcrypt/include")
+if(NOT WIN32)
+	target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
+endif()
+
+# Need to define this on Clang and GNU for 'strdup' support
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
+endif()
+
+target_include_directories(bcrypt INTERFACE "libbcrypt/include")
 target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
 # Source code for sqlite
@@ -27,9 +36,6 @@ add_subdirectory(SQLite)
 
 # Source code for magic_enum
 add_subdirectory(magic_enum)
-
-# MariaDB C++ Connector
-include(CMakeMariaDBLists.txt)
 
 # Create our third party library objects
 add_subdirectory(raknet)

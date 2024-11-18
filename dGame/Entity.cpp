@@ -24,7 +24,7 @@
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "PlayerManager.h"
 
 //Component includes:
@@ -96,6 +96,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
+Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
+
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
@@ -146,17 +148,15 @@ Entity::~Entity() {
 			return;
 		}
 
-		Entity* zoneControl = Game::entityManager->GetZoneControlEntity();
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(zoneControl)) {
-			script->OnPlayerExit(zoneControl, this);
+		auto* zoneControl = Game::entityManager->GetZoneControlEntity();
+		if (zoneControl) {
+			zoneControl->GetScript()->OnPlayerExit(zoneControl, this);
 		}
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
 			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
-				for (CppScripts::Script* script : CppScripts::GetEntityScripts(scriptEntity)) {
-					script->OnPlayerExit(scriptEntity, this);
-				}
+				scriptEntity->GetScript()->OnPlayerExit(scriptEntity, this);
 			}
 		}
 	}
@@ -227,7 +227,7 @@ void Entity::Initialize() {
 
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 
 		AddComponent<RenderComponent>();
 
@@ -478,8 +478,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {
-		auto* xmlDoc = m_Character ? m_Character->GetXMLDoc() : nullptr;
-		AddComponent<InventoryComponent>(xmlDoc);
+		AddComponent<InventoryComponent>();
 	}
 	// if this component exists, then we initialize it. it's value is always 0
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MULTI_ZONE_ENTRANCE, -1) != -1) {
@@ -652,7 +651,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 			auto* destroyableComponent = AddComponent<DestroyableComponent>();
 			destroyableComponent->SetHealth(1);
@@ -733,15 +732,21 @@ void Entity::Initialize() {
 		// if we have a moving platform path, then we need a moving platform component
 		if (path->pathType == PathType::MovingPlatform) {
 			AddComponent<MovingPlatformComponent>(pathName);
-			// else if we are a movement path
-		} /*else if (path->pathType == PathType::Movement) {
-			auto movementAIcomp = GetComponent<MovementAIComponent>();
-			if (movementAIcomp){
-				// TODO: set path in existing movementAIComp
+		} else if (path->pathType == PathType::Movement) {
+			auto movementAIcomponent = GetComponent<MovementAIComponent>();
+			if (movementAIcomponent && combatAiId == 0) {
+				movementAIcomponent->SetPath(pathName);
 			} else {
-				// TODO: create movementAIcomp and set path
+				MovementAIInfo moveInfo = MovementAIInfo();
+				moveInfo.movementType = "";
+				moveInfo.wanderChance = 0;
+				moveInfo.wanderRadius = 16;
+				moveInfo.wanderSpeed = 2.5f;
+				moveInfo.wanderDelayMax = 5;
+				moveInfo.wanderDelayMin = 2;
+				AddComponent<MovementAIComponent>(moveInfo);
 			}
-		}*/
+		}
 	} else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path
 		int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
@@ -762,9 +767,7 @@ void Entity::Initialize() {
 
 	// Hacky way to trigger these when the object has had a chance to get constructed
 	AddCallbackTimer(0, [this]() {
-		for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-			script->OnStartup(this);
-		}
+		this->GetScript()->OnStartup(this);
 		});
 
 	if (!m_Character && Game::entityManager->GetGhostingEnabled()) {
@@ -839,17 +842,6 @@ bool Entity::HasComponent(const eReplicaComponentType componentId) const {
 	return m_Components.find(componentId) != m_Components.end();
 }
 
-std::vector<ScriptComponent*> Entity::GetScriptComponents() {
-	std::vector<ScriptComponent*> comps;
-	for (std::pair<eReplicaComponentType, void*> p : m_Components) {
-		if (p.first == eReplicaComponentType::SCRIPT) {
-			comps.push_back(static_cast<ScriptComponent*>(p.second));
-		}
-	}
-
-	return comps;
-}
-
 void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
@@ -891,7 +883,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	// Update the chat server of our GM Level
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GMLEVEL_UPDATE);
 		bitStream.Write(m_ObjectID);
 		bitStream.Write(m_GMLevel);
 
@@ -1253,7 +1245,7 @@ void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType
 	outBitStream.Write0();
 }
 
-void Entity::UpdateXMLDoc(tinyxml2::XMLDocument* doc) {
+void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
 	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
 	//Naturally, we don't include any non-player components in this update function.
 
@@ -1278,9 +1270,7 @@ void Entity::Update(const float deltaTime) {
 			// Remove the timer from the list of timers first so that scripts and events can remove timers without causing iterator invalidation
 			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
-			for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-				script->OnTimerDone(this, timerName);
-			}
+			GetScript()->OnTimerDone(this, timerName);
 
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
@@ -1326,9 +1316,7 @@ void Entity::Update(const float deltaTime) {
 		Wake();
 	}
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnUpdate(this);
-	}
+	GetScript()->OnUpdate(this);
 
 	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
@@ -1345,9 +1333,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 	Entity* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnProximityUpdate(this, other, proxName, status);
-	}
+	GetScript()->OnProximityUpdate(this, other, proxName, status);
 
 	RocketLaunchpadControlComponent* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketComp) return;
@@ -1359,9 +1345,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnCollisionPhantom(this, other);
-	}
+	GetScript()->OnCollisionPhantom(this, other);
 
 	for (const auto& callback : m_PhantomCollisionCallbacks) {
 		callback(other);
@@ -1400,9 +1384,7 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 	auto* other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnOffCollisionPhantom(this, other);
-	}
+	GetScript()->OnOffCollisionPhantom(this, other);
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
@@ -1419,46 +1401,32 @@ void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
 }
 
 void Entity::OnFireEventServerSide(Entity* sender, std::string args, int32_t param1, int32_t param2, int32_t param3) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnFireEventServerSide(this, sender, args, param1, param2, param3);
-	}
+	GetScript()->OnFireEventServerSide(this, sender, args, param1, param2, param3);
 }
 
 void Entity::OnActivityStateChangeRequest(LWOOBJID senderID, int32_t value1, int32_t value2, const std::u16string& stringValue) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
-	}
+	GetScript()->OnActivityStateChangeRequest(this, senderID, value1, value2, stringValue);
 }
 
 void Entity::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event, const std::u16string& pathName,
 	float_t pathTime, float_t totalTime, int32_t waypoint) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
-	}
+	GetScript()->OnCinematicUpdate(self, sender, event, pathName, pathTime, totalTime, waypoint);
 }
 
 void Entity::NotifyObject(Entity* sender, const std::string& name, int32_t param1, int32_t param2) {
 	GameMessages::SendNotifyObject(GetObjectID(), sender->GetObjectID(), GeneralUtils::ASCIIToUTF16(name), UNASSIGNED_SYSTEM_ADDRESS);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnNotifyObject(this, sender, name, param1, param2);
-	}
+	GetScript()->OnNotifyObject(this, sender, name, param1, param2);
 }
 
 void Entity::OnEmoteReceived(const int32_t emote, Entity* target) {
-	for (auto* script : CppScripts::GetEntityScripts(this)) {
-		script->OnEmoteReceived(this, emote, target);
-	}
+	GetScript()->OnEmoteReceived(this, emote, target);
 }
 
 void Entity::OnUse(Entity* originator) {
 	TriggerEvent(eTriggerEventType::INTERACT, originator);
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnUse(this, originator);
-	}
-
-	// component base class when
+	GetScript()->OnUse(this, originator);
 
 	for (const auto& pair : m_Components) {
 		if (pair.second == nullptr) continue;
@@ -1468,82 +1436,63 @@ void Entity::OnUse(Entity* originator) {
 }
 
 void Entity::OnHitOrHealResult(Entity* attacker, int32_t damage) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnHitOrHealResult(this, attacker, damage);
-	}
+	GetScript()->OnHitOrHealResult(this, attacker, damage);
 }
 
 void Entity::OnHit(Entity* attacker) {
 	TriggerEvent(eTriggerEventType::HIT, attacker);
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnHit(this, attacker);
-	}
+	GetScript()->OnHit(this, attacker);
 }
 
 void Entity::OnZonePropertyEditBegin() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyEditBegin(this);
-	}
+	GetScript()->OnZonePropertyEditBegin(this);
 }
 
 void Entity::OnZonePropertyEditEnd() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyEditEnd(this);
-	}
+	GetScript()->OnZonePropertyEditEnd(this);
 }
 
 void Entity::OnZonePropertyModelEquipped() {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelEquipped(this);
-	}
+	GetScript()->OnZonePropertyModelEquipped(this);
 }
 
 void Entity::OnZonePropertyModelPlaced(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelPlaced(this, player);
-	}
+	GetScript()->OnZonePropertyModelPlaced(this, player);
 }
 
 void Entity::OnZonePropertyModelPickedUp(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelPickedUp(this, player);
-	}
+	GetScript()->OnZonePropertyModelPickedUp(this, player);
 }
 
 void Entity::OnZonePropertyModelRemoved(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRemoved(this, player);
-	}
+	GetScript()->OnZonePropertyModelRemoved(this, player);
 }
 
 void Entity::OnZonePropertyModelRemovedWhileEquipped(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRemovedWhileEquipped(this, player);
-	}
+	GetScript()->OnZonePropertyModelRemovedWhileEquipped(this, player);
 }
 
 void Entity::OnZonePropertyModelRotated(Entity* player) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnZonePropertyModelRotated(this, player);
-	}
+	GetScript()->OnZonePropertyModelRotated(this, player);
 }
 
 void Entity::OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnMessageBoxResponse(this, sender, button, identifier, userData);
-	}
+	GetScript()->OnMessageBoxResponse(this, sender, button, identifier, userData);
 }
 
 void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
-	}
+	GetScript()->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
 }
 
 void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnRequestActivityExit(sender, player, canceled);
-	}
+	GetScript()->OnRequestActivityExit(sender, player, canceled);
+}
+
+CppScripts::Script* const Entity::GetScript() {
+	auto* scriptComponent = GetComponent<ScriptComponent>();
+	auto* script = scriptComponent ? scriptComponent->GetScript() : CppScripts::GetInvalidScript();
+	DluAssert(script != nullptr);
+	return script;
 }
 
 void Entity::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType) {
@@ -1576,9 +1525,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	//OMAI WA MOU, SHINDERIU
 
-	for (CppScripts::Script* script : CppScripts::GetEntityScripts(this)) {
-		script->OnDie(this, murderer);
-	}
+	GetScript()->OnDie(this, murderer);
 
 	if (m_Spawner != nullptr) {
 		m_Spawner->NotifyOfEntityDeath(m_ObjectID);
@@ -1589,7 +1536,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
+			waitForDeathAnimation = !destroyableComponent->GetIsSmashable() && destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
@@ -1689,10 +1636,8 @@ void Entity::PickupItem(const LWOOBJID& objectID) {
 				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
 				for (CDObjectSkills skill : skills) {
-					CDSkillBehaviorTable* skillBehTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
-
 					auto* skillComponent = GetComponent<SkillComponent>();
-					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID());
+					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
 
 					auto* missionComponent = GetComponent<MissionComponent>();
 
@@ -1897,6 +1842,12 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetPosition();
+	}
+
 	return NiPoint3Constant::ZERO;
 }
 
@@ -1923,6 +1874,12 @@ const NiQuaternion& Entity::GetRotation() const {
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternionConstant::IDENTITY;
@@ -1953,6 +1910,12 @@ void Entity::SetPosition(const NiPoint3& position) {
 		vehicel->SetPosition(position);
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetPosition(position);
+	}
+
 	Game::entityManager->SerializeEntity(this);
 }
 
@@ -1979,6 +1942,12 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetRotation(rotation);
 	}
 
 	Game::entityManager->SerializeEntity(this);
@@ -2126,9 +2095,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				havokVehiclePhysicsComponent->SetIsOnGround(update.onGround);
 				havokVehiclePhysicsComponent->SetIsOnRail(update.onRail);
 				havokVehiclePhysicsComponent->SetVelocity(update.velocity);
-				havokVehiclePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				havokVehiclePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 				havokVehiclePhysicsComponent->SetRemoteInputInfo(update.remoteInputInfo);
 			} else {
 				// Need to get the mount's controllable physics
@@ -2139,9 +2106,7 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 				possessedControllablePhysicsComponent->SetIsOnGround(update.onGround);
 				possessedControllablePhysicsComponent->SetIsOnRail(update.onRail);
 				possessedControllablePhysicsComponent->SetVelocity(update.velocity);
-				possessedControllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 				possessedControllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-				possessedControllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 			}
 			Game::entityManager->SerializeEntity(possassableEntity);
 		}
@@ -2163,15 +2128,15 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	controllablePhysicsComponent->SetIsOnGround(update.onGround);
 	controllablePhysicsComponent->SetIsOnRail(update.onRail);
 	controllablePhysicsComponent->SetVelocity(update.velocity);
-	controllablePhysicsComponent->SetDirtyVelocity(update.velocity != NiPoint3Constant::ZERO);
 	controllablePhysicsComponent->SetAngularVelocity(update.angularVelocity);
-	controllablePhysicsComponent->SetDirtyAngularVelocity(update.angularVelocity != NiPoint3Constant::ZERO);
 
 	auto* ghostComponent = GetComponent<GhostComponent>();
 	if (ghostComponent) ghostComponent->SetGhostReferencePoint(update.position);
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+
+	OnPlayerPositionUpdate.Notify(this, update);
 }
 
 const SystemAddress& Entity::GetSystemAddress() const {
@@ -2196,10 +2161,4 @@ void Entity::SetRespawnPos(const NiPoint3& position) {
 void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
-}
-
-void Entity::SetScale(const float scale) {
-	if (scale == m_Scale) return;
-	m_Scale = scale;
-	Game::entityManager->SerializeEntity(this);
 }

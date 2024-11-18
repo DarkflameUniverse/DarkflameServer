@@ -9,9 +9,9 @@
 #include "BitStreamUtils.h"
 #include "Database.h"
 #include "eConnectionType.h"
-#include "eChatInternalMessageType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
+#include "MessageType/Chat.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -36,19 +36,23 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	data.playerID = playerId;
 
 	uint32_t len;
-	inStream.Read<uint32_t>(len);
+	if (!inStream.Read<uint32_t>(len)) return;
 
-	for (int i = 0; i < len; i++) {
-		char character; inStream.Read<char>(character);
-		data.playerName += character;
+	if (len > 33) {
+		LOG("Received a really long player name, probably a fake packet %i.", len);
+		return;
 	}
 
-	inStream.Read(data.zoneID);
-	inStream.Read(data.muteExpire);
-	inStream.Read(data.gmLevel);
+	data.playerName.resize(len);
+	inStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(data.playerName.data()), len);
+
+	if (!inStream.Read(data.zoneID)) return;
+	if (!inStream.Read(data.muteExpire)) return;
+	if (!inStream.Read(data.gmLevel)) return;
 	data.sysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
+	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
 
@@ -87,6 +91,7 @@ void PlayerContainer::RemovePlayer(Packet* packet) {
 		}
 	}
 
+	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);
 	m_Players.erase(playerID);
 
@@ -120,6 +125,11 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 	size_t membersSize = 0;
 	inStream.Read(membersSize);
 
+	if (membersSize >= 4) {
+		LOG("Tried to create a team with more than 4 players");
+		return;
+	}
+
 	std::vector<LWOOBJID> members;
 
 	members.reserve(membersSize);
@@ -138,14 +148,13 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 	if (team != nullptr) {
 		team->zoneId = zoneId;
+		UpdateTeamsOnWorld(team, false);
 	}
-
-	UpdateTeamsOnWorld(team, false);
 }
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::MUTE_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -352,7 +361,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::TEAM_UPDATE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);
@@ -390,7 +399,7 @@ LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const LWOOBJID& playerID) {
-	return m_Players[playerID];
+	return m_Players.contains(playerID) ? m_Players[playerID] : m_Players[LWOOBJID_EMPTY];
 }
 
 PlayerData& PlayerContainer::GetPlayerDataMutable(const std::string& playerName) {

@@ -175,7 +175,7 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 /**
  * @brief This test checks that if we recieve an unimplemented eAmf
  * we correctly throw an error and can actch it.
- * Yes this leaks memory.  
+ * Yes this leaks memory.
  */
 TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 	std::vector<eAmf> unimplementedValues = {
@@ -362,7 +362,7 @@ TEST(dCommonTests, AMFBadConversionTest) {
 	ASSERT_EQ(result->Get<double>("BehaviorID"), nullptr);
 
 	// Does not exist in the associative portion
-	ASSERT_EQ(result->Get<nullptr_t>("DOES_NOT_EXIST"), nullptr);
+	ASSERT_EQ(result->Get<std::nullptr_t>("DOES_NOT_EXIST"), nullptr);
 
 	result->Push(true);
 

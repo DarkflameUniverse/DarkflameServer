@@ -51,7 +51,7 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 
 ### Windows packages
 Ensure that you have either the [MSVC C++ compiler](https://visualstudio.microsoft.com/vs/features/cplusplus/) (recommended) or the [Clang compiler](https://github.com/llvm/llvm-project/releases/) installed.
-You'll also need to download and install [CMake](https://cmake.org/download/) (version <font size="4">**CMake version 3.18**</font> or later!).
+You'll also need to download and install [CMake](https://cmake.org/download/) (version <font size="4">**CMake version 3.25**</font> or later!).
 
 ### MacOS packages
 Ensure you have [brew](https://brew.sh) installed.
@@ -73,7 +73,7 @@ sudo apt install build-essential gcc zlib1g-dev libssl-dev openssl mariadb-serve
 ```
 
 #### Required CMake version
-This project uses <font size="4">**CMake version 3.18**</font> or higher and as such you will need to ensure you have this version installed.
+This project uses <font size="4">**CMake version 3.25**</font> or higher and as such you will need to ensure you have this version installed.
 You can check your CMake version by using the following command in a terminal.
 ```bash
 cmake --version

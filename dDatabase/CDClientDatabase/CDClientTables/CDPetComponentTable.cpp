@@ -50,7 +50,7 @@ void CDPetComponentTable::LoadValuesFromDatabase() {
 }
 
 void CDPetComponentTable::LoadValuesFromDefaults() {
-	GetEntriesMutable().insert(std::make_pair(defaultEntry.id, defaultEntry));
+	GetEntriesMutable().emplace(defaultEntry.id, defaultEntry);
 }
 
 CDPetComponent& CDPetComponentTable::GetByID(const uint32_t componentID) {

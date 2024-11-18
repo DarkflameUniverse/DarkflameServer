@@ -8,7 +8,7 @@
 #include "ZoneInstanceManager.h"
 #include "MD5.h"
 #include "GeneralUtils.h"
-#include "ClientVersion.h"
+#include "dClient/ClientVersion.h"
 
 #include <bcrypt/BCrypt.hpp>
 
@@ -20,8 +20,8 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "eLoginResponse.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Master.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 namespace {
@@ -63,7 +63,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over!");
 
 	inStream.IgnoreBytes(33);
-	
+
 	LOG_DEBUG("Client Data [Version: %i, Service: %s, Process: %u, Port: %u, Sysaddr Port: %u]", clientVersion, StringifiedEnum::ToString(serviceId).data(), processID, port, packet->systemAddress.port);
 
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
@@ -71,8 +71,8 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
-	
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, MessageType::Server::VERSION_CONFIRM);
+
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
 	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
@@ -82,7 +82,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
 	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
 	else bitStream.Write(ServiceId::General);
-	bitStream.Write<uint64_t>(215523405360);
+	bitStream.Write<uint64_t>(215523470896);
 
 	server->Send(bitStream, sysAddr, false);
 }
@@ -227,9 +227,9 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps) {
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_IM_LOGIN_START, 1);
 	RakNet::BitStream loginResponse;
-	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
+	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, MessageType::Client::LOGIN_RESPONSE);
 
-	loginResponse.Write<uint8_t>(GeneralUtils::CastUnderlyingType(responseCode));
+	loginResponse.Write(responseCode);
 
 	// Event Gating
 	loginResponse.Write(LUString(Game::config->GetValue("event_1")));
@@ -297,7 +297,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);

@@ -3,7 +3,7 @@
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "DestroyableComponent.h"
-#include "eAninmationFlags.h"
+#include "eAnimationFlags.h"
 #include "EntityInfo.h"
 #include "RenderComponent.h"
 

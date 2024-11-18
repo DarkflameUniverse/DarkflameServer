@@ -21,8 +21,8 @@
 //Auth includes:
 #include "AuthPackets.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eAuthMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Auth.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceLastSQLPing = 0;
 
 	AuthPackets::LoadClaimCodes();
-	
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
@@ -166,11 +166,11 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
-			if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
+			if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
 				AuthPackets::HandleHandshake(Game::server, packet);
 			}
 		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
-			if (static_cast<eAuthMessageType>(packet->data[3]) == eAuthMessageType::LOGIN_REQUEST) {
+			if (static_cast<MessageType::Auth>(packet->data[3]) == MessageType::Auth::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
 			}
 		}

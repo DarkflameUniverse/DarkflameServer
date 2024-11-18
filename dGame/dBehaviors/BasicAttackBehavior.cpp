@@ -222,7 +222,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 		if (healthDamageDealt >= 1) {
 			successState = eBasicAttackSuccessTypes::SUCCESS;
 		} else if (armorDamageDealt >= 1) {
-			successState = this->m_OnFailArmor->m_templateId == BehaviorTemplates::BEHAVIOR_EMPTY ? eBasicAttackSuccessTypes::FAILIMMUNE : eBasicAttackSuccessTypes::FAILARMOR;
+			successState = this->m_OnFailArmor->m_templateId == BehaviorTemplate::EMPTY ? eBasicAttackSuccessTypes::FAILIMMUNE : eBasicAttackSuccessTypes::FAILARMOR;
 		}
 
 		bitStream.Write(armorDamageDealt);

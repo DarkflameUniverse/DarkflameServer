@@ -7,6 +7,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "Implementation.h"
 
 namespace CppScripts {
 	class Script;
@@ -26,8 +27,8 @@ public:
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	/**
 	 * Initializes the component using a different LOT
@@ -462,6 +463,9 @@ public:
 
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
+
+	static Implementation<bool, const Entity*> IsEnemyImplentation;
+	static Implementation<bool, const Entity*> IsFriendImplentation;
 
 private:
 	/**

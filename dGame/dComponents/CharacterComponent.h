@@ -5,7 +5,6 @@
 #include "RakNetTypes.h"
 #include "Character.h"
 #include "Component.h"
-#include "Item.h"
 #include <string>
 #include "CDMissionsTable.h"
 #include "tinyxml2.h"
@@ -14,6 +13,8 @@
 #include "Loot.h"
 
 enum class eGameActivity : uint32_t;
+
+class Item;
 
 /**
  * The statistics that can be achieved per zone
@@ -24,6 +25,8 @@ struct ZoneStatistics {
 	uint64_t m_CoinsCollected;
 	uint64_t m_EnemiesSmashed;
 	uint64_t m_QuickBuildsCompleted;
+
+	bool operator==(const ZoneStatistics& rhs) const = default;
 };
 
 /**
@@ -69,8 +72,8 @@ public:
 	CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress);
 	~CharacterComponent() override;
 
-	void LoadFromXml(tinyxml2::XMLDocument* doc) override;
-	void UpdateXml(tinyxml2::XMLDocument* doc) override;
+	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
+	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -278,9 +281,9 @@ public:
 	 */
 	void UpdateClientMinimap(bool showFaction, std::string ventureVisionType) const;
 
-	void SetCurrentInteracting(LWOOBJID objectID) {m_CurrentInteracting = objectID;};
+	void SetCurrentInteracting(LWOOBJID objectID) { m_CurrentInteracting = objectID; };
 
-	LWOOBJID GetCurrentInteracting() {return m_CurrentInteracting;};
+	LWOOBJID GetCurrentInteracting() { return m_CurrentInteracting; };
 
 	/**
 	 * Sends a player to another zone with an optional clone ID
@@ -305,6 +308,14 @@ public:
 	uint64_t GetDroppedCoins() const { return m_DroppedCoins; };
 
 	void SetDroppedCoins(const uint64_t value) { m_DroppedCoins = value; };
+
+	const std::array<uint64_t, 4>& GetClaimCodes() const { return m_ClaimCodes; };
+
+	const std::map<LWOMAPID, ZoneStatistics>& GetZoneStatistics() const { return m_ZoneStatistics; };
+
+	const std::u16string& GetLastRocketConfig() const { return m_LastRocketConfig; };
+
+	uint64_t GetTotalTimePlayed() const { return m_TotalTimePlayed; };
 
 	/**
 	 * Character info regarding this character, including clothing styles, etc.

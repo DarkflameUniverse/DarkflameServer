@@ -6,12 +6,43 @@
 
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
+#include "tinyxml2.h"
+#include "SimplePhysicsComponent.h"
+
+#include "Database.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+}
+
+void ModelComponent::LoadBehaviors() {
+	auto behaviors = GeneralUtils::SplitString(m_Parent->GetVar<std::string>(u"userModelBehaviors"), ',');
+	for (const auto& behavior : behaviors) {
+		if (behavior.empty()) continue;
+
+		const auto behaviorId = GeneralUtils::TryParse<int32_t>(behavior);
+		if (!behaviorId.has_value() || behaviorId.value() == 0) continue;
+
+		LOG_DEBUG("Loading behavior %d", behaviorId.value());
+		auto& inserted = m_Behaviors.emplace_back();
+		inserted.SetBehaviorId(*behaviorId);
+		
+		const auto behaviorStr = Database::Get()->GetBehavior(behaviorId.value());
+		
+		tinyxml2::XMLDocument behaviorXml;
+		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
+		LOG_DEBUG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
+
+		const auto* const behaviorRoot = behaviorXml.FirstChildElement("Behavior");
+		if (!behaviorRoot) {
+			LOG("Failed to load behavior %d due to missing behavior root", behaviorId.value());
+			continue;
+		}
+		inserted.Deserialize(*behaviorRoot);
+	}
 }
 
 void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -65,10 +96,42 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == msg.GetBehaviorId()) return;
 	m_Behaviors.insert(m_Behaviors.begin() + msg.GetBehaviorIndex(), PropertyBehavior());
 	m_Behaviors.at(msg.GetBehaviorIndex()).HandleMsg(msg);
+	auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+	if (simplePhysComponent) {
+		simplePhysComponent->SetPhysicsMotionState(1);
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
 }
 
 void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
 	if (msg.GetBehaviorIndex() >= m_Behaviors.size() || m_Behaviors.at(msg.GetBehaviorIndex()).GetBehaviorId() != msg.GetBehaviorId()) return;
 	m_Behaviors.erase(m_Behaviors.begin() + msg.GetBehaviorIndex());
 	// TODO move to the inventory
+	if (m_Behaviors.empty()) {
+		auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
+		if (simplePhysComponent) {
+			simplePhysComponent->SetPhysicsMotionState(4);
+			Game::entityManager->SerializeEntity(m_Parent);
+		}
+	}
+}
+
+std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSave() const {
+	std::array<std::pair<int32_t, std::string>, 5> toReturn{};
+	for (auto i = 0; i < m_Behaviors.size(); i++) {
+		const auto& behavior = m_Behaviors.at(i);
+		if (behavior.GetBehaviorId() == -1) continue;
+		auto& [id, behaviorData] = toReturn[i];
+		id = behavior.GetBehaviorId();
+
+		tinyxml2::XMLDocument doc;
+		auto* root = doc.NewElement("Behavior");
+		behavior.Serialize(*root);
+		doc.InsertFirstChild(root);
+
+		tinyxml2::XMLPrinter printer(0, true, 0);
+		doc.Print(&printer);
+		behaviorData = printer.CStr();
+	}
+	return toReturn;
 }

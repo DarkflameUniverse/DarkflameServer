@@ -48,11 +48,35 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"HavokVehiclePhysicsComponent.cpp"
 	"VendorComponent.cpp"
 	"MiniGameControlComponent.cpp"
+	"ScriptComponent.cpp"
 )
 
-add_library(dComponents STATIC ${DGAME_DCOMPONENTS_SOURCES})
-target_include_directories(dComponents PRIVATE ${PROJECT_SOURCE_DIR}/dScripts/02_server/Map/General) # PetDigServer.h
+add_library(dComponents OBJECT ${DGAME_DCOMPONENTS_SOURCES})
+target_include_directories(dComponents PUBLIC "."
+	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors" # via ModelComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors/ControlBehaviorMessages"
+	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dBehaviors" # via InventoryComponent.h
+	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via InventoryComponent.h
+	PRIVATE
+	"${PROJECT_SOURCE_DIR}/dCommon"
+	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
+	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase"
+	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
+	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
+	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
+	# dPhysics (via dpWorld.h)
+	"${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include"
+	"${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include"
+
+	"${PROJECT_SOURCE_DIR}/dScripts/02_server/Map/General" # PetDigServer.h
+	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # direct
+	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # direct Loot.h
+	"${PROJECT_SOURCE_DIR}/dGame/dEntity" # via dZoneManager/Spawner.h
+	"${PROJECT_SOURCE_DIR}/dZoneManager" # via BouncerComponent.cpp, ActivityComponent.cpp
+	"${PROJECT_SOURCE_DIR}/dChatFilter" # via PetComponent.cpp
+)
 target_precompile_headers(dComponents REUSE_FROM dGameBase)
-target_link_libraries(dComponents
-	PUBLIC dPhysics dDatabase
-	INTERFACE dUtilities dCommon dBehaviors dChatFilter dMission dInventory)
+
+target_link_libraries(dComponents INTERFACE dBehaviors)

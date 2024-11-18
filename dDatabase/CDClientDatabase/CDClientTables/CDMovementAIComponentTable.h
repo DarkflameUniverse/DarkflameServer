@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDMovementAIComponent {
 	uint32_t id;
 	std::string MovementType;

@@ -18,7 +18,7 @@
 #include "BitStreamUtils.h"
 #include "eObjectWorldState.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
@@ -27,12 +27,12 @@ RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent,
 
 	auto result = query.execQuery();
 
-	if (!result.eof() && !result.fieldIsNull(0)) {
-		m_TargetZone = result.getIntField(0);
-		m_DefaultZone = result.getIntField(1);
-		m_TargetScene = result.getStringField(2);
-		m_AltPrecondition = new PreconditionExpression(result.getStringField(3));
-		m_AltLandingScene = result.getStringField(4);
+	if (!result.eof() && !result.fieldIsNull("targetZone")) {
+		m_TargetZone = result.getIntField("targetZone");
+		m_DefaultZone = result.getIntField("defaultZoneID");
+		m_TargetScene = result.getStringField("targetScene");
+		m_AltPrecondition = new PreconditionExpression(result.getStringField("altLandingPrecondition"));
+		m_AltLandingScene = result.getStringField("altLandingSpawnPointName");
 	}
 
 	result.finalize();
@@ -137,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PREP_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(bitStream);
 }

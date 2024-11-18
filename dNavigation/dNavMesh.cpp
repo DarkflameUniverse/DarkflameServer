@@ -112,6 +112,31 @@ void dNavMesh::LoadNavmesh() {
 	m_NavMesh = mesh;
 }
 
+NiPoint3 dNavMesh::NearestPoint(const NiPoint3& location, const float halfExtent) const {
+	NiPoint3 toReturn = location;
+	if (m_NavMesh != nullptr) {
+		float pos[3];
+		pos[0] = location.x;
+		pos[1] = location.y;
+		pos[2] = location.z;
+
+		dtPolyRef nearestRef = 0;
+		float polyPickExt[3] = { halfExtent, halfExtent, halfExtent };
+		float nearestPoint[3] = { 0.0f, 0.0f, 0.0f };
+		dtQueryFilter filter{};
+
+		auto hasPoly = m_NavQuery->findNearestPoly(pos, polyPickExt, &filter, &nearestRef, nearestPoint);
+		if (hasPoly != DT_SUCCESS) {
+			toReturn = location;
+		} else {
+			toReturn.x = nearestPoint[0];
+			toReturn.y = nearestPoint[1];
+			toReturn.z = nearestPoint[2];
+		}
+	}
+	return toReturn;
+}
+
 float dNavMesh::GetHeightAtPoint(const NiPoint3& location, const float halfExtentsHeight) const {
 	if (m_NavMesh == nullptr) {
 		return location.y;

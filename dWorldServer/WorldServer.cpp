@@ -65,11 +65,11 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eChatInternalMessageType.h"
-#include "eWorldMessageType.h"
-#include "eMasterMessageType.h"
-#include "eGameMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Chat.h"
+#include "MessageType/World.h"
+#include "MessageType/Master.h"
+#include "MessageType/Game.h"
 #include "ZCompression.h"
 #include "EntityManager.h"
 #include "CheatDetection.h"
@@ -79,6 +79,9 @@
 #include "PositionUpdate.h"
 #include "PlayerManager.h"
 #include "eLoginResponse.h"
+#include "MissionComponent.h"
+#include "SlashCommandHandler.h"
+#include "InventoryComponent.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -281,24 +284,22 @@ int main(int argc, char** argv) {
 		}
 
 		const int32_t bufferSize = 1024;
-		MD5* md5 = new MD5();
+		MD5 md5;
 
 		char fileStreamBuffer[1024] = {};
 
 		while (!fileStream.eof()) {
 			memset(fileStreamBuffer, 0, bufferSize);
 			fileStream.read(fileStreamBuffer, bufferSize);
-			md5->update(fileStreamBuffer, fileStream.gcount());
+			md5.update(fileStreamBuffer, fileStream.gcount());
 		}
 
 		fileStream.close();
 
 		const char* nullTerminateBuffer = "\0";
-		md5->update(nullTerminateBuffer, 1); // null terminate the data
-		md5->finalize();
-		databaseChecksum = md5->hexdigest();
-
-		delete md5;
+		md5.update(nullTerminateBuffer, 1); // null terminate the data
+		md5.finalize();
+		databaseChecksum = md5.hexdigest();
 
 		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
@@ -312,6 +313,9 @@ int main(int argc, char** argv) {
 	uint32_t saveTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	uint32_t sqlPingTime = 10 * 60 * currentFramerate; // 10 minutes in frames
 	uint32_t emptyShutdownTime = (cloneID == 0 ? 30 : 5) * 60 * currentFramerate; // 30 minutes for main worlds, 5 for all others.
+
+	// Register slash commands if not in zone 0
+	if (zoneID != 0) SlashCommandHandler::Startup();
 
 	Game::logger->Flush(); // once immediately before the main loop
 	while (true) {
@@ -335,7 +339,7 @@ int main(int argc, char** argv) {
 
 		// Update to the new framerate and scale all timings to said new framerate
 		if (newFrameDelta != currentFrameDelta) {
-			float_t ratioBeforeToAfter = (float)currentFrameDelta / (float)newFrameDelta;
+			float_t ratioBeforeToAfter = static_cast<float>(currentFrameDelta) / static_cast<float>(newFrameDelta);
 			currentFrameDelta = newFrameDelta;
 			currentFramerate = MS_TO_FRAMES(newFrameDelta);
 			LOG_DEBUG("Framerate for zone/instance/clone %i/%i/%i is now %i", zoneID, instanceID, cloneID, currentFramerate);
@@ -357,7 +361,7 @@ int main(int argc, char** argv) {
 
 		//Warning if we ran slow
 		if (deltaTime > currentFrameDelta) {
-			LOG("We're running behind, dT: %f > %f (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
+			LOG("We're running behind, dT: %f > %i (framerate %i)", deltaTime, currentFrameDelta, currentFramerate);
 		}
 
 		//Check if we're still connected to master:
@@ -384,13 +388,13 @@ int main(int argc, char** argv) {
 		//In world we'd update our other systems here.
 
 		if (zoneID != 0 && deltaTime > 0.0f) {
-			Metrics::StartMeasurement(MetricVariable::Physics);
-			dpWorld::StepWorld(deltaTime);
-			Metrics::EndMeasurement(MetricVariable::Physics);
-
 			Metrics::StartMeasurement(MetricVariable::UpdateEntities);
 			Game::entityManager->UpdateEntities(deltaTime);
 			Metrics::EndMeasurement(MetricVariable::UpdateEntities);
+
+			Metrics::StartMeasurement(MetricVariable::Physics);
+			dpWorld::StepWorld(deltaTime);
+			Metrics::EndMeasurement(MetricVariable::Physics);
 
 			Metrics::StartMeasurement(MetricVariable::Ghosting);
 			if (std::chrono::duration<float>(currentTime - ghostingLastTime).count() >= 1.0f) {
@@ -527,6 +531,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacketChat(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("Lost our connection to chat, zone(%i), instance(%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 
@@ -540,129 +545,128 @@ void HandlePacketChat(Packet* packet) {
 		chatConnected = true;
 	}
 
-	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT_INTERNAL) {
-			switch (static_cast<eChatInternalMessageType>(packet->data[3])) {
-			case eChatInternalMessageType::ROUTE_TO_PLAYER: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerID;
-				inStream.Read(playerID);
+	if (packet->data[0] == ID_USER_PACKET_ENUM && packet->length >= 4) {
+		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
+			switch (static_cast<MessageType::Chat>(packet->data[3])) {
+				case MessageType::Chat::WORLD_ROUTE_PACKET: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerID;
+					inStream.Read(playerID);
 
-				auto player = Game::entityManager->GetEntity(playerID);
-				if (!player) return;
+					auto player = Game::entityManager->GetEntity(playerID);
+					if (!player) return;
 
-				auto sysAddr = player->GetSystemAddress();
+					auto sysAddr = player->GetSystemAddress();
 
-				//Write our stream outwards:
-				CBITSTREAM;
-				for (BitSize_t i = 0; i < inStream.GetNumberOfBytesUsed(); i++) {
-					bitStream.Write(packet->data[i + 16]); //16 bytes == header + playerID to skip
+					//Write our stream outwards:
+					CBITSTREAM;
+					unsigned char data;
+					while (inStream.Read(data)) {
+						bitStream.Write(data);
+					}
+
+					SEND_PACKET; //send routed packet to player
+					break;
 				}
 
-				SEND_PACKET; //send routed packet to player
+				case MessageType::Chat::GM_ANNOUNCE: {
+					CINSTREAM_SKIP_HEADER;
 
-				break;
-			}
+					std::string title;
+					std::string msg;
 
-			case eChatInternalMessageType::ANNOUNCEMENT: {
-				CINSTREAM_SKIP_HEADER;
+					uint32_t len;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						title += character;
+					}
 
-				std::string title;
-				std::string msg;
+					len = 0;
+					inStream.Read<uint32_t>(len);
+					for (uint32_t i = 0; len > i; i++) {
+						char character;
+						inStream.Read<char>(character);
+						msg += character;
+					}
 
-				uint32_t len;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					title += character;
-				}
+					//Send to our clients:
+					AMFArrayValue args;
 
-				len = 0;
-				inStream.Read<uint32_t>(len);
-				for (uint32_t i = 0; len > i; i++) {
-					char character;
-					inStream.Read<char>(character);
-					msg += character;
-				}
+					args.Insert("title", title);
+					args.Insert("message", msg);
 
-				//Send to our clients:
-				AMFArrayValue args;
-
-				args.Insert("title", title);
-				args.Insert("message", msg);
-
-				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-				break;
-			}
-
-			case eChatInternalMessageType::MUTE_UPDATE: {
-				CINSTREAM_SKIP_HEADER;
-				LWOOBJID playerId;
-				time_t expire = 0;
-				inStream.Read(playerId);
-				inStream.Read(expire);
-
-				auto* entity = Game::entityManager->GetEntity(playerId);
-				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
-				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-				if (user) {
-					user->SetMuteExpire(expire);
-
-					entity->GetCharacter()->SendMuteNotice();
-				}
-
-				break;
-			}
-
-			case eChatInternalMessageType::TEAM_UPDATE: {
-				CINSTREAM_SKIP_HEADER;
-
-				LWOOBJID teamID = 0;
-				char lootOption = 0;
-				char memberCount = 0;
-				std::vector<LWOOBJID> members;
-
-				inStream.Read(teamID);
-				bool deleteTeam = inStream.ReadBit();
-
-				if (deleteTeam) {
-					TeamManager::Instance()->DeleteTeam(teamID);
-
-					LOG("Deleting team (%llu)", teamID);
+					GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
 
 					break;
 				}
 
-				inStream.Read(lootOption);
-				inStream.Read(memberCount);
-				LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
-				for (char i = 0; i < memberCount; i++) {
-					LWOOBJID member = LWOOBJID_EMPTY;
-					inStream.Read(member);
-					members.push_back(member);
+				case MessageType::Chat::GM_MUTE: {
+					CINSTREAM_SKIP_HEADER;
+					LWOOBJID playerId;
+					time_t expire = 0;
+					inStream.Read(playerId);
+					inStream.Read(expire);
 
-					LOG("Updating team member (%llu)", member);
+					auto* entity = Game::entityManager->GetEntity(playerId);
+					auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+					auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+					if (user) {
+						user->SetMuteExpire(expire);
+
+						entity->GetCharacter()->SendMuteNotice();
+					}
+
+					break;
 				}
 
-				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+				case MessageType::Chat::TEAM_GET_STATUS: {
+					CINSTREAM_SKIP_HEADER;
 
-				break;
-			}
+					LWOOBJID teamID = 0;
+					char lootOption = 0;
+					char memberCount = 0;
+					std::vector<LWOOBJID> members;
 
-			default:
-				LOG("Received an unknown chat internal: %i", int(packet->data[3]));
+					inStream.Read(teamID);
+					bool deleteTeam = inStream.ReadBit();
+
+					if (deleteTeam) {
+						TeamManager::Instance()->DeleteTeam(teamID);
+
+						LOG("Deleting team (%llu)", teamID);
+
+						break;
+					}
+
+					inStream.Read(lootOption);
+					inStream.Read(memberCount);
+					LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+					for (char i = 0; i < memberCount; i++) {
+						LWOOBJID member = LWOOBJID_EMPTY;
+						inStream.Read(member);
+						members.push_back(member);
+
+						LOG("Updating team member (%llu)", member);
+					}
+
+					TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
+
+					break;
+				}
+				default:
+					LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
 		}
 	}
 }
 
 void HandleMasterPacket(Packet* packet) {
-
+	if (packet->length < 2) return;
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
-	switch (static_cast<eMasterMessageType>(packet->data[3])) {
-	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
+	switch (static_cast<MessageType::Master>(packet->data[3])) {
+	case MessageType::Master::REQUEST_PERSISTENT_ID_RESPONSE: {
 		CINSTREAM_SKIP_HEADER;
 		uint64_t requestID;
 		inStream.Read(requestID);
@@ -672,7 +676,7 @@ void HandleMasterPacket(Packet* packet) {
 		break;
 	}
 
-	case eMasterMessageType::SESSION_KEY_RESPONSE: {
+	case MessageType::Master::SESSION_KEY_RESPONSE: {
 		//Read our session key and to which user it belongs:
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = 0;
@@ -727,16 +731,16 @@ void HandleMasterPacket(Packet* packet) {
 			//Notify master:
 			{
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
-				bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-				bitStream.Write((LWOINSTANCEID)instanceID);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::PLAYER_ADDED);
+				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+				bitStream.Write<LWOINSTANCEID>(instanceID);
 				Game::server->SendToMaster(bitStream);
 			}
 		}
 
 		break;
 	}
-	case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
+	case MessageType::Master::AFFIRM_TRANSFER_REQUEST: {
 		CINSTREAM_SKIP_HEADER;
 		uint64_t requestID;
 		inStream.Read(requestID);
@@ -744,20 +748,20 @@ void HandleMasterPacket(Packet* packet) {
 
 		CBITSTREAM;
 
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::AFFIRM_TRANSFER_RESPONSE);
 		bitStream.Write(requestID);
 		Game::server->SendToMaster(bitStream);
 
 		break;
 	}
 
-	case eMasterMessageType::SHUTDOWN: {
+	case MessageType::Master::SHUTDOWN: {
 		Game::lastSignal = -1;
 		LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 		break;
 	}
 
-	case eMasterMessageType::NEW_SESSION_ALERT: {
+	case MessageType::Master::NEW_SESSION_ALERT: {
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = inStream.Read(sessionKey);
 
@@ -785,6 +789,7 @@ void HandleMasterPacket(Packet* packet) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) return;
@@ -817,7 +822,7 @@ void HandlePacket(Packet* packet) {
 
 		{
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 			bitStream.Write(user->GetLoggedInChar());
 			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
@@ -829,23 +834,23 @@ void HandlePacket(Packet* packet) {
 		}
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
-		bitStream.Write((LWOMAPID)Game::server->GetZoneID());
-		bitStream.Write((LWOINSTANCEID)instanceID);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::PLAYER_REMOVED);
+		bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
+		bitStream.Write<LWOINSTANCEID>(instanceID);
 		Game::server->SendToMaster(bitStream);
 	}
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
-		if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
+		if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);
 		}
 	}
 
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::WORLD) return;
 
-	switch (static_cast<eWorldMessageType>(packet->data[3])) {
-	case eWorldMessageType::VALIDATION: {
+	switch (static_cast<MessageType::World>(packet->data[3])) {
+	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
 		LUWString username;
 		inStream.Read(username);
@@ -893,7 +898,7 @@ void HandlePacket(Packet* packet) {
 
 		//Request the session info from Master:
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::REQUEST_SESSION_KEY);
 		bitStream.Write(username);
 		Game::server->SendToMaster(bitStream);
 
@@ -906,7 +911,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::CHARACTER_LIST_REQUEST: {
+	case MessageType::World::CHARACTER_LIST_REQUEST: {
 		//We need to delete the entity first, otherwise the char list could delete it while it exists in the world!
 		if (Game::server->GetZoneID() != 0) {
 			auto user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -928,12 +933,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::GAME_MSG: {
+	case MessageType::World::GAME_MSG: {
 		RakNet::BitStream bitStream(packet->data, packet->length, false);
 
 		uint64_t header;
 		LWOOBJID objectID;
-		eGameMessageType messageID;
+		MessageType::Game messageID;
 
 		bitStream.Read(header);
 		bitStream.Read(objectID);
@@ -954,12 +959,12 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::CHARACTER_CREATE_REQUEST: {
+	case MessageType::World::CHARACTER_CREATE_REQUEST: {
 		UserManager::Instance()->CreateCharacter(packet->systemAddress, packet);
 		break;
 	}
 
-	case eWorldMessageType::LOGIN_REQUEST: {
+	case MessageType::World::LOGIN_REQUEST: {
 		RakNet::BitStream inStream(packet->data, packet->length, false);
 		uint64_t header = inStream.Read(header);
 
@@ -986,7 +991,7 @@ void HandlePacket(Packet* packet) {
 			// This means we swapped characters and we need to remove the previous player from the container.
 			if (static_cast<uint32_t>(lastCharacter) != playerID) {
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_REMOVED_NOTIFICATION);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 				bitStream.Write(lastCharacter);
 				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 			}
@@ -996,18 +1001,17 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::CHARACTER_DELETE_REQUEST: {
+	case MessageType::World::CHARACTER_DELETE_REQUEST: {
 		UserManager::Instance()->DeleteCharacter(packet->systemAddress, packet);
-		UserManager::Instance()->RequestCharacterList(packet->systemAddress);
 		break;
 	}
 
-	case eWorldMessageType::CHARACTER_RENAME_REQUEST: {
+	case MessageType::World::CHARACTER_RENAME_REQUEST: {
 		UserManager::Instance()->RenameCharacter(packet->systemAddress, packet);
 		break;
 	}
 
-	case eWorldMessageType::LEVEL_LOAD_COMPLETE: {
+	case MessageType::World::LEVEL_LOAD_COMPLETE: {
 		LOG("Received level load complete from user.");
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (user) {
@@ -1040,7 +1044,9 @@ void HandlePacket(Packet* packet) {
 
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
-				if (!levelComponent) return;
+				auto* const inventoryComponent = player->GetComponent<InventoryComponent>();
+				const auto* const missionComponent = player->GetComponent<MissionComponent>();
+				if (!levelComponent || !missionComponent || !inventoryComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
 				switch (version) {
@@ -1057,7 +1063,23 @@ void HandlePacket(Packet* packet) {
 				case eCharacterVersion::VAULT_SIZE:
 					LOG("Updaing Speedbase");
 					levelComponent->SetRetroactiveBaseSpeed();
+					levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+				case eCharacterVersion::SPEED_BASE: {
+					LOG("Removing lots from NJ Jay missions bugged at foss");
+					// https://explorer.lu/missions/1789
+					const auto* mission = missionComponent->GetMission(1789);
+					if (mission && mission->IsComplete()) {
+						inventoryComponent->RemoveItem(14474, 1, eInventoryType::ITEMS);
+						inventoryComponent->RemoveItem(14474, 1, eInventoryType::VAULT_ITEMS);
+					}
+					// https://explorer.lu/missions/1927
+					mission = missionComponent->GetMission(1927);
+					if (mission && mission->IsComplete()) {
+						inventoryComponent->RemoveItem(14493, 1, eInventoryType::ITEMS);
+						inventoryComponent->RemoveItem(14493, 1, eInventoryType::VAULT_ITEMS);
+					}
 					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+				}
 				case eCharacterVersion::UP_TO_DATE:
 					break;
 				}
@@ -1100,7 +1122,7 @@ void HandlePacket(Packet* packet) {
 						GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 						CBITSTREAM;
-						BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::BLUEPRINT_SAVE_RESPONSE);
+						BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 						bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 						bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 						bitStream.Write<uint32_t>(1);
@@ -1132,7 +1154,7 @@ void HandlePacket(Packet* packet) {
 					const auto& playerName = character->GetName();
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT_INTERNAL, eChatInternalMessageType::PLAYER_ADDED_NOTIFICATION);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::LOGIN_SESSION_NOTIFY);
 					bitStream.Write(player->GetObjectID());
 					bitStream.Write<uint32_t>(playerName.size());
 					for (size_t i = 0; i < playerName.size(); i++) {
@@ -1158,7 +1180,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::POSITION_UPDATE: {
+	case MessageType::World::POSITION_UPDATE: {
 		auto positionUpdate = ClientPackets::HandleClientPositionUpdate(packet);
 
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -1172,7 +1194,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::MAIL: {
+	case MessageType::World::MAIL: {
 		RakNet::BitStream bitStream(packet->data, packet->length, false);
 		// FIXME: Change this to the macro to skip the header...
 		LWOOBJID space;
@@ -1181,7 +1203,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::ROUTE_PACKET: {
+	case MessageType::World::ROUTE_PACKET: {
 		//Yeet to chat
 		CINSTREAM_SKIP_HEADER;
 		uint32_t size = 0;
@@ -1207,15 +1229,15 @@ void HandlePacket(Packet* packet) {
 
 		//Now write the rest of the data:
 		auto data = inStream.GetData();
-		for (uint32_t i = 0; i < size; ++i) {
-			bitStream.Write(data[i + 23]);
+		for (uint32_t i = 23; i - 23 < size && i < packet->length; ++i) {
+			bitStream.Write(data[i]);
 		}
 
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
 		break;
 	}
 
-	case eWorldMessageType::STRING_CHECK: {
+	case MessageType::World::STRING_CHECK: {
 		auto request = ClientPackets::HandleChatModerationRequest(packet);
 
 		// TODO: Find a good home for the logic in this case.
@@ -1287,7 +1309,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::GENERAL_CHAT_MESSAGE: {
+	case MessageType::World::GENERAL_CHAT_MESSAGE: {
 		if (chatDisabled) {
 			ChatPackets::SendMessageFail(packet->systemAddress);
 		} else {
@@ -1319,7 +1341,7 @@ void HandlePacket(Packet* packet) {
 		break;
 	}
 
-	case eWorldMessageType::HANDLE_FUNNESS: {
+	case MessageType::World::HANDLE_FUNNESS: {
 		//This means the client is running slower or faster than it should.
 		//Could be insane lag, but I'mma just YEET them as it's usually speedhacking.
 		//This is updated to now count the amount of times we've been caught "speedhacking" to kick with a delay
@@ -1338,7 +1360,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 
-	case eWorldMessageType::UI_HELP_TOP_5: {
+	case MessageType::World::UI_HELP_TOP_5: {
 		auto language = ClientPackets::SendTop5HelpIssues(packet);
 		// TODO: Handle different languages in a nice way
 		// 0: en_US
@@ -1374,7 +1396,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const auto messageId = *reinterpret_cast<eWorldMessageType*>(&packet->data[3]);
+		const auto messageId = *reinterpret_cast<MessageType::World*>(&packet->data[3]);
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}
@@ -1460,6 +1482,6 @@ void FinalizeShutdown() {
 
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN_RESPONSE);
 	Game::server->SendToMaster(bitStream);
 }

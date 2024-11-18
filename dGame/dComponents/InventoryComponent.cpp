@@ -37,8 +37,11 @@
 #include "CDScriptComponentTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
+#include "StringifiedEnum.h"
 
-InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* document) : Component(parent) {
+#include <ranges>
+
+InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -48,7 +51,8 @@ InventoryComponent::InventoryComponent(Entity* parent, tinyxml2::XMLDocument* do
 	const auto lot = parent->GetLOT();
 
 	if (lot == 1) {
-		LoadXml(document);
+		auto* character = m_Parent->GetCharacter();
+		if (character) LoadXml(character->GetXMLDoc());
 
 		CheckProxyIntegrity();
 
@@ -472,10 +476,10 @@ bool InventoryComponent::HasSpaceForLoot(const std::unordered_map<LOT, int32_t>&
 	return true;
 }
 
-void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
+void InventoryComponent::LoadXml(const tinyxml2::XMLDocument& document) {
 	LoadPetXml(document);
 
-	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
+	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
 		LOG("Failed to find 'inv' xml element!");
@@ -489,6 +493,11 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 		LOG("Failed to find 'bags' xml element!");
 
 		return;
+	}
+
+	auto* const groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		LoadGroupXml(*groups);
 	}
 
 	m_Consumable = inventoryElement->IntAttribute("csl", LOT_NULL);
@@ -557,19 +566,9 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 			itemElement->QueryAttribute("parent", &parent);
 			// End custom xml
 
-			std::vector<LDFBaseData*> config;
+			auto* item = new Item(id, lot, inventory, slot, count, bound, {}, parent, subKey);
 
-			auto* extraInfo = itemElement->FirstChildElement("x");
-
-			if (extraInfo) {
-				std::string modInfo = extraInfo->Attribute("ma");
-
-				LDFBaseData* moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", GeneralUtils::ASCIIToUTF16(modInfo.substr(2, modInfo.size() - 1)));
-
-				config.push_back(moduleAssembly);
-			}
-
-			const auto* item = new Item(id, lot, inventory, slot, count, bound, config, parent, subKey);
+			item->LoadConfigXml(*itemElement);
 
 			if (equipped) {
 				const auto info = Inventory::FindItemComponent(lot);
@@ -594,10 +593,10 @@ void InventoryComponent::LoadXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
+void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 	UpdatePetXml(document);
 
-	auto* inventoryElement = document->FirstChildElement("obj")->FirstChildElement("inv");
+	auto* inventoryElement = document.FirstChildElement("obj")->FirstChildElement("inv");
 
 	if (inventoryElement == nullptr) {
 		LOG("Failed to find 'inv' xml element!");
@@ -631,13 +630,22 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 	bags->DeleteChildren();
 
 	for (const auto* inventory : inventoriesToSave) {
-		auto* bag = document->NewElement("b");
+		auto* bag = document.NewElement("b");
 
 		bag->SetAttribute("t", inventory->GetType());
 		bag->SetAttribute("m", static_cast<unsigned int>(inventory->GetSize()));
 
 		bags->LinkEndChild(bag);
 	}
+
+	auto* groups = inventoryElement->FirstChildElement("grps");
+	if (groups) {
+		groups->DeleteChildren();
+	} else {
+		groups = inventoryElement->InsertNewChildElement("grps");
+	}
+
+	UpdateGroupXml(*groups);
 
 	auto* items = inventoryElement->FirstChildElement("items");
 
@@ -654,14 +662,14 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 			continue;
 		}
 
-		auto* bagElement = document->NewElement("in");
+		auto* bagElement = document.NewElement("in");
 
 		bagElement->SetAttribute("t", inventory->GetType());
 
 		for (const auto& pair : inventory->GetItems()) {
 			auto* item = pair.second;
 
-			auto* itemElement = document->NewElement("i");
+			auto* itemElement = document.NewElement("i");
 
 			itemElement->SetAttribute("l", item->GetLot());
 			itemElement->SetAttribute("id", item->GetId());
@@ -675,17 +683,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument* document) {
 			itemElement->SetAttribute("parent", item->GetParent());
 			// End custom xml
 
-			for (auto* data : item->GetConfig()) {
-				if (data->GetKey() != u"assemblyPartLOTs") {
-					continue;
-				}
-
-				auto* extraInfo = document->NewElement("x");
-
-				extraInfo->SetAttribute("ma", data->GetString(false).c_str());
-
-				itemElement->LinkEndChild(extraInfo);
-			}
+			item->SaveConfigXml(*itemElement);
 
 			bagElement->LinkEndChild(itemElement);
 		}
@@ -894,8 +892,6 @@ void InventoryComponent::UnEquipItem(Item* item) {
 
 	RemoveSlot(item->GetInfo().equipLocation);
 
-	PurgeProxies(item);
-
 	UnequipScripts(item);
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -905,6 +901,8 @@ void InventoryComponent::UnEquipItem(Item* item) {
 		PropertyManagementComponent::Instance()->GetParent()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 		Game::zoneManager->GetZoneControlObject()->OnZonePropertyModelRemovedWhileEquipped(m_Parent);
 	}
+
+	PurgeProxies(item);
 }
 
 
@@ -1093,7 +1091,7 @@ void InventoryComponent::CheckItemSet(const LOT lot) {
 	auto result = query.execQuery();
 
 	while (!result.eof()) {
-		const auto id = result.getIntField(0);
+		const auto id = result.getIntField("setID");
 
 		bool found = false;
 
@@ -1524,10 +1522,10 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	const auto root = item->GetParent();
 
 	if (root != LWOOBJID_EMPTY) {
-		item = FindItemById(root);
+		Item* itemRoot = FindItemById(root);
 
-		if (item != nullptr) {
-			UnEquipItem(item);
+		if (itemRoot != nullptr) {
+			UnEquipItem(itemRoot);
 		}
 
 		return;
@@ -1542,8 +1540,8 @@ void InventoryComponent::PurgeProxies(Item* item) {
 	}
 }
 
-void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document) {
-	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
+void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
+	auto* petInventoryElement = document.FirstChildElement("obj")->FirstChildElement("pet");
 
 	if (petInventoryElement == nullptr) {
 		m_Pets.clear();
@@ -1574,19 +1572,19 @@ void InventoryComponent::LoadPetXml(tinyxml2::XMLDocument* document) {
 	}
 }
 
-void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) {
-	auto* petInventoryElement = document->FirstChildElement("obj")->FirstChildElement("pet");
+void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument& document) {
+	auto* petInventoryElement = document.FirstChildElement("obj")->FirstChildElement("pet");
 
 	if (petInventoryElement == nullptr) {
-		petInventoryElement = document->NewElement("pet");
+		petInventoryElement = document.NewElement("pet");
 
-		document->FirstChildElement("obj")->LinkEndChild(petInventoryElement);
+		document.FirstChildElement("obj")->LinkEndChild(petInventoryElement);
 	}
 
 	petInventoryElement->DeleteChildren();
 
 	for (const auto& pet : m_Pets) {
-		auto* petElement = document->NewElement("p");
+		auto* petElement = document.NewElement("p");
 
 		petElement->SetAttribute("id", pet.first);
 		petElement->SetAttribute("l", pet.second.lot);
@@ -1599,18 +1597,18 @@ void InventoryComponent::UpdatePetXml(tinyxml2::XMLDocument* document) {
 }
 
 
-bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(int32_t slot, uint32_t skillId) {
 	BehaviorSlot behaviorSlot = BehaviorSlot::Invalid;
-	if (slot == 1 ) behaviorSlot = BehaviorSlot::Primary;
-	else if (slot == 2 ) behaviorSlot = BehaviorSlot::Offhand;
-	else if (slot == 3 ) behaviorSlot = BehaviorSlot::Neck;
-	else if (slot == 4 ) behaviorSlot = BehaviorSlot::Head;
-	else if (slot == 5 ) behaviorSlot = BehaviorSlot::Consumable;
+	if (slot == 1) behaviorSlot = BehaviorSlot::Primary;
+	else if (slot == 2) behaviorSlot = BehaviorSlot::Offhand;
+	else if (slot == 3) behaviorSlot = BehaviorSlot::Neck;
+	else if (slot == 4) behaviorSlot = BehaviorSlot::Head;
+	else if (slot == 5) behaviorSlot = BehaviorSlot::Consumable;
 	else return false;
 	return SetSkill(behaviorSlot, skillId);
 }
 
-bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
+bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	if (skillId == 0) return false;
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
@@ -1623,3 +1621,109 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId){
 	return true;
 }
 
+void InventoryComponent::UpdateGroup(const GroupUpdate& groupUpdate) {
+	if (groupUpdate.groupId.empty()) return;
+
+	if (groupUpdate.inventory != eInventoryType::BRICKS && groupUpdate.inventory != eInventoryType::MODELS) {
+		LOG("Invalid inventory type for grouping %s", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	auto& groups = m_Groups[groupUpdate.inventory];
+	auto groupItr = std::ranges::find_if(groups, [&groupUpdate](const Group& group) {
+		return group.groupId == groupUpdate.groupId;
+		});
+
+	if (groupUpdate.command != GroupUpdateCommand::ADD && groupItr == groups.end()) {
+		LOG("Group %s not found in inventory %s. Cannot process command.", groupUpdate.groupId.c_str(), StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	if (groupUpdate.command == GroupUpdateCommand::ADD && groups.size() >= MaximumGroupCount) {
+		LOG("Cannot add group to inventory %s. Maximum group count reached.", StringifiedEnum::ToString(groupUpdate.inventory).data());
+		return;
+	}
+
+	switch (groupUpdate.command) {
+	case GroupUpdateCommand::ADD: {
+		auto& group = groups.emplace_back();
+		group.groupId = groupUpdate.groupId;
+		group.groupName = groupUpdate.groupName;
+		break;
+	}
+	case GroupUpdateCommand::ADD_LOT: {
+		groupItr->lots.insert(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE: {
+		groups.erase(groupItr);
+		break;
+	}
+	case GroupUpdateCommand::REMOVE_LOT: {
+		groupItr->lots.erase(groupUpdate.lot);
+		break;
+	}
+	case GroupUpdateCommand::MODIFY: {
+		groupItr->groupName = groupUpdate.groupName;
+		break;
+	}
+	default: {
+		LOG("Invalid group update command %i", groupUpdate.command);
+		break;
+	}
+	}
+}
+
+void InventoryComponent::UpdateGroupXml(tinyxml2::XMLElement& groups) const {
+	for (const auto& [inventory, groupsData] : m_Groups) {
+		for (const auto& group : groupsData) {
+			auto* const groupElement = groups.InsertNewChildElement("grp");
+
+			groupElement->SetAttribute("id", group.groupId.c_str());
+			groupElement->SetAttribute("n", group.groupName.c_str());
+			groupElement->SetAttribute("t", static_cast<uint32_t>(inventory));
+			groupElement->SetAttribute("u", 0);
+			std::ostringstream lots;
+			bool first = true;
+			for (const auto lot : group.lots) {
+				if (!first) lots << ' ';
+				first = false;
+
+				lots << lot;
+			}
+			groupElement->SetAttribute("l", lots.str().c_str());
+		}
+	}
+}
+
+void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
+	auto* groupElement = groups.FirstChildElement("grp");
+
+	while (groupElement) {
+		const char* groupId = nullptr;
+		const char* groupName = nullptr;
+		const char* lots = nullptr;
+		uint32_t inventory = eInventoryType::INVALID;
+
+		groupElement->QueryStringAttribute("id", &groupId);
+		groupElement->QueryStringAttribute("n", &groupName);
+		groupElement->QueryStringAttribute("l", &lots);
+		groupElement->QueryAttribute("t", &inventory);
+
+		if (!groupId || !groupName || !lots) {
+			LOG("Failed to load group from xml id %i name %i lots %i",
+				groupId == nullptr, groupName == nullptr, lots == nullptr);
+		} else {
+			auto& group = m_Groups[static_cast<eInventoryType>(inventory)].emplace_back();
+			group.groupId = groupId;
+			group.groupName = groupName;
+
+			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
+				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
+				if (lot) group.lots.insert(*lot);
+			}
+		}
+
+		groupElement = groupElement->NextSiblingElement("grp");
+	}
+}

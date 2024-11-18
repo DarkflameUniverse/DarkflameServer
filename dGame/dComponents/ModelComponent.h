@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <map>
 
 #include "dCommonVars.h"
@@ -27,6 +28,8 @@ public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
 	ModelComponent(Entity* parent);
+
+	void LoadBehaviors();
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -108,6 +111,8 @@ public:
 	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const;
 	
 	void VerifyBehaviors();
+
+	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
 
 private:
 	/**

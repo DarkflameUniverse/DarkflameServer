@@ -23,13 +23,13 @@ void AgBusDoor::OnProximityUpdate(Entity* self, Entity* entering, std::string na
 	m_Counter = 0;
 	m_OuterCounter = 0;
 
-	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoor")) {
-		auto* entity = Game::entityManager->GetEntity(pair.first);
+	for (const auto id : proximityMonitorComponent->GetProximityObjects("busDoor")) {
+		const auto* const entity = Game::entityManager->GetEntity(id);
 		if (entity != nullptr && entity->IsPlayer()) m_Counter++;
 	}
 
-	for (const auto& pair : proximityMonitorComponent->GetProximityObjects("busDoorOuter")) {
-		auto* entity = Game::entityManager->GetEntity(pair.first);
+	for (const auto id : proximityMonitorComponent->GetProximityObjects("busDoorOuter")) {
+		const auto* const entity = Game::entityManager->GetEntity(id);
 		if (entity != nullptr && entity->IsPlayer()) m_OuterCounter++;
 	}
 

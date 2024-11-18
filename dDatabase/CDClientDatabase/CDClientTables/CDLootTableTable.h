@@ -3,6 +3,8 @@
 // Custom Classes
 #include "CDTable.h"
 
+#include <cstdint>
+
 struct CDLootTable {
 	uint32_t itemid;                 //!< The LOT of the item
 	uint32_t LootTableIndex;         //!< The Loot Table Index
@@ -20,6 +22,5 @@ private:
 public:
 	void LoadValuesFromDatabase();
 	// Queries the table with a custom "where" clause
-	const LootTableEntries& GetTable(uint32_t tableId);
+	const LootTableEntries& GetTable(const uint32_t tableId);
 };
-

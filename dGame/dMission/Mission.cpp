@@ -65,24 +65,24 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	}
 }
 
-void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
+void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
 	// Start custom XML
-	if (element->Attribute("state") != nullptr) {
-		m_State = static_cast<eMissionState>(std::stoul(element->Attribute("state")));
+	if (element.Attribute("state") != nullptr) {
+		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
 	}
 	// End custom XML
 
-	if (element->Attribute("cct") != nullptr) {
-		m_Completions = std::stoul(element->Attribute("cct"));
+	if (element.Attribute("cct") != nullptr) {
+		m_Completions = std::stoul(element.Attribute("cct"));
 
-		m_Timestamp = std::stoul(element->Attribute("cts"));
+		m_Timestamp = std::stoul(element.Attribute("cts"));
 
 		if (IsComplete()) {
 			return;
 		}
 	}
 
-	auto* task = element->FirstChildElement();
+	auto* task = element.FirstChildElement();
 
 	auto index = 0U;
 
@@ -132,19 +132,19 @@ void Mission::LoadFromXml(tinyxml2::XMLElement* element) {
 	}
 }
 
-void Mission::UpdateXml(tinyxml2::XMLElement* element) {
+void Mission::UpdateXml(tinyxml2::XMLElement& element) {
 	// Start custom XML
-	element->SetAttribute("state", static_cast<unsigned int>(m_State));
+	element.SetAttribute("state", static_cast<unsigned int>(m_State));
 	// End custom XML
 
-	element->DeleteChildren();
+	element.DeleteChildren();
 
-	element->SetAttribute("id", static_cast<unsigned int>(info.id));
+	element.SetAttribute("id", static_cast<unsigned int>(info.id));
 
 	if (m_Completions > 0) {
-		element->SetAttribute("cct", static_cast<unsigned int>(m_Completions));
+		element.SetAttribute("cct", static_cast<unsigned int>(m_Completions));
 
-		element->SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
+		element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
 
 		if (IsComplete()) {
 			return;
@@ -155,27 +155,27 @@ void Mission::UpdateXml(tinyxml2::XMLElement* element) {
 		if (task->GetType() == eMissionTaskType::COLLECTION ||
 			task->GetType() == eMissionTaskType::VISIT_PROPERTY) {
 
-			auto* child = element->GetDocument()->NewElement("sv");
+			auto* child = element.GetDocument()->NewElement("sv");
 
 			child->SetAttribute("v", static_cast<unsigned int>(task->GetProgress()));
 
-			element->LinkEndChild(child);
+			element.LinkEndChild(child);
 
 			for (auto unique : task->GetUnique()) {
-				auto* uniqueElement = element->GetDocument()->NewElement("sv");
+				auto* uniqueElement = element.GetDocument()->NewElement("sv");
 
 				uniqueElement->SetAttribute("v", static_cast<unsigned int>(unique));
 
-				element->LinkEndChild(uniqueElement);
+				element.LinkEndChild(uniqueElement);
 			}
 
 			break;
 		}
-		auto* child = element->GetDocument()->NewElement("sv");
+		auto* child = element.GetDocument()->NewElement("sv");
 
 		child->SetAttribute("v", static_cast<unsigned int>(task->GetProgress()));
 
-		element->LinkEndChild(child);
+		element.LinkEndChild(child);
 	}
 }
 
@@ -454,6 +454,16 @@ void Mission::YieldRewards() {
 		}
 	}
 
+	// Even with no repeatable column, reputation is repeatable
+	if (info.reward_reputation > 0) {
+		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, LWOOBJID_EMPTY, "", info.reward_reputation);
+		auto* const character = entity->GetComponent<CharacterComponent>();
+		if (character) {
+			character->SetReputation(character->GetReputation() + info.reward_reputation);
+			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
+		}
+	}
+
 	if (m_Completions > 0) {
 		std::vector<std::pair<LOT, uint32_t>> items;
 
@@ -530,15 +540,6 @@ void Mission::YieldRewards() {
 
 		inventory->SetSize(inventory->GetSize() + info.reward_bankinventory);
 		modelInventory->SetSize(modelInventory->GetSize() + info.reward_bankinventory);
-	}
-
-	if (info.reward_reputation > 0) {
-		missionComponent->Progress(eMissionTaskType::EARN_REPUTATION, 0, 0L, "", info.reward_reputation);
-		auto character = entity->GetComponent<CharacterComponent>();
-		if (character) {
-			character->SetReputation(character->GetReputation() + info.reward_reputation);
-			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
-		}
 	}
 
 	if (info.reward_maxhealth > 0) {

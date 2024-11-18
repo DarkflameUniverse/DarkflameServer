@@ -20,7 +20,7 @@ void CDMissionEmailTable::LoadValuesFromDatabase() {
 	// Now get the data
 	auto tableData = CDClientDatabase::ExecuteQuery("SELECT * FROM MissionEmail");
 	while (!tableData.eof()) {
-		CDMissionEmail entry;
+		auto& entry = entries.emplace_back();
 		entry.ID = tableData.getIntField("ID", -1);
 		entry.messageType = tableData.getIntField("messageType", -1);
 		entry.notificationGroup = tableData.getIntField("notificationGroup", -1);
@@ -30,11 +30,8 @@ void CDMissionEmailTable::LoadValuesFromDatabase() {
 		entry.locStatus = tableData.getIntField("locStatus", -1);
 		entry.gate_version = tableData.getStringField("gate_version", "");
 
-		entries.push_back(entry);
 		tableData.nextRow();
 	}
-
-	tableData.finalize();
 }
 
 //! Queries the table with a custom "where" clause

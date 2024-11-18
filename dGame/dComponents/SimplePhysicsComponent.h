@@ -102,7 +102,9 @@ private:
 	/**
 	 * The current physics motion state
 	 */
-	uint32_t m_PhysicsMotionState = 0;
+	uint32_t m_PhysicsMotionState = 5;
+
+	bool m_DirtyPhysicsMotionState = true;
 
 	/**
 	 * Whether or not the entity is climbable
