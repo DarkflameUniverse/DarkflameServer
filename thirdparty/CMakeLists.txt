@@ -25,7 +25,7 @@ endif()
 
 # Need to define this on Clang and GNU for 'strdup' support
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
+	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
 endif()
 
 target_include_directories(bcrypt INTERFACE "libbcrypt/include")

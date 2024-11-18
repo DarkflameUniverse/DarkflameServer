@@ -1,128 +1,641 @@
 {
-    "version": 3,
-    "cmakeMinimumRequired": {
-      "major": 3,
-      "minor": 14,
-      "patch": 0
-    },
-    "configurePresets": [
-      {
-        "name": "default",
-        "displayName": "Default configure step",
-        "description": "Use 'build' dir and Unix makefiles",
-        "binaryDir": "${sourceDir}/build",
-        "generator": "Unix Makefiles"
-      },
-      {
-        "name": "ci-ubuntu-22.04",
-        "displayName": "CI configure step for Ubuntu",
-        "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default"
-      },
-      {
-        "name": "ci-macos-13",
-        "displayName": "CI configure step for MacOS",
-        "description": "Same as default, Used in GitHub actions workflow",
-        "inherits": "default"
-      },
-      {
-        "name": "ci-windows-2022",
-        "displayName": "CI configure step for Windows",
-        "description": "Set architecture to 64-bit (b/c RakNet)",
-        "inherits": "default",
-        "generator": "Visual Studio 17 2022",
-        "architecture": {
-          "value": "x64"
-        },
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-        }
-      },
-      {
-        "name": "windows-default",
-        "inherits": "ci-windows-2022",
-        "displayName": "Windows only Configure Settings",
-        "description": "Sets build and install directories",
-        "generator": "Ninja",
-        "architecture": {
-          "value": "x64",
-          "strategy": "external"
-        }
-      }
-    ],
-    "buildPresets": [
-      {
-        "name": "default",
-        "configurePreset": "default",
-        "displayName": "Default Build",
-        "description": "Default Build",
-        "jobs": 2
-      },
-      {
-        "name": "ci-windows-2022",
-        "configurePreset": "ci-windows-2022",
-        "displayName": "Windows CI Build",
-        "description": "This preset is used by the CI build on windows",
-        "configuration": "RelWithDebInfo",
-        "jobs": 2
-      },
-      {
-        "name": "ci-ubuntu-22.04",
-        "configurePreset": "ci-ubuntu-22.04",
-        "displayName": "Linux CI Build",
-        "description": "This preset is used by the CI build on linux",
-        "jobs": 2
-      },
-      {
-        "name": "ci-macos-13",
-        "configurePreset": "ci-macos-13",
-        "displayName": "MacOS CI Build",
-        "description": "This preset is used by the CI build on MacOS",
-        "jobs": 2
-      }
-    ],
-    "testPresets": [
-      {
-        "name": "ci-ubuntu-22.04",
-        "configurePreset": "ci-ubuntu-22.04",
-        "displayName": "CI Tests on Linux",
-        "description": "Runs all tests on a linux configuration",
-		"execution": {
-			"jobs": 2
+	"version": 6,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 25,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "default",
+			"displayName": "Default configure step",
+			"description": "Use 'build' dir and Unix makefiles",
+			"binaryDir": "${sourceDir}/build",
+			"environment": {
+				"DLU_CONFIG_DIR": "${sourceDir}/build"
+			},
+			"generator": "Unix Makefiles"
 		},
-        "output": {
-          "outputOnFailure": true
-        }
-      },
-      {
-        "name": "ci-macos-13",
-        "configurePreset": "ci-macos-13",
-        "displayName": "CI Tests on MacOS",
-        "description": "Runs all tests on a Mac configuration",
-		"execution": {
-			"jobs": 2
-		},
-        "output": {
-          "outputOnFailure": true
-        }
-      },
-      {
-        "name": "ci-windows-2022",
-        "configurePreset": "ci-windows-2022",
-        "displayName": "CI Tests on windows",
-        "description": "Runs all tests on a windows configuration",
-		"configuration": "RelWithDebInfo",
-		"execution": {
-			"jobs": 2
-		},
-        "output": {
-          "outputOnFailure": true
-        },
-		"filter": {
-			"exclude": {
-				"name": "((example)|(minigzip))+"
+		{
+			"name": "debug-config",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
 			}
+		},
+		{
+			"name": "relwithdebinfo-config",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo"
+			}
+		},
+		{
+			"name": "release-config",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "clang-config",
+			"hidden": true,
+			"toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake"
+		},
+		{
+			"name": "gnu-config",
+			"hidden": true,
+			"toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake"
+		},
+		{
+			"name": "windows-msvc",
+			"inherits": "default",
+			"displayName": "[Multi] Windows (MSVC)",
+			"description": "Set architecture to 64-bit (b/c RakNet)",
+			"generator": "Visual Studio 17 2022",
+			"binaryDir": "${sourceDir}/build/msvc",
+			"architecture": {
+				"value": "x64"
+			},
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		},
+		{
+			"name": "windows-default",
+			"inherits": "windows-msvc",
+			"displayName": "Windows only Configure Settings",
+			"description": "Sets build and install directories",
+			"generator": "Ninja",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			},
+			"architecture": {
+				"value": "x64"
+			}
+		},
+		{
+			"name": "linux-config",
+			"inherits": "default",
+			"hidden": true,
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
+		},
+		{
+			"name": "linux-clang-debug",
+			"inherits": [
+				"linux-config",
+				"clang-config",
+				"debug-config"
+			],
+			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+			"description": "Create a debug build using the Clang toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/clang-debug"
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"inherits": [
+				"linux-config",
+				"clang-config",
+				"relwithdebinfo-config"
+			],
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+			"description": "Create a release build with debug info using the Clang toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/clang-relwithdebinfo"
+		},
+		{
+			"name": "linux-clang-release",
+			"inherits": [
+				"linux-config",
+				"clang-config",
+				"release-config"
+			],
+			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+			"description": "Create a release build using the Clang toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/clang-release"
+		},
+		{
+			"name": "linux-gnu-debug",
+			"inherits": [
+				"linux-config",
+				"gnu-config",
+				"debug-config"
+			],
+			"displayName": "[Debug] Linux (GNU)",
+			"description": "Create a debug build using the GNU toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/gnu-debug"
+		},
+		{
+			"name": "linux-gnu-relwithdebinfo",
+			"inherits": [
+				"linux-config",
+				"gnu-config",
+				"relwithdebinfo-config"
+			],
+			"displayName": "[RelWithDebInfo] Linux (GNU)",
+			"description": "Create a release build with debug info using the GNU toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/gnu-relwithdebinfo"
+		},
+		{
+			"name": "linux-gnu-release",
+			"inherits": [
+				"linux-config",
+				"gnu-config",
+				"release-config"
+			],
+			"displayName": "[Release] Linux (GNU)",
+			"description": "Create a release build using the GNU toolchain for Linux",
+			"binaryDir": "${sourceDir}/build/gnu-release"
+		},
+		{
+			"name": "macos",
+			"inherits": "default",
+			"displayName": "[Multi] MacOS",
+			"description": "Create a build for MacOS",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Darwin"
+			},
+			"binaryDir": "${sourceDir}/build/macos"
 		}
-      }
-    ]
-  }
+	],
+	"buildPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default",
+			"displayName": "Default Build",
+			"description": "Default Build",
+			"jobs": 2
+		},
+		{
+			"name": "windows-msvc-debug",
+			"inherits": "default",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Debug] Windows (MSVC)",
+			"description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
+			"configuration": "Debug"
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "windows-msvc",
+			"displayName": "[RelWithDebInfo] Windows (MSVC)",
+			"description": "This preset is used to build in debug mode using the MSVC toolchain on Windows",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "windows-msvc-release",
+			"inherits": "default",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Release] Windows (MSVC)",
+			"description": "This preset is used to build in release mode using the MSVC toolchain on Windows",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-clang-debug",
+			"inherits": "default",
+			"configurePreset": "linux-clang-debug",
+			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+			"description": "This preset is used to build in debug mode using the Clang toolchain on Linux",
+			"configuration": "Debug"
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-clang-relwithdebinfo",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+			"description": "This preset is used to build in release mode with debug info using the Clang toolchain on Linux",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-clang-release",
+			"inherits": "default",
+			"configurePreset": "linux-clang-release",
+			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+			"description": "This preset is used to build in release mode using the Clang toolchain on Linux",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-gnu-debug",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-debug",
+			"displayName": "[Debug] Linux (GNU)",
+			"description": "This preset is used to build in debug mode using the GNU toolchain on Linux",
+			"configuration": "Debug"
+		},
+		{
+			"name": "linux-gnu-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] Linux (GNU)",
+			"description": "This preset is used to build in release mode with debug info using the GNU toolchain on Linux",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-gnu-release",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-release",
+			"displayName": "[Release] Linux (GNU)",
+			"description": "This preset is used to build in release mode using the GNU toolchain on Linux",
+			"configuration": "Release"
+		},
+		{
+			"name": "macos-debug",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Debug] MacOS",
+			"description": "This preset is used to build in debug mode on MacOS",
+			"configuration": "Debug"
+		},
+		{
+			"name": "macos-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[RelWithDebInfo] MacOS",
+			"description": "This preset is used to build in release mode with debug info on MacOS",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "macos-release",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Release] MacOS",
+			"description": "This preset is used to build in release mode on MacOS",
+			"configuration": "Release"
+		}
+	],
+	"testPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default",
+			"execution": {
+				"jobs": 2
+			},
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "windows-msvc-test",
+			"inherits": "default",
+			"configurePreset": "windows-msvc",
+			"hidden": true,
+			"filter": {
+				"exclude": {
+					"name": "((example)|(minigzip))+"
+				}
+			}
+		},
+		{
+			"name": "windows-msvc-debug",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Debug] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "Debug"
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[RelWithDebInfo] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "windows-msvc-release",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Release] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-clang-debug",
+			"inherits": "default",
+			"configurePreset": "linux-clang-debug",
+			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-clang-relwithdebinfo",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-clang-release",
+			"inherits": "default",
+			"configurePreset": "linux-clang-release",
+			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-gnu-debug",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-debug",
+			"displayName": "[Debug] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-gnu-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-gnu-release",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-release",
+			"displayName": "[Release] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "macos-debug",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Debug] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "Debug"
+		},
+		{
+			"name": "macos-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[RelWithDebInfo] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "macos-release",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Release] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "Release"
+		}
+	],
+	"workflowPresets": [
+		{
+			"name": "default",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "default"
+				},
+				{
+					"type": "build",
+					"name": "default"
+				},
+				{
+					"type": "test",
+					"name": "default"
+				}
+			]
+		},
+		{
+			"name": "windows-msvc-debug",
+			"displayName": "[Debug] Windows (MSVC)",
+			"description": "MSVC debug workflow preset for Windows",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "windows-msvc"
+				},
+				{
+					"type": "build",
+					"name": "windows-msvc-debug"
+				},
+				{
+					"type": "test",
+					"name": "windows-msvc-debug"
+				}
+			]
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] Windows (MSVC)",
+			"description": "MSVC release with debug info workflow preset for Windows",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "windows-msvc"
+				},
+				{
+					"type": "build",
+					"name": "windows-msvc-relwithdebinfo"
+				},
+				{
+					"type": "test",
+					"name": "windows-msvc-relwithdebinfo"
+				}
+			]
+		},
+		{
+			"name": "ci-windows-2022",
+			"displayName": "[Release] Windows (MSVC)",
+			"description": "CI workflow preset for Windows",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "windows-msvc"
+				},
+				{
+					"type": "build",
+					"name": "windows-msvc-release"
+				},
+				{
+					"type": "test",
+					"name": "windows-msvc-release"
+				}
+			]
+		},
+		{
+			"name": "linux-gnu-debug",
+			"displayName": "[Debug] Linux (GNU)",
+			"description": "GNU debug workflow preset for Linux",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-gnu-debug"
+				},
+				{
+					"type": "build",
+					"name": "linux-gnu-debug"
+				},
+				{
+					"type": "test",
+					"name": "linux-gnu-debug"
+				}
+			]
+		},
+		{
+			"name": "linux-gnu-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] Linux (GNU)",
+			"description": "GNU release with debug info workflow preset for Linux",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-gnu-relwithdebinfo"
+				},
+				{
+					"type": "build",
+					"name": "linux-gnu-relwithdebinfo"
+				},
+				{
+					"type": "test",
+					"name": "linux-gnu-relwithdebinfo"
+				}
+			]
+		},
+		{
+			"name": "ci-ubuntu-22.04",
+			"displayName": "[Release] Linux (GNU)",
+			"description": "CI workflow preset for Ubuntu",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-gnu-release"
+				},
+				{
+					"type": "build",
+					"name": "linux-gnu-release"
+				},
+				{
+					"type": "test",
+					"name": "linux-gnu-release"
+				}
+			]
+		},
+		{
+			"name": "linux-clang-debug",
+			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+			"description": "Clang debug workflow preset for Linux",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-clang-debug"
+				},
+				{
+					"type": "build",
+					"name": "linux-clang-debug"
+				},
+				{
+					"type": "test",
+					"name": "linux-clang-debug"
+				}
+			]
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+			"description": "Clang release with debug info workflow preset for Linux",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-clang-relwithdebinfo"
+				},
+				{
+					"type": "build",
+					"name": "linux-clang-relwithdebinfo"
+				},
+				{
+					"type": "test",
+					"name": "linux-clang-relwithdebinfo"
+				}
+			]
+		},
+		{
+			"name": "linux-clang-release",
+			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+			"description": "Clang release workflow preset for Linux",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "linux-clang-release"
+				},
+				{
+					"type": "build",
+					"name": "linux-clang-release"
+				},
+				{
+					"type": "test",
+					"name": "linux-clang-release"
+				}
+			]
+		},
+		{
+			"name": "macos-debug",
+			"displayName": "[Debug] MacOS",
+			"description": "Release workflow preset for MacOS",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "macos"
+				},
+				{
+					"type": "build",
+					"name": "macos-debug"
+				},
+				{
+					"type": "test",
+					"name": "macos-debug"
+				}
+			]
+		},
+		{
+			"name": "macos-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] MacOS",
+			"description": "Release with debug info workflow preset for MacOS",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "macos"
+				},
+				{
+					"type": "build",
+					"name": "macos-relwithdebinfo"
+				},
+				{
+					"type": "test",
+					"name": "macos-relwithdebinfo"
+				}
+			]
+		},
+		{
+			"name": "ci-macos-13",
+			"displayName": "[Release] MacOS",
+			"description": "CI workflow preset for MacOS",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "macos"
+				},
+				{
+					"type": "build",
+					"name": "macos-release"
+				},
+				{
+					"type": "test",
+					"name": "macos-release"
+				}
+			]
+		}
+	]
+}

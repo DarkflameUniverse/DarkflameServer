@@ -122,4 +122,7 @@ docker/__pycache__
 docker-compose.override.yml
 
 !*Test.bin
+
+# CMake scripts
 !cmake/*
+!cmake/toolchains/*
