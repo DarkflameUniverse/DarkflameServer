@@ -57,7 +57,7 @@ public:
 	 * Returns the map ID for this property
 	 * @return the map ID for this property
 	 */
-	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
+	[[nodiscard]] LWOMAPID GetMapID() const noexcept { return m_MapID; };
 
 private:
 	/**
