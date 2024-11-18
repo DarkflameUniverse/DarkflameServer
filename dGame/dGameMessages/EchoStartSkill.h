@@ -4,7 +4,7 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "eGameMessageType.h"
+#include "MessageType/Game.h"
 
 /*  Same as start skill but with different network options. An echo down to other clients that need to play the skill. */
 class EchoStartSkill {
@@ -40,7 +40,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream& stream) {
-		stream.Write(eGameMessageType::ECHO_START_SKILL);
+		stream.Write(MessageType::Game::ECHO_START_SKILL);
 
 		stream.Write(bUsedMouse);
 

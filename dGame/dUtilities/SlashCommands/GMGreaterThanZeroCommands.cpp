@@ -15,7 +15,7 @@
 #include "PropertyManagementComponent.h"
 
 // Enums
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 
@@ -197,7 +197,7 @@ namespace GMGreaterThanZeroCommands {
 
 			//Notify chat about it
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_MUTE);
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_MUTE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);
@@ -292,7 +292,7 @@ namespace GMGreaterThanZeroCommands {
 		bool displayZoneData = true;
 		bool displayIndividualPlayers = true;
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		
+
 		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
 		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
 

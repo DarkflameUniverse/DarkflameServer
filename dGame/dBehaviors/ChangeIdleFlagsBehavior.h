@@ -1,7 +1,7 @@
 
 #pragma once
 #include "Behavior.h"
-#include "eAninmationFlags.h"
+#include "eAnimationFlags.h"
 
 class ChangeIdleFlagsBehavior final : public Behavior {
 public:
