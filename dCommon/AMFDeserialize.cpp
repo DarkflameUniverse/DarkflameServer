@@ -10,72 +10,53 @@
  */
 
 std::unique_ptr<AMFBaseValue> AMFDeserialize::Read(RakNet::BitStream& inStream) {
-	std::unique_ptr<AMFBaseValue> returnValue = nullptr;
 	// Read in the value type from the bitStream
 	eAmf marker;
 	inStream.Read(marker);
 	// Based on the typing, create the value associated with that and return the base value class
 	switch (marker) {
-	case eAmf::Undefined: {
-		returnValue = std::make_unique<AMFBaseValue>();
-		break;
-	}
-
-	case eAmf::Null: {
-		returnValue = std::make_unique<AMFNullValue>();
-		break;
-	}
-
-	case eAmf::False: {
-		returnValue = std::make_unique<AMFBoolValue>(false);
-		break;
-	}
-
-	case eAmf::True: {
-		returnValue = std::make_unique<AMFBoolValue>(true);
-		break;
-	}
-
-	case eAmf::Integer: {
-		returnValue = ReadAmfInteger(inStream);
-		break;
-	}
-
-	case eAmf::Double: {
-		returnValue = ReadAmfDouble(inStream);
-		break;
-	}
-
-	case eAmf::String: {
-		returnValue = ReadAmfString(inStream);
-		break;
-	}
-
-	case eAmf::Array: {
-		returnValue = ReadAmfArray(inStream);
-		break;
-	}
+	case eAmf::Undefined:
+		return std::make_unique<AMFBaseValue>();
+	case eAmf::Null:
+		return std::make_unique<AMFNullValue>();
+	case eAmf::False:
+		return std::make_unique<AMFBoolValue>(false);
+	case eAmf::True:
+		return std::make_unique<AMFBoolValue>(true);
+	case eAmf::Integer:
+		return ReadAmfInteger(inStream);
+	case eAmf::Double:
+		return ReadAmfDouble(inStream);
+	case eAmf::String:
+		return ReadAmfString(inStream);
+	case eAmf::Array:
+		return ReadAmfArray(inStream);
 
 	// These values are unimplemented in the live client and will remain unimplemented
 	// unless someone modifies the client to allow serializing of these values.
 	case eAmf::XMLDoc:
+		[[fallthrough]];
 	case eAmf::Date:
+		[[fallthrough]];
 	case eAmf::Object:
+		[[fallthrough]];
 	case eAmf::XML:
+		[[fallthrough]];
 	case eAmf::ByteArray:
+		[[fallthrough]];
 	case eAmf::VectorInt:
+		[[fallthrough]];
 	case eAmf::VectorUInt:
+		[[fallthrough]];
 	case eAmf::VectorDouble:
+		[[fallthrough]];
 	case eAmf::VectorObject:
-	case eAmf::Dictionary: {
+		[[fallthrough]];
+	case eAmf::Dictionary:
 		throw marker;
-		break;
-	}
 	default:
 		throw std::invalid_argument("Invalid AMF3 marker" + std::to_string(static_cast<int32_t>(marker)));
-		break;
 	}
-	return returnValue;
 }
 
 uint32_t AMFDeserialize::ReadU29(RakNet::BitStream& inStream) {
