@@ -4,7 +4,7 @@
 #include <string>
 
 #include "BitStream.h"
-#include "eGameMessageType.h"
+#include "MessageType/Game.h"
 
 
 /*  Message to synchronize a skill cast */
@@ -29,7 +29,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream& stream) {
-		stream.Write(eGameMessageType::ECHO_SYNC_SKILL);
+		stream.Write(MessageType::Game::ECHO_SYNC_SKILL);
 
 		stream.Write(bDone);
 		uint32_t sBitStreamLength = sBitStream.length();

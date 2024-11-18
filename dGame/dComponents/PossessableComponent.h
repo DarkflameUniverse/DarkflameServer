@@ -5,7 +5,7 @@
 #include "Component.h"
 #include "Item.h"
 #include "PossessorComponent.h"
-#include "eAninmationFlags.h"
+#include "eAnimationFlags.h"
 #include "eReplicaComponentType.h"
 
 /**

@@ -19,10 +19,10 @@
 #include "Logger.h"
 #include "GameMessages.h"
 #include "CDClientDatabase.h"
-#include "eGameMessageType.h"
+#include "MessageType/Game.h"
 
 namespace GameMessageHandler {
-	void HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, eGameMessageType messageID);
+	void HandleMessage(RakNet::BitStream& inStream, const SystemAddress& sysAddr, LWOOBJID objectID, MessageType::Game messageID);
 };
 
 #endif // GAMEMESSAGEHANDLER_H

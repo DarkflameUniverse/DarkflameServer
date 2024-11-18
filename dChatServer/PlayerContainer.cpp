@@ -11,7 +11,7 @@
 #include "eConnectionType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -154,7 +154,7 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_MUTE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);
@@ -361,7 +361,7 @@ void PlayerContainer::TeamStatusUpdate(TeamData* team) {
 
 void PlayerContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::TEAM_GET_STATUS);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);

@@ -8,7 +8,7 @@
 #include <set>
 #include "BitStream.h"
 #include "eConnectionType.h"
-#include "eClientMessageType.h"
+#include "MessageType/Client.h"
 #include "BitStreamUtils.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
@@ -33,7 +33,7 @@ constexpr uint32_t lowFrameDelta = FRAMES_TO_MS(lowFramerate);
 #define CBITSTREAM RakNet::BitStream bitStream;
 #define CINSTREAM RakNet::BitStream inStream(packet->data, packet->length, false);
 #define CINSTREAM_SKIP_HEADER CINSTREAM if (inStream.GetNumberOfUnreadBits() >= BYTES_TO_BITS(HEADER_SIZE)) inStream.IgnoreBytes(HEADER_SIZE); else inStream.IgnoreBits(inStream.GetNumberOfUnreadBits());
-#define CMSGHEADER BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+#define CMSGHEADER BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
 #define SEND_PACKET Game::server->Send(bitStream, sysAddr, false);
 #define SEND_PACKET_BROADCAST Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 
