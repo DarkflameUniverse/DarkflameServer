@@ -148,9 +148,8 @@ void PlayerContainer::CreateTeamServer(Packet* packet) {
 
 	if (team != nullptr) {
 		team->zoneId = zoneId;
+		UpdateTeamsOnWorld(team, false);
 	}
-
-	UpdateTeamsOnWorld(team, false);
 }
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
