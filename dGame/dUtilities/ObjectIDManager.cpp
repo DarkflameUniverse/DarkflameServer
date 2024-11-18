@@ -5,6 +5,7 @@
 #include "Database.h"
 #include "Logger.h"
 #include "Game.h"
+#include "dServer.h"
 
  //! The persistent ID request
 struct PersistentIDRequest {
@@ -25,7 +26,7 @@ namespace {
 void ObjectIDManager::RequestPersistentID(const std::function<void(uint32_t)> callback) {
 	const auto& request = Requests.emplace_back(++CurrentRequestID, callback);
 
-	MasterPackets::SendPersistentIDRequest(Game::server, request.requestID);
+	MasterPackets::SendPersistentIDRequest(Game::server->GetTransportLayerPtr(), request.requestID);
 }
 
 //! Handles a persistent ID response

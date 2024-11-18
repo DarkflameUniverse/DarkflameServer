@@ -68,7 +68,7 @@
 #include "eServerMessageType.h"
 #include "eChatMessageType.h"
 #include "eWorldMessageType.h"
-#include "eMasterMessageType.h"
+#include "eManagerMessageType.h"
 #include "eGameMessageType.h"
 #include "ZCompression.h"
 #include "EntityManager.h"
@@ -89,7 +89,7 @@ namespace Game {
 	dChatFilter* chatFilter = nullptr;
 	dConfig* config = nullptr;
 	AssetManager* assetManager = nullptr;
-	RakPeerInterface* chatServer = nullptr;
+	TransportPeerInterface* chatServer = nullptr;
 	std::mt19937 randomEngine;
 	SystemAddress chatSysAddr;
 	Game::signal_t lastSignal = 0;
@@ -220,10 +220,12 @@ int main(int argc, char** argv) {
 	uint32_t chatPort = 1501;
 	if (Game::config->GetValue("chat_server_port") != "") chatPort = std::atoi(Game::config->GetValue("chat_server_port").c_str());
 
-	auto chatSock = SocketDescriptor(static_cast<uint16_t>(ourPort + 2), 0);
-	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
-	Game::chatServer->Startup(1, 30, &chatSock, 1);
-	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+	Game::chatServer = Game::server->GetTransportLayer()->CreateOutgoingTransport(
+		ourPort + 2,
+		masterIP,
+		chatPort,
+		"3.25 ND1"
+	);
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
@@ -381,7 +383,7 @@ int main(int argc, char** argv) {
 			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
-				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+				Game::chatServer->Reconnect();
 			}
 		} else framesSinceChatDisconnect = 0;
 
@@ -449,9 +451,6 @@ int main(int argc, char** argv) {
 
 		Metrics::StartMeasurement(MetricVariable::UpdateReplica);
 
-		//Update our replica objects:
-		Game::server->UpdateReplica();
-
 		Metrics::EndMeasurement(MetricVariable::UpdateReplica);
 
 		//Push our log every 15s:
@@ -512,7 +511,7 @@ int main(int argc, char** argv) {
 			if (framesSinceMasterStatus >= 200) {
 				LOG("Finished loading world with zone (%i), ready up!", Game::server->GetZoneID());
 
-				MasterPackets::SendWorldReady(Game::server, Game::server->GetZoneID(), Game::server->GetInstanceID());
+				MasterPackets::SendWorldReady(Game::server->GetTransportLayerPtr(), Game::server->GetZoneID(), Game::server->GetInstanceID());
 
 				ready = true;
 			}
@@ -665,8 +664,8 @@ void HandlePacketChat(Packet* packet) {
 void HandleMasterPacket(Packet* packet) {
 	if (packet->length < 2) return;
 	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::MASTER || packet->length < 4) return;
-	switch (static_cast<eMasterMessageType>(packet->data[3])) {
-	case eMasterMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
+	switch (static_cast<eManagerMessageType>(packet->data[3])) {
+	case eManagerMessageType::REQUEST_PERSISTENT_ID_RESPONSE: {
 		CINSTREAM_SKIP_HEADER;
 		uint64_t requestID;
 		inStream.Read(requestID);
@@ -676,7 +675,7 @@ void HandleMasterPacket(Packet* packet) {
 		break;
 	}
 
-	case eMasterMessageType::SESSION_KEY_RESPONSE: {
+	case eManagerMessageType::SESSION_KEY_RESPONSE: {
 		//Read our session key and to which user it belongs:
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = 0;
@@ -731,7 +730,7 @@ void HandleMasterPacket(Packet* packet) {
 			//Notify master:
 			{
 				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_ADDED);
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::PLAYER_ADDED);
 				bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
 				bitStream.Write<LWOINSTANCEID>(instanceID);
 				Game::server->SendToMaster(bitStream);
@@ -740,7 +739,7 @@ void HandleMasterPacket(Packet* packet) {
 
 		break;
 	}
-	case eMasterMessageType::AFFIRM_TRANSFER_REQUEST: {
+	case eManagerMessageType::AFFIRM_TRANSFER_REQUEST: {
 		CINSTREAM_SKIP_HEADER;
 		uint64_t requestID;
 		inStream.Read(requestID);
@@ -748,20 +747,20 @@ void HandleMasterPacket(Packet* packet) {
 
 		CBITSTREAM;
 
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::AFFIRM_TRANSFER_RESPONSE);
 		bitStream.Write(requestID);
 		Game::server->SendToMaster(bitStream);
 
 		break;
 	}
 
-	case eMasterMessageType::SHUTDOWN: {
+	case eManagerMessageType::SHUTDOWN: {
 		Game::lastSignal = -1;
 		LOG("Got shutdown request from master, zone (%i), instance (%i)", Game::server->GetZoneID(), Game::server->GetInstanceID());
 		break;
 	}
 
-	case eMasterMessageType::NEW_SESSION_ALERT: {
+	case eManagerMessageType::NEW_SESSION_ALERT: {
 		CINSTREAM_SKIP_HEADER;
 		uint32_t sessionKey = inStream.Read(sessionKey);
 
@@ -834,7 +833,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::PLAYER_REMOVED);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::PLAYER_REMOVED);
 		bitStream.Write<LWOMAPID>(Game::server->GetZoneID());
 		bitStream.Write<LWOINSTANCEID>(instanceID);
 		Game::server->SendToMaster(bitStream);
@@ -898,7 +897,7 @@ void HandlePacket(Packet* packet) {
 
 		//Request the session info from Master:
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::REQUEST_SESSION_KEY);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::REQUEST_SESSION_KEY);
 		bitStream.Write(username);
 		Game::server->SendToMaster(bitStream);
 
@@ -1018,8 +1017,7 @@ void HandlePacket(Packet* packet) {
 			Character* c = user->GetLastUsedChar();
 			if (c != nullptr) {
 				std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
-				Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
-
+				
 				EntityInfo info{};
 				info.lot = 1;
 				Entity* player = Game::entityManager->CreateEntity(info, UserManager::Instance()->GetUser(packet->systemAddress));
@@ -1404,10 +1402,7 @@ void HandlePacket(Packet* packet) {
 
 void WorldShutdownProcess(uint32_t zoneId) {
 	LOG("Saving map %i instance %i", zoneId, instanceID);
-	for (auto i = 0; i < Game::server->GetReplicaManager()->GetParticipantCount(); ++i) {
-		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(i);
-
-		auto* entity = PlayerManager::GetPlayer(player);
+	for (auto* entity : PlayerManager::GetAllPlayers()) {
 		LOG("Saving data!");
 		if (entity != nullptr && entity->GetCharacter() != nullptr) {
 			auto* skillComponent = entity->GetComponent<SkillComponent>();
@@ -1430,8 +1425,8 @@ void WorldShutdownProcess(uint32_t zoneId) {
 
 	LOG("ALL DATA HAS BEEN SAVED FOR ZONE %i INSTANCE %i!", zoneId, instanceID);
 
-	while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
-		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
+	for (auto* entity : PlayerManager::GetAllPlayers()) {
+		const auto& player = entity->GetSystemAddress();
 
 		Game::server->Disconnect(player, eServerDisconnectIdentifiers::SERVER_SHUTDOWN);
 	}
@@ -1482,6 +1477,6 @@ void FinalizeShutdown() {
 
 void SendShutdownMessageToMaster() {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eManagerMessageType::SHUTDOWN_RESPONSE);
 	Game::server->SendToMaster(bitStream);
 }
