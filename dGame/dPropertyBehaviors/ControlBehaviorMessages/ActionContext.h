@@ -4,6 +4,8 @@
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
 
+#include <string_view>
+
 class AMFArrayValue;
 
 /**
@@ -13,13 +15,13 @@ class AMFArrayValue;
 class ActionContext {
 public:
 	ActionContext() noexcept = default;
-	ActionContext(const AMFArrayValue& arguments, const std::string& customStateKey = "stateID", const std::string& customStripKey = "stripID");
+	ActionContext(const AMFArrayValue& arguments, const std::string_view customStateKey = "stateID", const std::string_view customStripKey = "stripID");
 	[[nodiscard]] StripId GetStripId() const noexcept { return m_StripId; };
 	[[nodiscard]] BehaviorState GetStateId() const noexcept { return m_StateId; };
 
 private:
-	[[nodiscard]] BehaviorState GetBehaviorStateFromArgument(const AMFArrayValue& arguments, const std::string& key) const;
-	[[nodiscard]] StripId GetStripIdFromArgument(const AMFArrayValue& arguments, const std::string& key) const;
+	[[nodiscard]] BehaviorState GetBehaviorStateFromArgument(const AMFArrayValue& arguments, const std::string_view key) const;
+	[[nodiscard]] StripId GetStripIdFromArgument(const AMFArrayValue& arguments, const std::string_view key) const;
 	StripId m_StripId{ 0 };
 	BehaviorState m_StateId{ BehaviorState::HOME_STATE };
 };
