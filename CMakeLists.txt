@@ -4,9 +4,10 @@ project(Darkflame
 	LANGUAGES C CXX
 )
 
-#add_compile_options("-fsanitize=address,undefined")
+# TEMP - Sanitizer flags
+# add_compile_options("-fsanitize=address,undefined" "-fvisibility=default")
 add_compile_options("-fsanitize=undefined" "-fvisibility=default")
-add_link_options("-fsanitize=undefined" "-static-libsan")
+add_link_options("-fsanitize=undefined" "-static-libasan")
 
 # check if the path to the source directory contains a space
 if("${CMAKE_SOURCE_DIR}" MATCHES " ")
