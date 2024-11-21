@@ -6,7 +6,7 @@
 void MailBoxServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;
 
-	args.Insert("state", "Mail");
+	args.Insert<std::string>("state", "Mail");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 }

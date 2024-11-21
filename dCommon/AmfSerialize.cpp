@@ -10,40 +10,54 @@ void RakNet::BitStream::Write<AMFBaseValue&>(AMFBaseValue& value) {
 	this->Write(type);
 	switch (type) {
 	case eAmf::Integer: {
-		this->Write<AMFIntValue&>(*static_cast<AMFIntValue*>(&value));
+		this->Write<AMFIntValue&>(static_cast<AMFIntValue&>(value));
 		break;
 	}
 
 	case eAmf::Double: {
-		this->Write<AMFDoubleValue&>(*static_cast<AMFDoubleValue*>(&value));
+		this->Write<AMFDoubleValue&>(static_cast<AMFDoubleValue&>(value));
 		break;
 	}
 
 	case eAmf::String: {
-		this->Write<AMFStringValue&>(*static_cast<AMFStringValue*>(&value));
+		this->Write<AMFStringValue&>(static_cast<AMFStringValue&>(value));
 		break;
 	}
 
 	case eAmf::Array: {
-		this->Write<AMFArrayValue&>(*static_cast<AMFArrayValue*>(&value));
+		this->Write<AMFArrayValue&>(static_cast<AMFArrayValue&>(value));
 		break;
 	}
 	default: {
 		LOG("Encountered unwritable AMFType %i!", type);
+		[[fallthrough]];
 	}
 	case eAmf::Undefined:
+		[[fallthrough]];
 	case eAmf::Null:
+		[[fallthrough]];
 	case eAmf::False:
+		[[fallthrough]];
 	case eAmf::True:
+		[[fallthrough]];
 	case eAmf::Date:
+		[[fallthrough]];
 	case eAmf::Object:
+		[[fallthrough]];
 	case eAmf::XML:
+		[[fallthrough]];
 	case eAmf::XMLDoc:
+		[[fallthrough]];
 	case eAmf::ByteArray:
+		[[fallthrough]];
 	case eAmf::VectorInt:
+		[[fallthrough]];
 	case eAmf::VectorUInt:
+		[[fallthrough]];
 	case eAmf::VectorDouble:
+		[[fallthrough]];
 	case eAmf::VectorObject:
+		[[fallthrough]];
 	case eAmf::Dictionary:
 		break;
 	}

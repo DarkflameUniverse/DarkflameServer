@@ -1396,7 +1396,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const auto messageId = *reinterpret_cast<MessageType::World*>(&packet->data[3]);
+		const auto messageId = static_cast<MessageType::World>(packet->data[3]);
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}

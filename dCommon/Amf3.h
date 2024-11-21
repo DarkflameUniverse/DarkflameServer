@@ -4,6 +4,7 @@
 #include "dCommonVars.h"
 #include "Logger.h"
 #include "Game.h"
+#include "GeneralUtils.h"
 
 #include <unordered_map>
 #include <vector>
@@ -63,6 +64,10 @@ template class AMFValue<uint32_t>;
 template class AMFValue<std::string>;
 template class AMFValue<double>;
 
+// Blank specialization to make sure AMFValue<const char*> fails
+template <>
+class AMFValue<const char*> {};
+
 // AMFValue template class member function instantiations
 template <> [[nodiscard]] constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; }
 template <> [[nodiscard]] constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; }
@@ -73,22 +78,6 @@ template <> [[nodiscard]] constexpr eAmf AMFValue<double>::GetValueType() const 
 
 template <typename ValueType>
 [[nodiscard]] constexpr eAmf AMFValue<ValueType>::GetValueType() const noexcept { return eAmf::Undefined; }
-
-// As a string this is much easier to write and read from a BitStream.
-template <>
-class AMFValue<const char*> : public AMFBaseValue {
-public:
-	AMFValue() = default;
-	AMFValue(const char* value) { m_Data = value; }
-	virtual ~AMFValue() override = default;
-
-	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::String; }
-
-	[[nodiscard]] const std::string& GetValue() const { return m_Data; }
-	void SetValue(const std::string& value) { m_Data = value; }
-protected:
-	std::string m_Data;
-};
 
 using AMFNullValue = AMFValue<std::nullptr_t>;
 using AMFBoolValue = AMFValue<bool>;

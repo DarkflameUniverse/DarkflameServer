@@ -2,6 +2,7 @@ temp/
 cmake-build-debug/
 RelWithDebInfo/
 docker/configs
+valgrind-out.txt
 
 # Third party libraries
 thirdparty/mysql/

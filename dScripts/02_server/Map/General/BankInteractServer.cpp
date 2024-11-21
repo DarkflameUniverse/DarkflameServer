@@ -6,7 +6,7 @@
 void BankInteractServer::OnUse(Entity* self, Entity* user) {
 	AMFArrayValue args;
 
-	args.Insert("state", "bank");
+	args.Insert<std::string>("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 }

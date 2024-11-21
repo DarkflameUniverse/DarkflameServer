@@ -4,6 +4,10 @@ project(Darkflame
 	LANGUAGES C CXX
 )
 
+#add_compile_options("-fsanitize=address,undefined")
+add_compile_options("-fsanitize=undefined" "-fvisibility=default")
+add_link_options("-fsanitize=undefined" "-static-libsan")
+
 # check if the path to the source directory contains a space
 if("${CMAKE_SOURCE_DIR}" MATCHES " ")
 	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
@@ -17,7 +21,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debugging
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
-set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
+set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF) # Set C and C++ symbol visibility to hide inlined functions
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file

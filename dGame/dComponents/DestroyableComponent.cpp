@@ -258,8 +258,8 @@ void DestroyableComponent::SetMaxHealth(float value, bool playAnim) {
 		if (!characterComponent) return;
 
 		AMFArrayValue args;
-		args.Insert("amount", std::to_string(difference));
-		args.Insert("type", "health");
+		args.Insert<std::string>("amount", std::to_string(difference));
+		args.Insert<std::string>("type", "health");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
@@ -300,8 +300,8 @@ void DestroyableComponent::SetMaxArmor(float value, bool playAnim) {
 		if (!characterComponent) return;
 
 		AMFArrayValue args;
-		args.Insert("amount", std::to_string(value));
-		args.Insert("type", "armor");
+		args.Insert<std::string>("amount", std::to_string(value));
+		args.Insert<std::string>("type", "armor");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
@@ -341,8 +341,8 @@ void DestroyableComponent::SetMaxImagination(float value, bool playAnim) {
 		if (!characterComponent) return;
 
 		AMFArrayValue args;
-		args.Insert("amount", std::to_string(difference));
-		args.Insert("type", "imagination");
+		args.Insert<std::string>("amount", std::to_string(difference));
+		args.Insert<std::string>("type", "imagination");
 
 		GameMessages::SendUIMessageServerToSingleClient(m_Parent, characterComponent->GetSystemAddress(), "MaxPlayerBarUpdate", args);
 	}
