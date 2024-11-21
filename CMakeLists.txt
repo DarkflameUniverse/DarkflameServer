@@ -5,9 +5,17 @@ project(Darkflame
 )
 
 # TEMP - Sanitizer flags
+if (UNIX)
 # add_compile_options("-fsanitize=address,undefined" "-fvisibility=default")
-add_compile_options("-fsanitize=undefined" "-fvisibility=default")
-add_link_options("-fsanitize=undefined" "-static-libasan")
+	add_compile_options("-fsanitize=undefined" "-fvisibility=default")
+	add_link_options("-fsanitize=undefined")
+
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+		add_link_options("-static-libsan")
+	else()
+		add_link_options("-static-libasan")
+	endif()
+endif()
 
 # check if the path to the source directory contains a space
 if("${CMAKE_SOURCE_DIR}" MATCHES " ")
