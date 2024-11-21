@@ -109,6 +109,31 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 find_package(MariaDB)
 
+# Fetch third party dependencies
+include(FetchContent)
+FetchContent_Declare(
+	backtrace
+	SYSTEM
+	GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+)
+FetchContent_Declare(
+	magic_enum
+	SYSTEM
+	GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+	GIT_TAG        v0.9.7
+)
+FetchContent_Declare(
+	tinyxml2
+	SYSTEM
+	GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
+	GIT_TAG        9.0.0
+)
+FetchContent_MakeAvailable(magic_enum tinyxml2)
+
+include(CMakePrintHelpers)
+cmake_print_properties(TARGETS magic_enum tinyxml2 PROPERTIES
+                       INTERFACE_INCLUDE_DIRECTORIES)
+
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
 
@@ -251,9 +276,9 @@ include_directories(
 	"tests/dGameTests/dComponentsTests"
 
 	SYSTEM
-	"thirdparty/magic_enum/include/magic_enum"
+	# "thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
-	"thirdparty/tinyxml2"
+	# "thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
@@ -341,7 +366,7 @@ target_precompile_headers(
 
 target_precompile_headers(
 	tinyxml2 PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
+	"$<$<COMPILE_LANGUAGE:CXX>:${tinyxml2_SOURCE_DIR}/tinyxml2.h>"
 )
 
 if(${ENABLE_TESTING})

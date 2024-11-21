@@ -32,7 +32,7 @@ add_custom_command(TARGET dCommonTests POST_BUILD
 endif()
 
 # Link needed libraries
-target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
+target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main magic_enum)
 
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)

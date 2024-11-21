@@ -3,8 +3,6 @@ add_subdirectory(recastnavigation)
 
 # Turn off tinyxml2 testing
 set(tinyxml2_BUILD_TESTING OFF)
-# Source Code for tinyxml2
-add_subdirectory(tinyxml2)
 
 # Source Code for libbcrypt.  Uses a file glob instead to get around Windows build issues.
 file(
@@ -34,21 +32,12 @@ target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 # Source code for sqlite
 add_subdirectory(SQLite)
 
-# Source code for magic_enum
-add_subdirectory(magic_enum)
-
 # Create our third party library objects
 add_subdirectory(raknet)
 
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
-	include(FetchContent)
 	if (${INCLUDE_BACKTRACE} AND ${COMPILE_BACKTRACE})
-		FetchContent_Declare(
-			backtrace
-			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
-		)
-
 		FetchContent_MakeAvailable(backtrace)
 
 		if (NOT EXISTS ${backtrace_SOURCE_DIR}/.libs)
