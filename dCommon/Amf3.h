@@ -83,7 +83,7 @@ using AMFDoubleValue = AMFValue<double>;
 
 // Template deduction guide to ensure string literals deduce
 template <size_t N>
-AMFValue(const char (&)[N]) -> AMFStringValue;
+AMFValue(const char (&)[N]) -> AMFValue<std::string>; // AMFStringValue
 
 /**
  * The AMFArrayValue object holds 2 types of lists:
