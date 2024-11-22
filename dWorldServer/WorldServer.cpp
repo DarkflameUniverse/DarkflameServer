@@ -1397,7 +1397,7 @@ void HandlePacket(Packet* packet) {
 
 	default:
 		// Need to use memcpy instead of reinterpret_cast to avoid UB
-		MessageType::World messageId;
+		auto messageId = MessageType::World::INVALID;
 		std::memcpy(&messageId, &packet->data[3], sizeof(MessageType::World));
 
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);

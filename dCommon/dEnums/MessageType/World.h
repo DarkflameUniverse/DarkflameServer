@@ -5,7 +5,8 @@
 
 namespace MessageType {
 	enum class World : uint32_t {
-		VALIDATION = 1,  // 				Session info
+		INVALID = 0,
+		VALIDATION,  // 				Session info
 		CHARACTER_LIST_REQUEST,
 		CHARACTER_CREATE_REQUEST,
 		LOGIN_REQUEST,  // 			Character selected
