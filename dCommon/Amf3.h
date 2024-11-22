@@ -1,5 +1,5 @@
-#ifndef __AMF3__H__
-#define __AMF3__H__
+#ifndef AMF3_H
+#define AMF3_H
 
 #include "dCommonVars.h"
 #include "Logger.h"
@@ -64,10 +64,6 @@ template class AMFValue<uint32_t>;
 template class AMFValue<std::string>;
 template class AMFValue<double>;
 
-// Blank specialization to make sure AMFValue<const char*> fails
-template <>
-class AMFValue<const char*> {};
-
 // AMFValue template class member function instantiations
 template <> [[nodiscard]] constexpr eAmf AMFValue<std::nullptr_t>::GetValueType() const noexcept { return eAmf::Null; }
 template <> [[nodiscard]] constexpr eAmf AMFValue<bool>::GetValueType() const noexcept { return m_Data ? eAmf::True : eAmf::False; }
@@ -84,6 +80,10 @@ using AMFBoolValue = AMFValue<bool>;
 using AMFIntValue = AMFValue<int32_t>;
 using AMFStringValue = AMFValue<std::string>;
 using AMFDoubleValue = AMFValue<double>;
+
+// Template deduction guide to ensure string literals deduce
+template <size_t N>
+AMFValue(const char (&)[N]) -> AMFStringValue;
 
 /**
  * The AMFArrayValue object holds 2 types of lists:
@@ -345,4 +345,4 @@ private:
 	AMFDense m_Dense;
 };
 
-#endif  //!__AMF3__H__
+#endif  //!AMF3_H

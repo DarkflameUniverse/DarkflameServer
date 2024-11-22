@@ -12,7 +12,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		{
 			AMFArrayValue args;
 
-			args.Insert<std::string>("state", "Story");
+			args.Insert("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 		}

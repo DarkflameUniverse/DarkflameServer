@@ -1396,7 +1396,10 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		const auto messageId = static_cast<MessageType::World>(packet->data[3]);
+		// Need to use memcpy instead of reinterpret_cast to avoid UB
+		MessageType::World messageId;
+		std::memcpy(&messageId, &packet->data[3], sizeof(MessageType::World));
+
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
 	}

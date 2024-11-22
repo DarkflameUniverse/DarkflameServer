@@ -22,7 +22,7 @@ void PropertyBankInteract::OnUse(Entity* self, Entity* user) {
 
 	AMFArrayValue args;
 
-	args.Insert<std::string>("state", "bank");
+	args.Insert("state", "bank");
 
 	GameMessages::SendUIMessageServerToSingleClient(user, user->GetSystemAddress(), "pushGameState", args);
 

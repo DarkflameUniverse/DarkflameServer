@@ -98,7 +98,7 @@ namespace GMZeroCommands {
 		{
 			AMFArrayValue args;
 
-			args.Insert<std::string>("state", "Story");
+			args.Insert("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 		}
@@ -121,7 +121,7 @@ namespace GMZeroCommands {
 		{
 			AMFArrayValue args;
 
-			args.Insert<std::string>("state", "Story");
+			args.Insert("state", "Story");
 
 			GameMessages::SendUIMessageServerToSingleClient(entity, entity->GetSystemAddress(), "pushGameState", args);
 		}
