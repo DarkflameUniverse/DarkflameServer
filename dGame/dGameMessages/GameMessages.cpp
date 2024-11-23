@@ -2492,7 +2492,7 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFArrayValue> amfArguments{ static_cast<AMFArrayValue*>(reader.Read(inStream)) };
+	std::unique_ptr<AMFArrayValue> amfArguments{ static_cast<AMFArrayValue*>(reader.Read(inStream).release()) };
 	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};

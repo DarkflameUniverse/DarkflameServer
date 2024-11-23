@@ -7,16 +7,16 @@ Action::Action(const AMFArrayValue& arguments) {
 	for (const auto& [paramName, paramValue] : arguments.GetAssociative()) {
 		if (paramName == "Type") {
 			if (paramValue->GetValueType() != eAmf::String) continue;
-			m_Type = static_cast<AMFStringValue*>(paramValue)->GetValue();
+			m_Type = static_cast<AMFStringValue*>(paramValue.get())->GetValue();
 		} else {
 			m_ValueParameterName = paramName;
 			// Message is the only known string parameter
 			if (m_ValueParameterName == "Message") {
 				if (paramValue->GetValueType() != eAmf::String) continue;
-				m_ValueParameterString = static_cast<AMFStringValue*>(paramValue)->GetValue();
+				m_ValueParameterString = static_cast<AMFStringValue*>(paramValue.get())->GetValue();
 			} else {
 				if (paramValue->GetValueType() != eAmf::Double) continue;
-				m_ValueParameterDouble = static_cast<AMFDoubleValue*>(paramValue)->GetValue();
+				m_ValueParameterDouble = static_cast<AMFDoubleValue*>(paramValue.get())->GetValue();
 			}
 		}
 	}
