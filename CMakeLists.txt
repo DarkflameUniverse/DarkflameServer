@@ -285,7 +285,7 @@ if(MSVC)
 	# add_compile_options("/W4")
 	# Want to enable warnings eventually, but WAY too much noise right now
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	add_compile_options("-Wuninitialized" "-Wold-style-cast")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Wstrict-aliasing")
 else()
 	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()

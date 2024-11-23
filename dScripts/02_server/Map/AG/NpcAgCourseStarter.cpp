@@ -50,9 +50,9 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		if (data->values[1] != 0) return;
 
-		time_t startTime = std::time(0) + 4; // Offset for starting timer
+		const time_t startTime = std::time(0) + 4; // Offset for starting timer
 
-		data->values[1] = *reinterpret_cast<float*>(&startTime);
+		std::memcpy(&data->values[1], &startTime, sizeof(float));
 
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
@@ -80,10 +80,14 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 			LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
-		time_t endTime = std::time(0);
-		time_t finish = (endTime - *reinterpret_cast<time_t*>(&data->values[1]));
-
-		data->values[2] = *reinterpret_cast<float*>(&finish);
+		const time_t endTime = std::time(0);
+		
+		// Using memcpy since misaligned reads are UB
+		time_t startTime{};
+		std::memcpy(&startTime, &data->values[1], sizeof(time_t));
+		const time_t finish = (endTime - startTime);
+		
+		std::memcpy(&data->values[2], &finish, sizeof(float));
 
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {

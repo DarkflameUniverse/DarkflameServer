@@ -159,8 +159,7 @@ void RakNet::BitStream::Write<AMFIntValue&>(AMFIntValue& value) {
 // Writes an AMFDoubleValue to BitStream
 template<>
 void RakNet::BitStream::Write<AMFDoubleValue&>(AMFDoubleValue& value) {
-	double d = value.GetValue();
-	WriteAMFU64(*this, *reinterpret_cast<uint64_t*>(&d));
+	WriteAMFU64(*this, std::bit_cast<uint64_t>(value.GetValue()));
 }
 
 // Writes an AMFStringValue to BitStream

@@ -146,7 +146,7 @@ void WriteSd0Magic(char* input, uint32_t chunkSize) {
 	input[2] = '0';
 	input[3] = 0x01;
 	input[4] = 0xFF;
-	*reinterpret_cast<uint32_t*>(input + 5) = chunkSize; // Write the integer to the character array
+	std::memcpy(&input[5], &chunkSize, sizeof(uint32_t)); // Write the integer to the character array
 }
 
 bool CheckSd0Magic(std::istream& streamToCheck) {
