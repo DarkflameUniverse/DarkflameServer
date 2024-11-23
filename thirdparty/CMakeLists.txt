@@ -1,9 +1,6 @@
 # Source Code for recast
 add_subdirectory(recastnavigation)
 
-# Turn off tinyxml2 testing
-set(tinyxml2_BUILD_TESTING OFF)
-
 # Source Code for libbcrypt.  Uses a file glob instead to get around Windows build issues.
 file(
 	GLOB SOURCES_LIBBCRYPT
