@@ -138,7 +138,6 @@ void Level::ReadChunks(std::istream& file) {
 				BinaryIO::BinaryRead(file, important);
 				// file.ignore(1); //probably used
 				if (header.chunkVersion > 36) {
-					LOG("DOING THINGS");
 					BinaryIO::BinaryRead(file, header.fileInfo.revision);
 				}
 				// HARDCODED 3
@@ -198,6 +197,7 @@ void Level::ReadChunks(std::istream& file) {
 				}
 
 				header.id = ChunkTypeID::SceneObjectData;
+				header.fileInfo.version = header.chunkVersion;
 				ReadSceneObjectDataChunk(file, header);
 				m_ChunkHeaders.insert(std::make_pair(header.id, header));
 			} break;
@@ -234,13 +234,13 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		SceneObject obj;
 		BinaryIO::BinaryRead(file, obj.id);
 		BinaryIO::BinaryRead(file, obj.lot);
-		LOG("HEADER VERSION: %i", header.chunkVersion );
-		if (header.chunkVersion >= 38) {
+
+		if (header.fileInfo.version >= 38) {
 			uint32_t tmp = 1;
 			BinaryIO::BinaryRead(file, tmp);
 			if (tmp > -1 && tmp < 11) obj.nodeType = tmp;
 		}
-		if (header.chunkVersion >= 32) {
+		if (header.fileInfo.version >= 32) {
 			BinaryIO::BinaryRead(file, obj.glomId);
 		}
 
