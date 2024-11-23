@@ -4,10 +4,9 @@ project(Darkflame
 	LANGUAGES C CXX
 )
 
-# TEMP - Sanitizer flags
-if (UNIX AND NOT APPLE)
-	# add_compile_options("-fsanitize=address,undefined" "-fvisibility=default")
-	add_compile_options("-fsanitize=undefined" "-fvisibility=default")
+# Sanitizer flags - TODO: Make CMake preset before finalizing PR
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	add_compile_options("-fsanitize=undefined")
 	add_link_options("-fsanitize=undefined")
 
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -285,7 +284,7 @@ if(MSVC)
 	# add_compile_options("/W4")
 	# Want to enable warnings eventually, but WAY too much noise right now
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Wstrict-aliasing")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Wstrict-aliasing=01")
 else()
 	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()

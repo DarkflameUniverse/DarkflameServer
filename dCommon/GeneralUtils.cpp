@@ -53,9 +53,9 @@ bool static _IsSuffixChar(const uint8_t c) {
 bool GeneralUtils::details::_NextUTF8Char(std::string_view& slice, uint32_t& out) {
 	const size_t rem = slice.length();
 	if (slice.empty()) return false;
-	const auto* bytes = &slice.front();
+	const char* const bytes = slice.data();
 	if (rem > 0) {
-		const uint8_t first = bytes[0];
+		const uint8_t first = static_cast<uint8_t>(bytes[0]);
 		if (first < 0x80) { // 1 byte character
 			out = static_cast<uint32_t>(first & 0x7F);
 			slice.remove_prefix(1);
@@ -64,7 +64,7 @@ bool GeneralUtils::details::_NextUTF8Char(std::string_view& slice, uint32_t& out
 			// middle byte, not valid at start, fall through
 		} else if (first < 0xE0) { // two byte character
 			if (rem > 1) {
-				const uint8_t second = bytes[1];
+				const uint8_t second = static_cast<uint8_t>(bytes[1]);
 				if (_IsSuffixChar(second)) {
 					out = (static_cast<uint32_t>(first & 0x1F) << 6)
 						+ static_cast<uint32_t>(second & 0x3F);
@@ -74,8 +74,8 @@ bool GeneralUtils::details::_NextUTF8Char(std::string_view& slice, uint32_t& out
 			}
 		} else if (first < 0xF0) { // three byte character
 			if (rem > 2) {
-				const uint8_t second = bytes[1];
-				const uint8_t third = bytes[2];
+				const uint8_t second = static_cast<uint8_t>(bytes[1]);
+				const uint8_t third = static_cast<uint8_t>(bytes[2]);
 				if (_IsSuffixChar(second) && _IsSuffixChar(third)) {
 					out = (static_cast<uint32_t>(first & 0x0F) << 12)
 						+ (static_cast<uint32_t>(second & 0x3F) << 6)
@@ -86,9 +86,9 @@ bool GeneralUtils::details::_NextUTF8Char(std::string_view& slice, uint32_t& out
 			}
 		} else if (first < 0xF8) { // four byte character
 			if (rem > 3) {
-				const uint8_t second = bytes[1];
-				const uint8_t third = bytes[2];
-				const uint8_t fourth = bytes[3];
+				const uint8_t second = static_cast<uint8_t>(bytes[1]);
+				const uint8_t third = static_cast<uint8_t>(bytes[2]);
+				const uint8_t fourth = static_cast<uint8_t>(bytes[3]);
 				if (_IsSuffixChar(second) && _IsSuffixChar(third) && _IsSuffixChar(fourth)) {
 					out = (static_cast<uint32_t>(first & 0x07) << 18)
 						+ (static_cast<uint32_t>(second & 0x3F) << 12)

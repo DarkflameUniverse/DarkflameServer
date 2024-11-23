@@ -1396,7 +1396,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		// Need to use memcpy instead of reinterpret_cast to avoid UB
+		// Need to use memcpy instead of reinterpret_cast to avoid misaligned reads, which are UB
 		auto messageId = MessageType::World::INVALID;
 		std::memcpy(&messageId, &packet->data[3], sizeof(MessageType::World));
 
