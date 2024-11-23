@@ -94,7 +94,7 @@ AMFValue(const char*) -> AMFValue<std::string>; // AMFStringValue
  */
 class AMFArrayValue : public AMFBaseValue {
 	using AMFAssociative =
-		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<>>;
+		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<void>>;
 
 	using AMFDense = std::vector<std::unique_ptr<AMFBaseValue>>;
 

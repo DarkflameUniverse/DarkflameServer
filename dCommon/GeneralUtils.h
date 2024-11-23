@@ -137,7 +137,7 @@ namespace GeneralUtils {
 	template <typename... Bases>
 	struct overload : Bases... {
 		using is_transparent = void;
-		using Bases::operator() ... ;
+		using Bases::operator()...;
 	};
 
 	struct char_pointer_hash {

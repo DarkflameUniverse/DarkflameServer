@@ -5,8 +5,8 @@ project(Darkflame
 )
 
 # TEMP - Sanitizer flags
-if (UNIX)
-# add_compile_options("-fsanitize=address,undefined" "-fvisibility=default")
+if (UNIX AND NOT APPLE)
+	# add_compile_options("-fsanitize=address,undefined" "-fvisibility=default")
 	add_compile_options("-fsanitize=undefined" "-fvisibility=default")
 	add_link_options("-fsanitize=undefined")
 
