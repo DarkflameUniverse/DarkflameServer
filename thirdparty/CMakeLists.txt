@@ -2,29 +2,40 @@
 add_subdirectory(recastnavigation)
 
 # Source Code for libbcrypt.  Uses a file glob instead to get around Windows build issues.
-file(
-	GLOB SOURCES_LIBBCRYPT
-	LIST_DIRECTORIES false
-	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
-)
+# file(
+# 	GLOB SOURCES_LIBBCRYPT
+# 	LIST_DIRECTORIES false
+# 	RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+# 	${CMAKE_CURRENT_SOURCE_DIR}/libbcrypt/src/*.c
+# )
 
-add_library(bcrypt ${SOURCES_LIBBCRYPT})
+# add_library(bcrypt ${SOURCES_LIBBCRYPT})
+FetchContent_MakeAvailable(bcrypt)
+
+# Fix BCrypt header includes
+get_target_property(BCRYPT_INCLUDES bcrypt INCLUDE_DIRECTORIES)
+message(STATUS "BYCRPT_INCLUDES = ${BCRYPT_INCLUDES}")
+target_include_directories(bcrypt INTERFACE ${BCRYPT_INCLUDES})
+
+cmake_print_properties(TARGETS bcrypt PROPERTIES
+                       PUBLIC_HEADER
+					   INCLUDE_DIRECTORIES
+                       INTERFACE_INCLUDE_DIRECTORIES)
 
 # Because we are not using the libbcrypt CMakeLists.txt, we need to include these headers for the library to use.
 # fortunately they are only needed for building the libbcrypt directory and nothing else, so these are marked private.
 
-if(NOT WIN32)
-	target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
-endif()
+# if(NOT WIN32)
+# 	target_include_directories(bcrypt PRIVATE "libbcrypt/include/bcrypt")
+# endif()
 
 # Need to define this on Clang and GNU for 'strdup' support
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
-endif()
+# if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+# 	target_compile_definitions(bcrypt PRIVATE "_POSIX_C_SOURCE=200809L")
+# endif()
 
-target_include_directories(bcrypt INTERFACE "libbcrypt/include")
-target_include_directories(bcrypt PRIVATE "libbcrypt/src")
+# target_include_directories(bcrypt INTERFACE "libbcrypt/include")
+# target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
 # Source code for sqlite
 add_subdirectory(SQLite)

@@ -120,6 +120,13 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
 )
 FetchContent_Declare(
+	bcrypt
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/libbcrypt
+	GIT_REPOSITORY https://github.com/trusch/libbcrypt.git
+	GIT_TAG        d6523c370de6e724ce4ec703e2449b5b028ea3b1
+)
+FetchContent_Declare(
 	magic_enum
 	SYSTEM
 	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/magic_enum
