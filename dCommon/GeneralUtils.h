@@ -3,6 +3,7 @@
 // C++
 #include <charconv>
 #include <cstdint>
+#include <cstring>
 #include <ctime>
 #include <functional>
 #include <optional>
@@ -151,6 +152,26 @@ namespace GeneralUtils {
 		std::hash<std::string_view>,
 		char_pointer_hash
 	>;
+
+	/**
+	 * A convenience wrapper around std::memcpy that creates a new object
+	 * from the value representation of the provided bytes.Use when
+	 * std::bit_cast is not applicable.
+	 * @warning All restrictions of std::memcpy still apply. Accessing
+	 * outside of the source object is undefined behavior.
+	 * @param from The source of the value representation
+	 * @returns A new object with the given value representation
+	 */
+    template <typename To, typename From>
+    [[nodiscard]]
+    inline To FromBitsUnchecked(const From* from) noexcept 
+    requires (std::is_trivially_copyable_v<To>
+              && std::is_trivially_copyable_v<From>)
+    {
+        To to{};
+        std::memcpy(&to, from, sizeof(To));
+        return to;
+    }
 
 	// Concept constraining to enum types
 	template <typename T>

@@ -81,11 +81,10 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
 		const time_t endTime = std::time(0);
-		
-		// Using memcpy since misaligned reads are UB
-		time_t startTime{};
-		std::memcpy(&startTime, &data->values[1], sizeof(time_t));
-		const time_t finish = (endTime - startTime);
+
+		// Using FromBitsUnchecked to create new time_t object since misaligned reads are UB
+		const time_t startTime = GeneralUtils::FromBitsUnchecked<time_t>(&data->values[1]);
+		const time_t finish = endTime - startTime;
 		
 		std::memcpy(&data->values[2], &finish, sizeof(float));
 

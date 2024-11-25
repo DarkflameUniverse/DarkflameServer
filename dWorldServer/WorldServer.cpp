@@ -1396,9 +1396,8 @@ void HandlePacket(Packet* packet) {
 	}
 
 	default:
-		// Need to use memcpy instead of reinterpret_cast to avoid misaligned reads, which are UB
-		auto messageId = MessageType::World::INVALID;
-		std::memcpy(&messageId, &packet->data[3], sizeof(MessageType::World));
+		// Need to use FromBitsUnchecked (aka memcpy) instead of reinterpret_cast to avoid misaligned reads, which are UB
+		const auto messageId = GeneralUtils::FromBitsUnchecked<MessageType::World>(&packet->data[3]);
 
 		const std::string_view messageIdString = StringifiedEnum::ToString(messageId);
 		LOG("Unknown world packet received: %4i, %s", messageId, messageIdString.data());
