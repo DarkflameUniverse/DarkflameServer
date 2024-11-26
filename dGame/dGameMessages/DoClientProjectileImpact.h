@@ -27,7 +27,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream& stream) {
-		stream.Write(eGameMessageType::DO_CLIENT_PROJECTILE_IMPACT);
+		stream.Write(MessageType::Game::DO_CLIENT_PROJECTILE_IMPACT);
 
 		stream.Write(i64OrgID != LWOOBJID_EMPTY);
 		if (i64OrgID != LWOOBJID_EMPTY) stream.Write(i64OrgID);

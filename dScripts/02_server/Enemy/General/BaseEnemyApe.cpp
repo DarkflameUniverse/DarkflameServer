@@ -5,7 +5,7 @@
 #include "EntityManager.h"
 #include "EntityInfo.h"
 #include "SkillComponent.h"
-#include "eAninmationFlags.h"
+#include "eAnimationFlags.h"
 #include "RenderComponent.h"
 #include "eStateChangeType.h"
 

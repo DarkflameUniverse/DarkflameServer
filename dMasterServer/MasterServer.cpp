@@ -24,7 +24,7 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -473,8 +473,8 @@ void HandlePacket(Packet* packet) {
 	if (packet->length < 4) return;
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
-		switch (static_cast<eMasterMessageType>(packet->data[3])) {
-		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
+		switch (static_cast<MessageType::Master>(packet->data[3])) {
+		case MessageType::Master::REQUEST_PERSISTENT_ID: {
 			LOG("A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -486,7 +486,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
+		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
 			LOG("Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -522,7 +522,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SERVER_INFO: {
+		case MessageType::Master::SERVER_INFO: {
 			//MasterPackets::HandleServerInfo(packet);
 
 			//This is here because otherwise we'd have to include IM in
@@ -583,7 +583,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SET_SESSION_KEY: {
+		case MessageType::Master::SET_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
 			inStream.Read(sessionKey);
@@ -595,7 +595,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
@@ -609,7 +609,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_SESSION_KEY: {
+		case MessageType::Master::REQUEST_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			LUWString username;
 			inStream.Read(username);
@@ -617,7 +617,7 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
 					Game::server->Send(bitStream, packet->systemAddress, false);
@@ -627,7 +627,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_ADDED: {
+		case MessageType::Master::PLAYER_ADDED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -647,7 +647,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_REMOVED: {
+		case MessageType::Master::PLAYER_REMOVED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -665,7 +665,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::CREATE_PRIVATE_ZONE: {
+		case MessageType::Master::CREATE_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -689,7 +689,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_PRIVATE_ZONE: {
+		case MessageType::Master::REQUEST_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -724,7 +724,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::WORLD_READY: {
+		case MessageType::Master::WORLD_READY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -748,7 +748,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PREP_ZONE: {
+		case MessageType::Master::PREP_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -764,7 +764,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::AFFIRM_TRANSFER_RESPONSE: {
+		case MessageType::Master::AFFIRM_TRANSFER_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -784,7 +784,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_RESPONSE: {
+		case MessageType::Master::SHUTDOWN_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -799,7 +799,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
+		case MessageType::Master::SHUTDOWN_UNIVERSE: {
 			LOG("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::universeShutdownRequested = true;
 			break;
@@ -829,7 +829,7 @@ int ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}

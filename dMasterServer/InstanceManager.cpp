@@ -10,7 +10,7 @@
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 
 #include "Start.h"
 
@@ -177,7 +177,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::AFFIRM_TRANSFER_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
 
@@ -359,7 +359,7 @@ bool Instance::GetShutdownComplete() const {
 void Instance::Shutdown() {
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
 
 	Game::server->Send(bitStream, this->m_SysAddr, false);
 

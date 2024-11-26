@@ -6,7 +6,7 @@
 #include "SkillComponent.h"
 #include "BaseCombatAIComponent.h"
 #include "EntityInfo.h"
-#include "eAninmationFlags.h"
+#include "eAnimationFlags.h"
 #include "RenderComponent.h"
 
 void AmDarklingDragon::OnStartup(Entity* self) {
