@@ -12,7 +12,10 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 	if (splitArguments.size() > 1) {
 
 		const auto eventName = splitArguments[0];
-		const auto player = Game::entityManager->GetEntity(std::stoull(splitArguments[1]));
+		auto playerId = GeneralUtils::TryParse<LWOOBJID>(splitArguments[1]);
+		if (!playerId) return;
+
+		const auto player = Game::entityManager->GetEntity(playerId.value());
 
 		if (player != nullptr) {
 			if (eventName == "updatePlayer") {
