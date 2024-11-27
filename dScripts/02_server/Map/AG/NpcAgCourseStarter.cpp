@@ -50,9 +50,9 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 		if (data->values[1] != 0) return;
 
+		// Convert to 32 bit time (Note: could try and fix the 2038 problem here by using a different epoch maybe?)
 		const time_t startTime = std::time(0) + 4; // Offset for starting timer
-
-		std::memcpy(&data->values[1], &startTime, sizeof(float));
+		data->values[1] = std::bit_cast<float>(static_cast<int32_t>(startTime));
 
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
@@ -81,12 +81,9 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
 		const time_t endTime = std::time(0);
-
-		// Using FromBitsUnchecked to create new time_t object since misaligned reads are UB
-		const time_t startTime = GeneralUtils::FromBitsUnchecked<time_t>(&data->values[1]);
+		const time_t startTime = std::bit_cast<int32_t>(data->values[1]);
 		const time_t finish = endTime - startTime;
-		
-		std::memcpy(&data->values[2], &finish, sizeof(float));
+		data->values[2] = std::bit_cast<float>(static_cast<int32_t>(finish));
 
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
