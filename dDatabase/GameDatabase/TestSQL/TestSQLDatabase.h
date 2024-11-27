@@ -90,6 +90,7 @@ class TestSQLDatabase : public GameDatabase {
 	std::string GetBehavior(const int32_t behaviorId) override;
 	void RemoveBehavior(const int32_t behaviorId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
+	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override { return {}; };
 };
 
 #endif  //!TESTSQLDATABASE_H

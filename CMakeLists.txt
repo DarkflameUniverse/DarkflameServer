@@ -75,7 +75,7 @@ if(UNIX)
 	endif()
 
 	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		add_compile_options("-rdynamic")
+		add_link_options("-export-dynamic")
 	endif()
 
 	if(${GGDB})

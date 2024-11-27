@@ -2,6 +2,7 @@
 #include "EntityManager.h"
 #include "eTriggerEventType.h"
 #include "RenderComponent.h"
+#include "DestroyableComponent.h"
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
@@ -11,6 +12,13 @@ SwitchComponent::SwitchComponent(Entity* parent) : Component(parent) {
 	m_ResetTime = m_Parent->GetVarAs<int32_t>(u"switch_reset_time");
 
 	m_QuickBuild = m_Parent->GetComponent<QuickBuildComponent>();
+
+	const auto factions = GeneralUtils::SplitString(m_Parent->GetVar<std::u16string>(u"respond_to_faction"), u':');
+	for (const auto& faction : factions) {
+		auto factionID = GeneralUtils::TryParse<int32_t>(GeneralUtils::UTF16ToWTF8(faction));
+		if (!factionID) continue;
+		m_FactionsToRespondTo.push_back(factionID.value());
+	}
 }
 
 SwitchComponent::~SwitchComponent() {
@@ -23,6 +31,17 @@ SwitchComponent::~SwitchComponent() {
 
 void SwitchComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	outBitStream.Write(m_Active);
+}
+
+void SwitchComponent::OnUse(Entity* originator) {
+	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
+	for (const auto faction : m_FactionsToRespondTo) {
+		if (destroyableComponent->HasFaction(faction)) {
+			EntityEnter(originator);
+			break;
+		}
+	}
 }
 
 void SwitchComponent::SetActive(bool active) {
@@ -63,6 +82,7 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 			RenderComponent::PlayAnimation(m_Parent, u"engaged");
 			m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {
+			GameMessages::SendKnockback(entity->GetObjectID(), m_Parent->GetObjectID(), m_Parent->GetObjectID(), 0.0f, NiPoint3(0.0f, 17.0f, 0.0f));
 			Game::entityManager->SerializeEntity(m_Parent);
 		}
 
