@@ -137,7 +137,7 @@ FetchContent_Declare(
 	Recast
 	SYSTEM
 	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/recastnavigation
-	GIT_REPOSITORY https://github.com/recastnavigation/recastnavigation
+	GIT_REPOSITORY https://github.com/recastnavigation/recastnavigation.git
 	GIT_TAG        v1.6.0
 )
 FetchContent_Declare(
