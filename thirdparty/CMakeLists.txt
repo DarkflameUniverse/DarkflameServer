@@ -1,5 +1,5 @@
 # Source Code for recast
-add_subdirectory(recastnavigation)
+# add_subdirectory(recastnavigation)
 
 # Source Code for libbcrypt.  Uses a file glob instead to get around Windows build issues.
 # file(

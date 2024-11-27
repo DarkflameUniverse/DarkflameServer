@@ -134,19 +134,26 @@ FetchContent_Declare(
 	GIT_TAG        v0.9.7
 )
 FetchContent_Declare(
+	Recast
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/recastnavigation
+	GIT_REPOSITORY https://github.com/recastnavigation/recastnavigation
+	GIT_TAG        v1.6.0
+)
+FetchContent_Declare(
 	tinyxml2
 	SYSTEM
 	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/tinyxml2
 	GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
 	GIT_TAG        9.0.0
 )
-FetchContent_MakeAvailable(magic_enum tinyxml2)
+FetchContent_MakeAvailable(magic_enum Recast tinyxml2)
 
 # Turn off tinyxml2 testing
 set(tinyxml2_BUILD_TESTING OFF)
 
 include(CMakePrintHelpers)
-cmake_print_properties(TARGETS magic_enum tinyxml2 PROPERTIES
+cmake_print_properties(TARGETS magic_enum Recast tinyxml2 PROPERTIES
                        INTERFACE_INCLUDE_DIRECTORIES)
 
 # Create a /resServer directory
@@ -292,7 +299,6 @@ include_directories(
 
 	SYSTEM
 	"thirdparty/raknet/Source"
-	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
