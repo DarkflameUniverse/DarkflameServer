@@ -25,7 +25,7 @@ public:
 	User& operator=(const User& other);
 	bool operator==(const User& other) const;
 
-	uint32_t GetAccountID() { return m_AccountID; }
+	uint32_t GetAccountID() const noexcept { return m_AccountID; }
 	std::string& GetUsername() { return m_Username; }
 	std::string& GetSessionKey() { return m_SessionKey; }
 	SystemAddress& GetSystemAddress() { return m_SystemAddress; }

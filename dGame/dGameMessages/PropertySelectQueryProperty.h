@@ -5,8 +5,7 @@
 
 #include "Entity.h"
 
-class PropertySelectQueryProperty final
-{
+class PropertySelectQueryProperty final {
 public:
 	void Serialize(RakNet::BitStream& stream) const;
 
@@ -23,9 +22,8 @@ public:
 	bool IsAlt = false;                             // Whether or not the property is owned by an alt of the account owner
 	bool IsOwned = false;                           // Whether or not the property is owned
 	uint32_t AccessType = 0;                        // The privacy option of the property
-	uint32_t DateLastPublished = 0;                 // The last day the property was published
+	uint64_t DateLastPublished = 0;                 // The last day the property was published
 	float PerformanceCost = 0;                      // The performance cost of the property
-	uint32_t PerformanceIndex = 0;                  // The performance index of the property?  Always 0?
 };
 
 #endif
