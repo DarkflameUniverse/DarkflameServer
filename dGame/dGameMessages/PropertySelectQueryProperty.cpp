@@ -29,10 +29,10 @@ void PropertySelectQueryProperty::Serialize(RakNet::BitStream& stream) const {
 	stream.Write(IsOwned);
 	stream.Write(AccessType);
 	stream.Write(DateLastPublished);
-	stream.Write(PerformanceIndex);
 	stream.Write(PerformanceCost);
 }
 
 void PropertySelectQueryProperty::Deserialize(RakNet::BitStream& stream) const {
 	// Do we need this?
+	// no
 }
