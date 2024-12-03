@@ -14,10 +14,4 @@ target_include_directories(WorldServer PRIVATE
 )
 
 target_link_libraries(WorldServer ${COMMON_LIBRARIES}
-	dScripts
-	dGameBase
-	dComponents
-	dUtilities
-	dGameMessages
-	dInventory
-	dGame dChatFilter dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dNavigation dServer)
+	dScripts dGame dChatFilter dZoneManager dPhysics Detour Recast tinyxml2 dWorldServer dNavigation dServer)

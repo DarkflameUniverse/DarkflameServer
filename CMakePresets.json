@@ -47,124 +47,131 @@
 			"hidden": true,
 			"toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake"
 		},
+	  {
+		"name": "windows-msvc",
+		"inherits": "default",
+		"displayName": "[Multi] Windows (MSVC)",
+		"description": "Set architecture to 64-bit (b/c RakNet)",
+		"generator": "Visual Studio 17 2022",
+		"binaryDir": "${sourceDir}/build/msvc",
+		"architecture": {
+		  "value": "x64"
+		},
+		"condition": {
+		  "type": "equals",
+		  "lhs": "${hostSystemName}",
+		  "rhs": "Windows"
+		},
+
+		"vendor": {
+		  "microsoft.com/VisualStudioSettings/CMake/1.0": {
+			"intelliSenseMode": "windows-clang-x64"
+		  }
+		},
+		"toolset": "ClangCL"
+	  },
 		{
-			"name": "windows-msvc",
-			"inherits": "default",
-			"displayName": "[Multi] Windows (MSVC)",
-			"description": "Set architecture to 64-bit (b/c RakNet)",
-			"generator": "Visual Studio 17 2022",
-			"binaryDir": "${sourceDir}/build/msvc",
-			"architecture": {
-				"value": "x64"
-			},
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Windows"
-			}
+		  "name": "windows-default",
+		  "inherits": "windows-msvc",
+		  "displayName": "Windows only Configure Settings",
+		  "description": "Sets build and install directories",
+		  "generator": "Ninja",
+		  "condition": {
+			"type": "equals",
+			"lhs": "${hostSystemName}",
+			"rhs": "Windows"
+		  },
+		  "architecture": {
+			"value": "x64"
+		  }
 		},
 		{
-			"name": "windows-default",
-			"inherits": "windows-msvc",
-			"displayName": "Windows only Configure Settings",
-			"description": "Sets build and install directories",
-			"generator": "Ninja",
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Windows"
-			},
-			"architecture": {
-				"value": "x64"
-			}
+		  "name": "linux-config",
+		  "inherits": "default",
+		  "hidden": true,
+		  "condition": {
+			"type": "equals",
+			"lhs": "${hostSystemName}",
+			"rhs": "Linux"
+		  }
 		},
 		{
-			"name": "linux-config",
-			"inherits": "default",
-			"hidden": true,
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Linux"
-			}
+		  "name": "linux-clang-debug",
+		  "inherits": [
+			"linux-config",
+			"clang-config",
+			"debug-config"
+		  ],
+		  "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+		  "description": "Create a debug build using the Clang toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/clang-debug"
 		},
 		{
-			"name": "linux-clang-debug",
-			"inherits": [
-				"linux-config",
-				"clang-config",
-				"debug-config"
-			],
-			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
-			"description": "Create a debug build using the Clang toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/clang-debug"
+		  "name": "linux-clang-relwithdebinfo",
+		  "inherits": [
+			"linux-config",
+			"clang-config",
+			"relwithdebinfo-config"
+		  ],
+		  "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+		  "description": "Create a release build with debug info using the Clang toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/clang-relwithdebinfo"
 		},
 		{
-			"name": "linux-clang-relwithdebinfo",
-			"inherits": [
-				"linux-config",
-				"clang-config",
-				"relwithdebinfo-config"
-			],
-			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
-			"description": "Create a release build with debug info using the Clang toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/clang-relwithdebinfo"
+		  "name": "linux-clang-release",
+		  "inherits": [
+			"linux-config",
+			"clang-config",
+			"release-config"
+		  ],
+		  "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+		  "description": "Create a release build using the Clang toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/clang-release"
 		},
 		{
-			"name": "linux-clang-release",
-			"inherits": [
-				"linux-config",
-				"clang-config",
-				"release-config"
-			],
-			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
-			"description": "Create a release build using the Clang toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/clang-release"
+		  "name": "linux-gnu-debug",
+		  "inherits": [
+			"linux-config",
+			"gnu-config",
+			"debug-config"
+		  ],
+		  "displayName": "[Debug] Linux (GNU)",
+		  "description": "Create a debug build using the GNU toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/gnu-debug"
 		},
 		{
-			"name": "linux-gnu-debug",
-			"inherits": [
-				"linux-config",
-				"gnu-config",
-				"debug-config"
-			],
-			"displayName": "[Debug] Linux (GNU)",
-			"description": "Create a debug build using the GNU toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/gnu-debug"
+		  "name": "linux-gnu-relwithdebinfo",
+		  "inherits": [
+			"linux-config",
+			"gnu-config",
+			"relwithdebinfo-config"
+		  ],
+		  "displayName": "[RelWithDebInfo] Linux (GNU)",
+		  "description": "Create a release build with debug info using the GNU toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/gnu-relwithdebinfo"
 		},
 		{
-			"name": "linux-gnu-relwithdebinfo",
-			"inherits": [
-				"linux-config",
-				"gnu-config",
-				"relwithdebinfo-config"
-			],
-			"displayName": "[RelWithDebInfo] Linux (GNU)",
-			"description": "Create a release build with debug info using the GNU toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/gnu-relwithdebinfo"
+		  "name": "linux-gnu-release",
+		  "inherits": [
+			"linux-config",
+			"gnu-config",
+			"release-config"
+		  ],
+		  "displayName": "[Release] Linux (GNU)",
+		  "description": "Create a release build using the GNU toolchain for Linux",
+		  "binaryDir": "${sourceDir}/build/gnu-release"
 		},
 		{
-			"name": "linux-gnu-release",
-			"inherits": [
-				"linux-config",
-				"gnu-config",
-				"release-config"
-			],
-			"displayName": "[Release] Linux (GNU)",
-			"description": "Create a release build using the GNU toolchain for Linux",
-			"binaryDir": "${sourceDir}/build/gnu-release"
-		},
-		{
-			"name": "macos",
-			"inherits": "default",
-			"displayName": "[Multi] MacOS",
-			"description": "Create a build for MacOS",
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Darwin"
-			},
-			"binaryDir": "${sourceDir}/build/macos"
+		  "name": "macos",
+		  "inherits": "default",
+		  "displayName": "[Multi] MacOS",
+		  "description": "Create a build for MacOS",
+		  "condition": {
+			"type": "equals",
+			"lhs": "${hostSystemName}",
+			"rhs": "Darwin"
+		  },
+		  "binaryDir": "${sourceDir}/build/macos"
 		}
 	],
 	"buildPresets": [
