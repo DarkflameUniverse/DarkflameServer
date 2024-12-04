@@ -1,11 +1,23 @@
 set(DMASTERSERVER_SOURCES
 	"InstanceManager.cpp"
 	"PersistentIDManager.cpp"
-	"Start.cpp"
+	"StartLocal.cpp"
 )
 
+if(WIN32 AND LOCAL_SERVER)
+	set(DMASTERSERVER_SOURCES ${DMASTERSERVER_SOURCES} "StartLocal.cpp") 
+else()
+	set(DMASTERSERVER_SOURCES ${DMASTERSERVER_SOURCES} "Start.cpp") 
+endif()
+
 add_library(dMasterServer ${DMASTERSERVER_SOURCES})
-add_executable(MasterServer "MasterServer.cpp")
+
+if (WIN32 AND LOCAL_SERVER)
+	add_library(MasterServer SHARED "MasterServer.cpp")
+else()
+	add_executable(MasterServer "MasterServer.cpp")
+endif()
+
 target_compile_definitions(MasterServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 target_include_directories(dMasterServer PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # InstanceManager.h uses dZMCommon.h

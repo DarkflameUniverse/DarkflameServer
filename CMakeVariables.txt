@@ -30,3 +30,6 @@ OPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/
 # Whether or not to cache the entire CDClient Database into memory instead of lazy loading.
 # 0 means to lazy load, all other values mean load the entire database.
 CDCLIENT_CACHE_ALL=0
+
+# Build a local client running server instead of a production server.
+LOCAL_SERVER=1

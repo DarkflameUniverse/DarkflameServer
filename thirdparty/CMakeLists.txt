@@ -31,6 +31,10 @@ endif()
 target_include_directories(bcrypt INTERFACE "libbcrypt/include")
 target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 
+if (WIN32)
+	add_subdirectory(hijackkit)
+endif()
+
 # Source code for sqlite
 add_subdirectory(SQLite)
 

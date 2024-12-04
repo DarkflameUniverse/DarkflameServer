@@ -5,7 +5,12 @@ set(DWORLDSERVER_SOURCES
 add_library(dWorldServer OBJECT ${DWORLDSERVER_SOURCES})
 target_link_libraries(dWorldServer PUBLIC dGameBase dCommon)
 
-add_executable(WorldServer "WorldServer.cpp")
+if (WIN32 AND LOCAL_SERVER)
+	add_library(WorldServer SHARED "WorldServer.cpp")
+else()
+	add_executable(WorldServer "WorldServer.cpp")
+endif()
+
 target_include_directories(WorldServer PRIVATE "${PROJECT_SOURCE_DIR}/dChatFilter")
 add_compile_definitions(WorldServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 

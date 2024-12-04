@@ -41,7 +41,7 @@ namespace Game {
 
 void HandlePacket(Packet* packet);
 
-int main(int argc, char** argv) {
+int start(int argc, char** argv) {
 	constexpr uint32_t chatFramerate = mediumFramerate;
 	constexpr uint32_t chatFrameDelta = mediumFrameDelta;
 	Diagnostics::SetProcessName("Chat");
@@ -177,6 +177,43 @@ int main(int argc, char** argv) {
 
 	return EXIT_SUCCESS;
 }
+
+#ifdef LOCAL_SERVER
+BOOL WINAPI DllMain(
+	HINSTANCE hinstDLL,  // handle to DLL module
+	DWORD fdwReason,     // reason for calling function
+	LPVOID lpvReserved)  // reserved
+{
+	// Perform actions based on the reason for calling.
+	switch (fdwReason) {
+	case DLL_PROCESS_ATTACH:
+		start(0, nullptr);
+		break;
+
+	case DLL_THREAD_ATTACH:
+		// Do thread-specific initialization.
+		break;
+
+	case DLL_THREAD_DETACH:
+		// Do thread-specific cleanup.
+		break;
+
+	case DLL_PROCESS_DETACH:
+
+		if (lpvReserved != nullptr) {
+			break; // do not do cleanup if process termination scenario
+		}
+
+		// Perform any necessary cleanup.
+		break;
+	}
+	return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}
+#else
+int main(int argc, char** argv) {
+	return start(argc, argv);
+}
+#endif
 
 void HandlePacket(Packet* packet) {
 	if (packet->length < 1) return;

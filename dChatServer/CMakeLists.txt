@@ -4,7 +4,13 @@ set(DCHATSERVER_SOURCES
 	"PlayerContainer.cpp"
 )
 
-add_executable(ChatServer "ChatServer.cpp")
+
+if (WIN32 AND LOCAL_SERVER)
+	add_library(ChatServer SHARED "ChatServer.cpp")
+else()
+	add_executable(ChatServer "ChatServer.cpp")
+endif()
+
 target_include_directories(ChatServer PRIVATE "${PROJECT_SOURCE_DIR}/dChatFilter")
 add_compile_definitions(ChatServer PRIVATE PROJECT_VERSION="\"${PROJECT_VERSION}\"")
 

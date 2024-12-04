@@ -120,7 +120,8 @@ uint32_t instanceID = 0;
 uint32_t g_CloneID = 0;
 std::string databaseChecksum = "";
 
-int main(int argc, char** argv) {
+
+int start(int argc, char** argv) {
 	Diagnostics::SetProcessName("World");
 	Diagnostics::SetProcessFileName(argv[0]);
 	Diagnostics::Initialize();
@@ -526,9 +527,49 @@ int main(int argc, char** argv) {
 		Metrics::AddMeasurement(MetricVariable::CPUTime, (1e6 * (1000.0 * (std::clock() - metricCPUTimeStart))) / CLOCKS_PER_SEC);
 		Metrics::EndMeasurement(MetricVariable::Frame);
 	}
+
 	FinalizeShutdown();
+
 	return EXIT_SUCCESS;
 }
+
+
+#ifdef LOCAL_SERVER
+BOOL WINAPI DllMain(
+	HINSTANCE hinstDLL,  // handle to DLL module
+	DWORD fdwReason,     // reason for calling function
+	LPVOID lpvReserved)  // reserved
+{
+	// Perform actions based on the reason for calling.
+	switch (fdwReason) {
+	case DLL_PROCESS_ATTACH:
+		start(0, nullptr);
+		break;
+
+	case DLL_THREAD_ATTACH:
+		// Do thread-specific initialization.
+		break;
+
+	case DLL_THREAD_DETACH:
+		// Do thread-specific cleanup.
+		break;
+
+	case DLL_PROCESS_DETACH:
+
+		if (lpvReserved != nullptr) {
+			break; // do not do cleanup if process termination scenario
+		}
+
+		// Perform any necessary cleanup.
+		break;
+	}
+	return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}
+#else
+int main(int argc, char** argv) {
+	return start(argc, argv);
+}
+#endif
 
 void HandlePacketChat(Packet* packet) {
 	if (packet->length < 1) return;
