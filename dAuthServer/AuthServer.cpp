@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;

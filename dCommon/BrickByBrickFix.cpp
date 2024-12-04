@@ -123,7 +123,7 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
 				LOG("Updated model %i to sd0", model.id);
 				updatedModels++;
-			} catch (sql::SQLException exception) {
+			} catch (std::exception& exception) {
 				LOG("Failed to update model %i.  This model should be inspected manually to see why."
 					"The database error is %s", model.id, exception.what());
 			}
