@@ -76,6 +76,19 @@
 			}
 		},
 		{
+			"name": "windows-msvc-clang",
+			"inherits": [
+				"windows-msvc",
+				"clang-config"
+			],
+			"displayName": "EXPERIMENTAL - [Multi] Windows (MSVC - Clang)",
+			"description": "Create a build using the Clang toolchain for MSVC",
+			"binaryDir": "${sourceDir}/build/msvc-clang",
+			"environment": {
+				"CMAKE_GENERATOR_TOOLSET": "ClangCL"
+			}
+		},
+		{
 			"name": "linux-config",
 			"inherits": "default",
 			"hidden": true,
@@ -194,6 +207,30 @@
 			"configurePreset": "windows-msvc",
 			"displayName": "[Release] Windows (MSVC)",
 			"description": "This preset is used to build in release mode using the MSVC toolchain on Windows",
+			"configuration": "Release"
+		},
+		{
+			"name": "windows-msvc-clang-debug",
+			"inherits": "default",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [Debug] Windows (MSVC - Clang)",
+			"description": "This preset is used to build in debug mode using the Clang toolchain on Windows MSVC",
+			"configuration": "Debug"
+		},
+		{
+			"name": "windows-msvc-clang-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Windows (MSVC - Clang)",
+			"description": "This preset is used to build in debug mode using the Clang toolchain on Windows MSVC",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "windows-msvc-clang-release",
+			"inherits": "default",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [Release] Windows (MSVC - Clang)",
+			"description": "This preset is used to build in release mode using the Clang toolchain on Windows MSVC",
 			"configuration": "Release"
 		},
 		{
