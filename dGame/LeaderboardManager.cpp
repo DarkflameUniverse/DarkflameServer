@@ -272,7 +272,6 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 
 	const auto oldScore = Database::Get()->GetPlayerScore(playerID, activityId);
 
-	std::string saveQuery("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;");
 	ILeaderboard::Score newScore{ .primaryScore = primaryScore, .secondaryScore = secondaryScore, .tertiaryScore = tertiaryScore };
 	if (oldScore.has_value()) {
 		bool lowerScoreBetter = leaderboardType == Leaderboard::Type::Racing || leaderboardType == Leaderboard::Type::MonumentRace;
@@ -286,13 +285,13 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 			ILeaderboard::Score newScoreFlipped(newScore.secondaryScore, newScore.primaryScore);
 			newHighScore = newScoreFlipped > oldScoreFlipped;
 		}
+
 		if (newHighScore) {
 			Database::Get()->UpdateScore(playerID, activityId, newScore);
 		}
 	} else {
 		Database::Get()->SaveScore(playerID, activityId, newScore);
 	}
-	LOG("save query %s %i %i", saveQuery.c_str(), playerID, activityId);
 
 	// track wins separately
 	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
