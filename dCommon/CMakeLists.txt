@@ -45,11 +45,14 @@ if (UNIX)
 elseif (WIN32)
 	include(FetchContent)
 
+    set(WITH_GTEST OFF CACHE BOOL "" FORCE)
+    set(ZLIB_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+
 	# TODO Keep an eye on the zlib repository for an update to disable testing.  Don't forget to update CMakePresets
 	FetchContent_Declare(
 		zlib
-		URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
-		URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
+		URL https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.2.zip
+		URL_HASH MD5=2cf9199fb785ea579a2a9905a75c38b3
 	)
 
 	# Disable warning about no project version.
@@ -60,7 +63,6 @@ elseif (WIN32)
 	FetchContent_MakeAvailable(zlib)
 
 	set(ZLIB_INCLUDE_DIRS ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
-	set_target_properties(zlib PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${ZLIB_INCLUDE_DIRS}")
 	add_library(ZLIB::ZLIB ALIAS zlib)
 else ()
 	message(
