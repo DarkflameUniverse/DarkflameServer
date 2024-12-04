@@ -71,7 +71,7 @@ if(UNIX)
 
 	# For all except Clang and Apple Clang
 	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		add_compile_options("-static-libgcc" "-lstdc++fs")
+		add_compile_options("-static-libgcc" "-lstdc++fs" "-Wno-error=implicit-function-declaration" "-Wno-error=int-conversion")
 	endif()
 
 	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
