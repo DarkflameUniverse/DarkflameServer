@@ -91,6 +91,8 @@ class TestSQLDatabase : public GameDatabase {
 	void RemoveBehavior(const int32_t behaviorId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override { return {}; };
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override {};
+	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 };
 
 #endif  //!TESTSQLDATABASE_H
