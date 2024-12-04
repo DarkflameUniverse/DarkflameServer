@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "dConfig.h"
 #include "Logger.h"
-#include "MySQLDatabase.h"
+#include "SQLiteDatabase.h"
 #include "DluAssert.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
@@ -17,7 +17,7 @@ void Database::Connect() {
 		return;
 	}
 
-	database = new MySQLDatabase();
+	database = new SQLiteDatabase();
 	database->Connect();
 }
 

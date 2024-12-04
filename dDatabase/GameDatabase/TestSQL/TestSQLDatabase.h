@@ -7,7 +7,6 @@ class TestSQLDatabase : public GameDatabase {
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query) override;
 	void Commit() override;
 	bool GetAutoCommit() override;
 	void SetAutoCommit(bool value) override;

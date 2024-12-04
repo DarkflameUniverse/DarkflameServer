@@ -1,1 +1,0 @@
-ALTER TABLE charinfo ADD UNIQUE (name);

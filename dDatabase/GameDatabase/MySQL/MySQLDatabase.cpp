@@ -65,9 +65,9 @@ void MySQLDatabase::ExecuteCustomQuery(const std::string_view query) {
 	std::unique_ptr<sql::Statement>(con->createStatement())->execute(query.data());
 }
 
-sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& query) {
+sql::PreparedStatement* CreatePreppedStmt(const std::string& query) {
 	if (!con) {
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL");
 	}
 
@@ -76,7 +76,7 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 
 		con = nullptr;
 
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 

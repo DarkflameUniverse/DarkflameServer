@@ -2,10 +2,16 @@ set(DDATABASE_GAMEDATABASE_SOURCES
 	"Database.cpp"
 )
 
-add_subdirectory(MySQL)
+# add_subdirectory(MySQL)
+# 
+# foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
+# 	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
+# endforeach()
 
-foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
-	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
+add_subdirectory(SQLite)
+
+foreach(file ${DDATABSE_DATABSES_SQLITE_SOURCES})
+	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "SQLite/${file}")
 endforeach()
 
 add_subdirectory(TestSQL)
@@ -16,7 +22,7 @@ endforeach()
 
 add_library(dDatabaseGame STATIC ${DDATABASE_GAMEDATABASE_SOURCES})
 target_include_directories(dDatabaseGame PUBLIC "."
-	"ITables" PRIVATE "MySQL" "TestSQL"
+	"ITables" PRIVATE "MySQL" "SQLite" "TestSQL"
 	"${PROJECT_SOURCE_DIR}/dCommon"
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 )

@@ -26,13 +26,8 @@
 #include "IBehaviors.h"
 #include "IUgcModularBuild.h"
 
-namespace sql {
-	class Statement;
-	class PreparedStatement;
-};
-
 #ifdef _DEBUG
-#  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (sql::SQLException& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
+#  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (std::exception& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
 #else
 #  define DLU_SQL_TRY_CATCH_RETHROW(x) x
 #endif // _DEBUG
@@ -50,7 +45,6 @@ public:
 	virtual void Connect() = 0;
 	virtual void Destroy(std::string source = "") = 0;
 	virtual void ExecuteCustomQuery(const std::string_view query) = 0;
-	virtual sql::PreparedStatement* CreatePreppedStmt(const std::string& query) = 0;
 	virtual void Commit() = 0;
 	virtual bool GetAutoCommit() = 0;
 	virtual void SetAutoCommit(bool value) = 0;
