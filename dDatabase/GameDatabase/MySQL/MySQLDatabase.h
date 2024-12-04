@@ -114,7 +114,8 @@ public:
 	void RemoveBehavior(const int32_t characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
-	std::vector<ILeaderboard::Entry> GetDefaultLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) override;
 	void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;

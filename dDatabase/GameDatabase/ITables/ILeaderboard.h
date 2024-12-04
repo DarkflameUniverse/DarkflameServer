@@ -32,7 +32,8 @@ public:
 	// Get the donation total for the given activity id.
 	virtual std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) = 0;
 
-	virtual std::vector<ILeaderboard::Entry> GetDefaultLeaderboard(const uint32_t activityId) = 0;
+	virtual std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) = 0;
+	virtual std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) = 0;
 	virtual std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) = 0;
 	virtual std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) = 0;
 	virtual std::optional<Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) = 0;

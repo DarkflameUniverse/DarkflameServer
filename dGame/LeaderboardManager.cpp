@@ -198,7 +198,10 @@ std::vector<ILeaderboard::Entry> FilterFriends(const std::vector<ILeaderboard::E
 	auto friendOfPlayer = Database::Get()->GetFriendsList(relatedPlayer);
 	std::vector<ILeaderboard::Entry> friendsLeaderboard;
 	for (const auto& entry : leaderboard) {
-		if (std::ranges::find_if(friendOfPlayer, [&entry](const FriendData& data) { return entry.charId == data.friendID; }) != friendOfPlayer.end()) {
+		const auto res = std::ranges::find_if(friendOfPlayer, [&entry, relatedPlayer](const FriendData& data) {
+			return entry.charId == data.friendID || entry.charId == relatedPlayer;
+			});
+		if (res != friendOfPlayer.cend()) {
 			friendsLeaderboard.push_back(entry);
 		}
 	}
@@ -234,11 +237,12 @@ void Leaderboard::SetupLeaderboard(bool weekly) {
 	case Type::Survival:
 		leaderboardRes = Database::Get()->GetAgsLeaderboard(gameID);
 		break;
-	case Type::ShootingGallery:
-		[[fallthrough]];
 	case Type::Racing:
 		[[fallthrough]];
 	case Type::MonumentRace:
+		leaderboardRes = Database::Get()->GetAscendingLeaderboard(gameID);
+		break;
+	case Type::ShootingGallery:
 		[[fallthrough]];
 	case Type::FootRace:
 		[[fallthrough]];
@@ -247,7 +251,7 @@ void Leaderboard::SetupLeaderboard(bool weekly) {
 	case Type::None:
 		[[fallthrough]];
 	default:
-		leaderboardRes = Database::Get()->GetDefaultLeaderboard(gameID);
+		leaderboardRes = Database::Get()->GetDescendingLeaderboard(gameID);
 		break;
 	}
 
