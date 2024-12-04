@@ -149,7 +149,7 @@ std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entr
 
 	int32_t index = 0;
 	// for friends and top, we dont need to find this players index.
-	if (infoType == Leaderboard::InfoType::MyStanding) {
+	if (infoType == Leaderboard::InfoType::MyStanding || infoType == Leaderboard::InfoType::Friends) {
 		for (; index < leaderboard.size(); index++) {
 			if (leaderboard[index].charId == relatedPlayer) break;
 		}
@@ -157,12 +157,16 @@ std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entr
 
 	if (leaderboard.size() < 10) {
 		toReturn.assign(leaderboard.begin(), leaderboard.end());
+		index = 0;
 	} else if (index < 10) {
 		toReturn.assign(leaderboard.begin(), leaderboard.begin() + 10); // get the top 10 since we are in the top 10
+		index = 0;
 	} else if (index > leaderboard.size() - 10) {
 		toReturn.assign(leaderboard.end() - 10, leaderboard.end()); // get the bottom 10 since we are in the bottom 10
+		index = leaderboard.size() - 10;
 	} else {
 		toReturn.assign(leaderboard.begin() + index - 5, leaderboard.begin() + index + 5); // get the 5 above and below
+		index -= 5;
 	}
 
 	int32_t i = index;

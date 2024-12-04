@@ -41,7 +41,7 @@ std::vector<ILeaderboard::Entry> MySQLDatabase::GetDefaultLeaderboard(const uint
 }
 
 std::vector<ILeaderboard::Entry> MySQLDatabase::GetAgsLeaderboard(const uint32_t activityId) {
-	auto query = Game::config->GetValue("classic_survival_scoring") == "1" ? 
+	auto query = Game::config->GetValue("classic_survival_scoring") != "1" ? 
 	"SELECT *, UNIX_TIMESTAMP(last_played) as lp_unix, ci.name as char_name FROM leaderboard lb JOIN charinfo ci on ci.id = lb.character_id where game_id = ? ORDER BY primaryscore DESC, secondaryscore DESC, tertiaryScore DESC, last_played ASC;" : 
 	"SELECT *, UNIX_TIMESTAMP(last_played) as lp_unix, ci.name as char_name FROM leaderboard lb JOIN charinfo ci on ci.id = lb.character_id where game_id = ? ORDER BY secondaryscore DESC, primaryscore DESC, tertiaryScore DESC, last_played ASC;";
 	auto leaderboard = ExecuteSelect(query, activityId);
