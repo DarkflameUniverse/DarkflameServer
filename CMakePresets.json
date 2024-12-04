@@ -87,7 +87,7 @@
 			"displayName": "EXPERIMENTAL - [Multi] Windows (MSVC - Clang)",
 			"description": "Create a build using the Clang toolchain for MSVC",
 			"binaryDir": "${sourceDir}/build/msvc-clang",
-			"environment": {
+			"cacheVariables": {
 				"CMAKE_GENERATOR_TOOLSET": "ClangCL"
 			}
 		},
