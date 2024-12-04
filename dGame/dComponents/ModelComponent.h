@@ -66,8 +66,8 @@ public:
 	template<typename Msg>
 	void HandleControlBehaviorsMsg(const AMFArrayValue& args) {
 		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
-		Msg msg(args);
-		for (auto& behavior : m_Behaviors) {
+		Msg msg{ args };
+		for (auto&& behavior : m_Behaviors) {
 			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) { 
 				behavior.HandleMsg(msg);
 				return;

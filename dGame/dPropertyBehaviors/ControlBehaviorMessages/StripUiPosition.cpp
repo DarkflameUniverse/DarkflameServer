@@ -3,7 +3,7 @@
 #include "Amf3.h"
 #include "tinyxml2.h"
 
-StripUiPosition::StripUiPosition(const AMFArrayValue& arguments, const std::string& uiKeyName) {
+StripUiPosition::StripUiPosition(const AMFArrayValue& arguments, const std::string_view uiKeyName) {
 	const auto* const uiArray = arguments.GetArray(uiKeyName);
 	if (!uiArray) return;
 

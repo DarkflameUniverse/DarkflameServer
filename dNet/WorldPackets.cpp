@@ -23,7 +23,7 @@ void HTTPMonitorInfo::Serialize(RakNet::BitStream &bitStream) const {
 
 void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum, LWOZONEID zone) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::LOAD_STATIC_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::LOAD_STATIC_ZONE);
 
 	bitStream.Write<uint16_t>(zone.GetMapID());
 	bitStream.Write<uint16_t>(zone.GetInstanceID());
@@ -44,28 +44,28 @@ void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, flo
 
 void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_CREATE_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHARACTER_CREATE_RESPONSE);
 	bitStream.Write(response);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_RENAME_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHARACTER_RENAME_RESPONSE);
 	bitStream.Write(response);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::DELETE_CHARACTER_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::DELETE_CHARACTER_RESPONSE);
 	bitStream.Write<uint8_t>(response);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::TRANSFER_TO_WORLD);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::TRANSFER_TO_WORLD);
 
 	bitStream.Write(LUString(serverIP));
 	bitStream.Write<uint16_t>(serverPort);
@@ -76,14 +76,14 @@ void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::
 
 void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SERVER_STATES);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::SERVER_STATES);
 	bitStream.Write<uint8_t>(1); //If the server is receiving this request, it probably is ready anyway.
 	SEND_PACKET;
 }
 
 void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CREATE_CHARACTER);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CREATE_CHARACTER);
 
 	RakNet::BitStream data;
 	data.Write<uint32_t>(7); //LDF key count
@@ -136,7 +136,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 
 void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHAT_MODERATION_STRING);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHAT_MODERATION_STRING);
 
 	bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
 	bitStream.Write<uint16_t>(0x16); // Source ID, unknown
@@ -160,7 +160,7 @@ void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool
 
 void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::MAKE_GM_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAKE_GM_RESPONSE);
 
 	bitStream.Write<uint8_t>(success);
 	bitStream.Write(static_cast<uint16_t>(highestLevel));
@@ -172,14 +172,14 @@ void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success,
 
 void WorldPackets::SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo& info) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::HTTP_MONITOR_INFO_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::HTTP_MONITOR_INFO_RESPONSE);
 	info.Serialize(bitStream);
 	SEND_PACKET;
 }
 
 void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string& data){
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::DEBUG_OUTPUT);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::DEBUG_OUTPUT);
 	bitStream.Write<uint32_t>(data.size());
 	bitStream.Write(data);
 	SEND_PACKET;

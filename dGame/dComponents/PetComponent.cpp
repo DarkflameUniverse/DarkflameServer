@@ -88,7 +88,7 @@ PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Compone
 	m_Ability = ePetAbilityType::Invalid;
 	m_StartPosition = NiPoint3Constant::ZERO;
 	m_MovementAI = nullptr;
-	m_TresureTime = 0;
+	m_TreasureTime = 0;
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
 
@@ -319,27 +319,27 @@ void PetComponent::Update(float deltaTime) {
 		return;
 	}
 
-	if (m_TresureTime > 0) {
-		auto* tresure = Game::entityManager->GetEntity(m_Interaction);
+	if (m_TreasureTime > 0) {
+		auto* treasure = Game::entityManager->GetEntity(m_Interaction);
 
-		if (tresure == nullptr) {
-			m_TresureTime = 0;
+		if (treasure == nullptr) {
+			m_TreasureTime = 0;
 
 			return;
 		}
 
-		m_TresureTime -= deltaTime;
+		m_TreasureTime -= deltaTime;
 
 		m_MovementAI->Stop();
 
-		if (m_TresureTime <= 0) {
+		if (m_TreasureTime <= 0) {
 			m_Parent->SetOwnerOverride(m_Owner);
 
-			tresure->Smash(m_Parent->GetObjectID());
+			treasure->Smash(m_Parent->GetObjectID());
 
 			m_Interaction = LWOOBJID_EMPTY;
 
-			m_TresureTime = 0;
+			m_TreasureTime = 0;
 		}
 
 		return;
@@ -381,7 +381,7 @@ void PetComponent::Update(float deltaTime) {
 			float distance = Vector3::DistanceSquared(position, switchPosition);
 			if (distance < 3 * 3) {
 				m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-				closestSwitch->EntityEnter(m_Parent);
+				closestSwitch->OnUse(m_Parent);
 			} else if (distance < 20 * 20) {
 				haltDistance = 1;
 
@@ -396,30 +396,30 @@ void PetComponent::Update(float deltaTime) {
 	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
 	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
 
-	Entity* closestTresure = PetDigServer::GetClosestTresure(position);
+	Entity* closestTreasure = PetDigServer::GetClosestTreasure(position);
 
-	if (closestTresure != nullptr && digUnlocked) {
+	if (closestTreasure != nullptr && digUnlocked) {
 		// Skeleton Dragon Pat special case for bone digging
-		if (closestTresure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
-			goto skipTresure;
+		if (closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
+			goto skipTreasure;
 		}
 
-		NiPoint3 tresurePosition = closestTresure->GetPosition();
-		float distance = Vector3::DistanceSquared(position, tresurePosition);
+		NiPoint3 treasurePosition = closestTreasure->GetPosition();
+		float distance = Vector3::DistanceSquared(position, treasurePosition);
 		if (distance < 5 * 5) {
-			m_Interaction = closestTresure->GetObjectID();
+			m_Interaction = closestTreasure->GetObjectID();
 
 			Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
 
-			m_TresureTime = 2;
+			m_TreasureTime = 2;
 		} else if (distance < 10 * 10) {
 			haltDistance = 1;
 
-			destination = tresurePosition;
+			destination = treasurePosition;
 		}
 	}
 
-skipTresure:
+skipTreasure:
 
 	m_MovementAI->SetHaltDistance(haltDistance);
 

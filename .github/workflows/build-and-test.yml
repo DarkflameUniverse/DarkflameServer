@@ -16,12 +16,12 @@ jobs:
         os: [ windows-2022, ubuntu-22.04, macos-13 ]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
       if: ${{ matrix.os == 'windows-2022' }}
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
@@ -33,21 +33,19 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: "ci-${{matrix.os}}"
-        buildPreset: "ci-${{matrix.os}}"
-        testPreset: "ci-${{matrix.os}}"
+        workflowPreset: "ci-${{matrix.os}}"
     - name: artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-${{matrix.os}}
         path: |
-          build/*Server*
-          build/*.ini
-          build/*.so
-          build/*.dll
-          build/vanity/
-          build/navmeshes/
-          build/migrations/
-          build/*.dcf
-          !build/*.pdb
-          !build/d*/
+          build/*/*Server*
+          build/*/*.ini
+          build/*/*.so
+          build/*/*.dll
+          build/*/vanity/
+          build/*/navmeshes/
+          build/*/migrations/
+          build/*/*.dcf
+          !build/*/*.pdb
+          !build/*/d*/

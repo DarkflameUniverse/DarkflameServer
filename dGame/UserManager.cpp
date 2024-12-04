@@ -26,7 +26,7 @@
 #include "eCharacterCreationResponse.h"
 #include "eRenameResponse.h"
 #include "eConnectionType.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 
@@ -216,7 +216,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 	}
 
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::CHARACTER_LIST_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHARACTER_LIST_RESPONSE);
 
 	std::vector<Character*> characters = u->GetCharacters();
 	bitStream.Write<uint8_t>(characters.size());
@@ -266,7 +266,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) {
 	User* u = GetUser(sysAddr);
 	if (!u) return;
-	
+
 	LUWString LUWStringName;
 	uint32_t firstNameIndex;
 	uint32_t middleNameIndex;
@@ -422,7 +422,7 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		Database::Get()->DeleteCharacter(charID);
 
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::UNEXPECTED_DISCONNECT);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 
@@ -439,7 +439,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID objectID;
-	inStream.Read(objectID);	
+	inStream.Read(objectID);
 	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
 	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 

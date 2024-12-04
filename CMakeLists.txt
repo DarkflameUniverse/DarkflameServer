@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
-project(Darkflame)
+project(Darkflame
+	HOMEPAGE_URL "https://github.com/DarkflameUniverse/DarkflameServer"
+	LANGUAGES C CXX
+)
 
 # check if the path to the source directory contains a space
 if("${CMAKE_SOURCE_DIR}" MATCHES " ")
@@ -8,8 +11,10 @@ endif()
 
 include(CTest)
 
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
-set(CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debugging
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
@@ -61,35 +66,36 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wuninitialized -fPIC")
+	add_compile_options("-fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
-	if(NOT APPLE)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -lstdc++fs")
+	# For all except Clang and Apple Clang
+	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+		add_compile_options("-static-libgcc" "-lstdc++fs")
 	endif()
 
 	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+		add_link_options("-export-dynamic")
 	endif()
 
 	if(${GGDB})
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+		add_compile_options("-ggdb")
 	endif()
-
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -fPIC")
 elseif(MSVC)
 	# Skip warning for invalid conversion from size_t to uint32_t for all targets below for now
 	# Also disable non-portable MSVC volatile behavior
-	add_compile_options("/wd4267" "/utf-8" "/volatile:iso")
+	add_compile_options("/wd4267" "/utf-8" "/volatile:iso" "/Zc:inline")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
 # Our output dir
-set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR})
 #set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, forces all libraries to be built in series, which will slow down the build process
 
 # TODO make this not have to override the build type directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR})
@@ -109,31 +115,39 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
+# Get DLU config directory
+if(DEFINED ENV{DLU_CONFIG_DIR})
+	set(DLU_CONFIG_DIR $ENV{DLU_CONFIG_DIR})
+else()
+	set(DLU_CONFIG_DIR ${PROJECT_BINARY_DIR})
+endif()
+message(STATUS "Variable: DLU_CONFIG_DIR = ${DLU_CONFIG_DIR}")
+
 # Copy resource files on first build
 set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
-UpdateConfigOption(${PROJECT_BINARY_DIR}/authconfig.ini "port" "auth_server_port")
-UpdateConfigOption(${PROJECT_BINARY_DIR}/chatconfig.ini "port" "chat_server_port")
-UpdateConfigOption(${PROJECT_BINARY_DIR}/masterconfig.ini "port" "master_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/authconfig.ini "port" "auth_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/chatconfig.ini "port" "chat_server_port")
+UpdateConfigOption(${DLU_CONFIG_DIR}/masterconfig.ini "port" "master_server_port")
 
 foreach(resource_file ${RESOURCE_FILES})
 	set(file_size 0)
 
-	if(EXISTS ${PROJECT_BINARY_DIR}/${resource_file})
-		file(SIZE ${PROJECT_BINARY_DIR}/${resource_file} file_size)
+	if(EXISTS ${DLU_CONFIG_DIR}/${resource_file})
+		file(SIZE ${DLU_CONFIG_DIR}/${resource_file} file_size)
 	endif()
 
 	if(${file_size} EQUAL 0)
 		configure_file(
-			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${PROJECT_BINARY_DIR}/${resource_file}
+			${CMAKE_SOURCE_DIR}/resources/${resource_file} ${DLU_CONFIG_DIR}/${resource_file}
 			COPYONLY
 		)
-		message(STATUS "Moved " ${resource_file} " to project binary directory")
+		message(STATUS "Moved " ${resource_file} " to DLU config directory")
 	elseif(resource_file MATCHES ".ini")
 		message(STATUS "Checking " ${resource_file} " for missing config options")
-		file(READ ${PROJECT_BINARY_DIR}/${resource_file} current_file_contents)
+		file(READ ${DLU_CONFIG_DIR}/${resource_file} current_file_contents)
 		string(REPLACE "\\\n" "" current_file_contents ${current_file_contents})
 		string(REPLACE "\n" ";" current_file_contents ${current_file_contents})
 		set(parsed_current_file_contents "")
@@ -164,10 +178,10 @@ foreach(resource_file ${RESOURCE_FILES})
 					set(line_to_add ${line_to_add} ${line})
 
 					foreach(line_to_append ${line_to_add})
-						file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n" ${line_to_append})
+						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
 					endforeach()
 
-					file(APPEND ${PROJECT_BINARY_DIR}/${resource_file} "\n")
+					file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
 				endif()
 
 				set(line_to_add "")
@@ -236,14 +250,15 @@ include_directories(
 	"tests/dGameTests"
 	"tests/dGameTests/dComponentsTests"
 
-	SYSTEM "thirdparty/magic_enum/include/magic_enum"
-	SYSTEM "thirdparty/raknet/Source"
-	SYSTEM "thirdparty/tinyxml2"
-	SYSTEM "thirdparty/recastnavigation"
-	SYSTEM "thirdparty/SQLite"
-	SYSTEM "thirdparty/cpplinq"
-	SYSTEM "thirdparty/cpp-httplib"
-	SYSTEM "thirdparty/MD5"
+	SYSTEM
+	"thirdparty/magic_enum/include/magic_enum"
+	"thirdparty/raknet/Source"
+	"thirdparty/tinyxml2"
+	"thirdparty/recastnavigation"
+	"thirdparty/SQLite"
+	"thirdparty/cpplinq"
+	"thirdparty/cpp-httplib"
+	"thirdparty/MD5"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
@@ -252,10 +267,17 @@ if(APPLE)
 	include_directories("/usr/local/include/")
 endif()
 
-# Add linking directories:
-if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Werror") # Warning flags
+# Set warning flags
+if(MSVC)
+	# add_compile_options("/W4")
+	# Want to enable warnings eventually, but WAY too much noise right now
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast")
+else()
+	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()
+
+# Add linking directories:
 file(
 	GLOB HEADERS_DZONEMANAGER
 	LIST_DIRECTORIES false

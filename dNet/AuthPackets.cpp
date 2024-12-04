@@ -20,8 +20,8 @@
 #include "eServerDisconnectIdentifiers.h"
 #include "eLoginResponse.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Master.h"
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 namespace {
@@ -63,7 +63,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	if (port != packet->systemAddress.port) LOG("WARNING: Port written in packet does not match the port the client is connecting over!");
 
 	inStream.IgnoreBytes(33);
-	
+
 	LOG_DEBUG("Client Data [Version: %i, Service: %s, Process: %u, Port: %u, Sysaddr Port: %u]", clientVersion, StringifiedEnum::ToString(serviceId).data(), processID, port, packet->systemAddress.port);
 
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
@@ -71,8 +71,8 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 
 void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::VERSION_CONFIRM);
-	
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, MessageType::Server::VERSION_CONFIRM);
+
 	const auto clientNetVersionString = Game::config->GetValue("client_net_version");
 	const uint32_t clientNetVersion = GeneralUtils::TryParse<uint32_t>(clientNetVersionString).value_or(171022);
 
@@ -85,6 +85,13 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	bitStream.Write<uint64_t>(215523470896);
 
 	server->Send(bitStream, sysAddr, false);
+}
+
+std::string CleanReceivedString(const std::string& str) {
+	std::string toReturn = str;
+	const auto removed = std::ranges::find_if(toReturn, [](char c) { return isprint(c) == 0 && isblank(c) == 0; });
+	toReturn.erase(removed, toReturn.end());
+	return toReturn;
 }
 
 void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
@@ -111,11 +118,11 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	LUWString memoryStats(256);
 	inStream.Read(memoryStats);
-	LOG_DEBUG("Memory Stats [%s]", memoryStats.GetAsString().c_str());
+	LOG_DEBUG("Memory Stats [%s]", CleanReceivedString(memoryStats.GetAsString()).c_str());
 
 	LUWString videoCard(128);
 	inStream.Read(videoCard);
-	LOG_DEBUG("VideoCard Info: [%s]", videoCard.GetAsString().c_str());
+	LOG_DEBUG("VideoCard Info: [%s]", CleanReceivedString(videoCard.GetAsString()).c_str());
 
 	// Processor/CPU info
 	uint32_t numOfProcessors;
@@ -227,7 +234,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps) {
 	stamps.emplace_back(eStamps::PASSPORT_AUTH_IM_LOGIN_START, 1);
 	RakNet::BitStream loginResponse;
-	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, eClientMessageType::LOGIN_RESPONSE);
+	BitStreamUtils::WriteHeader(loginResponse, eConnectionType::CLIENT, MessageType::Client::LOGIN_RESPONSE);
 
 	loginResponse.Write(responseCode);
 
@@ -297,7 +304,7 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 	//Inform the master server that we've created a session for this user:
 	if (responseCode == eLoginResponse::SUCCESS) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SET_SESSION_KEY);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SET_SESSION_KEY);
 		bitStream.Write(sessionKey);
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);

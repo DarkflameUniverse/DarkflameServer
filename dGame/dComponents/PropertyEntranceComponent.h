@@ -57,11 +57,7 @@ public:
 	 * Returns the map ID for this property
 	 * @return the map ID for this property
 	 */
-	[[nodiscard]] LWOMAPID GetMapID() const { return m_MapID; };
-
-	PropertySelectQueryProperty SetPropertyValues(PropertySelectQueryProperty property, LWOCLONEID cloneId = LWOCLONEID_INVALID, std::string ownerName = "", std::string propertyName = "", std::string propertyDescription = "", float reputation = 0, bool isBFF = false, bool isFriend = false, bool isModeratorApproved = false, bool isAlt = false, bool isOwned = false, uint32_t privacyOption = 0, uint32_t timeLastUpdated = 0, float performanceCost = 0.0f);
-
-	std::string BuildQuery(Entity* entity, int32_t sortMethod, Character* character, std::string customQuery = "", bool wantLimits = true);
+	[[nodiscard]] LWOMAPID GetMapID() const noexcept { return m_MapID; };
 
 private:
 	/**
@@ -78,13 +74,4 @@ private:
 	 * The base map ID for this property (Avant Grove, etc).
 	 */
 	LWOMAPID m_MapID;
-
-	enum ePropertySortType : int32_t {
-		SORT_TYPE_FRIENDS = 0,
-		SORT_TYPE_REPUTATION = 1,
-		SORT_TYPE_RECENT = 3,
-		SORT_TYPE_FEATURED = 5
-	};
-
-	std::string baseQueryForProperties = "SELECT p.* FROM properties as p JOIN charinfo as ci ON ci.prop_clone_id = p.clone_id where p.zone_id = ? AND (p.description LIKE ? OR p.name LIKE ? OR ci.name LIKE ?) AND p.privacy_option >= ? ";
 };

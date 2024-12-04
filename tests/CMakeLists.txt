@@ -4,8 +4,6 @@ enable_testing()
 find_package(GoogleTest REQUIRED)
 include(GoogleTest)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
-
 if(APPLE)
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH True)
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH True)
