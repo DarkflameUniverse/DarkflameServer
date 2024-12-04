@@ -281,8 +281,8 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 			newHighScore = newScore.primaryScore > oldScore->primaryScore ||
 				(newScore.primaryScore == oldScore->primaryScore && newScore.secondaryScore < oldScore->secondaryScore);
 		} else if (leaderboardType == Leaderboard::Type::Survival && Game::config->GetValue("classic_survival_scoring") == "1") {
-			ILeaderboard::Score oldScoreFlipped(oldScore->secondaryScore, oldScore->primaryScore);
-			ILeaderboard::Score newScoreFlipped(newScore.secondaryScore, newScore.primaryScore);
+			ILeaderboard::Score oldScoreFlipped{oldScore->secondaryScore, oldScore->primaryScore, oldScore->tertiaryScore};
+			ILeaderboard::Score newScoreFlipped{newScore.secondaryScore, newScore.primaryScore, newScore.tertiaryScore};
 			newHighScore = newScoreFlipped > oldScoreFlipped;
 		}
 
