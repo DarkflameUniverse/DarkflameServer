@@ -307,149 +307,149 @@
 			"configuration": "Release"
 		}
 	],
-  "testPresets": [
-	{
-	  "name": "default",
-	  "configurePreset": "default",
-	  "execution": {
-		"jobs": 2
-	  },
-	  "output": {
-		"outputOnFailure": true
-	  }
-	},
-	{
-	  "name": "windows-msvc-test",
-	  "inherits": "default",
-	  "configurePreset": "windows-msvc",
-	  "hidden": true,
-	  "filter": {
-		"exclude": {
-		  "name": "((example)|(minigzip))+"
+	"testPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default",
+			"execution": {
+				"jobs": 2
+			},
+			"output": {
+				"outputOnFailure": true
+			}
+		},
+		{
+			"name": "windows-msvc-test",
+			"inherits": "default",
+			"configurePreset": "windows-msvc",
+			"hidden": true,
+			"filter": {
+				"exclude": {
+					"name": "((example)|(minigzip))+"
+				}
+			}
+		},
+		{
+			"name": "windows-msvc-debug",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Debug] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "Debug"
+		},
+		{
+			"name": "windows-msvc-relwithdebinfo",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[RelWithDebInfo] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "windows-msvc-release",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc",
+			"displayName": "[Release] Windows (MSVC)",
+			"description": "Runs all tests on a Windows configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "windows-msvc-clang-debug",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [Debug] Windows (MSVC - Clang)",
+			"description": "Runs all tests on a Windows Clang configuration",
+			"configuration": "Debug"
+		},
+		{
+			"name": "windows-msvc-clang-relwithdebinfo",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Windows (MSVC - Clang)",
+			"description": "Runs all tests on a Windows  Clang configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "windows-msvc-clang-release",
+			"inherits": "windows-msvc-test",
+			"configurePreset": "windows-msvc-clang",
+			"displayName": "EXPERIMENTAL - [Release] Windows (MSVC  - Clang)",
+			"description": "Runs all tests on a Windows Clang configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-clang-debug",
+			"inherits": "default",
+			"configurePreset": "linux-clang-debug",
+			"displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-clang-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-clang-relwithdebinfo",
+			"displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-clang-release",
+			"inherits": "default",
+			"configurePreset": "linux-clang-release",
+			"displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
+			"description": "Runs all tests on a Linux Clang configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-gnu-debug",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-debug",
+			"displayName": "[Debug] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "linux-gnu-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-relwithdebinfo",
+			"displayName": "[RelWithDebInfo] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "linux-gnu-release",
+			"inherits": "default",
+			"configurePreset": "linux-gnu-release",
+			"displayName": "[Release] Linux (GNU)",
+			"description": "Runs all tests on a Linux GNU configuration",
+			"configuration": "Release"
+		},
+		{
+			"name": "macos-debug",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Debug] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "Debug"
+		},
+		{
+			"name": "macos-relwithdebinfo",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[RelWithDebInfo] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "macos-release",
+			"inherits": "default",
+			"configurePreset": "macos",
+			"displayName": "[Release] MacOS",
+			"description": "Runs all tests on a MacOS configuration",
+			"configuration": "Release"
 		}
-	  }
-	},
-	{
-	  "name": "windows-msvc-debug",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc",
-	  "displayName": "[Debug] Windows (MSVC)",
-	  "description": "Runs all tests on a Windows configuration",
-	  "configuration": "Debug"
-	},
-	{
-	  "name": "windows-msvc-relwithdebinfo",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc",
-	  "displayName": "[RelWithDebInfo] Windows (MSVC)",
-	  "description": "Runs all tests on a Windows configuration",
-	  "configuration": "RelWithDebInfo"
-	},
-	{
-	  "name": "windows-msvc-release",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc",
-	  "displayName": "[Release] Windows (MSVC)",
-	  "description": "Runs all tests on a Windows configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "windows-msvc-clang-debug",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc-clang",
-	  "displayName": "EXPERIMENTAL - [Debug] Windows (MSVC - Clang)",
-	  "description": "Runs all tests on a Windows Clang configuration",
-	  "configuration": "Debug"
-	},
-	{
-	  "name": "windows-msvc-clang-relwithdebinfo",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc-clang",
-	  "displayName": "EXPERIMENTAL - [RelWithDebInfo] Windows (MSVC - Clang)",
-	  "description": "Runs all tests on a Windows  Clang configuration",
-	  "configuration": "RelWithDebInfo"
-	},
-	{
-	  "name": "windows-msvc-clang-release",
-	  "inherits": "windows-msvc-test",
-	  "configurePreset": "windows-msvc-clang",
-	  "displayName": "EXPERIMENTAL - [Release] Windows (MSVC  - Clang)",
-	  "description": "Runs all tests on a Windows Clang configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "linux-clang-debug",
-	  "inherits": "default",
-	  "configurePreset": "linux-clang-debug",
-	  "displayName": "EXPERIMENTAL - [Debug] Linux (Clang)",
-	  "description": "Runs all tests on a Linux Clang configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "linux-clang-relwithdebinfo",
-	  "inherits": "default",
-	  "configurePreset": "linux-clang-relwithdebinfo",
-	  "displayName": "EXPERIMENTAL - [RelWithDebInfo] Linux (Clang)",
-	  "description": "Runs all tests on a Linux Clang configuration",
-	  "configuration": "RelWithDebInfo"
-	},
-	{
-	  "name": "linux-clang-release",
-	  "inherits": "default",
-	  "configurePreset": "linux-clang-release",
-	  "displayName": "EXPERIMENTAL - [Release] Linux (Clang)",
-	  "description": "Runs all tests on a Linux Clang configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "linux-gnu-debug",
-	  "inherits": "default",
-	  "configurePreset": "linux-gnu-debug",
-	  "displayName": "[Debug] Linux (GNU)",
-	  "description": "Runs all tests on a Linux GNU configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "linux-gnu-relwithdebinfo",
-	  "inherits": "default",
-	  "configurePreset": "linux-gnu-relwithdebinfo",
-	  "displayName": "[RelWithDebInfo] Linux (GNU)",
-	  "description": "Runs all tests on a Linux GNU configuration",
-	  "configuration": "RelWithDebInfo"
-	},
-	{
-	  "name": "linux-gnu-release",
-	  "inherits": "default",
-	  "configurePreset": "linux-gnu-release",
-	  "displayName": "[Release] Linux (GNU)",
-	  "description": "Runs all tests on a Linux GNU configuration",
-	  "configuration": "Release"
-	},
-	{
-	  "name": "macos-debug",
-	  "inherits": "default",
-	  "configurePreset": "macos",
-	  "displayName": "[Debug] MacOS",
-	  "description": "Runs all tests on a MacOS configuration",
-	  "configuration": "Debug"
-	},
-	{
-	  "name": "macos-relwithdebinfo",
-	  "inherits": "default",
-	  "configurePreset": "macos",
-	  "displayName": "[RelWithDebInfo] MacOS",
-	  "description": "Runs all tests on a MacOS configuration",
-	  "configuration": "RelWithDebInfo"
-	},
-	{
-	  "name": "macos-release",
-	  "inherits": "default",
-	  "configurePreset": "macos",
-	  "displayName": "[Release] MacOS",
-	  "description": "Runs all tests on a MacOS configuration",
-	  "configuration": "Release"
-	}
-  ],
+	],
 	"workflowPresets": [
 		{
 			"name": "default",
