@@ -4,8 +4,6 @@
 #include "Game.h"
 #include "Logger.h"
 
-#include "zlib.h"
-
 AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
 		throw std::runtime_error("Attempted to load asset bundle (" + path.string() + ") however it is not a valid directory.");

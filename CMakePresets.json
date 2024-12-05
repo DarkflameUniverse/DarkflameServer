@@ -11,9 +11,6 @@
 	  "displayName": "Default configure step",
 	  "description": "Use 'build' dir and Unix makefiles",
 	  "binaryDir": "${sourceDir}/build",
-	  "environment": {
-		"DLU_CONFIG_DIR": "${sourceDir}/build"
-	  },
 	  "generator": "Unix Makefiles",
 
       "hidden": true
@@ -36,15 +33,13 @@
 	  "name": "windows-msvc",
 	  "inherits": "windows-default",
 	  "displayName": "Windows (MSVC)",
-	  "description": "Create a build using MSVC",
-	  "binaryDir": "${sourceDir}/build/msvc"
+	  "description": "Create a build using MSVC"
 	},
 	{
 	  "name": "windows-clang",
 	  "inherits": "windows-default",
 	  "displayName": "EXPERIMENTAL - Windows (Clang)",
 	  "description": "Create a build using Clang",
-	  "binaryDir": "${sourceDir}/build/windows-clang",
 	  "toolset": "ClangCL"
 	},
 
@@ -65,8 +60,7 @@
 	  "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake",
 
 	  "displayName": "Linux (Clang)",
-	  "description": "Create a build using the Clang toolchain for Linux",
-	  "binaryDir": "${sourceDir}/build/linux-clang"
+	  "description": "Create a build using the Clang toolchain for Linux"
 	},
 	{
 	  "name": "linux-gnu",
@@ -75,8 +69,7 @@
 	  "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake",
 
 	  "displayName": "Linux (GNU)",
-	  "description": "Create a build using the GNU toolchain for Linux",
-	  "binaryDir": "${sourceDir}/build/gnu"
+	  "description": "Create a build using the GNU toolchain for Linux"
 	},
 	{
 	  "name": "macos",
@@ -87,8 +80,7 @@
 		"type": "equals",
 		"lhs": "${hostSystemName}",
 		"rhs": "Darwin"
-	  },
-	  "binaryDir": "${sourceDir}/build/macos"
+	  }
 	}
   ],
   "testPresets": [
