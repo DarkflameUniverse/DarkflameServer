@@ -9,6 +9,10 @@ if("${CMAKE_SOURCE_DIR}" MATCHES " ")
 	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
 endif()
 
+if (NOT CMAKE_BUILD_TYPE) 
+	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "The default build type" FORCE)
+endif()
+
 include(CTest)
 
 set(CMAKE_C_STANDARD 99)
