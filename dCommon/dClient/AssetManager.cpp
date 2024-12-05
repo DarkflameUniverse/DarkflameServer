@@ -80,7 +80,7 @@ bool AssetManager::HasFile(const char* name) {
 	if (fixedName.rfind("client\\res\\", 0) != 0) fixedName = "client\\res\\" + fixedName;
 
 	uint32_t crc = crc32b(0xFFFFFFFF, reinterpret_cast<uint8_t*>(const_cast<char*>(fixedName.c_str())), fixedName.size());
-	crc = crc32b(crc, reinterpret_cast<Bytef*>(const_cast<char*>("\0\0\0\0")), 4);
+	crc = crc32b(crc, reinterpret_cast<uint8_t*>(const_cast<char*>("\0\0\0\0")), 4);
 
 	for (const auto& item : this->m_PackIndex->GetPackFileIndices()) {
 		if (item.m_Crc == crc) {
@@ -128,7 +128,7 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 	}
 	int32_t packIndex = -1;
 	uint32_t crc = crc32b(0xFFFFFFFF, reinterpret_cast<uint8_t*>(const_cast<char*>(fixedName.c_str())), fixedName.size());
-	crc = crc32b(crc, reinterpret_cast<Bytef*>(const_cast<char*>("\0\0\0\0")), 4);
+	crc = crc32b(crc, reinterpret_cast<uint8_t*>(const_cast<char*>("\0\0\0\0")), 4);
 
 	for (const auto& item : this->m_PackIndex->GetPackFileIndices()) {
 		if (item.m_Crc == crc) {
