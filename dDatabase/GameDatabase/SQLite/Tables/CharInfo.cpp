@@ -67,13 +67,13 @@ void SQLiteDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 }
 
 void SQLiteDatabase::SetCharacterName(const uint32_t characterId, const std::string_view name) {
-	ExecuteUpdate("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ?", name, static_cast<uint32_t>(time(NULL)), characterId);
+	ExecuteUpdate("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ?;", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
 void SQLiteDatabase::SetPendingCharacterName(const uint32_t characterId, const std::string_view name) {
-	ExecuteUpdate("UPDATE charinfo SET pending_name = ?, needs_rename = 0, last_login = ? WHERE id = ?", name, static_cast<uint32_t>(time(NULL)), characterId);
+	ExecuteUpdate("UPDATE charinfo SET pending_name = ?, needs_rename = 0, last_login = ? WHERE id = ?;", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
 void SQLiteDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
-	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ?", static_cast<uint32_t>(time(NULL)), characterId);
+	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ?;", static_cast<uint32_t>(time(NULL)), characterId);
 }

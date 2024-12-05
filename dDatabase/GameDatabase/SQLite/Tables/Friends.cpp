@@ -50,7 +50,7 @@ std::optional<IFriends::BestFriendStatus> SQLiteDatabase::GetBestFriendStatus(co
 }
 
 void SQLiteDatabase::SetBestFriendStatus(const uint32_t playerCharacterId, const uint32_t friendCharacterId, const uint32_t bestFriendStatus) {
-	ExecuteUpdate("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;",
+	ExecuteUpdate("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?);",
 		bestFriendStatus,
 		playerCharacterId,
 		friendCharacterId,
@@ -64,7 +64,7 @@ void SQLiteDatabase::AddFriend(const uint32_t playerCharacterId, const uint32_t 
 }
 
 void SQLiteDatabase::RemoveFriend(const uint32_t playerCharacterId, const uint32_t friendCharacterId) {
-	ExecuteDelete("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;",
+	ExecuteDelete("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?);",
 		playerCharacterId,
 		friendCharacterId,
 		friendCharacterId,

@@ -89,7 +89,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 
 std::string CleanReceivedString(const std::string& str) {
 	std::string toReturn = str;
-	const auto removed = std::ranges::find_if(toReturn, [](char c) { return isprint(c) == 0 && isblank(c) == 0; });
+	const auto removed = std::ranges::find_if(toReturn, [](unsigned char c) { return isprint(c) == 0 && isblank(c) == 0; });
 	toReturn.erase(removed, toReturn.end());
 	return toReturn;
 }

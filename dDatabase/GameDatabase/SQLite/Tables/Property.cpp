@@ -161,7 +161,7 @@ std::optional<IProperty::Info> SQLiteDatabase::GetPropertyInfo(const LWOMAPID ma
 }
 
 void SQLiteDatabase::UpdatePropertyModerationInfo(const IProperty::Info& info) {
-	ExecuteUpdate("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ? LIMIT 1;",
+	ExecuteUpdate("UPDATE properties SET privacy_option = ?, rejection_reason = ?, mod_approved = ? WHERE id = ?;",
 		info.privacyOption,
 		info.rejectionReason,
 		info.modApproved,
@@ -169,11 +169,11 @@ void SQLiteDatabase::UpdatePropertyModerationInfo(const IProperty::Info& info) {
 }
 
 void SQLiteDatabase::UpdatePropertyDetails(const IProperty::Info& info) {
-	ExecuteUpdate("UPDATE properties SET name = ?, description = ? WHERE id = ? LIMIT 1;", info.name, info.description, info.id);
+	ExecuteUpdate("UPDATE properties SET name = ?, description = ? WHERE id = ?;", info.name, info.description, info.id);
 }
 
 void SQLiteDatabase::UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) {
-	ExecuteUpdate("UPDATE properties SET performance_cost = ? WHERE zone_id = ? AND clone_id = ? LIMIT 1;", performanceCost, zoneId.GetMapID(), zoneId.GetCloneID());
+	ExecuteUpdate("UPDATE properties SET performance_cost = ? WHERE zone_id = ? AND clone_id = ?;", performanceCost, zoneId.GetMapID(), zoneId.GetCloneID());
 }
 
 void SQLiteDatabase::InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) {

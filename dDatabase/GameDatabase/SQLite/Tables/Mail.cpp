@@ -71,13 +71,13 @@ uint32_t SQLiteDatabase::GetUnreadMailCount(const uint32_t characterId) {
 }
 
 void SQLiteDatabase::MarkMailRead(const uint64_t mailId) {
-	ExecuteUpdate("UPDATE mail SET was_read=1 WHERE id=? LIMIT 1;", mailId);
+	ExecuteUpdate("UPDATE mail SET was_read=1 WHERE id=?;", mailId);
 }
 
 void SQLiteDatabase::ClaimMailItem(const uint64_t mailId) {
-	ExecuteUpdate("UPDATE mail SET attachment_lot=0 WHERE id=? LIMIT 1;", mailId);
+	ExecuteUpdate("UPDATE mail SET attachment_lot=0 WHERE id=?;", mailId);
 }
 
 void SQLiteDatabase::DeleteMail(const uint64_t mailId) {
-	ExecuteDelete("DELETE FROM mail WHERE id=? LIMIT 1;", mailId);
+	ExecuteDelete("DELETE FROM mail WHERE id=?;", mailId);
 }

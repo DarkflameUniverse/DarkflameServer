@@ -18,6 +18,7 @@ void SQLiteDatabase::Connect() {
 	con = new CppSQLite3DB();
 	con->open(Game::config->GetValue("sqlite_database_path").c_str());
 	isConnected = true;
+	con->execQuery("PRAGMA journal_mode = WAL;");
 }
 
 void SQLiteDatabase::Destroy(std::string source) {
@@ -56,7 +57,7 @@ void SQLiteDatabase::SetAutoCommit(bool value) {
 }
 
 void SQLiteDatabase::DeleteCharacter(const uint32_t characterId) {
-	ExecuteDelete("DELETE FROM charxml WHERE id=? LIMIT 1;", characterId);
+	ExecuteDelete("DELETE FROM charxml WHERE id=?;", characterId);
 	ExecuteDelete("DELETE FROM command_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM friends WHERE player_id=? OR friend_id=?;", characterId, characterId);
 	ExecuteDelete("DELETE FROM leaderboard WHERE character_id=?;", characterId);
@@ -65,5 +66,5 @@ void SQLiteDatabase::DeleteCharacter(const uint32_t characterId) {
 	ExecuteDelete("DELETE FROM ugc WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM activity_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM mail WHERE receiver_id=?;", characterId);
-	ExecuteDelete("DELETE FROM charinfo WHERE id=? LIMIT 1;", characterId);
+	ExecuteDelete("DELETE FROM charinfo WHERE id=?;", characterId);
 }
