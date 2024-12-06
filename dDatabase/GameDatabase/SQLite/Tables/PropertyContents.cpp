@@ -26,7 +26,7 @@ std::vector<IPropertyContents::Model> SQLiteDatabase::GetPropertyModels(const LW
 		model.behaviors[4] = result.getIntField("behavior_5");
 
 		toReturn.push_back(std::move(model));
-
+		result.nextRow();
 	}
 	return toReturn;
 }

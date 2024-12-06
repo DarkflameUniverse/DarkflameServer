@@ -4,7 +4,7 @@
 
 void SQLiteDatabase::AddBehavior(const IBehaviors::Info& info) {
 	ExecuteInsert(
-		"INSERT INTO behaviors (behavior_info, character_id, behavior_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE behavior_info = ?",
+		"INSERT INTO behaviors (behavior_info, character_id, behavior_id) VALUES (?, ?, ?) ON CONFLICT(behavior_id) DO UPDATE SET behavior_info = ?",
 		info.behaviorInfo, info.characterId, info.behaviorId, info.behaviorInfo
 	);
 }

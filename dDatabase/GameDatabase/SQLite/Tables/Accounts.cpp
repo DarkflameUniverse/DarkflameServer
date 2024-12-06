@@ -2,8 +2,6 @@
 
 #include "eGameMasterLevel.h"
 #include "Database.h"
-#include <CppSQLite3.h>
-#include <thread>
 
 std::optional<IAccounts::Info> SQLiteDatabase::GetAccountInfo(const std::string_view username) {
 	auto [_, result] = ExecuteSelect("SELECT * FROM accounts WHERE name = ? LIMIT 1", username);

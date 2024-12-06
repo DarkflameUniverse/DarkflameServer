@@ -56,6 +56,7 @@ std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(c
 			params.playerId
 		);
 		if (!count.eof()) {
+			result = IProperty::PropertyEntranceResult();
 			result->totalEntriesMatchingQuery = count.getIntField("count");
 		}
 	} else {
@@ -109,11 +110,13 @@ std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(c
 			params.playerSort
 		);
 		if (!count.eof()) {
+			result = IProperty::PropertyEntranceResult();
 			result->totalEntriesMatchingQuery = count.getIntField("count");
 		}
 	}
 
 	auto& [_, properties] = propertiesRes;
+	if (!properties.eof() && !result.has_value()) result = IProperty::PropertyEntranceResult();
 	while (!properties.eof()) {
 		auto& entry = result->entries.emplace_back();
 		entry.id = properties.getInt64Field("id");
@@ -179,8 +182,8 @@ void SQLiteDatabase::UpdatePerformanceCost(const LWOZONEID& zoneId, const float 
 void SQLiteDatabase::InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) {
 	auto insertion = ExecuteInsert(
 		"INSERT INTO properties"
-		"(id, owner_id, template_id, clone_id, name, description, zone_id, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, performance_cost)"
-		"VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), '', 0, 0.0)",
+		" (id, owner_id, template_id, clone_id, name, description, zone_id, rent_amount, rent_due, privacy_option, last_updated, time_claimed, rejection_reason, reputation, performance_cost)"
+		" VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, CAST(strftime('%s', 'now') as INT), CAST(strftime('%s', 'now') as INT), '', 0, 0.0)",
 		info.id,
 		info.ownerId,
 		templateId,

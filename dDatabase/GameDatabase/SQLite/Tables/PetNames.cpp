@@ -3,7 +3,7 @@
 void SQLiteDatabase::SetPetNameModerationStatus(const LWOOBJID& petId, const IPetNames::Info& info) {
 	ExecuteInsert(
 		"INSERT INTO `pet_names` (`id`, `pet_name`, `approved`) VALUES (?, ?, ?) "
-		"ON DUPLICATE KEY UPDATE pet_name = ?, approved = ?;",
+		"ON CONFLICT(id) DO UPDATE SET pet_name = ?, approved = ?;",
 		petId,
 		info.petName,
 		info.approvalStatus,
