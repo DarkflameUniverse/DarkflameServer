@@ -59,9 +59,9 @@ void VanityUtilities::SpawnVanity() {
 
 	for (const auto& npc : objects) {
 		if (npc.m_ID == LWOOBJID_EMPTY) continue;
-		if (npc.m_LOT == 176){
+		if (npc.m_LOT == 176) {
 			Game::zoneManager->RemoveSpawner(npc.m_ID);
-		} else{
+		} else {
 			auto* entity = Game::entityManager->GetEntity(npc.m_ID);
 			if (!entity) continue;
 			entity->Smash(LWOOBJID_EMPTY, eKillType::VIOLENT);
@@ -86,14 +86,14 @@ void VanityUtilities::SpawnVanity() {
 		float rate = GeneralUtils::GenerateRandomNumber<float>(0, 1);
 		if (location.m_Chance < rate) continue;
 
-		if (object.m_LOT == 176){
+		if (object.m_LOT == 176) {
 			object.m_ID = SpawnSpawner(object, location);
 		} else {
 			// Spawn the NPC
 			auto* objectEntity = SpawnObject(object, location);
 			if (!objectEntity) continue;
 			object.m_ID = objectEntity->GetObjectID();
-			if (!object.m_Phrases.empty()){
+			if (!object.m_Phrases.empty()) {
 				objectEntity->SetVar<std::vector<std::string>>(u"chats", object.m_Phrases);
 				SetupNPCTalk(objectEntity);
 			}
@@ -107,7 +107,7 @@ LWOOBJID SpawnSpawner(const VanityObject& object, const VanityObjectLocation& lo
 	// guratantee we have no collisions
 	do {
 		obj.id = ObjectIDManager::GenerateObjectID();
-	} while(Game::zoneManager->GetSpawner(obj.id));
+	} while (Game::zoneManager->GetSpawner(obj.id));
 	obj.position = location.m_Position;
 	obj.rotation = location.m_Rotation;
 	obj.settings = object.m_Config;
@@ -146,7 +146,7 @@ Entity* SpawnObject(const VanityObject& object, const VanityObjectLocation& loca
 }
 
 void ParseXml(const std::string& file) {
-	if (loadedFiles.contains(file)){
+	if (loadedFiles.contains(file)) {
 		LOG("Trying to load vanity file %s twice!!!", file.c_str());
 		return;
 	}
@@ -232,7 +232,7 @@ void ParseXml(const std::string& file) {
 			auto* configElement = object->FirstChildElement("config");
 			std::vector<std::u16string> keys = {};
 			std::vector<LDFBaseData*> config = {};
-			if(configElement) {
+			if (configElement) {
 				for (auto* key = configElement->FirstChildElement("key"); key != nullptr;
 					key = key->NextSiblingElement("key")) {
 					// Get the config data
@@ -240,7 +240,7 @@ void ParseXml(const std::string& file) {
 					if (!data) continue;
 
 					LDFBaseData* configData = LDFBaseData::DataFromString(data);
-					if (configData->GetKey() == u"useLocationsAsRandomSpawnPoint" && configData->GetValueType() == eLDFType::LDF_TYPE_BOOLEAN){
+					if (configData->GetKey() == u"useLocationsAsRandomSpawnPoint" && configData->GetValueType() == eLDFType::LDF_TYPE_BOOLEAN) {
 						useLocationsAsRandomSpawnPoint = static_cast<bool>(configData);
 						continue;
 					}
@@ -250,7 +250,7 @@ void ParseXml(const std::string& file) {
 			}
 			if (!keys.empty()) config.push_back(new LDFData<std::vector<std::u16string>>(u"syncLDF", keys));
 
-			VanityObject objectData {
+			VanityObject objectData{
 				.m_Name = name,
 				.m_LOT = lot,
 				.m_Equipment = inventory,
@@ -288,7 +288,7 @@ void ParseXml(const std::string& file) {
 					continue;
 				}
 
-				VanityObjectLocation locationData {
+				VanityObjectLocation locationData{
 					.m_Position = { x.value(), y.value(), z.value() },
 					.m_Rotation = { rw.value(), rx.value(), ry.value(), rz.value() },
 				};
@@ -403,26 +403,39 @@ void SetupNPCTalk(Entity* npc) {
 	npc->SetProximityRadius(20.0f, "talk");
 }
 
-void NPCTalk(Entity* npc) {
-	auto* proximityMonitorComponent = npc->GetComponent<ProximityMonitorComponent>();
+void VanityUtilities::OnProximityUpdate(Entity* entity, Entity* other, const std::string& proxName, const std::string& name) {
+	if (proxName != "talk") return;
+	const auto* const proximityMonitorComponent = entity->GetComponent<ProximityMonitorComponent>();
+	if (!proximityMonitorComponent) return;
 
-	if (!proximityMonitorComponent->GetProximityObjects("talk").empty()) {
-		const auto& chats = npc->GetVar<std::vector<std::string>>(u"chats");
-
-		if (chats.empty()) {
-			return;
-		}
-
-		const auto& selected
-			= chats[GeneralUtils::GenerateRandomNumber<int32_t>(0, static_cast<int32_t>(chats.size() - 1))];
-
-		GameMessages::SendNotifyClientZoneObject(
-			npc->GetObjectID(), u"sendToclient_bubble", 0, 0, npc->GetObjectID(), selected, UNASSIGNED_SYSTEM_ADDRESS);
+	if (name == "ENTER" && !entity->HasTimer("talk")) {
+		NPCTalk(entity);
 	}
+}
+
+void VanityUtilities::OnTimerDone(Entity* npc, const std::string& name) {
+	if (name == "talk") {
+		const auto* const proximityMonitorComponent = npc->GetComponent<ProximityMonitorComponent>();
+		if (!proximityMonitorComponent || proximityMonitorComponent->GetProximityObjects("talk").empty()) return;
+
+		NPCTalk(npc);
+	}
+}
+
+void NPCTalk(Entity* npc) {
+	const auto& chats = npc->GetVar<std::vector<std::string>>(u"chats");
+
+	if (chats.empty()) return;
+
+	const auto& selected
+		= chats[GeneralUtils::GenerateRandomNumber<int32_t>(0, static_cast<int32_t>(chats.size() - 1))];
+
+	GameMessages::SendNotifyClientZoneObject(
+		npc->GetObjectID(), u"sendToclient_bubble", 0, 0, npc->GetObjectID(), selected, UNASSIGNED_SYSTEM_ADDRESS);
 
 	Game::entityManager->SerializeEntity(npc);
 
 	const float nextTime = GeneralUtils::GenerateRandomNumber<float>(15, 60);
 
-	npc->AddCallbackTimer(nextTime, [npc]() { NPCTalk(npc); });
+	npc->AddTimer("talk", nextTime);
 }
