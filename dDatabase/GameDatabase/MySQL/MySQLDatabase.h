@@ -7,6 +7,7 @@
 #include "GameDatabase.h"
 
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
+typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
@@ -113,6 +114,8 @@ public:
 	void RemoveBehavior(const int32_t characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
+	void DeleteUgcBuild(const LWOOBJID bigId) override;
 private:
 
 	// Generic query functions that can be used for any query.
