@@ -1,1 +1,0 @@
-ALTER TABLE bug_reports ADD reporter_id INTEGER NOT NULL DEFAULT 0;

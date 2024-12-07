@@ -101,7 +101,8 @@ last_updated BIGINT NOT NULL,
 time_claimed BIGINT NOT NULL,
 rejection_reason TEXT NOT NULL,
 reputation BIGINT NOT NULL,
-zone_id INTEGER NOT NULL
+zone_id INTEGER NOT NULL,
+performance_cost DOUBLE DEFAULT 0.0
 );
 
 CREATE TABLE IF NOT EXISTS ugc (
@@ -149,7 +150,8 @@ body TEXT NOT NULL,
 client_version TEXT NOT NULL,
 other_player_id TEXT NOT NULL,
 selection TEXT NOT NULL,
-submitted DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+submitted DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+reporter_id INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS servers (
@@ -159,4 +161,38 @@ ip TEXT NOT NULL,
 port INTEGER NOT NULL,
 state INTEGER NOT NULL,
 version INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS player_cheat_detections (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER REFERENCES accounts(id),
+    name TEXT NOT NULL,
+    violation_msg TEXT NOT NULL,
+    violation_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    violation_system_address TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ugc_modular_build (
+	ugc_id BIGINT NOT NULL PRIMARY KEY,
+	character_id BIGINT NOT NULL REFERENCES charinfo(id) ON DELETE CASCADE,
+	ldf_config VARCHAR(60) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ignore_list (
+	player_id BIGINT NOT NULL REFERENCES charinfo(id) ON DELETE CASCADE,
+	ignored_player_id BIGINT NOT NULL REFERENCES charinfo(id) ON DELETE CASCADE,
+
+	PRIMARY KEY (player_id, ignored_player_id)
+);
+
+CREATE TABLE IF NOT EXISTS accounts_rewardcodes (
+    account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    rewardcode INTEGER NOT NULL,
+    PRIMARY KEY (account_id, rewardcode)
+);
+
+CREATE TABLE IF NOT EXISTS behaviors (
+	behavior_info TEXT NOT NULL,
+	behavior_id BIGINT NOT NULL PRIMARY KEY,
+	character_id BIGINT NOT NULL DEFAULT 0
 );
