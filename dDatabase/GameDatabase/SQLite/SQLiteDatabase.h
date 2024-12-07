@@ -1,5 +1,5 @@
-#ifndef __MYSQLDATABASE__H__
-#define __MYSQLDATABASE__H__
+#ifndef SQLITEDATABASE_H
+#define SQLITEDATABASE_H
 
 #include "CppSQLite3.h"
 
@@ -266,4 +266,4 @@ inline void SetParam(PreppedStmtRef stmt, const int index, const std::optional<u
 	}
 }
 
-#endif  //!__MYSQLDATABASE__H__
+#endif  //!SQLITEDATABASE_H

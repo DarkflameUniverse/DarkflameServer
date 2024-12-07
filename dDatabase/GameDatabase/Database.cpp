@@ -2,7 +2,6 @@
 #include "Game.h"
 #include "dConfig.h"
 #include "Logger.h"
-#include "SQLiteDatabase.h"
 #include "DluAssert.h"
 
 #if DLU_SQLITE_DATABASE == 1

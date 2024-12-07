@@ -8,7 +8,6 @@ if(${DLU_MYSQL_DATABASE} EQUAL 1)
 	foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
 		set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
 	endforeach()
-	set(LinkingWithMySQL true)
 elseif(${DLU_SQLITE_DATABASE} EQUAL 1)
 	add_subdirectory(SQLite)
 	

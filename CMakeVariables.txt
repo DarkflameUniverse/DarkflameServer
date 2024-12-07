@@ -35,5 +35,5 @@ CDCLIENT_CACHE_ALL=0
 # The two databases are completely separate from each other.
 # Set the database you would like to use to 1 and the others to 0
 # MySQL and MariaDB are the same
-DLU_SQLITE_DATABASE=1
-DLU_MYSQL_DATABASE=0
+DLU_SQLITE_DATABASE=0
+DLU_MYSQL_DATABASE=1

@@ -18,6 +18,8 @@ void SQLiteDatabase::Connect() {
 	con = new CppSQLite3DB();
 	con->open(Game::config->GetValue("sqlite_database_path").c_str());
 	isConnected = true;
+
+	// Make sure wal is enabled for the database.
 	con->execQuery("PRAGMA journal_mode = WAL;");
 }
 
