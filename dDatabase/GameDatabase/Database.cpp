@@ -19,8 +19,8 @@ void Database::Connect() {
 		return;
 	}
 
-	if (Game::config->GetValue("sqlite_database") == "1") database = new SQLiteDatabase();
-	else if (Game::config->GetValue("mysql_database") == "1") database = new MySQLDatabase();
+	if (Game::config->GetValue("using_sqlite") == "1") database = new SQLiteDatabase();
+	else if (Game::config->GetValue("using_mysql") == "1") database = new MySQLDatabase();
 	else {
 		LOG("No database specified, using MySQL");
 		database = new MySQLDatabase();
