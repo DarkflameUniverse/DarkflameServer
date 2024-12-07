@@ -5,6 +5,16 @@
 #include "SQLiteDatabase.h"
 #include "DluAssert.h"
 
+#if defined(DLU_SQLITE_DATABASE)
+#	define DluGameDatabase SQLiteDatabase
+#	include "SQLiteDatabase.h"
+#elif defined(DLU_MYSQL_DATABASE)
+#	define DluGameDatabase MySQLDatabase
+#	include "MySQLDatabase.h"
+#else
+#	error "No database type defined!"
+#endif
+
 #pragma warning (disable:4251) //Disables SQL warnings
 
 namespace {
@@ -17,7 +27,7 @@ void Database::Connect() {
 		return;
 	}
 
-	database = new SQLiteDatabase();
+	database = new DluGameDatabase();
 	database->Connect();
 }
 

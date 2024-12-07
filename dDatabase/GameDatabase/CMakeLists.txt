@@ -37,6 +37,8 @@ file(
 	ITables/*.h
 )
 
+target_compile_definitions(dDatabaseGame PRIVATE DLU_SQLITE_DATABASE="${DLU_SQLITE_DATABASE}" DLU_MYSQL_DATABASE="${DLU_MYSQL_DATABASE}")
+
 # Need to specify to use the CXX compiler language here or else we get errors including <string>.
 target_precompile_headers(
 	dDatabaseGame PRIVATE
