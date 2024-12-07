@@ -17,18 +17,13 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 
 # Set our executable
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
-add_dependencies(dCommonTests conncpp_tests)
 
-# Apple needs some special linkage for the mariadb connector for tests.
+# Needs to be in binary dir for ctest 
 if(APPLE)
-add_custom_command(TARGET dCommonTests POST_BUILD
-	COMMAND otool ARGS -l dCommonTests
-	COMMAND otool ARGS -L dCommonTests
-	COMMAND ls
-	COMMAND otool ARGS -D libmariadbcpp.dylib
-	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dCommonTests
-	COMMAND otool ARGS -L dCommonTests
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+	add_custom_target(dCommonTestsLink
+		${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_CURRENT_BINARY_DIR})
+
+	add_dependencies(dCommonTests dCommonTestsLink)
 endif()
 
 # Link needed libraries
