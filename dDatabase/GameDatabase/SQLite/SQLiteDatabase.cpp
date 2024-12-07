@@ -15,6 +15,7 @@ namespace {
 };
 
 void SQLiteDatabase::Connect() {
+	LOG("Using SQLite database");
 	con = new CppSQLite3DB();
 	con->open(Game::config->GetValue("sqlite_database_path").c_str());
 	isConnected = true;

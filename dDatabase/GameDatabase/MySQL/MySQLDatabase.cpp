@@ -14,6 +14,7 @@ namespace {
 };
 
 void MySQLDatabase::Connect() {
+	LOG("Using MySQL database");
 	driver = sql::mariadb::get_driver_instance();
 
 	// The mariadb connector is *supposed* to handle unix:// and pipe:// prefixes to hostName, but there are bugs where

@@ -20,6 +20,7 @@ void Database::Connect() {
 	}
 
 	if (Game::config->GetValue("sqlite_database") == "1") database = new SQLiteDatabase();
+	else if (Game::config->GetValue("mysql_database") == "1") database = new MySQLDatabase();
 
 	database->Connect();
 }
