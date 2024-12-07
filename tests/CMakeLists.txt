@@ -10,10 +10,8 @@ if(APPLE)
 	set(CMAKE_INSTALL_RPATH "@executable_path")
 endif()
 
-if(${DLU_MYSQL_DATABASE} EQUAL 1)
-	add_custom_target(conncpp_tests
-		${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-endif()
+add_custom_target(conncpp_tests
+	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # Add the subdirectories
 add_subdirectory(dCommonTests)

@@ -7,8 +7,6 @@
 
 using PreppedStmtRef = CppSQLite3Statement&;
 
-CppSQLite3Statement CreatePreppedStmt(const std::string& query);
-
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
 template<typename ParamType>
@@ -124,6 +122,7 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 private:
+	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 
 	// Generic query functions that can be used for any query.
 	// Return type may be different depending on the query, so it is up to the caller to check the return type.

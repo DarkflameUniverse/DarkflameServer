@@ -38,7 +38,7 @@ void SQLiteDatabase::ExecuteCustomQuery(const std::string_view query) {
 	con->compileStatement(query.data()).execDML();
 }
 
-CppSQLite3Statement CreatePreppedStmt(const std::string& query) {
+CppSQLite3Statement SQLiteDatabase::CreatePreppedStmt(const std::string& query) {
 	return con->compileStatement(query.c_str());
 }
 

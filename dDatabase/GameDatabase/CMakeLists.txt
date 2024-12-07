@@ -2,21 +2,17 @@ set(DDATABASE_GAMEDATABASE_SOURCES
 	"Database.cpp"
 )
 
-if(${DLU_MYSQL_DATABASE} EQUAL 1)
-	add_subdirectory(MySQL)
-	
-	foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
-		set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
-	endforeach()
-elseif(${DLU_SQLITE_DATABASE} EQUAL 1)
-	add_subdirectory(SQLite)
-	
-	foreach(file ${DDATABSE_DATABSES_SQLITE_SOURCES})
-		set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "SQLite/${file}")
-	endforeach()
-else()
-	message(FATAL_ERROR "No database specified. Please use DLU_SQLITE_DATABASE or DLU_MYSQL_DATABASE.")
-endif()
+add_subdirectory(MySQL)
+
+foreach(file ${DDATABSE_DATABSES_MYSQL_SOURCES})
+	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "MySQL/${file}")
+endforeach()
+
+add_subdirectory(SQLite)
+
+foreach(file ${DDATABSE_DATABSES_SQLITE_SOURCES})
+	set(DDATABASE_GAMEDATABASE_SOURCES ${DDATABASE_GAMEDATABASE_SOURCES} "SQLite/${file}")
+endforeach()
 
 add_subdirectory(TestSQL)
 
@@ -32,11 +28,8 @@ target_include_directories(dDatabaseGame PUBLIC "."
 )
 
 target_link_libraries(dDatabaseGame
-	INTERFACE dCommon PRIVATE sqlite3)
-
-if(${DLU_MYSQL_DATABASE} EQUAL 1)
-	target_link_libraries(dDatabaseGame PUBLIC MariaDB::ConnCpp)
-endif()
+	INTERFACE dCommon
+	PRIVATE sqlite3 MariaDB::ConnCpp)
 
 # Glob together all headers that need to be precompiled
 file(

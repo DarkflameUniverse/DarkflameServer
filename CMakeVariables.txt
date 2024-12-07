@@ -30,10 +30,3 @@ OPENSSL_ROOT_DIR=/usr/local/opt/openssl@3/
 # Whether or not to cache the entire CDClient Database into memory instead of lazy loading.
 # 0 means to lazy load, all other values mean load the entire database.
 CDCLIENT_CACHE_ALL=0
-
-# The database type to use. Note switching the database DOES NOT carry over data.
-# The two databases are completely separate from each other.
-# Set the database you would like to use to 1 and the others to 0
-# MySQL and MariaDB are the same
-DLU_SQLITE_DATABASE=0
-DLU_MYSQL_DATABASE=1

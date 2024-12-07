@@ -14,12 +14,10 @@ file(COPY ${COMPONENT_TEST_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
 
-if(${DLU_MYSQL_DATABASE} EQUAL 1)
-	add_dependencies(dGameTests conncpp_tests)
-endif()
+add_dependencies(dGameTests conncpp_tests)
 
 # Apple needs some special linkage for the mariadb connector for tests.
-if(APPLE AND ${DLU_MYSQL_DATABASE} EQUAL 1)
+if(APPLE)
 add_custom_command(TARGET dGameTests POST_BUILD
 	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests
 	COMMAND otool ARGS -L dGameTests

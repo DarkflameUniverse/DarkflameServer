@@ -9,8 +9,6 @@
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
 typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
-sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
-
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
 template<typename ParamType>
@@ -125,6 +123,7 @@ public:
 	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
+	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 private:
 
 	// Generic query functions that can be used for any query.

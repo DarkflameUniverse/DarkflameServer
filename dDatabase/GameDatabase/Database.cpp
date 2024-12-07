@@ -4,15 +4,8 @@
 #include "Logger.h"
 #include "DluAssert.h"
 
-#if DLU_SQLITE_DATABASE == 1
-#	define DluGameDatabase SQLiteDatabase
-#	include "SQLiteDatabase.h"
-#elif DLU_MYSQL_DATABASE == 1
-#	define DluGameDatabase MySQLDatabase
-#	include "MySQLDatabase.h"
-#else
-#	error "No database type defined!"
-#endif
+#include "SQLiteDatabase.h"
+#include "MySQLDatabase.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
@@ -26,7 +19,8 @@ void Database::Connect() {
 		return;
 	}
 
-	database = new DluGameDatabase();
+	if (Game::config->GetValue("sqlite_database") == "1") database = new SQLiteDatabase();
+
 	database->Connect();
 }
 
