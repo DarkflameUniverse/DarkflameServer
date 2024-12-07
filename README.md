@@ -20,12 +20,15 @@ We do not recommend hosting public servers. Darkflame Universe is intended for s
 Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#verifying-your-client-files) to see if a client will work.
 
 ## Setting up a single player server
-Single player installs now no longer require building the server from source or installing development tools.
-Download the [latest release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client. You should be able to see the folder with the server executables in the same folder as `legouniverse.exe`. To run the game, double-click MasterServer.exe. A default account called `admin` will be created with a password of `password`.
-When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
-We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
+* Single player installs now no longer require building the server from source or installing development tools.
+* Download the [latest release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
+* You should be able to see the folder with the server executables in the same folder as `legouniverse.exe`.
+* To run the server, double-click MasterServer.exe.
+* A default account called `admin` will be created with a password of `password`.
+* When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
+* We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
 
-<font size="16">**If you are not planning on hosting a server for others and do not plan on working in the codebase, you can stop reading here.**</font>
+<font size="32">**If you are not planning on hosting a server for others and do not plan on working in the codebase, you can stop reading here.**</font>
 
 # Steps to setup a development environment
 * [Clone this repository](#clone-the-repository)
