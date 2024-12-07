@@ -174,16 +174,18 @@ foreach(resource_file ${RESOURCE_FILES})
 				list(GET line_split 0 variable_name)
 
 				if(NOT ${parsed_current_file_contents} MATCHES ${variable_name})
-					message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
-					set(line_to_add ${line_to_add} ${line})
+					# For backwards compatibility with older setup versions, dont add this option.
+					if(NOT ${variable_name} MATCHES "using_sqlite")
+						message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
+						set(line_to_add ${line_to_add} ${line})
 
-					foreach(line_to_append ${line_to_add})
-						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
-					endforeach()
+						foreach(line_to_append ${line_to_add})
+							file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
+						endforeach()
 
-					file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
+						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
+					endif()
 				endif()
-
 				set(line_to_add "")
 			else()
 				set(line_to_add ${line_to_add} ${line})
