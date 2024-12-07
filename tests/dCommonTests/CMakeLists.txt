@@ -17,10 +17,13 @@ list(APPEND DCOMMONTEST_SOURCES ${DENUMS_TESTS})
 
 # Set our executable
 add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
-add_dependencies(dCommonTests conncpp_tests)
+
+if(${DLU_MYSQL_DATABASE} EQUAL 1)
+	add_dependencies(dCommonTests conncpp_tests)
+endif()
 
 # Apple needs some special linkage for the mariadb connector for tests.
-if(APPLE)
+if(APPLE AND ${DLU_MYSQL_DATABASE} EQUAL 1)
 add_custom_command(TARGET dCommonTests POST_BUILD
 	COMMAND otool ARGS -l dCommonTests
 	COMMAND otool ARGS -L dCommonTests

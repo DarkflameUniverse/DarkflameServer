@@ -5,10 +5,10 @@
 #include "SQLiteDatabase.h"
 #include "DluAssert.h"
 
-#if defined(DLU_SQLITE_DATABASE)
+#if DLU_SQLITE_DATABASE == 1
 #	define DluGameDatabase SQLiteDatabase
 #	include "SQLiteDatabase.h"
-#elif defined(DLU_MYSQL_DATABASE)
+#elif DLU_MYSQL_DATABASE == 1
 #	define DluGameDatabase MySQLDatabase
 #	include "MySQLDatabase.h"
 #else

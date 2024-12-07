@@ -19,7 +19,6 @@ target_include_directories(dNet PRIVATE
 	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
-	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
 
 	"${PROJECT_SOURCE_DIR}/dGame" # UserManager.h
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents"

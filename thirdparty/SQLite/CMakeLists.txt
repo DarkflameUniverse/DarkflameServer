@@ -3,7 +3,7 @@ set (SQLITE3_SOURCES
 	"sqlite3.c"
 )
 
-add_library (sqlite3 ${SQLITE3_SOURCES})
+add_library(sqlite3 ${SQLITE3_SOURCES})
 
 if(UNIX)
 	# Add warning disable flags and link Unix libraries to sqlite3
