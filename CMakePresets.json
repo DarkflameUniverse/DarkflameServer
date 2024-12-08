@@ -83,46 +83,13 @@
 	  }
 	}
   ],
-  "testPresets": [
-	{
-	  "name": "default",
-	  "configurePreset": "default",
-	  "execution": {
-		"jobs": 2
-	  },
-	  "output": {
-		"outputOnFailure": true
-	  }
-	},
-	{
-	  "name": "windows-msvc-test",
-	  "inherits": "default",
-	  "configurePreset": "windows-msvc",
-	  "hidden": true,
-	  "filter": {
-		"exclude": {
-		  "name": "((example)|(minigzip))+"
-		}
-	  }
-	}
-  ],
-  "workflowPresets": [
-	{
-	  "name": "default",
-	  "steps": [
-		{
-		  "type": "configure",
-		  "name": "default"
-		},
-		{
-		  "type": "build",
-		  "name": "default"
-		},
-		{
-		  "type": "test",
-		  "name": "default"
-		}
-	  ]
-	}
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "displayName": "Default Build",
+      "description": "Default Build",
+      "jobs": 2
+    }
   ]
 }
