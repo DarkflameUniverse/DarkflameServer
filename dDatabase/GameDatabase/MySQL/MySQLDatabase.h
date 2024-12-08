@@ -124,6 +124,7 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
+	uint32_t GetAccountCount() override;
 private:
 
 	// Generic query functions that can be used for any query.

@@ -26,8 +26,9 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * Single player installs now no longer require building the server from source or installing development tools.
 * Download the [latest release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
 * You should be able to see the folder with the server executables in the same folder as `legouniverse.exe`.
-* To run the server, double-click MasterServer.exe.
-* A default account called `admin` will be created with a password of `password`.
+* Open `sharedconfig.ini` and find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
+* To run the server, double-click `MasterServer.exe`.
+* You will be asked to create an account the first time you run the server.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
 * We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
 
@@ -283,8 +284,8 @@ systemctl stop darkflame.service
 journalctl -xeu darkflame.service
 ```
 
-### First admin user
-Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
+### First user or adding more users.
+The first time you run `MasterServer`, you will be prompted to create an account. To create more accounts from the command line, `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
 ### Account management tool (Nexus Dashboard)
 **If you are just using this server for yourself, you can skip setting up Nexus Dashboard**

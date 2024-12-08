@@ -176,12 +176,16 @@ int main(int argc, char** argv) {
 	}
 
 	// Run migrations should any need to be run.
-	MigrationRunner::RunSQLiteMigrations();
+	MigrationRunner::RunSQLiteMigrations();	
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
-	if (argc > 1 &&
-		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) {
+	bool doesAnyAccountExist = Database::Get()->GetAccountCount() > 0;
+	if (!doesAnyAccountExist) {
+		LOG("No accounts exist in the database.  Please create an account.");
+	}
+	if ((argc > 1 &&
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || !doesAnyAccountExist) {
 		std::string username;
 		std::string password;
 

@@ -100,6 +100,7 @@ class TestSQLDatabase : public GameDatabase {
 	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override {};
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
+	uint32_t GetAccountCount() override { return 0; };
 };
 
 #endif  //!TESTSQLDATABASE_H

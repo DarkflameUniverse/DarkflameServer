@@ -40,3 +40,10 @@ void SQLiteDatabase::InsertNewAccount(const std::string_view username, const std
 void SQLiteDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
 	ExecuteUpdate("UPDATE accounts SET gm_level = ? WHERE id = ?;", static_cast<int32_t>(gmLevel), accountId);
 }
+
+uint32_t SQLiteDatabase::GetAccountCount() {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) as count FROM accounts;");
+	if (res.eof()) return 0;
+
+	return res.getIntField("count");
+}

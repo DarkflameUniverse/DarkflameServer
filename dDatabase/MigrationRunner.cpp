@@ -36,6 +36,7 @@ void MigrationRunner::RunMigrations() {
 
 	// has to be here because when moving the files to the new folder, the migration_history table is not updated so it will run them all again.
 	if (!Database::Get()->IsMigrationRun("dlu/mysql/17_migration_for_migrations.sql")) {
+		LOG("Running migration: dlu/mysql/17_migration_for_migrations.sql");
 		Database::Get()->ExecuteCustomQuery("UPDATE `migration_history` SET `name` = CONCAT(SUBSTR(`name`, 1, 4),\"mysql/\", SUBSTR(`name`, 5));");
 		Database::Get()->InsertMigration("dlu/mysql/17_migration_for_migrations.sql");
 	}
