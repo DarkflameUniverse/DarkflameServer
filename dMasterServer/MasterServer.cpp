@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		LOG("Migrations not run");
 		return EXIT_FAILURE;
@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
 		//Create account
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
-		} catch (sql::SQLException& e) {
+		} catch (std::exception& e) {
 			LOG("A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}

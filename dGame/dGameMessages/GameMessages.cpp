@@ -1691,7 +1691,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream.ReadBit();
 
-	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), resultsStart, resultsEnd);
+	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID());
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity) {
@@ -5066,9 +5066,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream& inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
-	stmt->setUInt64(1, item->GetSubKey());
-	stmt->execute();
+	Database::Get()->DeleteUgcBuild(item->GetSubKey());
 
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
@@ -5394,6 +5392,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
 		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
 			item->DisassembleModel(iStackCount);
+		} else if (itemType == eItemType::VEHICLE) {
+			Database::Get()->DeleteUgcBuild(item->GetSubKey());
 		}
 		auto lot = item->GetLot();
 		item->SetCount(item->GetCount() - iStackCount, true);
@@ -5569,12 +5569,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
-			stmt->setUInt64(1, newIdBig);
-			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules).c_str());
 			auto* pCharacter = character->GetCharacter();
-			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
-			stmt->execute();
+			Database::Get()->InsertUgcBuild(GeneralUtils::UTF16ToWTF8(modules), newIdBig, pCharacter ? std::optional(character->GetCharacter()->GetID()) : std::nullopt);
 
 			auto* missionComponent = character->GetComponent<MissionComponent>();
 
