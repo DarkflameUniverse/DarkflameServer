@@ -1,95 +1,191 @@
 {
-  "version": 6,
-  "cmakeMinimumRequired": {
-	"major": 3,
-	"minor": 25,
-	"patch": 0
-  },
-  "configurePresets": [
-	{
-	  "name": "default",
-	  "displayName": "Default configure step",
-	  "description": "Use 'build' dir and Unix makefiles",
-	  "binaryDir": "${sourceDir}/build",
-	  "generator": "Unix Makefiles",
-
-      "hidden": true
-	},
-	{
-	  "name": "windows-default",
-	  "inherits": "default",
-	  "displayName": "Windows Default Configure Settings",
-	  "description": "Sets build and install directories",
-	  "generator": "Visual Studio 17 2022",
-	  "condition": {
-		"type": "equals",
-		"lhs": "${hostSystemName}",
-		"rhs": "Windows"
-	  },
-
-      "hidden": true
-	},
-	{
-	  "name": "windows-msvc",
-	  "inherits": "windows-default",
-	  "displayName": "Windows (MSVC)",
-	  "description": "Create a build using MSVC"
-	},
-	{
-	  "name": "windows-clang",
-	  "inherits": "windows-default",
-	  "displayName": "EXPERIMENTAL - Windows (Clang)",
-	  "description": "Create a build using Clang",
-	  "toolset": "ClangCL"
-	},
-
-	{
-	  "name": "linux-default",
-	  "inherits": "default",
-	  "hidden": true,
-	  "condition": {
-		"type": "equals",
-		"lhs": "${hostSystemName}",
-		"rhs": "Linux"
-	  }
-	},
-	{
-	  "name": "linux-clang",
-	  "inherits": "linux-default",
-
-	  "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake",
-
-	  "displayName": "Linux (Clang)",
-	  "description": "Create a build using the Clang toolchain for Linux"
-	},
-	{
-	  "name": "linux-gnu",
-	  "inherits": "linux-default",
-
-	  "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake",
-
-	  "displayName": "Linux (GNU)",
-	  "description": "Create a build using the GNU toolchain for Linux"
-	},
-	{
-	  "name": "macos",
-	  "inherits": "default",
-	  "displayName": "MacOS",
-	  "description": "Create a build for MacOS",
-	  "condition": {
-		"type": "equals",
-		"lhs": "${hostSystemName}",
-		"rhs": "Darwin"
-	  }
-	}
-  ],
-  "buildPresets": [
-    {
-      "name": "default",
-      "configurePreset": "default",
-      "displayName": "Default Build",
-      "description": "Default Build",
-      "jobs": 2
-    }
-  ]
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default configure step",
+            "description": "Use 'build' dir and Unix makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Unix Makefiles",
+            "hidden": true
+        },
+        {
+            "name": "windows-default",
+            "inherits": "default",
+            "displayName": "Windows Default Configure Settings",
+            "description": "Sets build and install directories",
+            "generator": "Visual Studio 17 2022",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "hidden": true
+        },
+        {
+            "name": "windows-msvc",
+            "inherits": "windows-default",
+            "displayName": "Windows (MSVC)",
+            "description": "Create a build using MSVC"
+        },
+        {
+            "name": "windows-clang",
+            "inherits": "windows-default",
+            "displayName": "EXPERIMENTAL - Windows (Clang)",
+            "description": "Create a build using Clang",
+            "toolset": "ClangCL"
+        },
+        {
+            "name": "linux-default",
+            "inherits": "default",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "linux-clang",
+            "inherits": "linux-default",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/linux-clang.cmake",
+            "displayName": "Linux (Clang)",
+            "description": "Create a build using the Clang toolchain for Linux"
+        },
+        {
+            "name": "linux-gnu",
+            "inherits": "linux-default",
+            "toolchainFile": "${sourceDir}/cmake/toolchains/linux-gnu.cmake",
+            "displayName": "Linux (GNU)",
+            "description": "Create a build using the GNU toolchain for Linux"
+        },
+        {
+            "name": "macos",
+            "inherits": "default",
+            "displayName": "MacOS",
+            "description": "Create a build for MacOS",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default",
+            "displayName": "Default Build",
+            "description": "Default Build",
+            "jobs": 2
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "ci-ubuntu-22.04",
+            "configurePreset": "ci-ubuntu-22.04",
+            "displayName": "CI Tests on Linux",
+            "description": "Runs all tests on a linux configuration",
+            "execution": {
+                "jobs": 2
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "ci-macos-13",
+            "configurePreset": "ci-macos-13",
+            "displayName": "CI Tests on MacOS",
+            "description": "Runs all tests on a Mac configuration",
+            "execution": {
+                "jobs": 2
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "ci-windows-2022",
+            "configurePreset": "ci-windows-2022",
+            "displayName": "CI Tests on windows",
+            "description": "Runs all tests on a windows configuration",
+            "configuration": "RelWithDebInfo",
+            "execution": {
+                "jobs": 2
+            },
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "exclude": {
+                    "name": "((example)|(minigzip))+"
+                }
+            }
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "ci-windows-2022",
+            "displayName": "[Release] Windows (MSVC)",
+            "description": "CI workflow preset for Windows",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows-msvc"
+                },
+                {
+                    "type": "build",
+                    "name": "default"
+                },
+                {
+                    "type": "test",
+                    "name": "default"
+                }
+            ]
+        },
+        {
+            "name": "ci-ubuntu-22.04",
+            "displayName": "[Release] Linux (GNU)",
+            "description": "CI workflow preset for Ubuntu",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux-gnu"
+                },
+                {
+                    "type": "build",
+                    "name": "default"
+                },
+                {
+                    "type": "test",
+                    "name": "ci-ubuntu-22.04"
+                }
+            ]
+        },
+        {
+            "name": "ci-macos-13",
+            "displayName": "[Release] MacOS",
+            "description": "CI workflow preset for MacOS",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "macos"
+                },
+                {
+                    "type": "build",
+                    "name": "default"
+                },
+                {
+                    "type": "test",
+                    "name": "default"
+                }
+            ]
+        }
+    ]
 }
