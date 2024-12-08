@@ -215,21 +215,8 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
-file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
-
-foreach(file ${SQL_FILES})
-	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
-endforeach()
-
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
-file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
-
-foreach(file ${SQL_FILES})
-	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
-endforeach()
+file(REMOVE_RECURSE ${PROJECT_BINARY_DIR}/migrations)
+file(COPY ${CMAKE_SOURCE_DIR}/migrations DESTINATION ${CMAKE_BINARY_DIR})
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)

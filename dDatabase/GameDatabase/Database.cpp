@@ -13,16 +13,27 @@ namespace {
 	GameDatabase* database = nullptr;
 }
 
+std::string Database::GetMigrationFolder() {
+	if (Game::config->GetValue("using_sqlite") == "1") return "sqlite";
+	else if (Game::config->GetValue("using_mysql") == "1") return "mysql";
+	else {
+		LOG("No database specified, using MySQL");
+		return "mysql";
+	}
+}
+
 void Database::Connect() {
 	if (database) {
 		LOG("Tried to connect to database when it's already connected!");
 		return;
 	}
 
-	if (Game::config->GetValue("using_sqlite") == "1") database = new SQLiteDatabase();
-	else if (Game::config->GetValue("using_mysql") == "1") database = new MySQLDatabase();
+	const auto databaseType = GetMigrationFolder();
+
+	if (databaseType == "sqlite") database = new SQLiteDatabase();
+	else if (databaseType == "mysql") database = new MySQLDatabase();
 	else {
-		LOG("No database specified, using MySQL");
+		LOG("Invalid database type specified in config, using MySQL");
 		database = new MySQLDatabase();
 	}
 

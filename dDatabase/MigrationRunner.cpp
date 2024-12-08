@@ -34,10 +34,18 @@ Migration LoadMigration(std::string path) {
 void MigrationRunner::RunMigrations() {
 	Database::Get()->CreateMigrationHistoryTable();
 
+	// has to be here because when moving the files to the new folder, the migration_history table is not updated so it will run them all again.
+	if (!Database::Get()->IsMigrationRun("dlu/mysql/17_migration_for_migrations.sql")) {
+		Database::Get()->ExecuteCustomQuery("UPDATE `migration_history` SET `name` = CONCAT(SUBSTR(`name`, 1, 4),\"mysql/\", SUBSTR(`name`, 5));");
+		Database::Get()->InsertMigration("dlu/mysql/17_migration_for_migrations.sql");
+	}
+	
+	const auto migrationFolder = Database::GetMigrationFolder();
+
 	std::string finalSQL = "";
 	bool runSd0Migrations = false;
-	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
-		auto migration = LoadMigration("dlu/" + entry);
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
+		auto migration = LoadMigration("dlu/" + migrationFolder + "/" + entry);
 
 		if (migration.data.empty()) {
 			continue;
@@ -46,7 +54,7 @@ void MigrationRunner::RunMigrations() {
 		if (Database::Get()->IsMigrationRun(migration.name)) continue;
 
 		LOG("Running migration: %s", migration.name.c_str());
-		if (migration.name == "dlu/5_brick_model_sd0.sql") {
+		if (migration.name == "dlu/mysql/5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
