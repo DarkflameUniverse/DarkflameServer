@@ -46,7 +46,7 @@ public:
 	 * @param name the proximity name to retrieve physics objects for
 	 * @return a set of physics entity object IDs for this name
 	 */
-	const std::unordered_set<LWOOBJID>& GetProximityObjects(const std::string& name);
+	const std::unordered_set<LWOOBJID>& GetProximityObjects(const std::string& name) const;
 
 	/**
 	 * Checks if the passed object is in proximity of the named proximity sensor
