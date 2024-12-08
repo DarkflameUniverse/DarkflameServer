@@ -82,7 +82,6 @@ void SwitchComponent::EntityEnter(Entity* entity) {
 			RenderComponent::PlayAnimation(m_Parent, u"engaged");
 			m_PetBouncer->SetPetBouncerEnabled(true);
 		} else {
-			GameMessages::SendKnockback(entity->GetObjectID(), m_Parent->GetObjectID(), m_Parent->GetObjectID(), 0.0f, NiPoint3(0.0f, 17.0f, 0.0f));
 			Game::entityManager->SerializeEntity(m_Parent);
 		}
 
