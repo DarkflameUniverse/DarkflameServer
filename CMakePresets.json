@@ -88,7 +88,7 @@
     "testPresets": [
         {
             "name": "ci-ubuntu-22.04",
-            "configurePreset": "ci-ubuntu-22.04",
+            "configurePreset": "linux-clang",
             "displayName": "CI Tests on Linux",
             "description": "Runs all tests on a linux configuration",
             "execution": {
@@ -100,7 +100,7 @@
         },
         {
             "name": "ci-macos-13",
-            "configurePreset": "ci-macos-13",
+            "configurePreset": "macos",
             "displayName": "CI Tests on MacOS",
             "description": "Runs all tests on a Mac configuration",
             "execution": {
@@ -112,7 +112,7 @@
         },
         {
             "name": "ci-windows-2022",
-            "configurePreset": "ci-windows-2022",
+            "configurePreset": "windows-msvc",
             "displayName": "CI Tests on windows",
             "description": "Runs all tests on a windows configuration",
             "configuration": "RelWithDebInfo",
@@ -132,7 +132,7 @@
     "workflowPresets": [
         {
             "name": "ci-windows-2022",
-            "displayName": "[Release] Windows (MSVC)",
+            "displayName": "Windows (MSVC)",
             "description": "CI workflow preset for Windows",
             "steps": [
                 {
@@ -145,13 +145,13 @@
                 },
                 {
                     "type": "test",
-                    "name": "default"
+                    "name": "ci-windows-2022"
                 }
             ]
         },
         {
             "name": "ci-ubuntu-22.04",
-            "displayName": "[Release] Linux (GNU)",
+            "displayName": "Linux (GNU)",
             "description": "CI workflow preset for Ubuntu",
             "steps": [
                 {
@@ -170,7 +170,7 @@
         },
         {
             "name": "ci-macos-13",
-            "displayName": "[Release] MacOS",
+            "displayName": "MacOS (Clang)",
             "description": "CI workflow preset for MacOS",
             "steps": [
                 {
@@ -183,7 +183,7 @@
                 },
                 {
                     "type": "test",
-                    "name": "default"
+                    "name": "ci-macos-13"
                 }
             ]
         }
