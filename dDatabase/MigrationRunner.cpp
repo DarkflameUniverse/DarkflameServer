@@ -34,7 +34,7 @@ Migration LoadMigration(std::string path) {
 void MigrationRunner::RunMigrations() {
 	Database::Get()->CreateMigrationHistoryTable();
 
-	sql::SQLString finalSQL = "";
+	std::string finalSQL = "";
 	bool runSd0Migrations = false;
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
 		auto migration = LoadMigration("dlu/" + entry);
@@ -61,12 +61,12 @@ void MigrationRunner::RunMigrations() {
 	}
 
 	if (!finalSQL.empty()) {
-		auto migration = GeneralUtils::SplitString(static_cast<std::string>(finalSQL), ';');
+		auto migration = GeneralUtils::SplitString(finalSQL, ';');
 		for (auto& query : migration) {
 			try {
 				if (query.empty()) continue;
-				Database::Get()->ExecuteCustomQuery(query.c_str());
-			} catch (sql::SQLException& e) {
+				Database::Get()->ExecuteCustomQuery(query);
+			} catch (std::exception& e) {
 				LOG("Encountered error running migration: %s", e.what());
 			}
 		}
