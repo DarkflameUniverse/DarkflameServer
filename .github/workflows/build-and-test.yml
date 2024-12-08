@@ -33,7 +33,9 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        workflowPreset: "ci-${{matrix.os}}"
+        configurePreset: "ci-${{matrix.os}}"
+        buildPreset: "default"
+        testPreset: "ci-${{matrix.os}}"
     - name: artifacts
       uses: actions/upload-artifact@v4
       with:
