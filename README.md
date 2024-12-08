@@ -20,6 +20,9 @@ We do not recommend hosting public servers. Darkflame Universe is intended for s
 Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#verifying-your-client-files) to see if a client will work.
 
 ## Setting up a single player server
+* If you don't know what WSL is, skip this warning.
+	Warning: WSL version 1 does NOT support using sqlite as a database due to how it handles filesystem synchronization.
+	You must use Version 2 if you must run the server under WSL. Not doing so will result in save data loss.
 * Single player installs now no longer require building the server from source or installing development tools.
 * Download the [latest release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
 * You should be able to see the folder with the server executables in the same folder as `legouniverse.exe`.
@@ -28,7 +31,9 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
 * We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
 
-<font size="32">**If you are not planning on hosting a server for others and do not plan on working in the codebase, you can stop reading here.**</font>
+<font size="32">**If you are not planning on hosting a server for others, working in the codebase or wanting to use MariaDB for a database, you can stop reading here.**</font>
+
+If you would like to use a MariaDB as a database instead of the default of sqlite, follow the steps [here](#database-setup).
 
 # Steps to setup a development environment
 * [Clone this repository](#clone-the-repository)
@@ -48,7 +53,7 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 ### Setup difficulty
 Throughout the entire build and setup process a level of familiarity with the command line and preferably a Unix-like development environment is greatly advantageous.
 
-## Step by step walkthrough for building a single-player server from source
+## Step by step walkthrough for building a single-player Windows server from source
 If you would like a setup for a single player server only on a Windows machine built from source, use the [Native Windows Setup Guide by HailStorm](https://gist.github.com/HailStorm32/169df65a47a104199b5cc57d10fa57de) and skip this README.
 
 ## Clone the repository
