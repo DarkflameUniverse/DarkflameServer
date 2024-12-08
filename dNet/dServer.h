@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <chrono>
 #include <csignal>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
@@ -80,6 +81,8 @@ public:
 
 	const ServerType GetServerType() const { return mServerType; }
 
+	[[nodiscard]] std::chrono::time_point<std::chrono::steady_clock> GetStartTime() const { return m_startTime; }
+
 private:
 	bool Startup();
 	void Shutdown();
@@ -114,4 +117,5 @@ protected:
 	SystemAddress mMasterSystemAddress;
 	std::string mMasterIP;
 	int mMasterPort;
+	std::chrono::time_point<std::chrono::steady_clock> m_startTime = std::chrono::steady_clock::now();
 };

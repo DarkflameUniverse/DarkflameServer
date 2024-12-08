@@ -7,6 +7,8 @@
 #include "eMissionState.h"
 #include "MissionComponent.h"
 #include <ctime>
+#include <chrono>
+#include "dServer.h"
 
 void NpcAgCourseStarter::OnStartup(Entity* self) {
 
@@ -47,12 +49,13 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		GameMessages::SendActivityStart(self->GetObjectID(), sender->GetSystemAddress());
 
 		auto* data = scriptedActivityComponent->AddActivityPlayerData(sender->GetObjectID());
-
 		if (data->values[1] != 0) return;
 
-		time_t startTime = std::time(0) + 4; // Offset for starting timer
-
-		data->values[1] = *reinterpret_cast<float*>(&startTime);
+		const auto raceStartTime = std::chrono::steady_clock::now() - Game::server->GetStartTime()
+			+ std::chrono::seconds(4);  // Offset for starting timer
+		const auto fRaceStartTime = std::chrono::duration<float, std::ratio<1>>(raceStartTime).count();
+		data->values[1] = fRaceStartTime;
+		LOG_DEBUG("Race started at: %0.f s", fRaceStartTime);
 
 		Game::entityManager->SerializeEntity(self);
 	} else if (identifier == u"FootRaceCancel") {
@@ -80,25 +83,27 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 			LWOOBJID_EMPTY, "", sender->GetSystemAddress());
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
 	} else if (args == "course_finish") {
-		time_t endTime = std::time(0);
-		time_t finish = (endTime - *reinterpret_cast<time_t*>(&data->values[1]));
+		const auto raceEndTime = std::chrono::steady_clock::now() - Game::server->GetStartTime();
+		const auto fRaceEndTime = std::chrono::duration<float, std::ratio<1>>(raceEndTime).count();
+		const auto raceTimeElapsed = fRaceEndTime - data->values[1];
 
-		data->values[2] = *reinterpret_cast<float*>(&finish);
+		data->values[2] = raceTimeElapsed;
+		LOG_DEBUG("Race time elapsed: %0.f s", raceTimeElapsed);
 
 		auto* missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
 			missionComponent->ForceProgressTaskType(1884, 1, 1, false);
-			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, -finish, self->GetObjectID(),
+			missionComponent->Progress(eMissionTaskType::PERFORM_ACTIVITY, -raceTimeElapsed, self->GetObjectID(),
 				"performact_time");
 		}
 
 		Game::entityManager->SerializeEntity(self);
-		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), static_cast<float>(finish));
+		LeaderboardManager::SaveScore(sender->GetObjectID(), scriptedActivityComponent->GetActivityID(), raceTimeElapsed);
 
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"ToggleLeaderBoard",
 			scriptedActivityComponent->GetActivityID(), 0, sender->GetObjectID(),
 			"", sender->GetSystemAddress());
-		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 1, finish, LWOOBJID_EMPTY, "",
+		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"stop_timer", 1, raceTimeElapsed, LWOOBJID_EMPTY, "",
 			sender->GetSystemAddress());
 
 		scriptedActivityComponent->RemoveActivityPlayerData(sender->GetObjectID());
