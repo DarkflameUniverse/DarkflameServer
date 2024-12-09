@@ -180,12 +180,12 @@ int main(int argc, char** argv) {
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
-	bool doesAnyAccountExist = Database::Get()->GetAccountCount() > 0;
-	if (!doesAnyAccountExist) {
+	bool createAccount = Database::Get()->GetAccountCount() == 0 && Game::config->GetValue("skip_account_creation") != "1";
+	if (createAccount) {
 		LOG("No accounts exist in the database.  Please create an account.");
 	}
 	if ((argc > 1 &&
-		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || !doesAnyAccountExist) {
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || createAccount) {
 		std::string username;
 		std::string password;
 
