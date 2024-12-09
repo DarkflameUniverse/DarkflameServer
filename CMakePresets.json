@@ -79,7 +79,6 @@
 	"buildPresets": [
 		{
 			"name": "default",
-			"configurePreset": "default",
 			"displayName": "Default Build",
 			"description": "Default Build",
 			"jobs": 2
@@ -130,6 +129,6 @@
 		}
 	],
 	"workflowPresets": [
-        
+
 	]
 }
