@@ -14,6 +14,13 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2022, ubuntu-22.04, macos-13 ]
+        include:
+          - os: windows-2022
+            configureType: windows-msvc
+          - os: ubuntu-22.04
+            configureType: linux-gnu
+          - os: macos-13
+            configureType: macos
 
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +40,7 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: "ci-${{matrix.os}}"
+        configurePreset: "${{matrix.configureType}}"
         buildPreset: "default"
         testPreset: "ci-${{matrix.os}}"
 
