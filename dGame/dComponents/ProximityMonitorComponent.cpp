@@ -38,7 +38,7 @@ void ProximityMonitorComponent::SetProximityRadius(dpEntity* entity, const std::
 	m_ProximitiesData.insert(std::make_pair(name, entity));
 }
 
-const std::unordered_set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) {
+const std::unordered_set<LWOOBJID>& ProximityMonitorComponent::GetProximityObjects(const std::string& name) const {
 	const auto iter = m_ProximitiesData.find(name);
 
 	if (iter == m_ProximitiesData.cend()) {
