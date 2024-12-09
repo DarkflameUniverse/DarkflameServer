@@ -77,45 +77,40 @@
 		}
 	],
 	"buildPresets": [
-        
+        { "name": "ci-ubuntu-22.04", "configurePreset": "linux-gnu"    },
+        { "name": "ci-macos-13",     "configurePreset": "macos"        },
+        { "name": "ci-windows-2022", "configurePreset": "windows-msvc" }
 	],
 	"testPresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "execution": {
+                "jobs": 2
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
 		{
 			"name": "ci-ubuntu-22.04",
 			"configurePreset": "linux-gnu",
 			"displayName": "CI Tests on Linux",
-			"description": "Runs all tests on a linux configuration",
-			"execution": {
-				"jobs": 2
-			},
-			"output": {
-				"outputOnFailure": true
-			}
+			"inherits": "default"
 		},
 		{
 			"name": "ci-macos-13",
 			"configurePreset": "macos",
 			"displayName": "CI Tests on MacOS",
-			"description": "Runs all tests on a Mac configuration",
-			"execution": {
-				"jobs": 2
-			},
-			"output": {
-				"outputOnFailure": true
-			}
+			"inherits": "default"
 		},
 		{
 			"name": "ci-windows-2022",
 			"configurePreset": "windows-msvc",
 			"displayName": "CI Tests on windows",
-			"description": "Runs all tests on a windows configuration",
+            "inherits": "default",
+            
 			"configuration": "RelWithDebInfo",
-			"execution": {
-				"jobs": 2
-			},
-			"output": {
-				"outputOnFailure": true
-			},
 			"filter": {
 				"exclude": {
 					"name": "((example)|(minigzip))+"
