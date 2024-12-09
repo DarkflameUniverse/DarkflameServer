@@ -40,8 +40,6 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        configurePreset: "${{matrix.configureType}}"
-        buildPreset: "default"
         testPreset: "ci-${{matrix.os}}"
 
     - name: artifacts
