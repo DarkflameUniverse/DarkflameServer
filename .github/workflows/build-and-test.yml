@@ -40,6 +40,7 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
+        configure: "${{matrix.configureType}}"
         buildPreset: "ci-${{matrix.os}}"
         testPreset: "ci-${{matrix.os}}"
 
