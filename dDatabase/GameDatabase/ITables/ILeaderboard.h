@@ -41,6 +41,7 @@ public:
 	virtual void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) = 0;
 	virtual void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) = 0;
 	virtual void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) = 0;
+	virtual void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) = 0;
 };
 
 #endif  //!__ILEADERBOARD__H__

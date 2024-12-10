@@ -121,6 +121,7 @@ public:
 	void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;
 	std::optional<ILeaderboard::Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) override;
 	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override;
+	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
