@@ -68,6 +68,10 @@ void MySQLDatabase::UpdateScore(const uint32_t playerId, const uint32_t gameId, 
 		score.primaryScore, score.secondaryScore, score.tertiaryScore, playerId, gameId);
 }
 
+void MySQLDatabase::IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) {
+	ExecuteUpdate("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;", playerId, gameId);
+}
+
 std::optional<ILeaderboard::Score> MySQLDatabase::GetPlayerScore(const uint32_t playerId, const uint32_t gameId) {
 	std::optional<ILeaderboard::Score> toReturn = std::nullopt;
 	auto res = ExecuteSelect("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;", playerId, gameId);
