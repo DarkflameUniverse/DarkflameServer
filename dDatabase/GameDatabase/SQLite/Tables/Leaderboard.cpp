@@ -85,3 +85,7 @@ std::optional<ILeaderboard::Score> SQLiteDatabase::GetPlayerScore(const uint32_t
 void SQLiteDatabase::IncrementNumWins(const uint32_t playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET numWins = numWins + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }
+
+void SQLiteDatabase::IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) {
+	ExecuteUpdate("UPDATE leaderboard SET timesPlayed = timesPlayed + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;", playerId, gameId);
+}
