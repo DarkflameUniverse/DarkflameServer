@@ -677,6 +677,9 @@ namespace GameMessages {
 	void HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleUpdateInventoryGroupContents(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void SendForceCameraTargetCycle(Entity* entity, bool bForceCycling, eCameraTargetCyclingMode cyclingMode, LWOOBJID optionalTargetID);
+
+	// This is a client gm however its default values are exactly what we need to get around the invisible inventory item issues.
+	void SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr);
 };
 
 #endif // GAMEMESSAGES_H
