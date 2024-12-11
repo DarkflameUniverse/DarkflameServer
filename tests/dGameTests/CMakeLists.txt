@@ -16,7 +16,7 @@ add_executable(dGameTests ${DGAMETEST_SOURCES})
 
 if(APPLE)
 	add_custom_target(dGameTestsLink
-		${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_CURRENT_BINARY_DIR})
+		${CMAKE_COMMAND} -E copy $<TARGET_FILE:mariadb_cpp_connector> ${CMAKE_CURRENT_BINARY_DIR})
 
 	add_dependencies(dGameTests dGameTestsLink)
 endif()

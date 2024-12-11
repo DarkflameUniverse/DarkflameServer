@@ -4,7 +4,7 @@ add_subdirectory(GameDatabase)
 add_library(dDatabase STATIC "MigrationRunner.cpp")
 
 add_custom_target(conncpp_dylib
-	${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${PROJECT_BINARY_DIR})
+	${CMAKE_COMMAND} -E copy $<TARGET_FILE:mariadb_cpp_connector> ${CMAKE_BINARY_DIR})
 
 add_dependencies(dDatabase conncpp_dylib)
 

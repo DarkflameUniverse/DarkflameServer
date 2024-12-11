@@ -202,15 +202,15 @@ endforeach()
 message(STATUS "Resource file integrity check complete")
 
 # if navmeshes directory does not exist, create it
-if(NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
-	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/navmeshes)
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/navmeshes)
+	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/navmeshes)
 endif()
 
 # Copy navmesh data on first build and extract it
-configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${CMAKE_BINARY_DIR}/navmeshes.zip COPYONLY)
 
-file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
-file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/navmeshes.zip DESTINATION ${CMAKE_BINARY_DIR}/navmeshes)
+file(REMOVE ${CMAKE_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "root.xml" "dev-tribute.xml" "atm.xml" "demo.xml")
@@ -220,20 +220,20 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${CMAKE_BINARY_DIR}/migrations/dlu/${file})
 endforeach()
 
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/migrations/cdserver/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
 
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${CMAKE_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
