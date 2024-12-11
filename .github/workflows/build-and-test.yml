@@ -49,14 +49,4 @@ jobs:
       with:
         name: build-${{matrix.os}}
         path: |
-          build/*/*Server*
-          build/*/*.ini
-          build/*/*.so
-          build/*/*.dll
-          build/*/*.dylib
-          build/*/vanity/
-          build/*/navmeshes/
-          build/*/migrations/
-          build/*/*.dcf
-          !build/*/*.pdb
-          !build/*/d*/
+          build/*
