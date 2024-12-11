@@ -28,8 +28,8 @@ target_include_directories(dDatabaseGame PUBLIC "."
 )
 
 target_link_libraries(dDatabaseGame
-	INTERFACE dCommon
-	PRIVATE sqlite3 MariaDB::ConnCpp)
+	PUBLIC mariadb_cpp_connector
+	INTERFACE dCommon)
 
 # Glob together all headers that need to be precompiled
 file(
