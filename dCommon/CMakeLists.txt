@@ -47,6 +47,7 @@ elseif (WIN32)
 
     set(WITH_GTEST OFF CACHE BOOL "" FORCE)
     set(ZLIB_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+    set(ZLIB_COMPAT ON CACHE BOOL "Enable ZLIB compatibility mode" FORCE)
 
 	# TODO Keep an eye on the zlib repository for an update to disable testing.  Don't forget to update CMakePresets
 	FetchContent_Declare(
