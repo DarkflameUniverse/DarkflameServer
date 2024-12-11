@@ -982,7 +982,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-	});
+		});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -5080,6 +5080,12 @@ void GameMessages::HandleSetFlag(RakNet::BitStream& inStream, Entity* entity) {
 
 	auto character = entity->GetCharacter();
 	if (character) character->SetPlayerFlag(iFlagID, bFlag);
+
+	// This is always set the first time a player loads into a world from character select
+	// and is used to know when to refresh the players inventory items so they show up.
+	if (iFlagID == ePlayerFlag::IS_NEWS_SCREEN_VISIBLE && bFlag) {
+		entity->SetVar<bool>(u"dlu_first_time_load", true);
+	}
 }
 
 void GameMessages::HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -5147,12 +5153,12 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* en
 	}
 
 	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-	|| !player->GetCharacter()
-	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+		|| !player->GetCharacter()
+		|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
 	player->AddCallbackTimer(0.5f, [player]() {
 		if (!player) return;
 		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
-	});
+		});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -6322,5 +6328,16 @@ void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling
 	bitStream.Write(optionalTargetID);
 
 	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}
+
+
+void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(MessageType::Game::UPDATE_INVENTORY_UI);
+	
 	SEND_PACKET;
 }
