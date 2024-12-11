@@ -21,6 +21,11 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hid
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
   
 set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: Debug, Release, RelWithDebInfo, MinSizeRel")
+
+if (${CMAKE_BUILD_TYPE} MATCHES "") # CI likes to set CMAKE_BUILD_TYPE to an empty string
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif()
+
 set(DLU_CONFIG_DIR ${CMAKE_SOURCE_DIR}/build CACHE PATH "The directory where the server configuration files are stored")
 
 # Read variables from file
