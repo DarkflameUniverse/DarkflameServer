@@ -8,6 +8,8 @@
 #define DARKFLAME_PLATFORM_IOS
 #elif TARGET_OS_MAC
 #define DARKFLAME_PLATFORM_MACOS
+#pragma clang diagnostic push // prevent pragma messages being counted as a warning
+#pragma clang diagnostic ignored "-W#pragma-messages"
 #else
 #error unknown Apple operating system
 #endif

@@ -21,7 +21,7 @@ add_executable(dCommonTests ${DCOMMONTEST_SOURCES})
 # Needs to be in binary dir for ctest 
 if(APPLE)
 	add_custom_target(dCommonTestsLink
-		${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_CURRENT_BINARY_DIR})
+		${CMAKE_COMMAND} -E copy $<TARGET_FILE:mariadb_cpp_connector> ${CMAKE_CURRENT_BINARY_DIR})
 
 	add_dependencies(dCommonTests dCommonTestsLink)
 endif()

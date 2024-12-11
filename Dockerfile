@@ -23,23 +23,23 @@ RUN --mount=type=cache,id=build-apt-cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 # Grab libraries and load them
-COPY --from=build /app/build/mariadbcpp/libmariadbcpp.so /usr/local/lib/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/mariadbcpp/libmariadbcpp.so /usr/local/lib/
 RUN ldconfig
 
 # Server bins
-COPY --from=build /app/build/*Server /app/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/*Server /app/
 
 # Necessary suplimentary files
-COPY --from=build /app/build/*.ini /app/configs/
-COPY --from=build /app/build/vanity/*.* /app/vanity/
-COPY --from=build /app/build/navmeshes /app/navmeshes
-COPY --from=build /app/build/migrations /app/migrations
-COPY --from=build /app/build/*.dcf /app/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/*.ini /app/configs/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/vanity/*.* /app/vanity/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/navmeshes /app/navmeshes
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/migrations /app/migrations
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/*.dcf /app/
 
 # backup of config and vanity files to copy to the host incase 
 # of a mount clobbering the copy from above
-COPY --from=build /app/build/*.ini /app/default-configs/ 
-COPY --from=build /app/build/vanity/*.* /app/default-vanity/
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/*.ini /app/default-configs/ 
+COPY --from=build /app/build/Linux-x86_64/GNU/Release/vanity/*.* /app/default-vanity/
 
 # needed as the container runs with the root user
 # and therefore sudo doesn't exist

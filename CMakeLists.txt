@@ -19,6 +19,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debuggi
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+  
+set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: Debug, Release, RelWithDebInfo, MinSizeRel")
+
+if (${CMAKE_BUILD_TYPE} MATCHES "") # CI likes to set CMAKE_BUILD_TYPE to an empty string
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif()
+
+set(DLU_CONFIG_DIR ${CMAKE_SOURCE_DIR}/build CACHE PATH "The directory where the server configuration files are stored")
 
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
@@ -72,7 +80,7 @@ if(UNIX)
 
 	# For all except Clang and Apple Clang
 	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		add_compile_options("-static-libgcc" "-lstdc++fs")
+		add_compile_options("-static-libgcc" "-lstdc++fs" "-Wno-error=implicit-function-declaration" "-Wno-error=int-conversion")
 	endif()
 
 	if(${DYNAMIC} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -90,10 +98,11 @@ elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
-# Our output dir
-#set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) # unfortunately, forces all libraries to be built in series, which will slow down the build process
+# Set the output directories
+# ./build/<platform + architecture (x64, x86, aarch64)>/<compiler>/<build_mode>/
 
-# TODO make this not have to override the build type directories
+set(CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_CXX_COMPILER_ID}/${CMAKE_BUILD_TYPE})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
@@ -108,6 +117,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# Get DLU config directory
+if(DEFINED ENV{DLU_CONFIG_DIR})
+	set(DLU_CONFIG_DIR $ENV{DLU_CONFIG_DIR})
+else()
+	set(DLU_CONFIG_DIR ${CMAKE_BINARY_DIR})
+endif()
+
+message(STATUS "Configuration Directory is ${DLU_CONFIG_DIR}, and the build directory is ${CMAKE_BINARY_DIR}")
+
 find_package(MariaDB)
 
 # Create a /resServer directory
@@ -116,17 +134,10 @@ make_directory(${CMAKE_BINARY_DIR}/resServer)
 # Create a /logs directory
 make_directory(${CMAKE_BINARY_DIR}/logs)
 
-# Get DLU config directory
-if(DEFINED ENV{DLU_CONFIG_DIR})
-	set(DLU_CONFIG_DIR $ENV{DLU_CONFIG_DIR})
-else()
-	set(DLU_CONFIG_DIR ${PROJECT_BINARY_DIR})
-endif()
-message(STATUS "Variable: DLU_CONFIG_DIR = ${DLU_CONFIG_DIR}")
-
 # Copy resource files on first build
 set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
+
 
 include(Utils)
 UpdateConfigOption(${DLU_CONFIG_DIR}/authconfig.ini "port" "auth_server_port")
@@ -196,15 +207,15 @@ endforeach()
 message(STATUS "Resource file integrity check complete")
 
 # if navmeshes directory does not exist, create it
-if(NOT EXISTS ${PROJECT_BINARY_DIR}/navmeshes)
-	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/navmeshes)
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/navmeshes)
+	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/navmeshes)
 endif()
 
 # Copy navmesh data on first build and extract it
-configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${PROJECT_BINARY_DIR}/navmeshes.zip COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/resources/navmeshes.zip ${CMAKE_BINARY_DIR}/navmeshes.zip COPYONLY)
 
-file(ARCHIVE_EXTRACT INPUT ${PROJECT_BINARY_DIR}/navmeshes.zip DESTINATION ${PROJECT_BINARY_DIR}/navmeshes)
-file(REMOVE ${PROJECT_BINARY_DIR}/navmeshes.zip)
+file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/navmeshes.zip DESTINATION ${CMAKE_BINARY_DIR}/navmeshes)
+file(REMOVE ${CMAKE_BINARY_DIR}/navmeshes.zip)
 
 # Copy vanity files on first build
 set(VANITY_FILES "CREDITS.md" "INFO.md" "TESTAMENT.md" "root.xml" "dev-tribute.xml" "atm.xml" "demo.xml")
@@ -214,20 +225,20 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/migrations/dlu/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
 
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${CMAKE_BINARY_DIR}/migrations/dlu/${file})
 endforeach()
 
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/migrations/cdserver/)
 file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
 
 foreach(file ${SQL_FILES})
 	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
+	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${CMAKE_BINARY_DIR}/migrations/cdserver/${file})
 endforeach()
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)

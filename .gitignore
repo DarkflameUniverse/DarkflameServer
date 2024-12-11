@@ -113,6 +113,8 @@ CMakeFiles/TargetDirectories.txt
 *.sln
 *.recipe
 
+CMakeUserPresets.json
+
 # clangd
 .cache
 thirdparty/zlib-1.2.11/

@@ -21,7 +21,7 @@ target_include_directories(dDatabaseGame PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
 )
 target_link_libraries(dDatabaseGame
-	PUBLIC MariaDB::ConnCpp
+	PUBLIC mariadb_cpp_connector
 	INTERFACE dCommon)
 
 # Glob together all headers that need to be precompiled

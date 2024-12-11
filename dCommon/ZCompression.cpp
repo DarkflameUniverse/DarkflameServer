@@ -9,6 +9,7 @@ namespace ZCompression {
 	}
 
 	int32_t Compress(const uint8_t* abSrc, int32_t nLenSrc, uint8_t* abDst, int32_t nLenDst) {
+        
 		z_stream zInfo = { 0 };
 		zInfo.total_in = zInfo.avail_in = nLenSrc;
 		zInfo.total_out = zInfo.avail_out = nLenDst;

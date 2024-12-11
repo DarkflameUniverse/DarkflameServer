@@ -1,4 +1,4 @@
-name: CI
+name: Build And Test
 
 on:
   push:
@@ -14,6 +14,13 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2022, ubuntu-22.04, macos-13 ]
+        include:
+          - os: windows-2022
+            configureType: windows-msvc
+          - os: ubuntu-22.04
+            configureType: linux-gnu
+          - os: macos-13
+            configureType: macos
 
     steps:
     - uses: actions/checkout@v4
@@ -33,20 +40,13 @@ jobs:
     - name: cmake
       uses: lukka/run-cmake@v10
       with:
-        workflowPreset: "ci-${{matrix.os}}"
+        configurePreset: "${{matrix.configureType}}"
+        buildPreset: "ci-${{matrix.os}}"
+        testPreset: "ci-${{matrix.os}}"
+
     - name: artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-${{matrix.os}}
         path: |
-          build/*/*Server*
-          build/*/*.ini
-          build/*/*.so
-          build/*/*.dll
-          build/*/*.dylib
-          build/*/vanity/
-          build/*/navmeshes/
-          build/*/migrations/
-          build/*/*.dcf
-          !build/*/*.pdb
-          !build/*/d*/
+          build/*
