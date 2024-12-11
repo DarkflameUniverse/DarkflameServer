@@ -65,13 +65,13 @@ void RandomSpawnerFin::OnStartup(Entity* self) {
 	};
 
 	sectionMultipliers = {
-		{"secA", 1},
-		{"secB", 1},
+		{"secA", 1.0f},
+		{"secB", 1.0f},
 		{"secC", 1.2f},
 		{"secD", 1.3f},
 		{"secE", 1.6f},
-		{"secF", 1},
-		{"secG", 1},
+		{"secF", 1.0f},
+		{"secG", 1.0f},
 		{"secH", 1.2f},
 	};
 
