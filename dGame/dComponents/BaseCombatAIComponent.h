@@ -224,6 +224,12 @@ public:
 	 */
 	void Wake();
 
+	void ForceTether();
+
+	// heals the entity to full health and armor
+	// and tethers them to their spawn point
+	void TetherLogic();
+
 private:
 	/**
 	 * Returns the current target or the target that currently is the largest threat to this entity
@@ -381,6 +387,8 @@ private:
 	 *
 	 */
 	bool m_DirtyStateOrTarget = false;
+
+	float m_ForcedTetherTime = 0.0f;
 
 	/**
 	 * Whether the current entity is a mech enemy, needed as mechs tether radius works differently

@@ -107,6 +107,8 @@ public:
 
 	const SystemAddress& GetSystemAddress() const;
 
+	int32_t GetCollisionGroup() const;
+
 	/**
 	 * Setters
 	 */
