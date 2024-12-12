@@ -176,7 +176,7 @@ foreach(resource_file ${RESOURCE_FILES})
 
 				if(NOT ${parsed_current_file_contents} MATCHES ${variable_name})
 					# For backwards compatibility with older setup versions, dont add this option.
-					if(NOT ${variable_name} MATCHES "using_sqlite")
+					if(NOT ${variable_name} MATCHES "database_type")
 						message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
 						set(line_to_add ${line_to_add} ${line})
 

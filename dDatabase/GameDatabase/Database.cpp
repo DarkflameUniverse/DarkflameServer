@@ -7,6 +7,8 @@
 #include "SQLiteDatabase.h"
 #include "MySQLDatabase.h"
 
+#include <ranges>
+
 #pragma warning (disable:4251) //Disables SQL warnings
 
 namespace {
@@ -14,8 +16,11 @@ namespace {
 }
 
 std::string Database::GetMigrationFolder() {
-	if (Game::config->GetValue("using_sqlite") == "1") return "sqlite";
-	else if (Game::config->GetValue("using_mysql") == "1") return "mysql";
+	const std::set<std::string> validMysqlTypes = { "mysql", "mariadb", "maria" };
+	auto databaseType = Game::config->GetValue("database_type");
+	std::ranges::transform(databaseType, databaseType.begin(), ::tolower);
+	if (databaseType == "sqlite") return "sqlite";
+	else if (validMysqlTypes.contains(databaseType)) return "mysql";
 	else {
 		LOG("No database specified, using MySQL");
 		return "mysql";
