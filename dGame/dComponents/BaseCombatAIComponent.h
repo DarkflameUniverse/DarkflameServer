@@ -224,11 +224,15 @@ public:
 	 */
 	void Wake();
 
+	// Force this entity to tether and ignore all other actions
 	void ForceTether();
 
 	// heals the entity to full health and armor
 	// and tethers them to their spawn point
 	void TetherLogic();
+
+	// Ignore a threat for a certain amount of time
+	void IgnoreThreat(const LWOOBJID target, const float time);
 
 private:
 	/**
@@ -388,7 +392,11 @@ private:
 	 */
 	bool m_DirtyStateOrTarget = false;
 
+	// The amount of time the entity will be forced to tether for
 	float m_ForcedTetherTime = 0.0f;
+
+	// The amount of time a removed threat will be ignored for. 
+	std::map<LWOOBJID, float> m_RemovedThreatList;
 
 	/**
 	 * Whether the current entity is a mech enemy, needed as mechs tether radius works differently

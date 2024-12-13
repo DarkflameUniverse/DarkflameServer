@@ -29,10 +29,6 @@ PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Compon
 	}
 
 	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
-	if (m_Parent->GetLOT() == 8419) {
-		auto [x, y, z] = m_Parent->GetDefaultPosition();
-		LOG("PhysicsComponent: %f %f %f", x, y, z);
-	}
 }
 
 void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {

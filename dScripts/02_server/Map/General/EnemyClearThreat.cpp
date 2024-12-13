@@ -19,7 +19,7 @@ void EnemyClearThreat::OnCollisionPhantom(Entity* self, Entity* target) {
 			auto* const baseCombatAiComponent = enemy->GetComponent<BaseCombatAIComponent>();
 			if (!baseCombatAiComponent) continue;
 
-			baseCombatAiComponent->SetThreat(target->GetObjectID(), 0.0f);
+			baseCombatAiComponent->IgnoreThreat(target->GetObjectID(), 3.0f);
 		}
 	} 
 }

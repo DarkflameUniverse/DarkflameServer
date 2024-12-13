@@ -16,6 +16,7 @@
 #include "DestroyableComponent.h"
 
 #include <algorithm>
+#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -173,6 +174,15 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		}
 		m_ForcedTetherTime -= deltaTime;
 		if (m_ForcedTetherTime >= 0) return;
+	}
+
+	for (auto entry = m_RemovedThreatList.begin(); entry != m_RemovedThreatList.end();) {
+		entry->second -= deltaTime;
+		if (entry->second <= 0.0f) {
+			entry = m_RemovedThreatList.erase(entry);
+		} else {
+			++entry;
+		}
 	}
 
 	if (m_SoftTimer <= 0.0f) {
@@ -469,7 +479,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
-		if (distance > m_AggroRadius * m_AggroRadius) continue;
+		if (distance > m_AggroRadius * m_AggroRadius || m_RemovedThreatList.contains(id)) continue;
 
 		targets.push_back(id);
 	}
@@ -822,4 +832,10 @@ void BaseCombatAIComponent::ForceTether() {
 	m_ForcedTetherTime = m_TetherTime;
 
 	SetAiState(AiState::aggro);
+}
+
+void BaseCombatAIComponent::IgnoreThreat(const LWOOBJID threat, const float value) {
+	m_RemovedThreatList[threat] = value;
+	SetThreat(threat, 0.0f);
+	m_Target = LWOOBJID_EMPTY;
 }
