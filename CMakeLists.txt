@@ -303,6 +303,7 @@ file(
 # Add our library subdirectories for creation of the library object
 add_subdirectory(dCommon)
 add_subdirectory(dDatabase)
+add_subdirectory(dECS)
 add_subdirectory(dChatFilter)
 add_subdirectory(dNet)
 add_subdirectory(dScripts) # Add for dGame to use
