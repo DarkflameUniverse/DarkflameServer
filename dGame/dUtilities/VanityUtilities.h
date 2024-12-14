@@ -31,4 +31,8 @@ namespace VanityUtilities {
 	std::string ParseMarkdown(
 		const std::string& file
 	);
+
+	void OnProximityUpdate(Entity* entity, Entity* other, const std::string& proxName, const std::string& name);
+
+	void OnTimerDone(Entity* entity, const std::string& name);
 };

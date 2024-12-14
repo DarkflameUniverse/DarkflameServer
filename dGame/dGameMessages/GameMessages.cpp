@@ -1004,7 +1004,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 				destroyableComponent->SetImagination(imaginationToRestore);
 			}
 		}
-	});
+		});
 
 	CBITSTREAM;
 	CMSGHEADER;
@@ -1713,7 +1713,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream.ReadBit();
 
-	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), resultsStart, resultsEnd);
+	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID());
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity) {
@@ -5088,9 +5088,7 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream& inStream, E
 
 	item->Disassemble(TEMP_MODELS);
 
-	std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("DELETE FROM ugc_modular_build where ugc_id = ?"));
-	stmt->setUInt64(1, item->GetSubKey());
-	stmt->execute();
+	Database::Get()->DeleteUgcBuild(item->GetSubKey());
 
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
@@ -5104,6 +5102,12 @@ void GameMessages::HandleSetFlag(RakNet::BitStream& inStream, Entity* entity) {
 
 	auto character = entity->GetCharacter();
 	if (character) character->SetPlayerFlag(iFlagID, bFlag);
+
+	// This is always set the first time a player loads into a world from character select
+	// and is used to know when to refresh the players inventory items so they show up.
+	if (iFlagID == ePlayerFlag::IS_NEWS_SCREEN_VISIBLE && bFlag) {
+		entity->SetVar<bool>(u"dlu_first_time_load", true);
+	}
 }
 
 void GameMessages::HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -5171,12 +5175,12 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* en
 	}
 
 	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-	|| !player->GetCharacter()
-	|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
+		|| !player->GetCharacter()
+		|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
 	player->AddCallbackTimer(0.5f, [player]() {
 		if (!player) return;
 		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
-	});
+		});
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -5416,6 +5420,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 		const auto itemType = static_cast<eItemType>(item->GetInfo().itemType);
 		if (itemType == eItemType::MODEL || itemType == eItemType::LOOT_MODEL) {
 			item->DisassembleModel(iStackCount);
+		} else if (itemType == eItemType::VEHICLE) {
+			Database::Get()->DeleteUgcBuild(item->GetSubKey());
 		}
 		auto lot = item->GetLot();
 		item->SetCount(item->GetCount() - iStackCount, true);
@@ -5591,12 +5597,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
 			}
 
-			std::unique_ptr<sql::PreparedStatement> stmt(Database::Get()->CreatePreppedStmt("INSERT INTO ugc_modular_build (ugc_id, ldf_config, character_id) VALUES (?,?,?)"));
-			stmt->setUInt64(1, newIdBig);
-			stmt->setString(2, GeneralUtils::UTF16ToWTF8(modules).c_str());
 			auto* pCharacter = character->GetCharacter();
-			pCharacter ? stmt->setUInt(3, pCharacter->GetID()) : stmt->setNull(3, sql::DataType::BIGINT);
-			stmt->execute();
+			Database::Get()->InsertUgcBuild(GeneralUtils::UTF16ToWTF8(modules), newIdBig, pCharacter ? std::optional(character->GetCharacter()->GetID()) : std::nullopt);
 
 			auto* missionComponent = character->GetComponent<MissionComponent>();
 
@@ -6348,5 +6350,16 @@ void GameMessages::SendForceCameraTargetCycle(Entity* entity, bool bForceCycling
 	bitStream.Write(optionalTargetID);
 
 	auto sysAddr = entity->GetSystemAddress();
+	SEND_PACKET;
+}
+
+
+void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(objectId);
+	bitStream.Write(MessageType::Game::UPDATE_INVENTORY_UI);
+	
 	SEND_PACKET;
 }

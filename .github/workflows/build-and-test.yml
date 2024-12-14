@@ -43,6 +43,7 @@ jobs:
           build/*/*.ini
           build/*/*.so
           build/*/*.dll
+          build/*/*.dylib
           build/*/vanity/
           build/*/navmeshes/
           build/*/migrations/

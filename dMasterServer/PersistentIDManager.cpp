@@ -24,9 +24,9 @@ void PersistentIDManager::Initialize() {
 			LOG("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
 			throw std::runtime_error("Invalid persistent object ID in database. Aborting to prevent bad id generation.");
 		}
-	} catch (sql::SQLException& e) {
+	} catch (std::exception& e) {
 		LOG("Unable to fetch max persistent object ID in use. This will cause issues. Aborting to prevent collisions.");
-		LOG("SQL error: %s", e.what());
+		LOG("Error: %s", e.what());
 		throw e;
 	}
 }

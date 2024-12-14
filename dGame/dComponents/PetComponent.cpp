@@ -381,7 +381,7 @@ void PetComponent::Update(float deltaTime) {
 			float distance = Vector3::DistanceSquared(position, switchPosition);
 			if (distance < 3 * 3) {
 				m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-				closestSwitch->EntityEnter(m_Parent);
+				closestSwitch->OnUse(m_Parent);
 			} else if (distance < 20 * 20) {
 				haltDistance = 1;
 

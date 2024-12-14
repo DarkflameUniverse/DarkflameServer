@@ -121,7 +121,7 @@ void ActivityManager::GetLeaderboardData(Entity* self, const LWOOBJID playerID, 
 	auto* sac = self->GetComponent<ScriptedActivityComponent>();
 	uint32_t gameID = sac != nullptr ? sac->GetActivityID() : self->GetLOT();
 	// Save the new score to the leaderboard and show the leaderboard to the player
-	LeaderboardManager::SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, self->GetObjectID(), 0, numResults);
+	LeaderboardManager::SendLeaderboard(activityID, Leaderboard::InfoType::MyStanding, false, playerID, self->GetObjectID());
 }
 
 void ActivityManager::ActivityTimerStart(Entity* self, const std::string& timerName, const float_t updateInterval,

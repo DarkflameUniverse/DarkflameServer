@@ -13,14 +13,12 @@ file(COPY ${COMPONENT_TEST_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the executable.  Remember to add all tests above this!
 add_executable(dGameTests ${DGAMETEST_SOURCES})
-add_dependencies(dGameTests conncpp_tests)
 
-# Apple needs some special linkage for the mariadb connector for tests.
 if(APPLE)
-add_custom_command(TARGET dGameTests POST_BUILD
-	COMMAND install_name_tool ARGS -change libmariadbcpp.dylib @rpath/libmariadbcpp.dylib dGameTests
-	COMMAND otool ARGS -L dGameTests
-	WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+	add_custom_target(dGameTestsLink
+		${CMAKE_COMMAND} -E copy $<TARGET_FILE:MariaDB::ConnCpp> ${CMAKE_CURRENT_BINARY_DIR})
+
+	add_dependencies(dGameTests dGameTestsLink)
 endif()
 
 target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main

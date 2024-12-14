@@ -20,6 +20,7 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"PropertyContents.cpp"
 	"Servers.cpp"
 	"Ugc.cpp"
+	"UgcModularBuild.cpp"
 	PARENT_SCOPE
 )
 
