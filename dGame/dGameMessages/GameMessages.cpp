@@ -323,7 +323,7 @@ void GameMessages::SendStopNDAudioEmitter(Entity* entity, const SystemAddress& s
 	CMSGHEADER;
 
 	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(eGameMessageType::STOP_ND_AUDIO_EMITTER);
+	bitStream.Write(MessageType::Game::STOP_ND_AUDIO_EMITTER);
 	bitStream.Write0(); // callback message data {lwoobjid}
 	bitStream.Write0(); // audio emitterid {uint32_t}
 
