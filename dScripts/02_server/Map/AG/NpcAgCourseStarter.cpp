@@ -16,9 +16,10 @@ void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
 	if (!scriptedActivityComponent) return;
 
 	const auto selfId = self->GetObjectID();
+	const auto userId = user->GetObjectID();
 	const auto userSysAddr = user->GetSystemAddress();
 
-	if (scriptedActivityComponent->GetActivityPlayerData(user->GetObjectID()) != nullptr) {
+	if (scriptedActivityComponent->GetActivityPlayerData(userId) != nullptr) {
 		GameMessages::SendNotifyClientObject(selfId, u"exit", 0, 0, LWOOBJID_EMPTY, "", userSysAddr);
 	} else {
 		GameMessages::SendNotifyClientObject(selfId, u"start", 0, 0, LWOOBJID_EMPTY, "", userSysAddr);
@@ -44,7 +45,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 		GameMessages::SendNotifyClientObject(selfId, u"start_timer", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
 		GameMessages::SendActivityStart(selfId, senderSysAddr);
 
-		auto* const data = scriptedActivityComponent->AddActivityPlayerData(selfId);
+		auto* const data = scriptedActivityComponent->AddActivityPlayerData(senderId);
 		if (data->values[1] != 0) return;
 
 		const auto raceStartTime = Game::server->GetUptime() + std::chrono::seconds(4); // Offset for starting timer
