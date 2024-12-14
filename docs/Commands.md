@@ -45,7 +45,7 @@
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
 |setanntitle|`/setanntitle <title>`|Sets the title of an announcement.|8|
 |shutdownuniverse|`/shutdownuniverse`|Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.|9|
-|uptime|`/uptime`|Displays the time the current world server has been active.|10|
+|uptime|`/uptime`|Displays the time the current world server has been active.|8|
 
 ## Development Commands
 
