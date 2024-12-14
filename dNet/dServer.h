@@ -81,7 +81,10 @@ public:
 
 	const ServerType GetServerType() const { return mServerType; }
 
-	[[nodiscard]] std::chrono::time_point<std::chrono::steady_clock> GetStartTime() const { return m_startTime; }
+	[[nodiscard]]
+	std::chrono::steady_clock::duration GetUptime() const {
+		return std::chrono::steady_clock::now() - mStartTime;
+	}
 
 private:
 	bool Startup();
@@ -117,5 +120,5 @@ protected:
 	SystemAddress mMasterSystemAddress;
 	std::string mMasterIP;
 	int mMasterPort;
-	std::chrono::time_point<std::chrono::steady_clock> m_startTime = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point mStartTime = std::chrono::steady_clock::now();
 };
