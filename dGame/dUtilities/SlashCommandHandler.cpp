@@ -1061,7 +1061,7 @@ void SlashCommandHandler::Startup() {
 		.info = "Display the time the current world server has been active",
 		.aliases = { "uptime" },
 		.handle = GMZeroCommands::ServerUptime,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
+		.requiredLevel = eGameMasterLevel::FORUM_MODERATOR
 	};
 	RegisterCommand(ServerUptimeCommand);
 
