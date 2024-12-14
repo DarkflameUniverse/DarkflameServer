@@ -24,7 +24,7 @@
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
 #include "PositionUpdate.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "PlayerManager.h"
 
 //Component includes:
@@ -83,6 +83,7 @@
 #include "ItemComponent.h"
 #include "GhostComponent.h"
 #include "AchievementVendorComponent.h"
+#include "VanityUtilities.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -95,6 +96,8 @@
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
+
+Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -225,7 +228,7 @@ void Entity::Initialize() {
 
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 
 		AddComponent<RenderComponent>();
 
@@ -649,7 +652,7 @@ void Entity::Initialize() {
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
-		AddComponent<ModelComponent>();
+		AddComponent<ModelComponent>()->LoadBehaviors();
 		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
 			auto* destroyableComponent = AddComponent<DestroyableComponent>();
 			destroyableComponent->SetHealth(1);
@@ -881,7 +884,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	// Update the chat server of our GM Level
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GMLEVEL_UPDATE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GMLEVEL_UPDATE);
 		bitStream.Write(m_ObjectID);
 		bitStream.Write(m_GMLevel);
 
@@ -1269,6 +1272,7 @@ void Entity::Update(const float deltaTime) {
 			auto timerName = timer.GetName();
 			m_Timers.erase(m_Timers.begin() + timerPosition);
 			GetScript()->OnTimerDone(this, timerName);
+			VanityUtilities::OnTimerDone(this, timerName);
 
 			TriggerEvent(eTriggerEventType::TIMER_DONE, this);
 		} else {
@@ -1332,6 +1336,7 @@ void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxN
 	if (!other) return;
 
 	GetScript()->OnProximityUpdate(this, other, proxName, status);
+	VanityUtilities::OnProximityUpdate(this, other, proxName, status);
 
 	RocketLaunchpadControlComponent* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketComp) return;
@@ -1351,7 +1356,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 
 	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
-		switchComp->EntityEnter(other);
+		switchComp->OnUse(other);
 	}
 
 	TriggerEvent(eTriggerEventType::ENTER, other);
@@ -1534,7 +1539,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		bool waitForDeathAnimation = false;
 
 		if (destroyableComponent) {
-			waitForDeathAnimation = destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
+			waitForDeathAnimation = !destroyableComponent->GetIsSmashable() && destroyableComponent->GetDeathBehavior() == 0 && killType != eKillType::SILENT;
 		}
 
 		// Live waited a hard coded 12 seconds for death animations of type 0 before networking destruction!
@@ -1840,6 +1845,12 @@ const NiPoint3& Entity::GetPosition() const {
 		return vehicel->GetPosition();
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetPosition();
+	}
+
 	return NiPoint3Constant::ZERO;
 }
 
@@ -1866,6 +1877,12 @@ const NiQuaternion& Entity::GetRotation() const {
 
 	if (vehicel != nullptr) {
 		return vehicel->GetRotation();
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		return rigidBodyPhantomPhysicsComponent->GetRotation();
 	}
 
 	return NiQuaternionConstant::IDENTITY;
@@ -1896,6 +1913,12 @@ void Entity::SetPosition(const NiPoint3& position) {
 		vehicel->SetPosition(position);
 	}
 
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetPosition(position);
+	}
+
 	Game::entityManager->SerializeEntity(this);
 }
 
@@ -1922,6 +1945,12 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 
 	if (vehicel != nullptr) {
 		vehicel->SetRotation(rotation);
+	}
+
+	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
+
+	if (rigidBodyPhantomPhysicsComponent != nullptr) {
+		rigidBodyPhantomPhysicsComponent->SetRotation(rotation);
 	}
 
 	Game::entityManager->SerializeEntity(this);
@@ -2109,6 +2138,8 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 	Game::entityManager->QueueGhostUpdate(GetObjectID());
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
+
+	OnPlayerPositionUpdate.Notify(this, update);
 }
 
 const SystemAddress& Entity::GetSystemAddress() const {

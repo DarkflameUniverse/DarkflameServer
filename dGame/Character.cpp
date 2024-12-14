@@ -27,6 +27,8 @@ Character::Character(uint32_t id, User* parentUser) {
 	m_ID = id;
 	m_ParentUser = parentUser;
 	m_OurEntity = nullptr;
+	m_GMLevel = eGameMasterLevel::CIVILIAN;
+	m_PermissionMap = static_cast<ePermissionMap>(0);
 }
 
 Character::~Character() {
@@ -38,8 +40,8 @@ void Character::UpdateInfoFromDatabase() {
 	auto charInfo = Database::Get()->GetCharacterInfo(m_ID);
 
 	if (charInfo) {
-		m_Name = charInfo->name; 
-		m_UnapprovedName = charInfo->pendingName; 
+		m_Name = charInfo->name;
+		m_UnapprovedName = charInfo->pendingName;
 		m_NameRejected = charInfo->needsRename;
 		m_PropertyCloneID = charInfo->cloneId;
 		m_PermissionMap = charInfo->permissionMap;
@@ -74,7 +76,7 @@ void Character::DoQuickXMLDataParse() {
 	if (m_Doc.Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
 		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		LOG("Failed to load xmlData!");
+		LOG("Failed to load xmlData (%i) (%s) (%s)!", m_Doc.ErrorID(), m_Doc.ErrorIDToName(m_Doc.ErrorID()), m_Doc.ErrorStr());
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}

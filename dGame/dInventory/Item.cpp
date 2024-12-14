@@ -27,6 +27,23 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPackageComponentTable.h"
 
+namespace {
+	const std::map<std::string, std::string> ExtraSettingAbbreviations = {
+		{ "assemblyPartLOTs", "ma" },
+		{ "blueprintID", "b" },
+		{ "userModelID", "ui" },
+		{ "userModelName", "un" },
+		{ "userModelDesc", "ud" },
+		{ "userModelHasBhvr", "ub" },
+		{ "userModelBehaviors", "ubh" },
+		{ "userModelBehaviorSourceID", "ubs" },
+		{ "userModelPhysicsType", "up" },
+		{ "userModelMod", "um" },
+		{ "userModelOpt", "uo" },
+		{ "reforgedLOT", "rl" },
+	};
+}
+
 Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {
 		return;
@@ -120,6 +137,10 @@ uint32_t Item::GetCount() const {
 
 uint32_t Item::GetSlot() const {
 	return slot;
+}
+
+std::vector<LDFBaseData*> Item::GetConfig() const {
+	return config;
 }
 
 std::vector<LDFBaseData*>& Item::GetConfig() {
@@ -251,7 +272,7 @@ bool Item::Consume() {
 
 	auto skills = skillsTable->Query([this](const CDObjectSkills entry) {
 		return entry.objectTemplate == static_cast<uint32_t>(lot);
-	});
+		});
 
 	auto success = false;
 
@@ -514,4 +535,36 @@ Item::~Item() {
 	}
 
 	config.clear();
+}
+
+void Item::SaveConfigXml(tinyxml2::XMLElement& i) const {
+	tinyxml2::XMLElement* x = nullptr;
+
+	for (const auto* config : this->config) {
+		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
+		const auto saveKey = ExtraSettingAbbreviations.find(key);
+		if (saveKey == ExtraSettingAbbreviations.end()) {
+			continue;
+		}
+
+		if (!x) {
+			x = i.InsertNewChildElement("x");
+		}
+
+		const auto dataToSave = config->GetString(false);
+		x->SetAttribute(saveKey->second.c_str(), dataToSave.c_str());
+	}
+}
+
+void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
+	const auto* x = i.FirstChildElement("x");
+	if (!x) return;
+
+	for (const auto& pair : ExtraSettingAbbreviations) {
+		const auto* data = x->Attribute(pair.second.c_str());
+		if (!data) continue;
+
+		const auto value = pair.first + "=" + data;
+		config.push_back(LDFBaseData::DataFromString(value));
+	}
 }

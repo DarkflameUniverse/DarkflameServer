@@ -41,10 +41,11 @@
 #include "ScriptedActivityComponent.h"
 #include "SkillComponent.h"
 #include "TriggerComponent.h"
+#include "RigidbodyPhantomPhysicsComponent.h"
 
 // Enums
 #include "eGameMasterLevel.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 #include "eInventoryType.h"
 #include "ePlayerFlag.h"
 
@@ -502,7 +503,7 @@ namespace DEVGMCommands {
 	void ShutdownUniverse(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN_UNIVERSE);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 
@@ -1129,8 +1130,13 @@ namespace DEVGMCommands {
 	void SpawnPhysicsVerts(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Go tell physics to spawn all the vertices:
 		auto entities = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PHANTOM_PHYSICS);
-		for (auto en : entities) {
-			auto phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+		for (const auto* en : entities) {
+			const auto* phys = static_cast<PhantomPhysicsComponent*>(en->GetComponent(eReplicaComponentType::PHANTOM_PHYSICS));
+			if (phys)
+				phys->SpawnVertices();
+		}
+		for (const auto* en : Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS)) {
+			const auto* phys = en->GetComponent<RigidbodyPhantomPhysicsComponent>();
 			if (phys)
 				phys->SpawnVertices();
 		}

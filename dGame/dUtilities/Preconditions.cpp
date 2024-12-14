@@ -26,7 +26,8 @@ Precondition::Precondition(const uint32_t condition) {
 	if (result.eof()) {
 		this->type = PreconditionType::ItemEquipped;
 		this->count = 1;
-		this->values = { 0 };
+		this->values.clear();
+		this->values.push_back(0);
 
 		LOG("Failed to find precondition of id (%i)!", condition);
 
@@ -138,21 +139,20 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::DoesNotHaveItem:
 		return inventoryComponent->IsEquipped(value) < count;
 	case PreconditionType::HasAchievement:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::COMPLETE;
+		if (missionComponent == nullptr) return false;
+		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::MissionAvailable:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::AVAILABLE;
+		if (missionComponent == nullptr) return false;
+		return missionComponent->GetMissionState(value) == eMissionState::AVAILABLE || missionComponent->GetMissionState(value) == eMissionState::COMPLETE_AVAILABLE;
 	case PreconditionType::OnMission:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr || mission->GetMissionState() >= eMissionState::ACTIVE;
+		if (missionComponent == nullptr) return false;
+		return  missionComponent->GetMissionState(value) == eMissionState::ACTIVE || 
+				missionComponent->GetMissionState(value) == eMissionState::COMPLETE_ACTIVE ||
+				missionComponent->GetMissionState(value) == eMissionState::READY_TO_COMPLETE ||
+				missionComponent->GetMissionState(value) == eMissionState::COMPLETE_READY_TO_COMPLETE;
 	case PreconditionType::MissionComplete:
-		mission = missionComponent->GetMission(value);
-
-		return mission == nullptr ? false : mission->GetMissionState() >= eMissionState::COMPLETE;
+		if (missionComponent == nullptr) return false;
+		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
 		return false; // TODO
 	case PreconditionType::HasFlag:

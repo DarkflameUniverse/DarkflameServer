@@ -24,7 +24,7 @@ public:
 	 */
 	void OnUse(Entity* self, Entity* user) override;
 
-	static Entity* GetClosestTresure(NiPoint3 position);
+	static Entity* GetClosestTreasure(NiPoint3 position);
 
 private:
 	static void ProgressPetDigMissions(const Entity* owner, const Entity* chest);

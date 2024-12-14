@@ -1,8 +1,140 @@
 #include "MySQLDatabase.h"
+#include "ePropertySortType.h"
+
+std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(const IProperty::PropertyLookup& params) {
+	std::optional<IProperty::PropertyEntranceResult> result;
+	std::string query;
+	std::unique_ptr<sql::ResultSet> properties;
+
+	if (params.sortChoice == SORT_TYPE_FEATURED || params.sortChoice == SORT_TYPE_FRIENDS) {
+		query = R"QUERY(
+		FROM properties as p
+		JOIN charinfo as ci
+		ON ci.prop_clone_id = p.clone_id
+		where p.zone_id = ?
+		AND (
+			p.description LIKE ?
+		    OR p.name LIKE ?
+		    OR ci.name LIKE ?
+		)
+		AND p.privacy_option >= ?
+		AND p.owner_id IN (
+			SELECT fr.requested_player AS player FROM (
+				SELECT CASE 
+				WHEN player_id = ? THEN friend_id 
+				WHEN friend_id = ? THEN player_id 
+				END AS requested_player FROM friends
+			) AS fr 
+			JOIN charinfo AS ci ON ci.id = fr.requested_player 
+			WHERE fr.requested_player IS NOT NULL AND fr.requested_player != ?
+		) ORDER BY ci.name ASC
+		)QUERY";
+		const auto completeQuery = "SELECT p.* " + query + " LIMIT ? OFFSET ?;";
+		properties = ExecuteSelect(
+			completeQuery,
+			params.mapId,
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			params.playerSort,
+			params.playerId,
+			params.playerId,
+			params.playerId,
+			params.numResults,
+			params.startIndex
+		);
+		const auto countQuery = "SELECT COUNT(*) as count" + query + ";";
+		auto count = ExecuteSelect(
+			countQuery,
+			params.mapId,
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			params.playerSort,
+			params.playerId,
+			params.playerId,
+			params.playerId
+		);
+		if (count->next()) {
+			result->totalEntriesMatchingQuery = count->getUInt("count");
+		}
+	} else {
+		if (params.sortChoice == SORT_TYPE_REPUTATION) {
+			query = R"QUERY(
+			FROM properties as p
+			JOIN charinfo as ci
+			ON ci.prop_clone_id = p.clone_id
+			where p.zone_id = ?
+			AND (
+				p.description LIKE ?
+			    OR p.name LIKE ?
+			    OR ci.name LIKE ?
+			)
+			AND p.privacy_option >= ?
+			ORDER BY p.reputation DESC, p.last_updated DESC 
+			)QUERY";
+		} else {
+			query = R"QUERY(
+			FROM properties as p
+			JOIN charinfo as ci
+			ON ci.prop_clone_id = p.clone_id
+			where p.zone_id = ?
+			AND (
+				p.description LIKE ?
+			    OR p.name LIKE ?
+			    OR ci.name LIKE ?
+			)
+			AND p.privacy_option >= ?
+			ORDER BY p.last_updated DESC
+			)QUERY";
+		}
+		const auto completeQuery = "SELECT p.* " + query + " LIMIT ? OFFSET ?;";
+		properties = ExecuteSelect(
+			completeQuery,
+			params.mapId,
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			params.playerSort,
+			params.numResults,
+			params.startIndex
+		);
+		const auto countQuery = "SELECT COUNT(*) as count" + query + ";";
+		auto count = ExecuteSelect(
+			countQuery,
+			params.mapId,
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			"%" + params.searchString + "%",
+			params.playerSort
+		);
+		if (count->next()) {
+			result->totalEntriesMatchingQuery = count->getUInt("count");
+		}
+	}
+
+	while (properties->next()) {
+		auto& entry = result->entries.emplace_back();
+		entry.id = properties->getUInt64("id");
+		entry.ownerId = properties->getUInt64("owner_id");
+		entry.cloneId = properties->getUInt64("clone_id");
+		entry.name = properties->getString("name").c_str();
+		entry.description = properties->getString("description").c_str();
+		entry.privacyOption = properties->getInt("privacy_option");
+		entry.rejectionReason = properties->getString("rejection_reason").c_str();
+		entry.lastUpdatedTime = properties->getUInt("last_updated");
+		entry.claimedTime = properties->getUInt("time_claimed");
+		entry.reputation = properties->getUInt("reputation");
+		entry.modApproved = properties->getUInt("mod_approved");
+		entry.performanceCost = properties->getFloat("performance_cost");
+	}
+
+	return result;
+}
 
 std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) {
 	auto propertyEntry = ExecuteSelect(
-		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved "
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved, performance_cost "
 		"FROM properties WHERE zone_id = ? AND clone_id = ?;", mapId, cloneId);
 
 	if (!propertyEntry->next()) {
@@ -21,6 +153,7 @@ std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOMAPID map
 	toReturn.claimedTime = propertyEntry->getUInt("time_claimed");
 	toReturn.reputation = propertyEntry->getUInt("reputation");
 	toReturn.modApproved = propertyEntry->getUInt("mod_approved");
+	toReturn.performanceCost = propertyEntry->getFloat("performance_cost");
 
 	return toReturn;
 }

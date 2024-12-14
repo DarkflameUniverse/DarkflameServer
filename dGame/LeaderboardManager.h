@@ -9,44 +9,8 @@
 #include "dCommonVars.h"
 #include "LDFFormat.h"
 
-namespace sql {
-	class ResultSet;
-};
-
 namespace RakNet {
 	class BitStream;
-};
-
-class Score {
-public:
-	Score() {
-		primaryScore = 0;
-		secondaryScore = 0;
-		tertiaryScore = 0;
-	}
-	Score(const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0) {
-		this->primaryScore = primaryScore;
-		this->secondaryScore = secondaryScore;
-		this->tertiaryScore = tertiaryScore;
-	}
-	bool operator<(const Score& rhs) const {
-		return primaryScore < rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore < rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore < rhs.tertiaryScore);
-	}
-	bool operator>(const Score& rhs) const {
-		return primaryScore > rhs.primaryScore || (primaryScore == rhs.primaryScore && secondaryScore > rhs.secondaryScore) || (primaryScore == rhs.primaryScore && secondaryScore == rhs.secondaryScore && tertiaryScore > rhs.tertiaryScore);
-	}
-	void SetPrimaryScore(const float score) { primaryScore = score; }
-	float GetPrimaryScore() const { return primaryScore; }
-
-	void SetSecondaryScore(const float score) { secondaryScore = score; }
-	float GetSecondaryScore() const { return secondaryScore; }
-
-	void SetTertiaryScore(const float score) { tertiaryScore = score; }
-	float GetTertiaryScore() const { return tertiaryScore; }
-private:
-	float primaryScore;
-	float secondaryScore;
-	float tertiaryScore;
 };
 
 using GameID = uint32_t;
@@ -79,7 +43,7 @@ public:
 
 	/**
 	 * @brief Resets the leaderboard state and frees its allocated memory
-	 * 
+	 *
 	 */
 	void Clear();
 
@@ -96,20 +60,16 @@ public:
 	 * @param resultStart The index to start the leaderboard at. Zero indexed.
 	 * @param resultEnd The index to end the leaderboard at. Zero indexed.
 	 */
-	void SetupLeaderboard(bool weekly, uint32_t resultStart = 0, uint32_t resultEnd = 10);
+	void SetupLeaderboard(bool weekly);
 
 	/**
 	 * Sends the leaderboard to the client specified by targetID.
 	 */
 	void Send(const LWOOBJID targetID) const;
 
-	// Helper function to get the columns, ordering and insert format for a leaderboard
-	static const std::string_view GetOrdering(Type leaderboardType);
-private:
-	// Takes the resulting query from a leaderboard lookup and converts it to the LDF we need
-	// to send it to a client.
-	void QueryToLdf(std::unique_ptr<sql::ResultSet>& rows);
+	
 
+private:
 	using LeaderboardEntry = std::vector<LDFBaseData*>;
 	using LeaderboardEntries = std::vector<LeaderboardEntry>;
 
@@ -119,10 +79,18 @@ private:
 	InfoType infoType;
 	Leaderboard::Type leaderboardType;
 	bool weekly;
+public:
+	LeaderboardEntry& PushBackEntry() {
+		return entries.emplace_back();
+	}
+
+	Type GetLeaderboardType() const {
+		return leaderboardType;
+	}
 };
 
 namespace LeaderboardManager {
-	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart = 0, const uint32_t resultEnd = 10);
+	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID);
 
 	void SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
 

@@ -7,8 +7,8 @@
 #include "RakNetworkFactory.h"
 #include "MessageIdentifiers.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Master.h"
 
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
@@ -124,12 +124,12 @@ Packet* dServer::ReceiveFromMaster() {
 
 		if (packet->data[0] == ID_USER_PACKET_ENUM) {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
-				switch (static_cast<eMasterMessageType>(packet->data[3])) {
-				case eMasterMessageType::REQUEST_ZONE_TRANSFER_RESPONSE: {
+				switch (static_cast<MessageType::Master>(packet->data[3])) {
+				case MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE: {
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(packet);
 					break;
 				}
-				case eMasterMessageType::SHUTDOWN:
+				case MessageType::Master::SHUTDOWN:
 					*mShouldShutdown = -2;
 					break;
 
@@ -170,7 +170,7 @@ void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, eServerMessageType::DISCONNECT_NOTIFY);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, MessageType::Server::DISCONNECT_NOTIFY);
 	bitStream.Write(disconNotifyID);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 

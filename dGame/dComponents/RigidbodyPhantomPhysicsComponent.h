@@ -1,10 +1,8 @@
-/*
- * Darkflame Universe
- * Copyright 2023
- */
+// Darkflame Universe
+// Copyright 2024
 
-#ifndef __RIGIDBODYPHANTOMPHYSICS_H__
-#define __RIGIDBODYPHANTOMPHYSICS_H__
+#ifndef RIGIDBODYPHANTOMPHYSICS_H
+#define RIGIDBODYPHANTOMPHYSICS_H
 
 #include "BitStream.h"
 #include "dCommonVars.h"
@@ -12,6 +10,8 @@
 #include "NiQuaternion.h"
 #include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
+
+class dpEntity;
 
  /**
   * Component that handles rigid bodies that can be interacted with, mostly client-side rendered. An example is the
@@ -23,7 +23,15 @@ public:
 
 	RigidbodyPhantomPhysicsComponent(Entity* parent);
 
+	void Update(const float deltaTime) override;
+
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
+
+	void SpawnVertices() const;
+private:
+	float m_Scale{};
+
+	dpEntity* m_dpEntity{};
 };
 
-#endif // __RIGIDBODYPHANTOMPHYSICS_H__
+#endif // RIGIDBODYPHANTOMPHYSICS_H

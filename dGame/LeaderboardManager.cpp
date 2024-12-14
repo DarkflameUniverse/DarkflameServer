@@ -1,5 +1,6 @@
 #include "LeaderboardManager.h"
 
+#include <ranges>
 #include <sstream>
 #include <utility>
 
@@ -72,197 +73,191 @@ void Leaderboard::Serialize(RakNet::BitStream& bitStream) const {
 	bitStream.Write0();
 }
 
-void Leaderboard::QueryToLdf(std::unique_ptr<sql::ResultSet>& rows) {
-	Clear();
-	if (rows->rowsCount() == 0) return;
+// Takes the resulting query from a leaderboard lookup and converts it to the LDF we need
+// to send it to a client.
+void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>& leaderboardEntries) {
+	using enum Leaderboard::Type;
+	leaderboard.Clear();
+	if (leaderboardEntries.empty()) return;
 
-	this->entries.reserve(rows->rowsCount());
-	while (rows->next()) {
+	for (const auto& leaderboardEntry : leaderboardEntries) {
 		constexpr int32_t MAX_NUM_DATA_PER_ROW = 9;
-		this->entries.push_back(std::vector<LDFBaseData*>());
-		auto& entry = this->entries.back();
+		auto& entry = leaderboard.PushBackEntry();
 		entry.reserve(MAX_NUM_DATA_PER_ROW);
-		entry.push_back(new LDFData<uint64_t>(u"CharacterID", rows->getInt("character_id")));
-		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", rows->getUInt64("lastPlayed")));
-		entry.push_back(new LDFData<int32_t>(u"NumPlayed", rows->getInt("timesPlayed")));
-		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(rows->getString("name").c_str())));
-		entry.push_back(new LDFData<uint64_t>(u"RowNumber", rows->getInt("ranking")));
-		switch (leaderboardType) {
-		case Type::ShootingGallery:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("primaryScore")));
+		entry.push_back(new LDFData<uint64_t>(u"CharacterID", leaderboardEntry.charId));
+		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", leaderboardEntry.lastPlayedTimestamp));
+		entry.push_back(new LDFData<int32_t>(u"NumPlayed", leaderboardEntry.numTimesPlayed));
+		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(leaderboardEntry.name)));
+		entry.push_back(new LDFData<uint64_t>(u"RowNumber", leaderboardEntry.ranking));
+		switch (leaderboard.GetLeaderboardType()) {
+		case ShootingGallery:
+			entry.push_back(new LDFData<int32_t>(u"Score", leaderboardEntry.primaryScore));
 			// Score:1
-			entry.push_back(new LDFData<int32_t>(u"Streak", rows->getInt("secondaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"Streak", leaderboardEntry.secondaryScore));
 			// Streak:1
-			entry.push_back(new LDFData<float>(u"HitPercentage", (rows->getInt("tertiaryScore") / 100.0f)));
+			entry.push_back(new LDFData<float>(u"HitPercentage", (leaderboardEntry.tertiaryScore / 100.0f)));
 			// HitPercentage:3 between 0 and 1
 			break;
-		case Type::Racing:
-			entry.push_back(new LDFData<float>(u"BestTime", rows->getDouble("primaryScore")));
+		case Racing:
+			entry.push_back(new LDFData<float>(u"BestTime", leaderboardEntry.primaryScore));
 			// BestLapTime:3
-			entry.push_back(new LDFData<float>(u"BestLapTime", rows->getDouble("secondaryScore")));
+			entry.push_back(new LDFData<float>(u"BestLapTime", leaderboardEntry.secondaryScore));
 			// BestTime:3
 			entry.push_back(new LDFData<int32_t>(u"License", 1));
 			// License:1 - 1 if player has completed mission 637 and 0 otherwise
-			entry.push_back(new LDFData<int32_t>(u"NumWins", rows->getInt("numWins")));
+			entry.push_back(new LDFData<int32_t>(u"NumWins", leaderboardEntry.numWins));
 			// NumWins:1
 			break;
-		case Type::UnusedLeaderboard4:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
+		case UnusedLeaderboard4:
+			entry.push_back(new LDFData<int32_t>(u"Points", leaderboardEntry.primaryScore));
 			// Points:1
 			break;
-		case Type::MonumentRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("primaryScore")));
+		case MonumentRace:
+			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.primaryScore));
 			// Time:1(?)
 			break;
-		case Type::FootRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("primaryScore")));
+		case FootRace:
+			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.primaryScore));
 			// Time:1
 			break;
-		case Type::Survival:
-			entry.push_back(new LDFData<int32_t>(u"Points", rows->getInt("primaryScore")));
+		case Survival:
+			entry.push_back(new LDFData<int32_t>(u"Points", leaderboardEntry.primaryScore));
 			// Points:1
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("secondaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.secondaryScore));
 			// Time:1
 			break;
-		case Type::SurvivalNS:
-			entry.push_back(new LDFData<int32_t>(u"Wave", rows->getInt("primaryScore")));
+		case SurvivalNS:
+			entry.push_back(new LDFData<int32_t>(u"Wave", leaderboardEntry.primaryScore));
 			// Wave:1
-			entry.push_back(new LDFData<int32_t>(u"Time", rows->getInt("secondaryScore")));
+			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.secondaryScore));
 			// Time:1
 			break;
-		case Type::Donations:
-			entry.push_back(new LDFData<int32_t>(u"Score", rows->getInt("primaryScore")));
+		case Donations:
+			entry.push_back(new LDFData<int32_t>(u"Score", leaderboardEntry.primaryScore));
 			// Score:1
 			break;
-		case Type::None:
-			// This type is included here simply to resolve a compiler warning on mac about unused enum types
-			break;
+		case None:
+			[[fallthrough]];
 		default:
 			break;
 		}
 	}
 }
 
-const std::string_view Leaderboard::GetOrdering(Leaderboard::Type leaderboardType) {
-	// Use a switch case and return desc for all 3 columns if higher is better and asc if lower is better
-	switch (leaderboardType) {
-	case Type::Racing:
-	case Type::MonumentRace:
-		return "primaryScore ASC, secondaryScore ASC, tertiaryScore ASC";
-	case Type::Survival:
-		return Game::config->GetValue("classic_survival_scoring") == "1" ?
-			"secondaryScore DESC, primaryScore DESC, tertiaryScore DESC" :
-			"primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
-	case Type::SurvivalNS:
-		return "primaryScore DESC, secondaryScore ASC, tertiaryScore DESC";
-	case Type::ShootingGallery:
-	case Type::FootRace:
-	case Type::UnusedLeaderboard4:
-	case Type::Donations:
-	case Type::None:
-	default:
-		return "primaryScore DESC, secondaryScore DESC, tertiaryScore DESC";
+std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer, const Leaderboard::InfoType infoType) {
+	std::vector<ILeaderboard::Entry> toReturn;
+
+	int32_t index = 0;
+	// for friends and top, we dont need to find this players index.
+	if (infoType == Leaderboard::InfoType::MyStanding || infoType == Leaderboard::InfoType::Friends) {
+		for (; index < leaderboard.size(); index++) {
+			if (leaderboard[index].charId == relatedPlayer) break;
+		}
 	}
+
+	if (leaderboard.size() < 10) {
+		toReturn.assign(leaderboard.begin(), leaderboard.end());
+		index = 0;
+	} else if (index < 10) {
+		toReturn.assign(leaderboard.begin(), leaderboard.begin() + 10); // get the top 10 since we are in the top 10
+		index = 0;
+	} else if (index > leaderboard.size() - 10) {
+		toReturn.assign(leaderboard.end() - 10, leaderboard.end()); // get the bottom 10 since we are in the bottom 10
+		index = leaderboard.size() - 10;
+	} else {
+		toReturn.assign(leaderboard.begin() + index - 5, leaderboard.begin() + index + 5); // get the 5 above and below
+		index -= 5;
+	}
+
+	int32_t i = index;
+	for (auto& entry : toReturn) {
+		entry.ranking = ++i;
+	}
+
+	return toReturn;
 }
 
-void Leaderboard::SetupLeaderboard(bool weekly, uint32_t resultStart, uint32_t resultEnd) {
-	resultStart++;
-	resultEnd++;
-	// We need everything except 1 column so i'm selecting * from leaderboard
-	const std::string queryBase =
-		R"QUERY(
-		WITH leaderboardsRanked AS (
-			SELECT leaderboard.*, charinfo.name,
-				RANK() OVER
-				(
-				ORDER BY %s, UNIX_TIMESTAMP(last_played) ASC, id DESC
-			) AS ranking
-				FROM leaderboard JOIN charinfo on charinfo.id = leaderboard.character_id
-				WHERE game_id = ? %s
-		),
-		myStanding AS (
-			SELECT
-				ranking as myRank
-			FROM leaderboardsRanked
-			WHERE id = ?
-		),
-		lowestRanking AS (
-			SELECT MAX(ranking) AS lowestRank
-				FROM leaderboardsRanked
-		)
-		SELECT leaderboardsRanked.*, character_id, UNIX_TIMESTAMP(last_played) as lastPlayed, leaderboardsRanked.name, leaderboardsRanked.ranking FROM leaderboardsRanked, myStanding, lowestRanking
-		WHERE leaderboardsRanked.ranking
-		BETWEEN
-		LEAST(GREATEST(CAST(myRank AS SIGNED) - 5, %i), CAST(lowestRanking.lowestRank AS SIGNED) - 9)
-		AND
-		LEAST(GREATEST(myRank + 5, %i), lowestRanking.lowestRank)
-		ORDER BY ranking ASC;
-	)QUERY";
+std::vector<ILeaderboard::Entry> FilterWeeklies(const std::vector<ILeaderboard::Entry>& leaderboard) {
+	// Filter the leaderboard to only include entries from the last week
+	const auto currentTime = std::chrono::system_clock::now();
+	auto epochTime = currentTime.time_since_epoch().count();
+	constexpr auto SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7; // if you think im taking leap seconds into account thats cute.
 
-	std::string friendsFilter =
-		R"QUERY(
-		AND (
-			character_id IN (
-				SELECT fr.requested_player FROM (
-					SELECT CASE
-					WHEN player_id = ? THEN friend_id
-					WHEN friend_id = ? THEN player_id
-					END AS requested_player
-					FROM friends
-				) AS fr
-				JOIN charinfo AS ci
-				ON ci.id = fr.requested_player
-				WHERE fr.requested_player IS NOT NULL
-			)
-		OR character_id = ?
-		)
-	)QUERY";
-
-	std::string weeklyFilter = " AND UNIX_TIMESTAMP(last_played) BETWEEN UNIX_TIMESTAMP(date_sub(now(),INTERVAL 1 WEEK)) AND UNIX_TIMESTAMP(now()) ";
-
-	std::string filter;
-	// Setup our filter based on the query type
-	if (this->infoType == InfoType::Friends) filter += friendsFilter;
-	if (this->weekly) filter += weeklyFilter;
-	const auto orderBase = GetOrdering(this->leaderboardType);
-
-	// For top query, we want to just rank all scores, but for all others we need the scores around a specific player
-	std::string baseLookup;
-	if (this->infoType == InfoType::Top) {
-		baseLookup = "SELECT id, last_played FROM leaderboard WHERE game_id = ? " + (this->weekly ? weeklyFilter : std::string("")) + " ORDER BY ";
-		baseLookup += orderBase.data();
-	} else {
-		baseLookup = "SELECT id, last_played FROM leaderboard WHERE game_id = ? " + (this->weekly ? weeklyFilter : std::string("")) + " AND character_id = ";
-		baseLookup += std::to_string(static_cast<uint32_t>(this->relatedPlayer));
+	std::vector<ILeaderboard::Entry> weeklyLeaderboard;
+	for (const auto& entry : leaderboard) {
+		if (epochTime - entry.lastPlayedTimestamp < SECONDS_IN_A_WEEK) {
+			weeklyLeaderboard.push_back(entry);
+		}
 	}
-	baseLookup += " LIMIT 1";
-	LOG_DEBUG("query is %s", baseLookup.c_str());
-	std::unique_ptr<sql::PreparedStatement> baseQuery(Database::Get()->CreatePreppedStmt(baseLookup));
-	baseQuery->setInt(1, this->gameID);
-	std::unique_ptr<sql::ResultSet> baseResult(baseQuery->executeQuery());
 
-	if (!baseResult->next()) return; // In this case, there are no entries in the leaderboard for this game.
+	return weeklyLeaderboard;
+}
 
-	uint32_t relatedPlayerLeaderboardId = baseResult->getInt("id");
-
-	// Create and execute the actual save here. Using a heap allocated buffer to avoid stack overflow
-	constexpr uint16_t STRING_LENGTH = 4096;
-	std::unique_ptr<char[]> lookupBuffer = std::make_unique<char[]>(STRING_LENGTH);
-	int32_t res = snprintf(lookupBuffer.get(), STRING_LENGTH, queryBase.c_str(), orderBase.data(), filter.c_str(), resultStart, resultEnd);
-	DluAssert(res != -1);
-	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt(lookupBuffer.get()));
-	LOG_DEBUG("Query is %s vars are %i %i %i", lookupBuffer.get(), this->gameID, this->relatedPlayer, relatedPlayerLeaderboardId);
-	query->setInt(1, this->gameID);
-	if (this->infoType == InfoType::Friends) {
-		query->setInt(2, this->relatedPlayer);
-		query->setInt(3, this->relatedPlayer);
-		query->setInt(4, this->relatedPlayer);
-		query->setInt(5, relatedPlayerLeaderboardId);
-	} else {
-		query->setInt(2, relatedPlayerLeaderboardId);
+std::vector<ILeaderboard::Entry> FilterFriends(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer) {
+	// Filter the leaderboard to only include friends of the player
+	auto friendOfPlayer = Database::Get()->GetFriendsList(relatedPlayer);
+	std::vector<ILeaderboard::Entry> friendsLeaderboard;
+	for (const auto& entry : leaderboard) {
+		const auto res = std::ranges::find_if(friendOfPlayer, [&entry, relatedPlayer](const FriendData& data) {
+			return entry.charId == data.friendID || entry.charId == relatedPlayer;
+			});
+		if (res != friendOfPlayer.cend()) {
+			friendsLeaderboard.push_back(entry);
+		}
 	}
-	std::unique_ptr<sql::ResultSet> result(query->executeQuery());
-	QueryToLdf(result);
+
+	return friendsLeaderboard;
+}
+
+std::vector<ILeaderboard::Entry> ProcessLeaderboard(
+	const std::vector<ILeaderboard::Entry>& leaderboard,
+	const bool weekly,
+	const Leaderboard::InfoType infoType,
+	const uint32_t relatedPlayer) {
+	std::vector<ILeaderboard::Entry> toReturn;
+
+	if (infoType == Leaderboard::InfoType::Friends) {
+		const auto friendsLeaderboard = FilterFriends(leaderboard, relatedPlayer);
+		toReturn = FilterTo10(weekly ? FilterWeeklies(friendsLeaderboard) : friendsLeaderboard, relatedPlayer, infoType);
+	} else {
+		toReturn = FilterTo10(weekly ? FilterWeeklies(leaderboard) : leaderboard, relatedPlayer, infoType);
+	}
+
+	return toReturn;
+}
+
+void Leaderboard::SetupLeaderboard(bool weekly) {
+	const auto leaderboardType = LeaderboardManager::GetLeaderboardType(gameID);
+	std::vector<ILeaderboard::Entry> leaderboardRes;
+
+	switch (leaderboardType) {
+	case Type::SurvivalNS:
+		leaderboardRes = Database::Get()->GetNsLeaderboard(gameID);
+		break;
+	case Type::Survival:
+		leaderboardRes = Database::Get()->GetAgsLeaderboard(gameID);
+		break;
+	case Type::Racing:
+		[[fallthrough]];
+	case Type::MonumentRace:
+		leaderboardRes = Database::Get()->GetAscendingLeaderboard(gameID);
+		break;
+	case Type::ShootingGallery:
+		[[fallthrough]];
+	case Type::FootRace:
+		[[fallthrough]];
+	case Type::Donations:
+		[[fallthrough]];
+	case Type::None:
+		[[fallthrough]];
+	default:
+		leaderboardRes = Database::Get()->GetDescendingLeaderboard(gameID);
+		break;
+	}
+
+	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer);
+
+	QueryToLdf(*this, processedLeaderboard);
 }
 
 void Leaderboard::Send(const LWOOBJID targetID) const {
@@ -272,129 +267,43 @@ void Leaderboard::Send(const LWOOBJID targetID) const {
 	}
 }
 
-std::string FormatInsert(const Leaderboard::Type& type, const Score& score, const bool useUpdate) {
-	std::string insertStatement;
-	if (useUpdate) {
-		insertStatement =
-			R"QUERY(
-			UPDATE leaderboard
-			SET primaryScore = %f, secondaryScore = %f, tertiaryScore = %f,
-			timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;
-			)QUERY";
-	} else {
-		insertStatement =
-			R"QUERY(
-			INSERT leaderboard SET
-			primaryScore = %f, secondaryScore = %f, tertiaryScore = %f,
-			character_id = ?, game_id = ?;
-			)QUERY";
-	}
-
-	constexpr uint16_t STRING_LENGTH = 400;
-	// Then fill in our score
-	char finishedQuery[STRING_LENGTH];
-	int32_t res = snprintf(finishedQuery, STRING_LENGTH, insertStatement.c_str(), score.GetPrimaryScore(), score.GetSecondaryScore(), score.GetTertiaryScore());
-	DluAssert(res != -1);
-	return finishedQuery;
-}
-
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
 
-	std::unique_ptr<sql::PreparedStatement> query(Database::Get()->CreatePreppedStmt("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;"));
-	query->setInt(1, playerID);
-	query->setInt(2, activityId);
-	std::unique_ptr<sql::ResultSet> myScoreResult(query->executeQuery());
+	const auto oldScore = Database::Get()->GetPlayerScore(playerID, activityId);
 
-	std::string saveQuery("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;");
-	Score newScore(primaryScore, secondaryScore, tertiaryScore);
-	if (myScoreResult->next()) {
-		Score oldScore;
-		bool lowerScoreBetter = false;
-		switch (leaderboardType) {
-			// Higher score better
-		case Leaderboard::Type::ShootingGallery: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
-			oldScore.SetTertiaryScore(myScoreResult->getInt("tertiaryScore"));
-			break;
-		}
-		case Leaderboard::Type::FootRace: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			break;
-		}
-		case Leaderboard::Type::Survival: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
-			break;
-		}
-		case Leaderboard::Type::SurvivalNS: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
-			break;
-		}
-		case Leaderboard::Type::UnusedLeaderboard4:
-		case Leaderboard::Type::Donations: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			newScore.SetPrimaryScore(oldScore.GetPrimaryScore() + newScore.GetPrimaryScore());
-			break;
-		}
-		case Leaderboard::Type::Racing: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			oldScore.SetSecondaryScore(myScoreResult->getInt("secondaryScore"));
-
-			// For wins we dont care about the score, just the time, so zero out the tertiary.
-			// Wins are updated later.
-			oldScore.SetTertiaryScore(0);
-			newScore.SetTertiaryScore(0);
-			lowerScoreBetter = true;
-			break;
-		}
-		case Leaderboard::Type::MonumentRace: {
-			oldScore.SetPrimaryScore(myScoreResult->getInt("primaryScore"));
-			lowerScoreBetter = true;
-			// Do score checking here
-			break;
-		}
-		case Leaderboard::Type::None:
-		default:
-			LOG("Unknown leaderboard type %i for game %i. Cannot save score!", leaderboardType, activityId);
-			return;
-		}
+	ILeaderboard::Score newScore{ .primaryScore = primaryScore, .secondaryScore = secondaryScore, .tertiaryScore = tertiaryScore };
+	if (oldScore.has_value()) {
+		bool lowerScoreBetter = leaderboardType == Leaderboard::Type::Racing || leaderboardType == Leaderboard::Type::MonumentRace;
 		bool newHighScore = lowerScoreBetter ? newScore < oldScore : newScore > oldScore;
 		// Nimbus station has a weird leaderboard where we need a custom scoring system
 		if (leaderboardType == Leaderboard::Type::SurvivalNS) {
-			newHighScore = newScore.GetPrimaryScore() > oldScore.GetPrimaryScore() ||
-				(newScore.GetPrimaryScore() == oldScore.GetPrimaryScore() && newScore.GetSecondaryScore() < oldScore.GetSecondaryScore());
+			newHighScore = newScore.primaryScore > oldScore->primaryScore ||
+				(newScore.primaryScore == oldScore->primaryScore && newScore.secondaryScore < oldScore->secondaryScore);
 		} else if (leaderboardType == Leaderboard::Type::Survival && Game::config->GetValue("classic_survival_scoring") == "1") {
-			Score oldScoreFlipped(oldScore.GetSecondaryScore(), oldScore.GetPrimaryScore());
-			Score newScoreFlipped(newScore.GetSecondaryScore(), newScore.GetPrimaryScore());
+			ILeaderboard::Score oldScoreFlipped{oldScore->secondaryScore, oldScore->primaryScore, oldScore->tertiaryScore};
+			ILeaderboard::Score newScoreFlipped{newScore.secondaryScore, newScore.primaryScore, newScore.tertiaryScore};
 			newHighScore = newScoreFlipped > oldScoreFlipped;
 		}
+
 		if (newHighScore) {
-			saveQuery = FormatInsert(leaderboardType, newScore, true);
+			Database::Get()->UpdateScore(playerID, activityId, newScore);
+		} else {
+			Database::Get()->IncrementTimesPlayed(playerID, activityId);
 		}
 	} else {
-		saveQuery = FormatInsert(leaderboardType, newScore, false);
+		Database::Get()->SaveScore(playerID, activityId, newScore);
 	}
-	LOG("save query %s %i %i", saveQuery.c_str(), playerID, activityId);
-	std::unique_ptr<sql::PreparedStatement> saveStatement(Database::Get()->CreatePreppedStmt(saveQuery));
-	saveStatement->setInt(1, playerID);
-	saveStatement->setInt(2, activityId);
-	saveStatement->execute();
 
 	// track wins separately
 	if (leaderboardType == Leaderboard::Type::Racing && tertiaryScore != 0.0f) {
-		std::unique_ptr<sql::PreparedStatement> winUpdate(Database::Get()->CreatePreppedStmt("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;"));
-		winUpdate->setInt(1, playerID);
-		winUpdate->setInt(2, activityId);
-		winUpdate->execute();
+		Database::Get()->IncrementNumWins(playerID, activityId);
 	}
 }
 
-void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t resultStart, const uint32_t resultEnd) {
+void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID) {
 	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
-	leaderboard.SetupLeaderboard(weekly, resultStart, resultEnd);
+	leaderboard.SetupLeaderboard(weekly);
 	leaderboard.Send(targetID);
 }
 

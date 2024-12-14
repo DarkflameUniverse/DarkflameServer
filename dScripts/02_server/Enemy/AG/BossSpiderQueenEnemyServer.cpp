@@ -15,6 +15,7 @@
 #include "SkillComponent.h"
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
+#include "PlayerManager.h"
 
 #include <vector>
 
@@ -53,11 +54,13 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 	if (Game::zoneManager->GetZoneID().GetMapID() == instanceZoneID && killer) {
-		auto* missionComponent = killer->GetComponent<MissionComponent>();
-		if (missionComponent == nullptr)
-			return;
+		for (const auto& player : PlayerManager::GetAllPlayers()) {
+			auto* missionComponent = player->GetComponent<MissionComponent>();
+			if (missionComponent == nullptr)
+				return;
 
-		missionComponent->CompleteMission(instanceMissionID);
+			missionComponent->CompleteMission(instanceMissionID);
+		}
 	}
 
 	// There is suppose to be a 0.1 second delay here but that may be admitted?

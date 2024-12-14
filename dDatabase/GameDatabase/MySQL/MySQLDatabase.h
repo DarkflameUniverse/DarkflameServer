@@ -7,6 +7,7 @@
 #include "GameDatabase.h"
 
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
+typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
@@ -74,7 +75,7 @@ public:
 	std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) override;
 	void RemoveUnreferencedUgcModels() override;
 	void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) override;
-	void UpdateModelPositionRotation(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation) override;
+	void UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) override;
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
@@ -108,6 +109,22 @@ public:
 	std::vector<IIgnoreList::Info> GetIgnoreList(const uint32_t playerId) override;
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
+	void AddBehavior(const IBehaviors::Info& info) override;
+	std::string GetBehavior(const int32_t behaviorId) override;
+	void RemoveBehavior(const int32_t characterId) override;
+	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
+	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
+	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) override;
+	void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;
+	void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;
+	std::optional<ILeaderboard::Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) override;
+	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override;
+	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
+	void DeleteUgcBuild(const LWOOBJID bigId) override;
 private:
 
 	// Generic query functions that can be used for any query.

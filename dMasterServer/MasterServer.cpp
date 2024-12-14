@@ -24,7 +24,7 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -40,6 +40,8 @@
 #include "BitStreamUtils.h"
 #include "Start.h"
 #include "Server.h"
+#include "CDZoneTableTable.h"
+#include "eGameMasterLevel.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -101,7 +103,7 @@ int main(int argc, char** argv) {
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		LOG("Migrations not run");
 		return EXIT_FAILURE;
@@ -186,15 +188,20 @@ int main(int argc, char** argv) {
 		std::cout << "Enter a username: ";
 		std::cin >> username;
 
+		const auto checkIsAdmin = []() {
+			std::string admin;
+			std::cout << "What level of privilege should this account have? Please enter a number between 0 (Player) and 9 (Admin) inclusive. No entry will default to 0." << std::endl;
+			std::cin >> admin;
+			return admin;
+			};
+
 		auto accountId = Database::Get()->GetAccountInfo(username);
-		if (accountId) {
+		if (accountId && accountId->id != 0) {
 			LOG("Account with name \"%s\" already exists", username.c_str());
 			std::cout << "Do you want to change the password of that account? [y/n]?";
 			std::string prompt = "";
 			std::cin >> prompt;
 			if (prompt == "y" || prompt == "yes") {
-				if (accountId->id == 0) return EXIT_FAILURE;
-
 				//Read the password from the console without echoing it.
 #ifdef __linux__
 		//This function is obsolete, but it only meant to be used by the
@@ -219,6 +226,20 @@ int main(int argc, char** argv) {
 			} else {
 				LOG("Account \"%s\" was not updated.", username.c_str());
 			}
+
+			std::cout << "Update admin privileges? [y/n]? ";
+			std::string admin;
+			std::cin >> admin;
+			bool updateAdmin = admin == "y" || admin == "yes";
+			if (updateAdmin) {
+				auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+				if (gmLevel > 9 || gmLevel < 0) {
+					LOG("Invalid admin level.  Defaulting to 0");
+					gmLevel = 0;
+				}
+				Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
+			}
+
 			return EXIT_SUCCESS;
 		}
 
@@ -243,12 +264,23 @@ int main(int argc, char** argv) {
 		//Create account
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
-		} catch (sql::SQLException& e) {
+		} catch (std::exception& e) {
 			LOG("A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}
 
 		LOG("Account created successfully!");
+
+		accountId = Database::Get()->GetAccountInfo(username);
+		if (accountId) {
+			auto gmLevel = GeneralUtils::TryParse<int32_t>(checkIsAdmin()).value_or(0);
+			if (gmLevel > 9 || gmLevel < 0) {
+				LOG("Invalid admin level.  Defaulting to 0");
+				gmLevel = 0;
+			}
+			Database::Get()->UpdateAccountGmLevel(accountId->id, static_cast<eGameMasterLevel>(gmLevel));
+		}
+
 		return EXIT_SUCCESS;
 	}
 
@@ -276,6 +308,17 @@ int main(int argc, char** argv) {
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
 	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
+
+	//Get CDClient initial information
+	try {
+		CDClientManager::LoadValuesFromDatabase();
+	} catch (CppSQLite3Exception& e) {
+		LOG("Failed to initialize CDServer SQLite Database");
+		LOG("May be caused by corrupted file: %s", (Game::assetManager->GetResPath() / "CDServer.sqlite").string().c_str());
+		LOG("Error: %s", e.errorMessage());
+		LOG("Error Code: %i", e.errorCode());
+		return EXIT_FAILURE;
+	}
 
 	//Depending on the config, start up servers:
 	if (Game::config->GetValue("prestart_servers") != "0") {
@@ -382,6 +425,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION) {
 		LOG("A server has disconnected");
 
@@ -429,8 +473,8 @@ void HandlePacket(Packet* packet) {
 	if (packet->length < 4) return;
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
-		switch (static_cast<eMasterMessageType>(packet->data[3])) {
-		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
+		switch (static_cast<MessageType::Master>(packet->data[3])) {
+		case MessageType::Master::REQUEST_PERSISTENT_ID: {
 			LOG("A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -442,7 +486,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
+		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
 			LOG("Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -478,7 +522,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SERVER_INFO: {
+		case MessageType::Master::SERVER_INFO: {
 			//MasterPackets::HandleServerInfo(packet);
 
 			//This is here because otherwise we'd have to include IM in
@@ -539,19 +583,19 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SET_SESSION_KEY: {
+		case MessageType::Master::SET_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
 			inStream.Read(sessionKey);
 			LUString username;
 			inStream.Read(username);
-	
+
 			for (auto it : activeSessions) {
 				if (it.second == username.string) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
@@ -565,7 +609,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_SESSION_KEY: {
+		case MessageType::Master::REQUEST_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			LUWString username;
 			inStream.Read(username);
@@ -573,7 +617,7 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
 					Game::server->Send(bitStream, packet->systemAddress, false);
@@ -583,7 +627,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_ADDED: {
+		case MessageType::Master::PLAYER_ADDED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -603,7 +647,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_REMOVED: {
+		case MessageType::Master::PLAYER_REMOVED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -621,7 +665,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::CREATE_PRIVATE_ZONE: {
+		case MessageType::Master::CREATE_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -645,7 +689,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_PRIVATE_ZONE: {
+		case MessageType::Master::REQUEST_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -680,7 +724,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::WORLD_READY: {
+		case MessageType::Master::WORLD_READY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -704,7 +748,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PREP_ZONE: {
+		case MessageType::Master::PREP_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -720,7 +764,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::AFFIRM_TRANSFER_RESPONSE: {
+		case MessageType::Master::AFFIRM_TRANSFER_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -740,7 +784,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_RESPONSE: {
+		case MessageType::Master::SHUTDOWN_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -755,7 +799,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
+		case MessageType::Master::SHUTDOWN_UNIVERSE: {
 			LOG("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::universeShutdownRequested = true;
 			break;
@@ -785,7 +829,7 @@ int ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}

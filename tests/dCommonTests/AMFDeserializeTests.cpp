@@ -13,8 +13,7 @@
  */
 std::unique_ptr<AMFBaseValue> ReadFromBitStream(RakNet::BitStream& bitStream) {
 	AMFDeserialize deserializer;
-	AMFBaseValue* returnValue(deserializer.Read(bitStream));
-	return std::unique_ptr<AMFBaseValue>{ returnValue };
+	return deserializer.Read(bitStream);
 }
 
 /**
@@ -176,7 +175,7 @@ TEST(dCommonTests, AMFDeserializeAMFArrayTest) {
 /**
  * @brief This test checks that if we recieve an unimplemented eAmf
  * we correctly throw an error and can actch it.
- * Yes this leaks memory.  
+ * Yes this leaks memory.
  */
 TEST(dCommonTests, AMFDeserializeUnimplementedValuesTest) {
 	std::vector<eAmf> unimplementedValues = {
@@ -254,7 +253,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(strips.size(), 1);
 
-	auto* stripsPosition0 = dynamic_cast<AMFArrayValue*>(strips[0]);
+	auto* stripsPosition0 = dynamic_cast<AMFArrayValue*>(strips[0].get());
 
 	auto* actionIndex = stripsPosition0->Get<double>("actionIndex");
 
@@ -272,7 +271,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(states.size(), 1);
 
-	auto* firstState = dynamic_cast<AMFArrayValue*>(states[0]);
+	auto* firstState = dynamic_cast<AMFArrayValue*>(states[0].get());
 
 	auto* stateID = firstState->Get<double>("id");
 
@@ -282,7 +281,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(stripsInState.size(), 1);
 
-	auto* firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0]);
+	auto* firstStrip = dynamic_cast<AMFArrayValue*>(stripsInState[0].get());
 
 	auto& actionsInFirstStrip = firstStrip->GetArray("actions")->GetDense();
 
@@ -304,7 +303,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(stripId->GetValue(), 0.0f);
 
-	auto* firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0]);
+	auto* firstAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[0].get());
 
 	auto* firstType = firstAction->Get<std::string>("Type");
 
@@ -314,7 +313,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(firstCallback->GetValue(), "");
 
-	auto* secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1]);
+	auto* secondAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[1].get());
 
 	auto* secondType = secondAction->Get<std::string>("Type");
 
@@ -328,7 +327,7 @@ TEST(dCommonTests, AMFDeserializeLivePacketTest) {
 
 	ASSERT_EQ(secondDistance->GetValue(), 25.0f);
 
-	auto* thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2]);
+	auto* thirdAction = dynamic_cast<AMFArrayValue*>(actionsInFirstStrip[2].get());
 
 	auto* thirdType = thirdAction->Get<std::string>("Type");
 
@@ -363,7 +362,7 @@ TEST(dCommonTests, AMFBadConversionTest) {
 	ASSERT_EQ(result->Get<double>("BehaviorID"), nullptr);
 
 	// Does not exist in the associative portion
-	ASSERT_EQ(result->Get<nullptr_t>("DOES_NOT_EXIST"), nullptr);
+	ASSERT_EQ(result->Get<std::nullptr_t>("DOES_NOT_EXIST"), nullptr);
 
 	result->Push(true);
 

@@ -8,6 +8,7 @@
 #include "SlashCommandHandler.h"
 
 #include <iomanip>
+#include <ranges>
 
 #include "DEVGMCommands.h"
 #include "GMGreaterThanZeroCommands.h"
@@ -15,11 +16,11 @@
 
 #include "Amf3.h"
 #include "Database.h"
-#include "eChatMessageType.h"
+#include "MessageType/Chat.h"
 #include "dServer.h"
 
 namespace {
-	std::vector<Command> CommandInfos;
+	std::map<std::string, Command> CommandInfos;
 	std::map<std::string, Command> RegisteredCommands;
 }
 
@@ -30,7 +31,6 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 	}
 
 	for (const auto& alias : command.aliases) {
-		LOG_DEBUG("Registering command %s", alias.c_str());
 		auto [_, success] = RegisteredCommands.try_emplace(alias, command);
 		// Don't allow duplicate commands
 		if (!success) {
@@ -38,9 +38,8 @@ void SlashCommandHandler::RegisterCommand(Command command) {
 			continue;
 		}
 	}
-
-	CommandInfos.push_back(command);
-};
+	CommandInfos[command.aliases[0]] = command;
+}
 
 void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* entity, const SystemAddress& sysAddr) {
 	auto input = GeneralUtils::UTF16ToWTF8(chat);
@@ -61,11 +60,9 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 			if (commandHandle.requiredLevel > eGameMasterLevel::CIVILIAN) Database::Get()->InsertSlashCommandUsage(entity->GetObjectID(), input);
 			commandHandle.handle(entity, sysAddr, args);
 		} else if (entity->GetGMLevel() != eGameMasterLevel::CIVILIAN) {
-			// We don't need to tell civilians they aren't high enough level
 			error = "You are not high enough GM level to use \"" + command + "\"";
 		}
 	} else if (entity->GetGMLevel() == eGameMasterLevel::CIVILIAN) {
-		// We don't need to tell civilians commands don't exist
 		error = "Command " + command + " does not exist!";
 	}
 
@@ -74,41 +71,76 @@ void SlashCommandHandler::HandleChatCommand(const std::u16string& chat, Entity* 
 	}
 }
 
-// This commands in here so we can access the CommandInfos to display info
 void GMZeroCommands::Help(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 	std::ostringstream feedback;
-	if (args.empty()) {
-		feedback << "----- Commands -----";
-		for (const auto& command : CommandInfos) {
-			// TODO: Limit displaying commands based on GM level they require
-			if (command.requiredLevel > entity->GetGMLevel()) continue;
-			LOG("Help command: %s", command.aliases[0].c_str());
-			feedback << "\n/" << command.aliases[0] << ": " << command.help;
+	constexpr size_t pageSize = 10;
+
+	std::string trimmedArgs = args;
+	trimmedArgs.erase(trimmedArgs.begin(), std::find_if_not(trimmedArgs.begin(), trimmedArgs.end(), [](unsigned char ch) {
+		return std::isspace(ch);
+		}));
+	trimmedArgs.erase(std::find_if_not(trimmedArgs.rbegin(), trimmedArgs.rend(), [](unsigned char ch) {
+		return std::isspace(ch);
+		}).base(), trimmedArgs.end());
+
+	std::optional<uint32_t> parsedPage = GeneralUtils::TryParse<uint32_t>(trimmedArgs);
+	if (trimmedArgs.empty() || parsedPage.has_value()) {
+		size_t page = parsedPage.value_or(1);
+
+		std::map<std::string, Command> accessibleCommands;
+		for (const auto& [commandName, command] : CommandInfos) {
+			if (command.requiredLevel <= entity->GetGMLevel()) {
+				accessibleCommands.emplace(commandName, command);
+			}
 		}
-	} else {
-		bool foundCommand = false;
-		for (const auto& command : CommandInfos) {
-			if (std::ranges::find(command.aliases, args) == command.aliases.end()) continue;
 
-			if (entity->GetGMLevel() < command.requiredLevel) break;
-			foundCommand = true;
-			feedback << "----- " << command.aliases.at(0) << " -----\n";
-			// info can be a localizable string
-			feedback << command.info;
-			if (command.aliases.size() == 1) break;
+		size_t totalPages = (accessibleCommands.size() + pageSize - 1) / pageSize;
 
-			feedback << "\nAliases: ";
-			for (size_t i = 0; i < command.aliases.size(); i++) {
+		if (page < 1 || page > totalPages) {
+			feedback << "Invalid page number. Total pages: " << totalPages;
+			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			return;
+		}
+
+		auto it = accessibleCommands.begin();
+		std::advance(it, (page - 1) * pageSize);
+		size_t endIdx = std::min(page * pageSize, accessibleCommands.size());
+
+		feedback << "----- Commands (Page " << page << " of " << totalPages << ") -----";
+		for (size_t i = (page - 1) * pageSize; i < endIdx; ++i, ++it) {
+			feedback << "\n/" << it->first << ": " << it->second.help;
+		}
+
+		const auto feedbackStr = feedback.str();
+		if (!feedbackStr.empty()) {
+			GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+		}
+		return;
+	}
+
+	auto it = std::ranges::find_if(CommandInfos, [&trimmedArgs](const auto& pair) {
+		return std::ranges::find(pair.second.aliases, trimmedArgs) != pair.second.aliases.end();
+		});
+
+	if (it != CommandInfos.end() && entity->GetGMLevel() >= it->second.requiredLevel) {
+		const auto& command = it->second;
+		feedback << "----- " << it->first << " Info -----\n";
+		feedback << command.info << "\n";
+		if (command.aliases.size() > 1) {
+			feedback << "Aliases: ";
+			for (size_t i = 0; i < command.aliases.size(); ++i) {
 				if (i > 0) feedback << ", ";
 				feedback << command.aliases[i];
 			}
 		}
-
-		// Let GameMasters know if the command doesn't exist
-		if (!foundCommand && entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) feedback << "Command " << std::quoted(args) << " does not exist!";
+	} else {
+		feedback << "Command not found.";
 	}
+
 	const auto feedbackStr = feedback.str();
-	if (!feedbackStr.empty()) GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+	if (!feedbackStr.empty()) {
+		GameMessages::SendSlashCommandFeedbackText(entity, GeneralUtils::ASCIIToUTF16(feedbackStr));
+	}
 }
 
 void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::string& message) {
@@ -121,7 +153,7 @@ void SlashCommandHandler::SendAnnouncement(const std::string& title, const std::
 
 	//Notify chat about it
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::GM_ANNOUNCE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
 
 	bitStream.Write<uint32_t>(title.size());
 	for (auto character : title) {
@@ -896,11 +928,20 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(FindPlayerCommand);
 
+	Command SpectateCommand{
+		.help = "Spectate a player",
+		.info = "Specify a player name to spectate. They must be in the same world as you. Leave blank to stop spectating",
+		.aliases = { "spectate", "follow" },
+		.handle = GMGreaterThanZeroCommands::Spectate,
+		.requiredLevel = eGameMasterLevel::JUNIOR_MODERATOR
+	};
+	RegisterCommand(SpectateCommand);
+
 	// Register GM Zero Commands
 
 	Command HelpCommand{
 		.help = "Display command info",
-		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short desctiptions.",
+		.info = "If a command is given, display detailed info on that command. Otherwise display a list of commands with short descriptions.",
 		.aliases = { "help", "h"},
 		.handle = GMZeroCommands::Help,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
@@ -1015,4 +1056,383 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(InstanceInfoCommand);
 
+	//Commands that are handled by the client
+
+	Command faqCommand{
+		.help = "Show the LU FAQ Page",
+		.info = "Show the LU FAQ Page",
+		.aliases = {"faq","faqs"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(faqCommand);
+
+	Command teamChatCommand{
+		.help = "Send a message to your teammates.",
+		.info = "Send a message to your teammates.",
+		.aliases = {"team","t"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(teamChatCommand);
+
+	Command showStoreCommand{
+		.help = "Show the LEGO shop page.",
+		.info = "Show the LEGO shop page.",
+		.aliases = {"shop","store"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(showStoreCommand);
+
+	Command minigamesCommand{
+		.help = "Show the LEGO minigames page!",
+		.info = "Show the LEGO minigames page!",
+		.aliases = {"minigames"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(minigamesCommand);
+
+	Command forumsCommand{
+		.help = "Show the LU Forums!",
+		.info = "Show the LU Forums!",
+		.aliases = {"forums"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(forumsCommand);
+
+	Command exitGameCommand{
+		.help = "Exit to desktop",
+		.info = "Exit to desktop",
+		.aliases = {"exit","quit"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(exitGameCommand);
+
+	Command thumbsUpCommand{
+		.help = "Oh, yeah!",
+		.info = "Oh, yeah!",
+		.aliases = {"thumb","thumbs","thumbsup"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(thumbsUpCommand);
+
+	Command victoryCommand{
+		.help = "Victory!",
+		.info = "Victory!",
+		.aliases = {"victory!"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(victoryCommand);
+
+	Command backflipCommand{
+		.help = "Do a flip!",
+		.info = "Do a flip!",
+		.aliases = {"backflip"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(backflipCommand);
+
+	Command clapCommand{
+		.help = "A round of applause!",
+		.info = "A round of applause!",
+		.aliases = {"clap"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(clapCommand);
+
+	Command logoutCharacterCommand{
+		.help = "Returns you to the character select screen.",
+		.info = "Returns you to the character select screen.",
+		.aliases = {"camp","logoutcharacter"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(logoutCharacterCommand);
+
+	Command sayCommand{
+		.help = "Say something outloud so that everyone can hear you",
+		.info = "Say something outloud so that everyone can hear you",
+		.aliases = {"s","say"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(sayCommand);
+
+	Command whisperCommand{
+		.help = "Send a private message to another player.",
+		.info = "Send a private message to another player.",
+		.aliases = {"tell","w","whisper"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(whisperCommand);
+
+	Command locationCommand{
+		.help = "Output your current location on the map to the chat box.",
+		.info = "Output your current location on the map to the chat box.",
+		.aliases = {"loc","locate","location"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(locationCommand);
+
+	Command logoutCommand{
+		.help = "Returns you to the login screen.",
+		.info = "Returns you to the login screen.",
+		.aliases = {"logout","logoutaccount"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(logoutCommand);
+
+	Command shrugCommand{
+		.help = "I dunno...",
+		.info = "I dunno...",
+		.aliases = {"shrug"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(shrugCommand);
+
+	Command leaveTeamCommand{
+		.help = "Leave your current team.",
+		.info = "Leave your current team.",
+		.aliases = {"leave","leaveteam","teamleave","tleave"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(leaveTeamCommand);
+
+	Command teamLootTypeCommand{
+		.help = "[rr|ffa] Set the loot for your current team (round-robin/free for all).",
+		.info = "[rr|ffa] Set the loot for your current team (round-robin/free for all).",
+		.aliases = {"setloot","teamsetloot","tloot","tsetloot"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(teamLootTypeCommand);
+
+	Command removeFriendCommand{
+		.help = "[name] Removes a player from your friends list.",
+		.info = "[name] Removes a player from your friends list.",
+		.aliases = {"removefriend"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(removeFriendCommand);
+
+	Command yesCommand{
+		.help = "Aye aye, captain!",
+		.info = "Aye aye, captain!",
+		.aliases = {"yes"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(yesCommand);
+
+	Command teamInviteCommand{
+		.help = "[name] Invite a player to your team.",
+		.info = "[name] Invite a player to your team.",
+		.aliases = {"invite","inviteteam","teaminvite","tinvite"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(teamInviteCommand);
+
+	Command danceCommand{
+		.help = "Dance 'til you can't dance no more.",
+		.info = "Dance 'til you can't dance no more.",
+		.aliases = {"dance"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(danceCommand);
+
+	Command sighCommand{
+		.help = "Another day, another brick.",
+		.info = "Another day, another brick.",
+		.aliases = {"sigh"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(sighCommand);
+
+	Command recommendedOptionsCommand{
+		.help = "Sets the recommended performance options in the cfg file",
+		.info = "Sets the recommended performance options in the cfg file",
+		.aliases = {"recommendedperfoptions"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(recommendedOptionsCommand);
+
+	Command setTeamLeaderCommand{
+		.help = "[name] Set the leader for your current team.",
+		.info = "[name] Set the leader for your current team.",
+		.aliases = {"leader","setleader","teamsetleader","tleader","tsetleader"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(setTeamLeaderCommand);
+
+	Command cringeCommand{
+		.help = "I don't even want to talk about it...",
+		.info = "I don't even want to talk about it...",
+		.aliases = {"cringe"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(cringeCommand);
+
+	Command talkCommand{
+		.help = "Jibber Jabber",
+		.info = "Jibber Jabber",
+		.aliases = {"talk"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(talkCommand);
+
+	Command cancelQueueCommand{
+		.help = "Cancel Your position in the queue if you are in one.",
+		.info = "Cancel Your position in the queue if you are in one.",
+		.aliases = {"cancelqueue"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(cancelQueueCommand);
+
+	Command lowPerformanceCommand{
+		.help = "Sets the default low-spec performance options in the cfg file",
+		.info = "Sets the default low-spec performance options in the cfg file",
+		.aliases = {"perfoptionslow"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(lowPerformanceCommand);
+
+	Command kickFromTeamCommand{
+		.help = "[name] Kick a player from your current team.",
+		.info = "[name] Kick a player from your current team.",
+		.aliases = {"kick","kickplayer","teamkickplayer","tkick","tkickplayer"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(kickFromTeamCommand);
+
+	Command thanksCommand{
+		.help = "Express your gratitude for another.",
+		.info = "Express your gratitude for another.",
+		.aliases = {"thanks"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(thanksCommand);
+
+	Command waveCommand{
+		.help = "Wave to other players.",
+		.info = "Wave to other players.",
+		.aliases = {"wave"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(waveCommand);
+
+	Command whyCommand{
+		.help = "Why|!?!!",
+		.info = "Why|!?!!",
+		.aliases = {"why"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(whyCommand);
+
+	Command midPerformanceCommand{
+		.help = "Sets the default medium-spec performance options in the cfg file",
+		.info = "Sets the default medium-spec performance options in the cfg file",
+		.aliases = {"perfoptionsmid"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(midPerformanceCommand);
+
+	Command highPerformanceCommand{
+		.help = "Sets the default high-spec performance options in the cfg file",
+		.info = "Sets the default high-spec performance options in the cfg file",
+		.aliases = {"perfoptionshigh"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(highPerformanceCommand);
+
+	Command gaspCommand{
+		.help = "Oh my goodness!",
+		.info = "Oh my goodness!",
+		.aliases = {"gasp"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(gaspCommand);
+
+	Command ignoreCommand{
+		.help = "[name] Add a player to your ignore list.",
+		.info = "[name] Add a player to your ignore list.",
+		.aliases = {"addignore"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(ignoreCommand);
+
+	Command addFriendCommand{
+		.help = "[name] Add a player to your friends list.",
+		.info = "[name] Add a player to your friends list.",
+		.aliases = {"addfriend"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(addFriendCommand);
+
+	Command cryCommand{
+		.help = "Show everyone your 'Aw' face.",
+		.info = "Show everyone your 'Aw' face.",
+		.aliases = {"cry"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(cryCommand);
+
+	Command giggleCommand{
+		.help = "A good little chuckle",
+		.info = "A good little chuckle",
+		.aliases = {"giggle"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(giggleCommand);
+
+	Command saluteCommand{
+		.help = "For those about to build...",
+		.info = "For those about to build...",
+		.aliases = {"salute"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(saluteCommand);
+
+	Command removeIgnoreCommand{
+		.help = "[name] Removes a player from your ignore list.",
+		.info = "[name] Removes a player from your ignore list.",
+		.aliases = {"removeIgnore"},
+		.handle = GMZeroCommands::ClientHandled,
+		.requiredLevel = eGameMasterLevel::CIVILIAN
+	};
+	RegisterCommand(removeIgnoreCommand);
 }

@@ -4,7 +4,7 @@
 #include "dCommonVars.h"
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
-#include "eGameMessageType.h"
+#include "MessageType/Game.h"
 
 /**
  * Same as sync skill but with different network options. An echo down to other clients that need to play the skill.
@@ -44,7 +44,7 @@ public:
 	}
 
 	void Serialize(RakNet::BitStream& stream) {
-		stream.Write(eGameMessageType::START_SKILL);
+		stream.Write(MessageType::Game::START_SKILL);
 
 		stream.Write(bUsedMouse);
 

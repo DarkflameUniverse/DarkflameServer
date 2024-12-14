@@ -1,6 +1,6 @@
-PROJECT_VERSION_MAJOR=1
-PROJECT_VERSION_MINOR=1
-PROJECT_VERSION_PATCH=1
+PROJECT_VERSION_MAJOR=2
+PROJECT_VERSION_MINOR=3
+PROJECT_VERSION_PATCH=0
 
 # Debugging
 # Set DYNAMIC to 1 to enable the -rdynamic flag for the linker, yielding some symbols in crashlogs.
