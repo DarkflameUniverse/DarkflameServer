@@ -17,7 +17,7 @@ void NpcAgCourseStarter::OnUse(Entity* self, Entity* user) {
 
 	const auto selfId = self->GetObjectID();
 	const auto userId = user->GetObjectID();
-	const auto userSysAddr = user->GetSystemAddress();
+	const auto& userSysAddr = user->GetSystemAddress();
 
 	if (scriptedActivityComponent->GetActivityPlayerData(userId) != nullptr) {
 		GameMessages::SendNotifyClientObject(selfId, u"exit", 0, 0, LWOOBJID_EMPTY, "", userSysAddr);
@@ -32,7 +32,7 @@ void NpcAgCourseStarter::OnMessageBoxResponse(Entity* self, Entity* sender, int3
 
 	const auto selfId = self->GetObjectID();
 	const auto senderId = sender->GetObjectID();
-	const auto senderSysAddr = sender->GetSystemAddress();
+	const auto& senderSysAddr = sender->GetSystemAddress();
 
 	if (identifier == u"player_dialog_cancel_course" && button == 1) {
 		GameMessages::SendNotifyClientObject(selfId, u"stop_timer", 0, 0, LWOOBJID_EMPTY, "", senderSysAddr);
@@ -72,7 +72,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 
 	const auto selfId = self->GetObjectID();
 	const auto senderId = sender->GetObjectID();
-	const auto senderSysAddr = sender->GetSystemAddress();
+	const auto& senderSysAddr = sender->GetSystemAddress();
 
 	auto* const data = scriptedActivityComponent->GetActivityPlayerData(senderId);
 	if (!data) return;
