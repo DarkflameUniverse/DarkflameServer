@@ -404,6 +404,8 @@ public:
 	void UpdateGroup(const GroupUpdate& groupUpdate);
 	void RemoveGroup(const std::string& groupId);
 
+	void FixInvisibleItems();
+
 	~InventoryComponent() override;
 
 private:

@@ -288,6 +288,8 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 
 		if (newHighScore) {
 			Database::Get()->UpdateScore(playerID, activityId, newScore);
+		} else {
+			Database::Get()->IncrementTimesPlayed(playerID, activityId);
 		}
 	} else {
 		Database::Get()->SaveScore(playerID, activityId, newScore);

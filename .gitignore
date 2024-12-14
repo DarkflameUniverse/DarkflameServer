@@ -95,6 +95,7 @@ ipch/
 
 # Exceptions:
 CMakeSettings.json
+CMakeUserPresets.json
 *.vcxproj
 *.filters
 *.cmake
