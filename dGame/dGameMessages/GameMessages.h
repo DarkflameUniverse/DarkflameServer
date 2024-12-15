@@ -10,8 +10,6 @@
 #include "eEndBehavior.h"
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
-#include "eHelpType.h"
-#include "ePetAbilityType.h"
 #include "Brick.h"
 
 class AMFBaseValue;
@@ -28,6 +26,7 @@ enum class eAnimationFlags : uint32_t;
 enum class eUnequippableActiveType;
 enum eInventoryType : uint32_t;
 enum class eGameMasterLevel : uint8_t;
+enum class eHelpType : int32_t;
 enum class eMatchUpdate : int32_t;
 enum class eKillType : uint32_t;
 enum class eObjectWorldState : uint32_t;

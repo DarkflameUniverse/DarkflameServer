@@ -6,7 +6,7 @@
 #include "MovementAIComponent.h"
 #include "Component.h"
 #include "Preconditions.h"
-#include "ePetAbilityType.h"
+#include "eHelpType.h"
 #include "eReplicaComponentType.h"
 #include "ePetAbilityType.h"
 #include "CDPetComponentTable.h"
