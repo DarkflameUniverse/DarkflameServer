@@ -25,11 +25,10 @@ void AgSpiderBossMessage::MakeBox(Entity* self) const {
 	if (!tgt) return;
 	GameMessages::DisplayTooltip tooltip;
 	tooltip.target = tgt->GetObjectID();
-	tooltip.sysAddr = tgt->GetSystemAddress();
 	tooltip.show = true;
 	tooltip.text = box.boxText;
 	tooltip.time = box.boxTime * 1000; // to ms
-	tooltip.Send();
+	tooltip.Send(tgt->GetSystemAddress());
 }
 
 void AgSpiderBossMessage::OnCollisionPhantom(Entity* self, Entity* target) {

@@ -1,4 +1,5 @@
 set(DSCRIPTS_SOURCES_AI_GF 
+	"GfRaceInstancer.cpp"
 	"GfCampfire.cpp"
 	"GfOrgan.cpp"
 	"GfBanana.cpp"
