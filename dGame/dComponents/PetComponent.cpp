@@ -393,15 +393,12 @@ void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 	auto* const inventoryComponent = tamer->GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 
-	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
-
+	auto petSubKey = ObjectIDManager::GenerateRandomObjectID();
 	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
 	GeneralUtils::SetBit(petSubKey, eObjectBits::PERSISTENT);
-
 	m_DatabaseId = petSubKey;
 
-	std::string petName = tamer->GetCharacter()->GetName();
-	petName += "'s Pet";
+	auto petName = tamer->GetCharacter()->GetName() + "'s Pet";
 
 	GameMessages::SendAddPetToPlayer(m_Tamer, 0, GeneralUtils::UTF8ToUTF16(petName), petSubKey, m_Parent->GetLOT(), tamer->GetSystemAddress());
 	GameMessages::SendRegisterPetID(m_Tamer, m_Parent->GetObjectID(), tamer->GetSystemAddress());
@@ -412,13 +409,13 @@ void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 	auto* const item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
 	if (!item) return;
 
-	DatabasePet databasePet{};
+	auto databasePet = DatabasePet{
+		.lot = m_Parent->GetLOT(),
+		.name = std::move(petName),
+		.moderationState = 1,
+	};
 
-	databasePet.lot = m_Parent->GetLOT();
-	databasePet.moderationState = 1;
-	databasePet.name = petName;
-
-	inventoryComponent->SetDatabasePet(petSubKey, databasePet);
+	inventoryComponent->SetDatabasePet(petSubKey, std::move(databasePet));
 
 	Activate(item, false, true);
 
@@ -1000,7 +997,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // 
 		databaseData.name = m_Name;
 		databaseData.moderationState = m_ModerationStatus;
 
-		inventoryComponent->SetDatabasePet(m_DatabaseId, databaseData);
+		inventoryComponent->SetDatabasePet(m_DatabaseId, std::move(databaseData));
 
 		updatedModerationStatus = true;
 	} else {
