@@ -3723,21 +3723,17 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* 
 	bool clientFailed;
 
 	inStream.Read(brickCount);
-
 	bricks.reserve(brickCount);
 
 	for (uint32_t i = 0; i < brickCount; i++) {
 		Brick brick;
-
 		inStream.Read(brick);
-
 		bricks.push_back(brick);
 	}
 
 	clientFailed = inStream.ReadBit();
 
-	auto* petComponent = PetComponent::GetTamingPet(entity->GetObjectID());
-
+	auto* const petComponent = PetComponent::GetTamingPet(entity->GetObjectID());
 	if (petComponent == nullptr) {
 		return;
 	}
@@ -3747,11 +3743,9 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* 
 
 void GameMessages::HandleNotifyTamingBuildSuccess(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	NiPoint3 position;
-
 	inStream.Read(position);
 
-	auto* petComponent = PetComponent::GetTamingPet(entity->GetObjectID());
-
+	auto* const petComponent = PetComponent::GetTamingPet(entity->GetObjectID());
 	if (petComponent == nullptr) {
 		return;
 	}
