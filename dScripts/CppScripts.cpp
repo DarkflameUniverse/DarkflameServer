@@ -707,6 +707,9 @@ namespace {
 		"scripts\\zone\\GF\\L_ZONE_GF.lua",
 		"scripts\\ai\\AG\\CONCERT_STAGE.lua",
 		"scripts\\ai\\NS\\L_NS_CAR_MODULAR_BUILD.lua", // In our implementation, this is done in GameMessages.cpp
+		"scripts\\ai\\PETS\\PET_BLOCKER.lua",
+		"scripts\\ai\\PETS\\PET_FLEA_MISSION.lua",
+		"scripts\\ai\\ACT\\L_ACT_PET_INSTANCE_EXIT.lua",
 	};
 };
 
