@@ -35,7 +35,8 @@
 RacingControlComponent::RacingControlComponent(Entity* parent)
 	: Component(parent) {
 	m_PathName = u"MainPath";
-	m_RemainingLaps = 3;
+	m_NumberOfLaps = 3;
+	m_RemainingLaps = m_NumberOfLaps;
 	m_LeadingPlayer = LWOOBJID_EMPTY;
 	m_RaceBestTime = 0;
 	m_RaceBestLap = 0;
@@ -658,23 +659,9 @@ void RacingControlComponent::Update(float deltaTime) {
 					}
 				}
 
-				// Spawn imagination pickups
-				auto* minSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Min")[0];
-				auto* medSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Med")[0];
-				auto* maxSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Max")[0];
-
-				minSpawner->Activate();
-
-				if (m_LoadedPlayers > 2) {
-					medSpawner->Activate();
-				}
-
-				if (m_LoadedPlayers > 4) {
-					maxSpawner->Activate();
-				}
+				GameMessages::ZoneLoadedInfo zoneLoadInfo{};
+				zoneLoadInfo.maxPlayers = m_LoadedPlayers;
+				m_Parent->GetScript()->OnZoneLoadedInfo(m_Parent, zoneLoadInfo);
 
 				// Reset players to their start location, without smashing them
 				for (auto& player : m_RacingPlayers) {
@@ -764,7 +751,7 @@ void RacingControlComponent::Update(float deltaTime) {
 		// new checkpoint
 		uint32_t respawnIndex = 0;
 		for (const auto& waypoint : path->pathWaypoints) {
-			if (player.lap == 3) {
+			if (player.lap == m_NumberOfLaps) {
 				break;
 			}
 
@@ -835,7 +822,7 @@ void RacingControlComponent::Update(float deltaTime) {
 					// Progress lap time tasks
 					missionComponent->Progress(eMissionTaskType::RACING, lapTime.count(), static_cast<LWOOBJID>(eRacingTaskParam::LAP_TIME));
 
-					if (player.lap == 3) {
+					if (player.lap == m_NumberOfLaps) {
 						m_Finished++;
 						player.finished = m_Finished;
 
@@ -879,6 +866,25 @@ void RacingControlComponent::Update(float deltaTime) {
 				path->pathWaypoints.size());
 
 			break;
+		}
+	}
+}
+
+void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
+	for (const auto& data : msg.racingSettings) {
+		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
+			m_PathName = static_cast<LDFData<std::u16string>*>(data)->GetValue();
+			LOG("%s", GeneralUtils::UTF16ToWTF8(m_PathName).c_str());
+		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
+			m_ActivityID = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			LOG("%i", m_ActivityID);
+		} else if (data->GetKey() == u"Number_of_Laps" && data->GetValueType() == LDF_TYPE_S32) {
+			m_NumberOfLaps = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			m_RemainingLaps = m_NumberOfLaps;
+			LOG("%i %i", m_NumberOfLaps, m_RemainingLaps);
+		} else if (data->GetKey() == u"Minimum_Players_for_Group_Achievements" && data->GetValueType() == LDF_TYPE_S32) {
+			m_MinimumPlayersForGroupAchievements = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			LOG("%i", m_MinimumPlayersForGroupAchievements);
 		}
 	}
 }

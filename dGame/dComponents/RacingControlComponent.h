@@ -152,6 +152,8 @@ public:
 	 */
 	RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
+	void MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg);
+
 private:
 
 	/**
@@ -161,11 +163,13 @@ private:
 
 	/**
 	 * The paths that are followed for the camera scenes
+	 * Configurable in the ConfigureRacingControl msg with the key `Race_PathName`.
 	 */
 	std::u16string m_PathName;
 
 	/**
 	 * The ID of the activity for participating in this race
+	 * Configurable in the ConfigureRacingControl msg with the key `activityID`.
 	 */
 	uint32_t m_ActivityID;
 
@@ -245,5 +249,20 @@ private:
 	 * Value for message box response to know if we are exiting the race via the activity dialogue
 	 */
 	const int32_t m_ActivityExitConfirm = 1;
+
 	bool m_AllPlayersReady = false;
+
+	/**
+	 * @brief The number of laps in this race. Configurable in the ConfigureRacingControl msg
+	 * with the key `Number_of_Laps`.
+	 * 
+	 */
+	int32_t m_NumberOfLaps{ 3 };
+
+	/**
+	 * @brief The minimum number of players required to progress group achievements.
+	 * Configurable with the ConfigureRacingControl msg with the key `Minimum_Players_for_Group_Achievements`.
+	 * 
+	 */
+	int32_t m_MinimumPlayersForGroupAchievements{ 2 };
 };

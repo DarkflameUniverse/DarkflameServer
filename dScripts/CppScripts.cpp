@@ -330,6 +330,7 @@
 #include "EnemyClearThreat.h"
 #include "AgSpiderBossMessage.h"
 #include "GfRaceInstancer.h"
+#include "NsRaceServer.h"
 
 #include <map>
 #include <string>
@@ -692,6 +693,7 @@ namespace {
 		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
 		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
 		{"scripts\\ai\\GF\\L_GF_RACE_INSTANCER.lua", []() {return new GfRaceInstancer();}},
+		{"scripts\\ai\\RACING\\TRACK_NS\\NS_RACE_SERVER.lua", []() {return new NsRaceServer();}},
 
 	};
 
