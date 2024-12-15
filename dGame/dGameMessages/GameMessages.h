@@ -412,7 +412,7 @@ namespace GameMessages {
 	void SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, const SystemAddress& sysAddr);
 
 	/**
-	 * Sends a request to the client to bounce (I think?)
+	 * Sends a request to the client to bounce
 	 * @param objectId Object ID
 	 * @param bounceTargetId The object ID of the bounce target
 	 * @param bounceTargetPos The position of the bounce target
@@ -421,7 +421,7 @@ namespace GameMessages {
 	 * @param bAllBounced Whether to bounce all entities standing on the bouncer pad
 	 * @param bAllowClientOverload TODO: UNUSED
 	*/
-	void SendRequestClientBounce(const LWOOBJID& objectId, const LWOOBJID& bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr);
+	void SendRequestClientBounce(LWOOBJID objectId, LWOOBJID bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr);
 
 	void SendSetPetName(LWOOBJID objectId, std::u16string name, LWOOBJID petDBID, const SystemAddress& sysAddr);
 

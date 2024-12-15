@@ -3606,7 +3606,7 @@ void GameMessages::SendBouncerActiveStatus(LWOOBJID objectId, bool bActive, cons
 	SEND_PACKET;
 }
 
-void GameMessages::SendRequestClientBounce(const LWOOBJID& objectId, const LWOOBJID& bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr) {
+void GameMessages::SendRequestClientBounce(const LWOOBJID objectId, const LWOOBJID bounceTargetId, const NiPoint3& bounceTargetPos, const NiPoint3& bouncedObjLinVel, const LWOOBJID& requestSourceId, const bool bAllBounced, const bool bAllowClientOverload, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
 
