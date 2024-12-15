@@ -874,17 +874,13 @@ void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::Confi
 	for (const auto& data : msg.racingSettings) {
 		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
 			m_PathName = static_cast<LDFData<std::u16string>*>(data)->GetValue();
-			LOG("%s", GeneralUtils::UTF16ToWTF8(m_PathName).c_str());
 		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
 			m_ActivityID = static_cast<LDFData<int32_t>*>(data)->GetValue();
-			LOG("%i", m_ActivityID);
 		} else if (data->GetKey() == u"Number_of_Laps" && data->GetValueType() == LDF_TYPE_S32) {
 			m_NumberOfLaps = static_cast<LDFData<int32_t>*>(data)->GetValue();
 			m_RemainingLaps = m_NumberOfLaps;
-			LOG("%i %i", m_NumberOfLaps, m_RemainingLaps);
 		} else if (data->GetKey() == u"Minimum_Players_for_Group_Achievements" && data->GetValueType() == LDF_TYPE_S32) {
 			m_MinimumPlayersForGroupAchievements = static_cast<LDFData<int32_t>*>(data)->GetValue();
-			LOG("%i", m_MinimumPlayersForGroupAchievements);
 		}
 	}
 }
