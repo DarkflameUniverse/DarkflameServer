@@ -852,7 +852,6 @@ void PetComponent::StartInteractBouncer() {
 	destroyableComponent->SetImagination(imagination);
 	Game::entityManager->SerializeEntity(user);
 
-	// THIS IS ALL BAD, BAD, BAD! FIX IT, ME! >:(
 	SetIsHandlingInteraction(true);
 	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
 	closestSwitch->OnUse(m_Parent);
