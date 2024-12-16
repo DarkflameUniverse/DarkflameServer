@@ -11,6 +11,7 @@
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
 #include "Brick.h"
+#include "MessageType/Game.h"
 
 class AMFBaseValue;
 class Entity;
@@ -20,6 +21,7 @@ class User;
 class Leaderboard;
 class PropertySelectQueryProperty;
 class TradeItem;
+class LDFBaseData;
 
 enum class eAnimationFlags : uint32_t;
 
@@ -47,6 +49,15 @@ enum class eCameraTargetCyclingMode : int32_t {
 };
 
 namespace GameMessages {
+	struct GameMsg {
+		GameMsg(MessageType::Game gmId) : msgId{ gmId } {}
+		virtual ~GameMsg() = default;
+		virtual void Send() const {}
+		MessageType::Game msgId;
+		LWOOBJID target{ LWOOBJID_EMPTY };
+		SystemAddress sysAddr{ UNASSIGNED_SYSTEM_ADDRESS };
+	};
+
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
@@ -680,6 +691,22 @@ namespace GameMessages {
 
 	// This is a client gm however its default values are exactly what we need to get around the invisible inventory item issues.
 	void SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	struct DisplayTooltip : public GameMsg {
+		DisplayTooltip() : GameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
+		bool doOrDie{};
+		bool noRepeat{};
+		bool noRevive{};
+		bool isPropertyTooltip{};
+		bool show{};
+		bool translate{};
+		int32_t time{};
+		std::u16string id{};
+		std::vector<LDFBaseData*> localizeParams{};
+		std::u16string imageName{};
+		std::u16string text{};
+		void Send() const override;
+	};
 };
 
 #endif // GAMEMESSAGES_H

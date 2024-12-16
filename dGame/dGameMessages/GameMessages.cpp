@@ -6338,6 +6338,40 @@ void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress&
 
 	bitStream.Write(objectId);
 	bitStream.Write(MessageType::Game::UPDATE_INVENTORY_UI);
-	
+
+	SEND_PACKET;
+}
+
+void GameMessages::DisplayTooltip::Send() const {
+	CBITSTREAM;
+	CMSGHEADER;
+
+	bitStream.Write(target);
+	bitStream.Write(msgId);
+
+	bitStream.Write(doOrDie);
+	bitStream.Write(noRepeat);
+	bitStream.Write(noRevive);
+	bitStream.Write(isPropertyTooltip);
+	bitStream.Write(show);
+	bitStream.Write(translate);
+	bitStream.Write(time);
+	bitStream.Write<int32_t>(id.size());
+	bitStream.Write(id);
+
+	std::string toWrite;
+	for (const auto* item : localizeParams) {
+		toWrite += item->GetString() + "\n";
+	}
+	if (!toWrite.empty()) toWrite.pop_back();
+	bitStream.Write<int32_t>(toWrite.size());
+	bitStream.Write(GeneralUtils::ASCIIToUTF16(toWrite));
+	if (!toWrite.empty()) bitStream.Write<uint16_t>(0x00); // Null Terminator
+
+	bitStream.Write<int32_t>(imageName.size());
+	bitStream.Write(imageName);
+	bitStream.Write<int32_t>(text.size());
+	bitStream.Write(text);
+
 	SEND_PACKET;
 }

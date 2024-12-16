@@ -328,6 +328,7 @@
 #include "LupGenericInteract.h"
 #include "WblRobotCitizen.h"
 #include "EnemyClearThreat.h"
+#include "AgSpiderBossMessage.h"
 
 #include <map>
 #include <string>
@@ -688,6 +689,7 @@ namespace {
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
+		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
 
 	};
 
