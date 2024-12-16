@@ -16,6 +16,7 @@
 #include "DestroyableComponent.h"
 
 #include <algorithm>
+#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -27,7 +28,7 @@
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id): Component(parent) {
+BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) : Component(parent) {
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
 	m_State = AiState::spawn;
@@ -37,6 +38,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id):
 	m_Disabled = false;
 	m_SkillEntries = {};
 	m_SoftTimer = 5.0f;
+	m_ForcedTetherTime = 0.0f;
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
@@ -170,6 +172,17 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 			GameMessages::SendStopFXEffect(m_Parent, true, "tether");
 			m_TetherEffectActive = false;
 		}
+		m_ForcedTetherTime -= deltaTime;
+		if (m_ForcedTetherTime >= 0) return;
+	}
+
+	for (auto entry = m_RemovedThreatList.begin(); entry != m_RemovedThreatList.end();) {
+		entry->second -= deltaTime;
+		if (entry->second <= 0.0f) {
+			entry = m_RemovedThreatList.erase(entry);
+		} else {
+			++entry;
+		}
 	}
 
 	if (m_SoftTimer <= 0.0f) {
@@ -287,40 +300,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	}
 
 	if (!m_TetherEffectActive && m_OutOfCombat && (m_OutOfCombatTime -= deltaTime) <= 0) {
-		auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-
-		if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
-			auto serilizationRequired = false;
-
-			if (destroyableComponent->GetHealth() != destroyableComponent->GetMaxHealth()) {
-				destroyableComponent->SetHealth(destroyableComponent->GetMaxHealth());
-
-				serilizationRequired = true;
-			}
-
-			if (destroyableComponent->GetArmor() != destroyableComponent->GetMaxArmor()) {
-				destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor());
-
-				serilizationRequired = true;
-			}
-
-			if (serilizationRequired) {
-				Game::entityManager->SerializeEntity(m_Parent);
-			}
-
-			GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
-
-			m_TetherEffectActive = true;
-
-			m_TetherTime = 3.0f;
-		}
-
-		// Speed towards start position
-		if (m_MovementAI != nullptr) {
-			m_MovementAI->SetHaltDistance(0);
-			m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
-			m_MovementAI->SetDestination(m_StartPosition);
-		}
+		TetherLogic();
 
 		m_OutOfCombat = false;
 		m_OutOfCombatTime = 0.0f;
@@ -499,7 +479,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
-		if (distance > m_AggroRadius * m_AggroRadius) continue;
+		if (distance > m_AggroRadius * m_AggroRadius || m_RemovedThreatList.contains(id)) continue;
 
 		targets.push_back(id);
 	}
@@ -626,6 +606,7 @@ const NiPoint3& BaseCombatAIComponent::GetStartPosition() const {
 
 void BaseCombatAIComponent::ClearThreat() {
 	m_ThreatEntries.clear();
+	m_Target = LWOOBJID_EMPTY;
 
 	m_DirtyThreat = true;
 }
@@ -805,4 +786,56 @@ void BaseCombatAIComponent::Sleep() {
 void BaseCombatAIComponent::Wake() {
 	m_dpEntity->SetSleeping(false);
 	m_dpEntityEnemy->SetSleeping(false);
+}
+
+void BaseCombatAIComponent::TetherLogic() {
+	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
+
+	if (destroyableComponent != nullptr && destroyableComponent->HasFaction(4)) {
+		auto serilizationRequired = false;
+
+		if (destroyableComponent->GetHealth() != destroyableComponent->GetMaxHealth()) {
+			destroyableComponent->SetHealth(destroyableComponent->GetMaxHealth());
+
+			serilizationRequired = true;
+		}
+
+		if (destroyableComponent->GetArmor() != destroyableComponent->GetMaxArmor()) {
+			destroyableComponent->SetArmor(destroyableComponent->GetMaxArmor());
+
+			serilizationRequired = true;
+		}
+
+		if (serilizationRequired) {
+			Game::entityManager->SerializeEntity(m_Parent);
+		}
+
+		GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), 6270, u"tether", "tether");
+
+		m_TetherEffectActive = true;
+
+		m_TetherTime = 3.0f;
+	}
+
+	// Speed towards start position
+	if (m_MovementAI != nullptr) {
+		m_MovementAI->SetHaltDistance(0);
+		m_MovementAI->SetMaxSpeed(m_PursuitSpeed);
+		m_MovementAI->SetDestination(m_StartPosition);
+	}
+}
+
+void BaseCombatAIComponent::ForceTether() {
+	SetTarget(LWOOBJID_EMPTY);
+	m_ThreatEntries.clear();
+	TetherLogic();
+	m_ForcedTetherTime = m_TetherTime;
+
+	SetAiState(AiState::aggro);
+}
+
+void BaseCombatAIComponent::IgnoreThreat(const LWOOBJID threat, const float value) {
+	m_RemovedThreatList[threat] = value;
+	SetThreat(threat, 0.0f);
+	m_Target = LWOOBJID_EMPTY;
 }

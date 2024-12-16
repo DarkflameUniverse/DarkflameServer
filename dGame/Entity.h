@@ -107,6 +107,11 @@ public:
 
 	const SystemAddress& GetSystemAddress() const;
 
+	// Returns the collision group for this entity.
+	// Because the collision group is stored on a base component, this will look for a physics component
+	// then return the collision group from that.
+	int32_t GetCollisionGroup() const;
+
 	/**
 	 * Setters
 	 */
