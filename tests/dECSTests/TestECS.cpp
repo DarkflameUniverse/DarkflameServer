@@ -40,11 +40,11 @@ TEST(ECSTest, MakeOneEntityAndAddComponents) {
     testCompPtr->value = 15;
 
     // try getting the same component we just added
-    auto* const getTestCompPtr = e.GetComponent<TestComponent>();
-    ASSERT_NE(getTestCompPtr, nullptr);
-    ASSERT_EQ(testCompPtr, getTestCompPtr);
-    ASSERT_NE(getTestCompPtr->value, 0);
-    ASSERT_EQ(getTestCompPtr->value, 15);
+    auto* const gotTestCompPtr = e.GetComponent<TestComponent>();
+    ASSERT_NE(gotTestCompPtr, nullptr);
+    ASSERT_EQ(gotTestCompPtr, testCompPtr);
+    ASSERT_NE(gotTestCompPtr->value, 0);
+    ASSERT_EQ(gotTestCompPtr->value, 15);
 }
 
 // Test world scoping
