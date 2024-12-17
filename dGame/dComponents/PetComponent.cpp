@@ -151,6 +151,14 @@ void PetComponent::OnUse(Entity* originator) {
 		case ePetAbilityType::JumpOnObject: // Bouncer
 			StartInteractBouncer();
 			break;
+
+		default:
+			LOG_DEBUG(
+				"Unhandled pet interaction - Owner: %ld, ePetAbilityType %d",
+				m_Owner,
+				GeneralUtils::ToUnderlying(m_Interaction.ability)
+			);
+			break;
 		}
 	} else {
 		StartTamingMinigame(originator);
@@ -323,7 +331,7 @@ void PetComponent::StartTamingMinigame(Entity* originator) {
 	// Notify the start of a pet taming minigame
 	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 
-	auto* characterComponent = originator->GetComponent<CharacterComponent>();
+	auto* const characterComponent = originator->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::PET_TAMING);
 		Game::entityManager->SerializeEntity(originator);

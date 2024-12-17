@@ -110,7 +110,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		if (var) {
 			entity->SetVar<bool>(u"dlu_first_time_load", false);
 			InventoryComponent* inventoryComponent = entity->GetComponent<InventoryComponent>();
-			
+
 			if (inventoryComponent) inventoryComponent->FixInvisibleItems();
 		}
 		break;
