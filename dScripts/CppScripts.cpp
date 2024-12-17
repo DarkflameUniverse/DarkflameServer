@@ -333,6 +333,8 @@
 #include "VisToggleNotifierServer.h"
 #include "LupGenericInteract.h"
 #include "WblRobotCitizen.h"
+#include "EnemyClearThreat.h"
+#include "AgSpiderBossMessage.h"
 
 #include <map>
 #include <string>
@@ -732,6 +734,8 @@ namespace {
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
+		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
 
 
 		//Fire Temple
@@ -766,6 +770,18 @@ namespace {
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BOSS_MANAGER_SERVER.lua", []() { return new FtBossManager(); } },		
 		{ "scripts\\02_server\\Map\\njhub\\boss_instance\\L_BOSS_ACTIVATORS_SERVER.lua", []() { return new FtBossActivators(); } },			
 	};
+
+	std::set<std::string> g_ExcludedScripts = {
+		"scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua",
+		"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua",
+		"scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua",
+		"scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua",
+		"scripts\\ai\\WILD\\L_WILD_GF_FROG.lua",
+		"scripts\\empty.lua",
+		"scripts\\zone\\AG\\L_ZONE_AG.lua",
+		"scripts\\zone\\NS\\L_ZONE_NS.lua",
+		"scripts\\zone\\GF\\L_ZONE_GF.lua",
+	};
 };
 
 CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::string& scriptName) {
@@ -777,14 +793,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 	const auto itrTernary = scriptLoader.find(scriptName);
 	Script* script = itrTernary != scriptLoader.cend() ? itrTernary->second() : &InvalidToReturn;
 
-	if (script == &InvalidToReturn) {
-		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
-			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
-			(scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
-			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
-			(scriptName == "scripts\\empty.lua") ||
-			(scriptName == "scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua")
-			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+	if (script == &InvalidToReturn && !scriptName.empty() && !g_ExcludedScripts.contains(scriptName)) {
+		LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	g_Scripts[scriptName] = script;

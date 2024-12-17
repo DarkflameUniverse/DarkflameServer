@@ -15,7 +15,7 @@
 #include "LevelProgressionComponent.h"
 #include "eStateChangeType.h"
 
-ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity) : PhysicsComponent(entity) {
+ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, int32_t componentId) : PhysicsComponent(entity, componentId) {
 	m_Velocity = {};
 	m_AngularVelocity = {};
 	m_InJetpackMode = false;

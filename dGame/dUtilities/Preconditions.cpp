@@ -137,7 +137,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 
 		return inventoryComponent->GetLotCount(value) >= count;
 	case PreconditionType::DoesNotHaveItem:
-		return inventoryComponent->IsEquipped(value) < count;
+		return inventoryComponent->IsEquipped(value) && count > 0;
 	case PreconditionType::HasAchievement:
 		if (missionComponent == nullptr) return false;
 		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
