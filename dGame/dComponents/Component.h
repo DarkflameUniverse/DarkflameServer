@@ -2,6 +2,10 @@
 
 #include "tinyxml2.h"
 
+namespace RakNet {
+	class BitStream;
+};
+
 class Entity;
 
 /**

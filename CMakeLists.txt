@@ -110,6 +110,23 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 find_package(MariaDB)
 
+# Fetch third party dependencies
+set(DLU_THIRDPARTY_SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+
+include(FetchContent)
+FetchContent_Declare(
+	magic_enum
+	SYSTEM
+	# SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/magic_enum
+	GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+	GIT_TAG        v0.9.7
+)
+FetchContent_MakeAvailable(magic_enum)
+
+include(CMakePrintHelpers)
+cmake_print_properties(TARGETS magic_enum::magic_enum PROPERTIES
+                       INTERFACE_INCLUDE_DIRECTORIES)
+
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
 
@@ -252,7 +269,6 @@ include_directories(
 	"tests/dGameTests/dComponentsTests"
 
 	SYSTEM
-	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
 	"thirdparty/tinyxml2"
 	"thirdparty/recastnavigation"
@@ -314,7 +330,7 @@ add_subdirectory(dPhysics)
 add_subdirectory(dServer)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")
+set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "magic_enum::magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)

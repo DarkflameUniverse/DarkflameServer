@@ -4,7 +4,7 @@
 #define _VARIADIC_MAX 10
 #include "dCommonVars.h"
 #include "dNetCommon.h"
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 
 enum class ServerType : uint32_t;
 enum class eLoginResponse : uint8_t;

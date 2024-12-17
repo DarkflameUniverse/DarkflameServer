@@ -8,7 +8,7 @@
 #include "Game.h"
 #include "MessageType/Game.h"
 #include "MessageType/World.h"
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 
 #define ENUM_EQ(e, y, z)\
 	LOG("%s %s", StringifiedEnum::ToString(static_cast<e>(y)).data(), #z);\

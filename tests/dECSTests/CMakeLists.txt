@@ -3,7 +3,7 @@ add_executable(dECSTests
 )
 
 # Link needed libraries
-target_link_libraries(dECSTests PRIVATE dCommon dECS GTest::gtest_main)
+target_link_libraries(dECSTests PRIVATE dCommon dGame dECS GTest::gtest_main)
 
 # Discover the tests
 gtest_discover_tests(dECSTests)
