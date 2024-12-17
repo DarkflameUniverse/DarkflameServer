@@ -13,8 +13,8 @@ namespace dECS {
     // concept IsComponent = std::derived_from<C, Component>;
 
     struct WorldData;
-    struct World;
-    struct Entity;
+    class World;
+    class Entity;
     struct IStorage;
 
     template <typename C>
