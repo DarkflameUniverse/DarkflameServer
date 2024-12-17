@@ -6,6 +6,10 @@ docker/configs
 # Third party libraries
 thirdparty/mysql/
 thirdparty/mysql_linux/
+thirdparty/backtrace/
+thirdparty/magic_enum/
+thirdparty/recastnavigation/
+thirdparty/tinyxml2/
 CMakeVariables.txt
 
 # Build folders

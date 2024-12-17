@@ -110,6 +110,53 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 find_package(MariaDB)
 
+# Fetch third party dependencies
+set(DLU_THIRDPARTY_SOURCE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+
+include(FetchContent)
+FetchContent_Declare(
+	backtrace
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/backtrace
+	GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+)
+FetchContent_Declare(
+	bcrypt
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/libbcrypt
+	GIT_REPOSITORY https://github.com/trusch/libbcrypt.git
+	GIT_TAG        d6523c370de6e724ce4ec703e2449b5b028ea3b1
+)
+FetchContent_Declare(
+	magic_enum
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/magic_enum
+	GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+	GIT_TAG        v0.9.7
+)
+FetchContent_Declare(
+	Recast
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/recastnavigation
+	GIT_REPOSITORY https://github.com/recastnavigation/recastnavigation.git
+	GIT_TAG        v1.6.0
+)
+FetchContent_Declare(
+	tinyxml2
+	SYSTEM
+	SOURCE_DIR     ${DLU_THIRDPARTY_SOURCE_DIR}/tinyxml2
+	GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
+	GIT_TAG        9.0.0
+)
+FetchContent_MakeAvailable(magic_enum Recast tinyxml2)
+
+# Turn off tinyxml2 testing
+set(tinyxml2_BUILD_TESTING OFF)
+
+include(CMakePrintHelpers)
+cmake_print_properties(TARGETS magic_enum Recast tinyxml2 PROPERTIES
+                       INTERFACE_INCLUDE_DIRECTORIES)
+
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
 
@@ -252,10 +299,7 @@ include_directories(
 	"tests/dGameTests/dComponentsTests"
 
 	SYSTEM
-	"thirdparty/magic_enum/include/magic_enum"
 	"thirdparty/raknet/Source"
-	"thirdparty/tinyxml2"
-	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/cpp-httplib"
@@ -273,7 +317,7 @@ if(MSVC)
 	# add_compile_options("/W4")
 	# Want to enable warnings eventually, but WAY too much noise right now
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	add_compile_options("-Wuninitialized" "-Wold-style-cast")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Wstrict-aliasing")
 else()
 	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()
@@ -342,7 +386,7 @@ target_precompile_headers(
 
 target_precompile_headers(
 	tinyxml2 PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.h>"
+	"$<$<COMPILE_LANGUAGE:CXX>:${tinyxml2_SOURCE_DIR}/tinyxml2.h>"
 )
 
 if(${ENABLE_TESTING})

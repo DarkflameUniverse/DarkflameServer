@@ -10,4 +10,4 @@ add_dependencies(dDatabase conncpp_dylib)
 
 target_include_directories(dDatabase PUBLIC ".")
 target_link_libraries(dDatabase
-	PUBLIC dDatabaseCDClient dDatabaseGame)
+	PUBLIC magic_enum dDatabaseCDClient dDatabaseGame)

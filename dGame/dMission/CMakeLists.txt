@@ -4,7 +4,7 @@ set(DGAME_DMISSION_SOURCES
 	"MissionTask.cpp")
 
 add_library(dMission OBJECT ${DGAME_DMISSION_SOURCES})
-target_link_libraries(dMission PUBLIC dDatabase)
+target_link_libraries(dMission PUBLIC tinyxml2 dDatabase)
 target_include_directories(dMission PUBLIC "."
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents"

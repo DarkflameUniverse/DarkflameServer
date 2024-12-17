@@ -13,7 +13,7 @@ foreach(file ${DGAME_DPROPERTYBEHAVIORS_CONTROLBEHAVIORMESSAGES})
 endforeach()
 
 add_library(dPropertyBehaviors OBJECT ${DGAME_DPROPERTYBEHAVIORS_SOURCES})
-target_link_libraries(dPropertyBehaviors PRIVATE dDatabaseCDClient)
+target_link_libraries(dPropertyBehaviors PUBLIC tinyxml2 PRIVATE dDatabaseCDClient)
 target_include_directories(dPropertyBehaviors PUBLIC "." "ControlBehaviorMessages"
 	PRIVATE
 	"${PROJECT_SOURCE_DIR}/dCommon/dClient" # ControlBehaviors.cpp uses AssetManager

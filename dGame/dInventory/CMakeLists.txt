@@ -24,6 +24,7 @@ target_include_directories(dInventory PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h
 	"${PROJECT_SOURCE_DIR}/dZoneManager" # via Item.cpp
 )
+target_link_libraries(dInventory PUBLIC magic_enum tinyxml2)
 target_precompile_headers(dInventory REUSE_FROM dGameBase)
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97185

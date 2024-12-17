@@ -14,4 +14,4 @@ target_include_directories(dNavigation PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dGame/dEntity"
 	"${PROJECT_SOURCE_DIR}/dNavigation/dTerrain" # via dNavMesh.cpp
 )
-target_link_libraries(dNavigation PRIVATE Detour Recast dCommon)
+target_link_libraries(dNavigation PUBLIC tinyxml2 PRIVATE Detour Recast dCommon)

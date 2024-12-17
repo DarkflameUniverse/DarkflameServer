@@ -21,7 +21,7 @@ if(APPLE)
 	add_dependencies(dGameTests dGameTestsLink)
 endif()
 
-target_link_libraries(dGameTests ${COMMON_LIBRARIES} GTest::gtest_main
+target_link_libraries(dGameTests ${COMMON_LIBRARIES} magic_enum GTest::gtest_main
 	dGame dScripts dPhysics Detour Recast tinyxml2 dWorldServer dZoneManager dChatFilter dNavigation)
 
 # Discover the tests
