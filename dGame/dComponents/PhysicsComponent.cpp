@@ -14,10 +14,21 @@
 
 #include "EntityInfo.h"
 
-PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
+PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
 	m_Rotation = NiQuaternionConstant::IDENTITY;
 	m_DirtyPosition = false;
+
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
+
+	if (physicsComponentTable) {
+		auto* info = physicsComponentTable->GetByID(componentId);
+		if (info) {
+			m_CollisionGroup = info->collisionGroup;
+		}
+	}
+
+	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
 }
 
 void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
