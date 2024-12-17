@@ -41,7 +41,7 @@ namespace dECS {
         using StorageConstructor = std::function<std::unique_ptr<IStorage>()>;
 
         [[nodiscard]]
-        constexpr LWOOBJID Id() const noexcept {
+        constexpr LWOOBJID GetObjectID() const noexcept {
             return m_Id;
         }
 

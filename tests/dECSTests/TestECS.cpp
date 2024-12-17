@@ -17,20 +17,20 @@ TEST(ECSTest, IncrementEntityIdsSingleThread) {
     auto w = World{};
 
     auto ea = w.MakeEntity();
-    ASSERT_EQ(ea.Id(), 1);
+    ASSERT_EQ(ea.GetObjectID(), 1);
 
     auto eb = w.MakeEntity();
-    ASSERT_EQ(eb.Id(), 2);
+    ASSERT_EQ(eb.GetObjectID(), 2);
 
     auto ec = w.MakeEntity();
-    ASSERT_EQ(ec.Id(), 3);
+    ASSERT_EQ(ec.GetObjectID(), 3);
 }
 
 // Test adding and getting components
 TEST(ECSTest, MakeOneEntityAndAddComponents) {
     auto w = World{};
     auto e = w.MakeEntity();
-    ASSERT_EQ(e.Id(), 1);
+    ASSERT_EQ(e.GetObjectID(), 1);
 
     // add component
     auto* const testCompPtr = e.AddComponent<TestComponent>();
@@ -54,7 +54,7 @@ TEST(ECSTest, WorldScope) {
     {
         auto w = World{};
         e.emplace(w.MakeEntity());
-        ASSERT_EQ(e->Id(), 1);
+        ASSERT_EQ(e->GetObjectID(), 1);
 
         // add component within scope
         auto* const cPtr = e->AddComponent<TestComponent>();
