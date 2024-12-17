@@ -1056,6 +1056,15 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(InstanceInfoCommand);
 
+	Command ServerUptimeCommand{
+		.help = "Display the time the current world server has been active",
+		.info = "Display the time the current world server has been active",
+		.aliases = { "uptime" },
+		.handle = GMZeroCommands::ServerUptime,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ServerUptimeCommand);
+
 	//Commands that are handled by the client
 
 	Command faqCommand{
