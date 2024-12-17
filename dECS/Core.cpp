@@ -23,10 +23,10 @@ namespace dECS {
 
     void* Entity::AddComponent(const eReplicaComponentType kind, const StorageConstructor storageConstructor) {
         if (auto w = m_World.lock()) {
-            // add to kind signature
+            // Add to kind signature
             w->map[m_Id].set(kind, true);
 
-            // get or add storage
+            // Get or add storage
             auto storageIt = w->data.find(kind);
             if (storageIt == w->data.cend()) {
                 bool inserted = false;
@@ -35,7 +35,7 @@ namespace dECS {
             }
             auto& storage = *storageIt->second;
 
-            // return reference if already mapped, otherwise add component
+            // Return reference if already mapped, otherwise add component
             auto compIt = storage.rowMap.find(m_Id);
             if (compIt == storage.rowMap.cend()) {
                 const auto curSize = storage.rowMap.size();
@@ -50,13 +50,13 @@ namespace dECS {
 
     const void* Entity::GetComponent(const eReplicaComponentType kind) const {
         if (auto const w = m_World.lock()) {
-            const auto& compSig = w->map.at(m_Id);
-            if (!compSig.test(kind)) return nullptr;
+            // Check that the entity has this component
+            if (!w->map[m_Id].test(kind)) return nullptr;
 
+            // Get the location where it's stored
             const auto& storage = *w->data.at(kind);
             const auto it = storage.rowMap.find(m_Id);
             if (it == storage.rowMap.cend()) return nullptr;
-
             const auto row = it->second;
             return storage.at(row);
         }

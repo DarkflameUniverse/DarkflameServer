@@ -61,7 +61,7 @@ TEST(ECSTest, WorldScope) {
         ASSERT_NE(cPtr, nullptr);
     }
 
-    // Attempting to access this component now that the world has gone
-    // out of scope should return nullptr
+    // Attempting to access this component should return nullptr
+    // now that the world has gone out of scope
     ASSERT_EQ(e->GetComponent<TestComponent>(), nullptr);
 }
