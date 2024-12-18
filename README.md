@@ -24,11 +24,13 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 	Warning: WSL version 1 does NOT support using sqlite as a database due to how it handles filesystem synchronization.
 	You must use Version 2 if you must run the server under WSL. Not doing so will result in save data loss.
 * Single player installs now no longer require building the server from source or installing development tools.
-* Download the [latest release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
-* You should be able to see the folder with the server executables in the same folder as `legouniverse.exe`.
-* Open `sharedconfig.ini` and find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
+* Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
+* You should be able to see the folder with the server files in the same folder as `legouniverse.exe`.
+* Feel free to rename the folder with the server files to whatever you want.
+* Go into the server files folder and open `sharedconfig.ini`. Find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
 * To run the server, double-click `MasterServer.exe`.
-* You will be asked to create an account the first time you run the server.
+* You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
+* To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
 * We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
 
