@@ -7,7 +7,6 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"BuildBorderComponent.cpp"
 	"CharacterComponent.cpp"
 	"CollectibleComponent.cpp"
-	"Component.cpp"
 	"ControllablePhysicsComponent.cpp"
 	"DestroyableComponent.cpp"
 	"DonationVendorComponent.cpp"
