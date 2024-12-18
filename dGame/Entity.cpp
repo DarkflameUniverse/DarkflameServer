@@ -1499,7 +1499,7 @@ void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled)
 
 CppScripts::Script* const Entity::GetScript() {
 	auto* scriptComponent = GetComponent<ScriptComponent>();
-	auto* script = scriptComponent ? scriptComponent->GetScript() : CppScripts::GetInvalidScript();
+	auto* script = scriptComponent ? scriptComponent->GetScript() : &CppScripts::GetInvalidScript();
 	DluAssert(script != nullptr);
 	return script;
 }
@@ -2175,7 +2175,7 @@ void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 
 int32_t Entity::GetCollisionGroup() const {
 	for (const auto* component : m_Components | std::views::values) {
-		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);	
+		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);
 		if (compToCheck) {
 			return compToCheck->GetCollisionGroup();
 		}
