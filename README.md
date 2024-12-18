@@ -31,7 +31,7 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
 * To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
-* We are working on a way to make it so when you close the game, the server saves automatically alongside when you open the game, the server starts automatically.
+* We are working on a way to make it so when you close the game, the server stops automatically alongside when you open the game, the server starts automatically.
 
 <font size="32">**If you are not planning on hosting a server for others, working in the codebase or wanting to use MariaDB for a database, you can stop reading here.**</font>
 
