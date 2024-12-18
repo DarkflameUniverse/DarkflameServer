@@ -13,7 +13,7 @@ target_include_directories(WorldServer PRIVATE
 	"${PROJECT_SOURCE_DIR}/dServer" # BinaryPathFinder.h
 )
 
-target_link_libraries(WorldServer ${COMMON_LIBRARIES}
+target_link_libraries(WorldServer PUBLIC ${COMMON_LIBRARIES}
 	dScripts
 	dGameBase
 	dComponents

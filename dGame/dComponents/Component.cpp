@@ -1,18 +1,5 @@
 #include "Component.h"
 
-
-Component::Component(Entity* parent) {
-	m_Parent = parent;
-}
-
-Component::~Component() {
-
-}
-
-Entity* Component::GetParent() const {
-	return m_Parent;
-}
-
 void Component::Update(float deltaTime) {
 
 }

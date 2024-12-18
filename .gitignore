@@ -4,6 +4,7 @@ RelWithDebInfo/
 docker/configs
 
 # Third party libraries
+thirdparty/magic_enum
 thirdparty/mysql/
 thirdparty/mysql_linux/
 

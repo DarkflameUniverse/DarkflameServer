@@ -2,7 +2,7 @@
 #define __STRINGIFIEDENUM_H__
 
 #include <string>
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 
 namespace StringifiedEnum {
 	template<typename T>

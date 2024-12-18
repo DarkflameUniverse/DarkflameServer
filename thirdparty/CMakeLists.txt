@@ -34,9 +34,6 @@ target_include_directories(bcrypt PRIVATE "libbcrypt/src")
 # Source code for sqlite
 add_subdirectory(SQLite)
 
-# Source code for magic_enum
-add_subdirectory(magic_enum)
-
 # Create our third party library objects
 add_subdirectory(raknet)
 

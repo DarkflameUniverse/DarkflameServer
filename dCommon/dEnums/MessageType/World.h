@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 
 namespace MessageType {
 	enum class World : uint32_t {

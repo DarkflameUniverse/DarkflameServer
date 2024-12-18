@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-#include "magic_enum.hpp"
+#include <magic_enum/magic_enum.hpp>
 
 static const uint8_t NUMBER_OF_INVENTORIES = 17;
 /**

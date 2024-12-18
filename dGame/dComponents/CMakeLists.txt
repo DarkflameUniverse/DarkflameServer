@@ -78,4 +78,4 @@ target_include_directories(dComponents PUBLIC "."
 )
 target_precompile_headers(dComponents REUSE_FROM dGameBase)
 
-target_link_libraries(dComponents INTERFACE dBehaviors)
+target_link_libraries(dComponents PUBLIC magic_enum::magic_enum INTERFACE dBehaviors)

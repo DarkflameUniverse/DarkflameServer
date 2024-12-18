@@ -2,6 +2,10 @@
 
 #include "tinyxml2.h"
 
+namespace RakNet {
+	class BitStream;
+};
+
 class Entity;
 
 /**
@@ -9,14 +13,15 @@ class Entity;
  */
 class Component {
 public:
-	Component(Entity* parent);
-	virtual ~Component();
+	Component() = default;
+	Component(Entity* parent) : m_Parent{ parent } {}
+	virtual ~Component() = default;
 
 	/**
 	 * Gets the owner of this component
 	 * @return the owner of this component
 	 */
-	Entity* GetParent() const;
+	Entity* GetParent() const { return m_Parent; }
 
 	/**
 	 * Updates the component in the game loop
