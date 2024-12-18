@@ -6375,3 +6375,58 @@ void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress&
 
 	SEND_PACKET;
 }
+
+namespace GameMessages {
+	void GameMsg::Send(const SystemAddress& sysAddr) const {
+		CBITSTREAM;
+		CMSGHEADER;
+
+		bitStream.Write(target); // Who this message will be sent to on the (a) client
+		bitStream.Write(msgId); // the ID of this message
+
+		Serialize(bitStream); // write the message data
+
+		// Send to everyone if someone sent unassigned system address, or to one specific client.
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			SEND_PACKET_BROADCAST;
+		} else {
+			SEND_PACKET;
+		}
+	}
+
+	void DisplayTooltip::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(doOrDie);
+		bitStream.Write(noRepeat);
+		bitStream.Write(noRevive);
+		bitStream.Write(isPropertyTooltip);
+		bitStream.Write(show);
+		bitStream.Write(translate);
+		bitStream.Write(time);
+		bitStream.Write<int32_t>(id.size());
+		bitStream.Write(id);
+
+		std::string toWrite;
+		for (const auto* item : localizeParams) {
+			toWrite += item->GetString() + "\n";
+		}
+		if (!toWrite.empty()) toWrite.pop_back();
+		bitStream.Write<int32_t>(toWrite.size());
+		bitStream.Write(GeneralUtils::ASCIIToUTF16(toWrite));
+		if (!toWrite.empty()) bitStream.Write<uint16_t>(0x00); // Null Terminator
+
+		bitStream.Write<int32_t>(imageName.size());
+		bitStream.Write(imageName);
+		bitStream.Write<int32_t>(text.size());
+		bitStream.Write(text);
+	}
+
+	void UseItemOnClient::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(itemLOT);
+		bitStream.Write(itemToUse);
+		bitStream.Write(itemType);
+		bitStream.Write(playerId);
+		bitStream.Write(targetPosition.x);
+		bitStream.Write(targetPosition.y);
+		bitStream.Write(targetPosition.z);
+	}
+}

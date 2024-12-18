@@ -27,7 +27,7 @@
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
 
-PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent) : PhysicsComponent(parent) {
+PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();

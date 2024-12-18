@@ -15,6 +15,7 @@ namespace GMZeroCommands {
 	void LeaveZone(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Resurrect(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void InstanceInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ServerUptime(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void ClientHandled(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 

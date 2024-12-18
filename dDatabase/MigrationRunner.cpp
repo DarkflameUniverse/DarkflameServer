@@ -10,9 +10,9 @@
 
 #include <fstream>
 
-Migration LoadMigration(std::string path) {
+Migration LoadMigration(std::string folder, std::string path) {
 	Migration migration{};
-	std::ifstream file(BinaryPathFinder::GetBinaryDir() / "migrations/" / path);
+	std::ifstream file(BinaryPathFinder::GetBinaryDir() / "migrations/" / folder / path);
 
 	if (file.is_open()) {
 		std::string line;
@@ -34,10 +34,19 @@ Migration LoadMigration(std::string path) {
 void MigrationRunner::RunMigrations() {
 	Database::Get()->CreateMigrationHistoryTable();
 
+	// has to be here because when moving the files to the new folder, the migration_history table is not updated so it will run them all again.
+	
+	const auto migrationFolder = Database::GetMigrationFolder();
+	if (!Database::Get()->IsMigrationRun("17_migration_for_migrations.sql") && migrationFolder == "mysql") {
+		LOG("Running migration: 17_migration_for_migrations.sql");
+		Database::Get()->ExecuteCustomQuery("UPDATE `migration_history` SET `name` = SUBSTR(`name`, 5) WHERE `name` LIKE \"dlu%\";");
+		Database::Get()->InsertMigration("17_migration_for_migrations.sql");
+	}
+
 	std::string finalSQL = "";
 	bool runSd0Migrations = false;
-	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/").string())) {
-		auto migration = LoadMigration("dlu/" + entry);
+	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
+		auto migration = LoadMigration("dlu/" + migrationFolder + "/", entry);
 
 		if (migration.data.empty()) {
 			continue;
@@ -46,7 +55,7 @@ void MigrationRunner::RunMigrations() {
 		if (Database::Get()->IsMigrationRun(migration.name)) continue;
 
 		LOG("Running migration: %s", migration.name.c_str());
-		if (migration.name == "dlu/5_brick_model_sd0.sql") {
+		if (migration.name == "5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
@@ -86,10 +95,14 @@ void MigrationRunner::RunSQLiteMigrations() {
 	cdstmt.execQuery().finalize();
 	cdstmt.finalize();
 
-	Database::Get()->CreateMigrationHistoryTable();
+	if (CDClientDatabase::ExecuteQuery("select * from migration_history where name = \"7_migration_for_migrations.sql\";").eof()) {
+		LOG("Running migration: 7_migration_for_migrations.sql");
+		CDClientDatabase::ExecuteQuery("UPDATE `migration_history` SET `name` = SUBSTR(`name`, 10) WHERE `name` LIKE \"cdserver%\";");
+		CDClientDatabase::ExecuteQuery("INSERT INTO migration_history (name) VALUES (\"7_migration_for_migrations.sql\");");
+	}
 
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "migrations/cdserver/").string())) {
-		auto migration = LoadMigration("cdserver/" + entry);
+		auto migration = LoadMigration("cdserver/", entry);
 
 		if (migration.data.empty()) continue;
 

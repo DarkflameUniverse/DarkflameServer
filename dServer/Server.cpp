@@ -13,7 +13,7 @@ void Server::SetupLogger(const std::string_view serviceName) {
 
 	const auto logsDir = BinaryPathFinder::GetBinaryDir() / "logs";
 
-	if (!std::filesystem::exists(logsDir)) std::filesystem::create_directory(logsDir);
+	if (!std::filesystem::exists(logsDir)) std::filesystem::create_directories(logsDir);
 
 	std::string logPath = (logsDir / serviceName).string() + "_" + std::to_string(time(nullptr)) + ".log";
 	bool logToConsole = false;

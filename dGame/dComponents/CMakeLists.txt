@@ -65,7 +65,6 @@ target_include_directories(dComponents PUBLIC "."
 	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase/CDClientTables"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
-	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
 	# dPhysics (via dpWorld.h)
 	"${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Recast/Include"
 	"${PROJECT_SOURCE_DIR}/thirdparty/recastnavigation/Detour/Include"

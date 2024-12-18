@@ -8,10 +8,6 @@ void TestSQLDatabase::Destroy(std::string source) {
 
 }
 
-sql::PreparedStatement* TestSQLDatabase::CreatePreppedStmt(const std::string& query) {
-	return nullptr;
-}
-
 void TestSQLDatabase::Commit() {
 
 }

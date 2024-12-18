@@ -1,3 +1,4 @@
+3.0 - Single player with minimal setup is fully functional with SQLite database
 2.3 - Dragonmaw functional, new slash command system, vanity system overhaul
 2.2 - Code cleanup and QoL fixes
 2.1 - Bug and crash fixes
