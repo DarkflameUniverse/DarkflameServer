@@ -329,6 +329,7 @@
 #include "WblRobotCitizen.h"
 #include "EnemyClearThreat.h"
 #include "AgSpiderBossMessage.h"
+#include "GfRaceInstancer.h"
 
 #include <map>
 #include <string>
@@ -690,6 +691,7 @@ namespace {
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
 		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
+		{"scripts\\ai\\GF\\L_GF_RACE_INSTANCER.lua", []() {return new GfRaceInstancer();}},
 
 	};
 
@@ -703,6 +705,8 @@ namespace {
 		"scripts\\zone\\AG\\L_ZONE_AG.lua",
 		"scripts\\zone\\NS\\L_ZONE_NS.lua",
 		"scripts\\zone\\GF\\L_ZONE_GF.lua",
+		"scripts\\ai\\AG\\CONCERT_STAGE.lua",
+		"scripts\\ai\\NS\\L_NS_CAR_MODULAR_BUILD.lua", // In our implementation, this is done in GameMessages.cpp
 	};
 };
 

@@ -52,10 +52,10 @@ namespace GameMessages {
 	struct GameMsg {
 		GameMsg(MessageType::Game gmId) : msgId{ gmId } {}
 		virtual ~GameMsg() = default;
-		virtual void Send() const {}
+		void Send(const SystemAddress& sysAddr) const;
+		virtual void Serialize(RakNet::BitStream& bitStream) const {}
 		MessageType::Game msgId;
 		LWOOBJID target{ LWOOBJID_EMPTY };
-		SystemAddress sysAddr{ UNASSIGNED_SYSTEM_ADDRESS };
 	};
 
 	class PropertyDataMessage;
@@ -705,7 +705,17 @@ namespace GameMessages {
 		std::vector<LDFBaseData*> localizeParams{};
 		std::u16string imageName{};
 		std::u16string text{};
-		void Send() const override;
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct UseItemOnClient : public GameMsg {
+		UseItemOnClient() : GameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
+		LWOOBJID playerId{};
+		LWOOBJID itemToUse{};
+		uint32_t itemType{};
+		LOT itemLOT{};
+		NiPoint3 targetPosition{};
+		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 };
 
