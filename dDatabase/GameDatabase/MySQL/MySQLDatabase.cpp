@@ -14,6 +14,7 @@ namespace {
 };
 
 void MySQLDatabase::Connect() {
+	LOG("Using MySQL database");
 	driver = sql::mariadb::get_driver_instance();
 
 	// The mariadb connector is *supposed* to handle unix:// and pipe:// prefixes to hostName, but there are bugs where
@@ -67,7 +68,7 @@ void MySQLDatabase::ExecuteCustomQuery(const std::string_view query) {
 
 sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& query) {
 	if (!con) {
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL");
 	}
 
@@ -76,7 +77,7 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 
 		con = nullptr;
 
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 

@@ -13,7 +13,7 @@ void StartChatServer() {
 	//macOS doesn't need sudo to run on ports < 1024
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 #elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
+	auto result = system(("start /B " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_chat").c_str())) {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
@@ -31,7 +31,7 @@ void StartAuthServer() {
 #ifdef __APPLE__
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
-	auto result = system(("start " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
+	auto result = system(("start /B " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
 #else
 	if (std::atoi(Game::config->GetValue("use_sudo_auth").c_str())) {
 		auto result = system(("sudo " + (BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
@@ -43,7 +43,7 @@ void StartAuthServer() {
 
 void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 #ifdef _WIN32
-	std::string cmd = "start " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
+	std::string cmd = "start /B " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
 #else
 	std::string cmd;
 	if (std::atoi(Game::config->GetValue("use_sudo_world").c_str())) {

@@ -1,31 +1,29 @@
-#ifndef __MYSQLDATABASE__H__
-#define __MYSQLDATABASE__H__
+#ifndef SQLITEDATABASE_H
+#define SQLITEDATABASE_H
 
-#include <conncpp.hpp>
-#include <memory>
+#include "CppSQLite3.h"
 
 #include "GameDatabase.h"
 
-typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
-typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
+using PreppedStmtRef = CppSQLite3Statement&;
 
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
 template<typename ParamType>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const ParamType param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const ParamType param);
 
 // This is a function to set each parameter in a prepared statement.
 // This is accomplished with a combination of parameter packing and Fold Expressions.
 // The constexpr if statement is used to prevent the compiler from trying to call SetParam with 0 arguments.
 template<typename... Args>
-void SetParams(UniquePreppedStmtRef stmt, Args&&... args) {
+void SetParams(PreppedStmtRef stmt, Args&&... args) {
 	if constexpr (sizeof...(args) != 0) {
 		int i = 1;
 		(SetParam(stmt, i++, args), ...);
 	}
 }
 
-class MySQLDatabase : public GameDatabase {
+class SQLiteDatabase : public GameDatabase {
 public:
 	void Connect() override;
 	void Destroy(std::string source = "") override;
@@ -124,145 +122,149 @@ public:
 	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 	uint32_t GetAccountCount() override;
 private:
+	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 
 	// Generic query functions that can be used for any query.
 	// Return type may be different depending on the query, so it is up to the caller to check the return type.
 	// The first argument is the query string, and the rest are the parameters to bind to the query.
 	// The return type is a unique_ptr to the result set, which is deleted automatically when it goes out of scope
 	template<typename... Args>
-	inline std::unique_ptr<sql::ResultSet> ExecuteSelect(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
-		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(return std::unique_ptr<sql::ResultSet>(preppedStmt->executeQuery()));
+	inline std::pair<CppSQLite3Statement, CppSQLite3Query> ExecuteSelect(const std::string& query, Args&&... args) {
+		std::pair<CppSQLite3Statement, CppSQLite3Query> toReturn;
+		toReturn.first = CreatePreppedStmt(query);
+		SetParams(toReturn.first, std::forward<Args>(args)...);
+		DLU_SQL_TRY_CATCH_RETHROW(toReturn.second = toReturn.first.execQuery());
+		return toReturn;
 	}
 
 	template<typename... Args>
 	inline void ExecuteDelete(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
+		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(preppedStmt->execute());
+		DLU_SQL_TRY_CATCH_RETHROW(preppedStmt.execDML());
 	}
 
 	template<typename... Args>
 	inline int32_t ExecuteUpdate(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
+		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->executeUpdate());
+		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt.execDML());
 	}
 
 	template<typename... Args>
-	inline bool ExecuteInsert(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
+	inline int ExecuteInsert(const std::string& query, Args&&... args) {
+		auto preppedStmt = CreatePreppedStmt(query);
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt->execute());
+		DLU_SQL_TRY_CATCH_RETHROW(return preppedStmt.execDML());
 	}
 };
 
 // Below are each of the definitions of SetParam for each supported type.
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::string_view param) {
-	// LOG("%s", param.data());
-	stmt->setString(index, param.data());
+inline void SetParam(PreppedStmtRef stmt, const int index, const std::string_view param) {
+	LOG("%s", param.data());
+	stmt.bind(index, param.data());
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const char* param) {
-	// LOG("%s", param);
-	stmt->setString(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const char* param) {
+	LOG("%s", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::string param) {
-	// LOG("%s", param.c_str());
-	stmt->setString(index, param.c_str());
+inline void SetParam(PreppedStmtRef stmt, const int index, const std::string param) {
+	LOG("%s", param.c_str());
+	stmt.bind(index, param.c_str());
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int8_t param) {
-	// LOG("%u", param);
-	stmt->setByte(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const int8_t param) {
+	LOG("%u", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint8_t param) {
-	// LOG("%d", param);
-	stmt->setByte(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const uint8_t param) {
+	LOG("%d", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int16_t param) {
-	// LOG("%u", param);
-	stmt->setShort(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const int16_t param) {
+	LOG("%u", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint16_t param) {
-	// LOG("%d", param);
-	stmt->setShort(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const uint16_t param) {
+	LOG("%d", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint32_t param) {
-	// LOG("%u", param);
-	stmt->setUInt(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const uint32_t param) {
+	LOG("%u", param);
+	stmt.bind(index, static_cast<int32_t>(param));
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int32_t param) {
-	// LOG("%d", param);
-	stmt->setInt(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const int32_t param) {
+	LOG("%d", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const int64_t param) {
-	// LOG("%llu", param);
-	stmt->setInt64(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const int64_t param) {
+	LOG("%llu", param);
+	stmt.bind(index, static_cast<sqlite_int64>(param));
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const uint64_t param) {
-	// LOG("%llu", param);
-	stmt->setUInt64(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const uint64_t param) {
+	LOG("%llu", param);
+	stmt.bind(index, static_cast<sqlite_int64>(param));
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const float param) {
-	// LOG("%f", param);
-	stmt->setFloat(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const float param) {
+	LOG("%f", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const double param) {
-	// LOG("%f", param);
-	stmt->setDouble(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const double param) {
+	LOG("%f", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const bool param) {
-	// LOG("%d", param);
-	stmt->setBoolean(index, param);
+inline void SetParam(PreppedStmtRef stmt, const int index, const bool param) {
+	LOG("%d", param);
+	stmt.bind(index, param);
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::istream* param) {
-	// LOG("Blob");
+inline void SetParam(PreppedStmtRef stmt, const int index, const std::istream* param) {
+	LOG("Blob");
 	// This is the one time you will ever see me use const_cast.
-	stmt->setBlob(index, const_cast<std::istream*>(param));
+	std::stringstream stream;
+	stream << param->rdbuf();
+	stmt.bind(index, reinterpret_cast<const unsigned char*>(stream.str().c_str()), stream.str().size());
 }
 
 template<>
-inline void SetParam(UniquePreppedStmtRef stmt, const int index, const std::optional<uint32_t> param) {
+inline void SetParam(PreppedStmtRef stmt, const int index, const std::optional<uint32_t> param) {
 	if (param) {
-		// LOG("%d", param.value());
-		stmt->setInt(index, param.value());
+		LOG("%d", param.value());
+		stmt.bind(index, static_cast<int>(param.value()));
 	} else {
-		// LOG("Null");
-		stmt->setNull(index, sql::DataType::SQLNULL);
+		LOG("Null");
+		stmt.bindNull(index);
 	}
 }
 
-#endif  //!__MYSQLDATABASE__H__
+#endif  //!SQLITEDATABASE_H
