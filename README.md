@@ -24,9 +24,8 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 	Warning: WSL version 1 does NOT support using sqlite as a database due to how it handles filesystem synchronization.
 	You must use Version 2 if you must run the server under WSL. Not doing so will result in save data loss.
 * Single player installs now no longer require building the server from source or installing development tools.
-* Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) and extract the files into a folder inside your client.
+* Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) (or whichever release you need) and extract the files into a folder inside your client. Note that this setup is expecting that when double clicking the folder that you put in the same folder as `legouniverse.exe`, the file `MasterServer.exe` is in there.
 * You should be able to see the folder with the server files in the same folder as `legouniverse.exe`.
-* Feel free to rename the folder with the server files to whatever you want.
 * Go into the server files folder and open `sharedconfig.ini`. Find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
 * To run the server, double-click `MasterServer.exe`.
 * You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
