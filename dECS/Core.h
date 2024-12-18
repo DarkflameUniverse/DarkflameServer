@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -12,8 +14,13 @@ namespace dECS {
     // template <typename C>
     // concept IsComponent = std::derived_from<C, Component>;
 
+    // Data structures
     struct WorldData;
     class World;
+
+    template <typename... Cs>
+    class System;
+
     class Entity;
     struct IStorage;
 
@@ -30,8 +37,57 @@ namespace dECS {
         [[nodiscard]]
         Entity MakeEntity();
 
+        template <typename... Cs>
+        [[nodiscard]]
+        System<Cs...> MakeSystem() {
+            return System<Cs...>{};
+        }
+
+        template <typename... Cs, typename S>
+        [[nodiscard]]
+        System<Cs...> MakeSystem(S&& name) {
+            return System<Cs...>{ std::forward<S>(name) };
+        }
+
     private:
         WorldPtr m_World;
+    };
+
+    template <typename... Cs>
+    class System {
+    public:
+        friend System World::MakeSystem<Cs...>();
+
+        template <typename... Ts, typename S>
+        friend System<Ts...> World::MakeSystem(S&&);
+
+        /*template <typename Fn>
+            requires std::is_invocable_r_v<void, Fn(Cs...), ObjId, Cs...>
+        void ForEach(Fn&& f) {
+            for (ObjId i = 0; i < mT.size(); ++i) {
+                auto& c = mT[i];
+                f(i, std::get<Cs>(c)...);
+            }
+        }*/
+
+        template <typename Fn>
+            requires std::is_invocable_r_v<void, Fn(Cs...), Cs...>
+        void ForEach(Fn&& fn) {
+            std::tuple<Cs...> comps; // some sort of iterator that returns a tuple each 'step?'
+            for (size_t i = 0; i < 5; ++i) {
+                fn(std::get<Cs>(comps)...);
+            }
+        }
+
+    private:
+        System() = default;
+
+        template <typename S>
+        explicit System(S&& name)
+            : m_name{ std::forward<S>(name) }
+        {}
+
+        std::string m_name;
     };
 
     class Entity {

@@ -3,6 +3,7 @@ set(msvc_cxx "$<COMPILE_LANG_AND_ID:CXX,MSVC>")
 
 add_library(dECS STATIC
     "Core.h"
+    "Iter.h"
     "Core.cpp"
 )
 target_include_directories(dECS PUBLIC .)
