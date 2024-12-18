@@ -6,7 +6,6 @@ docker/configs
 # Third party libraries
 thirdparty/mysql/
 thirdparty/mysql_linux/
-CMakeVariables.txt
 
 # Build folders
 build/

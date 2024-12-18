@@ -36,6 +36,8 @@ public:
 
 	// Update the GameMaster level of an account.
 	virtual void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) = 0;
+
+	virtual uint32_t GetAccountCount() = 0;
 };
 
 #endif  //!__IACCOUNTS__H__

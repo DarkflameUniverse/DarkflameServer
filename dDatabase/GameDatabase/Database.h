@@ -12,4 +12,6 @@ namespace Database {
 	// Used for assigning a test database as the handler for database logic.
 	// Do not use in production code.
 	void _setDatabase(GameDatabase* const db);
+
+	std::string GetMigrationFolder();
 };

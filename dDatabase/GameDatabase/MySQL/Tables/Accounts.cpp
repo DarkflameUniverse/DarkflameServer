@@ -39,3 +39,8 @@ void MySQLDatabase::InsertNewAccount(const std::string_view username, const std:
 void MySQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
 	ExecuteUpdate("UPDATE accounts SET gm_level = ? WHERE id = ?;", static_cast<int32_t>(gmLevel), accountId);
 }
+
+uint32_t MySQLDatabase::GetAccountCount() {
+	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM accounts;");
+	return res->next() ? res->getUInt("count") : 0;
+}

@@ -45,6 +45,7 @@
 |setannmsg|`/setannmsg <title>`|Sets the message of an announcement.|8|
 |setanntitle|`/setanntitle <title>`|Sets the title of an announcement.|8|
 |shutdownuniverse|`/shutdownuniverse`|Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.|9|
+|uptime|`/uptime`|Displays the time the current world server has been active.|8|
 
 ## Development Commands
 
@@ -59,7 +60,7 @@ These commands are primarily for development and testing. The usage of many of t
 |testmap|`/testmap <zone> (force) (clone-id)`|Transfers you to the given zone by id and clone id. Add "force" to skip checking if the zone is accessible (this can softlock your character, though, if you e.g. try to teleport to Frostburgh).|1|
 |reportproxphys|`/reportproxphys`|Prints to console the position and radius of proximity sensors.|6|
 |spawnphysicsverts|`/spawnphysicsverts`|Spawns a 1x1 brick at all vertices of phantom physics objects.|6|
-|teleport|`/teleport <x> (y) <z>` or <br> `/tele <x> (y) <z>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Alias: `/tele`.|6|
+|teleport|`/teleport <x/source player> (y) <z/target player>` or <br> `/tele <x/source player> (y) <z/target player>`|Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Any of the coordinates can use the syntax of an exact position (10.0), or a relative position (~+10.0). A ~ means use the current value of that axis as the base value. Addition or subtraction is supported (~+10) (~-10). If source player and target player are players that exist in the world, then the source player will be teleported to target player. Alias: `/tele`.|6|
 |activatespawner|`/activatespawner <spawner name>`|Activates spawner by name.|8|
 |addmission|`/addmission <mission id>`|Accepts the mission, adding it to your journal.|8|
 |boost|`/boost (time)`|Adds a passive boost action if you are in a vehicle. If time is given it will end after that amount of time|8|
