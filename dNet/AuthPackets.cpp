@@ -82,14 +82,14 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
 	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
 	else bitStream.Write(ServiceId::General);
-	bitStream.Write<uint64_t>(215523470896);
+	bitStream.Write<uint64_t>(219818241584);
 
 	server->Send(bitStream, sysAddr, false);
 }
 
 std::string CleanReceivedString(const std::string& str) {
 	std::string toReturn = str;
-	const auto removed = std::ranges::find_if(toReturn, [](char c) { return isprint(c) == 0 && isblank(c) == 0; });
+	const auto removed = std::ranges::find_if(toReturn, [](unsigned char c) { return isprint(c) == 0 && isblank(c) == 0; });
 	toReturn.erase(removed, toReturn.end());
 	return toReturn;
 }

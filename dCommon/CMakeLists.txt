@@ -37,7 +37,6 @@ target_include_directories(dCommon
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase"
 	"${PROJECT_SOURCE_DIR}/dDatabase/GameDatabase/ITables"
 	"${PROJECT_SOURCE_DIR}/dDatabase/CDClientDatabase"
-	"${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp/include"
 )
 
 if (UNIX)

@@ -175,16 +175,18 @@ foreach(resource_file ${RESOURCE_FILES})
 				list(GET line_split 0 variable_name)
 
 				if(NOT ${parsed_current_file_contents} MATCHES ${variable_name})
-					message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
-					set(line_to_add ${line_to_add} ${line})
+					# For backwards compatibility with older setup versions, dont add this option.
+					if(NOT ${variable_name} MATCHES "database_type")
+						message(STATUS "Adding missing config option " ${variable_name} " to " ${resource_file})
+						set(line_to_add ${line_to_add} ${line})
 
-					foreach(line_to_append ${line_to_add})
-						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
-					endforeach()
+						foreach(line_to_append ${line_to_add})
+							file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n" ${line_to_append})
+						endforeach()
 
-					file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
+						file(APPEND ${DLU_CONFIG_DIR}/${resource_file} "\n")
+					endif()
 				endif()
-
 				set(line_to_add "")
 			else()
 				set(line_to_add ${line_to_add} ${line})
@@ -214,21 +216,8 @@ foreach(file ${VANITY_FILES})
 endforeach()
 
 # Move our migrations for MasterServer to run
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/dlu/)
-file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/dlu/*.sql)
-
-foreach(file ${SQL_FILES})
-	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/dlu/${file} ${PROJECT_BINARY_DIR}/migrations/dlu/${file})
-endforeach()
-
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/migrations/cdserver/)
-file(GLOB SQL_FILES ${CMAKE_SOURCE_DIR}/migrations/cdserver/*.sql)
-
-foreach(file ${SQL_FILES})
-	get_filename_component(file ${file} NAME)
-	configure_file(${CMAKE_SOURCE_DIR}/migrations/cdserver/${file} ${PROJECT_BINARY_DIR}/migrations/cdserver/${file})
-endforeach()
+file(REMOVE_RECURSE ${PROJECT_BINARY_DIR}/migrations)
+file(COPY ${CMAKE_SOURCE_DIR}/migrations DESTINATION ${CMAKE_BINARY_DIR})
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)
 if (APPLE)
