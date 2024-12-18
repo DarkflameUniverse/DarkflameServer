@@ -126,6 +126,7 @@ int main(int argc, char** argv) {
 
 	MigrationRunner::RunMigrations();
 	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+	std::filesystem::create_directories(resServerPath);
 	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
