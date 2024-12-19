@@ -938,11 +938,8 @@ void InventoryComponent::EquipScripts(Item* equippedItem) {
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
-		if (!itemScript) {
-			LOG("null script?");
-		}
-		itemScript->OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
+		auto& itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		itemScript.OnFactionTriggerItemEquipped(m_Parent, equippedItem->GetId());
 	}
 }
 
@@ -953,11 +950,8 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 	if (scriptComponentID > -1) {
 		CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
 		CDScriptComponent scriptCompData = scriptCompTable->GetByID(scriptComponentID);
-		auto* itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
-		if (!itemScript) {
-			LOG("null script?");
-		}
-		itemScript->OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
+		auto& itemScript = CppScripts::GetScript(m_Parent, scriptCompData.script_name);
+		itemScript.OnFactionTriggerItemUnequipped(m_Parent, unequippedItem->GetId());
 	}
 }
 
