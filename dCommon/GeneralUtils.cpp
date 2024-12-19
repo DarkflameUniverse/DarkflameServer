@@ -291,11 +291,12 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
 
 std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::string_view folder) {
 	// Because we dont know how large the initial number before the first _ is we need to make it a map like so.
-    std::map<uint32_t, std::string> filenames{};
+	std::map<uint32_t, std::string> filenames{};
 	for (const auto& t : std::filesystem::directory_iterator(folder)) {
-        auto filename = t.path().filename().string();
-        const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
-        filenames.emplace(index, std::move(filename));
+		if (t.is_directory() || t.is_symlink()) continue;
+		auto filename = t.path().filename().string();
+		const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
+		filenames.emplace(index, std::move(filename));
 	}
 
 	// Now sort the map by the oldest migration.
