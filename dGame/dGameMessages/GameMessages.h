@@ -717,6 +717,16 @@ namespace GameMessages {
 		NiPoint3 targetPosition{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
+
+	struct ZoneLoadedInfo : public GameMsg {
+		ZoneLoadedInfo() : GameMsg(MessageType::Game::ZONE_LOADED_INFO) {}
+		int32_t maxPlayers{};
+	};
+
+	struct ConfigureRacingControl : public GameMsg {
+		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
+		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+	};
 };
 
 #endif // GAMEMESSAGES_H
