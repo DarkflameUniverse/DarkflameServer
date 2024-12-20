@@ -871,16 +871,18 @@ void RacingControlComponent::Update(float deltaTime) {
 }
 
 void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
-	for (const auto& data : msg.racingSettings) {
+	for (const auto& dataUnique : msg.racingSettings) {
+		if (!dataUnique) continue;
+		const auto* const data = dataUnique.get(); 
 		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
-			m_PathName = static_cast<LDFData<std::u16string>*>(data)->GetValue();
+			m_PathName = static_cast<const LDFData<std::u16string>*>(data)->GetValue();
 		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
-			m_ActivityID = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			m_ActivityID = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		} else if (data->GetKey() == u"Number_of_Laps" && data->GetValueType() == LDF_TYPE_S32) {
-			m_NumberOfLaps = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			m_NumberOfLaps = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 			m_RemainingLaps = m_NumberOfLaps;
 		} else if (data->GetKey() == u"Minimum_Players_for_Group_Achievements" && data->GetValueType() == LDF_TYPE_S32) {
-			m_MinimumPlayersForGroupAchievements = static_cast<LDFData<int32_t>*>(data)->GetValue();
+			m_MinimumPlayersForGroupAchievements = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		}
 	}
 }

@@ -725,7 +725,7 @@ namespace GameMessages {
 
 	struct ConfigureRacingControl : public GameMsg {
 		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
-		std::vector<LDFBaseData*> racingSettings{};
+		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
 	};
 };
 
