@@ -2,7 +2,7 @@
 #include "dZoneManager.h"
 
 void StartSpawner(const std::vector<Spawner*>& spawner) {
-	for (auto entity : spawner) {
+	for (auto* const entity : spawner) {
 		entity->Activate();
 	}
 }
