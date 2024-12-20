@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
 	//Connect to the MySQL Database:
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		return EXIT_FAILURE;
 	}

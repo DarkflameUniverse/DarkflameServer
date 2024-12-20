@@ -31,6 +31,7 @@
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
 #include "Mail.h"
+#include "ProximityMonitorComponent.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -830,6 +831,30 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 			}
 
 			return;
+		} else if (item->GetLot() == 8092) {
+			// Trying to equip a car
+			const auto proximityObjects = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
+
+			// look for car instancers and check if we are in its setup range
+			for (auto* const entity : proximityObjects) {
+				if (!entity) continue;
+
+				auto* proximityMonitorComponent = entity->GetComponent<ProximityMonitorComponent>();
+				if (!proximityMonitorComponent) continue;
+
+				if (proximityMonitorComponent->IsInProximity("Interaction_Distance", m_Parent->GetObjectID())) {
+					// in the range of a car instancer
+					entity->OnUse(m_Parent);
+					GameMessages::UseItemOnClient itemMsg;
+					itemMsg.target = entity->GetObjectID();
+					itemMsg.itemLOT = item->GetLot();
+					itemMsg.itemToUse = item->GetId();
+					itemMsg.playerId = m_Parent->GetObjectID();
+					itemMsg.Send(m_Parent->GetSystemAddress());
+					break;
+				}
+			}
+			return;
 		}
 
 		const auto building = character->GetBuildMode();
@@ -1139,6 +1164,25 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto skill = FindSkill(lot);
 
 	SetSkill(slot, skill);
+}
+
+void InventoryComponent::FixInvisibleItems() {
+	const auto numberItemsLoadedPerFrame = 12.0f;
+	const auto callbackTime = 0.125f;
+	const auto arbitaryInventorySize = 300.0f; // max in live + dlu is less than 300, seems like a good number.
+	auto* const items = GetInventory(eInventoryType::ITEMS);
+	if (!items) return;
+
+	// Add an extra update to make sure the client can see all the items.
+	const auto something = static_cast<int32_t>(std::ceil(items->GetItems().size() / arbitaryInventorySize)) + 1;
+	LOG_DEBUG("Fixing invisible items with %i updates", something);
+
+	for (int32_t i = 1; i < something + 1; i++) {
+		// client loads 12 items every 1/8 seconds, we're adding a small hack to fix invisible inventory items due to closing the news screen too fast.
+		m_Parent->AddCallbackTimer((arbitaryInventorySize / numberItemsLoadedPerFrame) * callbackTime * i, [this]() {
+			GameMessages::SendUpdateInventoryUi(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
+			});
+	}
 }
 
 void InventoryComponent::RemoveItemSkills(const LOT lot) {

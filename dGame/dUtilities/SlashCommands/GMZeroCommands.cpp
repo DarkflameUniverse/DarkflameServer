@@ -225,8 +225,13 @@ namespace GMZeroCommands {
 		ChatPackets::SendSystemMessage(sysAddr, u"Map: " + (GeneralUtils::to_u16string(zoneId.GetMapID())) + u"\nClone: " + (GeneralUtils::to_u16string(zoneId.GetCloneID())) + u"\nInstance: " + (GeneralUtils::to_u16string(zoneId.GetInstanceID())));
 	}
 
+	// Display the server uptime
+	void ServerUptime(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto time = Game::server->GetUptime();
+		const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+		ChatPackets::SendSystemMessage(sysAddr, u"Server has been up for " + GeneralUtils::to_u16string(seconds) + u" s");
+	}
+
 	//For client side commands
 	void ClientHandled(Entity* entity, const SystemAddress& sysAddr, const std::string args) {}
-
 };
-

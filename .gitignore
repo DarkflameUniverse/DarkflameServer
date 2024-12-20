@@ -7,7 +7,6 @@ valgrind-out.txt
 # Third party libraries
 thirdparty/mysql/
 thirdparty/mysql_linux/
-CMakeVariables.txt
 
 # Build folders
 build/
@@ -96,6 +95,7 @@ ipch/
 
 # Exceptions:
 CMakeSettings.json
+CMakeUserPresets.json
 *.vcxproj
 *.filters
 *.cmake

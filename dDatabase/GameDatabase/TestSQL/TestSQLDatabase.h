@@ -7,7 +7,6 @@ class TestSQLDatabase : public GameDatabase {
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query) override;
 	void Commit() override;
 	bool GetAutoCommit() override;
 	void SetAutoCommit(bool value) override;
@@ -91,6 +90,18 @@ class TestSQLDatabase : public GameDatabase {
 	void RemoveBehavior(const int32_t behaviorId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override { return {}; };
+	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override { return {}; };
+	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override { return {}; };
+	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override { return {}; };
+	std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) override { return {}; };
+	void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override {};
+	void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override {};
+	std::optional<ILeaderboard::Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) override { return {}; };
+	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override {};
+	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override {};
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override {};
+	void DeleteUgcBuild(const LWOOBJID bigId) override {};
+	uint32_t GetAccountCount() override { return 0; };
 };
 
 #endif  //!TESTSQLDATABASE_H

@@ -1016,6 +1016,20 @@ void CppSQLite3Statement::bind(int nParam, const int nValue)
 }
 
 
+void CppSQLite3Statement::bind(int nParam, const sqlite_int64 nValue)
+{
+	checkVM();
+	int nRes = sqlite3_bind_int64(mpVM, nParam, nValue);
+
+	if (nRes != SQLITE_OK)
+	{
+		throw CppSQLite3Exception(nRes,
+			(char*)"Error binding int64 param",
+								DONT_DELETE_MSG);
+	}
+}
+
+
 void CppSQLite3Statement::bind(int nParam, const double dValue)
 {
 	checkVM();
@@ -1092,6 +1106,12 @@ void CppSQLite3Statement::bind(const char* szParam, const char* szValue)
 
 
 void CppSQLite3Statement::bind(const char* szParam, const int nValue)
+{
+	int nParam = bindParameterIndex(szParam);
+	bind(nParam, nValue);
+}
+
+void CppSQLite3Statement::bind(const char* szParam, const sqlite_int64 nValue)
 {
 	int nParam = bindParameterIndex(szParam);
 	bind(nParam, nValue);

@@ -11,9 +11,6 @@
 			"displayName": "Default configure step",
 			"description": "Use 'build' dir and Unix makefiles",
 			"binaryDir": "${sourceDir}/build",
-			"environment": {
-				"DLU_CONFIG_DIR": "${sourceDir}/build"
-			},
 			"generator": "Unix Makefiles"
 		},
 		{

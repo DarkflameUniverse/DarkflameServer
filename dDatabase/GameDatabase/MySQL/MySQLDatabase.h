@@ -7,6 +7,7 @@
 #include "GameDatabase.h"
 
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
+typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
@@ -29,7 +30,6 @@ public:
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query) override;
 	void Commit() override;
 	bool GetAutoCommit() override;
 	void SetAutoCommit(bool value) override;
@@ -113,6 +113,19 @@ public:
 	void RemoveBehavior(const int32_t characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
+	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override;
+	std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) override;
+	void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;
+	void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override;
+	std::optional<ILeaderboard::Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) override;
+	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override;
+	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
+	void DeleteUgcBuild(const LWOOBJID bigId) override;
+	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
+	uint32_t GetAccountCount() override;
 private:
 
 	// Generic query functions that can be used for any query.

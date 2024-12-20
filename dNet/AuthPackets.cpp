@@ -82,9 +82,16 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
 	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
 	else bitStream.Write(ServiceId::General);
-	bitStream.Write<uint64_t>(215523470896);
+	bitStream.Write<uint64_t>(219818241584);
 
 	server->Send(bitStream, sysAddr, false);
+}
+
+std::string CleanReceivedString(const std::string& str) {
+	std::string toReturn = str;
+	const auto removed = std::ranges::find_if(toReturn, [](unsigned char c) { return isprint(c) == 0 && isblank(c) == 0; });
+	toReturn.erase(removed, toReturn.end());
+	return toReturn;
 }
 
 void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
@@ -111,11 +118,11 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 
 	LUWString memoryStats(256);
 	inStream.Read(memoryStats);
-	LOG_DEBUG("Memory Stats [%s]", memoryStats.GetAsString().c_str());
+	LOG_DEBUG("Memory Stats [%s]", CleanReceivedString(memoryStats.GetAsString()).c_str());
 
 	LUWString videoCard(128);
 	inStream.Read(videoCard);
-	LOG_DEBUG("VideoCard Info: [%s]", videoCard.GetAsString().c_str());
+	LOG_DEBUG("VideoCard Info: [%s]", CleanReceivedString(videoCard.GetAsString()).c_str());
 
 	// Processor/CPU info
 	uint32_t numOfProcessors;

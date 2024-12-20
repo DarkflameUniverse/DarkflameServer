@@ -104,6 +104,18 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		break;
 	}
 
+	// Currently not actually used for our implementation, however its used right now to get around invisible inventory items in the client.
+	case MessageType::Game::SELECT_SKILL: {
+		auto var = entity->GetVar<bool>(u"dlu_first_time_load");
+		if (var) {
+			entity->SetVar<bool>(u"dlu_first_time_load", false);
+			InventoryComponent* inventoryComponent = entity->GetComponent<InventoryComponent>();
+			
+			if (inventoryComponent) inventoryComponent->FixInvisibleItems();
+		}
+		break;
+	}
+
 	case MessageType::Game::PLAYER_LOADED: {
 		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
 		entity->SetPlayerReadyForUpdates();

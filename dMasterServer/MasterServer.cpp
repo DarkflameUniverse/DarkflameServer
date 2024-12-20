@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		LOG("Migrations not run");
 		return EXIT_FAILURE;
@@ -126,6 +126,7 @@ int main(int argc, char** argv) {
 
 	MigrationRunner::RunMigrations();
 	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+	std::filesystem::create_directories(resServerPath);
 	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
@@ -176,12 +177,16 @@ int main(int argc, char** argv) {
 	}
 
 	// Run migrations should any need to be run.
-	MigrationRunner::RunSQLiteMigrations();
+	MigrationRunner::RunSQLiteMigrations();	
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
-	if (argc > 1 &&
-		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) {
+	bool createAccount = Database::Get()->GetAccountCount() == 0 && Game::config->GetValue("skip_account_creation") != "1";
+	if (createAccount) {
+		LOG("No accounts exist in the database.  Please create an account.");
+	}
+	if ((argc > 1 &&
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || createAccount) {
 		std::string username;
 		std::string password;
 
@@ -264,7 +269,7 @@ int main(int argc, char** argv) {
 		//Create account
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
-		} catch (sql::SQLException& e) {
+		} catch (std::exception& e) {
 			LOG("A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}
