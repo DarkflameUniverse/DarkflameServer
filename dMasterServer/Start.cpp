@@ -114,7 +114,7 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 	}
 
 	// get pid and close unused handles
-	auto world_pid = auth_info.dwProcessId;
+	auto world_pid = world_info.dwProcessId;
 	CloseHandle(world_info.hProcess);
 	CloseHandle(world_info.hThread);
 #else
