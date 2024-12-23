@@ -109,20 +109,23 @@ Packet* dServer::ReceiveFromMaster() {
 	if (packet) {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
-		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
+		switch (packet->data[0]) {
+		case ID_DISCONNECTION_NOTIFICATION:
+			[[fallthrough]];
+		case ID_CONNECTION_LOST: {
 			LOG("Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
-			//ConnectToMaster(); //We'll just shut down now
+			// ConnectToMaster(); // We'll just shut down now
+			break;
 		}
-
-		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
+		case ID_CONNECTION_REQUEST_ACCEPTED: {
 			LOG("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
+			break;
 		}
-
-		if (packet->data[0] == ID_USER_PACKET_ENUM) {
+		case ID_USER_PACKET_ENUM: {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 				switch (static_cast<MessageType::Master>(packet->data[3])) {
 				case MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE: {
@@ -133,12 +136,13 @@ Packet* dServer::ReceiveFromMaster() {
 					*mShouldShutdown = -2;
 					break;
 
-				//When we handle these packets in World instead dServer, we just return the packet's pointer.
+				// When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
-
 					return packet;
 				}
 			}
+			break;
+		}
 		}
 
 		mMasterPeer->DeallocatePacket(packet);
