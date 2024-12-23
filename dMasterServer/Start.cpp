@@ -49,7 +49,8 @@ void StartChatServer() {
 		LOG("Failed to launch ChatServer");
 	}
 
-	// close unused handles
+	// get pid and close unused handles
+	auto chat_pid = chat_info.dwProcessId;
     CloseHandle(chat_info.hProcess);
 	CloseHandle(chat_info.hThread);
 #else // *nix systems
@@ -58,10 +59,10 @@ void StartChatServer() {
 		LOG("Failed to launch ChatServer");
 	} else if (chat_pid == 0) {
 		// We are the child process
- 		LOG("ChatServer PID is %d", getpid());
 		execl((BinaryPathFinder::GetBinaryDir() / "ChatServer").string().c_str(), "", nullptr);
 	}
 #endif
+	LOG("ChatServer PID is %d", chat_pid);
 }
 
 void StartAuthServer() {
@@ -81,7 +82,8 @@ void StartAuthServer() {
         LOG("Failed to launch AuthServer");
     }
 
-    // close unused handles
+    // get pid and close unused handles
+	auto auth_pid = auth_info.dwProcessId;
     CloseHandle(auth_info.hProcess);
     CloseHandle(auth_info.hThread);
 #else // *nix systems
@@ -90,10 +92,10 @@ void StartAuthServer() {
 		LOG("Failed to launch AuthServer");
 	} else if (auth_pid == 0) {
 		// We are the child process
- 		LOG("AuthServer PID is %d", getpid());
 		execl((BinaryPathFinder::GetBinaryDir() / "AuthServer").string().c_str(), "", nullptr);
 	}
 #endif
+	LOG("AuthServer PID is %d", auth_pid);
 }
 
 void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
@@ -111,7 +113,8 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 		LOG("Failed to launch WorldServer");
 	}
 
-	// close unused handles
+	// get pid and close unused handles
+	auto world_pid = auth_info.dwProcessId;
 	CloseHandle(world_info.hProcess);
 	CloseHandle(world_info.hThread);
 #else
@@ -120,7 +123,6 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 		LOG("Failed to launch WorldServer");
 	} else if (world_pid == 0) {
 		// We are the child process
- 		LOG("WorldServer PID is %d", getpid());
 		execl((BinaryPathFinder::GetBinaryDir() / "WorldServer").string().c_str(),
 			"-zone", std::to_string(mapID).c_str(),
 			"-port", std::to_string(port).c_str(),
@@ -129,4 +131,5 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 			"-clone", std::to_string(cloneID).c_str(), nullptr);
 	}
 #endif
+	LOG("WorldServer PID is %d", world_pid);
 }
