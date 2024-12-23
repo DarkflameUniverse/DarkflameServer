@@ -5,7 +5,30 @@
 #include "BinaryPathFinder.h"
 
 #ifdef _WIN32
+#include <windows.h>
+#include <handleapi.h>
+#include <processthreadsapi.h>
 
+const auto startup = STARTUPINFOA{
+    .cb = sizeof(STARTUPINFOA),
+    .lpReserved = nullptr,
+    .lpDesktop = nullptr,
+    .lpTitle = nullptr,
+    .dwX = 0,
+    .dwY = 0,
+    .dwXSize = 0,
+    .dwYSize = 0,
+    .dwXCountChars = 0,
+    .dwYCountChars = 0,
+    .dwFillAttribute = 0,
+    .dwFlags = 0,
+    .wShowWindow = 0,
+    .cbReserved2 = 0,
+    .lpReserved2 = nullptr,
+    .hStdInput = INVALID_HANDLE_VALUE,
+    .hStdOutput = INVALID_HANDLE_VALUE,
+    .hStdError = INVALID_HANDLE_VALUE,
+};
 #endif
 
 void StartChatServer() {
@@ -17,7 +40,18 @@ void StartChatServer() {
 	//macOS doesn't need sudo to run on ports < 1024
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
 #elif defined(_WIN32)
-	auto result = system(("start /B " + (BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string()).c_str());
+    auto chat_startup = startup;
+    auto chat_info = PROCESS_INFORMATION{};
+	if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string().c_str(),
+						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
+						&chat_startup, &chat_info))
+	{
+		LOG("Failed to launch ChatServer");
+	}
+
+	// close unused handles
+    CloseHandle(chat_info.hProcess);
+	CloseHandle(chat_info.hThread);
 #else // *nix systems
 	const auto chat_pid = fork();
 	if (chat_pid < 0) {
@@ -38,7 +72,18 @@ void StartAuthServer() {
 #ifdef __APPLE__
 	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
 #elif _WIN32
-	auto result = system(("start /B " + (BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string()).c_str());
+	auto auth_startup = startup;
+    auto auth_info = PROCESS_INFORMATION{};
+    if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string().c_str(),
+						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
+						&auth_startup, &auth_info))
+	{
+        LOG("Failed to launch AuthServer");
+    }
+
+    // close unused handles
+    CloseHandle(auth_info.hProcess);
+    CloseHandle(auth_info.hThread);
 #else // *nix systems
 	const auto auth_pid = fork();
 	if (auth_pid < 0) {
@@ -53,7 +98,22 @@ void StartAuthServer() {
 
 void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 #ifdef _WIN32
-	std::string cmd = "start /B " + (BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string() + " -zone ";
+	auto cmd = " -zone " + std::to_string(mapID) + " -port " + std::to_string(port) +
+		" -instance " + std::to_string(lastInstanceID) + " -maxclients " + std::to_string(maxPlayers) +
+		" -clone " + std::to_string(cloneID);
+
+	auto world_startup = startup;
+	auto world_info = PROCESS_INFORMATION{};
+	if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string().c_str(),
+						cmd.data(), nullptr, nullptr, false, 0, nullptr, nullptr,
+						&world_startup, &world_info))
+	{
+		LOG("Failed to launch WorldServer");
+	}
+
+	// close unused handles
+	CloseHandle(world_info.hProcess);
+	CloseHandle(world_info.hThread);
 #else
 	const auto world_pid = fork();
 	if (world_pid < 0) {
