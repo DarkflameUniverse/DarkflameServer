@@ -88,7 +88,16 @@ int main(int argc, char** argv) {
 
 	for (const auto folder : folders) {
 		if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / folder)) {
-			LOG("The (%s) folder was not copied to the binary directory. Please copy the (%s) folder from your download to the binary directory or re-run cmake.", folder, folder);
+			std::string msg = "The (" +
+				std::string(folder) +
+				") folder was not copied to the binary directory. Please copy the (" +
+				std::string(folder) +
+				") folder from your download to the binary directory or re-run cmake.";
+			LOG("%s", msg.c_str());
+// toss an error box up for windows users running the download
+#ifdef DARKFLAME_PLATFORM_WIN32
+			MessageBoxA(nullptr, msg.c_str(), "Missing Folder", MB_OK | MB_ICONERROR);
+#endif
 			return EXIT_FAILURE;
 		}
 	}
