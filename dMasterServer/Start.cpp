@@ -31,22 +31,20 @@ const auto startup = STARTUPINFOA{
 };
 #endif
 
-void StartChatServer() {
+uint32_t StartChatServer() {
 	if (Game::ShouldShutdown()) {
 		LOG("Currently shutting down.  Chat will not be restarted.");
-		return;
+		return 0;
 	}
-#ifdef __APPLE__
-	//macOS doesn't need sudo to run on ports < 1024
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "ChatServer").string() + "&").c_str());
-#elif defined(_WIN32)
+#ifdef _WIN32
     auto chat_startup = startup;
     auto chat_info = PROCESS_INFORMATION{};
-	if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").string().c_str(),
+	if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").wstring().c_str(),
 						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
 						&chat_startup, &chat_info))
 	{
 		LOG("Failed to launch ChatServer");
+		return 0;
 	}
 
 	// get pid and close unused handles
@@ -57,29 +55,30 @@ void StartChatServer() {
 	const auto chat_pid = fork();
 	if (chat_pid < 0) {
 		LOG("Failed to launch ChatServer");
+		return 0;
 	} else if (chat_pid == 0) {
 		// We are the child process
-		execl((BinaryPathFinder::GetBinaryDir() / "ChatServer").string().c_str(), "", nullptr);
+		execl((BinaryPathFinder::GetBinaryDir() / "ChatServer").string().c_str(), "ChatServer", nullptr);
 	}
 #endif
 	LOG("ChatServer PID is %d", chat_pid);
+	return chat_pid;
 }
 
-void StartAuthServer() {
+uint32_t StartAuthServer() {
 	if (Game::ShouldShutdown()) {
 		LOG("Currently shutting down.  Auth will not be restarted.");
-		return;
+		return 0;
 	}
-#ifdef __APPLE__
-	auto result = system(((BinaryPathFinder::GetBinaryDir() / "AuthServer").string() + "&").c_str());
-#elif _WIN32
+#ifdef _WIN32
 	auto auth_startup = startup;
     auto auth_info = PROCESS_INFORMATION{};
-    if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").string().c_str(),
+    if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").wstring().c_str(),
 						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
 						&auth_startup, &auth_info))
 	{
         LOG("Failed to launch AuthServer");
+		return 0;
     }
 
     // get pid and close unused handles
@@ -90,15 +89,17 @@ void StartAuthServer() {
 	const auto auth_pid = fork();
 	if (auth_pid < 0) {
 		LOG("Failed to launch AuthServer");
+		return 0;
 	} else if (auth_pid == 0) {
 		// We are the child process
-		execl((BinaryPathFinder::GetBinaryDir() / "AuthServer").string().c_str(), "", nullptr);
+		execl((BinaryPathFinder::GetBinaryDir() / "AuthServer").string().c_str(), "AuthServer", nullptr);
 	}
 #endif
 	LOG("AuthServer PID is %d", auth_pid);
+	return auth_pid;
 }
 
-void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
+uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 #ifdef _WIN32
 	auto cmd = " -zone " + std::to_string(mapID) + " -port " + std::to_string(port) +
 		" -instance " + std::to_string(lastInstanceID) + " -maxclients " + std::to_string(maxPlayers) +
@@ -106,11 +107,12 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
-	if (!CreateProcessA((BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").string().c_str(),
+	if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").wstring().c_str(),
 						cmd.data(), nullptr, nullptr, false, 0, nullptr, nullptr,
 						&world_startup, &world_info))
 	{
 		LOG("Failed to launch WorldServer");
+		return 0;
 	}
 
 	// get pid and close unused handles
@@ -121,9 +123,11 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 	const auto world_pid = fork();
 	if (world_pid < 0) {
 		LOG("Failed to launch WorldServer");
+		return 0;
 	} else if (world_pid == 0) {
 		// We are the child process
 		execl((BinaryPathFinder::GetBinaryDir() / "WorldServer").string().c_str(),
+			"WorldServer",
 			"-zone", std::to_string(mapID).c_str(),
 			"-port", std::to_string(port).c_str(),
 			"-instance", std::to_string(lastInstanceID).c_str(),
@@ -132,4 +136,5 @@ void StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceI
 	}
 #endif
 	LOG("WorldServer PID is %d", world_pid);
+	return world_pid;
 }
