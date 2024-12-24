@@ -9,8 +9,8 @@
 #include <handleapi.h>
 #include <processthreadsapi.h>
 
-const auto startup = STARTUPINFOA{
-    .cb = sizeof(STARTUPINFOA),
+const auto startup = STARTUPINFOW{
+    .cb = sizeof(STARTUPINFOW),
     .lpReserved = nullptr,
     .lpDesktop = nullptr,
     .lpTitle = nullptr,
@@ -101,9 +101,9 @@ uint32_t StartAuthServer() {
 
 uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
 #ifdef _WIN32
-	auto cmd = " -zone " + std::to_string(mapID) + " -port " + std::to_string(port) +
-		" -instance " + std::to_string(lastInstanceID) + " -maxclients " + std::to_string(maxPlayers) +
-		" -clone " + std::to_string(cloneID);
+	auto cmd = L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
+		L" -instance " + std::to_wstring(lastInstanceID) + L" -maxclients " + std::to_wstring(maxPlayers) +
+		L" -clone " + std::to_wstring(cloneID);
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
