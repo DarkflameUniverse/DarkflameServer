@@ -84,6 +84,15 @@ int main(int argc, char** argv) {
 	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
+	auto folders = { "navmeshes", "migrations", "vanity" };
+
+	for (const auto folder : folders) {
+		if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / folder)) {
+			LOG("The %s folder was not copied to the binary directory. Please copy the %s folder from your download to the binary directory or re-run cmake.", folder, folder);
+			return EXIT_FAILURE;
+		}
+	}
+
 	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
 	if (!dConfig::Exists("chatconfig.ini")) LOG("Could not find chatconfig.ini, using default settings");
 	if (!dConfig::Exists("masterconfig.ini")) LOG("Could not find masterconfig.ini, using default settings");
@@ -177,7 +186,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Run migrations should any need to be run.
-	MigrationRunner::RunSQLiteMigrations();	
+	MigrationRunner::RunSQLiteMigrations();
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
