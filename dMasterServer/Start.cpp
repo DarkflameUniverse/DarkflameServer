@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include "Start.h"
 #include "Logger.h"
 #include "dConfig.h"
@@ -30,6 +29,8 @@ const auto startup = STARTUPINFOW{
     .hStdOutput = INVALID_HANDLE_VALUE,
     .hStdError = INVALID_HANDLE_VALUE,
 };
+#else
+#include <unistd.h>
 #endif
 
 uint32_t StartChatServer() {
