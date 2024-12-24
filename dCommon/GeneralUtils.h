@@ -51,6 +51,14 @@ namespace GeneralUtils {
 		bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
 	}
 
+	//! Converts a Latin1 string to a UTF-8 string
+	/*!
+	  \param string The string to convert
+	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
+	  \return An UTF-8 representation of the string
+	 */
+	std::string Latin1ToWTF8(const std::u8string_view string, const size_t size = SIZE_MAX);
+
 	//! Converts a UTF-16 string to a UTF-8 string
 	/*!
 	  \param string The string to convert
