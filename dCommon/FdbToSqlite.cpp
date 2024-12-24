@@ -65,13 +65,14 @@ int64_t FdbToSqlite::Convert::ReadInt64(std::istream& cdClientBuffer) {
 	return value;
 }
 
+// cdclient is encoded in latin1
 std::string FdbToSqlite::Convert::ReadString(std::istream& cdClientBuffer) {
 	int32_t prevPosition = SeekPointer(cdClientBuffer);
 
-	auto readString = BinaryIO::ReadString(cdClientBuffer);
+	const auto readString = BinaryIO::ReadU8String(cdClientBuffer);
 
 	cdClientBuffer.seekg(prevPosition);
-	return readString;
+	return GeneralUtils::Latin1ToWTF8(readString);
 }
 
 int32_t FdbToSqlite::Convert::SeekPointer(std::istream& cdClientBuffer) {

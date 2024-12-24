@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Run migrations should any need to be run.
-	MigrationRunner::RunSQLiteMigrations();	
+	MigrationRunner::RunSQLiteMigrations();
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
