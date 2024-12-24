@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 
 	for (const auto folder : folders) {
 		if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / folder)) {
-			LOG("The %s folder was not copied to the binary directory. Please copy the %s folder from your download to the binary directory or re-run cmake.", folder, folder);
+			LOG("The (%s) folder was not copied to the binary directory. Please copy the (%s) folder from your download to the binary directory or re-run cmake.", folder, folder);
 			return EXIT_FAILURE;
 		}
 	}
