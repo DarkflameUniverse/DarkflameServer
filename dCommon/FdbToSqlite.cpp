@@ -72,7 +72,7 @@ std::string FdbToSqlite::Convert::ReadString(std::istream& cdClientBuffer) {
 	const auto readString = BinaryIO::ReadU8String(cdClientBuffer);
 
 	cdClientBuffer.seekg(prevPosition);
-	return GeneralUtils::Latin1ToWTF8(readString);
+	return GeneralUtils::Latin1ToUTF8(readString);
 }
 
 int32_t FdbToSqlite::Convert::SeekPointer(std::istream& cdClientBuffer) {
