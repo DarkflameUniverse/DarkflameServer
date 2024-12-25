@@ -167,11 +167,18 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view string, const s
 	return ret;
 }
 
+std::string GeneralUtils::Latin1ToUTF8(const std::u8string_view string, const size_t size) {
+	std::string toReturn{};
 
-//! Converts a (potentially-ill-formed) Latin1 string to UTF-8
+	for (const auto u : string) {
+		PushUTF8CodePoint(toReturn, u);
+	}
+	return toReturn;
+}
+
+//! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
-template<typename StringType>
-std::string ToWTF8(const StringType string, const size_t size) {
+std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const size_t size) {
 	const size_t newSize = MinSize(size, string);
 	std::string ret;
 	ret.reserve(newSize);
@@ -195,13 +202,6 @@ std::string ToWTF8(const StringType string, const size_t size) {
 	}
 
 	return ret;
-}
-std::string GeneralUtils::Latin1ToWTF8(const std::u8string_view string, const size_t size) {
-	return ToWTF8(string, size);
-}
-
-std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const size_t size) {
-	return ToWTF8(string, size);
 }
 
 bool GeneralUtils::CaseInsensitiveStringCompare(const std::string_view a, const std::string_view b) {

@@ -57,7 +57,7 @@ namespace GeneralUtils {
 	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
 	  \return An UTF-8 representation of the string
 	 */
-	std::string Latin1ToWTF8(const std::u8string_view string, const size_t size = SIZE_MAX);
+	std::string Latin1ToUTF8(const std::u8string_view string, const size_t size = SIZE_MAX);
 
 	//! Converts a UTF-16 string to a UTF-8 string
 	/*!
