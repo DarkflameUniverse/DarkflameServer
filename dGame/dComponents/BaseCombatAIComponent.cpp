@@ -193,7 +193,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 		m_SoftTimer -= deltaTime;
 	}
 
-	if (m_Disabled || m_Parent->GetIsDead())
+	if (m_Disabled || m_Parent->GetComponent<DestroyableComponent>()->GetIsDead())
 		return;
 	bool stunnedThisFrame = m_Stunned;
 	CalculateCombat(deltaTime); // Putting this here for now

@@ -227,7 +227,7 @@ void BasicAttackBehavior::DoBehaviorCalculation(BehaviorContext* context, RakNet
 
 		bitStream.Write(armorDamageDealt);
 		bitStream.Write(healthDamageDealt);
-		bitStream.Write(targetEntity->GetIsDead());
+		bitStream.Write(targetEntity->GetComponent<DestroyableComponent>()->GetIsDead());
 	}
 
 	bitStream.Write(successState);

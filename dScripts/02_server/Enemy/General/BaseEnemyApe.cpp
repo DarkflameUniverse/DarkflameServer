@@ -16,7 +16,7 @@ void BaseEnemyApe::OnStartup(Entity* self) {
 
 void BaseEnemyApe::OnDie(Entity* self, Entity* killer) {
 	auto* anchor = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"QB"));
-	if (anchor != nullptr && !anchor->GetIsDead()) {
+	if (anchor != nullptr && !anchor->GetComponent<DestroyableComponent>()->GetIsDead()) {
 		anchor->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }

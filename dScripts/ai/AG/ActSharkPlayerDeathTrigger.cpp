@@ -1,4 +1,5 @@
 #include "ActSharkPlayerDeathTrigger.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "Entity.h"
@@ -11,7 +12,7 @@ void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity* self, Entity* sen
 
 		missionComponent->Progress(eMissionTaskType::SCRIPT, 8419);
 
-		if (sender->GetIsDead() || !sender->GetPlayerReadyForUpdates()) return; //Don't kill already dead players or players not ready
+		if (sender->GetComponent<DestroyableComponent>()->GetIsDead() || !sender->GetPlayerReadyForUpdates()) return; //Don't kill already dead players or players not ready
 
 		if (sender->GetCharacter()) {
 			sender->Smash(self->GetObjectID(), eKillType::VIOLENT, u"big-shark-death");

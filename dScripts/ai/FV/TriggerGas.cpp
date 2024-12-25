@@ -1,4 +1,5 @@
 #include "TriggerGas.h"
+#include "DestroyableComponent.h"
 #include "InventoryComponent.h"
 #include "SkillComponent.h"
 #include "Entity.h"
@@ -28,7 +29,7 @@ void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName != this->m_TimerName) return;
 	auto players = self->GetVar<std::vector<Entity*>>(u"players");
 	for (auto player : players) {
-		if (player->GetIsDead() || !player){
+		if (player->GetComponent<DestroyableComponent>()->GetIsDead() || !player){
 			auto position = std::find(players.begin(), players.end(), player);
 			if (position != players.end()) players.erase(position);
 			continue;
@@ -46,4 +47,3 @@ void TriggerGas::OnTimerDone(Entity* self, std::string timerName) {
 	self->SetVar(u"players", players);
 	self->AddTimer(this->m_TimerName, this->m_Time);
 }
-

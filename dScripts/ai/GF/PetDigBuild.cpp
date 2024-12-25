@@ -1,6 +1,7 @@
 #include "PetDigBuild.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
 
@@ -45,7 +46,7 @@ void PetDigBuild::OnDie(Entity* self, Entity* killer) {
 		return;
 
 	// If the quick build expired and the treasure was not collected, hide the treasure
-	if (!treasure->GetIsDead()) {
+	if (!treasure->GetComponent<DestroyableComponent>()->GetIsDead()) {
 		treasure->Smash(self->GetObjectID(), eKillType::SILENT);
 	}
 }

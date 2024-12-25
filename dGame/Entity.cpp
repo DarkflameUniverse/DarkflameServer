@@ -1378,7 +1378,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		}
 	}
 
-	if (!other->GetIsDead()) {
+	if (!other->GetComponent<DestroyableComponent>()->GetIsDead()) {
 		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
 			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
 
@@ -1604,13 +1604,6 @@ void Entity::AddQuickBuildCompleteCallback(const std::function<void(Entity* user
 	if (quickBuildComponent != nullptr) {
 		quickBuildComponent->AddQuickBuildCompleteCallback(callback);
 	}
-}
-
-bool Entity::GetIsDead() const {
-	DestroyableComponent* dest = GetComponent<DestroyableComponent>();
-	if (dest && dest->GetArmor() == 0 && dest->GetHealth() == 0) return true;
-
-	return false;
 }
 
 void Entity::AddLootItem(const Loot::Info& info) {

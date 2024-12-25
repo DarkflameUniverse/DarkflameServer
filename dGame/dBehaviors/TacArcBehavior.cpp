@@ -116,7 +116,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 	for (auto validTarget : validTargets) {
 		if (targets.size() >= this->m_maxTargets) break;
 		if (std::find(targets.begin(), targets.end(), validTarget) != targets.end()) continue;
-		if (validTarget->GetIsDead()) continue;
+		if (validTarget->GetComponent<DestroyableComponent>()->GetIsDead()) continue;
 
 		const auto targetPos = validTarget->GetPosition();
 

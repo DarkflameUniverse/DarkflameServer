@@ -82,8 +82,6 @@ public:
 
 	const std::vector<LDFBaseData*>& GetNetworkSettings() const { return m_NetworkSettings; }
 
-	bool GetIsDead() const;
-
 	bool GetPlayerReadyForUpdates() const { return m_PlayerIsReadyForUpdates; }
 
 	bool GetIsGhostingCandidate() const;

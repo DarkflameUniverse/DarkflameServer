@@ -27,7 +27,7 @@ void NsConcertInstrument::OnQuickBuildNotifyState(Entity* self, eQuickBuildState
 }
 
 void NsConcertInstrument::OnQuickBuildComplete(Entity* self, Entity* target) {
-	if (!target->GetIsDead()) {
+	if (!target->GetComponent<DestroyableComponent>()->GetIsDead()) {
 		self->SetVar<LWOOBJID>(u"activePlayer", target->GetObjectID());
 
 		self->AddCallbackTimer(0.2f, [self, target]() {

@@ -160,7 +160,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		}
 
 		//Kill player if health == 0
-		if (entity->GetIsDead()) {
+		if (entity->GetComponent<DestroyableComponent>()->GetIsDead()) {
 			entity->Smash(entity->GetObjectID());
 		}
 

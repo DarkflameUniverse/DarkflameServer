@@ -315,7 +315,7 @@ bool BaseSurvivalServer::CheckAllPlayersDead() {
 
 	for (const auto& playerID : state.players) {
 		auto* player = Game::entityManager->GetEntity(playerID);
-		if (player == nullptr || player->GetIsDead()) {
+		if (player == nullptr || player->GetComponent<DestroyableComponent>()->GetIsDead()) {
 			deadPlayers++;
 		}
 	}
