@@ -1,7 +1,7 @@
 #include "Diagnostics.h"
 #include "Game.h"
 #include "Logger.h"
-
+#define _XOPEN_SOURCE
 // If we're on Win32, we'll include our minidump writer
 #ifdef _WIN32
 
@@ -60,7 +60,7 @@ LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e) {
 }
 #endif
 
-#if defined(__linux__) //&& !defined(__clang__) // backtrace is a gcc exclusive system library
+// #if defined(__linux__) //&& !defined(__clang__) // backtrace is a gcc exclusive system library
 #include <execinfo.h>
 #include <ucontext.h>
 #include <unistd.h>
@@ -219,16 +219,16 @@ void MakeBacktrace() {
 
 	std::set_terminate(OnTerminate);
 }
-#endif
+// #endif
 
 void Diagnostics::Initialize() {
-#ifdef _WIN32
-	SetUnhandledExceptionFilter(unhandled_handler);
-#elif defined(__linux__) //&& !defined(__clang__)
+// #ifdef _WIN32
+	// SetUnhandledExceptionFilter(unhandled_handler);
+// #elif defined(__linux__) //&& !defined(__clang__)
 	MakeBacktrace();
-#else
-	fprintf(stderr, "Diagnostics not supported on this platform.\n");
-#endif
+// #else
+	// fprintf(stderr, "Diagnostics not supported on this platform.\n");
+// #endif
 }
 
 std::string Diagnostics::m_ProcessName{};

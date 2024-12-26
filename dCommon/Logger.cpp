@@ -58,6 +58,7 @@ void Logger::vLog(const char* format, va_list args) {
 	for (const auto& writer : m_Writers) {
 		writer->Log(timeStr, message);
 	}
+	Flush();
 }
 
 void Logger::Log(const char* className, const char* format, ...) {
