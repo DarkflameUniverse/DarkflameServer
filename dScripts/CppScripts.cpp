@@ -330,6 +330,7 @@
 #include "EnemyClearThreat.h"
 #include "AgSpiderBossMessage.h"
 #include "GfRaceInstancer.h"
+#include "NsRaceServer.h"
 
 #include <map>
 #include <string>
@@ -692,6 +693,7 @@ namespace {
 		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
 		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
 		{"scripts\\ai\\GF\\L_GF_RACE_INSTANCER.lua", []() {return new GfRaceInstancer();}},
+		{"scripts\\ai\\RACING\\TRACK_NS\\NS_RACE_SERVER.lua", []() {return new NsRaceServer();}},
 
 	};
 
@@ -704,9 +706,12 @@ namespace {
 		"scripts\\empty.lua",
 		"scripts\\zone\\AG\\L_ZONE_AG.lua",
 		"scripts\\zone\\NS\\L_ZONE_NS.lua",
-		"scripts\\zone\\GF\\L_ZONE_GF.lua",
+		"scripts\\ai\\GF\\L_ZONE_GF.lua",
 		"scripts\\ai\\AG\\CONCERT_STAGE.lua",
 		"scripts\\ai\\NS\\L_NS_CAR_MODULAR_BUILD.lua", // In our implementation, this is done in GameMessages.cpp
+		"scripts\\ai\\PETS\\PET_BLOCKER.lua",
+		"scripts\\ai\\PETS\\PET_FLEA_MISSION.lua",
+		"scripts\\ai\\ACT\\L_ACT_PET_INSTANCE_EXIT.lua",
 	};
 };
 

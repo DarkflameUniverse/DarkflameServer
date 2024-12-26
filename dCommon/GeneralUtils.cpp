@@ -167,6 +167,15 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view string, const s
 	return ret;
 }
 
+std::string GeneralUtils::Latin1ToUTF8(const std::u8string_view string, const size_t size) {
+	std::string toReturn{};
+
+	for (const auto u : string) {
+		PushUTF8CodePoint(toReturn, u);
+	}
+	return toReturn;
+}
+
 //! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
 std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const size_t size) {
@@ -175,9 +184,9 @@ std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const si
 	ret.reserve(newSize);
 
 	for (size_t i = 0; i < newSize; ++i) {
-		const char16_t u = string[i];
+		const auto u = string[i];
 		if (IsLeadSurrogate(u) && (i + 1) < newSize) {
-			const char16_t next = string[i + 1];
+			const auto next = string[i + 1];
 			if (IsTrailSurrogate(next)) {
 				i += 1;
 				const char32_t cp = 0x10000

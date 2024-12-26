@@ -5,6 +5,7 @@
 #include "dConfig.h"
 #include "Logger.h"
 #include "dPlatforms.h"
+#include "BinaryPathFinder.h"
 
 // Static Variables
 
@@ -17,7 +18,14 @@ namespace {
 void SQLiteDatabase::Connect() {
 	LOG("Using SQLite database");
 	con = new CppSQLite3DB();
-	con->open(Game::config->GetValue("sqlite_database_path").c_str());
+	const auto path = BinaryPathFinder::GetBinaryDir() / Game::config->GetValue("sqlite_database_path");
+
+	if (!std::filesystem::exists(path)) {
+		LOG("Creating sqlite path %s", path.string().c_str());
+		std::filesystem::create_directories(path.parent_path());
+	}
+
+	con->open(path.string().c_str());
 	isConnected = true;
 
 	// Make sure wal is enabled for the database.

@@ -355,6 +355,8 @@ namespace CppScripts {
 		 * @param canceled if it was done via the cancel button
 		 */
 		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
+
+		virtual void OnZoneLoadedInfo(Entity* self, const GameMessages::ZoneLoadedInfo& info) {};
 	};
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);
