@@ -267,36 +267,26 @@ int main(int argc, char** argv) {
 
 	// pre calculate the FDB checksum
 	if (Game::config->GetValue("check_fdb") == "1") {
-		static const std::vector<std::string> aliases = {
-			"CDServers.fdb",
-			"cdserver.fdb",
-			"CDClient.fdb",
-			"cdclient.fdb",
-		};
+		auto cdclient = Game::assetManager->GetFile("cdclient.fdb");
+		if (cdclient) {
 
-		for (const auto& file : aliases) {
-			auto cdclient = Game::assetManager->GetFile("cdclient.fdb");
-			if (cdclient) {
+			const int32_t bufferSize = 1024;
+			MD5 md5;
 
-				const int32_t bufferSize = 1024;
-				MD5 md5;
+			char fileStreamBuffer[bufferSize] = {};
 
-				char fileStreamBuffer[1024] = {};
-
-				while (!cdclient.eof()) {
-					memset(fileStreamBuffer, 0, bufferSize);
-					cdclient.read(fileStreamBuffer, bufferSize);
-					md5.update(fileStreamBuffer, cdclient.gcount());
-				}
-
-				const char* nullTerminateBuffer = "\0";
-				md5.update(nullTerminateBuffer, 1); // null terminate the data
-				md5.finalize();
-				databaseChecksum = md5.hexdigest();
-
-				LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
-				break;
+			while (!cdclient.eof()) {
+				memset(fileStreamBuffer, 0, bufferSize);
+				cdclient.read(fileStreamBuffer, bufferSize);
+				md5.update(fileStreamBuffer, cdclient.gcount());
 			}
+
+			const char* nullTerminateBuffer = "\0";
+			md5.update(nullTerminateBuffer, 1); // null terminate the data
+			md5.finalize();
+			databaseChecksum = md5.hexdigest();
+
+			LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 		}
 		if (databaseChecksum.empty()) {
 			LOG("check_fdb is on but no fdb file found.");
