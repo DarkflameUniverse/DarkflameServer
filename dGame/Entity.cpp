@@ -1493,6 +1493,14 @@ void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16s
 	GetScript()->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
 }
 
+void Entity::OnActivityNotify(GameMessages::ActivityNotify& notify) {
+	GetScript()->OnActivityNotify(this, notify);
+}
+
+void Entity::OnShootingGalleryFire(GameMessages::ShootingGalleryFire& fire) {
+	GetScript()->OnShootingGalleryFire(*this, fire);
+}
+
 void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
 	GetScript()->OnRequestActivityExit(sender, player, canceled);
 }
