@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
 		t += std::chrono::milliseconds(chatFrameDelta); //Chat can run at a lower "fps"
 		std::this_thread::sleep_until(t);
 	}
-
+	Game::playerContainer.Shutdown();
 	//Delete our objects here:
 	Database::Destroy("ChatServer");
 	delete Game::server;

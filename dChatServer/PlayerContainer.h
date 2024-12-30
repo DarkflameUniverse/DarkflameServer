@@ -66,6 +66,7 @@ public:
 	void MuteUpdate(Packet* packet);
 	void CreateTeamServer(Packet* packet);
 	void BroadcastMuteUpdate(LWOOBJID player, time_t time);
+	void Shutdown();
 
 	const PlayerData& GetPlayerData(const LWOOBJID& playerID);
 	const PlayerData& GetPlayerData(const std::string& playerName);

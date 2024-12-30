@@ -417,3 +417,8 @@ const PlayerData& PlayerContainer::GetPlayerData(const LWOOBJID& playerID) {
 const PlayerData& PlayerContainer::GetPlayerData(const std::string& playerName) {
 	return GetPlayerDataMutable(playerName);
 }
+
+void PlayerContainer::Shutdown() {
+	while (!m_Players.empty()) RemovePlayer(m_Players.begin()->first);
+	for (auto* team : mTeams) if (team) delete team;
+}
