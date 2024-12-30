@@ -40,6 +40,8 @@ struct ProjectileSyncEntry {
 
 	BehaviorBranchContext branchContext{ 0, 0 };
 
+	int32_t skillId{ 0 };
+
 	explicit ProjectileSyncEntry();
 };
 
