@@ -438,6 +438,11 @@ const PlayerData& PlayerContainer::GetPlayerData(const std::string& playerName) 
 }
 
 void PlayerContainer::Shutdown() {
-	while (!m_Players.empty()) RemovePlayer(m_Players.begin()->first);
+	m_Players.erase(LWOOBJID_EMPTY);
+	while (!m_Players.empty()) {
+		const auto& [id, playerData] = *m_Players.begin();
+		Database::Get()->UpdateActivityLog(id, eActivityType::PlayerLoggedOut, playerData.zoneID.GetMapID());
+		m_Players.erase(m_Players.begin());
+	}
 	for (auto* team : mTeams) if (team) delete team;
 }
