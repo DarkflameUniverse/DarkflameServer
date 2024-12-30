@@ -6395,4 +6395,35 @@ namespace GameMessages {
 		bitStream.Write(targetPosition.y);
 		bitStream.Write(targetPosition.z);
 	}
+
+	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(modelLot != -1);
+		if (modelLot != -1) bitStream.Write(modelLot);
+	}
+
+	void SpawnModelBricks::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(amount != 0.0f);
+		if (amount != 0.0f) bitStream.Write(amount);
+		bitStream.Write(position != NiPoint3Constant::ZERO);
+		if (position != NiPoint3Constant::ZERO) {
+			bitStream.Write(position.x);
+			bitStream.Write(position.y);
+			bitStream.Write(position.z);
+		}
+	}
+
+	bool ShootingGalleryFire::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(target.x)) return false;
+		if (!bitStream.Read(target.y)) return false;
+		if (!bitStream.Read(target.z)) return false;
+		if (!bitStream.Read(rotation.w)) return false;
+		if (!bitStream.Read(rotation.x)) return false;
+		if (!bitStream.Read(rotation.y)) return false;
+		if (!bitStream.Read(rotation.z)) return false;
+		return true;
+	}
+
+	void ShootingGalleryFire::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		entity.OnShootingGalleryFire(*this);
+	}
 }

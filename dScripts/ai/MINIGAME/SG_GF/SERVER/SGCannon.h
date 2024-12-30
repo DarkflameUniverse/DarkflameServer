@@ -44,15 +44,11 @@ struct SGConstants {
 	uint32_t chargedPoints;
 	std::string rewardModelGroup;
 	uint32_t activityID;
-	uint32_t scoreReward1;
+	std::map<std::string, uint32_t> scoreRewards;
 	uint32_t scoreLootMatrix1;
-	uint32_t scoreReward2;
 	uint32_t scoreLootMatrix2;
-	uint32_t scoreReward3;
 	uint32_t scoreLootMatrix3;
-	uint32_t scoreReward4;
 	uint32_t scoreLootMatrix4;
-	uint32_t scoreReward5;
 	uint32_t scoreLootMatrix5;
 	float_t firstWaveStartTime;
 	float_t inBetweenWavePause;
@@ -68,6 +64,8 @@ public:
 	void OnActivityTimerDone(Entity* self, const std::string& name) override;
 	void OnActivityTimerUpdate(Entity* self, const std::string& name, float_t timeRemaining, float_t elapsedTime) override;
 	void OnRequestActivityExit(Entity* self, LWOOBJID player, bool canceled) override;
+	void OnActivityNotify(Entity* self, GameMessages::ActivityNotify& notify) override;
+	void OnShootingGalleryFire(Entity& self, GameMessages::ShootingGalleryFire& fire) override;
 	void SuperChargeTimerFunc(Entity* self);
 	void SpawnWaveTimerFunc(Entity* self);
 	void EndWaveTimerFunc(Entity* self);
@@ -142,6 +140,7 @@ private:
 	std::u16string CannonBallSkillIDVariable = u"cbskill";
 	std::u16string HideSuperChargeVariable = u"HideSuper";
 	std::u16string AudioFinalWaveDoneVariable = u"Audio_Final_Wave_Done";
+	std::u16string ModelPercentVariable = u"modelPercent";
 
 	std::string SpawnWaveTimer = "SpawnWave";
 	std::string EndWaveTimer = "EndWave";

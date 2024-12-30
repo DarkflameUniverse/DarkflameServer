@@ -69,9 +69,10 @@ InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		if (!item.equip || !Inventory::IsValidItem(item.itemid)) {
-			continue;
-		}
+		if (!Inventory::IsValidItem(item.itemid)) continue;
+		AddItem(item.itemid, item.count);
+
+		if (!item.equip) continue;
 
 		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 

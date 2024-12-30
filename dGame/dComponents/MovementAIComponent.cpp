@@ -265,6 +265,7 @@ void MovementAIComponent::PullToPoint(const NiPoint3& point) {
 
 void MovementAIComponent::SetPath(std::vector<PathWaypoint> path) {
 	if (path.empty()) return;
+	while (!m_CurrentPath.empty()) m_CurrentPath.pop();
 	std::for_each(path.rbegin(), path.rend() - 1, [this](const PathWaypoint& point) {
 		this->m_CurrentPath.push(point);
 		});
