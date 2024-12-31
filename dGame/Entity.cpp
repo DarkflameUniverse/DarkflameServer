@@ -775,6 +775,12 @@ void Entity::Initialize() {
 	// Hacky way to trigger these when the object has had a chance to get constructed
 	AddCallbackTimer(0, [this]() {
 		this->GetScript()->OnStartup(this);
+		if (this->m_ParentEntity) {
+			GameMessages::ChildLoaded childLoaded;
+			childLoaded.childID = this->m_ObjectID;
+			childLoaded.templateID = this->GetLOT();
+			this->m_ParentEntity->OnChildLoaded(childLoaded);
+		}
 		});
 
 	if (!m_Character && Game::entityManager->GetGhostingEnabled()) {
@@ -1499,6 +1505,10 @@ void Entity::OnActivityNotify(GameMessages::ActivityNotify& notify) {
 
 void Entity::OnShootingGalleryFire(GameMessages::ShootingGalleryFire& fire) {
 	GetScript()->OnShootingGalleryFire(*this, fire);
+}
+
+void Entity::OnChildLoaded(GameMessages::ChildLoaded& childLoaded) {
+	GetScript()->OnChildLoaded(*this, childLoaded);
 }
 
 void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {

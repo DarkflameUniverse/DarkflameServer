@@ -373,6 +373,14 @@ namespace CppScripts {
 		 * @param fire The firing data
 		 */
 		virtual void OnShootingGalleryFire(Entity& self, GameMessages::ShootingGalleryFire& fire) {};
+
+		/**
+		 * @brief Handles when a child is loaded
+		 * 
+		 * @param self 
+		 * @param fire The child info
+		 */
+		virtual void OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {};
 	};
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);

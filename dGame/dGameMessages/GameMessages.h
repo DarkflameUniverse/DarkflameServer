@@ -758,6 +758,13 @@ namespace GameMessages {
 		NiPoint3 target{};
 		NiQuaternion rotation{};
 	};
+
+	struct ChildLoaded : public GameMsg {
+		ChildLoaded() : GameMsg(MessageType::Game::CHILD_LOADED) {}
+
+		LOT templateID{};
+		LWOOBJID childID{};
+	};
 };
 
 #endif // GAMEMESSAGES_H
