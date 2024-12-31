@@ -267,41 +267,31 @@ int main(int argc, char** argv) {
 
 	// pre calculate the FDB checksum
 	if (Game::config->GetValue("check_fdb") == "1") {
-		std::ifstream fileStream;
+		auto cdclient = Game::assetManager->GetFile("cdclient.fdb");
+		if (cdclient) {
 
-		static const std::vector<std::string> aliases = {
-			"CDServers.fdb",
-			"cdserver.fdb",
-			"CDClient.fdb",
-			"cdclient.fdb",
-		};
+			const int32_t bufferSize = 1024;
+			MD5 md5;
 
-		for (const auto& file : aliases) {
-			fileStream.open(Game::assetManager->GetResPath() / file, std::ios::binary | std::ios::in);
-			if (fileStream.is_open()) {
-				break;
+			char fileStreamBuffer[bufferSize] = {};
+
+			while (!cdclient.eof()) {
+				memset(fileStreamBuffer, 0, bufferSize);
+				cdclient.read(fileStreamBuffer, bufferSize);
+				md5.update(fileStreamBuffer, cdclient.gcount());
 			}
+
+			const char* nullTerminateBuffer = "\0";
+			md5.update(nullTerminateBuffer, 1); // null terminate the data
+			md5.finalize();
+			databaseChecksum = md5.hexdigest();
+
+			LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 		}
-
-		const int32_t bufferSize = 1024;
-		MD5 md5;
-
-		char fileStreamBuffer[1024] = {};
-
-		while (!fileStream.eof()) {
-			memset(fileStreamBuffer, 0, bufferSize);
-			fileStream.read(fileStreamBuffer, bufferSize);
-			md5.update(fileStreamBuffer, fileStream.gcount());
+		if (databaseChecksum.empty()) {
+			LOG("check_fdb is on but no fdb file found.");
+			return EXIT_FAILURE;
 		}
-
-		fileStream.close();
-
-		const char* nullTerminateBuffer = "\0";
-		md5.update(nullTerminateBuffer, 1); // null terminate the data
-		md5.finalize();
-		databaseChecksum = md5.hexdigest();
-
-		LOG("FDB Checksum calculated as: %s", databaseChecksum.c_str());
 	}
 
 	uint32_t currentFrameDelta = highFrameDelta;
@@ -548,115 +538,115 @@ void HandlePacketChat(Packet* packet) {
 	if (packet->data[0] == ID_USER_PACKET_ENUM && packet->length >= 4) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::CHAT) {
 			switch (static_cast<MessageType::Chat>(packet->data[3])) {
-				case MessageType::Chat::WORLD_ROUTE_PACKET: {
-					CINSTREAM_SKIP_HEADER;
-					LWOOBJID playerID;
-					inStream.Read(playerID);
+			case MessageType::Chat::WORLD_ROUTE_PACKET: {
+				CINSTREAM_SKIP_HEADER;
+				LWOOBJID playerID;
+				inStream.Read(playerID);
 
-					auto player = Game::entityManager->GetEntity(playerID);
-					if (!player) return;
+				auto player = Game::entityManager->GetEntity(playerID);
+				if (!player) return;
 
-					auto sysAddr = player->GetSystemAddress();
+				auto sysAddr = player->GetSystemAddress();
 
-					//Write our stream outwards:
-					CBITSTREAM;
-					unsigned char data;
-					while (inStream.Read(data)) {
-						bitStream.Write(data);
-					}
+				//Write our stream outwards:
+				CBITSTREAM;
+				unsigned char data;
+				while (inStream.Read(data)) {
+					bitStream.Write(data);
+				}
 
-					SEND_PACKET; //send routed packet to player
+				SEND_PACKET; //send routed packet to player
+				break;
+			}
+
+			case MessageType::Chat::GM_ANNOUNCE: {
+				CINSTREAM_SKIP_HEADER;
+
+				std::string title;
+				std::string msg;
+
+				uint32_t len;
+				inStream.Read<uint32_t>(len);
+				for (uint32_t i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					title += character;
+				}
+
+				len = 0;
+				inStream.Read<uint32_t>(len);
+				for (uint32_t i = 0; len > i; i++) {
+					char character;
+					inStream.Read<char>(character);
+					msg += character;
+				}
+
+				//Send to our clients:
+				AMFArrayValue args;
+
+				args.Insert("title", title);
+				args.Insert("message", msg);
+
+				GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
+
+				break;
+			}
+
+			case MessageType::Chat::GM_MUTE: {
+				CINSTREAM_SKIP_HEADER;
+				LWOOBJID playerId;
+				time_t expire = 0;
+				inStream.Read(playerId);
+				inStream.Read(expire);
+
+				auto* entity = Game::entityManager->GetEntity(playerId);
+				auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
+				auto* user = character != nullptr ? character->GetParentUser() : nullptr;
+				if (user) {
+					user->SetMuteExpire(expire);
+
+					entity->GetCharacter()->SendMuteNotice();
+				}
+
+				break;
+			}
+
+			case MessageType::Chat::TEAM_GET_STATUS: {
+				CINSTREAM_SKIP_HEADER;
+
+				LWOOBJID teamID = 0;
+				char lootOption = 0;
+				char memberCount = 0;
+				std::vector<LWOOBJID> members;
+
+				inStream.Read(teamID);
+				bool deleteTeam = inStream.ReadBit();
+
+				if (deleteTeam) {
+					TeamManager::Instance()->DeleteTeam(teamID);
+
+					LOG("Deleting team (%llu)", teamID);
+
 					break;
 				}
 
-				case MessageType::Chat::GM_ANNOUNCE: {
-					CINSTREAM_SKIP_HEADER;
+				inStream.Read(lootOption);
+				inStream.Read(memberCount);
+				LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
+				for (char i = 0; i < memberCount; i++) {
+					LWOOBJID member = LWOOBJID_EMPTY;
+					inStream.Read(member);
+					members.push_back(member);
 
-					std::string title;
-					std::string msg;
-
-					uint32_t len;
-					inStream.Read<uint32_t>(len);
-					for (uint32_t i = 0; len > i; i++) {
-						char character;
-						inStream.Read<char>(character);
-						title += character;
-					}
-
-					len = 0;
-					inStream.Read<uint32_t>(len);
-					for (uint32_t i = 0; len > i; i++) {
-						char character;
-						inStream.Read<char>(character);
-						msg += character;
-					}
-
-					//Send to our clients:
-					AMFArrayValue args;
-
-					args.Insert("title", title);
-					args.Insert("message", msg);
-
-					GameMessages::SendUIMessageServerToAllClients("ToggleAnnounce", args);
-
-					break;
+					LOG("Updating team member (%llu)", member);
 				}
 
-				case MessageType::Chat::GM_MUTE: {
-					CINSTREAM_SKIP_HEADER;
-					LWOOBJID playerId;
-					time_t expire = 0;
-					inStream.Read(playerId);
-					inStream.Read(expire);
+				TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
 
-					auto* entity = Game::entityManager->GetEntity(playerId);
-					auto* character = entity != nullptr ? entity->GetCharacter() : nullptr;
-					auto* user = character != nullptr ? character->GetParentUser() : nullptr;
-					if (user) {
-						user->SetMuteExpire(expire);
-
-						entity->GetCharacter()->SendMuteNotice();
-					}
-
-					break;
-				}
-
-				case MessageType::Chat::TEAM_GET_STATUS: {
-					CINSTREAM_SKIP_HEADER;
-
-					LWOOBJID teamID = 0;
-					char lootOption = 0;
-					char memberCount = 0;
-					std::vector<LWOOBJID> members;
-
-					inStream.Read(teamID);
-					bool deleteTeam = inStream.ReadBit();
-
-					if (deleteTeam) {
-						TeamManager::Instance()->DeleteTeam(teamID);
-
-						LOG("Deleting team (%llu)", teamID);
-
-						break;
-					}
-
-					inStream.Read(lootOption);
-					inStream.Read(memberCount);
-					LOG("Updating team (%llu), (%i), (%i)", teamID, lootOption, memberCount);
-					for (char i = 0; i < memberCount; i++) {
-						LWOOBJID member = LWOOBJID_EMPTY;
-						inStream.Read(member);
-						members.push_back(member);
-
-						LOG("Updating team member (%llu)", member);
-					}
-
-					TeamManager::Instance()->UpdateTeam(teamID, lootOption, members);
-
-					break;
-				}
-				default:
-					LOG("Received an unknown chat: %i", int(packet->data[3]));
+				break;
+			}
+			default:
+				LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
 		}
 	}

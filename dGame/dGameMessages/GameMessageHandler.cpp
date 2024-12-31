@@ -703,6 +703,12 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	case MessageType::Game::UPDATE_INVENTORY_GROUP_CONTENTS:
 		GameMessages::HandleUpdateInventoryGroupContents(inStream, entity, sysAddr);
 		break;
+	case MessageType::Game::SHOOTING_GALLERY_FIRE: {
+		GameMessages::ShootingGalleryFire fire{};
+		fire.Deserialize(inStream);
+		fire.Handle(*entity, sysAddr);
+		break;
+	}
 
 	default:
 		LOG_DEBUG("Received Unknown GM with ID: %4i, %s", messageID, StringifiedEnum::ToString(messageID).data());

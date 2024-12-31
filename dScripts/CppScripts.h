@@ -357,6 +357,22 @@ namespace CppScripts {
 		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
 
 		virtual void OnZoneLoadedInfo(Entity* self, const GameMessages::ZoneLoadedInfo& info) {};
+
+		/**
+		 * @brief Handles notifying when activity data is done
+		 * 
+		 * @param self 
+		 * @param notify The parameters of the notification
+		 */
+		virtual void OnActivityNotify(Entity* self, GameMessages::ActivityNotify& notify) {};
+
+		/**
+		 * @brief handles shooting gallery fire
+		 * 
+		 * @param self 
+		 * @param fire The firing data
+		 */
+		virtual void OnShootingGalleryFire(Entity& self, GameMessages::ShootingGalleryFire& fire) {};
 	};
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);

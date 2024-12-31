@@ -10,7 +10,7 @@ void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 	if (inventoryComponent != nullptr) {
-		inventoryComponent->AddItem(12547, 1, eLootSourceType::ACTIVITY);  // Add the panel required for pickup
+		inventoryComponent->AddItem(12547, 1, eLootSourceType::NONE);  // Add the panel required for pickup
 	}
 
 	// The flag to set is 101<number>

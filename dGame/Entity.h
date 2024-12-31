@@ -13,6 +13,11 @@
 #include "eKillType.h"
 #include "Observable.h"
 
+namespace GameMessages {
+	struct ActivityNotify;
+	struct ShootingGalleryFire;
+};
+
 namespace Loot {
 	class Info;
 };
@@ -210,6 +215,8 @@ public:
 	void OnZonePropertyModelRemoved(Entity* player);
 	void OnZonePropertyModelRemovedWhileEquipped(Entity* player);
 	void OnZonePropertyModelRotated(Entity* player);
+	void OnActivityNotify(GameMessages::ActivityNotify& notify);
+	void OnShootingGalleryFire(GameMessages::ShootingGalleryFire& notify);
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
