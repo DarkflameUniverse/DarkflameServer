@@ -45,7 +45,7 @@ uint32_t StartChatServer() {
 	chat_path.replace_extension(".exe");
     auto chat_startup = startup;
     auto chat_info = PROCESS_INFORMATION{};
-	if (!CreateProcessW(chat_path.wstring().c_str(), chat_path.wstring().c_str(),
+	if (!CreateProcessW(chat_path.wstring().data(), chat_path.wstring().data(),
 						nullptr, nullptr, false, 0, nullptr, nullptr,
 						&chat_startup, &chat_info))
 	{
@@ -81,7 +81,7 @@ uint32_t StartAuthServer() {
 	auth_path.replace_extension(".exe");
 	auto auth_startup = startup;
     auto auth_info = PROCESS_INFORMATION{};
-    if (!CreateProcessW(auth_path.wstring().c_str(), auth_path.wstring().c_str(),
+    if (!CreateProcessW(auth_path.wstring().data(), auth_path.wstring().data(),
 						nullptr, nullptr, false, 0, nullptr, nullptr,
 						&auth_startup, &auth_info))
 	{
@@ -117,7 +117,7 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
-	if (!CreateProcessW(world_path.wstring().c_str(), world_path.wstring().c_str(),
+	if (!CreateProcessW(world_path.wstring().data(), world_path.wstring().data(),
 						cmd.data(), nullptr, false, 0, nullptr, nullptr,
 						&world_startup, &world_info))
 	{
