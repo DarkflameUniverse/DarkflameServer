@@ -56,6 +56,7 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 			params.playerId
 		);
 		if (count->next()) {
+			if (!result) result = IProperty::PropertyEntranceResult();
 			result->totalEntriesMatchingQuery = count->getUInt("count");
 		}
 	} else {
@@ -109,11 +110,13 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 			params.playerSort
 		);
 		if (count->next()) {
+			if (!result) result = IProperty::PropertyEntranceResult();
 			result->totalEntriesMatchingQuery = count->getUInt("count");
 		}
 	}
 
 	while (properties->next()) {
+		if (!result) result = IProperty::PropertyEntranceResult();
 		auto& entry = result->entries.emplace_back();
 		entry.id = properties->getUInt64("id");
 		entry.ownerId = properties->getUInt64("owner_id");
