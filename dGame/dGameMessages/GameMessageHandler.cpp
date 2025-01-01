@@ -117,7 +117,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	}
 
 	case MessageType::Game::PLAYER_LOADED: {
-		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
 		entity->SetPlayerReadyForUpdates();
 
 		auto* ghostComponent = entity->GetComponent<GhostComponent>();
@@ -134,6 +133,8 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 				inv->AddItemSkills(item.lot);
 			}
 		}
+
+		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
 
 		auto* destroyable = entity->GetComponent<DestroyableComponent>();
 		destroyable->SetImagination(destroyable->GetImagination());
