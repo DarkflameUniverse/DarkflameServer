@@ -294,6 +294,9 @@
 #include "ShardArmor.h"
 #include "TeslaPack.h"
 #include "StunImmunity.h"
+#include "GfRaceServer.h"
+#include "FvRaceServer.h"
+#include "VehicleDeathTriggerWaterServer.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -694,6 +697,9 @@ namespace {
 		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
 		{"scripts\\ai\\GF\\L_GF_RACE_INSTANCER.lua", []() {return new GfRaceInstancer();}},
 		{"scripts\\ai\\RACING\\TRACK_NS\\NS_RACE_SERVER.lua", []() {return new NsRaceServer();}},
+		{"scripts\\ai\\RACING\\TRACK_GF\\GF_RACE_SERVER.lua", []() {return new GfRaceServer();}},
+		{"scripts\\ai\\RACING\\TRACK_FV\\FV_RACE_SERVER.lua", []() {return new FvRaceServer();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\VEHICLE_DEATH_TRIGGER_WATER_SERVER.lua", []() {return new VehicleDeathTriggerWaterServer();}},
 
 	};
 

@@ -135,7 +135,7 @@ public:
 	/**
 	 * Invoked when the client says it should be smashed.
 	 */
-	void OnRequestDie(Entity* player);
+	void OnRequestDie(Entity* player, const std::u16string& deathType = u"");
 
 	/**
 	 * Invoked when the player has finished respawning.
