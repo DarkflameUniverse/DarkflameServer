@@ -74,7 +74,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 		LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port);
 #ifdef DARKFLAME_PLATFORM_LINUX
 		if (mServerType == ServerType::Auth) {
-			const auto cwd = std::filesystem::current_path();
+			const auto cwd = BinaryPathFinder::GetBinaryDir();
 			LOG("Try running the following command before launching again:\n    sudo setcap 'cap_net_bind_service=+ep' \"%s/AuthServer\"", cwd.string().c_str());
 		}
 #endif
