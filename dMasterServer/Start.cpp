@@ -40,8 +40,9 @@ uint32_t StartChatServer() {
 		LOG("Currently shutting down.  Chat will not be restarted.");
 		return 0;
 	}
-	const auto chat_path = BinaryPathFinder::GetBinaryDir() / "ChatServer";
+	auto chat_path = BinaryPathFinder::GetBinaryDir() / "ChatServer";
 #ifdef _WIN32
+	chat_path.replace_extension(".exe");
     auto chat_startup = startup;
     auto chat_info = PROCESS_INFORMATION{};
 	if (!CreateProcessW((chat_path + ".exe").wstring().c_str(), (chat_path + ".exe").wstring().c_str(),
@@ -75,8 +76,9 @@ uint32_t StartAuthServer() {
 		LOG("Currently shutting down.  Auth will not be restarted.");
 		return 0;
 	}
-	const auto auth_path = BinaryPathFinder::GetBinaryDir() / "AuthServer";
+	auto auth_path = BinaryPathFinder::GetBinaryDir() / "AuthServer";
 #ifdef _WIN32
+	auth_path.replace_extension(".exe");
 	auto auth_startup = startup;
     auto auth_info = PROCESS_INFORMATION{};
     if (!CreateProcessW((auth_path + ".exe").wstring().c_str(), (auth_path + ".exe").wstring().c_str(),
@@ -106,8 +108,9 @@ uint32_t StartAuthServer() {
 }
 
 uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
-	const auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
+	auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32
+	world_path.replace_extension(".exe");
 	auto cmd = L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
 		L" -instance " + std::to_wstring(lastInstanceID) + L" -maxclients " + std::to_wstring(maxPlayers) +
 		L" -clone " + std::to_wstring(cloneID);
