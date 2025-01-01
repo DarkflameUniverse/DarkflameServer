@@ -91,7 +91,7 @@ void NtCombatChallengeServer::SpawnTargetDummy(Entity* self) {
 	info.rot = self->GetRotation();
 	info.settings = { new LDFData<std::string>(u"custom_script_server", "scripts\\02_server\\Map\\NT\\L_NT_COMBAT_CHALLENGE_DUMMY.lua") };
 
-	auto* dummy = Game::entityManager->CreateEntity(info);
+	auto* dummy = Game::entityManager->CreateEntity(info, nullptr, self);
 
 	dummy->SetVar(u"challengeObjectID", self->GetObjectID());
 
@@ -104,26 +104,18 @@ void NtCombatChallengeServer::SetAttackImmunity(LWOOBJID objID, bool bTurnOn) {
 
 }
 
-void NtCombatChallengeServer::OnChildLoaded(Entity* self, Entity* child) {
-	auto targetNumber = self->GetVar<int32_t>(u"TargetNumber");
-	if (targetNumber == 0) targetNumber = 1;
-	self->SetVar(u"TargetNumber", targetNumber + 1);
+void NtCombatChallengeServer::OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {
+	auto* const child = Game::entityManager->GetEntity(childLoaded.childID);
 
-	const auto playerID = self->GetVar<LWOOBJID>(u"playerID");
-
-	auto* player = Game::entityManager->GetEntity(playerID);
-
-	if (player == nullptr) {
-		return;
+	if (child) {
+		child->SetRotation(NiQuaternion::FromEulerAngles(child->GetRotation().GetEulerAngles() += NiPoint3(0, PI, 0))); // rotate 180 degrees
 	}
 
-	child->SetRotation(NiQuaternion::LookAt(child->GetPosition(), player->GetPosition()));
-
-	self->SetVar(u"currentTargetID", child->GetObjectID());
+	self.SetVar(u"currentTargetID", child->GetObjectID());
 
 	Game::entityManager->SerializeEntity(child);
 
-	child->GetGroups().push_back("targets_" + std::to_string(self->GetObjectID()));
+	child->GetGroups().push_back("targets_" + std::to_string(self.GetObjectID()));
 }
 
 void NtCombatChallengeServer::ResetGame(Entity* self) {

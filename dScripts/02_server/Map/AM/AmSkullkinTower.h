@@ -8,7 +8,7 @@ public:
 
 	void SpawnLegs(Entity* self, const std::string& loc);
 
-	void OnChildLoaded(Entity* self, Entity* child);
+	void OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) override;
 
 	void NotifyDie(Entity* self, Entity* other, Entity* killer);
 

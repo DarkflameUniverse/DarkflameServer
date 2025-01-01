@@ -12,7 +12,7 @@ public:
 	void OnMessageBoxResponse(Entity* self, Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData) override;
 	void SpawnTargetDummy(Entity* self);
 	void SetAttackImmunity(LWOOBJID objID, bool bTurnOn);
-	void OnChildLoaded(Entity* self, Entity* child);
+	void OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) override;
 	void ResetGame(Entity* self);
 	void OnActivityTimerUpdate(Entity* self, float timeRemaining);
 	void OnTimerDone(Entity* self, std::string timerName) override;
