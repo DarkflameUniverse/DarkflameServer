@@ -5,7 +5,7 @@ project(Darkflame
 )
 
 # Sanitizer flags - TODO: Make CMake preset before finalizing PR
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT APPLE)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	add_compile_options("-fsanitize=undefined")
 	add_link_options("-fsanitize=undefined")
 
