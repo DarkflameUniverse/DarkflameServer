@@ -285,7 +285,7 @@ void RacingControlComponent::OnRacingClientReady(Entity* player) {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void RacingControlComponent::OnRequestDie(Entity* player) {
+void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& deathType) {
 	// Sent by the client when they collide with something which should smash
 	// them.
 
@@ -301,8 +301,9 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 
 		if (!racingPlayer.noSmashOnReload) {
 			racingPlayer.smashedTimes++;
+			LOG("Death type %s", GeneralUtils::UTF16ToWTF8(deathType).c_str());
 			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
-				eKillType::VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
+				eKillType::VIOLENT, deathType, 0, 0, 90.0f, false, true, 0);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 			uint32_t respawnImagination = 0;
