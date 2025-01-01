@@ -1,5 +1,3 @@
-#include <filesystem>
-
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
@@ -12,6 +10,7 @@
 #include "MessageType/Server.h"
 #include "MessageType/Master.h"
 
+#include "BinaryPathFinder.h"
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
