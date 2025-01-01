@@ -240,12 +240,10 @@ Your build directory should now look like this:
 * ...
 
 ## Running the server
-If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the `AuthServer` binary network permissions or run it under sudo.
-To give `AuthServer` network permissions and not require sudo, run the following command
+If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you have to give the `AuthServer` binary network permissions by running the following command:
 ```bash
 sudo setcap 'cap_net_bind_service=+ep' AuthServer
 ```
-and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
 ### Linux Service
 If you are running this on a linux based system, it will use your terminal to run the program interactively, preventing you using it for other tasks and requiring it to be open to run the server.  

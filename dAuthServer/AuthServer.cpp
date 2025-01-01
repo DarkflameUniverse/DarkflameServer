@@ -27,7 +27,6 @@
 #include "Game.h"
 #include "Server.h"
 
-
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;

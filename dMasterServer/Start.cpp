@@ -9,26 +9,28 @@
 #include <handleapi.h>
 #include <processthreadsapi.h>
 
-const auto startup = STARTUPINFOW{
-    .cb = sizeof(STARTUPINFOW),
-    .lpReserved = nullptr,
-    .lpDesktop = nullptr,
-    .lpTitle = nullptr,
-    .dwX = 0,
-    .dwY = 0,
-    .dwXSize = 0,
-    .dwYSize = 0,
-    .dwXCountChars = 0,
-    .dwYCountChars = 0,
-    .dwFillAttribute = 0,
-    .dwFlags = 0,
-    .wShowWindow = 0,
-    .cbReserved2 = 0,
-    .lpReserved2 = nullptr,
-    .hStdInput = INVALID_HANDLE_VALUE,
-    .hStdOutput = INVALID_HANDLE_VALUE,
-    .hStdError = INVALID_HANDLE_VALUE,
-};
+namespace {
+	const auto startup = STARTUPINFOW{
+		.cb = sizeof(STARTUPINFOW),
+		.lpReserved = nullptr,
+		.lpDesktop = nullptr,
+		.lpTitle = nullptr,
+		.dwX = 0,
+		.dwY = 0,
+		.dwXSize = 0,
+		.dwYSize = 0,
+		.dwXCountChars = 0,
+		.dwYCountChars = 0,
+		.dwFillAttribute = 0,
+		.dwFlags = 0,
+		.wShowWindow = 0,
+		.cbReserved2 = 0,
+		.lpReserved2 = nullptr,
+		.hStdInput = INVALID_HANDLE_VALUE,
+		.hStdOutput = INVALID_HANDLE_VALUE,
+		.hStdError = INVALID_HANDLE_VALUE,
+	};
+}
 #else
 #include <unistd.h>
 #endif
@@ -38,11 +40,12 @@ uint32_t StartChatServer() {
 		LOG("Currently shutting down.  Chat will not be restarted.");
 		return 0;
 	}
+	const auto chat_path = BinaryPathFinder::GetBinaryDir() / "ChatServer";
 #ifdef _WIN32
     auto chat_startup = startup;
     auto chat_info = PROCESS_INFORMATION{};
-	if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "ChatServer.exe").wstring().c_str(),
-						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
+	if (!CreateProcessW((chat_path + ".exe").wstring().c_str(), (chat_path + ".exe").wstring().c_str(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
 						&chat_startup, &chat_info))
 	{
 		LOG("Failed to launch ChatServer");
@@ -60,7 +63,7 @@ uint32_t StartChatServer() {
 		return 0;
 	} else if (chat_pid == 0) {
 		// We are the child process
-		execl((BinaryPathFinder::GetBinaryDir() / "ChatServer").string().c_str(), "ChatServer", nullptr);
+		execl(chat_path.string().c_str(), chat_path.string().c_str(), nullptr);
 	}
 #endif
 	LOG("ChatServer PID is %d", chat_pid);
@@ -72,11 +75,12 @@ uint32_t StartAuthServer() {
 		LOG("Currently shutting down.  Auth will not be restarted.");
 		return 0;
 	}
+	const auto auth_path = BinaryPathFinder::GetBinaryDir() / "AuthServer";
 #ifdef _WIN32
 	auto auth_startup = startup;
     auto auth_info = PROCESS_INFORMATION{};
-    if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "AuthServer.exe").wstring().c_str(),
-						nullptr, nullptr, nullptr, false, 0, nullptr, nullptr,
+    if (!CreateProcessW((auth_path + ".exe").wstring().c_str(), (auth_path + ".exe").wstring().c_str(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
 						&auth_startup, &auth_info))
 	{
         LOG("Failed to launch AuthServer");
@@ -94,7 +98,7 @@ uint32_t StartAuthServer() {
 		return 0;
 	} else if (auth_pid == 0) {
 		// We are the child process
-		execl((BinaryPathFinder::GetBinaryDir() / "AuthServer").string().c_str(), "AuthServer", nullptr);
+		execl(auth_path.string().c_str(), auth_path.string().c_str(), nullptr);
 	}
 #endif
 	LOG("AuthServer PID is %d", auth_pid);
@@ -102,6 +106,7 @@ uint32_t StartAuthServer() {
 }
 
 uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInstanceID, int maxPlayers, LWOCLONEID cloneID) {
+	const auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32
 	auto cmd = L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
 		L" -instance " + std::to_wstring(lastInstanceID) + L" -maxclients " + std::to_wstring(maxPlayers) +
@@ -109,8 +114,8 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
-	if (!CreateProcessW((BinaryPathFinder::GetBinaryDir() / "WorldServer.exe").wstring().c_str(),
-						cmd.data(), nullptr, nullptr, false, 0, nullptr, nullptr,
+	if (!CreateProcessW((world_path + ".exe").wstring().c_str(), (world_path + ".exe").wstring().c_str(),
+						cmd.data(), nullptr, false, 0, nullptr, nullptr,
 						&world_startup, &world_info))
 	{
 		LOG("Failed to launch WorldServer");
@@ -128,8 +133,7 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 		return 0;
 	} else if (world_pid == 0) {
 		// We are the child process
-		execl((BinaryPathFinder::GetBinaryDir() / "WorldServer").string().c_str(),
-			"WorldServer",
+		execl(world_path.string().c_str(), world_path.string().c_str(),
 			"-zone", std::to_string(mapID).c_str(),
 			"-port", std::to_string(port).c_str(),
 			"-instance", std::to_string(lastInstanceID).c_str(),

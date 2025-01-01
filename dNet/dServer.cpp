@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #define _VARIADIC_MAX 10
 #include "dServer.h"
 #include "dNetCommon.h"
@@ -68,7 +70,16 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 			LOG("%s Server is listening on %s:%i with encryption: %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption));
 		else
 			LOG("%s Server is listening on %s:%i with encryption: %i, running zone %i / %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	} else { LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
+	} else {
+		LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port);
+#ifdef DARKFLAME_PLATFORM_LINUX
+		if (mServerType == ServerType::Auth) {
+			const auto cwd = std::filesystem::current_path();
+			LOG("Try running the following command before launching again:\n    sudo setcap 'cap_net_bind_service=+ep' \"%s/AuthServer\"", cwd.string().c_str());
+		}
+#endif
+		return;
+	}
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
