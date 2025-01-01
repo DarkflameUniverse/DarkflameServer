@@ -68,6 +68,12 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 
 ## Install dependencies
 
+### Required compiler versions
+- g++11 or greater
+- MSVC unchecked
+- clang unchecked
+- appleclang unchecked
+
 ### Windows packages
 Ensure that you have either the [MSVC C++ compiler](https://visualstudio.microsoft.com/vs/features/cplusplus/) (recommended) or the [Clang compiler](https://github.com/llvm/llvm-project/releases/) installed.
 You'll also need to download and install [CMake](https://cmake.org/download/) (version <font size="4">**CMake version 3.25**</font> or later!).
