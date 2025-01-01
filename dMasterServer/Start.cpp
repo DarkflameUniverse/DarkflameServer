@@ -111,14 +111,14 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 	auto world_path = BinaryPathFinder::GetBinaryDir() / "WorldServer";
 #ifdef _WIN32
 	world_path.replace_extension(".exe");
-	auto cmd = L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
+	auto cmd = world_path.wstring() + L" -zone " + std::to_wstring(mapID) + L" -port " + std::to_wstring(port) +
 		L" -instance " + std::to_wstring(lastInstanceID) + L" -maxclients " + std::to_wstring(maxPlayers) +
 		L" -clone " + std::to_wstring(cloneID);
 
 	auto world_startup = startup;
 	auto world_info = PROCESS_INFORMATION{};
-	if (!CreateProcessW(world_path.wstring().data(), world_path.wstring().data(),
-						cmd.data(), nullptr, false, 0, nullptr, nullptr,
+	if (!CreateProcessW(world_path.wstring().data(), cmd.data(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
 						&world_startup, &world_info))
 	{
 		LOG("Failed to launch WorldServer");
