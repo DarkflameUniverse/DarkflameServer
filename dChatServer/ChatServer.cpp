@@ -127,11 +127,8 @@ int main(int argc, char** argv) {
 
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
 	ChatWebAPI chatwebapi;
+	if (web_server_enabled) chatwebapi.Listen();
 
-	if (web_server_enabled) {
-		chatwebapi = ChatWebAPI();
-	}
-  
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
 	Game::logger->Flush(); // once immediately before main loop

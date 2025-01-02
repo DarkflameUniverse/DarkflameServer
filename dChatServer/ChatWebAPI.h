@@ -12,6 +12,7 @@ public:
 	ChatWebAPI();
 	~ChatWebAPI();
 	void ReceiveRequests();
+	void Listen();
 private:
 	struct mg_mgr mgr;
 	static void HandleRequests(struct mg_connection *c, int ev, void *ev_data);

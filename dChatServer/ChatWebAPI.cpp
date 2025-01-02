@@ -108,17 +108,21 @@ void ChatWebAPI::HandleRequests(struct mg_connection *c, int ev, void *ev_data) 
 
 ChatWebAPI::ChatWebAPI() {
 	if (Game::logger->GetLogDebugStatements()) mg_log_set(MG_LL_DEBUG);
+	mg_mgr_init(&mgr);  // Initialize event manager
+}
+
+ChatWebAPI::~ChatWebAPI() {
+	mg_mgr_free(&mgr);
+}
+
+void ChatWebAPI::Listen() {
 	// make listen address
 	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
 	std::string listen_port = Game::config->GetValue("wed_server_listen_port");
 	std::string listen_address = "http://" + listen_ip + ":" + listen_port;
 	LOG("Starting web server on %s", listen_address.c_str());
-	mg_mgr_init(&mgr);  // Initialise event manager
-	mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL);  // Create HTTP listener
-}
 
-ChatWebAPI::~ChatWebAPI() {
-	mg_mgr_free(&mgr);
+	mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL);  // Create HTTP listener
 }
 
 void ChatWebAPI::ReceiveRequests() {
