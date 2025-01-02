@@ -16,6 +16,7 @@
 namespace GameMessages {
 	struct ActivityNotify;
 	struct ShootingGalleryFire;
+	struct ChildLoaded;
 };
 
 namespace Loot {
@@ -217,6 +218,7 @@ public:
 	void OnZonePropertyModelRotated(Entity* player);
 	void OnActivityNotify(GameMessages::ActivityNotify& notify);
 	void OnShootingGalleryFire(GameMessages::ShootingGalleryFire& notify);
+	void OnChildLoaded(GameMessages::ChildLoaded& childLoaded);
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);

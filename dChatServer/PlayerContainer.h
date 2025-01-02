@@ -65,10 +65,12 @@ class PlayerContainer {
 public:
 	void Initialize();
 	void InsertPlayer(Packet* packet);
-	void RemovePlayer(Packet* packet);
+	void ScheduleRemovePlayer(Packet* packet);
+	void RemovePlayer(const LWOOBJID playerID);
 	void MuteUpdate(Packet* packet);
 	void CreateTeamServer(Packet* packet);
 	void BroadcastMuteUpdate(LWOOBJID player, time_t time);
+	void Shutdown();
 
 	const PlayerData& GetPlayerData(const LWOOBJID& playerID);
 	const PlayerData& GetPlayerData(const std::string& playerName);
@@ -93,11 +95,15 @@ public:
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
 	const std::vector<TeamData*>& GetAllTeams() { return mTeams;};
 
+	void Update(const float deltaTime);
+	bool PlayerBeingRemoved(const LWOOBJID playerID) { return m_PlayersToRemove.contains(playerID); }
+
 private:
 	LWOOBJID m_TeamIDCounter = 0;
 	std::map<LWOOBJID, PlayerData> m_Players;
 	std::vector<TeamData*> mTeams;
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
+	std::map<LWOOBJID, float> m_PlayersToRemove;
 	uint32_t m_MaxNumberOfBestFriends = 5;
 	uint32_t m_MaxNumberOfFriends = 50;
 	uint32_t m_PlayerCount = 0;

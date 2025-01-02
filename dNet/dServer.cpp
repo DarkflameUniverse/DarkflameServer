@@ -10,6 +10,7 @@
 #include "MessageType/Server.h"
 #include "MessageType/Master.h"
 
+#include "BinaryPathFinder.h"
 #include "BitStreamUtils.h"
 #include "MasterPackets.h"
 #include "ZoneInstanceManager.h"
@@ -68,7 +69,16 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 			LOG("%s Server is listening on %s:%i with encryption: %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption));
 		else
 			LOG("%s Server is listening on %s:%i with encryption: %i, running zone %i / %i", StringifiedEnum::ToString(serverType).data(), ip.c_str(), port, int(useEncryption), zoneID, instanceID);
-	} else { LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port); return; }
+	} else {
+		LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port);
+#ifdef DARKFLAME_PLATFORM_LINUX
+		if (mServerType == ServerType::Auth) {
+			const auto cwd = BinaryPathFinder::GetBinaryDir();
+			LOG("Try running the following command before launching again:\n    sudo setcap 'cap_net_bind_service=+ep' \"%s/AuthServer\"", cwd.string().c_str());
+		}
+#endif
+		return;
+	}
 
 	mLogger->SetLogToConsole(prevLogSetting);
 
@@ -109,20 +119,23 @@ Packet* dServer::ReceiveFromMaster() {
 	if (packet) {
 		if (packet->length < 1) { mMasterPeer->DeallocatePacket(packet); return nullptr; }
 
-		if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
+		switch (packet->data[0]) {
+		case ID_DISCONNECTION_NOTIFICATION:
+			[[fallthrough]];
+		case ID_CONNECTION_LOST: {
 			LOG("Lost our connection to master, shutting DOWN!");
 			mMasterConnectionActive = false;
-			//ConnectToMaster(); //We'll just shut down now
+			// ConnectToMaster(); // We'll just shut down now
+			break;
 		}
-
-		if (packet->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) {
+		case ID_CONNECTION_REQUEST_ACCEPTED: {
 			LOG("Established connection to master, zone (%i), instance (%i)", this->GetZoneID(), this->GetInstanceID());
 			mMasterConnectionActive = true;
 			mMasterSystemAddress = packet->systemAddress;
 			MasterPackets::SendServerInfo(this, packet);
+			break;
 		}
-
-		if (packet->data[0] == ID_USER_PACKET_ENUM) {
+		case ID_USER_PACKET_ENUM: {
 			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
 				switch (static_cast<MessageType::Master>(packet->data[3])) {
 				case MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE: {
@@ -133,12 +146,13 @@ Packet* dServer::ReceiveFromMaster() {
 					*mShouldShutdown = -2;
 					break;
 
-				//When we handle these packets in World instead dServer, we just return the packet's pointer.
+				// When we handle these packets in World instead dServer, we just return the packet's pointer.
 				default:
-
 					return packet;
 				}
 			}
+			break;
+		}
 		}
 
 		mMasterPeer->DeallocatePacket(packet);
