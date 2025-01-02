@@ -9,66 +9,72 @@
 #include "dConfig.h"
 #include "PlayerContainer.h"
 
-void ChatWebAPI::HandleRequests(struct mg_connection *c, int ev, void *ev_data) {
-	if (ev == MG_EV_HTTP_MSG) {  // New HTTP request received
-		struct mg_http_message *hm = static_cast<struct mg_http_message *>(ev_data);  // Parsed HTTP request
-		if (!hm) {
-			mg_http_reply(c, 400, json_content_type, "{\"error\":\"Invalid Request\"}");
+void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, void* request_data) {
+	if (request == MG_EV_HTTP_MSG) {
+		struct mg_http_message* http_msg = static_cast<struct mg_http_message*>(request_data);
+		if (!http_msg) {
+			mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid Request\"}");
 			return;
 		}
 
 		// Handle Post requests
-		if (mg_strcmp(hm->method, mg_str("POST")) == 0) {
+		if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
 			// handle announcements
-			if (mg_match(hm->uri, mg_str((root_path + "announce").c_str()), NULL)) { 
-				auto data = ParseJSON(hm->body.buf);
+			if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
+				auto data = ParseJSON(http_msg->body.buf);
 				if (!data) {
-					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
+					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
 					return;
 				}
 
 				if (!data.value().contains("title")) {
-					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Missing paramater: title\"}");
+					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Missing paramater: title\"}");
 					return;
 				}
 				std::string title = data.value()["title"];
 				if (!data.value().contains("message")) {
-					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Missing paramater: message\"}");
+					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Missing paramater: message\"}");
 					return;
 				}
 				std::string message = data.value()["message"];
 				LOG_DEBUG("Announcement: %s - %s", title.c_str(), message.c_str());
+
 				// build and send the packet to all world servers
-				CBITSTREAM;
-				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
-				bitStream.Write<uint32_t>(title.size());
-				bitStream.Write(title);
-				bitStream.Write<uint32_t>(message.size());
-				bitStream.Write(message);
-				Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-				mg_http_reply(c, 200, json_content_type, "{\"status\":\"Announcement Sent\"}");
-			} else {
-				// 404 Not Found
-				mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
+				{
+					CBITSTREAM;
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
+					bitStream.Write<uint32_t>(title.size());
+					bitStream.Write(title);
+					bitStream.Write<uint32_t>(message.size());
+					bitStream.Write(message);
+					Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+				}
+
+				mg_http_reply(connection, 200, json_content_type, "{\"status\":\"Announcement Sent\"}");
+				return;
 			}
-		// Handle GET Requests
-		} else if (mg_strcmp(hm->method, mg_str("GET")) == 0) {
+			// Handle GET Requests
+		} else if (mg_strcmp(http_msg->method, mg_str("GET")) == 0) {
+
 			// Get All Online players
-			if (mg_match(hm->uri, mg_str((root_path + "players").c_str()), NULL)) {
+			if (mg_match(http_msg->uri, mg_str((root_path + "players").c_str()), NULL)) {
 				auto data = json::array();
-				for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+				for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
 					if (!playerData) continue;
 					data.push_back(playerData.to_json());
 				}
 				if (data.empty()) {
-					mg_http_reply(c, 200, json_content_type, "{\"error\":\"No Players Online\"}");
+					mg_http_reply(connection, 200, json_content_type, "{\"error\":\"No Players Online\"}");
 				} else {
-					mg_http_reply(c, 200, json_content_type, data.dump().c_str());
+					mg_http_reply(connection, 200, json_content_type, data.dump().c_str());
 				}
-			} else if (mg_match(hm->uri, mg_str((root_path + "teams").c_str()), NULL)) {
+				return;
+
+			} else if (mg_match(http_msg->uri, mg_str((root_path + "teams").c_str()), NULL)) {
+
 				// Get Teams
 				auto data = json::array();
-				for (auto& teamData: Game::playerContainer.GetAllTeams()){
+				for (auto& teamData : Game::playerContainer.GetAllTeams()) {
 					if (!teamData) continue;
 					json toInsert;
 					toInsert["id"] = teamData->teamID;
@@ -79,9 +85,9 @@ void ChatWebAPI::HandleRequests(struct mg_connection *c, int ev, void *ev_data) 
 					toInsert["leader"] = leader.to_json();
 
 					json members;
-					for (auto& member : teamData->memberIDs){
+					for (auto& member : teamData->memberIDs) {
 						auto& playerData = Game::playerContainer.GetPlayerData(member);
-			
+
 						if (!playerData) continue;
 						members.push_back(playerData.to_json());
 					}
@@ -90,18 +96,17 @@ void ChatWebAPI::HandleRequests(struct mg_connection *c, int ev, void *ev_data) 
 				}
 
 				if (data.empty()) {
-					mg_http_reply(c, 200, json_content_type, "{\"error\":\"No Teams Online\"}");
+					mg_http_reply(connection, 200, json_content_type, "{\"error\":\"No Teams Online\"}");
 				} else {
-					mg_http_reply(c, 200, json_content_type, data.dump().c_str());
+					mg_http_reply(connection, 200, json_content_type, data.dump().c_str());
 				}
-			} else {
-				// 404 Not Found
-				mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
+				return;
+
 			}
-		} else {
-			// 404 Not Found
-			mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
 		}
+
+		// If it hasn't been handled then reply 404 Not Found
+		mg_http_reply(connection, 404, json_content_type, "{\"error\":\"Not Found\"}");
 	}
 }
 
@@ -130,7 +135,7 @@ void ChatWebAPI::ReceiveRequests() {
 }
 
 // TODO: Move to GeneralUtils
-std::optional<json> ChatWebAPI::ParseJSON(char * data) {
+std::optional<json> ChatWebAPI::ParseJSON(char* data) {
 	try {
 		return std::make_optional<json>(json::parse(data));
 	} catch (const std::exception& e) {
