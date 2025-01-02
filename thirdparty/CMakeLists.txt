@@ -66,4 +66,4 @@ endif()
 
 add_subdirectory(MD5)
 
-add_subdirectory(picohttpparser)
+add_subdirectory(mongoose)

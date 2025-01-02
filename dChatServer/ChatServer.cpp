@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
 
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
-	ChatWebAPI chatwebapi(Game::config->GetValue("web_server_listen_ip"), GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_listen_port")).value_or(8080));
+	auto chatwebapi = ChatWebAPI();
 
 	if (web_server_enabled) {
 		LOG("Web server enabled, will process http requests.");
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 		}
 		//Check and handle web requests:
 		if (web_server_enabled) {
-			chatwebapi.HandleRequest();
+			chatwebapi.ReceiveRequests();
 		}
 
 		//Push our log every 30s:

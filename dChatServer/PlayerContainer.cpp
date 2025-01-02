@@ -13,6 +13,23 @@
 #include "dConfig.h"
 #include "MessageType/Chat.h"
 
+using json = nlohmann::json;
+
+const json PlayerData::to_json() const {
+	json data;
+	data["id"] = this->playerID;
+	data["name"] = this->playerName;
+	data["gm_level"] = this->gmLevel;
+	data["muted"] = this->GetIsMuted();
+
+	json zoneID;
+	zoneID["map_id"] = std::to_string(this->zoneID.GetMapID());
+	zoneID["instance_id"] = std::to_string(this->zoneID.GetInstanceID());
+	zoneID["clone_id"] = std::to_string(this->zoneID.GetCloneID());
+	data["zone_id"] = zoneID;
+	return data;
+}
+
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
 		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);

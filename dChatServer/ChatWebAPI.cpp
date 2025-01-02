@@ -1,146 +1,139 @@
-
-#include <iostream>
-#include <sstream>
-#include <unistd.h>
-
-
 #include "ChatWebAPI.h"
+
 #include "Logger.h"
 #include "Game.h"
 #include "json.hpp"
-#include "picohttpparser.h"
+#include "dCommonVars.h"
+#include "MessageType/Chat.h"
+#include "dServer.h"
+#include "dConfig.h"
+#include "PlayerContainer.h"
 
-namespace {
-	const int BUFFER_SIZE = 30720;
+void ChatWebAPI::HandleRequests(struct mg_connection *c, int ev, void *ev_data) {
+	if (ev == MG_EV_HTTP_MSG) {  // New HTTP request received
+		struct mg_http_message *hm = static_cast<struct mg_http_message *>(ev_data);  // Parsed HTTP request
+		if (!hm) {
+			mg_http_reply(c, 400, json_content_type, "{\"error\":\"Invalid Request\"}");
+			return;
+		}
+
+		// Handle Post requests
+		if (mg_strcmp(hm->method, mg_str("POST")) == 0) {
+			// handle announcements
+			if (mg_match(hm->uri, mg_str((root_path + "announce").c_str()), NULL)) { 
+				auto data = ParseJSON(hm->body.buf);
+				if (!data) {
+					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
+					return;
+				}
+
+				if (!data.value().contains("title")) {
+					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Missing paramater: title\"}");
+					return;
+				}
+				std::string title = data.value()["title"];
+				if (!data.value().contains("message")) {
+					mg_http_reply(c, 400, json_content_type, "{\"error\":\"Missing paramater: message\"}");
+					return;
+				}
+				std::string message = data.value()["message"];
+				LOG_DEBUG("Announcement: %s - %s", title.c_str(), message.c_str());
+				// build and send the packet to all world servers
+				CBITSTREAM;
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
+				bitStream.Write<uint32_t>(title.size());
+				bitStream.Write(title);
+				bitStream.Write<uint32_t>(message.size());
+				bitStream.Write(message);
+				Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+				mg_http_reply(c, 200, json_content_type, "{\"status\":\"Announcement Sent\"}");
+			} else {
+				// 404 Not Found
+				mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
+			}
+		// Handle GET Requests
+		} else if (mg_strcmp(hm->method, mg_str("GET")) == 0) {
+			// Get All Online players
+			if (mg_match(hm->uri, mg_str((root_path + "players").c_str()), NULL)) {
+				auto data = json::array();
+				for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+					if (!playerData) continue;
+					data.push_back(playerData.to_json());
+				}
+				if (data.empty()) {
+					mg_http_reply(c, 200, json_content_type, "{\"error\":\"No Players Online\"}");
+				} else {
+					mg_http_reply(c, 200, json_content_type, data.dump().c_str());
+				}
+			} else if (mg_match(hm->uri, mg_str((root_path + "teams").c_str()), NULL)) {
+				// Get Teams
+				auto data = json::array();
+				for (auto& teamData: Game::playerContainer.GetAllTeams()){
+					if (!teamData) continue;
+					json toInsert;
+					toInsert["id"] = teamData->teamID;
+					toInsert["loot_flag"] = teamData->lootFlag;
+					toInsert["local"] = teamData->local;
+
+					auto& leader = Game::playerContainer.GetPlayerData(teamData->leaderID);
+					toInsert["leader"] = leader.to_json();
+
+					json members;
+					for (auto& member : teamData->memberIDs){
+						auto& playerData = Game::playerContainer.GetPlayerData(member);
+			
+						if (!playerData) continue;
+						members.push_back(playerData.to_json());
+					}
+					toInsert["members"] = members;
+					data.push_back(toInsert);
+				}
+
+				if (data.empty()) {
+					mg_http_reply(c, 200, json_content_type, "{\"error\":\"No Teams Online\"}");
+				} else {
+					mg_http_reply(c, 200, json_content_type, data.dump().c_str());
+				}
+			} else {
+				// 404 Not Found
+				mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
+			}
+		} else {
+			// 404 Not Found
+			mg_http_reply(c, 404, json_content_type, "{\"error\":\"Not Found\"}");
+		}
+	}
 }
 
-ChatWebAPI::ChatWebAPI(std::string ip_address, int port) :
-						m_ip_address(ip_address), 
-						m_port(port),
-						m_socket(),
-						m_new_socket(),
-						m_incomingMessage(),
-						m_socketAddress(),
-						m_socketAddress_len(sizeof(m_socketAddress)) {
 
-	m_socketAddress.sin_family = AF_INET; // IPv4
-	m_socketAddress.sin_port = htons(m_port);
-	m_socketAddress.sin_addr.s_addr = inet_addr(m_ip_address.c_str());
-
-	m_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_socket < 0) {
-		LOG_DEBUG("Cannot create socket");
-		return;
-	}
-	if (bind(m_socket, reinterpret_cast<sockaddr*> (&m_socketAddress), m_socketAddress_len) < 0) {
-		LOG_DEBUG("Cannot connect socket to address");
-		return;
-	}
-	if (listen(m_socket, 20) < 0) {
-		LOG_DEBUG("Socket listen failed");
-		return;
-	}
-	return;
+ChatWebAPI::ChatWebAPI() {
+	if (Game::logger->GetLogDebugStatements()) mg_log_set(MG_LL_DEBUG);
+	// make listen address
+	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
+	std::string listen_port = Game::config->GetValue("wed_server_listen_port");
+	LOG_DEBUG("Starting web server on %s:%s", listen_ip.c_str(), listen_port.c_str());
+	std::string listen_address = "http://" + listen_ip + ":" + listen_port;
+	LOG_DEBUG("Starting web server on %s", listen_address.c_str());
+	mg_mgr_init(&mgr);  // Initialise event manager
+	mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL);  // Create HTTP listener
 }
 
 ChatWebAPI::~ChatWebAPI() {
-	close(m_socket);
-	close(m_new_socket);
+	mg_mgr_free(&mgr);
 }
 
-void ChatWebAPI::HandleRequest() {
-	m_tv.tv_sec = 0;
-	m_tv.tv_usec = 33;
-
-	FD_ZERO(&fdread);
-	FD_SET(m_socket, &fdread);
-	int32_t selectStatus = select(m_socket + 1, &fdread, NULL, NULL, &m_tv);
-
-	switch (selectStatus) {
-		case -1:
-			// error
-			LOG_DEBUG("Error in select");
-			break;
-		case 0:
-			// timeout, I.E. nothing to read
-			// LOG_DEBUG("Timeout in select");
-			break;
-
-		default: { // available to read 
-
-			m_new_socket = accept(m_socket, reinterpret_cast<sockaddr*> (&m_socketAddress), &m_socketAddress_len);
-			if (m_new_socket < 0) {
-				LOG_DEBUG("Failed to accept connection");
-			}
-
-			int bytesReceived;
-
-			char buffer[BUFFER_SIZE] = { 0 };
-			bytesReceived = read(m_new_socket, buffer, BUFFER_SIZE);
-			if (bytesReceived < 0) {
-				LOG_DEBUG("Failed to read bytes from client socket connection");
-			} else {
-				LOG_DEBUG("------ Received message from client ------");
-			}
-			int status = 404;
-			std::string response = "{\"error\": \"not found\"}";
-
-			const char *method_c {};
-			const char *path_c {};
-			size_t buflen = 0, method_len, path_len, num_headers;
-			std::array<struct phr_header, 100> headers {};
-			int pret, minor_version;
-
-			num_headers = sizeof(headers) / sizeof(headers[0]);
-			
-			pret = phr_parse_request(buffer, strlen(buffer), &method_c, &method_len, &path_c, &path_len, &minor_version, headers.data(), &num_headers, 0);
-
-			// cleanup
-			std::string method(method_c, method_len);
-			std::string path(path_c, path_len);
-			std::map<std::string, std::string> headerMap;
-			for (size_t i = 0; i != num_headers; ++i) {
-				std::string headerName(headers[i].name, headers[i].name_len);
-				std::string headerValue(headers[i].value, headers[i].value_len);
-				headerMap[headerName] = headerValue;
-			}
-			// log headers
-			for (auto& header : headerMap) {
-				LOG_DEBUG("header: %s: %s", header.first.c_str(), header.second.c_str());
-			}
-
-			std::string content (buffer + pret);
-			LOG_DEBUG("content: %s", content.c_str());
-
-			if (headerMap["Content-Type"] == "application/json") {
-				auto data = json::parse(content);
-				HandleAction(data);
-			}			
-			break;
-		}
-	}
-	close(m_new_socket);
+void ChatWebAPI::ReceiveRequests() {
+	mg_mgr_poll(&mgr, 15);
 }
 
-std::string ChatWebAPI::buildResponse(int status, std::string input) {
-	std::ostringstream ss;
-	ss << "HTTP/1.1 " << status <<  " OK\nContent-Type: application/json\nContent-Length: " << input.size() << "\n\n" << input;
-
-	return ss.str();
-}
-
-void ChatWebAPI::sendResponse(int status, std::string input) {
-	long bytesSent;
-	std::string response = buildResponse(status, input);
-	bytesSent = write(m_new_socket, response.c_str(), response.size());
-	if (bytesSent == response.size()) {
-		LOG_DEBUG("------ Server Response sent to client ------");
-	} else {
-		LOG_DEBUG("Error sending response to client");
+// TODO: Move to GeneralUtils
+std::optional<json> ChatWebAPI::ParseJSON(char * data) {
+	try {
+		return std::make_optional<json>(json::parse(data));
+	} catch (const std::exception& e) {
+		LOG_DEBUG("Failed to parse JSON: %s", e.what());
+		return std::nullopt;
 	}
 }
 
-void ChatWebAPI::HandleAction(json data) {
-
-}
 
