@@ -155,6 +155,7 @@ int main(int argc, char** argv) {
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
 		}
+
 		//Check and handle web requests:
 		if (web_server_enabled) {
 			chatwebapi.ReceiveRequests();
