@@ -32,6 +32,8 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
 * We are working on a way to make it so when you close the game, the server stops automatically alongside when you open the game, the server starts automatically.
+* If you are not setting a server up on mac, you can ignore this note
+* Note: you'll need to allow through System Preferences `AuthServer`, `ChatServer`, `MasterServer`, `WorldServer` and `libmariadbcpp.dylib` to run.  The initial pop-up will block it due to the binaries being unsigned, after allowing them to run the servers will run as normal.
 
 <font size="32">**If you are not planning on hosting a server for others, working in the codebase or wanting to use MariaDB for a database, you can stop reading here.**</font>
 
@@ -208,6 +210,7 @@ If you would like to build the server faster, append `-j<number>` where number i
 ### Notes
 Depending on your operating system, you may need to adjust some pre-processor defines in [CMakeVariables.txt](./CMakeVariables.txt) before building:
 * If you are on MacOS, ensure OPENSSL_ROOT_DIR is pointing to the openssl root directory.
+* By default it should be set to the correct directory.
 * If you are using a Darkflame Universe client, ensure `client_net_version` in `build/sharedconfig.ini` is changed to 171023.
 
 ## Configuring your server
@@ -230,20 +233,35 @@ Navigate to `build/sharedconfig.ini` and fill in the following fields:
 * `chatconfig.ini` contains a port option.
 * `masterconfig.ini` contains options related to permissions you want to run your servers with.
 * `sharedconfig.ini` contains several options that are shared across all servers
-* `worldconfig.ini` contains several options to turn on QOL improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
+* `worldconfig.ini` contains several options to turn on Quality of Life improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
 
 ## Verify your setup
-Your build directory should now look like this:
-* AuthServer
-* ChatServer
-* MasterServer
-* WorldServer
-* authconfig.ini
-* chatconfig.ini
-* masterconfig.ini
+Your build directory should contain at a minimum all of the following files.
+All listed files are required for a server to start.
+`ini` files can be located at the environment variable `DLU_CONFIG_DIR` and do not need to be located in this directory.
+(windows will have .exe at the end of the executables):
 * sharedconfig.ini
+* AuthServer(.exe)
+* authconfig.ini
+* ChatServer(.exe)
+* chatconfig.ini
+* MasterServer(.exe)
+* masterconfig.ini
+* WorldServer(.exe)
 * worldconfig.ini
-* ...
+* blocklist.dcf
+* migrations
+* vanity
+* navmeshes
+* 1 of the following lists based on platform
+	* windows
+		* libmariadb.dll
+		* mariadbcpp.dll
+		* zlib.dll
+	* MacOS
+		* libmariadbcpp.dylib
+	* *nix
+		* libmariadbcpp.so
 
 ## Running the server
 If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you have to give the `AuthServer` binary network permissions by running the following command:
@@ -312,8 +330,14 @@ To connect to a server follow these steps:
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
 * Next locate the line `UGCUSE3DSERVICES=7:`
 * Ensure the number after the 7 is a `0`
+* Alternatively, remove the line with `UGCUSE3DSERVICES` altogether
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
+As an example, here is what the boot.cfg is required to contain for a server with the ip 12.34.56.78
+```cfg
+AUTHSERVERIP=0:12.34.56.78,
+UGCUSE3DSERVICES=7:0
+```
 
 ## Updating your server
 To update your server to the latest version navigate to your cloned directory
