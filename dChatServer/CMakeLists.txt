@@ -2,6 +2,7 @@ set(DCHATSERVER_SOURCES
 	"ChatIgnoreList.cpp"
 	"ChatPacketHandler.cpp"
 	"PlayerContainer.cpp"
+	"ChatWebAPI.cpp"
 )
 
 add_executable(ChatServer "ChatServer.cpp")
@@ -12,5 +13,5 @@ add_library(dChatServer ${DCHATSERVER_SOURCES})
 target_include_directories(dChatServer PRIVATE "${PROJECT_SOURCE_DIR}/dServer")
 
 target_link_libraries(dChatServer ${COMMON_LIBRARIES} dChatFilter)
-target_link_libraries(ChatServer ${COMMON_LIBRARIES} dChatFilter dChatServer dServer)
+target_link_libraries(ChatServer ${COMMON_LIBRARIES} dChatFilter dChatServer dServer picohttpparser)
 

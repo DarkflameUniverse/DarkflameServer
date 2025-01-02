@@ -28,6 +28,8 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
+#include "ChatWebAPI.h"
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -122,6 +124,14 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
 
+
+	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
+	ChatWebAPI chatwebapi(Game::config->GetValue("web_server_listen_ip"), GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_listen_port")).value_or(8080));
+
+	if (web_server_enabled) {
+		LOG("Web server enabled, will process http requests.");
+	}
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
@@ -141,6 +151,10 @@ int main(int argc, char** argv) {
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
+		}
+		//Check and handle web requests:
+		if (web_server_enabled) {
+			chatwebapi.HandleRequest();
 		}
 
 		//Push our log every 30s:

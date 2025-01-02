@@ -5,7 +5,8 @@ set(DNET_SOURCES "AuthPackets.cpp"
 	"MasterPackets.cpp"
 	"PacketUtils.cpp"
 	"WorldPackets.cpp"
-	"ZoneInstanceManager.cpp")
+	"ZoneInstanceManager.cpp"
+)
 
 add_library(dNet STATIC ${DNET_SOURCES})
 target_link_libraries(dNet PRIVATE bcrypt MD5)
