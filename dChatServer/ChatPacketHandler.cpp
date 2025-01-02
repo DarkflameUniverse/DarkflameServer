@@ -29,33 +29,35 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	auto& player = Game::playerContainer.GetPlayerDataMutable(playerID);
 	if (!player) return;
 
-	auto friendsList = Database::Get()->GetFriendsList(playerID);
-	for (const auto& friendData : friendsList) {
-		FriendData fd;
-		fd.isFTP = false; // not a thing in DLU
-		fd.friendID = friendData.friendID;
-		GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
-		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
+	if (player.friends.empty()) {
+		auto friendsList = Database::Get()->GetFriendsList(playerID);
+		for (const auto& friendData : friendsList) {
+			FriendData fd;
+			fd.isFTP = false; // not a thing in DLU
+			fd.friendID = friendData.friendID;
+			GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
+			GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
 
-		fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
-		if (fd.isBestFriend) player.countOfBestFriends += 1;
-		fd.friendName = friendData.friendName;
+			fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
+			if (fd.isBestFriend) player.countOfBestFriends += 1;
+			fd.friendName = friendData.friendName;
 
-		//Now check if they're online:
-		const auto& fr = Game::playerContainer.GetPlayerData(fd.friendID);
+			//Now check if they're online:
+			const auto& fr = Game::playerContainer.GetPlayerData(fd.friendID);
 
-		if (fr) {
-			fd.isOnline = true;
-			fd.zoneID = fr.zoneID;
+			if (fr) {
+				fd.isOnline = true;
+				fd.zoneID = fr.zoneID;
 
-			//Since this friend is online, we need to update them on the fact that we've just logged in:
-			SendFriendUpdate(fr, player, 1, fd.isBestFriend);
-		} else {
-			fd.isOnline = false;
-			fd.zoneID = LWOZONEID();
+				//Since this friend is online, we need to update them on the fact that we've just logged in:
+				SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+			} else {
+				fd.isOnline = false;
+				fd.zoneID = LWOZONEID();
+			}
+
+			player.friends.push_back(fd);
 		}
-
-		player.friends.push_back(fd);
 	}
 
 	//Now, we need to send the friendlist to the server they came from:
@@ -140,7 +142,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	// Prevent GM friend spam
 	// If the player we are trying to be friends with is not a civilian and we are a civilian, abort the process
-	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN ) {
+	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN) {
 		SendFriendResponse(requestor, requestee, eAddFriendResponseType::MYTHRAN);
 		return;
 	}
@@ -400,8 +402,8 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	bitStream.Write(Game::playerContainer.GetSimCount());
 	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
 	bitStream.Write<uint8_t>(request.displayZoneData);
-	if (request.displayZoneData || request.displayIndividualPlayers){
-		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+	if (request.displayZoneData || request.displayIndividualPlayers) {
+		for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
 			if (!playerData) continue;
 			bitStream.Write<uint8_t>(0); // structure packing
 			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
