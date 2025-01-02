@@ -1691,7 +1691,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream.ReadBit();
 
-	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID());
+	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), 10);
 }
 
 void GameMessages::HandleActivityStateChangeRequest(RakNet::BitStream& inStream, Entity* entity) {
