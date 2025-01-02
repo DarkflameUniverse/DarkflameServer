@@ -718,6 +718,12 @@ namespace {
 		"scripts\\ai\\PETS\\PET_BLOCKER.lua",
 		"scripts\\ai\\PETS\\PET_FLEA_MISSION.lua",
 		"scripts\\ai\\ACT\\L_ACT_PET_INSTANCE_EXIT.lua",
+		"scripts\\ai\\WILD\\L_WILD_GF_FROG.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_Robotanist.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_Seperator.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_InfectedCitizen.lua",
+		"scripts\\ai\\MINIGAME\\SIEGE\\OBJECTS\\ATTACKER_BOUNCER_SERVER.lua",
+		"scripts\\ai\\AG\\L_AG_ZONE_PLAYER.lua",
 	};
 };
 
