@@ -126,10 +126,10 @@ int main(int argc, char** argv) {
 
 
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
-	auto chatwebapi = ChatWebAPI();
+	ChatWebAPI chatwebapi;
 
 	if (web_server_enabled) {
-		LOG("Web server enabled, will process http requests.");
+		chatwebapi = ChatWebAPI();
 	}
   
 	auto lastTime = std::chrono::high_resolution_clock::now();

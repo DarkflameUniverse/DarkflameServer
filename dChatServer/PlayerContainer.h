@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 enum class eGameMasterLevel : uint8_t;
 
