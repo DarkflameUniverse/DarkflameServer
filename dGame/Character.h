@@ -621,6 +621,12 @@ private:
 	uint64_t m_LastLogin{};
 
 	/**
+	 * Flags only set for the duration of a session
+	 * 
+	 */
+	std::set<uint32_t> m_SessionFlags;
+
+	/**
 	 * The gameplay flags this character has (not just true values)
 	 */
 	std::unordered_map<uint32_t, uint64_t> m_PlayerFlags;
