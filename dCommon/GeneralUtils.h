@@ -263,19 +263,19 @@ namespace GeneralUtils {
 		return (str.size() == 3) ? TryParse<NiPoint3>(str[0], str[1], str[2]) : std::nullopt;
 	}
 
-	// /**
-	//  * The TryParse overload for handling json parsing
-	//  * @param str The string that is the json to parse
-	//  * @returns An std::optional containing the desired json if it can be parsed from the string
-	// */
-	// template <typename T>
-	// [[nodiscard]] std::optional<json> TryParse(const std::span<char*> str) {
-	// 	try {
-	// 		return std::make_optional<json>(json::parse(str));
-	// 	} catch (const std::exception& e) {
-	// 		return std::nullopt;
-	// 	}
-	// }
+	/**
+	 * The TryParse overload for handling json parsing
+	 * @param str The string that is the json to parse
+	 * @returns An std::optional containing the desired json if it can be parsed from the string
+	*/
+	template <typename T>
+	[[nodiscard]] std::optional<json> TryParse(const std::string_view str) {
+		try {
+			return std::make_optional<json>(json::parse(str));
+		} catch (const std::exception& e) {
+			return std::nullopt;
+		}
+	}
 
 	template <typename T>
 	std::u16string to_u16string(const T value) {

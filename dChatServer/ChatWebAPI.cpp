@@ -8,6 +8,7 @@
 #include "dServer.h"
 #include "dConfig.h"
 #include "PlayerContainer.h"
+#include "GeneralUtils.h"
 
 void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, void* request_data) {
 	if (request == MG_EV_HTTP_MSG) {
@@ -21,7 +22,7 @@ void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, v
 		if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
 			// handle announcements
 			if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
-				auto data = ParseJSON(http_msg->body.buf);
+				auto data = GeneralUtils::TryParse<json>(http_msg->body.buf);
 				if (!data) {
 					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
 					return;
@@ -37,7 +38,6 @@ void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, v
 					return;
 				}
 				std::string message = data.value()["message"];
-				LOG_DEBUG("Announcement: %s - %s", title.c_str(), message.c_str());
 
 				// build and send the packet to all world servers
 				{
@@ -133,15 +133,3 @@ void ChatWebAPI::Listen() {
 void ChatWebAPI::ReceiveRequests() {
 	mg_mgr_poll(&mgr, 15);
 }
-
-// TODO: Move to GeneralUtils
-std::optional<json> ChatWebAPI::ParseJSON(char* data) {
-	try {
-		return std::make_optional<json>(json::parse(data));
-	} catch (const std::exception& e) {
-		LOG_DEBUG("Failed to parse JSON: %s", e.what());
-		return std::nullopt;
-	}
-}
-
-
