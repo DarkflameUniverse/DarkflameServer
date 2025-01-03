@@ -24,9 +24,9 @@ void to_json(json& data, const PlayerData& playerData) {
 	data["muted"] = playerData.GetIsMuted();
 
 	auto& zoneID = data["zone_id"];
-	zoneID["map_id"] = std::to_string(playerData.zoneID.GetMapID());
-	zoneID["instance_id"] = std::to_string(playerData.zoneID.GetInstanceID());
-	zoneID["clone_id"] = std::to_string(playerData.zoneID.GetCloneID());
+	zoneID["map_id"] = playerData.zoneID.GetMapID();
+	zoneID["instance_id"] = playerData.zoneID.GetInstanceID();
+	zoneID["clone_id"] = playerData.zoneID.GetCloneID();
 }
 
 void to_json(json& data, const PlayerContainer& playerContainer) {
