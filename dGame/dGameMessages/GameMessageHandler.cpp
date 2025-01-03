@@ -117,6 +117,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	}
 
 	case MessageType::Game::PLAYER_LOADED: {
+		GameMessages::SendPlayerReady(entity, sysAddr);
 		entity->SetPlayerReadyForUpdates();
 
 		auto* ghostComponent = entity->GetComponent<GhostComponent>();
@@ -183,7 +184,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		LOG("Player %s (%llu) loaded.", entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
 
 		// After we've done our thing, tell the client they're ready
-		GameMessages::SendPlayerReady(entity, sysAddr);
 		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
 		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
