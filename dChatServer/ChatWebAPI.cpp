@@ -74,13 +74,13 @@ void HandleRequests(mg_connection* connection, int request, void* request_data) 
 				if (mg_match(http_msg->uri, mg_str((root_path + "players").c_str()), NULL)) {
 					const json data = Game::playerContainer;
 
-					reply.status = 200;
+					reply.status = data.empty() ? 204 : 200;
 					reply.message = data.empty() ? "{\"error\":\"No Players Online\"}" : data.dump();
 				} else if (mg_match(http_msg->uri, mg_str((root_path + "teams").c_str()), NULL)) {
 					// Get Teams
 					const json data = Game::playerContainer.GetTeamComtainer();
 
-					reply.status = 200;
+					reply.status = data.empty() ? 204 : 200;
 					reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
 				}
 			}
