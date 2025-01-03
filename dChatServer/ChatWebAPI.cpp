@@ -122,9 +122,9 @@ ChatWebAPI::~ChatWebAPI() {
 
 void ChatWebAPI::Listen() {
 	// make listen address
-	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
-	std::string listen_port = Game::config->GetValue("wed_server_listen_port");
-	std::string listen_address = "http://" + listen_ip + ":" + listen_port;
+	const std::string& listen_ip = Game::config->GetValue("web_server_listen_ip");
+	const std::string& listen_port = Game::config->GetValue("wed_server_listen_port");
+	const std::string& listen_address = "http://" + listen_ip + ":" + listen_port;
 	LOG("Starting web server on %s", listen_address.c_str());
 
 	mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL);  // Create HTTP listener
