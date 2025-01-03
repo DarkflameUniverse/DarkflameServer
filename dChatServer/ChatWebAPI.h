@@ -2,10 +2,6 @@
 #define CHATWEBAPI_H
 
 #include "mongoose.h"
-#include "json_fwd.hpp"
-#include "GeneralUtils.h"
-
-using json = nlohmann::json;
 
 typedef struct mg_mgr mg_mgr;
 

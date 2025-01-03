@@ -10,6 +10,10 @@
 #include "PlayerContainer.h"
 #include "GeneralUtils.h"
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 typedef struct mg_connection mg_connection;
 typedef struct mg_http_message mg_http_message;
 

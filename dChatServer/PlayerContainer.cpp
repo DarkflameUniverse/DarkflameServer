@@ -13,6 +13,8 @@
 #include "dConfig.h"
 #include "MessageType/Chat.h"
 
+#include "json.hpp"
+
 using json = nlohmann::json;
 
 void to_json(json& data, const PlayerData& playerData) {
