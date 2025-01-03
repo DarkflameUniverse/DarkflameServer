@@ -271,7 +271,7 @@ namespace GeneralUtils {
 	template <typename T>
 	[[nodiscard]] std::optional<json> TryParse(const std::string_view str) {
 		try {
-			return std::make_optional<json>(json::parse(str));
+			return json::parse(str);
 		} catch (const std::exception& e) {
 			return std::nullopt;
 		}
