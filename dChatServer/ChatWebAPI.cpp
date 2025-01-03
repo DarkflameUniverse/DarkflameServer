@@ -133,3 +133,12 @@ void ChatWebAPI::Listen() {
 void ChatWebAPI::ReceiveRequests() {
 	mg_mgr_poll(&mgr, 15);
 }
+
+std::optional<json> ChatWebAPI::ParseJSON(char* data) {
+	try {
+		return std::make_optional<json>(json::parse(data));
+	} catch (const std::exception& e) {
+		LOG_DEBUG("Failed to parse JSON: %s", e.what());
+		return std::nullopt;
+	}
+}
