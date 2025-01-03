@@ -765,6 +765,10 @@ namespace GameMessages {
 		LOT templateID{};
 		LWOOBJID childID{};
 	};
+
+	struct PlayerResurrectionFinished : public GameMsg {
+		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
+	};
 };
 
 #endif // GAMEMESSAGES_H

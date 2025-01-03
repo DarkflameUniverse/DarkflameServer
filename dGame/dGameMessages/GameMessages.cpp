@@ -968,6 +968,8 @@ void GameMessages::SendResurrect(Entity* entity) {
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
 	entity->AddCallbackTimer(respawnTime, [=]() {
+		GameMessages::PlayerResurrectionFinished msg;
+		entity->NotifyPlayerResurrectionFinished(msg);
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
