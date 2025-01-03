@@ -354,6 +354,10 @@ Now follow the [build](#build-the-server) section for your system and your serve
 ## In-game commands
 * A list of all in-game commands can be found [here](./docs/Commands.md).
 
+## Chat Web API
+* The Chat server has an API that can be enabled via `chatconfig.ini`.
+* You can view the OpenAPI doc for the API here [here](./docs/ChatWebAPI.yaml).
+
 ## Verifying your client files
 
 ### LEGO® Universe 1.10.64
