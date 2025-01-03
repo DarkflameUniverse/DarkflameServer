@@ -10,6 +10,12 @@
 
 enum class eGameMasterLevel : uint8_t;
 
+struct TeamData;
+
+struct TeamContainer {
+	std::vector<TeamData*> mTeams;
+};
+
 struct IgnoreData {
 	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName{ name }, playerId{ id } {}
 	inline bool operator==(const std::string& other) const noexcept {
@@ -37,8 +43,6 @@ struct PlayerData {
 		return muteExpire == 1 || muteExpire > time(NULL);
 	}
 
-	const nlohmann::json to_json() const;
-
 	SystemAddress sysAddr{};
 	LWOZONEID zoneID{};
 	LWOOBJID playerID = LWOOBJID_EMPTY;
@@ -50,6 +54,11 @@ struct PlayerData {
 	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0); // CIVILLIAN
 	bool isFTP = false;
 };
+
+void to_json(nlohmann::json& data, const PlayerData& playerData);
+void to_json(nlohmann::json& data, const PlayerContainer& playerContainer);
+void to_json(nlohmann::json& data, const TeamContainer& teamData);
+void to_json(nlohmann::json& data, const TeamData& teamData);
 
 struct TeamData {
 	TeamData();
@@ -78,7 +87,7 @@ public:
 	PlayerData& GetPlayerDataMutable(const std::string& playerName);
 	uint32_t GetPlayerCount() { return m_PlayerCount; };
 	uint32_t GetSimCount() { return m_SimCount; };
-	const std::map<LWOOBJID, PlayerData>& GetAllPlayers() { return m_Players; };
+	const std::map<LWOOBJID, PlayerData>& GetAllPlayers() const { return m_Players; };
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);
@@ -93,7 +102,9 @@ public:
 	LWOOBJID GetId(const std::u16string& playerName);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
-	const std::vector<TeamData*>& GetAllTeams() { return mTeams;};
+	const TeamContainer& GetTeamComtainer() { return teamContainer; }
+	std::vector<TeamData*>& GetTeamsMut() { return teamContainer.mTeams; };
+	const std::vector<TeamData*>& GetTeams() { return GetTeamsMut(); };
 
 	void Update(const float deltaTime);
 	bool PlayerBeingRemoved(const LWOOBJID playerID) { return m_PlayersToRemove.contains(playerID); }
@@ -101,7 +112,7 @@ public:
 private:
 	LWOOBJID m_TeamIDCounter = 0;
 	std::map<LWOOBJID, PlayerData> m_Players;
-	std::vector<TeamData*> mTeams;
+	TeamContainer teamContainer{};
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
 	std::map<LWOOBJID, float> m_PlayersToRemove;
 	uint32_t m_MaxNumberOfBestFriends = 5;

@@ -15,18 +15,44 @@
 
 using json = nlohmann::json;
 
-const json PlayerData::to_json() const {
-	json data;
-	data["id"] = this->playerID;
-	data["name"] = this->playerName;
-	data["gm_level"] = this->gmLevel;
-	data["muted"] = this->GetIsMuted();
+void to_json(json& data, const PlayerData& playerData) {
+	data["id"] = playerData.playerID;
+	data["name"] = playerData.playerName;
+	data["gm_level"] = playerData.gmLevel;
+	data["muted"] = playerData.GetIsMuted();
 
-	json& zoneID = data["zone_id"];
-	zoneID["map_id"] = std::to_string(this->zoneID.GetMapID());
-	zoneID["instance_id"] = std::to_string(this->zoneID.GetInstanceID());
-	zoneID["clone_id"] = std::to_string(this->zoneID.GetCloneID());
-	return data;
+	auto& zoneID = data["zone_id"];
+	zoneID["map_id"] = std::to_string(playerData.zoneID.GetMapID());
+	zoneID["instance_id"] = std::to_string(playerData.zoneID.GetInstanceID());
+	zoneID["clone_id"] = std::to_string(playerData.zoneID.GetCloneID());
+}
+
+void to_json(json& data, const PlayerContainer& playerContainer) {
+	data = playerContainer.GetAllPlayers();
+}
+
+void to_json(json& data, const TeamContainer& teamContainer) {
+	for (auto& teamData : Game::playerContainer.GetTeams()) {
+		if (!teamData) continue;
+		data.push_back(*teamData);
+	}
+}
+
+void to_json(json& data, const TeamData& teamData) {
+	data["id"] = teamData.teamID;
+	data["loot_flag"] = teamData.lootFlag;
+	data["local"] = teamData.local;
+
+	auto& leader = Game::playerContainer.GetPlayerData(teamData.leaderID);
+	data["leader"] = leader.playerName;
+
+	auto& members = data["members"];
+	for (auto& member : teamData.memberIDs) {
+		auto& playerData = Game::playerContainer.GetPlayerData(member);
+
+		if (!playerData) continue;
+		members.push_back(playerData);
+	}
 }
 
 void PlayerContainer::Initialize() {
@@ -232,7 +258,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 	team->leaderID = leader;
 	team->local = local;
 
-	mTeams.push_back(team);
+	GetTeamsMut().push_back(team);
 
 	AddMember(team, leader);
 
@@ -240,7 +266,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 }
 
 TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
-	for (auto* team : mTeams) {
+	for (auto* team : GetTeams()) {
 		if (std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID) == team->memberIDs.end()) continue;
 
 		return team;
@@ -348,9 +374,9 @@ void PlayerContainer::PromoteMember(TeamData* team, LWOOBJID newLeader) {
 }
 
 void PlayerContainer::DisbandTeam(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+	const auto index = std::find(GetTeams().begin(), GetTeams().end(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
 
 	for (const auto memberId : team->memberIDs) {
 		const auto& otherMember = GetPlayerData(memberId);
@@ -365,15 +391,15 @@ void PlayerContainer::DisbandTeam(TeamData* team) {
 
 	UpdateTeamsOnWorld(team, true);
 
-	mTeams.erase(index);
+	GetTeamsMut().erase(index);
 
 	delete team;
 }
 
 void PlayerContainer::TeamStatusUpdate(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+	const auto index = std::find(GetTeams().begin(), GetTeams().end(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
 
 	const auto& leader = GetPlayerData(team->leaderID);
 
@@ -460,5 +486,5 @@ void PlayerContainer::Shutdown() {
 		Database::Get()->UpdateActivityLog(id, eActivityType::PlayerLoggedOut, playerData.zoneID.GetMapID());
 		m_Players.erase(m_Players.begin());
 	}
-	for (auto* team : mTeams) if (team) delete team;
+	for (auto* team : GetTeams()) if (team) delete team;
 }

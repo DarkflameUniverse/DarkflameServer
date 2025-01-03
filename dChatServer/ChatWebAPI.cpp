@@ -18,109 +18,78 @@ namespace {
 	const char* json_content_type = "Content-Type: application/json\r\n";
 }
 
+struct HttpReply {
+	uint32_t status = 404;
+	std::string message = "{\"error\":\"Not Found\"}";
+};
+
 void HandleRequests(mg_connection* connection, int request, void* request_data) {
 	if (request == MG_EV_HTTP_MSG) {
+		HttpReply reply;
 		const mg_http_message* const http_msg = static_cast<mg_http_message*>(request_data);
 		if (!http_msg) {
-			mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid Request\"}");
-			return;
-		}
-
-		// Handle Post requests
-		if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
-			// handle announcements
-			if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
+			reply.status = 400;
+			reply.message = "{\"error\":\"Invalid Request\"}";
+		} else {
+			// Handle Post requests
+			if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
 				auto data = GeneralUtils::TryParse<json>(http_msg->body.buf);
 				if (!data) {
-					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
-					return;
-				}
+					reply.status = 400;
+					reply.message = "{\"error\":\"Invalid JSON\"}";
+				} else if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
+					auto& jsonBuffer = data.value();
+					// handle announcements
 
-				if (!data.value().contains("title")) {
-					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Missing paramater: title\"}");
-					return;
-				}
-				std::string title = data.value()["title"];
-				if (!data.value().contains("message")) {
-					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Missing paramater: message\"}");
-					return;
-				}
-				std::string message = data.value()["message"];
+					if (!jsonBuffer.contains("title")) {
+						reply.status = 400;
+						reply.message = "{\"error\":\"Missing paramater: title\"}";
+					} else if (!jsonBuffer.contains("message")) {
+						reply.status = 400;
+						reply.message = "{\"error\":\"Missing paramater: message\"}";
+					} else {
+						std::string title = jsonBuffer["title"];
+						std::string message = jsonBuffer["message"];
 
-				// build and send the packet to all world servers
-				{
-					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
-					bitStream.Write<uint32_t>(title.size());
-					bitStream.Write(title);
-					bitStream.Write<uint32_t>(message.size());
-					bitStream.Write(message);
-					Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-				}
+						// build and send the packet to all world servers
+						CBITSTREAM;
+						BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
+						bitStream.Write<uint32_t>(title.size());
+						bitStream.Write(title);
+						bitStream.Write<uint32_t>(message.size());
+						bitStream.Write(message);
+						SEND_PACKET_BROADCAST;
 
-				mg_http_reply(connection, 200, json_content_type, "{\"status\":\"Announcement Sent\"}");
-				return;
-			}
-			// Handle GET Requests
-		} else if (mg_strcmp(http_msg->method, mg_str("GET")) == 0) {
-
-			// Get All Online players
-			if (mg_match(http_msg->uri, mg_str((root_path + "players").c_str()), NULL)) {
-				auto data = json::array();
-				for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
-					if (!playerData) continue;
-					data.push_back(playerData.to_json());
-				}
-				if (data.empty()) {
-					mg_http_reply(connection, 200, json_content_type, "{\"error\":\"No Players Online\"}");
-				} else {
-					mg_http_reply(connection, 200, json_content_type, data.dump().c_str());
-				}
-				return;
-
-			} else if (mg_match(http_msg->uri, mg_str((root_path + "teams").c_str()), NULL)) {
-
-				// Get Teams
-				auto data = json::array();
-				for (auto& teamData : Game::playerContainer.GetAllTeams()) {
-					if (!teamData) continue;
-					json toInsert;
-					toInsert["id"] = teamData->teamID;
-					toInsert["loot_flag"] = teamData->lootFlag;
-					toInsert["local"] = teamData->local;
-
-					auto& leader = Game::playerContainer.GetPlayerData(teamData->leaderID);
-					toInsert["leader"] = leader.to_json();
-
-					json members;
-					for (auto& member : teamData->memberIDs) {
-						auto& playerData = Game::playerContainer.GetPlayerData(member);
-
-						if (!playerData) continue;
-						members.push_back(playerData.to_json());
+						reply.status = 200;
+						reply.message = "{\"status\":\"Announcement Sent\"}";
 					}
-					toInsert["members"] = members;
-					data.push_back(toInsert);
 				}
+				// Handle GET Requests
+			} else if (mg_strcmp(http_msg->method, mg_str("GET")) == 0) {
+				// Get All Online players
+				if (mg_match(http_msg->uri, mg_str((root_path + "players").c_str()), NULL)) {
+					const json data = Game::playerContainer;
 
-				if (data.empty()) {
-					mg_http_reply(connection, 200, json_content_type, "{\"error\":\"No Teams Online\"}");
-				} else {
-					mg_http_reply(connection, 200, json_content_type, data.dump().c_str());
+					reply.status = 200;
+					reply.message = data.empty() ? "{\"error\":\"No Players Online\"}" : data.dump();
+				} else if (mg_match(http_msg->uri, mg_str((root_path + "teams").c_str()), NULL)) {
+					// Get Teams
+					const json data = Game::playerContainer.GetTeamComtainer();
+
+					reply.status = 200;
+					reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
 				}
-				return;
-
 			}
 		}
 
-		// If it hasn't been handled then reply 404 Not Found
-		mg_http_reply(connection, 404, json_content_type, "{\"error\":\"Not Found\"}");
+		LOG_DEBUG("Replying with status %d: %s", reply.status, reply.message.c_str());
+		mg_http_reply(connection, reply.status, json_content_type, reply.message.c_str());
 	}
 }
 
 
 ChatWebAPI::ChatWebAPI() {
-	if (Game::logger->GetLogDebugStatements()) mg_log_set(MG_LL_DEBUG);
+	mg_log_set(MG_LL_NONE);
 	mg_mgr_init(&mgr);  // Initialize event manager
 }
 
@@ -130,12 +99,17 @@ ChatWebAPI::~ChatWebAPI() {
 
 void ChatWebAPI::Listen() {
 	// make listen address
-	const std::string& listen_ip = Game::config->GetValue("web_server_listen_ip");
-	const std::string& listen_port = Game::config->GetValue("wed_server_listen_port");
+	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
+	if (listen_ip == "localhost") listen_ip = "127.0.0.1";
+
+	const std::string& listen_port = Game::config->GetValue("web_server_listen_port");
 	const std::string& listen_address = "http://" + listen_ip + ":" + listen_port;
 	LOG("Starting web server on %s", listen_address.c_str());
 
-	mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL);  // Create HTTP listener
+	// Create HTTP listener
+	if (!mg_http_listen(&mgr, listen_address.c_str(), HandleRequests, NULL)) {
+		LOG("Failed to create web server listener");
+	}
 }
 
 void ChatWebAPI::ReceiveRequests() {

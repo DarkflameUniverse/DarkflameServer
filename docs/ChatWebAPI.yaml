@@ -130,7 +130,8 @@ components:
           type: boolean
           example: false
         leader:
-          $ref: "#/components/schemas/Player"
+          type: string
+          example: thisisatestname
         members:
           type: array
           items:
