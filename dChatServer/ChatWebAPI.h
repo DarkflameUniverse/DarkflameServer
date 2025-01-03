@@ -7,6 +7,8 @@
 
 using json = nlohmann::json;
 
+typedef struct mg_mgr mg_mgr;
+
 class ChatWebAPI {
 public:
 	ChatWebAPI();
@@ -14,12 +16,7 @@ public:
 	void ReceiveRequests();
 	void Listen();
 private:
-	static void HandleRequests(struct mg_connection *c, int ev, void *ev_data);
-	static std::optional<json> ParseJSON(char * data);
-
-	struct mg_mgr mgr;
-	inline static const std::string root_path = "/api/v1/";
-	inline static const char * json_content_type = "Content-Type: application/json\r\n";
+	mg_mgr mgr;
 };
 
 #endif

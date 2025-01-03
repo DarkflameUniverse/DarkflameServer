@@ -10,9 +10,17 @@
 #include "PlayerContainer.h"
 #include "GeneralUtils.h"
 
-void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, void* request_data) {
+typedef struct mg_connection mg_connection;
+typedef struct mg_http_message mg_http_message;
+
+namespace {
+	const std::string root_path = "/api/v1/";
+	const char* json_content_type = "Content-Type: application/json\r\n";
+}
+
+void HandleRequests(mg_connection* connection, int request, void* request_data) {
 	if (request == MG_EV_HTTP_MSG) {
-		struct mg_http_message* http_msg = static_cast<struct mg_http_message*>(request_data);
+		const mg_http_message* const http_msg = static_cast<mg_http_message*>(request_data);
 		if (!http_msg) {
 			mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid Request\"}");
 			return;
@@ -22,7 +30,7 @@ void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, v
 		if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
 			// handle announcements
 			if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
-				auto data = ParseJSON(http_msg->body.buf);
+				auto data = GeneralUtils::TryParse<json>(http_msg->body.buf);
 				if (!data) {
 					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
 					return;
@@ -132,13 +140,4 @@ void ChatWebAPI::Listen() {
 
 void ChatWebAPI::ReceiveRequests() {
 	mg_mgr_poll(&mgr, 15);
-}
-
-std::optional<json> ChatWebAPI::ParseJSON(char* data) {
-	try {
-		return std::make_optional<json>(json::parse(data));
-	} catch (const std::exception& e) {
-		LOG_DEBUG("Failed to parse JSON: %s", e.what());
-		return std::nullopt;
-	}
 }

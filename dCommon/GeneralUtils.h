@@ -18,6 +18,7 @@
 #include "dPlatforms.h"
 #include "Game.h"
 #include "Logger.h"
+#include "json_fwd.hpp"
 
 enum eInventoryType : uint32_t;
 enum class eObjectBits : size_t;
@@ -200,6 +201,10 @@ namespace GeneralUtils {
 
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
+
+	template<typename T>
+	requires(!Numeric<T>)
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str);
 
 #if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 

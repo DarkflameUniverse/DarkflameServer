@@ -327,6 +327,21 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 	return sortedFiles;
 }
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
+template<>
+[[nodiscard]] std::optional<json> GeneralUtils::TryParse(std::string_view str) {
+	try {
+		return json::parse(str);
+	} catch (const std::exception& e) {
+		return std::nullopt;
+	} catch (...) {
+		return std::nullopt;
+	}
+}
+
 #if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 
 // MacOS floating-point parse function specializations
