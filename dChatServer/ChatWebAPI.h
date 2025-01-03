@@ -1,5 +1,5 @@
-#ifndef INCLUDED_CHATWEBAPI
-#define INCLUDED_CHATWEBAPI
+#ifndef CHATWEBAPI_H
+#define CHATWEBAPI_H
 
 #include "mongoose.h"
 #include "json_fwd.hpp"
