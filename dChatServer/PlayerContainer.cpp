@@ -22,11 +22,10 @@ const json PlayerData::to_json() const {
 	data["gm_level"] = this->gmLevel;
 	data["muted"] = this->GetIsMuted();
 
-	json zoneID;
+	json& zoneID = data["zone_id"];
 	zoneID["map_id"] = std::to_string(this->zoneID.GetMapID());
 	zoneID["instance_id"] = std::to_string(this->zoneID.GetInstanceID());
 	zoneID["clone_id"] = std::to_string(this->zoneID.GetCloneID());
-	data["zone_id"] = zoneID;
 	return data;
 }
 
