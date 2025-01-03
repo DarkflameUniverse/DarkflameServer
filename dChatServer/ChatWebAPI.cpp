@@ -22,7 +22,7 @@ void ChatWebAPI::HandleRequests(struct mg_connection* connection, int request, v
 		if (mg_strcmp(http_msg->method, mg_str("POST")) == 0) {
 			// handle announcements
 			if (mg_match(http_msg->uri, mg_str((root_path + "announce").c_str()), NULL)) {
-				auto data = GeneralUtils::TryParse<json>(http_msg->body.buf);
+				auto data = ParseJSON(http_msg->body.buf);
 				if (!data) {
 					mg_http_reply(connection, 400, json_content_type, "{\"error\":\"Invalid JSON\"}");
 					return;
