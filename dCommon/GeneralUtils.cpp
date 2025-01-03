@@ -7,6 +7,10 @@
 #include <filesystem>
 #include <map>
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 template <typename T>
 static inline size_t MinSize(const size_t size, const std::basic_string_view<T> string) {
 	if (size == SIZE_MAX || size > string.size()) {
@@ -326,10 +330,6 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 
 	return sortedFiles;
 }
-
-#include "json.hpp"
-
-using json = nlohmann::json;
 
 template<>
 [[nodiscard]] std::optional<json> GeneralUtils::TryParse(std::string_view str) {
