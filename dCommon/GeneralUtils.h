@@ -18,7 +18,6 @@
 #include "dPlatforms.h"
 #include "Game.h"
 #include "Logger.h"
-#include "json_fwd.hpp"
 
 enum eInventoryType : uint32_t;
 enum class eObjectBits : size_t;

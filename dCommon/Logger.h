@@ -80,7 +80,6 @@ public:
 	void SetLogToConsole(bool logToConsole);
 
 	void SetLogDebugStatements(bool logDebugStatements) { m_logDebugStatements = logDebugStatements; }
-	bool GetLogDebugStatements() const { return m_logDebugStatements; }
 
 private:
 	void vLog(const char* format, va_list args);
