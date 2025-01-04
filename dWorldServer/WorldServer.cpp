@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 	auto chatSock = SocketDescriptor(static_cast<uint16_t>(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
-	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+	Game::chatServer->Connect(masterIP.c_str(), chatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
@@ -373,7 +373,7 @@ int main(int argc, char** argv) {
 			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
-				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+				Game::chatServer->Connect(masterIP.c_str(), chatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 			}
 		} else framesSinceChatDisconnect = 0;
 

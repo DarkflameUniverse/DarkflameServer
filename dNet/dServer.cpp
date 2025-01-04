@@ -222,7 +222,7 @@ bool dServer::Startup() {
 	} else {
 		UpdateBandwidthLimit();
 		UpdateMaximumMtuSize();
-		mPeer->SetIncomingPassword("3.25 ND1", 8);
+		mPeer->SetIncomingPassword(NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 	}
 
 	mPeer->SetMaximumIncomingConnections(mMaxConnections);
