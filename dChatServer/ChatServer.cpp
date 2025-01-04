@@ -92,10 +92,12 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1000;
+	std::string masterPassword;
 	auto masterInfo = Database::Get()->GetMasterInfo();
 	if (masterInfo) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
+		masterPassword = masterInfo->password;
 	}
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	std::string ourIP = "localhost";
@@ -104,7 +106,7 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal, masterPassword);
 
 	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);

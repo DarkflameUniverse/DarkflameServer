@@ -202,11 +202,13 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
 	uint32_t masterPort = 1000;
+	std::string masterPassword;
 	auto masterInfo = Database::Get()->GetMasterInfo();
 
 	if (masterInfo) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
+		masterPassword = masterInfo->password;
 	}
 
 	UserManager::Instance()->Initialize();
@@ -214,7 +216,7 @@ int main(int argc, char** argv) {
 	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, masterPassword, zoneID);
 
 	//Connect to the chat server:
 	uint32_t chatPort = 1501;
