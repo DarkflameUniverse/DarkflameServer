@@ -386,6 +386,9 @@ void Entity::Initialize() {
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
+			// extraInfo overrides. Client ORs the database smashable and the luz smashable.
+			comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
+
 			if (componentID > 0) {
 				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
@@ -420,9 +423,6 @@ void Entity::Initialize() {
 						comp->SetMinCoins(currencyValues[0].minvalue);
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
 					}
-
-					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
 				}
 			} else {
 				comp->SetHealth(1);
@@ -1565,7 +1565,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	m_DieCallbacks.clear();
 
-	//OMAI WA MOU, SHINDERIU
+	//お前はもう死んでいる
 
 	GetScript()->OnDie(this, murderer);
 
@@ -2208,7 +2208,7 @@ void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 
 int32_t Entity::GetCollisionGroup() const {
 	for (const auto* component : m_Components | std::views::values) {
-		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);	
+		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);
 		if (compToCheck) {
 			return compToCheck->GetCollisionGroup();
 		}

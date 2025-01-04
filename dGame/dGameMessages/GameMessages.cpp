@@ -845,8 +845,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::DIE);
+
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
+	bitStream.Write<uint32_t>(deathType.size());
 	bitStream.Write(deathType);
 	bitStream.Write(directionRelative_AngleXZ);
 	bitStream.Write(directionRelative_AngleY);
@@ -856,7 +858,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
 
 	bitStream.Write(killerID);
-	bitStream.Write(lootOwnerID);
+	bitStream.Write(lootOwnerID != LWOOBJID_EMPTY);
+	if (lootOwnerID != LWOOBJID_EMPTY) {
+		bitStream.Write(lootOwnerID);
+	}
 
 	SEND_PACKET_BROADCAST;
 }

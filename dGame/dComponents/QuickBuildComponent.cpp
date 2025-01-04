@@ -65,14 +65,7 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 
 		outBitStream.Write(false);
 	}
-	// If build state is completed and we've already serialized once in the completed state,
-	// don't serializing this component anymore as this will cause the build to jump again.
-	// If state changes, serialization will begin again.
-	if (!m_StateDirty && m_State == eQuickBuildState::COMPLETED) {
-		outBitStream.Write0();
-		outBitStream.Write0();
-		return;
-	}
+
 	// BEGIN Scripted Activity
 	outBitStream.Write1();
 
@@ -90,26 +83,27 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 	}
 	// END Scripted Activity
 
-	outBitStream.Write1();
+	outBitStream.Write(m_StateDirty || bIsInitialUpdate);
+	if (m_StateDirty || bIsInitialUpdate) {
+		outBitStream.Write(m_State);
 
-	outBitStream.Write(m_State);
+		outBitStream.Write(m_ShowResetEffect);
+		outBitStream.Write(m_Activator != nullptr);
 
-	outBitStream.Write(m_ShowResetEffect);
-	outBitStream.Write(m_Activator != nullptr);
+		outBitStream.Write(m_Timer);
+		outBitStream.Write(m_TimerIncomplete);
 
-	outBitStream.Write(m_Timer);
-	outBitStream.Write(m_TimerIncomplete);
-
-	if (bIsInitialUpdate) {
-		outBitStream.Write(false);
-		outBitStream.Write(m_ActivatorPosition);
-		outBitStream.Write(m_RepositionPlayer);
+		if (bIsInitialUpdate) {
+			outBitStream.Write(false); // IsChoiceBuild
+			outBitStream.Write(m_ActivatorPosition);
+			outBitStream.Write(m_RepositionPlayer);
+		}
+		m_StateDirty = false;
 	}
-	m_StateDirty = false;
 }
 
 void QuickBuildComponent::Update(float deltaTime) {
-	m_Activator = GetActivator();
+	SetActivator(GetActivator());
 
 	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
 	/*if (m_SoftTimer > 0.0f) {
@@ -130,12 +124,13 @@ void QuickBuildComponent::Update(float deltaTime) {
 		const bool isSmashGroup = spawner != nullptr ? spawner->GetIsSpawnSmashGroup() : false;
 
 		if (isSmashGroup) {
-			m_TimerIncomplete += deltaTime;
+			ModifyIncompleteTimer(deltaTime);
+			Game::entityManager->SerializeEntity(m_Parent);
 
 			// For reset times < 0 this has to be handled manually
 			if (m_TimeBeforeSmash > 0) {
 				if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
-					m_ShowResetEffect = true;
+					SetShowResetEffect(true);
 
 					Game::entityManager->SerializeEntity(m_Parent);
 				}
@@ -153,21 +148,20 @@ void QuickBuildComponent::Update(float deltaTime) {
 		break;
 	}
 	case eQuickBuildState::COMPLETED: {
-		m_Timer += deltaTime;
+		ModifyTimer(deltaTime);
+		Game::entityManager->SerializeEntity(m_Parent);
 
 		// For reset times < 0 this has to be handled manually
 		if (m_ResetTime > 0) {
 			if (m_Timer >= m_ResetTime - 4.0f) {
-				if (!m_ShowResetEffect) {
-					m_ShowResetEffect = true;
+				SetShowResetEffect(true);
 
-					Game::entityManager->SerializeEntity(m_Parent);
-				}
+				Game::entityManager->SerializeEntity(m_Parent);
 			}
 
 			if (m_Timer >= m_ResetTime) {
 
-				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 0.0f, false, true);
+				GameMessages::SendDieNoImplCode(m_Parent, LWOOBJID_EMPTY, LWOOBJID_EMPTY, eKillType::VIOLENT, u"", 0.0f, 0.0f, 7.0f, false, true);
 
 				ResetQuickBuild(false);
 			}
@@ -185,9 +179,9 @@ void QuickBuildComponent::Update(float deltaTime) {
 		}
 
 		m_TimeBeforeDrain -= deltaTime;
-		m_Timer += deltaTime;
-		m_TimerIncomplete = 0;
-		m_ShowResetEffect = false;
+		ModifyTimer(deltaTime);
+		SetIncompleteTimer(0.0f);
+		SetShowResetEffect(false);
 
 		if (m_TimeBeforeDrain <= 0.0f) {
 			m_TimeBeforeDrain = m_CompleteTime / static_cast<float>(m_TakeImagination);
@@ -215,12 +209,13 @@ void QuickBuildComponent::Update(float deltaTime) {
 		break;
 	}
 	case eQuickBuildState::INCOMPLETE: {
-		m_TimerIncomplete += deltaTime;
+		ModifyIncompleteTimer(deltaTime);
+		Game::entityManager->SerializeEntity(m_Parent);
 
 		// For reset times < 0 this has to be handled manually
 		if (m_TimeBeforeSmash > 0) {
 			if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
-				m_ShowResetEffect = true;
+				SetShowResetEffect(true);
 
 				Game::entityManager->SerializeEntity(m_Parent);
 			}
@@ -260,7 +255,7 @@ void QuickBuildComponent::SpawnActivator() {
 			info.spawnerID = m_Parent->GetObjectID();
 			info.pos = m_ActivatorPosition == NiPoint3Constant::ZERO ? m_Parent->GetPosition() : m_ActivatorPosition;
 
-			m_Activator = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
+			SetActivator(Game::entityManager->CreateEntity(info, nullptr, m_Parent));
 			if (m_Activator) {
 				m_ActivatorId = m_Activator->GetObjectID();
 				Game::entityManager->ConstructEntity(m_Activator);
@@ -277,7 +272,7 @@ void QuickBuildComponent::DespawnActivator() {
 
 		m_Activator->ScheduleKillAfterUpdate();
 
-		m_Activator = nullptr;
+		SetActivator(nullptr);
 
 		m_ActivatorId = LWOOBJID_EMPTY;
 	}
@@ -405,8 +400,7 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 		GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::BUILDING, user->GetObjectID());
 		GameMessages::SendEnableQuickBuild(m_Parent, true, false, false, eQuickBuildFailReason::NOT_GIVEN, 0.0f, user->GetObjectID());
 
-		m_State = eQuickBuildState::BUILDING;
-		m_StateDirty = true;
+		SetState(eQuickBuildState::BUILDING);
 		Game::entityManager->SerializeEntity(m_Parent);
 
 		auto* movingPlatform = m_Parent->GetComponent<MovingPlatformComponent>();
@@ -444,9 +438,8 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 
-	m_State = eQuickBuildState::COMPLETED;
-	m_StateDirty = true;
-	m_Timer = 0.0f;
+	SetState(eQuickBuildState::COMPLETED);
+	SetTimer(0.0f);
 	m_DrainedImagination = 0;
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -526,11 +519,10 @@ void QuickBuildComponent::ResetQuickBuild(const bool failed) {
 
 	GameMessages::SendQuickBuildNotifyState(m_Parent, m_State, eQuickBuildState::RESETTING, LWOOBJID_EMPTY);
 
-	m_State = eQuickBuildState::RESETTING;
-	m_StateDirty = true;
-	m_Timer = 0.0f;
-	m_TimerIncomplete = 0.0f;
-	m_ShowResetEffect = false;
+	SetState(eQuickBuildState::RESETTING);
+	SetTimer(0.0f);
+	SetIncompleteTimer(0.0f);
+	SetShowResetEffect(false);
 	m_DrainedImagination = 0;
 
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -563,8 +555,7 @@ void QuickBuildComponent::CancelQuickBuild(Entity* const entity, const eQuickBui
 		GameMessages::SendTerminateInteraction(m_Parent->GetObjectID(), eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 		// Now update the component itself
-		m_State = eQuickBuildState::INCOMPLETE;
-		m_StateDirty = true;
+		SetState(eQuickBuildState::INCOMPLETE);
 
 		// Notify scripts and possible subscribers
 		m_Parent->GetScript()->OnQuickBuildNotifyState(m_Parent, m_State);
