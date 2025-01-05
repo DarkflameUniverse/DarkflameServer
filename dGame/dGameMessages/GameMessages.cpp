@@ -48,8 +48,6 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "httplib.h" //sorry not sorry.
-
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
