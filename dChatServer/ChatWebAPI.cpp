@@ -14,8 +14,12 @@
 #include "eHTTPStatusCode.h"
 #include "magic_enum.hpp"
 #include "ChatPackets.h"
-
 #include "StringifiedEnum.h"
+
+#ifdef DARKFLAME_PLATFORM_WIN32
+#pragma push_macro("DELETE")
+#undef DELETE
+#endif
 
 using json = nlohmann::json;
 
@@ -169,6 +173,10 @@ void HandleRequests(mg_connection* connection, int request, void* request_data) 
 			break;
 	}
 }
+
+#ifdef DARKFLAME_PLATFORM_WIN32
+#pragma pop_macro("DELETE")
+#endif
 
 ChatWebAPI::ChatWebAPI() {
 	mg_log_set(MG_LL_NONE);
