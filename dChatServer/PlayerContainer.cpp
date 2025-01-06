@@ -33,6 +33,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	}
 
 	auto& data = m_Players[playerId];
+	data = PlayerData();
 	data.playerID = playerId;
 
 	uint32_t len;

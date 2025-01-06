@@ -29,7 +29,6 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	auto& player = Game::playerContainer.GetPlayerDataMutable(playerID);
 	if (!player) return;
 
-	player.friends.clear();
 	auto friendsList = Database::Get()->GetFriendsList(playerID);
 	for (const auto& friendData : friendsList) {
 		FriendData fd;
