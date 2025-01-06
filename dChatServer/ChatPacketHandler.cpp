@@ -49,7 +49,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 			fd.zoneID = fr.zoneID;
 
 			//Since this friend is online, we need to update them on the fact that we've just logged in:
-			SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+			if (player.isLogin) SendFriendUpdate(fr, player, 1, fd.isBestFriend);
 		} else {
 			fd.isOnline = false;
 			fd.zoneID = LWOZONEID();
