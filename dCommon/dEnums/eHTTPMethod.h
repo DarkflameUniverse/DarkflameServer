@@ -1,11 +1,7 @@
 #ifndef __EHTTPMETHODS__H__
 #define __EHTTPMETHODS__H__
 
-#include <cstdint>
-
-#include "magic_enum.hpp"
-
-enum class eHTTPMethod : uint16_t {
+enum class eHTTPMethod {
 	GET,
 	POST,
 	PUT,
