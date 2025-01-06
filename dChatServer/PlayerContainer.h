@@ -6,7 +6,6 @@
 #include "Game.h"
 #include "dServer.h"
 #include <unordered_map>
-#include "json_fwd.hpp"
 
 enum class eGameMasterLevel : uint8_t;
 
@@ -55,10 +54,6 @@ struct PlayerData {
 	bool isFTP = false;
 };
 
-void to_json(nlohmann::json& data, const PlayerData& playerData);
-void to_json(nlohmann::json& data, const PlayerContainer& playerContainer);
-void to_json(nlohmann::json& data, const TeamContainer& teamData);
-void to_json(nlohmann::json& data, const TeamData& teamData);
 
 struct TeamData {
 	TeamData();

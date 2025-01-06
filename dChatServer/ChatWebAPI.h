@@ -11,8 +11,19 @@ public:
 	~ChatWebAPI();
 	void ReceiveRequests();
 	void Listen();
+	enum class eRoute {
+		// GET
+		PLAYERS,
+		TEAMS,
+		// POST
+		ANNOUNCE,
+		// INVALID
+		INVALID
+	};
 private:
 	mg_mgr mgr;
+
+
 };
 
 #endif

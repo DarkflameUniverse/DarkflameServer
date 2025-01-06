@@ -13,50 +13,6 @@
 #include "dConfig.h"
 #include "MessageType/Chat.h"
 
-#include "json.hpp"
-
-using json = nlohmann::json;
-
-void to_json(json& data, const PlayerData& playerData) {
-	data["id"] = playerData.playerID;
-	data["name"] = playerData.playerName;
-	data["gm_level"] = playerData.gmLevel;
-	data["muted"] = playerData.GetIsMuted();
-
-	auto& zoneID = data["zone_id"];
-	zoneID["map_id"] = playerData.zoneID.GetMapID();
-	zoneID["instance_id"] = playerData.zoneID.GetInstanceID();
-	zoneID["clone_id"] = playerData.zoneID.GetCloneID();
-}
-
-void to_json(json& data, const PlayerContainer& playerContainer) {
-	data = playerContainer.GetAllPlayers();
-}
-
-void to_json(json& data, const TeamContainer& teamContainer) {
-	for (auto& teamData : Game::playerContainer.GetTeams()) {
-		if (!teamData) continue;
-		data.push_back(*teamData);
-	}
-}
-
-void to_json(json& data, const TeamData& teamData) {
-	data["id"] = teamData.teamID;
-	data["loot_flag"] = teamData.lootFlag;
-	data["local"] = teamData.local;
-
-	auto& leader = Game::playerContainer.GetPlayerData(teamData.leaderID);
-	data["leader"] = leader.playerName;
-
-	auto& members = data["members"];
-	for (auto& member : teamData.memberIDs) {
-		auto& playerData = Game::playerContainer.GetPlayerData(member);
-
-		if (!playerData) continue;
-		members.push_back(playerData);
-	}
-}
-
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
 		GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("max_number_of_best_friends")).value_or(m_MaxNumberOfBestFriends);

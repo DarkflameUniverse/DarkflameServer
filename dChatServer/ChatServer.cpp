@@ -298,12 +298,11 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::LOGIN_SESSION_NOTIFY:
 		Game::playerContainer.InsertPlayer(packet);
 		break;
-	case MessageType::Chat::GM_ANNOUNCE: {
+	case MessageType::Chat::GM_ANNOUNCE:
 		// we just forward this packet to every connected server
 		inStream.ResetReadPointer();
 		Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
-	}
-									   break;
+		break;
 	case MessageType::Chat::UNEXPECTED_DISCONNECT:
 		Game::playerContainer.ScheduleRemovePlayer(packet);
 		break;
