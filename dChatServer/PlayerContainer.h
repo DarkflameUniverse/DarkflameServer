@@ -102,7 +102,7 @@ public:
 	LWOOBJID GetId(const std::u16string& playerName);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
-	const TeamContainer& GetTeamComtainer() { return teamContainer; }
+	const TeamContainer& GetTeamContainer() { return teamContainer; }
 	std::vector<TeamData*>& GetTeamsMut() { return teamContainer.mTeams; };
 	const std::vector<TeamData*>& GetTeams() { return GetTeamsMut(); };
 
