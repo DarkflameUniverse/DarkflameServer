@@ -15,6 +15,8 @@
 #include "magic_enum.hpp"
 #include "ChatPackets.h"
 #include "StringifiedEnum.h"
+#include "eCSRCommand.h"
+#include "CSRCommandHandler.h"
 
 #ifdef DARKFLAME_PLATFORM_WIN32
 #pragma push_macro("DELETE")
@@ -29,20 +31,6 @@ typedef struct mg_http_message mg_http_message;
 namespace {
 	const std::string root_path = "/api/v1/";
 	const char* json_content_type = "Content-Type: application/json\r\n";
-}
-
-struct HTTPReply {
-	eHTTPStatusCode status = eHTTPStatusCode::NOT_FOUND;
-	std::string message = "{\"error\":\"Not Found\"}";
-};
-
-bool CheckValidJSON(std::optional<json> data, HTTPReply& reply) {
-	if (!data) {
-		reply.status = eHTTPStatusCode::BAD_REQUEST;
-		reply.message = "{\"error\":\"Invalid JSON\"}";
-		return false;
-	}
-	return true;
 }
 
 void HandlePlayersRequest(HTTPReply& reply) {
@@ -78,7 +66,7 @@ void HandleGET(HTTPReply& reply, const ChatWebAPI::eRoute& route , const std::st
 }
 
 void HandleAnnounceRequest(HTTPReply& reply, const std::optional<json>& data) {
-	if (!CheckValidJSON(data, reply)) return;
+	if (!JSONUtils::Validate(data, reply)) return;
 
 	const auto& good_data = data.value();
 	auto check = JSONUtils::CheckRequiredData(good_data, { "title", "message" });
@@ -97,13 +85,28 @@ void HandleAnnounceRequest(HTTPReply& reply, const std::optional<json>& data) {
 	}
 }
 
+void HandleCSRCommandRequest(HTTPReply& reply, const std::optional<json>& data) {
+	if (!JSONUtils::Validate(data, reply)) return;
+
+	const auto& good_data = data.value();
+	auto check = JSONUtils::CheckRequiredData(good_data, { "command" });
+	if (!check.empty()) {
+		reply.status = eHTTPStatusCode::BAD_REQUEST;
+		reply.message = check;
+	} else {
+		CSRCommandHandler::HandleCSRCommand(reply, good_data);
+	}
+}
+
 void HandlePOST(HTTPReply& reply, const ChatWebAPI::eRoute& route , const std::string& body) {
 	auto data = GeneralUtils::TryParse<json>(body);
 	switch (route) {
-		case ChatWebAPI::eRoute::ANNOUNCE:{
+		case ChatWebAPI::eRoute::ANNOUNCE:
 			HandleAnnounceRequest(reply, data.value());
 			break;
-		}
+		case ChatWebAPI::eRoute::CSR:
+			HandleCSRCommandRequest(reply, data.value());
+			break;
 		case ChatWebAPI::eRoute::INVALID:
 		default:
 			HandleInvalidRoute(reply);
@@ -134,7 +137,6 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			std::transform(uri.begin(), uri.end(), uri.begin(), ::toupper);
 			// convert uri string to route enum
 			ChatWebAPI::eRoute route = magic_enum::enum_cast<ChatWebAPI::eRoute>(uri).value_or(ChatWebAPI::eRoute::INVALID);
-
 			// convert body from cstring to std string
 			std::string body(http_msg->body.buf, http_msg->body.len);
 

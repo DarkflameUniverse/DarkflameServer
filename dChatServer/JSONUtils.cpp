@@ -1,6 +1,7 @@
 #include "JSONUtils.h"
 
 #include "json.hpp"
+#include "eHTTPStatusCode.h"
 
 using json = nlohmann::json;
 
@@ -55,4 +56,13 @@ std::string JSONUtils::CheckRequiredData(const json& data, const std::vector<std
 		}
 	}
 	return check["error"].empty() ? "" : check.dump();
+}
+
+bool JSONUtils::Validate(const std::optional<json>& data, HTTPReply& reply) {
+	if (!data) {
+		reply.status = eHTTPStatusCode::BAD_REQUEST;
+		reply.message = "{\"error\":\"Invalid JSON\"}";
+		return false;
+	}
+	return true;
 }

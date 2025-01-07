@@ -4,6 +4,7 @@ set(DCHATSERVER_SOURCES
 	"PlayerContainer.cpp"
 	"ChatWebAPI.cpp"
 	"JSONUtils.cpp"
+	"CSRCommandHandler.cpp"
 )
 
 add_executable(ChatServer "ChatServer.cpp")

@@ -17,6 +17,7 @@ public:
 		TEAMS,
 		// POST
 		ANNOUNCE,
+		CSR,
 		// INVALID
 		INVALID
 	};
