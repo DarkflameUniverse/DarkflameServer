@@ -218,6 +218,48 @@ public:
 	 * @param skipChecks whether or not to skip the check for the quickbuild not being completed
 	 */
 	void CancelQuickBuild(Entity* const builder, const eQuickBuildFailReason failReason, const bool skipChecks = false);
+
+	void SetState(const eQuickBuildState state) {
+		if (m_State == state) return;
+		m_State = state;
+		m_StateDirty = true;
+	}
+
+	void SetShowResetEffect(const bool value) {
+		if (m_ShowResetEffect == value) return;
+		m_ShowResetEffect = value;
+		m_StateDirty = true;
+	}
+
+	void SetActivator(Entity* const activator) {
+		if (m_Activator == activator) return;
+		m_Activator = activator;
+		m_StateDirty = true;
+	}
+
+	void SetTimer(const float value) {
+		if (m_Timer == value) return;
+		m_Timer = value;
+		m_StateDirty = true;
+	}
+
+	void ModifyTimer(const float value) {
+		if (value == 0.0f) return;
+		m_Timer += value;
+		m_StateDirty = true;
+	}
+
+	void SetIncompleteTimer(const float value) {
+		if (m_TimerIncomplete == value) return;
+		m_TimerIncomplete = value;
+		m_StateDirty = true;
+	}
+
+	void ModifyIncompleteTimer(const float value) {
+		if (value == 0.0f) return;
+		m_TimerIncomplete += value;
+		m_StateDirty = true;
+	}
 private:
 	/**
 	 * Whether or not the quickbuild state has been changed since we last serialized it.
