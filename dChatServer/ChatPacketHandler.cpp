@@ -29,35 +29,33 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	auto& player = Game::playerContainer.GetPlayerDataMutable(playerID);
 	if (!player) return;
 
-	if (player.friends.empty()) {
-		auto friendsList = Database::Get()->GetFriendsList(playerID);
-		for (const auto& friendData : friendsList) {
-			FriendData fd;
-			fd.isFTP = false; // not a thing in DLU
-			fd.friendID = friendData.friendID;
-			GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
-			GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
+	auto friendsList = Database::Get()->GetFriendsList(playerID);
+	for (const auto& friendData : friendsList) {
+		FriendData fd;
+		fd.isFTP = false; // not a thing in DLU
+		fd.friendID = friendData.friendID;
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::PERSISTENT);
+		GeneralUtils::SetBit(fd.friendID, eObjectBits::CHARACTER);
 
-			fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
-			if (fd.isBestFriend) player.countOfBestFriends += 1;
-			fd.friendName = friendData.friendName;
+		fd.isBestFriend = friendData.isBestFriend; //0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
+		if (fd.isBestFriend) player.countOfBestFriends += 1;
+		fd.friendName = friendData.friendName;
 
-			//Now check if they're online:
-			const auto& fr = Game::playerContainer.GetPlayerData(fd.friendID);
+		//Now check if they're online:
+		const auto& fr = Game::playerContainer.GetPlayerData(fd.friendID);
 
-			if (fr) {
-				fd.isOnline = true;
-				fd.zoneID = fr.zoneID;
+		if (fr) {
+			fd.isOnline = true;
+			fd.zoneID = fr.zoneID;
 
-				//Since this friend is online, we need to update them on the fact that we've just logged in:
-				SendFriendUpdate(fr, player, 1, fd.isBestFriend);
-			} else {
-				fd.isOnline = false;
-				fd.zoneID = LWOZONEID();
-			}
-
-			player.friends.push_back(fd);
+			//Since this friend is online, we need to update them on the fact that we've just logged in:
+			if (player.isLogin) SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+		} else {
+			fd.isOnline = false;
+			fd.zoneID = LWOZONEID();
 		}
+
+		player.friends.push_back(fd);
 	}
 
 	//Now, we need to send the friendlist to the server they came from:

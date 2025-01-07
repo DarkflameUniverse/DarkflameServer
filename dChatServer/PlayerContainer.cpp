@@ -32,7 +32,10 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 		return;
 	}
 
+	auto isLogin = !m_Players.contains(playerId);
 	auto& data = m_Players[playerId];
+	data = PlayerData();
+	data.isLogin = isLogin;
 	data.playerID = playerId;
 
 	uint32_t len;
