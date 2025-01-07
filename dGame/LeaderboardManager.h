@@ -79,7 +79,7 @@ private:
 	InfoType infoType;
 	Leaderboard::Type leaderboardType;
 	bool weekly;
-	uint32_t m_NumResults;
+	uint32_t numResults;
 public:
 	LeaderboardEntry& PushBackEntry() {
 		return entries.emplace_back();

@@ -30,7 +30,7 @@ Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoTy
 	this->infoType = infoType;
 	this->leaderboardType = leaderboardType;
 	this->relatedPlayer = relatedPlayer;
-	m_NumResults = numResults;
+	this->numResults = numResults;
 }
 
 Leaderboard::~Leaderboard() {
@@ -258,7 +258,7 @@ void Leaderboard::SetupLeaderboard(bool weekly) {
 		break;
 	}
 
-	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer, m_NumResults);
+	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer, numResults);
 
 	QueryToLdf(*this, processedLeaderboard);
 }
