@@ -46,7 +46,6 @@ struct PlayerData {
 	std::vector<IgnoreData> ignoredPlayers;
 	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0); // CIVILLIAN
 	bool isFTP = false;
-	bool isLogin = false;
 };
 
 struct TeamData {
