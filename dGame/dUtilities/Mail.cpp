@@ -94,7 +94,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	SendNotification(sysAddr, 1); //Show the "one new mail" message
 }
 
-void Mail::HandleMailStuff(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
+void Mail::HandleMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
 	int mailStuffID = 0;
 	packet.Read(mailStuffID);
 
@@ -142,7 +142,7 @@ void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAdd
 			u"This character has restricted mail access."
 		);
 
-		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::AccountIsMuted);
+		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::SenderAccountIsMuted);
 
 		return;
 	}
@@ -243,50 +243,9 @@ void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAdd
 
 void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
 	auto playerMail = Database::Get()->GetMailForPlayer(player->GetCharacter()->GetID(), 20);
-
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	bitStream.Write(int(MailMessageID::MailData));
-	bitStream.Write(int(0)); // throttled
-
-	bitStream.Write<uint16_t>(playerMail.size()); // size
-	bitStream.Write<uint16_t>(0);
-
-	for (const auto& mail : playerMail) {
-		bitStream.Write(mail.id); //MailID
-
-		const LUWString subject(mail.subject, 50);
-		bitStream.Write(subject); //subject
-		const LUWString body(mail.body, 400);
-		bitStream.Write(body); //body
-		const LUWString sender(mail.senderUsername, 32);
-		bitStream.Write(sender); //sender
-		bitStream.Write(uint32_t(0)); // packing
-
-		bitStream.Write(uint64_t(0)); // attachedCurrency
-
-		bitStream.Write(mail.itemID); //Attachment ID
-		LOT lot = mail.itemLOT;
-		if (lot <= 0) bitStream.Write(LOT(-1));
-		else bitStream.Write(lot);
-		bitStream.Write(uint32_t(0)); // packing
-
-		bitStream.Write(mail.itemSubkey); // Attachment subKey
-
-		bitStream.Write<uint16_t>(mail.itemCount); // Attachment count
-		bitStream.Write(uint8_t(0)); // subject type (used for auction)
-		bitStream.Write(uint8_t(0)); // packing
-		bitStream.Write(uint32_t(0)); //  packing
-
-		bitStream.Write<uint64_t>(mail.timeSent); // expiration date
-		bitStream.Write<uint64_t>(mail.timeSent);// send date
-		bitStream.Write<uint8_t>(mail.wasRead); //was read
-
-		bitStream.Write(uint8_t(0)); // isLocalized
-		bitStream.Write(uint16_t(0)); // packing
-		bitStream.Write(uint32_t(0)); // packing
-	}
-
+	Mail::Data data = Mail::Data(playerMail);
+	bitStream.Write(data);
 	Game::server->Send(bitStream, sysAddr, false);
 }
 
@@ -348,46 +307,28 @@ void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t obje
 
 void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	bitStream.Write(int(MailMessageID::SendResponse));
-	bitStream.Write(int(response));
+	Mail::Response data = Mail::Response(response);
+	bitStream.Write(data);
 	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	uint64_t messageType = 2;
-	uint64_t s1 = 0;
-	uint64_t s2 = 0;
-	uint64_t s3 = 0;
-	uint64_t s4 = 0;
-
-	bitStream.Write(messageType);
-	bitStream.Write(s1);
-	bitStream.Write(s2);
-	bitStream.Write(s3);
-	bitStream.Write(s4);
-	bitStream.Write(mailCount);
-	bitStream.Write(int(0)); //Unknown
+	Mail::Notification data = Mail::Notification(MailNotification::NewMail,  mailCount);	
 	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	bitStream.Write(int(MailMessageID::AttachmentCollectConfirm));
-	bitStream.Write(int(0)); //unknown
-	bitStream.Write(mailID);
+	AttachmentCollect data = AttachmentCollect(MailRemoveAttachment::Success, mailID);
+	bitStream.Write(data);
 	Game::server->Send(bitStream, sysAddr, false);
 }
 
 void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	bitStream.Write(int(MailMessageID::MailDeleteConfirm));
-	bitStream.Write(int(0)); //unknown
-	bitStream.Write(mailID);
+	DeleteMail data = DeleteMail(MailDeleteResponse::Success, mailID);
+	bitStream.Write(data);
 	Game::server->Send(bitStream, sysAddr, false);
 
 	Database::Get()->DeleteMail(mailID);
@@ -395,10 +336,8 @@ void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOO
 
 void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAIL);
-	bitStream.Write(int(MailMessageID::MailReadConfirm));
-	bitStream.Write(int(0)); //unknown
-	bitStream.Write(mailID);
+	Read data = Read(MailReadResponse::Success, mailID);
+	bitStream.Write(data);
 	Game::server->Send(bitStream, sysAddr, false);
 
 	Database::Get()->MarkMailRead(mailID);
