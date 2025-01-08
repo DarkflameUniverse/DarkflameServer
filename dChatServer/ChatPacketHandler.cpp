@@ -103,7 +103,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		return;
 	};
 
-	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName);
+	// Intentional copy
+	PlayerData requestee = Game::playerContainer.GetPlayerData(playerName);
 
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {
@@ -188,20 +189,23 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				Database::Get()->SetBestFriendStatus(requestorPlayerID, requestee.playerID, bestFriendStatus);
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
-					requestee.countOfBestFriends += 1;
-					requestor.countOfBestFriends += 1;
 					if (requestee.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, eAddFriendResponseType::ACCEPTED, false, true);
 					if (requestor.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::ACCEPTED, false, true);
+
 					for (auto& friendData : requestor.friends) {
 						if (friendData.friendID == requestee.playerID) {
 							friendData.isBestFriend = true;
 						}
 					}
-					for (auto& friendData : requestee.friends) {
+					requestor.countOfBestFriends += 1;
+
+					auto& toModify = Game::playerContainer.GetPlayerDataMutable(playerName);
+					for (auto& friendData : toModify.friends) {
 						if (friendData.friendID == requestor.playerID) {
 							friendData.isBestFriend = true;
 						}
 					}
+					toModify.countOfBestFriends += 1;
 				}
 			}
 		} else {
