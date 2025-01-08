@@ -200,12 +200,14 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 					requestor.countOfBestFriends += 1;
 
 					auto& toModify = Game::playerContainer.GetPlayerDataMutable(playerName);
-					for (auto& friendData : toModify.friends) {
-						if (friendData.friendID == requestor.playerID) {
-							friendData.isBestFriend = true;
+					if (toModify) {
+						for (auto& friendData : toModify.friends) {
+							if (friendData.friendID == requestor.playerID) {
+								friendData.isBestFriend = true;
+							}
 						}
+						toModify.countOfBestFriends += 1;
 					}
-					toModify.countOfBestFriends += 1;
 				}
 			}
 		} else {
