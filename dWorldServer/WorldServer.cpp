@@ -202,11 +202,13 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP = "localhost";
 	uint32_t masterPort = 1000;
+	std::string masterPassword;
 	auto masterInfo = Database::Get()->GetMasterInfo();
 
 	if (masterInfo) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
+		masterPassword = masterInfo->password;
 	}
 
 	UserManager::Instance()->Initialize();
@@ -214,7 +216,7 @@ int main(int argc, char** argv) {
 	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
 
-	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, zoneID);
+	Game::server = new dServer(masterIP, ourPort, instanceID, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::World, Game::config, &Game::lastSignal, masterPassword, zoneID);
 
 	//Connect to the chat server:
 	uint32_t chatPort = 1501;
@@ -223,7 +225,7 @@ int main(int argc, char** argv) {
 	auto chatSock = SocketDescriptor(static_cast<uint16_t>(ourPort + 2), 0);
 	Game::chatServer = RakNetworkFactory::GetRakPeerInterface();
 	Game::chatServer->Startup(1, 30, &chatSock, 1);
-	Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+	Game::chatServer->Connect(masterIP.c_str(), chatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 
 	//Set up other things:
 	Game::randomEngine = std::mt19937(time(0));
@@ -371,7 +373,7 @@ int main(int argc, char** argv) {
 			if (framesSinceChatDisconnect >= chatReconnectionTime) {
 				framesSinceChatDisconnect = 0;
 
-				Game::chatServer->Connect(masterIP.c_str(), chatPort, "3.25 ND1", 8);
+				Game::chatServer->Connect(masterIP.c_str(), chatPort, NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 			}
 		} else framesSinceChatDisconnect = 0;
 

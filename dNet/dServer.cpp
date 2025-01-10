@@ -40,7 +40,21 @@ public:
 	}
 } ReceiveDownloadCompleteCB;
 
-dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnections, bool isInternal, bool useEncryption, Logger* logger, const std::string masterIP, int masterPort, ServerType serverType, dConfig* config, Game::signal_t* lastSignal, unsigned int zoneID) {
+dServer::dServer(
+	const std::string& ip,
+	int port,
+	int instanceID,
+	int maxConnections,
+	bool isInternal,
+	bool useEncryption,
+	Logger* logger,
+	const std::string masterIP,
+	int masterPort,
+	ServerType serverType,
+	dConfig* config,
+	Game::signal_t* lastSignal,
+	const std::string& masterPassword,
+	unsigned int zoneID) {
 	mIP = ip;
 	mPort = port;
 	mZoneID = zoneID;
@@ -56,6 +70,7 @@ dServer::dServer(const std::string& ip, int port, int instanceID, int maxConnect
 	mReplicaManager = nullptr;
 	mServerType = serverType;
 	mConfig = config;
+	mMasterPassword = masterPassword;
 	mShouldShutdown = lastSignal;
 	//Attempt to start our server here:
 	mIsOkay = Startup();
@@ -203,11 +218,11 @@ bool dServer::Startup() {
 	if (!mPeer->Startup(mMaxConnections, 10, &mSocketDescriptor, 1)) return false;
 
 	if (mIsInternal) {
-		mPeer->SetIncomingPassword("3.25 DARKFLAME1", 15);
+		mPeer->SetIncomingPassword(mMasterPassword.c_str(), mMasterPassword.size());
 	} else {
 		UpdateBandwidthLimit();
 		UpdateMaximumMtuSize();
-		mPeer->SetIncomingPassword("3.25 ND1", 8);
+		mPeer->SetIncomingPassword(NET_PASSWORD_EXTERNAL, strnlen(NET_PASSWORD_EXTERNAL, sizeof(NET_PASSWORD_EXTERNAL)));
 	}
 
 	mPeer->SetMaximumIncomingConnections(mMaxConnections);
@@ -257,7 +272,7 @@ void dServer::SetupForMasterConnection() {
 
 bool dServer::ConnectToMaster() {
 	//LOG("Connection to Master %s:%d", mMasterIP.c_str(), mMasterPort);
-	return mMasterPeer->Connect(mMasterIP.c_str(), mMasterPort, "3.25 DARKFLAME1", 15);
+	return mMasterPeer->Connect(mMasterIP.c_str(), mMasterPort, mMasterPassword.c_str(), mMasterPassword.size());
 }
 
 void dServer::UpdateReplica() {
