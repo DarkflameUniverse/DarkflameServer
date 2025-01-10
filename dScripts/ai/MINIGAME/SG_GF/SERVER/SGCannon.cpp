@@ -342,6 +342,7 @@ void SGCannon::StartGame(Entity* self) {
 
 	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 	if (player != nullptr) {
+		// The client cant accept more than 10 results.
 		GetLeaderboardData(self, player->GetObjectID(), GetConstants().activityID, 10);
 		LOG("Sending ActivityStart");
 		GameMessages::SendActivityStart(self->GetObjectID(), player->GetSystemAddress());
