@@ -247,7 +247,6 @@ include_directories(
 	"thirdparty/recastnavigation"
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
-	"thirdparty/cpp-httplib"
 	"thirdparty/MD5"
 )
 

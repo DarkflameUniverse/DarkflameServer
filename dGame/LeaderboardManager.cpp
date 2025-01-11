@@ -95,7 +95,7 @@ void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>
 			// Score:1
 			entry.push_back(new LDFData<int32_t>(u"Streak", leaderboardEntry.secondaryScore));
 			// Streak:1
-			entry.push_back(new LDFData<float>(u"HitPercentage", (leaderboardEntry.tertiaryScore / 100.0f)));
+			entry.push_back(new LDFData<float>(u"HitPercentage", leaderboardEntry.tertiaryScore));
 			// HitPercentage:3 between 0 and 1
 			break;
 		case Racing:
@@ -199,9 +199,9 @@ std::vector<ILeaderboard::Entry> FilterFriends(const std::vector<ILeaderboard::E
 	std::vector<ILeaderboard::Entry> friendsLeaderboard;
 	for (const auto& entry : leaderboard) {
 		const auto res = std::ranges::find_if(friendOfPlayer, [&entry, relatedPlayer](const FriendData& data) {
-			return entry.charId == data.friendID || entry.charId == relatedPlayer;
+			return entry.charId == data.friendID;
 			});
-		if (res != friendOfPlayer.cend()) {
+		if (res != friendOfPlayer.cend() || entry.charId == relatedPlayer) {
 			friendsLeaderboard.push_back(entry);
 		}
 	}

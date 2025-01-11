@@ -412,16 +412,18 @@ void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 	GameMessages::SendRegisterPetID(m_Tamer, m_Parent->GetObjectID(), tamer->GetSystemAddress());
 	GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
 
-	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
+	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::INVENTORY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
+	auto* item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
 
-	auto* const item = inventoryComponent->FindItemBySubKey(petSubKey, MODELS);
-	if (!item) return;
+	if (item == nullptr) {
+		return;
+	}
 
-	auto databasePet = DatabasePet{
-		.lot = m_Parent->GetLOT(),
-		.name = std::move(petName),
-		.moderationState = 1,
-	};
+	DatabasePet databasePet{};
+
+	databasePet.lot = m_Parent->GetLOT();
+	databasePet.moderationState = 1;
+	databasePet.name = petName;
 
 	inventoryComponent->SetDatabasePet(petSubKey, std::move(databasePet));
 

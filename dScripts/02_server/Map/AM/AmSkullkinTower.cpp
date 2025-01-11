@@ -64,21 +64,22 @@ void AmSkullkinTower::SpawnLegs(Entity* self, const std::string& loc) {
 
 	info.rot = NiQuaternion::LookAt(info.pos, self->GetPosition());
 
-	auto* entity = Game::entityManager->CreateEntity(info);
+	auto* entity = Game::entityManager->CreateEntity(info, nullptr, self);
 
 	Game::entityManager->ConstructEntity(entity);
-
-	OnChildLoaded(self, entity);
 }
 
-void AmSkullkinTower::OnChildLoaded(Entity* self, Entity* child) {
-	auto legTable = self->GetVar<std::vector<LWOOBJID>>(u"legTable");
+void AmSkullkinTower::OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {
+	auto legTable = self.GetVar<std::vector<LWOOBJID>>(u"legTable");
 
-	legTable.push_back(child->GetObjectID());
+	legTable.push_back(childLoaded.childID);
 
-	self->SetVar(u"legTable", legTable);
+	self.SetVar(u"legTable", legTable);
 
-	const auto selfID = self->GetObjectID();
+	const auto selfID = self.GetObjectID();
+	auto* const child = Game::entityManager->GetEntity(childLoaded.childID);
+
+	if (!child) return;
 
 	child->AddDieCallback([this, selfID, child]() {
 		auto* self = Game::entityManager->GetEntity(selfID);

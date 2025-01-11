@@ -94,7 +94,7 @@ public:
 	void UpdateAccountBan(const uint32_t accountId, const bool banned) override;
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
 	void InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) override;
-	void SetMasterIp(const std::string_view ip, const uint32_t port) override;
+	void SetMasterInfo(const IServers::MasterInfo& info) override;
 	std::optional<uint32_t> GetCurrentPersistentId() override;
 	void InsertDefaultPersistentId() override;
 	void UpdatePersistentId(const uint32_t id) override;

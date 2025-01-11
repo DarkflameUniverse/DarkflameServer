@@ -14,7 +14,7 @@ public:
 		uint32_t lastPlayedTimestamp{};
 		float primaryScore{};
 		float secondaryScore{};
-		uint32_t tertiaryScore{};
+		float tertiaryScore{};
 		uint32_t numWins{};
 		uint32_t numTimesPlayed{};
 		uint32_t ranking{};

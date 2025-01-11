@@ -50,8 +50,6 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "httplib.h" //sorry not sorry.
-
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
@@ -858,8 +856,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::DIE);
+
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
+	bitStream.Write<uint32_t>(deathType.size());
 	bitStream.Write(deathType);
 	bitStream.Write(directionRelative_AngleXZ);
 	bitStream.Write(directionRelative_AngleY);
@@ -869,7 +869,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
 
 	bitStream.Write(killerID);
-	bitStream.Write(lootOwnerID);
+	bitStream.Write(lootOwnerID != LWOOBJID_EMPTY);
+	if (lootOwnerID != LWOOBJID_EMPTY) {
+		bitStream.Write(lootOwnerID);
+	}
 
 	SEND_PACKET_BROADCAST;
 }
@@ -981,6 +984,8 @@ void GameMessages::SendResurrect(Entity* entity) {
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
 	entity->AddCallbackTimer(respawnTime, [=]() {
+		GameMessages::PlayerResurrectionFinished msg;
+		entity->NotifyPlayerResurrectionFinished(msg);
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
@@ -6428,5 +6433,36 @@ namespace GameMessages {
 		bitStream.Write(targetPosition.x);
 		bitStream.Write(targetPosition.y);
 		bitStream.Write(targetPosition.z);
+	}
+
+	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(modelLot != -1);
+		if (modelLot != -1) bitStream.Write(modelLot);
+	}
+
+	void SpawnModelBricks::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(amount != 0.0f);
+		if (amount != 0.0f) bitStream.Write(amount);
+		bitStream.Write(position != NiPoint3Constant::ZERO);
+		if (position != NiPoint3Constant::ZERO) {
+			bitStream.Write(position.x);
+			bitStream.Write(position.y);
+			bitStream.Write(position.z);
+		}
+	}
+
+	bool ShootingGalleryFire::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(target.x)) return false;
+		if (!bitStream.Read(target.y)) return false;
+		if (!bitStream.Read(target.z)) return false;
+		if (!bitStream.Read(rotation.w)) return false;
+		if (!bitStream.Read(rotation.x)) return false;
+		if (!bitStream.Read(rotation.y)) return false;
+		if (!bitStream.Read(rotation.z)) return false;
+		return true;
+	}
+
+	void ShootingGalleryFire::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		entity.OnShootingGalleryFire(*this);
 	}
 }

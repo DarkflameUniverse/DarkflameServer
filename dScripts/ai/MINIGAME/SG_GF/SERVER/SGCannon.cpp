@@ -16,6 +16,8 @@
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
 #include "eGameActivity.h"
+#include "Item.h"
+#include <ranges>
 
 void SGCannon::OnStartup(Entity* self) {
 	LOG("OnStartup");
@@ -81,10 +83,6 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 		auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 		if (player != nullptr) {
 			LOG("Player is ready");
-			/*GameMessages::SendSetStunned(player->GetObjectID(), eStateChangeType::PUSH, player->GetSystemAddress(), LWOOBJID_EMPTY,
-										 true, true, true, true, true, true, true);*/
-
-			LOG("Sending ActivityEnter");
 
 			GameMessages::SendActivityEnter(self->GetObjectID(), player->GetSystemAddress());
 
@@ -103,7 +101,6 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 			auto* characterComponent = player->GetComponent<CharacterComponent>();
 
 			if (characterComponent != nullptr) {
-				characterComponent->SetIsRacing(true);
 				characterComponent->SetCurrentActivity(eGameActivity::SHOOTING_GALLERY);
 				auto possessor = player->GetComponent<PossessorComponent>();
 				if (possessor) {
@@ -114,20 +111,12 @@ void SGCannon::OnActivityStateChangeRequest(Entity* self, LWOOBJID senderID, int
 				Game::entityManager->SerializeEntity(player);
 			}
 
-			self->SetNetworkVar<bool>(HideScoreBoardVariable, true);
-			self->SetNetworkVar<bool>(ReSetSuperChargeVariable, true);
-			self->SetNetworkVar<bool>(ShowLoadingUI, true);
+			self->AddCallbackTimer(1.0f, [self, this]() {
+				self->SetNetworkVar<bool>(HideScoreBoardVariable, true);
+				self->SetNetworkVar<bool>(ReSetSuperChargeVariable, true);
+				self->SetNetworkVar<bool>(ShowLoadingUI, true);
+				});
 
-			/*
-			GameMessages::SendTeleport(
-				player->GetObjectID(),
-				{-292.6415710449219, 230.20237731933594, -3.9090466499328613},
-				{0.7067984342575073, -6.527870573336259e-05, 0.707414984703064, 0.00021762956748716533},
-				player->GetSystemAddress(), true
-			);
-			*/
-
-			//GameMessages::SendRequestActivityEnter(self->GetObjectID(), player->GetSystemAddress(), false, player->GetObjectID());
 		} else {
 			LOG("Player not found");
 		}
@@ -245,14 +234,6 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 
 		GameMessages::SendActivityPause(self->GetObjectID(), true, player->GetSystemAddress());
 
-		/*const auto leftoverCannonballs = Game::entityManager->GetEntitiesInGroup("cannonball");
-		if (leftoverCannonballs.empty()) {
-			RecordPlayerScore(self);
-
-		} else {
-			ActivityTimerStart(self, EndGameBufferTimer, 1, leftoverCannonballs.size());
-		}*/
-
 		ActivityTimerStart(self, EndGameBufferTimer, 1, 1);
 
 		TimerToggle(self);
@@ -261,60 +242,51 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 
 void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
-		LOG_DEBUG("time name %s %s", name.c_str(), name.substr(7).c_str());
 		const auto spawnNumber = static_cast<uint32_t>(std::stoi(name.substr(7)));
 		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
-		LOG_DEBUG("size %i, %i", activeSpawns.size(), spawnNumber);
 		if (activeSpawns.size() <= spawnNumber) {
 			LOG_DEBUG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());
 			return;
 		}
 
 		const auto& toSpawn = activeSpawns.at(spawnNumber);
-		LOG_DEBUG("toSpawn %i", toSpawn.spawnPaths.size());
-		const auto pathIndex = GeneralUtils::GenerateRandomNumber<float_t>(0, toSpawn.spawnPaths.size() - 1);
-		LOG_DEBUG("index %f", pathIndex);
-		LOG_DEBUG("%s", toSpawn.spawnPaths.at(pathIndex).c_str());
+		const auto pathIndex = GeneralUtils::GenerateRandomNumber<size_t>(0, toSpawn.spawnPaths.size() - 1);
 		const auto* path = Game::zoneManager->GetZone()->GetPath(toSpawn.spawnPaths.at(pathIndex));
-		if (!path) {
-			LOG_DEBUG("Path %s at index %i is null", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
+		if (!path || path->pathWaypoints.empty()) {
+			LOG_DEBUG("Path %s at index %i or has 0 waypoints", toSpawn.spawnPaths.at(pathIndex).c_str(), pathIndex);
 			return;
 		}
-
-		LOG_DEBUG("%s", path->pathName.c_str());
 
 		auto info = EntityInfo{};
 		info.lot = toSpawn.lot;
 		info.spawnerID = self->GetObjectID();
-		info.pos = path->pathWaypoints.at(0).position;
+		info.pos = path->pathWaypoints[0].position;
 
 		info.settings = {
 			new LDFData<SGEnemy>(u"SpawnData", toSpawn),
-			new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"),
+			new LDFData<std::string>(u"custom_script_server", "scripts/ai/ACT/SG_TARGET.lua"), // this script is never loaded
 			new LDFData<std::string>(u"custom_script_client", "scripts/client/ai/SG_TARGET_CLIENT.lua"),
 			new LDFData<std::string>(u"attached_path", path->pathName),
 			new LDFData<uint32_t>(u"attached_path_start", 0),
-			new LDFData<std::u16string>(u"groupID", u"SGEnemy")
+			new LDFData<std::u16string>(u"groupID", u"SGEnemy"),
+			new LDFData<uint32_t>(u"wave", self->GetVar<uint32_t>(ThisWaveVariable)),
 		};
 
-		LOG_DEBUG("Spawning enemy %i on path %s", toSpawn.lot, path->pathName.c_str());
-
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
-		Game::entityManager->ConstructEntity(enemy);
 
 		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
+		if (simplePhysicsComponent) {
+			simplePhysicsComponent->SetPhysicsMotionState(4);
+		}
+
+		Game::entityManager->ConstructEntity(enemy);
 
 		movementAI->SetMaxSpeed(toSpawn.initialSpeed);
 		movementAI->SetCurrentSpeed(toSpawn.initialSpeed);
 		movementAI->SetHaltDistance(0.0f);
 
-		std::vector<PathWaypoint> pathWaypoints = path->pathWaypoints;
-
-		if (GeneralUtils::GenerateRandomNumber<float_t>(0, 1) < 0.5f) {
-			std::reverse(pathWaypoints.begin(), pathWaypoints.end());
-		}
-
-		movementAI->SetPath(pathWaypoints);
+		movementAI->SetPath(path->pathWaypoints);
 
 		enemy->AddDieCallback([this, self, enemy, name]() {
 			RegisterHit(self, enemy, name);
@@ -362,7 +334,10 @@ void SGCannon::StartGame(Entity* self) {
 
 	auto rewardObjects = Game::entityManager->GetEntitiesInGroup(constants.rewardModelGroup);
 	for (auto* reward : rewardObjects) {
-		reward->OnFireEventServerSide(self, ModelToBuildEvent);
+		GameMessages::SetModelToBuild modelToBuild{};
+		modelToBuild.modelLot = LOT_NULL;
+		modelToBuild.target = reward->GetObjectID();
+		modelToBuild.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	}
 
 	auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
@@ -400,6 +375,10 @@ void SGCannon::DoGameStartup(Entity* self) {
 		constants.firstWaveStartTime);
 }
 
+void SGCannon::OnShootingGalleryFire(Entity& self, GameMessages::ShootingGalleryFire& fire) {
+	self.SetVar<uint32_t>(ShotsFiredVariable, self.GetVar<uint32_t>(ShotsFiredVariable) + 1);
+}
+
 void SGCannon::SpawnNewModel(Entity* self) {
 
 	// Add a new reward to the existing rewards
@@ -407,6 +386,7 @@ void SGCannon::SpawnNewModel(Entity* self) {
 	if (currentReward != -1) {
 		auto rewards = self->GetVar<std::vector<LOT>>(RewardsVariable);
 		rewards.push_back(currentReward);
+		self->SetVar<std::vector<LOT>>(RewardsVariable, rewards);
 		self->SetNetworkVar<int32_t>(RewardAddedVariable, currentReward);
 	}
 
@@ -438,9 +418,13 @@ void SGCannon::SpawnNewModel(Entity* self) {
 				std::unordered_map<LOT, int32_t> toDrop = {};
 				toDrop = Loot::RollLootMatrix(player, lootMatrix);
 
-				for (auto drop : toDrop) {
-					rewardModel->OnFireEventServerSide(self, ModelToBuildEvent, drop.first);
-					self->SetVar<LOT>(CurrentRewardVariable, drop.first);
+				for (const auto [lot, count] : toDrop) {
+					GameMessages::SetModelToBuild modelToBuild{};
+					modelToBuild.modelLot = lot;
+					modelToBuild.target = rewardModel->GetObjectID();
+					modelToBuild.Send(player->GetSystemAddress());
+
+					self->SetVar<LOT>(CurrentRewardVariable, lot);
 				}
 			}
 		}
@@ -514,11 +498,11 @@ void SGCannon::RecordPlayerScore(Entity* self) {
 	const auto currentWave = self->GetVar<uint32_t>(ThisWaveVariable);
 
 	if (currentWave > 0) {
-		auto totalWaveScore = 0;
+		auto totalWaveScore = totalScore;
 		auto playerScores = self->GetVar<std::vector<int32_t>>(PlayerScoresVariable);
 
 		for (const auto& waveScore : playerScores) {
-			totalWaveScore += waveScore;
+			totalWaveScore -= waveScore;
 		}
 
 		if (currentWave >= playerScores.size()) {
@@ -526,6 +510,7 @@ void SGCannon::RecordPlayerScore(Entity* self) {
 		} else {
 			playerScores[currentWave] = totalWaveScore;
 		}
+		self->SetVar<std::vector<int32_t>>(PlayerScoresVariable, playerScores);
 	}
 }
 
@@ -547,12 +532,11 @@ void SGCannon::PlaySceneAnimation(Entity* self, const std::u16string& animationN
 }
 
 void SGCannon::PauseChargeCannon(Entity* self) {
-	const auto time = std::max(static_cast<uint32_t>(std::ceil(ActivityTimerGetCurrentTime(self, SuperChargeTimer))), static_cast<uint32_t>(1));
+	const auto time = std::max(static_cast<uint32_t>(std::ceil(ActivityTimerGetRemainingTime(self, SuperChargeTimer))), static_cast<uint32_t>(1));
 
 	self->SetVar<bool>(SuperChargePausedVariable, true);
 	self->SetVar<uint32_t>(CurrentSuperChargedTimeVariable, time);
 	self->SetNetworkVar<uint32_t>(ChargeCountingVariable, time);
-
 	ActivityTimerStop(self, SuperChargeTimer);
 }
 
@@ -568,13 +552,16 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// The player won, store all the score and send rewards
 	if (!cancel) {
-		int32_t percentage = 0.0f;
-		auto misses = self->GetVar<uint32_t>(MissesVariable);
-		auto fired = self->GetVar<uint32_t>(ShotsFiredVariable);
+		float percentage = 0.0f;
+		float misses = self->GetVar<uint32_t>(MissesVariable);
+		float fired = self->GetVar<uint32_t>(ShotsFiredVariable);
 
-		if (fired > 0) {
+		if (fired > 0.0f) {
 			percentage = misses / fired;
 		}
+
+		percentage = 1.0f - percentage;
+		percentage = std::max(percentage, 0.0f);
 
 		auto* missionComponent = player->GetComponent<MissionComponent>();
 
@@ -596,13 +583,27 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 		auto* inventory = player->GetComponent<InventoryComponent>();
 		if (inventory != nullptr) {
 			for (const auto rewardLot : self->GetVar<std::vector<LOT>>(RewardsVariable)) {
-				inventory->AddItem(rewardLot, 1, eLootSourceType::ACTIVITY, eInventoryType::MODELS);
+				inventory->AddItem(rewardLot, 1, eLootSourceType::NONE, eInventoryType::MODELS);
 			}
 		}
 
-		self->SetNetworkVar<std::u16string>(u"UI_Rewards",
-			GeneralUtils::to_u16string(self->GetVar<int32_t>(TotalScoreVariable)) + u"_0_0_0_0_0_0"
-		);
+		const auto& waveScores = self->GetVar<std::vector<int32_t>>(PlayerScoresVariable);
+		std::stringstream stream;
+
+		stream << self->GetVar<int32_t>(TotalScoreVariable) << "_";
+
+		// technically unused in shooting gallery but serialize it regardless.
+		for (const auto& score : waveScores) {
+			stream << score << "_";
+		}
+		auto totalmissed = fired - misses;
+		if (totalmissed < 0) {
+			totalmissed = 0;
+		}
+
+		stream << fired << "_" << totalmissed << "_" << self->GetVar<uint32_t>(MaxStreakVariable);
+
+		self->SetNetworkVar<std::u16string>(u"UI_Rewards", GeneralUtils::ASCIIToUTF16(stream.str()));
 	}
 
 	GameMessages::SendActivityStop(self->GetObjectID(), false, cancel, player->GetSystemAddress());
@@ -617,10 +618,42 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 	ResetVars(self);
 }
 
+
+void SGCannon::OnActivityNotify(Entity* self, GameMessages::ActivityNotify& notify) {
+	if (!self->GetVar<bool>(GameStartedVariable)) return;
+
+	const auto& params = notify.notification;
+	if (params.empty()) return;
+
+	const auto& param = params[0];
+	if (param->GetValueType() != LDF_TYPE_S32 || param->GetKey() != u"shot_done") return;
+
+	const auto superChargeShotDone = static_cast<LDFData<int32_t>*>(param.get())->GetValue() == GetConstants().cannonSuperChargeSkill;
+
+	const auto& hitTargets = self->GetVar<std::vector<LWOOBJID>>(u"CannonBallKills");
+
+	if (hitTargets.empty() && !superChargeShotDone) {
+		self->SetVar<uint32_t>(u"m_curStreak", 0);
+		self->SetVar<uint32_t>(MissesVariable, self->GetVar<uint32_t>(MissesVariable) + 1);
+		self->SetNetworkVar<bool>(u"HideStreak", true);
+		self->SetNetworkVar<bool>(u"UnMarkAll", true);
+		UpdateStreak(self);
+	} else if (hitTargets.size() > 1) {
+		self->SetNetworkVar<bool>(u"mHit", true);
+	}
+
+	self->SetVar<std::vector<LWOOBJID>>(u"CannonBallKills", {});
+}
+
 void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& timerName) {
+	if (!self->GetVar<bool>(GameStartedVariable)) return;
+
+	auto cannonBallKills = self->GetVar<std::vector<LWOOBJID>>(u"CannonBallKills");
+	cannonBallKills.push_back(target->GetObjectID());
+	self->SetVar<std::vector<LWOOBJID>>(u"CannonBallKills", cannonBallKills);
 	const auto& spawnInfo = target->GetVar<SGEnemy>(u"SpawnData");
 
-	if (spawnInfo.respawns) {
+	if (spawnInfo.respawns && target->GetVar<uint32_t>(u"wave") == self->GetVar<uint32_t>(ThisWaveVariable)) {
 		const auto respawnTime = GeneralUtils::GenerateRandomNumber<float_t>(spawnInfo.minRespawnTime, spawnInfo.maxRespawnTime);
 
 		ActivityTimerStart(self, timerName, respawnTime, respawnTime);
@@ -637,6 +670,7 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	} else {
 		if (!self->GetVar<bool>(SuperChargeActiveVariable)) {
 			self->SetVar<uint32_t>(u"m_curStreak", 0);
+			self->SetVar<uint32_t>(MissesVariable, self->GetVar<uint32_t>(MissesVariable) + 1);
 		}
 
 		self->SetNetworkVar<bool>(u"hitFriend", true);
@@ -645,10 +679,6 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	auto lastSuperTotal = self->GetVar<uint32_t>(u"LastSuperTotal");
 
 	auto scScore = self->GetVar<int32_t>(TotalScoreVariable) - lastSuperTotal;
-
-	LOG("LastSuperTotal: %i, scScore: %i, constants.chargedPoints: %i",
-		lastSuperTotal, scScore, constants.chargedPoints
-	);
 
 	if (!self->GetVar<bool>(SuperChargeActiveVariable) && scScore >= constants.chargedPoints && score >= 0) {
 		StartChargedCannon(self);
@@ -684,6 +714,40 @@ void SGCannon::RegisterHit(Entity* self, Entity* target, const std::string& time
 	if (missionComponent == nullptr) return;
 
 	missionComponent->Progress(eMissionTaskType::SMASH, spawnInfo.lot, self->GetObjectID());
+
+	auto matrix = self->GetVar<uint32_t>(MatrixVariable);
+
+	float rewardS = 0.0f;
+	float rewardF = 0.0f;
+	if (matrix <= 5) {
+		const auto scoreRewardNum = "Score_Reward_" + std::to_string(matrix);
+		const auto rewardAmountItr = constants.scoreRewards.find(scoreRewardNum);
+		if (rewardAmountItr != constants.scoreRewards.end()) {
+			const float rewardAmount = rewardAmountItr->second / 100 * 3;
+			rewardS = newScore / rewardAmount;
+			rewardF = std::round(rewardS * 3);
+
+			if (rewardF > 100.0f) rewardF = 100.0f;
+
+			self->SetNetworkVar(ModelPercentVariable, rewardF);
+		}
+	}
+
+	if (rewardF > 0.0f && rewardF < 200.0f && matrix <= 5) {
+		const auto rewardModelGroup = Game::entityManager->GetEntitiesInGroup(constants.rewardModelGroup);
+		if (!rewardModelGroup.empty()) {
+			auto* rewardModel = rewardModelGroup[0];
+			GameMessages::SpawnModelBricks spawnBricks{};
+			spawnBricks.target = rewardModel->GetObjectID();
+			spawnBricks.amount = rewardF / 100.0f;
+			spawnBricks.position = target->GetPosition();
+			spawnBricks.Send(player->GetSystemAddress());
+			if (rewardF >= 100.0f) {
+				SpawnNewModel(self);
+				self->SetVar<uint32_t>(MatrixVariable, matrix + 1);
+			}
+		}
+	}
 }
 
 void SGCannon::UpdateStreak(Entity* self) {
@@ -745,41 +809,34 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	auto* selfInventoryComponent = self->GetComponent<InventoryComponent>();
 
-	if (inventoryComponent == nullptr) {
-		LOG("Inventory component not found");
+	// This is a gm in the original script
+	Item* meItem1{};
+	Item* meItem2{};
+	for (const auto item : selfInventoryComponent->GetInventory(eInventoryType::ITEMS)->GetItems() | std::views::values) {
+		if (item->GetSlot() == 0) meItem1 = item;
+		else if (item->GetSlot() == 1) meItem2 = item;
+	}
+
+	if (!meItem1 || !meItem2) {
+		LOG("Cannon does not have the required items equipped");
 		return;
 	}
 
 	if (enable) {
 		LOG("Player is activating super charge");
-		selfInventoryComponent->UpdateSlot("greeble_r", { ObjectIDManager::GenerateRandomObjectID(), 6505, 1, 0 });
-		selfInventoryComponent->UpdateSlot("greeble_l", { ObjectIDManager::GenerateRandomObjectID(), 6506, 1, 0 });
+		selfInventoryComponent->EquipItem(meItem1);
+		selfInventoryComponent->EquipItem(meItem2);
 
-		// TODO: Equip items
 		skillID = constants.cannonSuperChargeSkill;
 		cooldown = 400;
 	} else {
-		selfInventoryComponent->UpdateSlot("greeble_r", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
-		selfInventoryComponent->UpdateSlot("greeble_l", { ObjectIDManager::GenerateRandomObjectID(), 0, 0, 0 });
+		selfInventoryComponent->UnEquipItem(meItem1);
+		selfInventoryComponent->UnEquipItem(meItem2);
 
 		self->SetNetworkVar<float>(u"SuperChargeBar", 0);
 
 		LOG("Player disables super charge");
 
-		// TODO: Unequip items
-		for (const auto& equipped : equippedItems) {
-			if (equipped.first == "special_r" || equipped.first == "special_l") {
-				LOG("Trying to unequip a weapon, %i", equipped.second.lot);
-
-				auto* item = inventoryComponent->FindItemById(equipped.second.id);
-
-				if (item != nullptr) {
-					inventoryComponent->UnEquipItem(item);
-				} else {
-					LOG("Item not found, %i", equipped.second.lot);
-				}
-			}
-		}
 		cooldown = 800;
 		self->SetVar<uint32_t>(NumberOfChargesVariable, 0);
 	}
@@ -794,10 +851,10 @@ void SGCannon::ToggleSuperCharge(Entity* self, bool enable) {
 
 	DynamicShootingGalleryParams properties = shootingGalleryComponent->GetDynamicParams();
 
-	properties.cannonFOV = 58.6f;
-	properties.cannonVelocity = 129.0;
+	properties.cannonFOV = constants.cannonFOV;
+	properties.cannonVelocity = constants.cannonVelocity;
 	properties.cannonRefireRate = cooldown;
-	properties.cannonMinDistance = 30;
+	properties.cannonMinDistance = constants.cannonMinDistance;
 	properties.cannonTimeout = -1;
 
 	shootingGalleryComponent->SetDynamicParams(properties);
@@ -829,21 +886,37 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 			1.0, false, true
 		},
 
-		// Sub 1
+		// Sub 1 but for dlu
 		{
 			std::vector<std::string> { "Wave_1_Sub_1", "Wave_1_Sub_2" },
-			6016, 0.0, 2.0, true, 0.0, 2.0,
-			10.0, 1000, false, 0.0, 1.0,
-			1.0, true, true
-		},
-
-		// Sub 2
-		{
-			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
 			6016, 0.0, 2.0, true, 0.0, 2.0,
 			2.0, 1000, false, 0.0, 1.0,
 			1.0, true, true
 		},
+
+		//// Sub 1
+		//{
+		//	std::vector<std::string> { "Wave_1_Sub_1", "Wave_1_Sub_2" },
+		//	6016, 0.0, 2.0, true, 0.0, 2.0,
+		//	10.0, 1000, false, 0.0, 1.0,
+		//	1.0, true, true
+		//},
+
+		// Sub 2 but for dlu
+		{
+			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
+			6016, 0.0, 2.0, true, 0.0, 2.0,
+			3.0, 1000, false, 0.0, 1.0,
+			1.0, true, true
+		},
+
+		// Sub 2
+		//{
+		//	std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
+		//	6016, 0.0, 2.0, true, 0.0, 2.0,
+		//	2.0, 1000, false, 0.0, 1.0,
+		//	1.0, true, true
+		//},
 
 		// Friendly
 		{
@@ -897,10 +970,18 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 		},
 
 		// Sub 2
+		//{
+		//	std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
+		//	6016, 0.0, 2.0, true, 0.0, 2.0,
+		//	2.0, 1000, false, 0.0, 1.0,
+		//	1.0, true, true
+		//},
+
+		// Sub 2 but for dlu
 		{
 			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
 			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
+			3.0, 1000, false, 0.0, 1.0,
 			1.0, true, true
 		},
 
@@ -964,10 +1045,18 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 		},
 
 		// Sub 2
+		//{
+		//	std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
+		//	6016, 0.0, 2.0, true, 0.0, 2.0,
+		//	2.0, 1000, false, 0.0, 1.0,
+		//	1.0, true, true
+		//},
+
+		// Sub 2
 		{
 			std::vector<std::string> { "Wave_2_Sub_1", "Wave_2_Sub_2" },
 			6016, 0.0, 2.0, true, 0.0, 2.0,
-			2.0, 1000, false, 0.0, 1.0,
+			3.0, 1000, false, 0.0, 1.0,
 			1.0, true, true
 		},
 
@@ -987,13 +1076,21 @@ std::vector<std::vector<SGEnemy>> SGCannon::GetWaves() {
 			1.0, false, true
 		},
 
-		// Ness
+		// Ness temp fix for dlu where speeds are set to 7 to match a speed closer to live while we work on movingplatform components.
 		{
 			std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
 			2565, 10.0, 15.0, true, 10.0, 15.0,
-			2.0, 10000, false, 0.0, 1.0,
-			1.0, true, true
+			7.0, 10000, false, 0.0, 7.0,
+			7.0, true, true
 		},
+
+		// // Ness
+		// {
+		// 	std::vector<std::string> { "Wave_1_Ness_1", "Wave_1_Ness_2", "Wave_2_Ness_1" },
+		// 	2565, 10.0, 15.0, true, 10.0, 15.0,
+		// 	2.0, 10000, false, 0.0, 1.0,
+		// 	1.0, true, true
+		// },
 
 		// Friendly 1
 		{
@@ -1033,11 +1130,8 @@ void SGCannon::ResetVars(Entity* self) {
 	self->SetVar<int32_t>(TotalScoreVariable, 0);
 
 	self->SetVar<uint32_t>(u"m_curStreak", 0);
-	self->SetNetworkVar<float>(u"SuperChargeBar", 0);
 	self->SetVar<uint32_t>(u"LastSuperTotal", 0);
-	self->SetNetworkVar<float>(u"SuperChargeBar", 0.0f);
-	self->SetNetworkVar<bool>(u"ShowStreak", 0);
-	self->SetNetworkVar<bool>(u"UnMarkAll", true);
+	self->SetVar<std::vector<LWOOBJID>>(u"LastHitTarget", {});
 
 	const_cast<std::vector<SGEnemy>&>(self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable)).clear();
 	self->SetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable, {});
@@ -1056,40 +1150,42 @@ void SGCannon::ResetVars(Entity* self) {
 
 SGConstants SGCannon::GetConstants() {
 	return {
-		Vector3 { -908.542480, 229.773178, -908.542480 },
-		Quaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
-		1864,
-		34,
-		1822,
-		Vector3 { 6.652, -2, 1.5 },
-		157,
-		129.0,
-		30.0,
-		800.0,
-		Vector3 { 0, 4.3, 9 },
-		6297,
-		1822,
-		249,
-		228,
-		-1,
-		58.6,
-		true,
-		2,
-		10,
-		25000,
-		"QBRewardGroup",
-		1864,
-		50000,
-		157,
-		100000,
-		187,
-		200000,
-		188,
-		400000,
-		189,
-		800000,
-		190,
-		4.0,
-		7.0
+		.playerStartPosition = Vector3 { -908.542480, 229.773178, -908.542480 },
+		.playerStartRotation = Quaternion { 0.91913521289825, 0, 0.39394217729568, 0 },
+		.cannonLot = 1864,
+		.impactSkillID = 34,
+		.projectileLot = 1822,
+		.playerOffset = Vector3 { 6.652, -2, 1.5 },
+		.rewardModelMatrix = 157,
+		.cannonVelocity = 129.0,
+		.cannonMinDistance = 30.0,
+		.cannonRefireRate = 800.0,
+		.cannonBarrelOffset = Vector3 { 0, 4.3, 9 },
+		.cannonSuperchargedProjectileLot = 6297,
+		.cannonProjectileLot = 1822,
+		.cannonSuperChargeSkill = 249,
+		.cannonSkill = 228,
+		.cannonTimeout = -1,
+		.cannonFOV = 58.6,
+		.useLeaderboards = true,
+		.streakModifier = 2,
+		.chargedTime = 10,
+		.chargedPoints = 25000,
+		.rewardModelGroup = "QBRewardGroup",
+		.activityID = 1864,
+		.scoreRewards = {
+			{"Score_Reward_1", 50000},
+			{"Score_Reward_2", 100000},
+			{"Score_Reward_3", 200000},
+			{"Score_Reward_4", 400000},
+			{"Score_Reward_5", 800000},
+		},
+		.scoreLootMatrix1 = 157,
+		.scoreLootMatrix2 = 187,
+		.scoreLootMatrix3 = 188,
+		.scoreLootMatrix4 = 189,
+		.scoreLootMatrix5 = 190,
+		.firstWaveStartTime = 4.0,
+		.inBetweenWavePause = 7.0
 	};
 }

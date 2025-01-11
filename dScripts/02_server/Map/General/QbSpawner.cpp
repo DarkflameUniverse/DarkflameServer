@@ -77,8 +77,6 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 
 				auto* child = Game::entityManager->CreateEntity(info, nullptr, self);
 				Game::entityManager->ConstructEntity(child);
-
-				OnChildLoaded(self, child);
 			} else {
 				auto* mob = Game::entityManager->GetEntity(mobTable[i]);
 				AggroTargetObject(self, mob);
@@ -88,16 +86,19 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 	}
 }
 
-void QbSpawner::OnChildLoaded(Entity* self, Entity* child) {
-	auto mobTable = self->GetVar<std::vector<LWOOBJID>>(u"mobTable");
+void QbSpawner::OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {
+	auto* const child = Game::entityManager->GetEntity(childLoaded.childID);
+	if (!child) return;
+
+	auto mobTable = self.GetVar<std::vector<LWOOBJID>>(u"mobTable");
 	auto tableLoc = child->GetVar<int>(u"mobTableLoc");
 
 	mobTable[tableLoc] = child->GetObjectID();
-	self->SetVar<std::vector<LWOOBJID>>(u"mobTable", mobTable);
+	self.SetVar<std::vector<LWOOBJID>>(u"mobTable", mobTable);
 
-	AggroTargetObject(self, child);
+	AggroTargetObject(&self, child);
 
-	const auto selfID = self->GetObjectID();
+	const auto selfID = self.GetObjectID();
 
 	child->AddDieCallback([this, selfID, child]() {
 		auto* self = Game::entityManager->GetEntity(selfID);

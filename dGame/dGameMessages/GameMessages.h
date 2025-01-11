@@ -55,6 +55,8 @@ namespace GameMessages {
 		virtual ~GameMsg() = default;
 		void Send(const SystemAddress& sysAddr) const;
 		virtual void Serialize(RakNet::BitStream& bitStream) const {}
+		virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+		virtual void Handle(Entity& entity, const SystemAddress& sysAddr) {};
 		MessageType::Game msgId;
 		LWOOBJID target{ LWOOBJID_EMPTY };
 	};
@@ -736,6 +738,56 @@ namespace GameMessages {
 		LOT itemLOT{};
 		NiPoint3 targetPosition{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct ZoneLoadedInfo : public GameMsg {
+		ZoneLoadedInfo() : GameMsg(MessageType::Game::ZONE_LOADED_INFO) {}
+		int32_t maxPlayers{};
+	};
+
+	struct ConfigureRacingControl : public GameMsg {
+		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
+		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+	};
+
+	struct SetModelToBuild : public GameMsg {
+		SetModelToBuild() : GameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		LOT modelLot{ -1 };
+	};
+
+	struct SpawnModelBricks : public GameMsg {
+		SpawnModelBricks() : GameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
+		float amount{ 0.0f };
+		NiPoint3 position{ NiPoint3Constant::ZERO };
+	};
+
+	struct ActivityNotify : public GameMsg {
+		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
+
+		std::vector<std::unique_ptr<LDFBaseData>> notification{};
+	};
+
+	struct ShootingGalleryFire : public GameMsg {
+		ShootingGalleryFire() : GameMsg(MessageType::Game::SHOOTING_GALLERY_FIRE) {}
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		NiPoint3 target{};
+		NiQuaternion rotation{};
+	};
+
+	struct ChildLoaded : public GameMsg {
+		ChildLoaded() : GameMsg(MessageType::Game::CHILD_LOADED) {}
+
+		LOT templateID{};
+		LWOOBJID childID{};
+	};
+
+	struct PlayerResurrectionFinished : public GameMsg {
+		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
 	};
 };
 
