@@ -13,21 +13,35 @@ Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Som
 * You must disclose any changes you make to the code when you distribute it
 * Hosting a server for others counts as distribution
 
-## Disclaimers
-### Setup difficulty
-Throughout the entire build and setup process a level of familiarity with the command line and preferably a Unix-like development environment is greatly advantageous.
-
 ### Hosting a server
 We do not recommend hosting public servers. Darkflame Universe is intended for small scale deployment, for example within a group of friends. It has not been tested for large scale deployment which comes with additional security risks.
 
 ### Supply of resource files
 Darkflame Universe is a server emulator and does not distribute any LEGO® Universe files. A separate game client is required to setup this server emulator and play the game, which we cannot supply. Users are strongly suggested to refer to the safe checksums listed [here](#verifying-your-client-files) to see if a client will work.
 
-## Step by step walkthrough for a single-player server
-If you would like a setup for a single player server only on a Windows machine, use the [Native Windows Setup Guide by HailStorm](https://gist.github.com/HailStorm32/169df65a47a104199b5cc57d10fa57de) and skip this README.
+## Setting up a single player server
+* If you don't know what WSL is, skip this warning.
+	Warning: WSL version 1 does NOT support using sqlite as a database due to how it handles filesystem synchronization.
+	You must use Version 2 if you must run the server under WSL. Not doing so will result in save data loss.
+* Single player installs now no longer require building the server from source or installing development tools.
+* Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) (or whichever release you need) and extract the files into a folder inside your client. Note that this setup is expecting that when double clicking the folder that you put in the same folder as `legouniverse.exe`, the file `MasterServer.exe` is in there.
+* You should be able to see the folder with the server files in the same folder as `legouniverse.exe`.
+* Go into the server files folder and open `sharedconfig.ini`. Find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
+* To run the server, double-click `MasterServer.exe`.
+* You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
+* To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
+* When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
+* We are working on a way to make it so when you close the game, the server stops automatically alongside when you open the game, the server starts automatically.
+* If you are not setting a server up on mac, you can ignore this note
+* Note: you'll need to allow through System Preferences `AuthServer`, `ChatServer`, `MasterServer`, `WorldServer` and `libmariadbcpp.dylib` to run.  The initial pop-up will block it due to the binaries being unsigned, after allowing them to run the servers will run as normal.
 
-## Steps to setup server
+<font size="32">**If you are not planning on hosting a server for others, working in the codebase or wanting to use MariaDB for a database, you can stop reading here.**</font>
+
+If you would like to use a MariaDB as a database instead of the default of sqlite, follow the steps [here](#database-setup).
+
+# Steps to setup a development environment
 * [Clone this repository](#clone-the-repository)
+* [Setting up a development environment](#setting-up-a-development-environment)
 * [Install dependencies](#install-dependencies)
 * [Database setup](#database-setup)
 * [Build the server](#build-the-server)
@@ -39,6 +53,13 @@ If you would like a setup for a single player server only on a Windows machine, 
 * [User Guide](#user-guide)
 * [Docker](#docker)
 
+## Disclaimers
+### Setup difficulty
+Throughout the entire build and setup process a level of familiarity with the command line and preferably a Unix-like development environment is greatly advantageous.
+
+## Step by step walkthrough for building a single-player Windows server from source
+If you would like a setup for a single player server only on a Windows machine built from source, use the [Native Windows Setup Guide by HailStorm](https://gist.github.com/HailStorm32/169df65a47a104199b5cc57d10fa57de) and skip this README.
+
 ## Clone the repository
 If you are on Windows, you will need to download and install git from [here](https://git-scm.com/download/win)
 
@@ -48,6 +69,12 @@ git clone --recursive https://github.com/DarkflameUniverse/DarkflameServer
 ```
 
 ## Install dependencies
+
+### Required compiler versions
+- g++11 or greater
+- MSVC unchecked
+- clang unchecked
+- appleclang unchecked
 
 ### Windows packages
 Ensure that you have either the [MSVC C++ compiler](https://visualstudio.microsoft.com/vs/features/cplusplus/) (recommended) or the [Clang compiler](https://github.com/llvm/llvm-project/releases/) installed.
@@ -183,6 +210,7 @@ If you would like to build the server faster, append `-j<number>` where number i
 ### Notes
 Depending on your operating system, you may need to adjust some pre-processor defines in [CMakeVariables.txt](./CMakeVariables.txt) before building:
 * If you are on MacOS, ensure OPENSSL_ROOT_DIR is pointing to the openssl root directory.
+* By default it should be set to the correct directory.
 * If you are using a Darkflame Universe client, ensure `client_net_version` in `build/sharedconfig.ini` is changed to 171023.
 
 ## Configuring your server
@@ -205,28 +233,41 @@ Navigate to `build/sharedconfig.ini` and fill in the following fields:
 * `chatconfig.ini` contains a port option.
 * `masterconfig.ini` contains options related to permissions you want to run your servers with.
 * `sharedconfig.ini` contains several options that are shared across all servers
-* `worldconfig.ini` contains several options to turn on QOL improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
+* `worldconfig.ini` contains several options to turn on Quality of Life improvements should you want them. If you would like the most vanilla experience possible, you will need to turn some of these settings off.
 
 ## Verify your setup
-Your build directory should now look like this:
-* AuthServer
-* ChatServer
-* MasterServer
-* WorldServer
-* authconfig.ini
-* chatconfig.ini
-* masterconfig.ini
+Your build directory should contain at a minimum all of the following files.
+All listed files are required for a server to start.
+`ini` files can be located at the environment variable `DLU_CONFIG_DIR` and do not need to be located in this directory.
+(windows will have .exe at the end of the executables):
 * sharedconfig.ini
+* AuthServer(.exe)
+* authconfig.ini
+* ChatServer(.exe)
+* chatconfig.ini
+* MasterServer(.exe)
+* masterconfig.ini
+* WorldServer(.exe)
 * worldconfig.ini
-* ...
+* blocklist.dcf
+* migrations
+* vanity
+* navmeshes
+* 1 of the following lists based on platform
+	* windows
+		* libmariadb.dll
+		* mariadbcpp.dll
+		* zlib.dll
+	* MacOS
+		* libmariadbcpp.dylib
+	* *nix
+		* libmariadbcpp.so
 
 ## Running the server
-If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you either have to give the `AuthServer` binary network permissions or run it under sudo.
-To give `AuthServer` network permissions and not require sudo, run the following command
+If everything has been configured correctly you should now be able to run the `MasterServer` binary which is located in the `build` directory. Darkflame Universe utilizes port numbers under 1024, so under Linux you have to give the `AuthServer` binary network permissions by running the following command:
 ```bash
 sudo setcap 'cap_net_bind_service=+ep' AuthServer
 ```
-and then go to `build/masterconfig.ini` and change `use_sudo_auth` to 0.
 
 ### Linux Service
 If you are running this on a linux based system, it will use your terminal to run the program interactively, preventing you using it for other tasks and requiring it to be open to run the server.  
@@ -266,8 +307,8 @@ systemctl stop darkflame.service
 journalctl -xeu darkflame.service
 ```
 
-### First admin user
-Run `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
+### First user or adding more users.
+The first time you run `MasterServer`, you will be prompted to create an account. To create more accounts from the command line, `MasterServer -a` to get prompted to create an admin account. This method is only intended for the system administrator as a means to get started, do NOT use this method to create accounts for other users!
 
 ### Account management tool (Nexus Dashboard)
 **If you are just using this server for yourself, you can skip setting up Nexus Dashboard**
@@ -289,8 +330,14 @@ To connect to a server follow these steps:
 * Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
 * Next locate the line `UGCUSE3DSERVICES=7:`
 * Ensure the number after the 7 is a `0`
+* Alternatively, remove the line with `UGCUSE3DSERVICES` altogether
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
+As an example, here is what the boot.cfg is required to contain for a server with the ip 12.34.56.78
+```cfg
+AUTHSERVERIP=0:12.34.56.78,
+UGCUSE3DSERVICES=7:0
+```
 
 ## Updating your server
 To update your server to the latest version navigate to your cloned directory
