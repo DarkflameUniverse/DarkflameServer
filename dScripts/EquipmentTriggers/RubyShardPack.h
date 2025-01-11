@@ -10,4 +10,6 @@ private:
 	static const uint32_t skillId = 1750;
 };
 
+
 #endif  //!__RUBYSHARDPACK__H__
+
