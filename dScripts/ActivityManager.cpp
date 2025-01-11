@@ -163,7 +163,7 @@ int32_t ActivityManager::GetGameID(Entity* self) const {
 
 float_t ActivityManager::ActivityTimerGetRemainingTime(Entity* self, const std::string& timerName) const {
 	auto* timer = GetTimer(timerName);
-	return timer != nullptr ? std::min(timer->stopTime - timer->runTime, 0.0f) : 0.0f;
+	return timer != nullptr ? std::max(timer->stopTime - timer->runTime, 0.0f) : 0.0f;
 }
 
 void ActivityManager::ActivityTimerReset(Entity* self, const std::string& timerName) {

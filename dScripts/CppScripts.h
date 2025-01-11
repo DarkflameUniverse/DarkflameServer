@@ -186,6 +186,8 @@ namespace CppScripts {
 		 */
 		virtual void NotifyHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
 
+		virtual void NotifyPlayerResurrectionFinished(Entity& self, GameMessages::PlayerResurrectionFinished& msg) {};
+
 		/**
 		 * Invoked when a player has responsed to a mission.
 		 *
@@ -354,7 +356,33 @@ namespace CppScripts {
 		 * @param player the player to remove
 		 * @param canceled if it was done via the cancel button
 		 */
-		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled){};
+		virtual void OnRequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {};
+
+		virtual void OnZoneLoadedInfo(Entity* self, const GameMessages::ZoneLoadedInfo& info) {};
+
+		/**
+		 * @brief Handles notifying when activity data is done
+		 * 
+		 * @param self 
+		 * @param notify The parameters of the notification
+		 */
+		virtual void OnActivityNotify(Entity* self, GameMessages::ActivityNotify& notify) {};
+
+		/**
+		 * @brief handles shooting gallery fire
+		 * 
+		 * @param self 
+		 * @param fire The firing data
+		 */
+		virtual void OnShootingGalleryFire(Entity& self, GameMessages::ShootingGalleryFire& fire) {};
+
+		/**
+		 * @brief Handles when a child is loaded
+		 * 
+		 * @param self 
+		 * @param fire The child info
+		 */
+		virtual void OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {};
 	};
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);

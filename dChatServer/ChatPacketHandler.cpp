@@ -49,7 +49,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 			fd.zoneID = fr.zoneID;
 
 			//Since this friend is online, we need to update them on the fact that we've just logged in:
-			SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+			if (player.isLogin) SendFriendUpdate(fr, player, 1, fd.isBestFriend);
 		} else {
 			fd.isOnline = false;
 			fd.zoneID = LWOZONEID();
@@ -103,7 +103,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		return;
 	};
 
-	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName);
+	// Intentional copy
+	PlayerData requestee = Game::playerContainer.GetPlayerData(playerName);
 
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {
@@ -140,7 +141,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	// Prevent GM friend spam
 	// If the player we are trying to be friends with is not a civilian and we are a civilian, abort the process
-	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN ) {
+	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN) {
 		SendFriendResponse(requestor, requestee, eAddFriendResponseType::MYTHRAN);
 		return;
 	}
@@ -188,19 +189,24 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				Database::Get()->SetBestFriendStatus(requestorPlayerID, requestee.playerID, bestFriendStatus);
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
-					requestee.countOfBestFriends += 1;
-					requestor.countOfBestFriends += 1;
 					if (requestee.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, eAddFriendResponseType::ACCEPTED, false, true);
 					if (requestor.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::ACCEPTED, false, true);
+
 					for (auto& friendData : requestor.friends) {
 						if (friendData.friendID == requestee.playerID) {
 							friendData.isBestFriend = true;
 						}
 					}
-					for (auto& friendData : requestee.friends) {
-						if (friendData.friendID == requestor.playerID) {
-							friendData.isBestFriend = true;
+					requestor.countOfBestFriends += 1;
+
+					auto& toModify = Game::playerContainer.GetPlayerDataMutable(playerName);
+					if (toModify) {
+						for (auto& friendData : toModify.friends) {
+							if (friendData.friendID == requestor.playerID) {
+								friendData.isBestFriend = true;
+							}
 						}
+						toModify.countOfBestFriends += 1;
 					}
 				}
 			}
@@ -400,8 +406,8 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	bitStream.Write(Game::playerContainer.GetSimCount());
 	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
 	bitStream.Write<uint8_t>(request.displayZoneData);
-	if (request.displayZoneData || request.displayIndividualPlayers){
-		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+	if (request.displayZoneData || request.displayIndividualPlayers) {
+		for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
 			if (!playerData) continue;
 			bitStream.Write<uint8_t>(0); // structure packing
 			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));

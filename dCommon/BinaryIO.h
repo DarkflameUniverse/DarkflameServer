@@ -65,6 +65,8 @@ namespace BinaryIO {
 
 	std::string ReadString(std::istream& instream);
 
+	std::u8string ReadU8String(std::istream& instream);
+
 	inline bool DoesFileExist(const std::string& name) {
 		std::ifstream f(name.c_str());
 		return f.good();

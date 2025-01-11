@@ -8,10 +8,6 @@ void TestSQLDatabase::Destroy(std::string source) {
 
 }
 
-sql::PreparedStatement* TestSQLDatabase::CreatePreppedStmt(const std::string& query) {
-	return nullptr;
-}
-
 void TestSQLDatabase::Commit() {
 
 }
@@ -240,7 +236,7 @@ void TestSQLDatabase::InsertNewAccount(const std::string_view username, const st
 
 }
 
-void TestSQLDatabase::SetMasterIp(const std::string_view ip, const uint32_t port) {
+void TestSQLDatabase::SetMasterInfo(const IServers::MasterInfo& info) {
 
 }
 

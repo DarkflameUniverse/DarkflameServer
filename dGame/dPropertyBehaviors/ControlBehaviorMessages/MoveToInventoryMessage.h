@@ -8,7 +8,6 @@ class AMFArrayValue;
 /**
  * @brief Sent when a player moves a Behavior A at position B to their inventory. 
  */
-#pragma warning("This Control Behavior Message does not have a test yet. Non-developers can ignore this warning.")
 class MoveToInventoryMessage : public BehaviorMessageBase {
 public:
 	MoveToInventoryMessage(const AMFArrayValue& arguments);

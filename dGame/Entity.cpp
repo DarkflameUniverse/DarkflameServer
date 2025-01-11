@@ -97,6 +97,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
+#include <ranges>
+
 Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
@@ -286,8 +288,9 @@ void Entity::Initialize() {
 		AddComponent<PropertyEntranceComponent>(propertyEntranceComponentID);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS) > 0) {
-		auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>();
+	const int32_t controllablePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	if (controllablePhysicsComponentID > 0) {
+		auto* controllablePhysics = AddComponent<ControllablePhysicsComponent>(controllablePhysicsComponentID);
 
 		if (m_Character) {
 			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
@@ -330,16 +333,19 @@ void Entity::Initialize() {
 		AddComponent<SimplePhysicsComponent>(simplePhysicsComponentID);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS) > 0) {
-		AddComponent<RigidbodyPhantomPhysicsComponent>();
+	const int32_t rigidBodyPhantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS);
+	if (rigidBodyPhantomPhysicsComponentID > 0) {
+		AddComponent<RigidbodyPhantomPhysicsComponent>(rigidBodyPhantomPhysicsComponentID);
 	}
 
-	if (markedAsPhantom || compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS) > 0) {
-		AddComponent<PhantomPhysicsComponent>()->SetPhysicsEffectActive(false);
+	const int32_t phantomPhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PHANTOM_PHYSICS);
+	if (markedAsPhantom || phantomPhysicsComponentID > 0) {
+		AddComponent<PhantomPhysicsComponent>(phantomPhysicsComponentID)->SetPhysicsEffectActive(false);
 	}
 
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS) > 0) {
-		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>();
+	const int32_t havokVehiclePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::HAVOK_VEHICLE_PHYSICS);
+	if (havokVehiclePhysicsComponentID > 0) {
+		auto* havokVehiclePhysicsComponent = AddComponent<HavokVehiclePhysicsComponent>(havokVehiclePhysicsComponentID);
 		havokVehiclePhysicsComponent->SetPosition(m_DefaultPosition);
 		havokVehiclePhysicsComponent->SetRotation(m_DefaultRotation);
 	}
@@ -380,6 +386,9 @@ void Entity::Initialize() {
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
+			// extraInfo overrides. Client ORs the database smashable and the luz smashable.
+			comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
+
 			if (componentID > 0) {
 				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
@@ -414,9 +423,6 @@ void Entity::Initialize() {
 						comp->SetMinCoins(currencyValues[0].minvalue);
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
 					}
-
-					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
 				}
 			} else {
 				comp->SetHealth(1);
@@ -769,6 +775,12 @@ void Entity::Initialize() {
 	// Hacky way to trigger these when the object has had a chance to get constructed
 	AddCallbackTimer(0, [this]() {
 		this->GetScript()->OnStartup(this);
+		if (this->m_ParentEntity) {
+			GameMessages::ChildLoaded childLoaded;
+			childLoaded.childID = this->m_ObjectID;
+			childLoaded.templateID = this->GetLOT();
+			this->m_ParentEntity->OnChildLoaded(childLoaded);
+		}
 		});
 
 	if (!m_Character && Game::entityManager->GetGhostingEnabled()) {
@@ -848,6 +860,9 @@ void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, co
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
+	} else if (notificationName == "PlayerResurrectionFinished") {
+		LOG("Subscribing to PlayerResurrectionFinished");
+		m_Subscriptions[scriptObjId][notificationName] = scriptToAdd;
 	}
 }
 
@@ -856,6 +871,9 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Unsubscribe(scriptObjId);
+	} else if (notificationName == "PlayerResurrectionFinished") {
+		LOG("Unsubscribing from PlayerResurrectionFinished");
+		m_Subscriptions[scriptObjId].erase(notificationName);
 	}
 }
 
@@ -1487,6 +1505,27 @@ void Entity::OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16s
 	GetScript()->OnChoiceBoxResponse(this, sender, button, buttonIdentifier, identifier);
 }
 
+void Entity::OnActivityNotify(GameMessages::ActivityNotify& notify) {
+	GetScript()->OnActivityNotify(this, notify);
+}
+
+void Entity::OnShootingGalleryFire(GameMessages::ShootingGalleryFire& fire) {
+	GetScript()->OnShootingGalleryFire(*this, fire);
+}
+
+void Entity::OnChildLoaded(GameMessages::ChildLoaded& childLoaded) {
+	GetScript()->OnChildLoaded(*this, childLoaded);
+}
+
+void Entity::NotifyPlayerResurrectionFinished(GameMessages::PlayerResurrectionFinished& msg) {
+	for (const auto& [id, scriptList] : m_Subscriptions) {
+		auto it = scriptList.find("PlayerResurrectionFinished");
+		if (it == scriptList.end()) continue;
+
+		it->second->NotifyPlayerResurrectionFinished(*this, msg);
+	}
+}
+
 void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
 	GetScript()->OnRequestActivityExit(sender, player, canceled);
 }
@@ -1526,7 +1565,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	m_DieCallbacks.clear();
 
-	//OMAI WA MOU, SHINDERIU
+	//お前はもう死んでいる
 
 	GetScript()->OnDie(this, murderer);
 
@@ -2161,7 +2200,19 @@ void Entity::SetRespawnPos(const NiPoint3& position) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnPos(position);
 }
+
 void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
+}
+
+int32_t Entity::GetCollisionGroup() const {
+	for (const auto* component : m_Components | std::views::values) {
+		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);
+		if (compToCheck) {
+			return compToCheck->GetCollisionGroup();
+		}
+	}
+
+	return 0;
 }

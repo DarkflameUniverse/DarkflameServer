@@ -2,6 +2,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_GENERAL
 	"BankInteractServer.cpp"
 	"BaseInteractDropLootServer.cpp"
 	"Binoculars.cpp"
+	"EnemyClearThreat.cpp"
 	"ExplodingAsset.cpp"
 	"FrictionVolumeServer.cpp"
 	"ForceVolumeServer.cpp"

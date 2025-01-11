@@ -30,7 +30,6 @@ public:
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query) override;
 	void Commit() override;
 	bool GetAutoCommit() override;
 	void SetAutoCommit(bool value) override;
@@ -97,7 +96,7 @@ public:
 	void UpdateAccountBan(const uint32_t accountId, const bool banned) override;
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
 	void InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) override;
-	void SetMasterIp(const std::string_view ip, const uint32_t port) override;
+	void SetMasterInfo(const IServers::MasterInfo& info) override;
 	std::optional<uint32_t> GetCurrentPersistentId() override;
 	void InsertDefaultPersistentId() override;
 	void UpdatePersistentId(const uint32_t id) override;
@@ -125,6 +124,8 @@ public:
 	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
+	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
+	uint32_t GetAccountCount() override;
 private:
 
 	// Generic query functions that can be used for any query.

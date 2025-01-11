@@ -287,8 +287,8 @@ void SlashCommandHandler::Startup() {
 	RegisterCommand(SpawnPhysicsVertsCommand);
 
 	Command TeleportCommand{
-		.help = "Teleports you",
-		.info = "Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z)",
+		.help = "Teleports you to a position or a player to another player.",
+		.info = "Teleports you. If no Y is given, you are teleported to the height of the terrain or physics object at (x, z). Any of the coordinates can use the syntax of an exact position (10.0), or a relative position (~+10.0). A ~ means use the current value of that axis as the base value. Addition or subtraction is supported (~+10) (~-10). If source player and target player are players that exist in the world, then the source player will be teleported to target player.",
 		.aliases = { "teleport", "tele", "tp" },
 		.handle = DEVGMCommands::Teleport,
 		.requiredLevel = eGameMasterLevel::JUNIOR_DEVELOPER
@@ -1055,6 +1055,15 @@ void SlashCommandHandler::Startup() {
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(InstanceInfoCommand);
+
+	Command ServerUptimeCommand{
+		.help = "Display the time the current world server has been active",
+		.info = "Display the time the current world server has been active",
+		.aliases = { "uptime" },
+		.handle = GMZeroCommands::ServerUptime,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(ServerUptimeCommand);
 
 	//Commands that are handled by the client
 

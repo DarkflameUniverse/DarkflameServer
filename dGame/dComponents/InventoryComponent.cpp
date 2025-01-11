@@ -31,6 +31,7 @@
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
 #include "Mail.h"
+#include "ProximityMonitorComponent.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -68,9 +69,10 @@ InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		if (!item.equip || !Inventory::IsValidItem(item.itemid)) {
-			continue;
-		}
+		if (!Inventory::IsValidItem(item.itemid)) continue;
+		AddItem(item.itemid, item.count);
+
+		if (!item.equip) continue;
 
 		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
@@ -829,6 +831,30 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 				break;
 			}
 
+			return;
+		} else if (item->GetLot() == 8092) {
+			// Trying to equip a car
+			const auto proximityObjects = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
+
+			// look for car instancers and check if we are in its setup range
+			for (auto* const entity : proximityObjects) {
+				if (!entity) continue;
+
+				auto* proximityMonitorComponent = entity->GetComponent<ProximityMonitorComponent>();
+				if (!proximityMonitorComponent) continue;
+
+				if (proximityMonitorComponent->IsInProximity("Interaction_Distance", m_Parent->GetObjectID())) {
+					// in the range of a car instancer
+					entity->OnUse(m_Parent);
+					GameMessages::UseItemOnClient itemMsg;
+					itemMsg.target = entity->GetObjectID();
+					itemMsg.itemLOT = item->GetLot();
+					itemMsg.itemToUse = item->GetId();
+					itemMsg.playerId = m_Parent->GetObjectID();
+					itemMsg.Send(m_Parent->GetSystemAddress());
+					break;
+				}
+			}
 			return;
 		}
 

@@ -48,8 +48,6 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "httplib.h" //sorry not sorry.
-
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
@@ -867,8 +865,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::DIE);
+
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
+	bitStream.Write<uint32_t>(deathType.size());
 	bitStream.Write(deathType);
 	bitStream.Write(directionRelative_AngleXZ);
 	bitStream.Write(directionRelative_AngleY);
@@ -878,7 +878,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
 
 	bitStream.Write(killerID);
-	bitStream.Write(lootOwnerID);
+	bitStream.Write(lootOwnerID != LWOOBJID_EMPTY);
+	if (lootOwnerID != LWOOBJID_EMPTY) {
+		bitStream.Write(lootOwnerID);
+	}
 
 	SEND_PACKET_BROADCAST;
 }
@@ -990,6 +993,8 @@ void GameMessages::SendResurrect(Entity* entity) {
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
 	entity->AddCallbackTimer(respawnTime, [=]() {
+		GameMessages::PlayerResurrectionFinished msg;
+		entity->NotifyPlayerResurrectionFinished(msg);
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
@@ -6360,6 +6365,92 @@ void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress&
 
 	bitStream.Write(objectId);
 	bitStream.Write(MessageType::Game::UPDATE_INVENTORY_UI);
-	
+
 	SEND_PACKET;
+}
+
+namespace GameMessages {
+	void GameMsg::Send(const SystemAddress& sysAddr) const {
+		CBITSTREAM;
+		CMSGHEADER;
+
+		bitStream.Write(target); // Who this message will be sent to on the (a) client
+		bitStream.Write(msgId); // the ID of this message
+
+		Serialize(bitStream); // write the message data
+
+		// Send to everyone if someone sent unassigned system address, or to one specific client.
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			SEND_PACKET_BROADCAST;
+		} else {
+			SEND_PACKET;
+		}
+	}
+
+	void DisplayTooltip::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(doOrDie);
+		bitStream.Write(noRepeat);
+		bitStream.Write(noRevive);
+		bitStream.Write(isPropertyTooltip);
+		bitStream.Write(show);
+		bitStream.Write(translate);
+		bitStream.Write(time);
+		bitStream.Write<int32_t>(id.size());
+		bitStream.Write(id);
+
+		std::string toWrite;
+		for (const auto* item : localizeParams) {
+			toWrite += item->GetString() + "\n";
+		}
+		if (!toWrite.empty()) toWrite.pop_back();
+		bitStream.Write<int32_t>(toWrite.size());
+		bitStream.Write(GeneralUtils::ASCIIToUTF16(toWrite));
+		if (!toWrite.empty()) bitStream.Write<uint16_t>(0x00); // Null Terminator
+
+		bitStream.Write<int32_t>(imageName.size());
+		bitStream.Write(imageName);
+		bitStream.Write<int32_t>(text.size());
+		bitStream.Write(text);
+	}
+
+	void UseItemOnClient::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(itemLOT);
+		bitStream.Write(itemToUse);
+		bitStream.Write(itemType);
+		bitStream.Write(playerId);
+		bitStream.Write(targetPosition.x);
+		bitStream.Write(targetPosition.y);
+		bitStream.Write(targetPosition.z);
+	}
+
+	void SetModelToBuild::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(modelLot != -1);
+		if (modelLot != -1) bitStream.Write(modelLot);
+	}
+
+	void SpawnModelBricks::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(amount != 0.0f);
+		if (amount != 0.0f) bitStream.Write(amount);
+		bitStream.Write(position != NiPoint3Constant::ZERO);
+		if (position != NiPoint3Constant::ZERO) {
+			bitStream.Write(position.x);
+			bitStream.Write(position.y);
+			bitStream.Write(position.z);
+		}
+	}
+
+	bool ShootingGalleryFire::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(target.x)) return false;
+		if (!bitStream.Read(target.y)) return false;
+		if (!bitStream.Read(target.z)) return false;
+		if (!bitStream.Read(rotation.w)) return false;
+		if (!bitStream.Read(rotation.x)) return false;
+		if (!bitStream.Read(rotation.y)) return false;
+		if (!bitStream.Read(rotation.z)) return false;
+		return true;
+	}
+
+	void ShootingGalleryFire::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		entity.OnShootingGalleryFire(*this);
+	}
 }

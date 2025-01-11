@@ -11,6 +11,7 @@
 #include "eCyclingMode.h"
 #include "eLootSourceType.h"
 #include "Brick.h"
+#include "MessageType/Game.h"
 
 class AMFBaseValue;
 class Entity;
@@ -20,6 +21,7 @@ class User;
 class Leaderboard;
 class PropertySelectQueryProperty;
 class TradeItem;
+class LDFBaseData;
 
 enum class eAnimationFlags : uint32_t;
 
@@ -47,6 +49,17 @@ enum class eCameraTargetCyclingMode : int32_t {
 };
 
 namespace GameMessages {
+	struct GameMsg {
+		GameMsg(MessageType::Game gmId) : msgId{ gmId } {}
+		virtual ~GameMsg() = default;
+		void Send(const SystemAddress& sysAddr) const;
+		virtual void Serialize(RakNet::BitStream& bitStream) const {}
+		virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+		virtual void Handle(Entity& entity, const SystemAddress& sysAddr) {};
+		MessageType::Game msgId;
+		LWOOBJID target{ LWOOBJID_EMPTY };
+	};
+
 	class PropertyDataMessage;
 	void SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender);
 	void SendTeleport(const LWOOBJID& objectID, const NiPoint3& pos, const NiQuaternion& rot, const SystemAddress& sysAddr, bool bSetRotation = false);
@@ -681,6 +694,82 @@ namespace GameMessages {
 
 	// This is a client gm however its default values are exactly what we need to get around the invisible inventory item issues.
 	void SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress& sysAddr);
+
+	struct DisplayTooltip : public GameMsg {
+		DisplayTooltip() : GameMsg(MessageType::Game::DISPLAY_TOOLTIP) {}
+		bool doOrDie{};
+		bool noRepeat{};
+		bool noRevive{};
+		bool isPropertyTooltip{};
+		bool show{};
+		bool translate{};
+		int32_t time{};
+		std::u16string id{};
+		std::vector<LDFBaseData*> localizeParams{};
+		std::u16string imageName{};
+		std::u16string text{};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct UseItemOnClient : public GameMsg {
+		UseItemOnClient() : GameMsg(MessageType::Game::USE_ITEM_ON_CLIENT) {}
+		LWOOBJID playerId{};
+		LWOOBJID itemToUse{};
+		uint32_t itemType{};
+		LOT itemLOT{};
+		NiPoint3 targetPosition{};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct ZoneLoadedInfo : public GameMsg {
+		ZoneLoadedInfo() : GameMsg(MessageType::Game::ZONE_LOADED_INFO) {}
+		int32_t maxPlayers{};
+	};
+
+	struct ConfigureRacingControl : public GameMsg {
+		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
+		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+	};
+
+	struct SetModelToBuild : public GameMsg {
+		SetModelToBuild() : GameMsg(MessageType::Game::SET_MODEL_TO_BUILD) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+		LOT modelLot{ -1 };
+	};
+
+	struct SpawnModelBricks : public GameMsg {
+		SpawnModelBricks() : GameMsg(MessageType::Game::SPAWN_MODEL_BRICKS) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
+		float amount{ 0.0f };
+		NiPoint3 position{ NiPoint3Constant::ZERO };
+	};
+
+	struct ActivityNotify : public GameMsg {
+		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
+
+		std::vector<std::unique_ptr<LDFBaseData>> notification{};
+	};
+
+	struct ShootingGalleryFire : public GameMsg {
+		ShootingGalleryFire() : GameMsg(MessageType::Game::SHOOTING_GALLERY_FIRE) {}
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		NiPoint3 target{};
+		NiQuaternion rotation{};
+	};
+
+	struct ChildLoaded : public GameMsg {
+		ChildLoaded() : GameMsg(MessageType::Game::CHILD_LOADED) {}
+
+		LOT templateID{};
+		LWOOBJID childID{};
+	};
+
+	struct PlayerResurrectionFinished : public GameMsg {
+		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
+	};
 };
 
 #endif // GAMEMESSAGES_H

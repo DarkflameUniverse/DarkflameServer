@@ -9,10 +9,11 @@ public:
 	struct MasterInfo {
 		std::string ip;
 		uint32_t port{};
+		std::string password{};
 	};
 
 	// Set the master server ip and port.
-	virtual void SetMasterIp(const std::string_view ip, const uint32_t port) = 0;
+	virtual void SetMasterInfo(const MasterInfo& info) = 0;
 
 	// Get the master server info.
 	virtual std::optional<MasterInfo> GetMasterInfo() = 0;

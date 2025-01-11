@@ -296,6 +296,12 @@ void Character::SaveXMLToDatabase() {
 		flags->LinkEndChild(s);
 	}
 
+	if (GetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR)) {
+		auto* s = m_Doc.NewElement("s");
+		s->SetAttribute("si", ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR);
+		flags->LinkEndChild(s);
+	}
+
 	SaveXmlRespawnCheckpoints();
 
 	//Call upon the entity to update our xmlDoc:
@@ -357,49 +363,62 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 		}
 	}
 
-	// Calculate the index first
-	auto flagIndex = uint32_t(std::floor(flagId / 64));
-
-	const auto shiftedValue = 1ULL << flagId % 64;
-
-	auto it = m_PlayerFlags.find(flagIndex);
-
-	// Check if flag index exists
-	if (it != m_PlayerFlags.end()) {
-		// Update the value
-		if (value) {
-			it->second |= shiftedValue;
-		} else {
-			it->second &= ~shiftedValue;
-		}
+	if (flagId == EQUPPED_TRIAL_FACTION_GEAR || flagId == IS_NEWS_SCREEN_VISIBLE) {
+		if (value) m_SessionFlags.insert(flagId);
+		else m_SessionFlags.erase(flagId);
 	} else {
-		if (value) {
-			// Otherwise, insert the value
-			uint64_t flagValue = 0;
+		// Calculate the index first
+		auto flagIndex = uint32_t(std::floor(flagId / 64));
 
-			flagValue |= shiftedValue;
+		const auto shiftedValue = 1ULL << flagId % 64;
 
-			m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
+		auto it = m_PlayerFlags.find(flagIndex);
+
+		// Check if flag index exists
+		if (it != m_PlayerFlags.end()) {
+			// Update the value
+			if (value) {
+				it->second |= shiftedValue;
+			} else {
+				it->second &= ~shiftedValue;
+			}
+		} else {
+			if (value) {
+				// Otherwise, insert the value
+				uint64_t flagValue = 0;
+
+				flagValue |= shiftedValue;
+
+				m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
+			}
 		}
 	}
-
 	// Notify the client that a flag has changed server-side
 	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
 }
 
 bool Character::GetPlayerFlag(const uint32_t flagId) const {
-	// Calculate the index first
-	const auto flagIndex = uint32_t(std::floor(flagId / 64));
+	using enum ePlayerFlag;
 
-	const auto shiftedValue = 1ULL << flagId % 64;
+	bool toReturn = false; //by def, return false.
 
-	auto it = m_PlayerFlags.find(flagIndex);
-	if (it != m_PlayerFlags.end()) {
-		// Don't set the data if we don't have to
-		return (it->second & shiftedValue) != 0;
+	// TODO make actual session flag checker using flags table in database.
+	if (flagId == EQUPPED_TRIAL_FACTION_GEAR || flagId == IS_NEWS_SCREEN_VISIBLE) {
+		toReturn = m_SessionFlags.contains(flagId);
+	} else {
+		// Calculate the index first
+		const auto flagIndex = uint32_t(std::floor(flagId / 64));
+
+		const auto shiftedValue = 1ULL << flagId % 64;
+
+		auto it = m_PlayerFlags.find(flagIndex);
+		if (it != m_PlayerFlags.end()) {
+			// Don't set the data if we don't have to
+			toReturn = (it->second & shiftedValue) != 0;
+		}
 	}
 
-	return false; //by def, return false.
+	return toReturn;
 }
 
 void Character::SetRetroactiveFlags() {

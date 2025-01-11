@@ -13,6 +13,13 @@
 #include "eKillType.h"
 #include "Observable.h"
 
+namespace GameMessages {
+	struct ActivityNotify;
+	struct ShootingGalleryFire;
+	struct ChildLoaded;
+	struct PlayerResurrectionFinished;
+};
+
 namespace Loot {
 	class Info;
 };
@@ -106,6 +113,11 @@ public:
 	const NiQuaternion& GetRotation() const;
 
 	const SystemAddress& GetSystemAddress() const;
+
+	// Returns the collision group for this entity.
+	// Because the collision group is stored on a base component, this will look for a physics component
+	// then return the collision group from that.
+	int32_t GetCollisionGroup() const;
 
 	/**
 	 * Setters
@@ -205,6 +217,10 @@ public:
 	void OnZonePropertyModelRemoved(Entity* player);
 	void OnZonePropertyModelRemovedWhileEquipped(Entity* player);
 	void OnZonePropertyModelRotated(Entity* player);
+	void OnActivityNotify(GameMessages::ActivityNotify& notify);
+	void OnShootingGalleryFire(GameMessages::ShootingGalleryFire& notify);
+	void OnChildLoaded(GameMessages::ChildLoaded& childLoaded);
+	void NotifyPlayerResurrectionFinished(GameMessages::PlayerResurrectionFinished& msg);
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
@@ -358,6 +374,9 @@ protected:
 	 * Collision
 	 */
 	std::vector<LWOOBJID> m_TargetsInPhantom;
+
+	// objectID of receiver and map of notification name to script
+	std::map<LWOOBJID, std::map<std::string, CppScripts::Script*>> m_Subscriptions;
 };
 
 /**

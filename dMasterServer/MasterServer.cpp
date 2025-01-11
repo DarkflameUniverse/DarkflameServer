@@ -62,6 +62,14 @@ std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
 
+int GenerateBCryptPassword(const std::string& password, const int workFactor, char salt[BCRYPT_HASHSIZE], char hash[BCRYPT_HASHSIZE]) {
+	int32_t bcryptState = ::bcrypt_gensalt(workFactor, salt);
+	assert(bcryptState == 0);
+	bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+	assert(bcryptState == 0);
+	return 0;
+}
+
 int main(int argc, char** argv) {
 	constexpr uint32_t masterFramerate = mediumFramerate;
 	constexpr uint32_t masterFrameDelta = mediumFrameDelta;
@@ -83,6 +91,24 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
+
+	auto folders = { "navmeshes", "migrations", "vanity" };
+
+	for (const auto folder : folders) {
+		if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / folder)) {
+			std::string msg = "The (" +
+				std::string(folder) +
+				") folder was not copied to the binary directory. Please copy the (" +
+				std::string(folder) +
+				") folder from your download to the binary directory or re-run cmake.";
+			LOG("%s", msg.c_str());
+			// toss an error box up for windows users running the download
+#ifdef DARKFLAME_PLATFORM_WIN32
+			MessageBoxA(nullptr, msg.c_str(), "Missing Folder", MB_OK | MB_ICONERROR);
+#endif
+			return EXIT_FAILURE;
+		}
+	}
 
 	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
 	if (!dConfig::Exists("chatconfig.ini")) LOG("Could not find chatconfig.ini, using default settings");
@@ -126,6 +152,7 @@ int main(int argc, char** argv) {
 
 	MigrationRunner::RunMigrations();
 	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+	std::filesystem::create_directories(resServerPath);
 	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
@@ -180,8 +207,12 @@ int main(int argc, char** argv) {
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
-	if (argc > 1 &&
-		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) {
+	bool createAccount = Database::Get()->GetAccountCount() == 0 && Game::config->GetValue("skip_account_creation") != "1";
+	if (createAccount) {
+		LOG("No accounts exist in the database.  Please create an account.");
+	}
+	if ((argc > 1 &&
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || createAccount) {
 		std::string username;
 		std::string password;
 
@@ -215,10 +246,7 @@ int main(int argc, char** argv) {
 				// Regenerate hash based on new password
 				char salt[BCRYPT_HASHSIZE];
 				char hash[BCRYPT_HASHSIZE];
-				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-				assert(bcryptState == 0);
-				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-				assert(bcryptState == 0);
+				assert(GenerateBCryptPassword(password, 12, salt, hash) == 0);
 
 				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
@@ -256,10 +284,7 @@ int main(int argc, char** argv) {
 		//Generate new hash for bcrypt
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-		assert(bcryptState == 0);
-		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-		assert(bcryptState == 0);
+		assert(GenerateBCryptPassword(password, 12, salt, hash) == 0);
 
 		//Create account
 		try {
@@ -295,15 +320,24 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
+	char salt[BCRYPT_HASHSIZE];
+	char hash[BCRYPT_HASHSIZE];
+	const auto& cfgPassword = Game::config->GetValue("master_password");
+	GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
 	if (!masterServerIPString.empty()) master_server_ip = masterServerIPString;
 
 	if (master_server_ip == "") master_server_ip = Game::server->GetIP();
+	IServers::MasterInfo info;
+	info.ip = master_server_ip;
+	info.port = Game::server->GetPort();
+	info.password = hash;
 
-	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
+	Database::Get()->SetMasterInfo(info);
 
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
