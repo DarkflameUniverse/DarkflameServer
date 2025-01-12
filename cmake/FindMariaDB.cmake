@@ -80,6 +80,10 @@ else() # Build from source
 			-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
 			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
+   		configure_file(
+			${OPENSSL_ROOT_DIR} ${CMAKE_BINARY_DIR}
+			COPYONLY
+		)
 	else()
 		set(MARIADB_EXTRA_CMAKE_ARGS
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
