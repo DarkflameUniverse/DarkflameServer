@@ -120,8 +120,8 @@ void FtGarmadonTornado::OnTimerDone(Entity* self, std::string timerName) {
 
 	}	
 	if (timerName == "FXLoop") {	
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 32169, u"create", "garmadon_idle_mid");	
-		GameMessages::SendPlayFXEffect(self->GetObjectID(), 32101, u"create", "garmadon_idle_base");
+//		GameMessages::SendPlayFXEffect(self->GetObjectID(), 32169, u"create", "garmadon_idle_mid");	
+//		GameMessages::SendPlayFXEffect(self->GetObjectID(), 32101, u"create", "garmadon_idle_base");
 		
 		
 //		Make sure tornado @ proper waypoint		
