@@ -80,8 +80,12 @@ else() # Build from source
 			-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
 			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
-     file(READ_SYMLINK ${OPENSSL_ROOT_DIR} OPENSSL_REAL_DIR)
-   		file(COPY ${OPENSSL_REAL_DIR} DESTINATION ${CMAKE_BINARY_DIR})
+   	set(banana ${OPENSSL_ROOT_DIR})
+   if(IS_SYMLINK ${banana})
+     file(READ_SYMLINK ${OPENSSL_ROOT_DIR} banana)
+
+   endif()
+   		file(COPY ${OPENSSL_REAL_DIR} DESTINATION ${banana})
 	else()
 		set(MARIADB_EXTRA_CMAKE_ARGS
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
