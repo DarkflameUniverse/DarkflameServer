@@ -105,16 +105,6 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 void QuickBuildComponent::Update(float deltaTime) {
 	SetActivator(GetActivator());
 
-	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
-	/*if (m_SoftTimer > 0.0f) {
-		m_SoftTimer -= deltaTime;
-	}
-	else {
-		m_SoftTimer = 5.0f;
-
-		Game::entityManager->SerializeEntity(m_Parent);
-	}*/
-
 	switch (m_State) {
 	case eQuickBuildState::OPEN: {
 		SpawnActivator();
