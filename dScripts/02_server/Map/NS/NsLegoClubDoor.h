@@ -19,6 +19,5 @@ private:
 	std::string m_SpawnPoint = "NS_LEGO_Club";
 	std::u16string m_TeleportAnim = u"lup-teleport";
 	std::u16string m_TeleportString = u"ROCKET_TOOLTIP_USE_THE_GATEWAY_TO_TRAVEL_TO_LUP_WORLD";
-	AMFArrayValue args = {};
-	AMFArrayValue* options = {};
+	AMFArrayValue teleportArgs{};
 };
