@@ -76,7 +76,9 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
-
+		delete Game::server;
+		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
 
@@ -88,8 +90,20 @@ int main(int argc, char** argv) {
 		Database::Destroy("ChatServer");
 		delete Game::server;
 		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
+
+	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
+	ChatWebAPI chatwebapi;
+	if (web_server_enabled && !chatwebapi.Startup()){
+		LOG("Failed to start web server, shutting down.");
+		Database::Destroy("ChatServer");
+		delete Game::server;
+		delete Game::logger;
+		delete Game::config;
+		return EXIT_FAILURE;
+	};
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -123,11 +137,6 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceLastFlush = 0;
 	uint32_t framesSinceMasterDisconnect = 0;
 	uint32_t framesSinceLastSQLPing = 0;
-
-
-	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
-	ChatWebAPI chatwebapi;
-	if (web_server_enabled) chatwebapi.Listen();
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
