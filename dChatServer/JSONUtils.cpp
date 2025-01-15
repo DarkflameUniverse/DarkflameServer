@@ -17,7 +17,11 @@ void to_json(json& data, const PlayerData& playerData) {
 }
 
 void to_json(json& data, const PlayerContainer& playerContainer) {
-	data = playerContainer.GetAllPlayers();
+	data = json::array();
+	for(auto& playerData : playerContainer.GetAllPlayers()) {
+		if (playerData.first == LWOOBJID_EMPTY) continue;
+		data.push_back(playerData.second);
+	}
 }
 
 void to_json(json& data, const TeamContainer& teamContainer) {
