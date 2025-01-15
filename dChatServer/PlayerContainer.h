@@ -97,8 +97,8 @@ public:
 	LWOOBJID GetId(const std::u16string& playerName);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
-	const TeamContainer& GetTeamContainer() { return teamContainer; }
-	std::vector<TeamData*>& GetTeamsMut() { return teamContainer.mTeams; };
+	const TeamContainer& GetTeamContainer() { return m_TeamContainer; }
+	std::vector<TeamData*>& GetTeamsMut() { return m_TeamContainer.mTeams; };
 	const std::vector<TeamData*>& GetTeams() { return GetTeamsMut(); };
 
 	void Update(const float deltaTime);
@@ -107,7 +107,7 @@ public:
 private:
 	LWOOBJID m_TeamIDCounter = 0;
 	std::map<LWOOBJID, PlayerData> m_Players;
-	TeamContainer teamContainer{};
+	TeamContainer m_TeamContainer{};
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
 	std::map<LWOOBJID, float> m_PlayersToRemove;
 	uint32_t m_MaxNumberOfBestFriends = 5;

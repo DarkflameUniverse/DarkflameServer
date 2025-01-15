@@ -76,7 +76,6 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
-		delete Game::server;
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
@@ -88,18 +87,18 @@ int main(int argc, char** argv) {
 	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
-		delete Game::server;
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
 	}
 
+	// seyup the chat api web server
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
 	ChatWebAPI chatwebapi;
 	if (web_server_enabled && !chatwebapi.Startup()){
+		// if we want the web api and it fails to start, exit
 		LOG("Failed to start web server, shutting down.");
 		Database::Destroy("ChatServer");
-		delete Game::server;
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;

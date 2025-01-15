@@ -149,7 +149,7 @@ ChatWebAPI::~ChatWebAPI() {
 }
 
 bool ChatWebAPI::Startup() {
-	// make listen address
+	// Make listen address
 	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
 	if (listen_ip == "localhost") listen_ip = "127.0.0.1";
 
