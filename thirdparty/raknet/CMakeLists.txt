@@ -59,7 +59,7 @@ Source/DS_List.h                         Source/NetworkIDObject.h              S
 Source/DS_Map.h                          Source/PacketConsoleLogger.h          Source/SingleProducerConsumer.h
 Source/DS_MemoryPool.h                   Source/PacketFileLogger.h             Source/SocketLayer.h
 Source/DS_OrderedChannelHeap.h           Source/PacketLogger.h                 Source/StringCompressor.h
-Source/DS_OrderedList.h                  Source/PacketPool.h                   Source/StringTable.h
+Source/DS_OrderedList.h                                                        Source/StringTable.h
 Source/DS_Queue.h                        Source/PacketPriority.h               Source/SystemAddressList.h
 Source/DS_QueueLinkedList.h              Source/PluginInterface.h              Source/TableSerializer.h
 Source/DS_RangeList.h                    Source/RakAssert.h                    Source/TCPInterface.h
