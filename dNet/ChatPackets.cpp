@@ -97,3 +97,13 @@ void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
 	//docs say there's a wstring here-- no idea what it's for, or if it's even needed so leaving it as is for now.
 	SEND_PACKET;
 }
+
+void ChatPackets::Announcement::Send() {
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
+	bitStream.Write<uint32_t>(title.size());
+	bitStream.Write(title);
+	bitStream.Write<uint32_t>(message.size());
+	bitStream.Write(message);
+	SEND_PACKET_BROADCAST;
+}

@@ -28,6 +28,8 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
+#include "ChatWebAPI.h"
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -74,7 +76,8 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
-
+		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
 
@@ -84,10 +87,22 @@ int main(int argc, char** argv) {
 	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
-		delete Game::server;
 		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
+
+	// seyup the chat api web server
+	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
+	ChatWebAPI chatwebapi;
+	if (web_server_enabled && !chatwebapi.Startup()){
+		// if we want the web api and it fails to start, exit
+		LOG("Failed to start web server, shutting down.");
+		Database::Destroy("ChatServer");
+		delete Game::logger;
+		delete Game::config;
+		return EXIT_FAILURE;
+	};
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -149,6 +164,11 @@ int main(int argc, char** argv) {
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
+		}
+
+		//Check and handle web requests:
+		if (web_server_enabled) {
+			chatwebapi.ReceiveRequests();
 		}
 
 		//Push our log every 30s:
@@ -288,12 +308,11 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::LOGIN_SESSION_NOTIFY:
 		Game::playerContainer.InsertPlayer(packet);
 		break;
-	case MessageType::Chat::GM_ANNOUNCE: {
+	case MessageType::Chat::GM_ANNOUNCE:
 		// we just forward this packet to every connected server
 		inStream.ResetReadPointer();
 		Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
-	}
-									   break;
+		break;
 	case MessageType::Chat::UNEXPECTED_DISCONNECT:
 		Game::playerContainer.ScheduleRemovePlayer(packet);
 		break;

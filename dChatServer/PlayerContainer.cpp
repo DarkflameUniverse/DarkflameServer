@@ -219,7 +219,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 	team->leaderID = leader;
 	team->local = local;
 
-	mTeams.push_back(team);
+	GetTeamsMut().push_back(team);
 
 	AddMember(team, leader);
 
@@ -227,7 +227,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 }
 
 TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
-	for (auto* team : mTeams) {
+	for (auto* team : GetTeams()) {
 		if (std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID) == team->memberIDs.end()) continue;
 
 		return team;
@@ -335,9 +335,9 @@ void PlayerContainer::PromoteMember(TeamData* team, LWOOBJID newLeader) {
 }
 
 void PlayerContainer::DisbandTeam(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+	const auto index = std::find(GetTeams().begin(), GetTeams().end(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
 
 	for (const auto memberId : team->memberIDs) {
 		const auto& otherMember = GetPlayerData(memberId);
@@ -352,15 +352,15 @@ void PlayerContainer::DisbandTeam(TeamData* team) {
 
 	UpdateTeamsOnWorld(team, true);
 
-	mTeams.erase(index);
+	GetTeamsMut().erase(index);
 
 	delete team;
 }
 
 void PlayerContainer::TeamStatusUpdate(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+	const auto index = std::find(GetTeams().begin(), GetTeams().end(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
 
 	const auto& leader = GetPlayerData(team->leaderID);
 
@@ -447,5 +447,5 @@ void PlayerContainer::Shutdown() {
 		Database::Get()->UpdateActivityLog(id, eActivityType::PlayerLoggedOut, playerData.zoneID.GetMapID());
 		m_Players.erase(m_Players.begin());
 	}
-	for (auto* team : mTeams) if (team) delete team;
+	for (auto* team : GetTeams()) if (team) delete team;
 }
