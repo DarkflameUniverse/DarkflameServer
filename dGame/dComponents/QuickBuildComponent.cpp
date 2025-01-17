@@ -105,16 +105,6 @@ void QuickBuildComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIni
 void QuickBuildComponent::Update(float deltaTime) {
 	SetActivator(GetActivator());
 
-	// Serialize the quickbuild every so often, fixes the odd bug where the quickbuild is not buildable
-	/*if (m_SoftTimer > 0.0f) {
-		m_SoftTimer -= deltaTime;
-	}
-	else {
-		m_SoftTimer = 5.0f;
-
-		Game::entityManager->SerializeEntity(m_Parent);
-	}*/
-
 	switch (m_State) {
 	case eQuickBuildState::OPEN: {
 		SpawnActivator();
@@ -125,11 +115,10 @@ void QuickBuildComponent::Update(float deltaTime) {
 
 		if (isSmashGroup) {
 			ModifyIncompleteTimer(deltaTime);
-			Game::entityManager->SerializeEntity(m_Parent);
 
 			// For reset times < 0 this has to be handled manually
 			if (m_TimeBeforeSmash > 0) {
-				if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
+				if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f && !m_ShowResetEffect) {
 					SetShowResetEffect(true);
 
 					Game::entityManager->SerializeEntity(m_Parent);
@@ -149,11 +138,10 @@ void QuickBuildComponent::Update(float deltaTime) {
 	}
 	case eQuickBuildState::COMPLETED: {
 		ModifyTimer(deltaTime);
-		Game::entityManager->SerializeEntity(m_Parent);
 
 		// For reset times < 0 this has to be handled manually
 		if (m_ResetTime > 0) {
-			if (m_Timer >= m_ResetTime - 4.0f) {
+			if (m_Timer >= m_ResetTime - 4.0f && !m_ShowResetEffect) {
 				SetShowResetEffect(true);
 
 				Game::entityManager->SerializeEntity(m_Parent);
@@ -210,11 +198,10 @@ void QuickBuildComponent::Update(float deltaTime) {
 	}
 	case eQuickBuildState::INCOMPLETE: {
 		ModifyIncompleteTimer(deltaTime);
-		Game::entityManager->SerializeEntity(m_Parent);
 
 		// For reset times < 0 this has to be handled manually
 		if (m_TimeBeforeSmash > 0) {
-			if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f) {
+			if (m_TimerIncomplete >= m_TimeBeforeSmash - 4.0f && !m_ShowResetEffect) {
 				SetShowResetEffect(true);
 
 				Game::entityManager->SerializeEntity(m_Parent);
