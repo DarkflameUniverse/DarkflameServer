@@ -1,3 +1,4 @@
+3.1 - Shooting Gallery Live accurate, Web API, and many QOL fixes
 3.0 - Single player with minimal setup is fully functional with SQLite database
 2.3 - Dragonmaw functional, new slash command system, vanity system overhaul
 2.2 - Code cleanup and QoL fixes

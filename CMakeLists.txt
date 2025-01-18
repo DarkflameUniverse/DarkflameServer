@@ -248,6 +248,8 @@ include_directories(
 	"thirdparty/SQLite"
 	"thirdparty/cpplinq"
 	"thirdparty/MD5"
+	"thirdparty/nlohmann"
+	"thirdparty/mongoose"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)

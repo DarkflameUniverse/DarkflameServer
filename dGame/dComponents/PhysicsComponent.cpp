@@ -84,11 +84,12 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 		m_Position.y -= (111.467964f * m_Parent->GetDefaultScale()) / 2;
-	} else if (info->physicsAsset == "env\\GFTrack_DeathVolume1_CaveExit.hkx") {
+		// Leaving these out for now since they cause more issues than they solve in racing tracks without proper OBB checks.
+	} /* else if (info->physicsAsset == "env\\GFTrack_DeathVolume1_CaveExit.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 112.416870f, 50.363434f, 87.679268f);
 	} else if (info->physicsAsset == "env\\GFTrack_DeathVolume2_RoadGaps.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 48.386536f, 50.363434f, 259.361755f);
-	} else {
+	} */ else {
 		// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
 
 		//add fallback cube:

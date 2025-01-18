@@ -201,6 +201,10 @@ namespace GeneralUtils {
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
 
+	template<typename T>
+	requires(!Numeric<T>)
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str);
+
 #if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 
 	// MacOS floating-point parse helper function specializations

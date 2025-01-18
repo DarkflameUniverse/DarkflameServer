@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: DLU Chat Server API
+  description: |-
+    This documents the available api endpoints for the DLU Chat Server Web API
+  contact:
+    name: DarkflameUniverse Github
+    url: https://github.com/DarkflameUniverse/DarkflameServer/issues
+  license:
+    name: GNU AGPL v3.0
+    url: https://github.com/DarkflameUniverse/DarkflameServer/blob/main/LICENSE
+  version: 1.0.0
+
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+
+servers:
+  - url: http://localhost:2005/api/v1/
+    description: localhost
+
+tags:
+  - name: management
+    description: Server Management Utilities
+  - name: user
+    description: User Data Utilities
+
+paths:
+  /announce:
+    post:
+      tags:
+        - management
+      summary: Send an announcement to the game server
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Announce"
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: Missing Parameter
+
+  /players:
+    get:
+      tags:
+        - user
+      summary: Get all online Players
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+        "204":
+          description: No Data
+
+  /teams:
+    get:
+      tags:
+        - user
+      summary: Get all active Teams
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "204":
+          description: No Data
+
+components:
+  schemas:
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1152921508901824000
+        gm_level:
+          type: integer
+          format: uint8
+          example: 0
+        name:
+          type: string
+          example: thisisatestname
+        muted:
+          type: boolean
+          example: false
+        zone_id:
+          $ref: "#/components/schemas/ZoneID"
+
+    ZoneID:
+      type: object
+      properties:
+        map_id:
+          type: integer
+          format: uint16
+          example: 1200
+        instance_id:
+          type: integer
+          format: uint16
+          example: 2
+        clone_id:
+          type: integer
+          format: uint32
+          example: 0
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1152921508901824000
+        loot_flag:
+          type: integer
+          format: uint8
+          example: 1
+        local:
+          type: boolean
+          example: false
+        leader:
+          type: string
+          example: thisisatestname
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+
+    Announce:
+      required:
+        - title
+        - message
+      type: object
+      properties:
+        title:
+          type: string
+          example: A Mythran has taken Action against you!
+        message:
+          type: string
+          example: Check your mailbox for details!

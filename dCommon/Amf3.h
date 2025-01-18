@@ -5,6 +5,7 @@
 #include "Logger.h"
 #include "Game.h"
 
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -257,10 +258,10 @@ public:
 	 *
 	 * @param key The key to remove from the associative portion
 	 */
-	void Remove(const std::string& key, const bool deleteValue = true) {
+	void Remove(const std::string& key) {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
 		if (it != m_Associative.cend()) {
-			if (deleteValue) m_Associative.erase(it);
+			m_Associative.erase(it);
 		}
 	}
 
@@ -341,6 +342,11 @@ public:
 	// Get from the dense but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const size_t index) const {
 		return index < m_Dense.size() ? m_Dense.at(index).get() : nullptr;
+	}
+
+	void Reset() {
+		m_Associative.clear();
+		m_Dense.clear();
 	}
 
 private:
