@@ -10,6 +10,9 @@
 #include "PropertyManagementComponent.h"
 #include "UserManager.h"
 
+#include "MissionComponent.h"
+#include "eMissionTaskType.h"
+
 PropertyVendorComponent::PropertyVendorComponent(Entity* parent) : Component(parent) {
 }
 
@@ -52,5 +55,14 @@ void PropertyVendorComponent::OnBuyFromVendor(Entity* originator, const bool con
 	PropertyManagementComponent::Instance()->OnQueryPropertyData(originator, originator->GetSystemAddress());
 
 	LOG("Fired event; (%d) (%i) (%i)", confirmed, lot, count);
+	
+//	Progress missions for njprops
+
+	if (Game::zoneManager->GetZoneID().GetMapID() >= 2050 && Game::zoneManager->GetZoneID().GetMapID() <= 2053) {
+		auto* missionComponent = originator->GetComponent<MissionComponent>();	
+		if (missionComponent != nullptr) {					
+			missionComponent->Progress(eMissionTaskType::SCRIPT, Game::zoneManager->GetZoneID().GetMapID());
+		}
+	}	
 }
 
