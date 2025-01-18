@@ -573,16 +573,18 @@ bool CppSQLite3Query::eof()
 }
 
 
-void CppSQLite3Query::nextRow()
+bool CppSQLite3Query::nextRow()
 {
 	checkVM();
 
 	int nRet = sqlite3_step(mpVM);
 
+	bool bRet = true;
 	if (nRet == SQLITE_DONE)
 	{
 		// no rows
 		mbEof = true;
+		bRet = false;
 	}
 	else if (nRet == SQLITE_ROW)
 	{
@@ -590,6 +592,7 @@ void CppSQLite3Query::nextRow()
 	}
 	else
 	{
+		bRet = false;
 		nRet = sqlite3_finalize(mpVM);
 		mpVM = 0;
 		const char* szError = sqlite3_errmsg(mpDB);
@@ -597,6 +600,7 @@ void CppSQLite3Query::nextRow()
 								(char*)szError,
 								DONT_DELETE_MSG);
 	}
+	return bRet;
 }
 
 

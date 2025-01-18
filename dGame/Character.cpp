@@ -21,6 +21,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "ePlayerFlag.h"
+#include "CDPlayerFlagsTable.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -231,6 +232,12 @@ void Character::SetBuildMode(bool buildMode) {
 }
 
 void Character::SaveXMLToDatabase() {
+	// Check that we can actually _save_ before saving
+	if (!m_OurEntity) {
+		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		return;
+	}
+
 	//For metrics, we'll record the time it took to save:
 	auto start = std::chrono::system_clock::now();
 
@@ -277,38 +284,18 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
-	for (std::pair<uint32_t, uint64_t> flag : m_PlayerFlags) {
-		auto* f = m_Doc.NewElement("f");
-		f->SetAttribute("id", flag.first);
-
-		//Because of the joy that is tinyxml2, it doesn't offer a function to set a uint64 as an attribute.
-		//Only signed 64-bits ints would work.
-		std::string v = std::to_string(flag.second);
-		f->SetAttribute("v", v.c_str());
-
-		flags->LinkEndChild(f);
+	for (const auto& [index, flagBucket] : m_PlayerFlags) {
+		auto* f = flags->InsertNewChildElement("f");
+		f->SetAttribute("id", index);
+		f->SetAttribute("v", flagBucket);
 	}
 
-	// Prevents the news feed from showing up on world transfers
-	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
-		auto* s = m_Doc.NewElement("s");
-		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
-		flags->LinkEndChild(s);
-	}
-
-	if (GetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR)) {
-		auto* s = m_Doc.NewElement("s");
-		s->SetAttribute("si", ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR);
-		flags->LinkEndChild(s);
+	for (const auto& sessionFlag : m_SessionFlags) {
+		auto* s = flags->InsertNewChildElement("s");
+		s->SetAttribute("si", sessionFlag);
 	}
 
 	SaveXmlRespawnCheckpoints();
-
-	//Call upon the entity to update our xmlDoc:
-	if (!m_OurEntity) {
-		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
-		return;
-	}
 
 	m_OurEntity->UpdateXMLDoc(m_Doc);
 
@@ -329,8 +316,8 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
+			LOG("Removed session flag (%s) from character %i:%s, saving character to database", currentChild->Attribute("si"), GetID(), GetName().c_str());
 			flags->DeleteChild(currentChild);
-			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
 		currentChild = nextChild;
@@ -363,7 +350,9 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 		}
 	}
 
-	if (flagId == EQUPPED_TRIAL_FACTION_GEAR || flagId == IS_NEWS_SCREEN_VISIBLE) {
+	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);	
+
+	if (flagEntry && flagEntry->sessionOnly) {
 		if (value) m_SessionFlags.insert(flagId);
 		else m_SessionFlags.erase(flagId);
 	} else {
@@ -402,8 +391,8 @@ bool Character::GetPlayerFlag(const uint32_t flagId) const {
 
 	bool toReturn = false; //by def, return false.
 
-	// TODO make actual session flag checker using flags table in database.
-	if (flagId == EQUPPED_TRIAL_FACTION_GEAR || flagId == IS_NEWS_SCREEN_VISIBLE) {
+	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);
+	if (flagEntry && flagEntry->sessionOnly) {
 		toReturn = m_SessionFlags.contains(flagId);
 	} else {
 		// Calculate the index first
