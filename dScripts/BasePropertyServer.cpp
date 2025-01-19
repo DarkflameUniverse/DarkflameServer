@@ -158,8 +158,7 @@ void BasePropertyServer::PropGuardCheck(Entity* self, Entity* player) {
 }
 
 void BasePropertyServer::BaseZonePropertyRented(Entity* self, Entity* player) const {
-	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0, LWOOBJID_EMPTY, "ShowProperty",
-		UNASSIGNED_SYSTEM_ADDRESS);
+	GameMessages::SendPlayCinematic(player->GetObjectID(), u"ShowProperty", player->GetSystemAddress());
 
 	self->AddTimer(BoundsVisOnTimer, 2);
 	self->SetVar<LWOOBJID>(PropertyOwnerVariable, player->GetObjectID());

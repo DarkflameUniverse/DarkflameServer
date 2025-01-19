@@ -26,5 +26,6 @@ target_include_directories(dScriptsZone PUBLIC "."
 	"PROPERTY"
 	"PROPERTY/FV"
 	"PROPERTY/GF"
+	"PROPERTY/NJ"
 	"PROPERTY/NS")
 target_precompile_headers(dScriptsZone REUSE_FROM dScriptsBase)
