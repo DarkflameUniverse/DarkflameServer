@@ -169,7 +169,7 @@ namespace Mail {
 	}
 
 	void DataRequest::Handle() {
-		auto playerMail = Database::Get()->GetMailForPlayer(player->GetObjectID());
+		auto playerMail = Database::Get()->GetMailForPlayer(player->GetObjectID(), 20);
 
 		if (playerMail.size() > 0) {
 			DataResponse response;
@@ -284,14 +284,14 @@ void Mail::HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr,
 
 	auto it = handlers.find(data.messageID);
 	if (it != handlers.end()) {
-		auto mail_data = it->second(sysAddr, player);
-		if (!mail_data->Deserialize(inStream)) {
-			LOG_DEBUG("Error Reading Mail Data");
+		auto request = it->second(sysAddr, player);
+		if (!request->Deserialize(inStream)) {
+			LOG_DEBUG("Error Reading Mail Request: %s", StringifiedEnum::ToString(data.messageID).data());
 			return;
 		}
-		mail_data->Handle();
+		request->Handle();
 	} else {
-		LOG_DEBUG("Unhandled Mail Packet with ID: %i", data.messageID);
+		LOG_DEBUG("Unhandled Mail Request with ID: %i", data.messageID);
 	}
 }
 
