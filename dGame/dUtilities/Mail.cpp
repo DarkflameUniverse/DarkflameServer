@@ -26,12 +26,280 @@
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
 #include "eConnectionType.h"
+#include "User.h"
+#include "StringifiedEnum.h"
+
+namespace {
+	const std::string DefaultSender = "%[MAIL_SYSTEM_NOTIFICATION]";
+}
+
+namespace Mail {
+	std::map<eMessageID, std::function<std::unique_ptr<MailLUBitStream>(const SystemAddress&, Entity* const)>> handlers = {
+		{eMessageID::SendRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<SendRequest>();
+		}},
+		{eMessageID::DataRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<DataRequest>();
+		}},
+		{eMessageID::AttachmentCollectRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<AttachmentCollectRequest>();
+		}},
+		{eMessageID::DeleteRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<DeleteRequest>();
+		}},
+		{eMessageID::ReadRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<ReadRequest>();
+		}},
+		{eMessageID::NotificationRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+			return std::make_unique<NotificationRequest>();
+		}},
+	};
+
+	void MailLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(messageID);
+	}
+
+	bool MailLUBitStream::Deserialize(RakNet::BitStream& bitstream) {
+		VALIDATE_READ(bitstream.Read(messageID));
+		return true;
+	}
+
+	bool SendRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(mailInfo.Deserialize(bitStream));
+		return true;
+	}
+
+	void SendRequest::Handle() {
+		//std::string subject = GeneralUtils::WStringToString(ReadFromPacket(packet, 50));
+		//std::string body = GeneralUtils::WStringToString(ReadFromPacket(packet, 400));
+		//std::string recipient = GeneralUtils::WStringToString(ReadFromPacket(packet, 32));
+
+		// Check if the player has restricted mail access
+		auto* character = player->GetCharacter();
+
+		if (!character) return;
+
+		if (character->HasPermission(ePermissionMap::RestrictedMailAccess) || character->GetParentUser()->GetIsMuted()) {
+			// Send a message to the player
+			ChatPackets::SendSystemMessage(
+				sysAddr,
+				u"This character has restricted mail access."
+			);
+
+			SendResponse(Mail::eSendResponse::SenderAccountIsMuted).Send(sysAddr);
+
+			return;
+		}
+
+		//Cleanse recipient:
+		mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
+
+		//Inventory::InventoryType itemType;
+		int mailCost = Game::zoneManager->GetWorldConfig()->mailBaseFee;
+		int stackSize = 0;
+		auto inv = static_cast<InventoryComponent*>(player->GetComponent(eReplicaComponentType::INVENTORY));
+		Item* item = nullptr;
+
+		if (mailInfo.itemID > 0 && mailInfo.itemCount > 0 && inv) {
+			item = inv->FindItemById(mailInfo.itemID);
+			if (item) {
+				mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig()->mailPercentAttachmentFee);
+				stackSize = item->GetCount();
+				mailInfo.itemLOT = item->GetLot();
+			} else {
+				SendResponse(eSendResponse::AttachmentNotFound).Send(sysAddr);
+				return;
+			}
+		}
+
+		//Check if we can even send this mail (negative coins bug):
+		if (player->GetCharacter()->GetCoins() - mailCost < 0) {
+			SendResponse(eSendResponse::NotEnoughCoins).Send(sysAddr);
+			return;
+		}
+
+		//Get the receiver's id:
+		auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);
+
+		if (!receiverID) {
+			SendResponse(Mail::eSendResponse::RecipientNotFound).Send(sysAddr);
+			return;
+		}
+
+		//Check if we have a valid receiver:
+		if (GeneralUtils::CaseInsensitiveStringCompare(mailInfo.recipient, character->GetName()) || receiverID->id == character->GetID()) {
+			SendResponse(Mail::eSendResponse::CannotMailSelf).Send(sysAddr);
+			return;
+		} else {
+			Database::Get()->InsertNewMail(mailInfo);
+		}
+
+		SendResponse(Mail::eSendResponse::Success).Send(sysAddr);
+		player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
+
+		LOG("Seeing if we need to remove item with ID/count/LOT: %i %i %i", mailInfo.itemID, mailInfo.itemCount, mailInfo.itemLOT);
+
+		if (inv && mailInfo.itemLOT != 0 && mailInfo.itemCount > 0 && item) {
+			LOG("Trying to remove item with ID/count/LOT: %i %i %i", mailInfo.itemID, mailInfo.itemCount, mailInfo.itemLOT);
+			inv->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, INVALID, true);
+
+			auto* missionCompoent = player->GetComponent<MissionComponent>();
+
+			if (missionCompoent != nullptr) {
+				missionCompoent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+			}
+		}
+
+		character->SaveXMLToDatabase();
+	}
+
+	void SendResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+		bitStream.Write(response);
+	}
+
+	void NotificationResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+		bitStream.Write(notification);
+		bitStream.Write<uint64_t>(0); // unused
+		bitStream.Write<uint64_t>(0); // unused
+		bitStream.Write(auctionID);
+		bitStream.Write<uint64_t>(0); // unused
+		bitStream.Write(mailCount);
+	}
+
+	void DataRequest::Handle() {
+		auto playerMail = Database::Get()->GetMailForPlayer(player->GetObjectID());
+
+		if (playerMail.size() > 0) {
+			DataResponse response;
+			response.playerMail = playerMail;
+			response.Send(sysAddr);
+		}
+	}
+
+	void DataResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+
+		bitStream.Write(this->throttled);
+		bitStream.Write<uint16_t>(this->playerMail.size());
+		bitStream.Write<uint16_t>(0); // packing
+		for (const auto& mail : this->playerMail) {
+			mail.Serialize(bitStream);
+		}
+	}
+
+	bool AttachmentCollectRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(mailID));
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void AttachmentCollectRequest::Handle() {
+		if (mailID > 0 && playerID == player->GetObjectID()) {
+			auto playerMail = Database::Get()->GetMail(mailID);
+
+			LOT attachmentLOT = 0;
+			uint32_t attachmentCount = 0;
+
+			if (playerMail) {
+				attachmentLOT = playerMail->itemLOT;
+				attachmentCount = playerMail->itemCount;
+			}
+
+			auto inv = player->GetComponent<InventoryComponent>();
+			if (!inv) return;
+
+			inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::MAIL);
+
+			Database::Get()->ClaimMailItem(mailID);
+
+			AttachmentCollectResponse(eRemoveAttachmentResponse::Success, mailID).Send(sysAddr);
+		}
+	}
+
+	void AttachmentCollectResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+		bitStream.Write(status);
+		bitStream.Write(mailID);
+	}
+
+	bool DeleteRequest::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(mailID));
+		VALIDATE_READ(bitStream.Read(playerID));
+		return true;
+	}
+
+	void DeleteRequest::Handle() {
+		DeleteResponse response(mailID);
+		if (mailID > 0) {
+			Database::Get()->DeleteMail(mailID);
+			response.status = eDeleteResponse::Success;
+		}
+		response.Send(sysAddr);
+	}
+
+	void DeleteResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+		bitStream.Write(status);
+		bitStream.Write(mailID);
+	}
+
+	bool ReadRequest::Deserialize(RakNet::BitStream& bitStream) {
+		int32_t unknown;
+		VALIDATE_READ(bitStream.Read(unknown));
+		VALIDATE_READ(bitStream.Read(mailID));
+		return true;
+	}
+
+	void ReadRequest::Handle() {
+		ReadResponse response;
+		response.mailID = mailID;
+		response.status = eReadResponse::Success;
+
+		if (mailID > 0) Database::Get()->MarkMailRead(mailID);
+		else response.status  = eReadResponse::UnknownError;
+		response.Send(sysAddr);
+	}
+
+	void ReadResponse::Serialize(RakNet::BitStream& bitStream) const {
+		MailLUBitStream::Serialize(bitStream);
+		bitStream.Write(status);
+		bitStream.Write(mailID);
+	}
+
+	void NotificationRequest::Handle() {
+		auto unreadMailCount = Database::Get()->GetUnreadMailCount(player->GetObjectID());
+		if (unreadMailCount > 0) NotificationResponse(eNotificationResponse::NewMail, unreadMailCount).Send(sysAddr);
+	}
+}
+
+// Non Stuct Functions
+void Mail::HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player) {
+	MailLUBitStream data;
+	if (!data.Deserialize(inStream)) {
+		LOG_DEBUG("Error Reading Mail header");
+		return;
+	}
+
+	auto it = handlers.find(data.messageID);
+	if (it != handlers.end()) {
+		auto mail_data = it->second(sysAddr, player);
+		if (!mail_data->Deserialize(inStream)) {
+			LOG_DEBUG("Error Reading Mail Data");
+			return;
+		}
+		mail_data->Handle();
+	} else {
+		LOG_DEBUG("Unhandled Mail Packet with ID: %i", data.messageID);
+	}
+}
 
 void Mail::SendMail(const Entity* recipient, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount) {
 	SendMail(
 		LWOOBJID_EMPTY,
-		ServerName,
+		DefaultSender,
 		recipient->GetObjectID(),
 		recipient->GetCharacter()->GetName(),
 		subject,
@@ -46,7 +314,7 @@ void Mail::SendMail(const LWOOBJID recipient, const std::string& recipientName, 
 	const std::string& body, const LOT attachment, const uint16_t attachmentCount, const SystemAddress& sysAddr) {
 	SendMail(
 		LWOOBJID_EMPTY,
-		ServerName,
+		DefaultSender,
 		recipient,
 		recipientName,
 		subject,
@@ -75,7 +343,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, const 
 void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJID recipient,
 	const std::string& recipientName, const std::string& subject, const std::string& body, const LOT attachment,
 	const uint16_t attachmentCount, const SystemAddress& sysAddr) {
-	IMail::MailInfo mailInsert;
+	MailInfo mailInsert;
 	mailInsert.senderUsername = senderName;
 	mailInsert.recipient = recipientName;
 	mailInsert.subject = subject;
@@ -91,254 +359,5 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
 
-	SendNotification(sysAddr, 1); //Show the "one new mail" message
-}
-
-void Mail::HandleMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
-	int mailStuffID = 0;
-	packet.Read(mailStuffID);
-
-	auto returnVal = std::async(std::launch::async, [&packet, &sysAddr, entity, mailStuffID]() {
-		Mail::MailMessageID stuffID = MailMessageID(mailStuffID);
-		switch (stuffID) {
-		case MailMessageID::AttachmentCollect:
-			Mail::HandleAttachmentCollect(packet, sysAddr, entity);
-			break;
-		case MailMessageID::DataRequest:
-			Mail::HandleDataRequest(packet, sysAddr, entity);
-			break;
-		case MailMessageID::MailDelete:
-			Mail::HandleMailDelete(packet, sysAddr);
-			break;
-		case MailMessageID::MailRead:
-			Mail::HandleMailRead(packet, sysAddr);
-			break;
-		case MailMessageID::NotificationRequest:
-			Mail::HandleNotificationRequest(sysAddr, entity->GetObjectID());
-			break;
-		case MailMessageID::Send:
-			Mail::HandleSendMail(packet, sysAddr, entity);
-			break;
-		default:
-			LOG("Unhandled and possibly undefined MailStuffID: %i", int(stuffID));
-		}
-		});
-}
-
-void Mail::HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity) {
-	//std::string subject = GeneralUtils::WStringToString(ReadFromPacket(packet, 50));
-	//std::string body = GeneralUtils::WStringToString(ReadFromPacket(packet, 400));
-	//std::string recipient = GeneralUtils::WStringToString(ReadFromPacket(packet, 32));
-
-	// Check if the player has restricted mail access
-	auto* character = entity->GetCharacter();
-
-	if (!character) return;
-
-	if (character->HasPermission(ePermissionMap::RestrictedMailAccess)) {
-		// Send a message to the player
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"This character has restricted mail access."
-		);
-
-		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::SenderAccountIsMuted);
-
-		return;
-	}
-
-	LUWString subjectRead(50);
-	packet.Read(subjectRead);
-
-	LUWString bodyRead(400);
-	packet.Read(bodyRead);
-
-	LUWString recipientRead(32);
-	packet.Read(recipientRead);
-
-	const std::string subject = subjectRead.GetAsString();
-	const std::string body = bodyRead.GetAsString();
-
-	//Cleanse recipient:
-	const std::string recipient = std::regex_replace(recipientRead.GetAsString(), std::regex("[^0-9a-zA-Z]+"), "");
-
-	uint64_t unknown64 = 0;
-	LWOOBJID attachmentID;
-	uint16_t attachmentCount;
-
-	packet.Read(unknown64);
-	packet.Read(attachmentID);
-	packet.Read(attachmentCount); //We don't care about the rest of the packet.
-	uint32_t itemID = static_cast<uint32_t>(attachmentID);
-	LOT itemLOT = 0;
-	//Inventory::InventoryType itemType;
-	int mailCost = Game::zoneManager->GetWorldConfig()->mailBaseFee;
-	int stackSize = 0;
-	auto inv = static_cast<InventoryComponent*>(entity->GetComponent(eReplicaComponentType::INVENTORY));
-	Item* item = nullptr;
-
-	if (itemID > 0 && attachmentCount > 0 && inv) {
-		item = inv->FindItemById(attachmentID);
-		if (item) {
-			mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig()->mailPercentAttachmentFee);
-			stackSize = item->GetCount();
-			itemLOT = item->GetLot();
-		} else {
-			Mail::SendSendResponse(sysAddr, MailSendResponse::AttachmentNotFound);
-			return;
-		}
-	}
-
-	//Check if we can even send this mail (negative coins bug):
-	if (entity->GetCharacter()->GetCoins() - mailCost < 0) {
-		Mail::SendSendResponse(sysAddr, MailSendResponse::NotEnoughCoins);
-		return;
-	}
-
-	//Get the receiver's id:
-	auto receiverID = Database::Get()->GetCharacterInfo(recipient);
-
-	if (!receiverID) {
-		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::RecipientNotFound);
-		return;
-	}
-
-	//Check if we have a valid receiver:
-	if (GeneralUtils::CaseInsensitiveStringCompare(recipient, character->GetName()) || receiverID->id == character->GetID()) {
-		Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::CannotMailSelf);
-		return;
-	} else {
-		IMail::MailInfo mailInsert;
-		mailInsert.senderUsername = character->GetName();
-		mailInsert.recipient = recipient;
-		mailInsert.subject = subject;
-		mailInsert.body = body;
-		mailInsert.senderId = character->GetID();
-		mailInsert.receiverId = receiverID->id;
-		mailInsert.itemCount = attachmentCount;
-		mailInsert.itemID = itemID;
-		mailInsert.itemLOT = itemLOT;
-		mailInsert.itemSubkey = LWOOBJID_EMPTY;
-		Database::Get()->InsertNewMail(mailInsert);
-	}
-
-	Mail::SendSendResponse(sysAddr, Mail::MailSendResponse::Success);
-	entity->GetCharacter()->SetCoins(entity->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
-
-	LOG("Seeing if we need to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
-
-	if (inv && itemLOT != 0 && attachmentCount > 0 && item) {
-		LOG("Trying to remove item with ID/count/LOT: %i %i %i", itemID, attachmentCount, itemLOT);
-		inv->RemoveItem(itemLOT, attachmentCount, INVALID, true);
-
-		auto* missionCompoent = entity->GetComponent<MissionComponent>();
-
-		if (missionCompoent != nullptr) {
-			missionCompoent->Progress(eMissionTaskType::GATHER, itemLOT, LWOOBJID_EMPTY, "", -attachmentCount);
-		}
-	}
-
-	character->SaveXMLToDatabase();
-}
-
-void Mail::HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
-	auto playerMail = Database::Get()->GetMailForPlayer(player->GetCharacter()->GetID(), 20);
-	RakNet::BitStream bitStream;
-	Mail::Data data = Mail::Data(playerMail);
-	bitStream.Write(data);
-	Game::server->Send(bitStream, sysAddr, false);
-}
-
-void Mail::HandleAttachmentCollect(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player) {
-	int unknown;
-	uint64_t mailID;
-	LWOOBJID playerID;
-	packet.Read(unknown);
-	packet.Read(mailID);
-	packet.Read(playerID);
-
-	if (mailID > 0 && playerID == player->GetObjectID()) {
-		auto playerMail = Database::Get()->GetMail(mailID);
-
-		LOT attachmentLOT = 0;
-		uint32_t attachmentCount = 0;
-
-		if (playerMail) {
-			attachmentLOT = playerMail->itemLOT;
-			attachmentCount = playerMail->itemCount;
-		}
-
-		auto inv = player->GetComponent<InventoryComponent>();
-		if (!inv) return;
-
-		inv->AddItem(attachmentLOT, attachmentCount, eLootSourceType::MAIL);
-
-		Mail::SendAttachmentRemoveConfirm(sysAddr, mailID);
-
-		Database::Get()->ClaimMailItem(mailID);
-	}
-}
-
-void Mail::HandleMailDelete(RakNet::BitStream& packet, const SystemAddress& sysAddr) {
-	int unknown;
-	uint64_t mailID;
-	LWOOBJID playerID;
-	packet.Read(unknown);
-	packet.Read(mailID);
-	packet.Read(playerID);
-
-	if (mailID > 0) Mail::SendDeleteConfirm(sysAddr, mailID, playerID);
-}
-
-void Mail::HandleMailRead(RakNet::BitStream& packet, const SystemAddress& sysAddr) {
-	int unknown;
-	uint64_t mailID;
-	packet.Read(unknown);
-	packet.Read(mailID);
-
-	if (mailID > 0) Mail::SendReadConfirm(sysAddr, mailID);
-}
-
-void Mail::HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID) {
-	auto unreadMailCount = Database::Get()->GetUnreadMailCount(objectID);
-
-	if (unreadMailCount > 0) Mail::SendNotification(sysAddr, unreadMailCount);
-}
-
-void Mail::SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response) {
-	RakNet::BitStream bitStream;
-	Mail::Response data = Mail::Response(response);
-	bitStream.Write(data);
-	Game::server->Send(bitStream, sysAddr, false);
-}
-
-void Mail::SendNotification(const SystemAddress& sysAddr, int mailCount) {
-	RakNet::BitStream bitStream;
-	Mail::Notification data = Mail::Notification(MailNotification::NewMail,  mailCount);	
-	Game::server->Send(bitStream, sysAddr, false);
-}
-
-void Mail::SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
-	RakNet::BitStream bitStream;
-	AttachmentCollect data = AttachmentCollect(MailRemoveAttachment::Success, mailID);
-	bitStream.Write(data);
-	Game::server->Send(bitStream, sysAddr, false);
-}
-
-void Mail::SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID) {
-	RakNet::BitStream bitStream;
-	DeleteMail data = DeleteMail(MailDeleteResponse::Success, mailID);
-	bitStream.Write(data);
-	Game::server->Send(bitStream, sysAddr, false);
-
-	Database::Get()->DeleteMail(mailID);
-}
-
-void Mail::SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID) {
-	RakNet::BitStream bitStream;
-	Read data = Read(MailReadResponse::Success, mailID);
-	bitStream.Write(data);
-	Game::server->Send(bitStream, sysAddr, false);
-
-	Database::Get()->MarkMailRead(mailID);
+	NotificationResponse(eNotificationResponse::NewMail).Send(sysAddr);
 }

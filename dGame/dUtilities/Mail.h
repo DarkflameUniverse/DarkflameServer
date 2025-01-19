@@ -5,25 +5,24 @@
 #include "BitStream.h"
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
-
-template <typename T> 
-struct LUHeader;
+#include "BitStreamUtils.h"
+#include "MailInfo.h"
 
 class Entity;
 
 namespace Mail {
-	enum class MailMessageID : uint32_t {
-		Send = 0,
+	enum class eMessageID : uint32_t {
+		SendRequest = 0,
 		SendResponse,
-		Notification,
+		NotificationResponse,
 		DataRequest,
-		MailData,
-		AttachmentCollect,
-		AttachmentCollectConfirm,
-		MailDelete,
-		MailDeleteConfirm,
-		MailRead,
-		MailReadConfirm,
+		DataResponse,
+		AttachmentCollectRequest,
+		AttachmentCollectResponse,
+		DeleteRequest,
+		DeleteResponse,
+		ReadRequest,
+		ReadResponse,
 		NotificationRequest,
 		AuctionCreate,
 		AuctionCreationResponse,
@@ -36,7 +35,7 @@ namespace Mail {
 		UnknownError
 	};
 
-	enum class MailSendResponse : uint32_t {
+	enum class eSendResponse : uint32_t {
 		Success = 0,
 		NotEnoughCoins,
 		AttachmentNotFound,
@@ -54,15 +53,15 @@ namespace Mail {
 		UnknownError
 	};
 
-	enum class MailDeleteResponse : uint32_t {
+	enum class eDeleteResponse : uint32_t {
 		Success = 0,
 		HasAttachements,
-		NotFoud,
+		NotFound,
 		Throttled,
 		UnknownError
 	};
 
-	enum class MailRemoveAttachment : uint32_t {
+	enum class eRemoveAttachmentResponse : uint32_t {
 		Success = 0,
 		AttachmentNotFound,
 		NoSpaceInInventory,
@@ -71,7 +70,7 @@ namespace Mail {
 		UnknownError
 	};
 
-	enum class MailNotification : uint32_t {
+	enum class eNotificationResponse : uint32_t {
 		NewMail = 0,
 		UnHandled,
 		AuctionWon,
@@ -83,106 +82,118 @@ namespace Mail {
 		UnknownError
 	};
 
-	enum class MailReadResponse : uint32_t {
+	enum class eReadResponse : uint32_t {
 		Success = 0,
 		UnknownError
 	};
 
-	struct MailInfo {
-		uint64_t id;
-		std::string senderUsername;
-		std::string recipient;
-		std::string subject;
-		std::string body;
-		uint32_t senderId;
-		uint32_t receiverId;
-		uint32_t itemCount;
-		uint32_t itemID;
-		LOT itemLOT;
-		LWOOBJID itemSubkey;
+	struct MailLUBitStream : public LUBitStream {
+		eMessageID messageID = eMessageID::UnknownError;
+		const SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+		Entity* const player = nullptr;
+
+		MailLUBitStream() = default;
+		MailLUBitStream(eMessageID _messageID) : LUBitStream(eConnectionType::CLIENT, MessageType::Client::MAIL), messageID{_messageID} {};
+		MailLUBitStream(const SystemAddress& _sysAddr, Entity* const _player) : sysAddr(_sysAddr), player(_player) {}; 
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
 	};
 
-	struct MailLUHeader {
-		LUHeader<MessageType::Client> header = LUHeader<MessageType::Client>(eConnectionType::CLIENT, MessageType::Client::MAIL);
-		MailMessageID messageID;
+	struct SendRequest : public MailLUBitStream {
+		MailInfo mailInfo;
+
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
 	};
 
-	struct Data {
-		MailLUHeader header;
-		uint32_t throttled = 0;
-		std::vector<IMail::MailInfo> playerMail;
-
-		Data() = delete;
-		Data(std::vector<IMail::MailInfo> mailData) {
-			this->header.messageID = MailMessageID::MailData;
-			this->playerMail = mailData;
-		}
-	};
-
-	struct Response {
-		MailLUHeader header;
-		MailSendResponse response;
-
-		Response() = delete;
-		Response(MailSendResponse response) {
-			this->header.messageID = MailMessageID::SendResponse;
-			this->response = response;
-		}
-	};
-
-	struct Notification {
-		MailLUHeader header;
-		MailNotification notification;
-		LWOOBJID auctionID = 0;
-		uint32_t mailCount = 0;
+	struct SendResponse :public MailLUBitStream {
+		eSendResponse response = eSendResponse::UnknownError;
 		
-		Notification() = delete;
-		Notification(MailNotification notification, uint32_t mailCount, LWOOBJID auctionID = LWOOBJID_EMPTY) {
-			this->header.messageID = MailMessageID::Notification;
-			this->notification = notification;
-			this->auctionID = auctionID;
-			this->mailCount = mailCount;
-		}
+		SendResponse(eSendResponse _response) : MailLUBitStream(eMessageID::SendResponse), response{_response} {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct AttachmentCollect {
-		MailLUHeader header;
-		MailRemoveAttachment status;
-		uint64_t mailID;
+	struct NotificationResponse : public MailLUBitStream {
+		eNotificationResponse notification = eNotificationResponse::UnknownError;
+		LWOOBJID auctionID = LWOOBJID_EMPTY;
+		uint32_t mailCount = 1;
 
-		AttachmentCollect() = delete;
-		AttachmentCollect(MailRemoveAttachment status, uint64_t mailID) {
-			this->header.messageID = MailMessageID::AttachmentCollect;
-			this->status = status;
-			this->mailID = mailID;
-		}
+		NotificationResponse(eNotificationResponse _notification) : MailLUBitStream(eMessageID::NotificationResponse), notification{_notification} {};
+		NotificationResponse(eNotificationResponse _notification, uint32_t _mailCount) : MailLUBitStream(eMessageID::NotificationResponse), notification{_notification}, mailCount{_mailCount} {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct DeleteMail {
-		MailLUHeader header;
-		MailDeleteResponse status;
-		uint64_t mailID;
-
-		DeleteMail() = delete;
-		DeleteMail(MailDeleteResponse status, uint64_t mailID) {
-			this->status = status;
-			this->mailID = mailID;
-		}
+	struct DataRequest : public MailLUBitStream {
+		void Handle() override;
 	};
 
-	struct Read {
-		MailLUHeader header;
-		MailReadResponse status;
-		uint64_t mailID;
+	struct DataResponse : public MailLUBitStream {
+		uint32_t throttled = 0;
+		std::vector<MailInfo> playerMail;
 
-		Read() = delete;
-		Read(MailReadResponse status, uint64_t mailID) {
-			this->status = status;
-			this->mailID = mailID;
-		}
+		DataResponse() : MailLUBitStream(eMessageID::DataRequest) {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
 	};
 
-	const std::string ServerName = "Darkflame Universe";
+	struct AttachmentCollectRequest : public MailLUBitStream {
+		uint64_t mailID = 0;
+		LWOOBJID playerID = LWOOBJID_EMPTY;
+
+		AttachmentCollectRequest() : MailLUBitStream(eMessageID::AttachmentCollectRequest) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct AttachmentCollectResponse : public MailLUBitStream {
+		eRemoveAttachmentResponse status = eRemoveAttachmentResponse::UnknownError;
+		uint64_t mailID = 0;
+
+		AttachmentCollectResponse(eRemoveAttachmentResponse _status, uint64_t _mailID) : MailLUBitStream(eMessageID::AttachmentCollectResponse), status{_status}, mailID{_mailID} {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct DeleteRequest : public MailLUBitStream {
+		uint64_t mailID = 0;
+		LWOOBJID playerID = LWOOBJID_EMPTY;
+
+
+		DeleteRequest() : MailLUBitStream(eMessageID::DeleteRequest) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct DeleteResponse : public MailLUBitStream {
+		eDeleteResponse status = eDeleteResponse::UnknownError;
+		uint64_t mailID = 0;
+		DeleteResponse(uint64_t _mailID) : MailLUBitStream(eMessageID::DeleteResponse), mailID{_mailID} {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct ReadRequest : public MailLUBitStream {
+		uint64_t mailID = 0;
+
+		ReadRequest() : MailLUBitStream(eMessageID::ReadRequest) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct ReadResponse : public MailLUBitStream {
+		uint64_t mailID = 0;
+		eReadResponse status = eReadResponse::UnknownError;
+
+		ReadResponse() : MailLUBitStream(eMessageID::ReadResponse) {};
+		void Serialize(RakNet::BitStream& bitStream) const override;
+	};
+
+	struct NotificationRequest : public MailLUBitStream {
+		NotificationRequest() : MailLUBitStream(eMessageID::NotificationRequest) {};
+		void Handle() override;
+	};
+
+	void HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
 
 	void SendMail(
 		const Entity* recipient,
@@ -223,113 +234,6 @@ namespace Mail {
 		uint16_t attachmentCount,
 		const SystemAddress& sysAddr
 	);
-
-	void HandleMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity);
-	void HandleSendMail(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* entity);
-	void HandleDataRequest(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player);
-	void HandleAttachmentCollect(RakNet::BitStream& packet, const SystemAddress& sysAddr, Entity* player);
-	void HandleMailDelete(RakNet::BitStream& packet, const SystemAddress& sysAddr);
-	void HandleMailRead(RakNet::BitStream& packet, const SystemAddress& sysAddr);
-	void HandleNotificationRequest(const SystemAddress& sysAddr, uint32_t objectID);
-
-	void SendSendResponse(const SystemAddress& sysAddr, MailSendResponse response);
-	void SendNotification(const SystemAddress& sysAddr, int mailCount);
-	void SendAttachmentRemoveConfirm(const SystemAddress& sysAddr, uint64_t mailID);
-	void SendDeleteConfirm(const SystemAddress& sysAddr, uint64_t mailID, LWOOBJID playerID);
-	void SendReadConfirm(const SystemAddress& sysAddr, uint64_t mailID);
 };
-
-
-namespace RakNet {
-	template <>
-	inline void RakNet::BitStream::Write<Mail::MailLUHeader>(Mail::MailLUHeader data) {
-		this->Write<LUHeader<MessageType::Client>>(data.header);
-		this->Write<uint32_t>(static_cast<uint32_t>(data.messageID));
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::Data>(Mail::Data data) {
-
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write(data.throttled);
-
-		this->Write<uint16_t>(data.playerMail.size());
-		this->Write<uint16_t>(0); // packing
-		for (auto& mail : data.playerMail) {
-			this->Write(mail.id);
-
-			const LUWString subject(mail.subject, 50);
-			this->Write(subject);
-
-			const LUWString body(mail.body, 400);
-			this->Write(body);
-
-			const LUWString sender(mail.senderUsername, 32);
-			this->Write(sender);
-			this->Write(uint32_t(0)); // packing
-
-			this->Write(uint64_t(0)); // attachedCurrency
-			this->Write(mail.itemID);
-
-			LOT lot = mail.itemLOT;
-			if (lot <= 0) this->Write(LOT(-1));
-			else this->Write(lot);
-			this->Write(uint32_t(0)); // packing
-
-			this->Write(mail.itemSubkey);
-
-			this->Write<uint16_t>(mail.itemCount);
-			this->Write(uint8_t(0)); // subject type (used for auction)
-			this->Write(uint8_t(0)); // packing
-			this->Write(uint32_t(0)); //  packing
-
-			this->Write<uint64_t>(mail.timeSent); // expiration date
-			this->Write<uint64_t>(mail.timeSent);// send date
-			this->Write<uint8_t>(mail.wasRead); // was read
-
-			this->Write(uint8_t(0)); // isLocalized
-			this->Write(uint16_t(0)); // packing
-			this->Write(uint32_t(0)); // packing
-		}
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::Response>(Mail::Response data) {
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write<uint32_t>(static_cast<uint32_t>(data.response));
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::Notification>(Mail::Notification data) {
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write(data.notification);
-		this->Write<uint64_t>(0); // unused
-		this->Write<uint64_t>(0); // unused
-		this->Write(data.auctionID);
-		this->Write<uint64_t>(0); // unused
-		this->Write(data.mailCount);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::AttachmentCollect>(Mail::AttachmentCollect data) {
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write(data.status);
-		this->Write(data.mailID);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::DeleteMail>(Mail::DeleteMail data) {
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write(data.status);
-		this->Write(data.mailID);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<Mail::Read>(Mail::Read data) {
-		this->Write<Mail::MailLUHeader>(data.header);
-		this->Write(data.status);
-		this->Write(data.mailID);
-	}
-}
 
 #endif // !__MAIL_H__

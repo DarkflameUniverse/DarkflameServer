@@ -3,18 +3,12 @@
 
 #include "GeneralUtils.h"
 #include "BitStream.h"
+#include "MessageIdentifiers.h"
+#include "eConnectionType.h"
 #include <string>
 #include <algorithm>
 
-namespace MessageType {
-	enum class Auth : uint32_t;
-	enum class Client : uint32_t;
-	enum class Server : uint32_t;
-	enum class World : uint32_t;
-	enum class Master : uint32_t;
-}
-
-enum class eConnectionType : uint16_t;
+#define VALIDATE_READ(x) do { if (!x) return false; } while (0)
 
 struct LUString {
 	std::string string;
@@ -52,18 +46,27 @@ struct LUWString {
 	};
 };
 
-template <typename T> 
-struct LUHeader {
-	MessageID messageID;
-	eConnectionType connectionType;
-	T internalPacketID;
+struct LUBitStream {
+	eConnectionType connectionType = eConnectionType::UNKNOWN;
+	uint32_t internalPacketID = 0xFFFFFFFF;
 
-	LUHeader(eConnectionType connectionType, T internalPacketID, MessageID messageID = ID_USER_PACKET_ENUM) {
-		this->messageID = messageID;
+	LUBitStream() = default;
+
+	template <typename T> 
+	LUBitStream(eConnectionType connectionType, T internalPacketID) {
 		this->connectionType = connectionType;
-		this->internalPacketID = internalPacketID;
-	};
+		this->internalPacketID = static_cast<uint32_t>(internalPacketID);
+	}
+
+	void WriteHeader(RakNet::BitStream& bitStream) const;
+	bool ReadHeader(RakNet::BitStream& bitStream);
+	void Send(const SystemAddress& sysAddr) const;
+
+	virtual void Serialize(RakNet::BitStream& bitStream) const {}
+	virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+	virtual void Handle() {};
 };
+
 
 namespace BitStreamUtils {
 	template<typename T>
@@ -118,46 +121,6 @@ namespace RakNet {
 	inline void RakNet::BitStream::Write<LUWString>(LUWString value) {
 		value.string.resize(value.size);
 		this->Write(value.string);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUHeader<MessageType::Auth>>(LUHeader<MessageType::Auth> value) {
-		this->Write<MessageID>(value.messageID);
-		this->Write<eConnectionType>(value.connectionType);
-		this->Write<uint32_t>(static_cast<uint32_t>(value.internalPacketID));
-		this->Write<uint8_t>(0);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUHeader<MessageType::Client>>(LUHeader<MessageType::Client> value) {
-		this->Write<MessageID>(value.messageID);
-		this->Write<eConnectionType>(value.connectionType);
-		this->Write<uint32_t>(static_cast<uint32_t>(value.internalPacketID));
-		this->Write<uint8_t>(0);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUHeader<MessageType::Server>>(LUHeader<MessageType::Server> value) {
-		this->Write<MessageID>(value.messageID);
-		this->Write<eConnectionType>(value.connectionType);
-		this->Write<uint32_t>(static_cast<uint32_t>(value.internalPacketID));
-		this->Write<uint8_t>(0);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUHeader<MessageType::World>>(LUHeader<MessageType::World> value) {
-		this->Write<MessageID>(value.messageID);
-		this->Write<eConnectionType>(value.connectionType);
-		this->Write<uint32_t>(static_cast<uint32_t>(value.internalPacketID));
-		this->Write<uint8_t>(0);
-	}
-
-	template <>
-	inline void RakNet::BitStream::Write<LUHeader<MessageType::Master>>(LUHeader<MessageType::Master> value) {
-		this->Write<MessageID>(value.messageID);
-		this->Write<eConnectionType>(value.connectionType);
-		this->Write<uint32_t>(static_cast<uint32_t>(value.internalPacketID));
-		this->Write<uint8_t>(0);
 	}
 };
 
