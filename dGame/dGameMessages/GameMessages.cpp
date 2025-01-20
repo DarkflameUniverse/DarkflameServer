@@ -6431,4 +6431,16 @@ namespace GameMessages {
 	void ShootingGalleryFire::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		entity.OnShootingGalleryFire(*this);
 	}
+
+	bool RequestServerObjectInfo::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(bVerbose)) return false;
+		if (!bitStream.Read(clientId)) return false;
+		if (!bitStream.Read(targetForReport)) return false;
+		return true;
+	}
+
+	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
+		if (handlingEntity) handlingEntity->HandleMsg(*this);
+	}
 }

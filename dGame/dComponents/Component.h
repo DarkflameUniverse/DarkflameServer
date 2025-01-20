@@ -8,6 +8,10 @@ namespace RakNet {
 	class BitStream;
 }
 
+namespace GameMessages {
+	struct GameMsg;
+}
+
 class Entity;
 
 /**
@@ -51,6 +55,10 @@ public:
 	virtual void Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {}
 
 protected:
+
+	void RegisterMsg(const MessageType::Game msgId, auto* self, const auto handler) {
+		m_Parent->RegisterMsg(msgId, std::bind(handler, self, std::placeholders::_1));
+	}
 
 	/**
 	 * The entity that owns this component

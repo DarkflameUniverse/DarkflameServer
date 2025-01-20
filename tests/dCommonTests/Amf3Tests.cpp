@@ -68,7 +68,7 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	array.Insert<int32_t>("Integer", 42U);
 	array.Insert("Double", 42.0);
 	array.InsertArray("Array");
-	array.Insert<std::vector<uint32_t>>("Undefined", {});
+	array.Insert<std::vector<uint32_t>>("Undefined", std::vector<uint32_t>{});
 	array.Insert("Null", nullptr);
 
 	ASSERT_EQ(array.Get<const char*>("CString")->GetValueType(), eAmf::String);

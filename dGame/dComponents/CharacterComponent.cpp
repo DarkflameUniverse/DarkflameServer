@@ -22,6 +22,7 @@
 #include "Mail.h"
 #include "ZoneInstanceManager.h"
 #include "WorldPackets.h"
+#include "MessageType/Game.h"
 #include <ctime>
 
 CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
@@ -47,6 +48,45 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character, con
 	m_CountryCode = 0;
 	m_LastUpdateTimestamp = std::time(nullptr);
 	m_SystemAddress = systemAddress;
+
+	RegisterMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, this, &CharacterComponent::OnRequestServerObjectInfo);
+}
+
+bool CharacterComponent::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
+	auto& request = static_cast<GameMessages::RequestServerObjectInfo&>(msg);
+	AMFArrayValue response;
+
+	response.Insert("visible", true);
+	response.Insert("objectID", std::to_string(request.targetForReport));
+	response.Insert("serverInfo", true);
+
+	auto& data = *response.InsertArray("data");
+	auto& cmptType = data.PushDebug("Character");
+
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GeneralUtils::ToUnderlying(ComponentType);
+	cmptType.PushDebug<AMFIntValue>("Character's account ID") = m_Character->GetParentUser()->GetAccountID();
+	cmptType.PushDebug<AMFBoolValue>("Last log out time") = m_Character->GetLastLogin();
+	cmptType.PushDebug<AMFDoubleValue>("Seconds played this session") = 0;
+	cmptType.PushDebug<AMFBoolValue>("Editor enabled") = false;
+	cmptType.PushDebug<AMFDoubleValue>("Total number of seconds played") = m_TotalTimePlayed;
+	cmptType.PushDebug<AMFStringValue>("Total currency") = std::to_string(m_Character->GetCoins());
+	cmptType.PushDebug<AMFStringValue>("Currency able to be picked up") = std::to_string(m_DroppedCoins);
+	cmptType.PushDebug<AMFStringValue>("Tooltip flags value") = "0";
+	// visited locations
+	cmptType.PushDebug<AMFBoolValue>("is a GM") = m_GMLevel > eGameMasterLevel::CIVILIAN;
+	cmptType.PushDebug<AMFBoolValue>("Has PVP flag turned on") = m_PvpEnabled;
+	cmptType.PushDebug<AMFIntValue>("GM Level") = GeneralUtils::ToUnderlying(m_GMLevel);
+	cmptType.PushDebug<AMFIntValue>("Editor level") = GeneralUtils::ToUnderlying(m_EditorLevel);
+	cmptType.PushDebug<AMFStringValue>("Guild ID") = "0";
+	cmptType.PushDebug<AMFStringValue>("Guild Name") = "";
+	cmptType.PushDebug<AMFDoubleValue>("Reputation") = m_Reputation;
+	cmptType.PushDebug<AMFIntValue>("Current Activity Type") = GeneralUtils::ToUnderlying(m_CurrentActivity);
+	cmptType.PushDebug<AMFDoubleValue>("Property Clone ID") = m_Character->GetPropertyCloneID();
+
+	GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, m_Parent->GetSystemAddress());
+
+	LOG("Handled!");
+	return true;
 }
 
 bool CharacterComponent::LandingAnimDisabled(int zoneID) {
@@ -81,6 +121,8 @@ CharacterComponent::~CharacterComponent() {
 void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 
 	if (bIsInitialUpdate) {
+		if (!m_Character || !m_Character->GetParentUser()) return;
+
 		outBitStream.Write(m_ClaimCodes[0] != 0);
 		if (m_ClaimCodes[0] != 0) outBitStream.Write(m_ClaimCodes[0]);
 		outBitStream.Write(m_ClaimCodes[1] != 0);
@@ -100,7 +142,7 @@ void CharacterComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInit
 		outBitStream.Write(m_Character->GetEyebrows());
 		outBitStream.Write(m_Character->GetEyes());
 		outBitStream.Write(m_Character->GetMouth());
-		outBitStream.Write<uint64_t>(0); //AccountID, trying out if 0 works.
+		outBitStream.Write<uint64_t>(m_Character->GetParentUser()->GetAccountID());
 		outBitStream.Write(m_Character->GetLastLogin()); //Last login
 		outBitStream.Write<uint64_t>(0); //"prop mod last display time"
 		outBitStream.Write<uint64_t>(m_Uscore); //u-score

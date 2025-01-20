@@ -323,6 +323,8 @@ public:
 	Character* m_Character;
 private:
 
+	bool OnRequestServerObjectInfo(GameMessages::GameMsg& msg);
+
 	/**
 	 * The map of active venture vision effects
 	 */
