@@ -26,8 +26,8 @@ struct MailInfo {
 		LWOOBJID itemSubkey{};
 	};
 
-	void Serialize(RakNet::BitStream& bitStream) const {}
-	bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+	void Serialize(RakNet::BitStream& bitStream) const;
+	bool Deserialize(RakNet::BitStream& bitStream);
 };
 
 #endif // __MAILINFO_H__

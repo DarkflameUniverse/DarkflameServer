@@ -34,28 +34,29 @@ namespace {
 }
 
 namespace Mail {
-	std::map<eMessageID, std::function<std::unique_ptr<MailLUBitStream>(const SystemAddress&, Entity* const)>> handlers = {
-		{eMessageID::SendRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+	std::map<eMessageID, std::function<std::unique_ptr<MailLUBitStream>()>> g_Handlers = {
+		{eMessageID::SendRequest, []() {
 			return std::make_unique<SendRequest>();
 		}},
-		{eMessageID::DataRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+		{eMessageID::DataRequest, []() {
 			return std::make_unique<DataRequest>();
 		}},
-		{eMessageID::AttachmentCollectRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+		{eMessageID::AttachmentCollectRequest, []() {
 			return std::make_unique<AttachmentCollectRequest>();
 		}},
-		{eMessageID::DeleteRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+		{eMessageID::DeleteRequest, []() {
 			return std::make_unique<DeleteRequest>();
 		}},
-		{eMessageID::ReadRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+		{eMessageID::ReadRequest, []() {
 			return std::make_unique<ReadRequest>();
 		}},
-		{eMessageID::NotificationRequest, [](const SystemAddress& sysAddr, Entity* const player) {
+		{eMessageID::NotificationRequest, []() {
 			return std::make_unique<NotificationRequest>();
 		}},
 	};
 
 	void MailLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		LOG("Writing %s", StringifiedEnum::ToString(messageID).data());
 		bitStream.Write(messageID);
 	}
 
@@ -160,28 +161,32 @@ namespace Mail {
 
 	void NotificationResponse::Serialize(RakNet::BitStream& bitStream) const {
 		MailLUBitStream::Serialize(bitStream);
+		LOG("notification: %s", StringifiedEnum::ToString(notification).data());
 		bitStream.Write(notification);
 		bitStream.Write<uint64_t>(0); // unused
 		bitStream.Write<uint64_t>(0); // unused
+		LOG("auctionID: %llu", auctionID);
 		bitStream.Write(auctionID);
 		bitStream.Write<uint64_t>(0); // unused
+		LOG("mailCount: %i", mailCount);
 		bitStream.Write(mailCount);
 	}
 
 	void DataRequest::Handle() {
-		auto playerMail = Database::Get()->GetMailForPlayer(player->GetObjectID(), 20);
-
-		if (playerMail.size() > 0) {
-			DataResponse response;
-			response.playerMail = playerMail;
-			response.Send(sysAddr);
-		}
+		LOG("DataRequest::Handle()");
+		auto playerMail = Database::Get()->GetMailForPlayer(static_cast<uint32_t>(player->GetObjectID()), 20);
+		LOG("DataRequest::Handle() - Got %i mail", playerMail.size());
+		DataResponse response;
+		response.playerMail = playerMail;
+		response.Send(sysAddr);
 	}
 
 	void DataResponse::Serialize(RakNet::BitStream& bitStream) const {
 		MailLUBitStream::Serialize(bitStream);
-
+		LOG("throtttled: %i", throttled);
 		bitStream.Write(this->throttled);
+	
+		LOG("playerMail.size(): %i", this->playerMail.size());
 		bitStream.Write<uint16_t>(this->playerMail.size());
 		bitStream.Write<uint16_t>(0); // packing
 		for (const auto& mail : this->playerMail) {
@@ -269,7 +274,13 @@ namespace Mail {
 	}
 
 	void NotificationRequest::Handle() {
-		auto unreadMailCount = Database::Get()->GetUnreadMailCount(player->GetObjectID());
+		auto character = player->GetCharacter();
+		if (!character) {
+			NotificationResponse(eNotificationResponse::UnknownError, 0).Send(sysAddr);
+			return;
+		}
+
+		auto unreadMailCount = Database::Get()->GetUnreadMailCount(character->GetID());
 		if (unreadMailCount > 0) NotificationResponse(eNotificationResponse::NewMail, unreadMailCount).Send(sysAddr);
 	}
 }
@@ -282,9 +293,11 @@ void Mail::HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr,
 		return;
 	}
 
-	auto it = handlers.find(data.messageID);
-	if (it != handlers.end()) {
-		auto request = it->second(sysAddr, player);
+	auto it = g_Handlers.find(data.messageID);
+	if (it != g_Handlers.end()) {
+		auto request = it->second();
+		request->sysAddr = sysAddr;
+		request->player = player;
 		if (!request->Deserialize(inStream)) {
 			LOG_DEBUG("Error Reading Mail Request: %s", StringifiedEnum::ToString(data.messageID).data());
 			return;

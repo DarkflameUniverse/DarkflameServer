@@ -217,7 +217,7 @@ namespace GMZeroCommands {
 	}
 
 	void RequestMailCount(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		Mail::NotificationResponse(Mail::eNotificationResponse::NewMail, Database::Get()->GetUnreadMailCount(entity->GetObjectID())).Send(sysAddr);
+		Mail::NotificationResponse(Mail::eNotificationResponse::NewMail, Database::Get()->GetUnreadMailCount(entity->GetCharacter()->GetID())).Send(sysAddr);
 	}
 
 	void InstanceInfo(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

@@ -3,22 +3,26 @@
 #include "DluAssert.h"
 
 void MailInfo::Serialize(RakNet::BitStream& bitStream) const {
+	LOG("Writing MailInfo");
+	LOG("ID: %llu", id);
 	bitStream.Write(id);
-
+	LOG("Subject: %s", subject.c_str());
 	const LUWString subject(this->subject, 50);
 	bitStream.Write(subject);
-
+	LOG("Body: %s", body.c_str());
 	const LUWString body(this->body, 400);
 	bitStream.Write(body);
-
+	LOG("Sender: %s", senderUsername.c_str());
 	const LUWString sender(this->senderUsername, 32);
 	bitStream.Write(sender);
 	bitStream.Write<uint32_t>(0); // packing
 
 	bitStream.Write<uint64_t>(0); // attachedCurrency
+	LOG("ItemID: %llu", itemID);
 	bitStream.Write(itemID);
 
 	LOT lot = itemLOT;
+	LOG("ItemLOT: %u", lot);
 	if (lot <= 0) bitStream.Write<LOT>(LOT_NULL);
 	else bitStream.Write(lot);
 	bitStream.Write<uint32_t>(0); // packing

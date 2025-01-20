@@ -89,12 +89,11 @@ namespace Mail {
 
 	struct MailLUBitStream : public LUBitStream {
 		eMessageID messageID = eMessageID::UnknownError;
-		const SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
-		Entity* const player = nullptr;
+		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+		Entity* player = nullptr;
 
 		MailLUBitStream() = default;
 		MailLUBitStream(eMessageID _messageID) : LUBitStream(eConnectionType::CLIENT, MessageType::Client::MAIL), messageID{_messageID} {};
-		MailLUBitStream(const SystemAddress& _sysAddr, Entity* const _player) : sysAddr(_sysAddr), player(_player) {}; 
 
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
@@ -119,13 +118,13 @@ namespace Mail {
 		eNotificationResponse notification = eNotificationResponse::UnknownError;
 		LWOOBJID auctionID = LWOOBJID_EMPTY;
 		uint32_t mailCount = 1;
-
 		NotificationResponse(eNotificationResponse _notification) : MailLUBitStream(eMessageID::NotificationResponse), notification{_notification} {};
 		NotificationResponse(eNotificationResponse _notification, uint32_t _mailCount) : MailLUBitStream(eMessageID::NotificationResponse), notification{_notification}, mailCount{_mailCount} {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
 	struct DataRequest : public MailLUBitStream {
+		bool Deserialize(RakNet::BitStream& bitStream) override { return true; };
 		void Handle() override;
 	};
 
@@ -190,6 +189,7 @@ namespace Mail {
 
 	struct NotificationRequest : public MailLUBitStream {
 		NotificationRequest() : MailLUBitStream(eMessageID::NotificationRequest) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override { return true; };
 		void Handle() override;
 	};
 
