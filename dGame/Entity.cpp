@@ -2216,3 +2216,17 @@ int32_t Entity::GetCollisionGroup() const {
 
 	return 0;
 }
+
+bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
+	bool handled = false;
+	const auto [beg, end] = m_MsgHandlers.equal_range(msg.msgId);
+	for (auto it = beg; it != end; ++it) {
+		if (it->second) handled |= it->second(msg);
+	}
+
+	return handled;
+}
+
+void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler) {
+	m_MsgHandlers.emplace(msgId, handler);
+}

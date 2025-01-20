@@ -40,6 +40,7 @@ public:
 // AMFValue template class instantiations
 template <typename ValueType>
 class AMFValue : public AMFBaseValue {
+	static_assert(!std::is_same_v<ValueType, std::string_view>, "AMFValue cannot be instantiated with std::string_view");
 public:
 	AMFValue() = default;
 	AMFValue(const ValueType value) : m_Data{ value } {}
@@ -51,6 +52,15 @@ public:
 	[[nodiscard]] const ValueType& GetValue() const { return m_Data; }
 
 	void SetValue(const ValueType value) { m_Data = value; }
+
+	AMFValue<ValueType>& operator=(const AMFValue<ValueType>& other) {
+		return operator=(other.m_Data);
+	}
+
+	AMFValue<ValueType>& operator=(const ValueType& other) {
+		m_Data = other;
+		return *this;
+	}
 
 protected:
 	ValueType m_Data;
@@ -211,13 +221,17 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
+	template<typename AmfType>
+	AmfType& Insert(const std::string_view key, std::unique_ptr<AmfType> value) {
 		const auto element = m_Associative.find(key);
+		auto& toReturn = *value;
 		if (element != m_Associative.cend() && element->second) {
 			element->second = std::move(value);
 		} else {
 			m_Associative.emplace(key, std::move(value));
 		}
+
+		return toReturn;
 	}
 
 	/**
@@ -229,11 +243,15 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const size_t index, std::unique_ptr<AMFBaseValue> value) {
+	template<typename AmfType>
+	AmfType& Insert(const size_t index, std::unique_ptr<AmfType> value) {
+		auto& toReturn = *value;
 		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
 		}
+
 		m_Dense.at(index) = std::move(value);
+		return toReturn;
 	}
 
 	/**
@@ -347,6 +365,13 @@ public:
 	void Reset() {
 		m_Associative.clear();
 		m_Dense.clear();
+	}
+
+	template<typename AmfType = AMFArrayValue>
+	AmfType& PushDebug(const std::string_view name) {
+		auto* value = PushArray();
+		value->Insert("name", name.data());
+		return value->Insert<AmfType>("value", std::make_unique<AmfType>());
 	}
 
 private:

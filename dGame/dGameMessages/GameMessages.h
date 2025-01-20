@@ -12,6 +12,7 @@
 #include "eLootSourceType.h"
 #include "Brick.h"
 #include "MessageType/Game.h"
+#include "eGameMasterLevel.h"
 
 class AMFBaseValue;
 class Entity;
@@ -50,7 +51,8 @@ enum class eCameraTargetCyclingMode : int32_t {
 
 namespace GameMessages {
 	struct GameMsg {
-		GameMsg(MessageType::Game gmId) : msgId{ gmId } {}
+		GameMsg(MessageType::Game gmId, eGameMasterLevel lvl) : msgId{ gmId }, requiredGmLevel{ lvl } {}
+		GameMsg(MessageType::Game gmId) : GameMsg(gmId, eGameMasterLevel::CIVILIAN) {}
 		virtual ~GameMsg() = default;
 		void Send(const SystemAddress& sysAddr) const;
 		virtual void Serialize(RakNet::BitStream& bitStream) const {}
@@ -58,6 +60,7 @@ namespace GameMessages {
 		virtual void Handle(Entity& entity, const SystemAddress& sysAddr) {};
 		MessageType::Game msgId;
 		LWOOBJID target{ LWOOBJID_EMPTY };
+		eGameMasterLevel requiredGmLevel;
 	};
 
 	class PropertyDataMessage;
@@ -768,6 +771,16 @@ namespace GameMessages {
 
 	struct PlayerResurrectionFinished : public GameMsg {
 		PlayerResurrectionFinished() : GameMsg(MessageType::Game::PLAYER_RESURRECTION_FINISHED) {}
+	};
+
+	struct RequestServerObjectInfo : public GameMsg {
+		bool bVerbose{};
+		LWOOBJID clientId{};
+		LWOOBJID targetForReport{};
+
+		RequestServerObjectInfo() : GameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 	};
 };
 
