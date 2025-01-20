@@ -150,11 +150,12 @@ ChatWebAPI::~ChatWebAPI() {
 
 bool ChatWebAPI::Startup() {
 	// Make listen address
-	std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
-	if (listen_ip == "localhost") listen_ip = "127.0.0.1";
+	// std::string listen_ip = Game::config->GetValue("web_server_listen_ip");
+	// if (listen_ip == "localhost") listen_ip = "127.0.0.1";
 
 	const std::string& listen_port = Game::config->GetValue("web_server_listen_port");
-	const std::string& listen_address = "http://" + listen_ip + ":" + listen_port;
+	// const std::string& listen_address = "http://" + listen_ip + ":" + listen_port;
+	const std::string& listen_address = "http://localhost:" + listen_port;
 	LOG("Starting web server on %s", listen_address.c_str());
 
 	// Create HTTP listener
