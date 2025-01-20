@@ -1,6 +1,5 @@
 #include "NjWuNPC.h"
 #include "MissionComponent.h"
-#include "Character.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
@@ -10,10 +9,8 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 
 	// The Dragon statue daily mission
 	if (missionID == m_MainDragonMissionID) {
-		auto* character = target->GetCharacter();
 		auto* missionComponent = target->GetComponent<MissionComponent>();
-		if (character == nullptr || missionComponent == nullptr)
-			return;
+		if (!missionComponent) return;
 
 		switch (missionState) {
 		case eMissionState::AVAILABLE:
@@ -24,8 +21,11 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 				missionComponent->RemoveMission(subMissionID);
 				missionComponent->AcceptMission(subMissionID);
 			}
-
-			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, false);
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = target->GetObjectID();
+			setFlag.iFlagId = ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST;
+			setFlag.bFlag = false;
+			SEND_ENTITY_MSG(setFlag);
 
 			// Hide the chest
 			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {
@@ -38,7 +38,11 @@ void NjWuNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, e
 		case eMissionState::READY_TO_COMPLETE:
 		case eMissionState::COMPLETE_READY_TO_COMPLETE:
 		{
-			character->SetPlayerFlag(ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST, true);
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = target->GetObjectID();
+			setFlag.iFlagId = ePlayerFlag::NJ_WU_SHOW_DAILY_CHEST;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
 
 			// Show the chest
 			for (auto* chest : Game::entityManager->GetEntitiesInGroup(m_DragonChestGroup)) {

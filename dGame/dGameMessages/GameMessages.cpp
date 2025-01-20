@@ -5076,23 +5076,6 @@ void GameMessages::HandleModularBuildConvertModel(RakNet::BitStream& inStream, E
 	item->SetCount(item->GetCount() - 1, false, false, true, eLootSourceType::QUICKBUILD);
 }
 
-void GameMessages::HandleSetFlag(RakNet::BitStream& inStream, Entity* entity) {
-	bool bFlag{};
-	int32_t iFlagID{};
-
-	inStream.Read(bFlag);
-	inStream.Read(iFlagID);
-
-	auto character = entity->GetCharacter();
-	if (character) character->SetPlayerFlag(iFlagID, bFlag);
-
-	// This is always set the first time a player loads into a world from character select
-	// and is used to know when to refresh the players inventory items so they show up.
-	if (iFlagID == ePlayerFlag::IS_NEWS_SCREEN_VISIBLE && bFlag) {
-		entity->SetVar<bool>(u"dlu_first_time_load", true);
-	}
-}
-
 void GameMessages::HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity) {
 	int missionID{};
 	LWOOBJID playerID{};
@@ -5157,13 +5140,17 @@ void GameMessages::HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* en
 		missionComponent->CompleteMission(missionID);
 	}
 
-	if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-		|| !player->GetCharacter()
-		|| !player->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
-	player->AddCallbackTimer(0.5f, [player]() {
-		if (!player) return;
-		GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
-		});
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = entity->GetObjectID();
+	getFlag.iFlagId = ePlayerFlag::DLU_SKIP_CINEMATICS;
+	SEND_ENTITY_MSG(getFlag);
+
+	if (Game::config->GetValue("allow_players_to_skip_cinematics") == "1" && getFlag.bFlag) {
+		player->AddCallbackTimer(0.5f, [player]() {
+			if (!player) return;
+			GameMessages::SendEndCinematic(player->GetObjectID(), u"", player->GetSystemAddress());
+			});
+	}
 }
 
 void GameMessages::HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity) {
@@ -6442,5 +6429,15 @@ namespace GameMessages {
 	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
 		if (handlingEntity) handlingEntity->HandleMsg(*this);
+	}
+
+	bool SetFlag::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(bFlag)) return false;
+		if (!bitStream.Read(iFlagId)) return false;
+		return true;
+	}
+
+	void SetFlag::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		entity.HandleMsg(*this);
 	}
 }

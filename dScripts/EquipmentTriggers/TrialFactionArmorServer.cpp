@@ -1,16 +1,20 @@
 #include "TrialFactionArmorServer.h"
 
-#include "Character.h"
 #include "ePlayerFlag.h"
+#include "GameMessages.h"
+#include "EntityManager.h"
 #include "DestroyableComponent.h"
 
 void TrialFactionArmorServer::OnFactionTriggerItemEquipped(Entity* itemOwner, LWOOBJID itemObjId) {
-	auto* character = itemOwner->GetCharacter();
-	if (!character) return;
+	GameMessages::GetFlag flag{};
+	flag.target = itemOwner->GetObjectID();
+	flag.iFlagId = ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR;
 
-	auto flag = character->GetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR);
-	if (!flag) {
-		character->SetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR, true);
+	if (SEND_ENTITY_MSG(flag) && !flag.bFlag) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.iFlagId = ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 
 		// technically a TimerWithCancel but our current implementation doesnt support this.
 		itemOwner->AddCallbackTimer(1.0f, [itemOwner]() {

@@ -108,11 +108,18 @@ namespace DEVGMCommands {
 
 	void ToggleSkipCinematics(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1" && entity->GetGMLevel() < eGameMasterLevel::DEVELOPER) return;
-		auto* character = entity->GetCharacter();
-		if (!character) return;
-		bool current = character->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS);
-		character->SetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS, !current);
-		if (!current) {
+		GameMessages::GetFlag current{};
+		current.target = entity->GetObjectID();
+		current.iFlagId = ePlayerFlag::DLU_SKIP_CINEMATICS;
+		SEND_ENTITY_MSG(current);
+
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = entity->GetObjectID();
+		setFlag.iFlagId = ePlayerFlag::DLU_SKIP_CINEMATICS;
+		setFlag.bFlag = !current.bFlag;
+		SEND_ENTITY_MSG(setFlag);
+
+		if (!current.bFlag) {
 			GameMessages::SendSlashCommandFeedbackText(entity, u"You have elected to skip cinematics. Note that not all cinematics can be skipped, but most will be skipped now.");
 		} else {
 			GameMessages::SendSlashCommandFeedbackText(entity, u"Cinematics will no longer be skipped.");
@@ -424,6 +431,9 @@ namespace DEVGMCommands {
 
 	void SetFlag(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = entity->GetObjectID();
 		if (splitArgs.size() == 1) {
 			const auto flagId = GeneralUtils::TryParse<int32_t>(splitArgs.at(0));
 
@@ -431,8 +441,9 @@ namespace DEVGMCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag id.");
 				return;
 			}
-
-			entity->GetCharacter()->SetPlayerFlag(flagId.value(), true);
+			setFlag.iFlagId = flagId.value();
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
 		} else if (splitArgs.size() >= 2) {
 			const auto flagId = GeneralUtils::TryParse<int32_t>(splitArgs.at(1));
 			std::string onOffFlag = splitArgs.at(0);
@@ -445,12 +456,17 @@ namespace DEVGMCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Invalid flag type.");
 				return;
 			}
-
-			entity->GetCharacter()->SetPlayerFlag(flagId.value(), onOffFlag == "on");
+			setFlag.iFlagId = flagId.value();
+			setFlag.bFlag = onOffFlag == "on";
+			SEND_ENTITY_MSG(setFlag);
 		}
 	}
 
 	void ClearFlag(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = entity->GetObjectID();
+		setFlag.bFlag = false;
+
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
 
@@ -461,7 +477,8 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		entity->GetCharacter()->SetPlayerFlag(flagId.value(), false);
+		setFlag.iFlagId = flagId.value();
+		SEND_ENTITY_MSG(setFlag);
 	}
 
 	void PlayEffect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

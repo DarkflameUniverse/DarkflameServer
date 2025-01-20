@@ -634,7 +634,6 @@ namespace GameMessages {
 	void HandleRequestUse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
-	void HandleSetFlag(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRespondToMission(RakNet::BitStream& inStream, Entity* entity);
 	void HandleMissionDialogOK(RakNet::BitStream& inStream, Entity* entity);
 	void HandleRequestLinkedMission(RakNet::BitStream& inStream, Entity* entity);
@@ -781,6 +780,30 @@ namespace GameMessages {
 		RequestServerObjectInfo() : GameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+	};
+
+	struct SetFlag : public GameMsg {
+		SetFlag() : GameMsg(MessageType::Game::SET_FLAG) {}
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		uint32_t iFlagId{};
+		bool bFlag{};
+	};
+
+	struct GetFlag : public GameMsg {
+		GetFlag() : GameMsg(MessageType::Game::GET_FLAG) {}
+
+		uint32_t iFlagId{};
+		bool bFlag{};
+	};
+
+	struct ClearSessionFlags : public GameMsg {
+		ClearSessionFlags() : GameMsg(MessageType::Game::CLEAR_SESSION_FLAGS) {}
+	};
+
+	struct SetRetroactiveFlags : public GameMsg {
+		SetRetroactiveFlags() : GameMsg(MessageType::Game::SET_RETROACTIVE_FLAGS) {}
 	};
 };
 

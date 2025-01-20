@@ -146,17 +146,22 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 		return missionComponent->GetMissionState(value) == eMissionState::AVAILABLE || missionComponent->GetMissionState(value) == eMissionState::COMPLETE_AVAILABLE;
 	case PreconditionType::OnMission:
 		if (missionComponent == nullptr) return false;
-		return  missionComponent->GetMissionState(value) == eMissionState::ACTIVE || 
-				missionComponent->GetMissionState(value) == eMissionState::COMPLETE_ACTIVE ||
-				missionComponent->GetMissionState(value) == eMissionState::READY_TO_COMPLETE ||
-				missionComponent->GetMissionState(value) == eMissionState::COMPLETE_READY_TO_COMPLETE;
+		return  missionComponent->GetMissionState(value) == eMissionState::ACTIVE ||
+			missionComponent->GetMissionState(value) == eMissionState::COMPLETE_ACTIVE ||
+			missionComponent->GetMissionState(value) == eMissionState::READY_TO_COMPLETE ||
+			missionComponent->GetMissionState(value) == eMissionState::COMPLETE_READY_TO_COMPLETE;
 	case PreconditionType::MissionComplete:
 		if (missionComponent == nullptr) return false;
 		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
 		return false; // TODO
-	case PreconditionType::HasFlag:
-		return character->GetPlayerFlag(value);
+	case PreconditionType::HasFlag: {
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = player->GetObjectID();
+		getFlag.iFlagId = value;
+		SEND_ENTITY_MSG(getFlag);
+		return getFlag.bFlag;
+	}
 	case PreconditionType::WithinShape:
 		return true; // Client checks this one
 	case PreconditionType::InBuild:

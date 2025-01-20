@@ -1,6 +1,6 @@
 #include "BaseFootRaceManager.h"
+
 #include "EntityManager.h"
-#include "Character.h"
 #include "Entity.h"
 
 void BaseFootRaceManager::OnStartup(Entity* self) {
@@ -21,31 +21,31 @@ void BaseFootRaceManager::OnFireEventServerSide(Entity* self, Entity* sender, st
 			if (eventName == "updatePlayer") {
 				UpdatePlayer(self, player->GetObjectID());
 			} else if (IsPlayerInActivity(self, player->GetObjectID())) {
+				GameMessages::SetFlag setFlag{};
+				setFlag.target = player->GetObjectID();
+				setFlag.iFlagId = 115;
 				if (eventName == "initialActivityScore") {
-					auto* character = player->GetCharacter();
-					if (character != nullptr) {
-						character->SetPlayerFlag(115, true);
-					}
+					setFlag.bFlag = true;
+					SEND_ENTITY_MSG(setFlag);
 
 					SetActivityScore(self, player->GetObjectID(), 1);
 				} else if (eventName == "updatePlayerTrue") {
-					auto* character = player->GetCharacter();
-					if (character != nullptr) {
-						character->SetPlayerFlag(115, false);
-					}
+					setFlag.bFlag = false;
+					SEND_ENTITY_MSG(setFlag);
 
 					UpdatePlayer(self, player->GetObjectID(), true);
 				} else if (eventName == "PlayerWon") {
-					auto* character = player->GetCharacter();
-					if (character != nullptr) {
-						character->SetPlayerFlag(115, false);
-						if (param2 != -1) // Certain footraces set a flag
-							character->SetPlayerFlag(param2, true);
+					setFlag.bFlag = false;
+					SEND_ENTITY_MSG(setFlag);
+					if (param2 != -1) {
+						setFlag.iFlagId = param2;
+						setFlag.bFlag = true;
+						SEND_ENTITY_MSG(setFlag);
 					}
-
-					StopActivity(self, player->GetObjectID(), 0, param1);
-					SaveScore(self, player->GetObjectID(), static_cast<float>(param1), static_cast<float>(param2), static_cast<float>(param3));
 				}
+
+				StopActivity(self, player->GetObjectID(), 0, param1);
+				SaveScore(self, player->GetObjectID(), static_cast<float>(param1), static_cast<float>(param2), static_cast<float>(param3));
 			}
 		}
 	}

@@ -1,13 +1,15 @@
 #include "FvPandaSpawnerServer.h"
-#include "Character.h"
+
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "EntityInfo.h"
 #include "ScriptedActivityComponent.h"
 
 void FvPandaSpawnerServer::OnCollisionPhantom(Entity* self, Entity* target) {
-	auto* character = target->GetCharacter();
-	if (character != nullptr && character->GetPlayerFlag(81)) {
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = target->GetObjectID();
+	getFlag.iFlagId = 81;
+	if (SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) {
 
 		auto raceObjects = Game::entityManager->GetEntitiesInGroup("PandaRaceObject");
 		if (raceObjects.empty())

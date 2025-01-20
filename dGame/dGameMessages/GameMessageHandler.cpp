@@ -47,6 +47,7 @@ namespace {
 	std::map<MessageType::Game, MessageCreator> g_MessageHandlers = {
 		{ REQUEST_SERVER_OBJECT_INFO, []() { return std::make_unique<RequestServerObjectInfo>(); } },
 		{ SHOOTING_GALLERY_FIRE, []() { return std::make_unique<ShootingGalleryFire>(); } },
+		{ SET_FLAG, []() { return std::make_unique<SetFlag>(); } },
 	};
 };
 
@@ -120,11 +121,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::REQUEST_USE: {
 		GameMessages::HandleRequestUse(inStream, entity, sysAddr);
-		break;
-	}
-
-	case MessageType::Game::SET_FLAG: {
-		GameMessages::HandleSetFlag(inStream, entity);
 		break;
 	}
 
@@ -215,13 +211,17 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		// After we've done our thing, tell the client they're ready
 		GameMessages::SendPlayerReady(Game::zoneManager->GetZoneControlObject(), sysAddr);
 
-		if (Game::config->GetValue("allow_players_to_skip_cinematics") != "1"
-			|| !entity->GetCharacter()
-			|| !entity->GetCharacter()->GetPlayerFlag(ePlayerFlag::DLU_SKIP_CINEMATICS)) return;
-		entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
-			if (!entity) return;
-			GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
-			});
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = entity->GetObjectID();
+		getFlag.iFlagId = ePlayerFlag::DLU_SKIP_CINEMATICS;
+		SEND_ENTITY_MSG(getFlag);
+
+		if (Game::config->GetValue("allow_players_to_skip_cinematics") == "1" && getFlag.bFlag) {
+			entity->AddCallbackTimer(0.5f, [entity, sysAddr]() {
+				if (!entity) return;
+				GameMessages::SendEndCinematic(entity->GetObjectID(), u"", sysAddr);
+				});
+		}
 		break;
 	}
 

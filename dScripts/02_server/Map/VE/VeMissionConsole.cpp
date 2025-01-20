@@ -1,6 +1,6 @@
 #include "VeMissionConsole.h"
+
 #include "InventoryComponent.h"
-#include "Character.h"
 #include "GameMessages.h"
 #include "Loot.h"
 #include "eTerminateType.h"
@@ -17,10 +17,11 @@ void VeMissionConsole::OnUse(Entity* self, Entity* user) {
 	const auto flagNumber = self->GetVar<std::u16string>(m_NumberVariable);
 	const int32_t flag = std::stoi("101" + GeneralUtils::UTF16ToWTF8(flagNumber));
 
-	auto* character = user->GetCharacter();
-	if (character != nullptr) {
-		character->SetPlayerFlag(flag, true);
-	}
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = user->GetObjectID();
+	setFlag.iFlagId = flag;
+	setFlag.bFlag = true;
+	SEND_ENTITY_MSG(setFlag);
 
 	GameMessages::SendNotifyClientObject(self->GetObjectID(), u"");
 	GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());

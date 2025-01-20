@@ -1,10 +1,9 @@
-#include "dZoneManager.h"
 #include "PetDigServer.h"
+
+#include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
-#include "Character.h"
 #include "PetComponent.h"
-#include "User.h"
 #include "eMissionState.h"
 
 std::vector<LWOOBJID> PetDigServer::treasures{};
@@ -110,7 +109,6 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 	if (!playerEntity || !playerEntity->GetCharacter())
 		return;
 
-	auto* player = playerEntity->GetCharacter();
 	const auto groupID = self->GetVar<std::u16string>(u"groupID");
 	int32_t playerFlag = 0;
 
@@ -123,15 +121,22 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 		playerFlag = 63;
 	}
 
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = playerEntity->GetObjectID();
+	getFlag.iFlagId = playerFlag;
+	SEND_ENTITY_MSG(getFlag);
 	// If the player doesn't have the flag yet
-	if (playerFlag != 0 && !player->GetPlayerFlag(playerFlag)) {
+	if (playerFlag != 0 && SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
 		auto* petComponent = pet->GetComponent<PetComponent>();
 		if (petComponent != nullptr) {
 			// TODO: Pet state = 9 ??
 		}
 
-		// Shows the flag object to the player
-		player->SetPlayerFlag(playerFlag, true);
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = playerEntity->GetObjectID();
+		setFlag.iFlagId = playerFlag;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 	}
 
 	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
@@ -173,12 +178,17 @@ void PetDigServer::ProgressPetDigMissions(const Entity* owner, const Entity* che
 		if (excavatorMissionState == eMissionState::ACTIVE) {
 			if (chest->HasVar(u"PetDig")) {
 				int32_t playerFlag = 1260 + chest->GetVarAs<int32_t>(u"PetDig");
-				Character* player = owner->GetCharacter();
-
+				GameMessages::GetFlag getFlag{};
+				getFlag.target = owner->GetObjectID();
+				getFlag.iFlagId = playerFlag;
 				// check if player flag is set
-				if (!player->GetPlayerFlag(playerFlag)) {
+				if (SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
 					missionComponent->ForceProgress(505, 767, 1);
-					player->SetPlayerFlag(playerFlag, 1);
+					GameMessages::SetFlag setFlag{};
+					setFlag.target = owner->GetObjectID();
+					setFlag.iFlagId = playerFlag;
+					setFlag.bFlag = true;
+					SEND_ENTITY_MSG(setFlag);
 				}
 			}
 		}

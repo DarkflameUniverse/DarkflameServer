@@ -2,7 +2,6 @@
 #include "SkillComponent.h"
 #include "EntityManager.h"
 #include "EntityInfo.h"
-#include "Character.h"
 
 void AmBlueX::OnUse(Entity* self, Entity* user) {
 	auto* skillComponent = user->GetComponent<SkillComponent>();
@@ -16,10 +15,11 @@ void AmBlueX::OnSkillEventFired(Entity* self, Entity* caster, const std::string&
 		self->SetNetworkVar<bool>(m_XUsedVariable, true);
 		self->SetNetworkVar<bool>(m_StartEffectVariable, true);
 
-		auto* character = caster->GetCharacter();
-		if (character != nullptr) {
-			character->SetPlayerFlag(self->GetVar<int32_t>(m_FlagVariable), true);
-		}
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = caster->GetObjectID();
+		setFlag.iFlagId = self->GetVar<int32_t>(m_FlagVariable);
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 
 		EntityInfo info{};
 		info.lot = m_FXObject;

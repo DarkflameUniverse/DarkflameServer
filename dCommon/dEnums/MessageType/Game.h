@@ -1603,12 +1603,17 @@ namespace MessageType {
 		UPDATE_FORGED_ITEM = 1768,
 		CAN_ITEMS_BE_REFORGED = 1769,
 		NOTIFY_CLIENT_RAIL_START_FAILED = 1771,
-		GET_IS_ON_RAIL = 1772
+		GET_IS_ON_RAIL = 1772,
+
+		// DLU CUSTOM GAME MESSAGES, DO NOT NETWORK OR SEND TO CLIENTS (it wont do anything bad but still dont do it >:( )
+		CLEAR_SESSION_FLAGS = 2000,
+		SET_RETROACTIVE_FLAGS = 2001,
+		GAME_MESSAGES_END,
 	};
 }
 
 template <>
 struct magic_enum::customize::enum_range<MessageType::Game> {
 	static constexpr int min = 0;
-	static constexpr int max = 1772;
+	static constexpr int max = static_cast<int>(MessageType::Game::GAME_MESSAGES_END) - 1;
 };

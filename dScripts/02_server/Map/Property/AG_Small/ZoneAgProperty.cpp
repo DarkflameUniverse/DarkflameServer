@@ -292,34 +292,45 @@ void ZoneAgProperty::BaseTimerDone(Entity* self, const std::string& timerName) {
 void ZoneAgProperty::OnZonePropertyRented(Entity* self, Entity* player) {
 	BaseZonePropertyRented(self, player);
 
-	auto* character = player->GetCharacter();
-	if (character == nullptr)
-		return;
-
-	character->SetPlayerFlag(108, true);
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = player->GetObjectID();
+	setFlag.iFlagId = 108;
+	setFlag.bFlag = true;
+	SEND_ENTITY_MSG(setFlag);
 }
 
 void ZoneAgProperty::OnZonePropertyModelPlaced(Entity* self, Entity* player) {
-	auto* character = player->GetCharacter();
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
 
-	if (!character->GetPlayerFlag(101)) {
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = player->GetObjectID();
+
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = player->GetObjectID();
+	setFlag.bFlag = true;
+
+	if (getFlag.iFlagId = 101, SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
 		BaseZonePropertyModelPlaced(self, player);
-		character->SetPlayerFlag(101, true);
+		setFlag.iFlagId = 101;
+		SEND_ENTITY_MSG(setFlag);
 		if (missionComponent->GetMissionState(871) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"AnotherModel");
 		}
 
-	} else if (!character->GetPlayerFlag(102)) {
-		character->SetPlayerFlag(102, true);
+	} else if (getFlag.iFlagId = 102, SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+		setFlag.iFlagId = 102;
+		SEND_ENTITY_MSG(setFlag);
 		if (missionComponent->GetMissionState(871) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"TwoMoreModels");
 		}
 
-	} else if (!character->GetPlayerFlag(103)) {
-		character->SetPlayerFlag(103, true);
-	} else if (!character->GetPlayerFlag(104)) {
-		character->SetPlayerFlag(104, true);
+	} else if (getFlag.iFlagId = 103, SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+		setFlag.iFlagId = 103;
+		SEND_ENTITY_MSG(setFlag);
+	} else if (getFlag.iFlagId = 104, SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+		setFlag.iFlagId = 104;
+		SEND_ENTITY_MSG(setFlag);
 		self->SetNetworkVar<std::u16string>(u"Tooltip", u"TwoMoreModelsOff");
 	} else if (self->GetVar<std::string>(u"tutorial") == "place_model") {
 		self->SetVar<std::string>(u"tutorial", "");
@@ -328,20 +339,34 @@ void ZoneAgProperty::OnZonePropertyModelPlaced(Entity* self, Entity* player) {
 }
 
 void ZoneAgProperty::OnZonePropertyModelPickedUp(Entity* self, Entity* player) {
-	auto* character = player->GetCharacter();
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
 
-	if (!character->GetPlayerFlag(109)) {
-		character->SetPlayerFlag(109, true);
-		if (missionComponent->GetMissionState(891) == eMissionState::ACTIVE && !character->GetPlayerFlag(110)) {
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = player->GetObjectID();
+	getFlag.iFlagId = 109;
+
+	if (SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = player->GetObjectID();
+		setFlag.iFlagId = 109;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
+
+		getFlag.iFlagId = 110;
+		getFlag.bFlag = false;
+		if (missionComponent->GetMissionState(891) == eMissionState::ACTIVE && SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"Rotate");
 		}
 	}
 }
 
 void ZoneAgProperty::OnZonePropertyModelRemoved(Entity* self, Entity* player) {
-	auto* character = player->GetCharacter();
-	character->SetPlayerFlag(111, true);
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = player->GetObjectID();
+	setFlag.iFlagId = 111;
+	setFlag.bFlag = true;
+	SEND_ENTITY_MSG(setFlag);
 }
 
 void ZoneAgProperty::OnZonePropertyModelRemovedWhileEquipped(Entity* self, Entity* player) {
@@ -349,11 +374,18 @@ void ZoneAgProperty::OnZonePropertyModelRemovedWhileEquipped(Entity* self, Entit
 }
 
 void ZoneAgProperty::OnZonePropertyModelRotated(Entity* self, Entity* player) {
-	auto* character = player->GetCharacter();
 	auto* missionComponent = player->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = player->GetObjectID();
+	getFlag.iFlagId = 110;
 
-	if (!character->GetPlayerFlag(110)) {
-		character->SetPlayerFlag(110, true);
+	if (SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = player->GetObjectID();
+		setFlag.iFlagId = 110;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 
 		if (missionComponent->GetMissionState(891) == eMissionState::ACTIVE) {
 			self->SetNetworkVar<std::u16string>(u"Tooltip", u"PlaceModel");
@@ -413,7 +445,12 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		if (player == nullptr)
 			return;
 
-		player->GetCharacter()->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = player->GetObjectID();
+		setFlag.iFlagId = self->GetVar<int32_t>(defeatedProperyFlag);
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
+
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
 			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 

@@ -8,6 +8,13 @@
 
 #include "dCommonVars.h"
 
+// Convenience macro to send a message to the entity manager
+#define SEND_ENTITY_MSG(msg) Game::entityManager->SendMsg(msg)
+
+namespace GameMessages {
+	struct GameMsg;	
+};
+
 class Entity;
 class EntityInfo;
 class Player;
@@ -71,6 +78,9 @@ public:
 	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
 	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+
+	// Sends a message to be handled by the receiving entity
+	bool SendMsg(GameMessages::GameMsg& msg);
 
 private:
 	void SerializeEntities();

@@ -1,7 +1,7 @@
 #include "NsGetFactionMissionServer.h"
+
 #include "GameMessages.h"
 #include "MissionComponent.h"
-#include "Character.h"
 #include "eReplicaComponentType.h"
 #include "ePlayerFlag.h"
 
@@ -42,11 +42,17 @@ void NsGetFactionMissionServer::OnRespondToMission(Entity* self, int missionID, 
 		}
 
 		if (flagID != -1) {
-			player->GetCharacter()->SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
-			player->GetCharacter()->SetPlayerFlag(flagID, true);
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = player->GetObjectID();
+			setFlag.iFlagId = ePlayerFlag::JOINED_A_FACTION;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
+			setFlag.iFlagId = flagID;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
 		}
 
-		MissionComponent* mis = static_cast<MissionComponent*>(player->GetComponent(eReplicaComponentType::MISSION));
+		auto* mis = player->GetComponent<MissionComponent>();
 
 		for (int mission : factionMissions) {
 			mis->AcceptMission(mission);

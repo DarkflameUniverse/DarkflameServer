@@ -1,8 +1,8 @@
 #include "CavePrisonCage.h"
+
 #include "EntityManager.h"
 #include "QuickBuildComponent.h"
 #include "GameMessages.h"
-#include "Character.h"
 #include "dZoneManager.h"
 #include "RenderComponent.h"
 
@@ -161,10 +161,14 @@ void CavePrisonCage::OnTimerDone(Entity* self, std::string timerName) {
 			return;
 		}
 
+		// Set the flag on the builder character
 		const auto flagNum = 2020 + self->GetVarAs<int32_t>(u"myNumber");
 
-		// Set the flag on the builder character
-		builder->GetCharacter()->SetPlayerFlag(flagNum, true);
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = builder->GetObjectID();
+		setFlag.iFlagId = flagNum;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 
 		// Setup a timer named 'VillagerEscape' to be triggered in 5 seconds
 		self->AddTimer("VillagerEscape", 5.0f);

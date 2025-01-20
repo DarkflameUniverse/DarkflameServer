@@ -1,21 +1,21 @@
 #include "VeEpsilonServer.h"
-#include "Character.h"
+
 #include "EntityManager.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
 #include "Entity.h"
 
 void VeEpsilonServer::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
-	auto* character = target->GetCharacter();
-	if (character == nullptr)
-		return;
-
 	// Resets the player flags that track which consoles they've used
 	if ((missionID == m_ConsoleMissionID || missionID == m_ConsoleRepeatMissionID)
 		&& (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)) {
 
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = target->GetObjectID();
 		for (auto i = 0; i < 10; i++) {
-			character->SetPlayerFlag(m_ConsoleBaseFlag + i, false);
+			setFlag.iFlagId = m_ConsoleBaseFlag + i;
+			setFlag.bFlag = false;
+			SEND_ENTITY_MSG(setFlag);
 		}
 	}
 

@@ -1,7 +1,6 @@
 #include "NsTokenConsoleServer.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
-#include "Character.h"
 #include "MissionComponent.h"
 #include "QuickBuildComponent.h"
 #include "eTerminateType.h"
@@ -24,9 +23,8 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 
 	auto* inventoryComponent = user->GetComponent<InventoryComponent>();
 	auto* missionComponent = user->GetComponent<MissionComponent>();
-	auto* character = user->GetCharacter();
 
-	if (inventoryComponent == nullptr || missionComponent == nullptr || character == nullptr) {
+	if (inventoryComponent == nullptr || missionComponent == nullptr) {
 		return;
 	}
 
@@ -42,15 +40,18 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		GameMessages::SendPlayNDAudioEmitter(self, user->GetSystemAddress(), useSound);
 	}
 
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = user->GetObjectID();
+
 	// Player must be in faction to interact with this entity.
 	LOT tokenLOT = 0;
-	if (character->GetPlayerFlag(ePlayerFlag::VENTURE_FACTION)) //venture
+	if (getFlag.iFlagId = ePlayerFlag::VENTURE_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //venture
 		tokenLOT = 8321;
-	else if (character->GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION)) //assembly
+	else if (getFlag.iFlagId = ePlayerFlag::ASSEMBLY_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //assembly
 		tokenLOT = 8318;
-	else if (character->GetPlayerFlag(ePlayerFlag::PARADOX_FACTION)) //paradox
+	else if (getFlag.iFlagId = ePlayerFlag::PARADOX_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //paradox
 		tokenLOT = 8320;
-	else if (character->GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) //sentinel
+	else if (getFlag.iFlagId = ePlayerFlag::SENTINEL_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //sentinel
 		tokenLOT = 8319;
 
 	inventoryComponent->AddItem(tokenLOT, 5, eLootSourceType::NONE);

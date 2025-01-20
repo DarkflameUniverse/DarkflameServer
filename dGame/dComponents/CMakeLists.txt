@@ -10,6 +10,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 	"ControllablePhysicsComponent.cpp"
 	"DestroyableComponent.cpp"
 	"DonationVendorComponent.cpp"
+	"FlagComponent.cpp"
 	"GhostComponent.cpp"
 	"InventoryComponent.cpp"
 	"ItemComponent.cpp"

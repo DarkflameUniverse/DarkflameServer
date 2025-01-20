@@ -84,6 +84,7 @@
 #include "GhostComponent.h"
 #include "AchievementVendorComponent.h"
 #include "VanityUtilities.h"
+#include "FlagComponent.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -482,6 +483,8 @@ void Entity::Initialize() {
 		AddComponent<CharacterComponent>(m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
 
 		AddComponent<GhostComponent>();
+
+		AddComponent<FlagComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY) > 0 || m_Character) {

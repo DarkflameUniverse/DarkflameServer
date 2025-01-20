@@ -127,7 +127,10 @@ void BasePropertyServer::BasePlayerLoaded(Entity* self, Entity* player) {
 		if (player->GetObjectID() != propertyOwner)
 			return;
 	} else {
-		const auto defeatedFlag = player->GetCharacter()->GetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag));
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = player->GetObjectID();
+		getFlag.iFlagId = self->GetVar<int32_t>(defeatedProperyFlag);
+		const auto defeatedFlag = SEND_ENTITY_MSG(getFlag) && getFlag.bFlag;
 
 		self->SetNetworkVar(UnclaimedVariable, true);
 		self->SetVar<LWOOBJID>(PlayerIDVariable, player->GetObjectID());
@@ -184,8 +187,13 @@ void BasePropertyServer::BaseZonePropertyModelPlaced(Entity* self, Entity* playe
 		return;
 
 	auto flag = self->GetVar<int32_t>(placedModelFlag);
-	if (flag)
-		character->SetPlayerFlag(flag, true);
+	if (flag) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = player->GetObjectID();
+		setFlag.iFlagId = flag;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
+	}
 }
 
 void BasePropertyServer::KillClouds(Entity* self) {
@@ -462,10 +470,11 @@ void BasePropertyServer::HandleOrbsTimer(Entity* self) {
 				// Notifies the client that the property has been claimed with a flag, completes missions too
 				auto* player = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(PlayerIDVariable));
 				if (player != nullptr) {
-					auto* character = player->GetCharacter();
-					if (character != nullptr) {
-						character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
-					}
+					GameMessages::SetFlag setFlag{};
+					setFlag.target = player->GetObjectID();
+					setFlag.iFlagId = self->GetVar<int32_t>(defeatedProperyFlag);
+					setFlag.bFlag = true;
+					SEND_ENTITY_MSG(setFlag);
 				}
 
 				self->AddTimer(TornadoOffTimer, 0.5f);

@@ -1044,10 +1044,12 @@ void HandlePacket(Packet* packet) {
 				switch (version) {
 				case eCharacterVersion::RELEASE:
 					// TODO: Implement, super low priority
-				case eCharacterVersion::LIVE:
+				case eCharacterVersion::LIVE: {
 					LOG("Updating Character Flags");
-					c->SetRetroactiveFlags();
+					GameMessages::SetRetroactiveFlags flags{};
+					SEND_ENTITY_MSG(flags);
 					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+				}
 				case eCharacterVersion::PLAYER_FACTION_FLAGS:
 					LOG("Updating Vault Size");
 					player->RetroactiveVaultSize();

@@ -22,6 +22,7 @@
 #include "eGameMasterLevel.h"
 #include "ePlayerFlag.h"
 #include "CDPlayerFlagsTable.h"
+#include "FlagComponent.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -37,7 +38,7 @@ Character::~Character() {
 	m_ParentUser = nullptr;
 }
 
-void Character::UpdateInfoFromDatabase() {
+void Character::UpdateInfoFromDatabase(bool clearSessionFlags) {
 	auto charInfo = Database::Get()->GetCharacterInfo(m_ID);
 
 	if (charInfo) {
@@ -65,10 +66,17 @@ void Character::UpdateInfoFromDatabase() {
 
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
+
+	// This is not done through a game message because our current implementation does this at a point
+	// in time where an Entity does not exist, so there is no FlagComponent to handle the msg.
+	if (clearSessionFlags) {
+		FlagComponent::ClearSessionFlags(m_Doc);
+		WriteToDatabase();
+	}
 }
 
-void Character::UpdateFromDatabase() {
-	UpdateInfoFromDatabase();
+void Character::UpdateFromDatabase(bool clearSessionFlags) {
+	UpdateInfoFromDatabase(clearSessionFlags);
 }
 
 void Character::DoQuickXMLDataParse() {
@@ -197,25 +205,6 @@ void Character::DoQuickXMLDataParse() {
 		character->QueryAttribute("lzrz", &m_OriginalRotation.z);
 		character->QueryAttribute("lzrw", &m_OriginalRotation.w);
 	}
-
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
-	if (flags) {
-		auto* currentChild = flags->FirstChildElement();
-		while (currentChild) {
-			const auto* temp = currentChild->Attribute("v");
-			const auto* id = currentChild->Attribute("id");
-			if (temp && id) {
-				uint32_t index = 0;
-				uint64_t value = 0;
-
-				index = std::stoul(id);
-				value = std::stoull(temp);
-
-				m_PlayerFlags.insert(std::make_pair(index, value));
-			}
-			currentChild = currentChild->NextSiblingElement();
-		}
-	}
 }
 
 void Character::UnlockEmote(int emoteID) {
@@ -276,25 +265,6 @@ void Character::SaveXMLToDatabase() {
 		character->LinkEndChild(emotes);
 	}
 
-	//Export our flags:
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
-	if (!flags) {
-		flags = m_Doc.NewElement("flag"); //Create a flags tag if we don't have one
-		m_Doc.FirstChildElement("obj")->LinkEndChild(flags); //Link it to the obj tag so we can find next time
-	}
-
-	flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
-	for (const auto& [index, flagBucket] : m_PlayerFlags) {
-		auto* f = flags->InsertNewChildElement("f");
-		f->SetAttribute("id", index);
-		f->SetAttribute("v", flagBucket);
-	}
-
-	for (const auto& sessionFlag : m_SessionFlags) {
-		auto* s = flags->InsertNewChildElement("s");
-		s->SetAttribute("si", sessionFlag);
-	}
-
 	SaveXmlRespawnCheckpoints();
 
 	m_OurEntity->UpdateXMLDoc(m_Doc);
@@ -307,23 +277,6 @@ void Character::SaveXMLToDatabase() {
 	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
-void Character::SetIsNewLogin() {
-	// If we dont have a flag element, then we cannot have a s element as a child of flag.
-	auto* flags = m_Doc.FirstChildElement("obj")->FirstChildElement("flag");
-	if (!flags) return;
-
-	auto* currentChild = flags->FirstChildElement();
-	while (currentChild) {
-		auto* nextChild = currentChild->NextSiblingElement();
-		if (currentChild->Attribute("si")) {
-			LOG("Removed session flag (%s) from character %i:%s, saving character to database", currentChild->Attribute("si"), GetID(), GetName().c_str());
-			flags->DeleteChild(currentChild);
-			WriteToDatabase();
-		}
-		currentChild = nextChild;
-	}
-}
-
 void Character::WriteToDatabase() {
 	//Dump our xml into m_XMLData:
 	tinyxml2::XMLPrinter printer(0, true, 0);
@@ -331,90 +284,6 @@ void Character::WriteToDatabase() {
 
 	//Finally, save to db:
 	Database::Get()->UpdateCharacterXml(m_ID, printer.CStr());
-}
-
-void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
-	// If the flag is already set, we don't have to recalculate it
-	if (GetPlayerFlag(flagId) == value) return;
-
-	if (value) {
-		// Update the mission component:
-		auto* player = Game::entityManager->GetEntity(m_ObjectID);
-
-		if (player != nullptr) {
-			auto* missionComponent = player->GetComponent<MissionComponent>();
-
-			if (missionComponent != nullptr) {
-				missionComponent->Progress(eMissionTaskType::PLAYER_FLAG, flagId);
-			}
-		}
-	}
-
-	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);	
-
-	if (flagEntry && flagEntry->sessionOnly) {
-		if (value) m_SessionFlags.insert(flagId);
-		else m_SessionFlags.erase(flagId);
-	} else {
-		// Calculate the index first
-		auto flagIndex = uint32_t(std::floor(flagId / 64));
-
-		const auto shiftedValue = 1ULL << flagId % 64;
-
-		auto it = m_PlayerFlags.find(flagIndex);
-
-		// Check if flag index exists
-		if (it != m_PlayerFlags.end()) {
-			// Update the value
-			if (value) {
-				it->second |= shiftedValue;
-			} else {
-				it->second &= ~shiftedValue;
-			}
-		} else {
-			if (value) {
-				// Otherwise, insert the value
-				uint64_t flagValue = 0;
-
-				flagValue |= shiftedValue;
-
-				m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
-			}
-		}
-	}
-	// Notify the client that a flag has changed server-side
-	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
-}
-
-bool Character::GetPlayerFlag(const uint32_t flagId) const {
-	using enum ePlayerFlag;
-
-	bool toReturn = false; //by def, return false.
-
-	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);
-	if (flagEntry && flagEntry->sessionOnly) {
-		toReturn = m_SessionFlags.contains(flagId);
-	} else {
-		// Calculate the index first
-		const auto flagIndex = uint32_t(std::floor(flagId / 64));
-
-		const auto shiftedValue = 1ULL << flagId % 64;
-
-		auto it = m_PlayerFlags.find(flagIndex);
-		if (it != m_PlayerFlags.end()) {
-			// Don't set the data if we don't have to
-			toReturn = (it->second & shiftedValue) != 0;
-		}
-	}
-
-	return toReturn;
-}
-
-void Character::SetRetroactiveFlags() {
-	// Retroactive check for if player has joined a faction to set their 'joined a faction' flag to true.
-	if (GetPlayerFlag(ePlayerFlag::VENTURE_FACTION) || GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION) || GetPlayerFlag(ePlayerFlag::PARADOX_FACTION) || GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) {
-		SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
-	}
 }
 
 void Character::SaveXmlRespawnCheckpoints() {
@@ -473,7 +342,11 @@ void Character::OnZoneLoad() {
 	if (missionComponent != nullptr) {
 		// Fix the monument race flag
 		if (missionComponent->GetMissionState(319) >= eMissionState::READY_TO_COMPLETE) {
-			SetPlayerFlag(ePlayerFlag::AG_FINISH_LINE_BUILT, true);
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = m_ObjectID;
+			setFlag.iFlagId = ePlayerFlag::AG_FINISH_LINE_BUILT;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
 		}
 	}
 

@@ -1,9 +1,8 @@
 #include "AgCagedBricksServer.h"
+
 #include "InventoryComponent.h"
 #include "GameMessages.h"
-#include "Character.h"
 #include "EntityManager.h"
-#include "eReplicaComponentType.h"
 #include "ePlayerFlag.h"
 
 void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
@@ -14,14 +13,14 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	}
 
 	//Set the flag & mission status:
-	auto character = user->GetCharacter();
-
-	if (!character) return;
-
-	character->SetPlayerFlag(ePlayerFlag::CAGED_SPIDER, true);
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = user->GetObjectID();
+	setFlag.iFlagId = ePlayerFlag::CAGED_SPIDER;
+	setFlag.bFlag = true;
+	SEND_ENTITY_MSG(setFlag);
 
 	//Remove the maelstrom cube:
-	auto inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
+	auto* inv = user->GetComponent<InventoryComponent>();
 
 	if (inv) {
 		inv->RemoveItem(14553, 1);

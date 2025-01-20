@@ -1,11 +1,10 @@
 #include "NtFactionSpyServer.h"
-#include "Character.h"
+
 #include "ProximityMonitorComponent.h"
 #include "InventoryComponent.h"
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "eMissionState.h"
-#include "eReplicaComponentType.h"
 #include "eCinematicEvent.h"
 #include "ePlayerFlag.h"
 
@@ -54,12 +53,14 @@ bool NtFactionSpyServer::IsSpy(Entity* self, Entity* possibleSpy) {
 
 	auto* missionComponent = possibleSpy->GetComponent<MissionComponent>();
 	auto* inventoryComponent = possibleSpy->GetComponent<InventoryComponent>();
-	auto* character = possibleSpy->GetCharacter();
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = possibleSpy->GetObjectID();
+	getFlag.iFlagId = spyData.flagID;
 
 	// A player is a spy if they have the spy mission, have the spy equipment equipped and don't have the spy flag set yet
 	return missionComponent != nullptr && missionComponent->GetMissionState(spyData.missionID) == eMissionState::ACTIVE
 		&& inventoryComponent != nullptr && inventoryComponent->IsEquipped(spyData.itemID)
-		&& character != nullptr && !character->GetPlayerFlag(spyData.flagID);
+		&& SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag;
 }
 
 void NtFactionSpyServer::OnCinematicUpdate(Entity* self, Entity* sender, eCinematicEvent event,
@@ -87,10 +88,11 @@ void NtFactionSpyServer::OnCinematicUpdate(Entity* self, Entity* sender, eCinema
 
 			} else if (event == eCinematicEvent::ENDED && pathIndex >= dialogueTable.size() - 1) {
 				auto spyData = self->GetVar<SpyData>(m_SpyDataVariable);
-				auto* character = sender->GetCharacter();
-				if (character != nullptr) {
-					character->SetPlayerFlag(spyData.flagID, true);
-				}
+				GameMessages::SetFlag setFlag{};
+				setFlag.target = sender->GetObjectID();
+				setFlag.iFlagId = spyData.flagID;
+				setFlag.bFlag = true;
+				SEND_ENTITY_MSG(setFlag);
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 #include "FvPandaServer.h"
+
 #include "PetComponent.h"
-#include "Character.h"
 #include "ePetTamingNotifyType.h"
 
 void FvPandaServer::OnStartup(Entity* self) {
@@ -19,10 +19,11 @@ void FvPandaServer::OnNotifyPetTamingMinigame(Entity* self, Entity* tamer, ePetT
 	} else if (type == ePetTamingNotifyType::SUCCESS) {
 		// TODO: Remove from groups
 
-		auto* character = tamer->GetCharacter();
-		if (character != nullptr) {
-			character->SetPlayerFlag(82, true);
-		}
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = tamer->GetObjectID();
+		setFlag.iFlagId = 82;
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 	}
 }
 

@@ -1,21 +1,21 @@
 #include "AgPropguards.h"
-#include "Character.h"
+
 #include "GameMessages.h"
 #include "EntityManager.h"
 #include "dZoneManager.h"
 #include "eMissionState.h"
 
 void AgPropguards::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
-	auto* character = target->GetCharacter();
-	if (character == nullptr)
-		return;
-
 	const auto flag = GetFlagForMission(missionID);
 	if (flag == 0)
 		return;
 
+	GameMessages::GetFlag getFlag{};
+	getFlag.target = target->GetObjectID();
+	getFlag.iFlagId = flag;
+
 	if ((missionState == eMissionState::AVAILABLE || missionState == eMissionState::ACTIVE)
-		&& !character->GetPlayerFlag(flag)) {
+		&& SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
 		// If the player just started the mission, play a cinematic highlighting the target
 		GameMessages::SendPlayCinematic(target->GetObjectID(), u"MissionCam", target->GetSystemAddress());
 	} else if (missionState == eMissionState::READY_TO_COMPLETE) {

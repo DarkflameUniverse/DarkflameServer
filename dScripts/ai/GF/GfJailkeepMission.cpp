@@ -1,6 +1,6 @@
 #include "GfJailkeepMission.h"
+
 #include "MissionComponent.h"
-#include "Character.h"
 #include "eMissionState.h"
 
 void GfJailkeepMission::OnMissionDialogueOK(Entity* self, Entity* target, int missionID, eMissionState missionState) {
@@ -14,8 +14,11 @@ void GfJailkeepMission::OnMissionDialogueOK(Entity* self, Entity* target, int mi
 		missionComponent->AcceptMission(388, true);
 		missionComponent->AcceptMission(390, true);
 	} else if (missionID == 385 && missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
-		auto* character = target->GetCharacter();
-		if (character != nullptr && character->GetPlayerFlag(68)) {
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = target->GetObjectID();
+		getFlag.iFlagId = 68;
+
+		if (SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) {
 			missionComponent->AcceptMission(701);
 			missionComponent->AcceptMission(702);
 			missionComponent->AcceptMission(703);

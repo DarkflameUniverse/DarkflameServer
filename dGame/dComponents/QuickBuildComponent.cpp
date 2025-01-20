@@ -481,14 +481,12 @@ void QuickBuildComponent::CompleteQuickBuild(Entity* const user) {
 	}
 
 	// Set flag
-	auto* character = user->GetCharacter();
-
-	if (character != nullptr) {
-		const auto flagNumber = m_Parent->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
-
-		if (flagNumber != 0) {
-			character->SetPlayerFlag(flagNumber, true);
-		}
+	if (m_Parent->HasVar(u"quickbuild_single_build_player_flag")) {
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = user->GetObjectID();
+		setFlag.iFlagId = m_Parent->GetVar<int32_t>(u"quickbuild_single_build_player_flag");
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 	}
 	RenderComponent::PlayAnimation(user, u"rebuild-celebrate", 1.09f);
 }

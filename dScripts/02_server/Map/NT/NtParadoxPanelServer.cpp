@@ -1,8 +1,8 @@
 #include "NtParadoxPanelServer.h"
+
 #include "GameMessages.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
-#include "Character.h"
 #include "eMissionState.h"
 #include "RenderComponent.h"
 #include "eTerminateType.h"
@@ -32,8 +32,11 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 			}
 
 			const auto flag = self->GetVar<int32_t>(u"flag");
-
-			player->GetCharacter()->SetPlayerFlag(flag, true);
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = playerID;
+			setFlag.iFlagId = flag;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
 
 			RenderComponent::PlayAnimation(player, u"rebuild-celebrate");
 

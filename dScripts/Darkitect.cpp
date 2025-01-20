@@ -1,9 +1,9 @@
 #include "Darkitect.h"
+
 #include "MissionComponent.h"
 #include "DestroyableComponent.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
-#include "Character.h"
 #include "eMissionState.h"
 
 void Darkitect::Reveal(Entity* self, Entity* player) {
@@ -18,15 +18,18 @@ void Darkitect::Reveal(Entity* self, Entity* player) {
 
 		auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 		auto* missionComponent = player->GetComponent<MissionComponent>();
-		auto* character = player->GetCharacter();
 
-		if (destroyableComponent != nullptr && missionComponent != nullptr && character != nullptr) {
+		if (destroyableComponent != nullptr && missionComponent != nullptr) {
 			destroyableComponent->SetArmor(0);
 			destroyableComponent->SetHealth(1);
 			destroyableComponent->SetImagination(0);
 
 			if (missionComponent->GetMissionState(1295) == eMissionState::ACTIVE) {
-				character->SetPlayerFlag(1911, true);
+				GameMessages::SetFlag setFlag{};
+				setFlag.target = player->GetObjectID();
+				setFlag.iFlagId = 1911;
+				setFlag.bFlag = true;
+				SEND_ENTITY_MSG(setFlag);
 			}
 
 			Game::entityManager->SerializeEntity(player);

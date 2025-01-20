@@ -1,9 +1,8 @@
 #include "RemoveRentalGear.h"
+
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "eMissionState.h"
-#include "Character.h"
-#include "eReplicaComponentType.h"
 #include "ePlayerFlag.h"
 
 /*
@@ -23,7 +22,7 @@ void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 	if (missionID != defaultMission && missionID != 313) return;
 
 	if (missionState == eMissionState::COMPLETE || missionState == eMissionState::READY_TO_COMPLETE) {
-		auto inv = static_cast<InventoryComponent*>(target->GetComponent(eReplicaComponentType::INVENTORY));
+		auto* inv = target->GetComponent<InventoryComponent>();
 		if (!inv) return;
 
 		//remove the inventory items
@@ -36,7 +35,10 @@ void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 		}
 
 		//reset the equipment flag
-		auto character = target->GetCharacter();
-		if (character) character->SetPlayerFlag(ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR, false);
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = target->GetObjectID();
+		setFlag.iFlagId = ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR;
+		setFlag.bFlag = false;
+		SEND_ENTITY_MSG(setFlag);
 	}
 }

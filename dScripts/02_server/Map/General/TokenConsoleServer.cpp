@@ -1,15 +1,14 @@
 #include "TokenConsoleServer.h"
+
 #include "InventoryComponent.h"
 #include "GameMessages.h"
-#include "Character.h"
-#include "eReplicaComponentType.h"
 #include "eTerminateType.h"
 #include "ePlayerFlag.h"
 
 //2021-05-03 - max - added script, omitted some parts related to inheritance in lua which we don't need
 
 void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
-	auto* inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
+	auto* inv = user->GetComponent<InventoryComponent>();
 
 	//make sure the user has the required amount of infected bricks
 	if (inv && inv->GetLotCount(6194) >= bricksToTake) {
@@ -22,17 +21,18 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		}
 
 		//figure out which faction the player belongs to:
-		auto character = user->GetCharacter();
-		if (!character) return;
 		// At this point the player has to be in a faction.
+
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = user->GetObjectID();
 		LOT tokenLOT = 0;
-		if (character->GetPlayerFlag(ePlayerFlag::VENTURE_FACTION)) //venture
+		if (getFlag.iFlagId = ePlayerFlag::VENTURE_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //venture
 			tokenLOT = 8321;
-		else if (character->GetPlayerFlag(ePlayerFlag::ASSEMBLY_FACTION)) //assembly
+		else if (getFlag.iFlagId = ePlayerFlag::ASSEMBLY_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //assembly
 			tokenLOT = 8318;
-		else if (character->GetPlayerFlag(ePlayerFlag::PARADOX_FACTION)) //paradox
+		else if (getFlag.iFlagId = ePlayerFlag::PARADOX_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //paradox
 			tokenLOT = 8320;
-		else if (character->GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) //sentinel
+		else if (getFlag.iFlagId = ePlayerFlag::SENTINEL_FACTION, SEND_ENTITY_MSG(getFlag) && getFlag.bFlag) //sentinel
 			tokenLOT = 8319;
 		inv->AddItem(tokenLOT, tokensToGive, eLootSourceType::NONE);
 	}

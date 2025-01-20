@@ -197,6 +197,10 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 			skillComponent->Reset();
 		}
 
+		GameMessages::ClearSessionFlags msg{};
+		msg.target = chars[i]->GetObjectID();
+		SEND_ENTITY_MSG(msg);
+
 		Game::entityManager->DestroyEntity(chars[i]->GetEntity());
 
 		chars[i]->SaveXMLToDatabase();
@@ -210,8 +214,7 @@ void UserManager::RequestCharacterList(const SystemAddress& sysAddr) {
 
 	for (const auto& characterId : Database::Get()->GetAccountCharacterIds(u->GetAccountID())) {
 		Character* character = new Character(characterId, u);
-		character->UpdateFromDatabase();
-		character->SetIsNewLogin();
+		character->UpdateFromDatabase(true);
 		chars.push_back(character);
 	}
 

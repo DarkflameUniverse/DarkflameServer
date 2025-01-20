@@ -390,10 +390,15 @@ void Mission::Catchup() {
 		}
 
 		if (type == eMissionTaskType::PLAYER_FLAG) {
-			for (int32_t target : task->GetAllTargets()) {
-				const auto flag = GetCharacter()->GetPlayerFlag(target);
+			GameMessages::GetFlag getFlag{};
+			getFlag.target = entity->GetObjectID();
 
-				if (!flag) {
+			for (int32_t target : task->GetAllTargets()) {
+				getFlag.iFlagId = target;
+				getFlag.bFlag = false;
+				SEND_ENTITY_MSG(getFlag);
+
+				if (!getFlag.bFlag) {
 					continue;
 				}
 

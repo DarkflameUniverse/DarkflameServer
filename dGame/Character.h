@@ -31,7 +31,7 @@ public:
 	 */
 	void WriteToDatabase();
 	void SaveXMLToDatabase();
-	void UpdateFromDatabase();
+	void UpdateFromDatabase(bool clearSessionFlags = false);
 
 	void SaveXmlRespawnCheckpoints();
 	void LoadXmlRespawnCheckpoints();
@@ -39,15 +39,6 @@ public:
 	const std::string& GetXMLData() const { return m_XMLData; }
 	const tinyxml2::XMLDocument& GetXMLDoc() const { return m_Doc; }
 	void _setXmlDoc(tinyxml2::XMLDocument& doc) { doc.DeepCopy(&m_Doc); }
-
-	/**
-	 * Out of abundance of safety and clarity of what this saves, this is its own function.
-	 *
-	 * Clears the s element from the flag element and saves the xml to the database.  Used to prevent the news
-	 * feed from showing up on world transfers.
-	 *
-	 */
-	void SetIsNewLogin();
 
 	/**
 	 * Gets the database ID of the character
@@ -411,30 +402,9 @@ public:
 	void UnlockEmote(int emoteID);
 
 	/**
-	 * Sets a flag for the character, indicating certain parts of the game that have been interacted with. Not to be
-	 * confused with the permissions
-	 * @param flagId the ID of the flag to set
-	 * @param value the value to set for the flag
-	 */
-	void SetPlayerFlag(uint32_t flagId, bool value);
-
-	/**
-	 * Gets the value for a certain character flag
-	 * @param flagId the ID of the flag to get a value for
-	 * @return the value of the flag given the ID (the default is false, obviously)
-	 */
-	bool GetPlayerFlag(uint32_t flagId) const;
-
-	/**
 	 * Notifies the character that they're now muted
 	 */
 	void SendMuteNotice() const;
-
-	/**
-	 * Sets any flags that are meant to have been set that may not have been set due to them being
-	 * missing in a previous patch.
-	 */
-	void SetRetroactiveFlags();
 
 	/**
 	 * Get the equipped items for this character, only used for character creation
@@ -465,7 +435,7 @@ public:
 	void _setXmlData(const std::string& xmlData) { m_XMLData = xmlData; }
 
 private:
-	void UpdateInfoFromDatabase();
+	void UpdateInfoFromDatabase(bool clearSessionFlags);
 	/**
 	 * The ID of this character. First 32 bits of the ObjectID.
 	 */
@@ -619,17 +589,6 @@ private:
 	 * The last time this character logged in
 	 */
 	uint64_t m_LastLogin{};
-
-	/**
-	 * Flags only set for the duration of a session
-	 * 
-	 */
-	std::set<uint32_t> m_SessionFlags;
-
-	/**
-	 * The gameplay flags this character has (not just true values)
-	 */
-	std::unordered_map<uint32_t, uint64_t> m_PlayerFlags;
 
 	/**
 	 * The character XML belonging to this character

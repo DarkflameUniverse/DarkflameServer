@@ -557,7 +557,11 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	// Triggers the catch a pet missions
 	if (petFlags.find(m_Parent->GetLOT()) != petFlags.end()) {
-		tamer->GetCharacter()->SetPlayerFlag(petFlags.at(m_Parent->GetLOT()), true);
+		GameMessages::SetFlag setFlag{};
+		setFlag.target = tamer->GetObjectID();
+		setFlag.iFlagId = petFlags.at(m_Parent->GetLOT());
+		setFlag.bFlag = true;
+		SEND_ENTITY_MSG(setFlag);
 	}
 
 	auto* missionComponent = tamer->GetComponent<MissionComponent>();
@@ -847,7 +851,11 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
-	owner->GetCharacter()->SetPlayerFlag(ePlayerFlag::FIRST_MANUAL_PET_HIBERNATE, true);
+	GameMessages::SetFlag setFlag{};
+	setFlag.target = owner->GetObjectID();
+	setFlag.iFlagId = ePlayerFlag::FIRST_MANUAL_PET_HIBERNATE;
+	setFlag.bFlag = true;
+	SEND_ENTITY_MSG(setFlag);
 
 	if (registerPet) {
 		GameMessages::SendAddPetToPlayer(m_Owner, 0, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, m_Parent->GetLOT(), owner->GetSystemAddress());

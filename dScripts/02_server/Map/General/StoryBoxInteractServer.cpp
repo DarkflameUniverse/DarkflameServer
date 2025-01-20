@@ -1,7 +1,7 @@
 #include "StoryBoxInteractServer.h"
 #include "Character.h"
 #include "GameMessages.h"
-#include "dServer.h"
+#include "dZoneManager.h"
 #include "Amf3.h"
 #include "Entity.h"
 
@@ -36,11 +36,19 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		if(!storyValue) return;
 		int32_t boxFlag = self->GetVar<int32_t>(u"altFlagID");
 		if (boxFlag <= 0) {
-			boxFlag = (10000 + Game::server->GetZoneID() + storyValue.value());
+			boxFlag = (10000 + Game::zoneManager->GetZoneID().GetMapID() + storyValue.value());
 		}
 
-		if (user->GetCharacter()->GetPlayerFlag(boxFlag) == false) {
-			user->GetCharacter()->SetPlayerFlag(boxFlag, true);
+		GameMessages::GetFlag getFlag{};
+		getFlag.target = user->GetObjectID();
+		getFlag.iFlagId = boxFlag;
+		if (SEND_ENTITY_MSG(getFlag) && !getFlag.bFlag) {
+			GameMessages::SetFlag setFlag{};
+			setFlag.target = user->GetObjectID();
+			setFlag.iFlagId = boxFlag;
+			setFlag.bFlag = true;
+			SEND_ENTITY_MSG(setFlag);
+
 			GameMessages::SendFireEventClientSide(self->GetObjectID(), user->GetSystemAddress(), u"achieve", LWOOBJID_EMPTY, 0, -1, LWOOBJID_EMPTY);
 		}
 	}
