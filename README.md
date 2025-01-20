@@ -27,9 +27,9 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) (or whichever release you need) and extract the files into a folder inside your client. Note that this setup is expecting that when double clicking the folder that you put in the same folder as `legouniverse.exe`, the file `MasterServer.exe` is in there.
 * To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
 * You should be able to see the folder with the server files in the same folder as `legouniverse.exe`. An example valid configuration is below with the 3 highlighted items.
-# <img style="float: left; padding-right: 5px" height=35px width=35px src="docs/setup.png">
+# <img style="float: left; padding-right: 5px" src="docs/setup.png">
 * The inside of the `msvc` folder (or whatever you choose to name this folder) should look something like this
-# <img style="float: left; padding-right: 5px" height=35px width=35px src="docs/valid_server.png">
+# <img style="float: left; padding-right: 5px" src="docs/valid_server.png">
 * To run the server, double-click `MasterServer.exe`.
 * You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
