@@ -211,7 +211,8 @@ int main(int argc, char** argv) {
 	if (createAccount) {
 		LOG("No accounts exist in the database.  Please create an account.");
 	}
-	if (true) {
+	if ((argc > 1 &&
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || createAccount) {
 		std::string username;
 		std::string password;
 
