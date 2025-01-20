@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "mongoose.h"
+#include "json_fwd.hpp"
 #include "eHTTPStatusCode.h"
 
 enum class eHTTPMethod;
@@ -15,10 +16,15 @@ struct HTTPReply {
 	std::string message = "{\"error\":\"Not Found\"}";
 };
 
-struct WebAPIHTTPRoute {
+struct HTTPRoute {
 	std::string path;
 	eHTTPMethod method;
 	std::function<void(HTTPReply&, const std::string&)> handle;
+};
+
+struct WSAction {
+	std::string action;
+	std::function<void(nlohmann::json)> handle;
 };
 
 class ChatWebAPI {
@@ -26,11 +32,12 @@ public:
 	ChatWebAPI();
 	~ChatWebAPI();
 	void ReceiveRequests();
-	void RegisterHTTPRoutes(WebAPIHTTPRoute route);
+	void RegisterHTTPRoute(HTTPRoute route);
+	void RegisterWSAction(WSAction action);
+	void SendWSMessage(const std::string& message);
 	bool Startup();
 private:
 	mg_mgr mgr;
-
 };
 
 #endif // __CHATWEBAPI_H__

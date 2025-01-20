@@ -19,6 +19,8 @@
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
+#include "ChatWebAPI.h"
+#include "json.hpp"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -428,6 +430,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
 	inStream.Read(playerID);
+	LOG("Got a message from player %llu", playerID);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
 	if (!sender || sender.GetIsMuted()) return;
@@ -439,13 +442,25 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	inStream.Read(channel);
 	inStream.Read(size);
 	inStream.IgnoreBytes(77);
-
+	LOG("message size: %u", size);	
 	LUWString message(size);
 	inStream.Read(message);
 
-	LOG("Got a message from (%s) via [%s]: %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
-
+	LOG("Got message %s from (%s) via [%s]: %s", message.GetAsString().c_str(), sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
 	switch (channel) {
+	case eChatChannel::LOCAL: {
+		// Send to connected websockets
+		nlohmann::json data;
+		data["action"] = "chat";
+		data["playerName"] = sender.playerName;
+		data["message"] = message.GetAsString();
+		auto& zoneID = data["zone_id"];
+		zoneID["map_id"] = sender.zoneID.GetMapID();
+		zoneID["instance_id"] = sender.zoneID.GetInstanceID();
+		zoneID["clone_id"] = sender.zoneID.GetCloneID();
+		Game::chatwebapi.SendWSMessage(data.dump());
+		break;
+	}
 	case eChatChannel::TEAM: {
 		auto* team = Game::playerContainer.GetTeam(playerID);
 		if (team == nullptr) return;

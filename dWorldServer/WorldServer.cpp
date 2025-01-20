@@ -1306,7 +1306,6 @@ void HandlePacket(Packet* packet) {
 			ChatPackets::SendMessageFail(packet->systemAddress);
 		} else {
 			auto chatMessage = ClientPackets::HandleChatMessage(packet);
-
 			// TODO: Find a good home for the logic in this case.
 			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 			if (!user) {
@@ -1328,6 +1327,25 @@ void HandlePacket(Packet* packet) {
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+
+			CBITSTREAM;
+			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+
+			bitStream.Write(user->GetLoggedInChar());
+			bitStream.Write<uint32_t>(chatMessage.message.size());
+			bitStream.Write(chatMessage.chatChannel);
+			bitStream.Write<uint32_t>(chatMessage.message.size());
+
+			for (uint32_t i = 0; i < 77; ++i) {
+				bitStream.Write<uint8_t>(0);
+			}
+
+			for (uint32_t i = 0; i < chatMessage.message.size(); ++i) {
+				bitStream.Write<uint16_t>(chatMessage.message[i]);
+			}
+			bitStream.Write<uint16_t>(0);
+			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
+
 		}
 
 		break;

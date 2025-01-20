@@ -54,7 +54,6 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
 		bitStream.Write<uint16_t>(message[i]);
 	}
 	bitStream.Write<uint16_t>(0);
-
 	SEND_PACKET_BROADCAST;
 }
 

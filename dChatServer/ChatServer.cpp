@@ -39,6 +39,7 @@ namespace Game {
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 	PlayerContainer playerContainer;
+	ChatWebAPI chatwebapi;
 }
 
 void HandlePacket(Packet* packet);
@@ -94,8 +95,7 @@ int main(int argc, char** argv) {
 
 	// seyup the chat api web server
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
-	ChatWebAPI chatwebapi;
-	if (web_server_enabled && !chatwebapi.Startup()){
+	if (web_server_enabled && !Game::chatwebapi.Startup()){
 		// if we want the web api and it fails to start, exit
 		LOG("Failed to start web server, shutting down.");
 		Database::Destroy("ChatServer");
@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
 
 		//Check and handle web requests:
 		if (web_server_enabled) {
-			chatwebapi.ReceiveRequests();
+			Game::chatwebapi.ReceiveRequests();
 		}
 
 		//Push our log every 30s:
@@ -207,6 +207,7 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
+	LOG("Received packet with ID: %i", packet->data[0]);
 	if (packet->length < 1) return;
 	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has disconnected, erasing their connected players from the list.");
