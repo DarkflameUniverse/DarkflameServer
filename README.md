@@ -25,11 +25,13 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 	You must use Version 2 if you must run the server under WSL. Not doing so will result in save data loss.
 * Single player installs now no longer require building the server from source or installing development tools.
 * Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) (or whichever release you need) and extract the files into a folder inside your client. Note that this setup is expecting that when double clicking the folder that you put in the same folder as `legouniverse.exe`, the file `MasterServer.exe` is in there.
-* You should be able to see the folder with the server files in the same folder as `legouniverse.exe`.
-* Go into the server files folder and open `sharedconfig.ini`. Find the line that says `client_location` and put `..` after it so the line reads `client_location=..`.
+* To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
+* You should be able to see the folder with the server files in the same folder as `legouniverse.exe`. An example valid configuration is below with the 3 highlighted items.
+# <img style="float: left; padding-right: 5px" height=35px width=35px src="docs/setup.png">
+* The inside of the `msvc` folder (or whatever you choose to name this folder) should look something like this
+# <img style="float: left; padding-right: 5px" height=35px width=35px src="docs/valid_server.png">
 * To run the server, double-click `MasterServer.exe`.
 * You will be asked to create an account the first time you run the server. After you have created the account, the server will shutdown and need to be restarted.
-* To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
 * When shutting down the server, it is highly recommended to click the `MasterServer.exe` window and hold `ctrl` while pressing `c` to stop the server.
 * We are working on a way to make it so when you close the game, the server stops automatically alongside when you open the game, the server starts automatically.
 * If you are not setting a server up on mac, you can ignore this note
