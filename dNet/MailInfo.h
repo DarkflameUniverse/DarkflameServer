@@ -19,9 +19,10 @@ struct MailInfo {
 	uint32_t receiverId{};
 	uint64_t timeSent{};
 	bool wasRead{};
+	uint16_t languageCode{};
 	struct {
 		LWOOBJID itemID{};
-		int32_t itemCount{};
+		int16_t itemCount{};
 		LOT itemLOT{};
 		LWOOBJID itemSubkey{};
 	};

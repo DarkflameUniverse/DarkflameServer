@@ -62,7 +62,6 @@ std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
 }
 
 uint32_t MySQLDatabase::GetUnreadMailCount(const uint32_t characterId) {
-	LOG("Getting unread mail count for character %i", characterId);
 	auto res = ExecuteSelect("SELECT COUNT(*) AS number_unread FROM mail WHERE receiver_id=? AND was_read=0;", characterId);
 
 	if (!res->next()) {

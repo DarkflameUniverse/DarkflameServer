@@ -26,7 +26,5 @@ void LUBitStream::Send(const SystemAddress& sysAddr) const {
 	RakNet::BitStream bitStream;
 	this->WriteHeader(bitStream);
 	this->Serialize(bitStream);
-	LOG("%s", sysAddr.ToString(true));
-	PacketUtils::SavePacket("mailv2", reinterpret_cast<const char *>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
 }
