@@ -97,6 +97,7 @@
 #include "CDScriptComponentTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
+#include "StringifiedEnum.h"
 
 #include <ranges>
 
@@ -2246,14 +2247,101 @@ bool Entity::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	response.Insert("serverInfo", true);
 
 	auto& data = *response.InsertArray("data");
-	
+
+	auto& objectDetails = data.PushDebug("Object Details");
+
+	objectDetails.PushDebug<AMFStringValue>("Name") = "";
+	objectDetails.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
+	objectDetails.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
+	objectDetails.PushDebug<AMFStringValue>("Type") = "";
+
+	if (!m_ParentEntity) {
+		objectDetails.PushDebug<AMFBoolValue>("Has a parent object") = false;
+	} else {
+		objectDetails.PushDebug<AMFStringValue>("Parent's Object ID") = std::to_string(m_ParentEntity->GetObjectID());
+	}
+
+	if (!m_ChildEntities.empty()) {
+		if (!request.bVerbose) {
+			objectDetails.PushDebug("Child Objects (shown only in high-detail reports)");
+		} else {
+			auto& childDetails = objectDetails.PushDebug("Child Objects");
+			for (const auto* childObj : m_ChildEntities) {
+				std::stringstream stream;
+				stream << "Child ID: " << childObj->GetObjectID();
+				childDetails.PushDebug<AMFStringValue>(stream.str().c_str()) = std::to_string(childObj->GetObjectID());
+			}
+		}
+	}
+
+	if (!request.bVerbose) {
+		objectDetails.PushDebug("Component Information (shown only in high-detail reports)");
+		objectDetails.PushDebug("Memory Usage Info (shown only in high-detail reports)");
+		objectDetails.PushDebug("Registered Messages (shown only in high-detail reports)");
+	} else {
+		auto& componentInfo = objectDetails.PushDebug("Component Information");
+		for (const auto& [componentType, component] : m_Components) {
+			std::stringstream stream;
+			const auto componentName = StringifiedEnum::ToString(componentType);
+			stream << componentName.data() << ", Active";
+
+			auto& currentCompInfo = componentInfo.PushDebug(stream.str().c_str());
+			currentCompInfo.PushDebug<AMFIntValue>("Type ID") = GeneralUtils::ToUnderlying(componentType);
+
+			auto& memUsageInfo = objectDetails.PushDebug("Memory Usage Info");
+			memUsageInfo.PushDebug<AMFIntValue>("Static size of this GameObject") = sizeof(Entity);
+			int staticSizeObject{};
+
+			objectDetails.PushDebug<AMFBoolValue>("Is a human player") = IsPlayer();
+
+			if (!m_Groups.empty() && request.bVerbose) {
+				auto& groupInfo = objectDetails.PushDebug("Group Info");
+				for (const auto& group : m_Groups) {
+					groupInfo.PushDebug<AMFStringValue>(group) = "";
+				}
+			}
+			LWOOBJID upper32Bits = GetObjectID();
+			upper32Bits >>= 32;
+			bool bVar2 = ((upper32Bits & 0xfc000000) == 0x4000000) && ((upper32Bits & 0xffffc000) != 0x4000000);
+			if (bVar2) {
+				objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Spawned";
+			} else if ((upper32Bits & 0xf8000000U) == 0) {
+				if ((upper32Bits & 0xffffc000U) == 0x4000000) {
+					objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Local";
+				} else if ((upper32Bits & 0xfc000000U) == 0) {
+					objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Static";
+				}
+			} else {
+				objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Global";
+			}
+			LWOOBJID spawnerId{ LWOOBJID_EMPTY };
+			if (m_Spawner) {
+				objectDetails.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(m_Spawner->m_Info.spawnerID);
+			}
+
+			objectDetails.PushDebug<AMFStringValue>("Precondition(s)");
+
+			objectDetails.PushDebug<AMFIntValue>("Components Waiting") = 0;
+
+			if (!request.bVerbose) {
+				objectDetails.PushDebug("Config Data (shown only in high-detail reports)");
+			} else {
+				auto& configInfo = objectDetails.PushDebug("Config Data");
+				for (const auto& setting : GetSettings()) {
+					configInfo.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
+				}
+			}
+		}
+	}
+
 	GameMessages::GetObjectReportInfo report;
 	report.target = request.targetForReport;
 	report.bVerbose = request.bVerbose;
 	report.info = &data;
 	SEND_ENTITY_MSG(report);
 
-	GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, GetSystemAddress());
+	auto* player = Game::entityManager->GetEntity(request.clientId);
+	if (player) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, player->GetSystemAddress());
 
 	return true;
 }

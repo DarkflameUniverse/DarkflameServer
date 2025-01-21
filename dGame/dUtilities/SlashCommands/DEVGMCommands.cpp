@@ -1528,6 +1528,13 @@ namespace DEVGMCommands {
 
 		if (!closest) return;
 
+		GameMessages::RequestServerObjectInfo request{};
+		request.target = closest->GetObjectID();
+		request.targetForReport = closest->GetObjectID();
+		request.bVerbose = true;
+		request.clientId = entity->GetObjectID();
+		SEND_ENTITY_MSG(request);
+
 		Game::entityManager->SerializeEntity(closest);
 
 		auto* table = CDClientManager::GetTable<CDObjectsTable>();

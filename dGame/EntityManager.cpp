@@ -608,7 +608,7 @@ bool EntityManager::IsExcludedFromGhosting(LOT lot) {
 #ifndef _DEBUG
 bool EntityManager::SendMsg(GameMessages::GameMsg& msg, std::source_location location) {
 	if (msg.target == LWOOBJID_EMPTY) {
-		LOG("Attempted to send message to empty target");
+		LOG("Attempted to send message to empty target from funcion %s:%d", location.function_name(), location.line());
 	}
 	bool bRet = false;
 	auto* entity = GetEntity(msg.target);
