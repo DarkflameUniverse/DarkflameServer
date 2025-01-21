@@ -246,7 +246,8 @@ int main(int argc, char** argv) {
 				// Regenerate hash based on new password
 				char salt[BCRYPT_HASHSIZE];
 				char hash[BCRYPT_HASHSIZE];
-				assert(GenerateBCryptPassword(password, 12, salt, hash) == 0);
+				int res = GenerateBCryptPassword(password, 12, salt, hash);
+				assert(res == 0);
 
 				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
@@ -284,7 +285,8 @@ int main(int argc, char** argv) {
 		//Generate new hash for bcrypt
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-		assert(GenerateBCryptPassword(password, 12, salt, hash) == 0);
+		int res = GenerateBCryptPassword(password, 12, salt, hash);
+		assert(res == 0);
 
 		//Create account
 		try {
@@ -323,7 +325,8 @@ int main(int argc, char** argv) {
 	char salt[BCRYPT_HASHSIZE];
 	char hash[BCRYPT_HASHSIZE];
 	const auto& cfgPassword = Game::config->GetValue("master_password");
-	GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+	assert(res == 0);
 
 	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
 
