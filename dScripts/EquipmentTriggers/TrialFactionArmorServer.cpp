@@ -12,6 +12,7 @@ void TrialFactionArmorServer::OnFactionTriggerItemEquipped(Entity* itemOwner, LW
 
 	if (SEND_ENTITY_MSG(flag) && !flag.bFlag) {
 		GameMessages::SetFlag setFlag{};
+		setFlag.target = itemOwner->GetObjectID();
 		setFlag.iFlagId = ePlayerFlag::EQUPPED_TRIAL_FACTION_GEAR;
 		setFlag.bFlag = true;
 		SEND_ENTITY_MSG(setFlag);

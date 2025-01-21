@@ -2,6 +2,7 @@
 #define ENTITYMANAGER_H
 
 #include <map>
+#include <source_location>
 #include <stack>
 #include <vector>
 #include <unordered_map>
@@ -80,7 +81,12 @@ public:
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
 
 	// Sends a message to be handled by the receiving entity
+
+#ifndef _DEBUG
+	bool SendMsg(GameMessages::GameMsg& msg, std::source_location location = std::source_location::current());
+#else
 	bool SendMsg(GameMessages::GameMsg& msg);
+#endif
 
 private:
 	void SerializeEntities();

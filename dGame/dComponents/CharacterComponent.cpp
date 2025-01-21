@@ -49,19 +49,13 @@ CharacterComponent::CharacterComponent(Entity* parent, Character* character, con
 	m_LastUpdateTimestamp = std::time(nullptr);
 	m_SystemAddress = systemAddress;
 
-	RegisterMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, this, &CharacterComponent::OnRequestServerObjectInfo);
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &CharacterComponent::OnGetObjectReportInfo);
 }
 
-bool CharacterComponent::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
-	auto& request = static_cast<GameMessages::RequestServerObjectInfo&>(msg);
-	AMFArrayValue response;
+bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& request = static_cast<GameMessages::GetObjectReportInfo&>(msg);
 
-	response.Insert("visible", true);
-	response.Insert("objectID", std::to_string(request.targetForReport));
-	response.Insert("serverInfo", true);
-
-	auto& data = *response.InsertArray("data");
-	auto& cmptType = data.PushDebug("Character");
+	auto& cmptType = request.info->PushDebug("Character");
 
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GeneralUtils::ToUnderlying(ComponentType);
 	cmptType.PushDebug<AMFIntValue>("Character's account ID") = m_Character->GetParentUser()->GetAccountID();
@@ -83,9 +77,6 @@ bool CharacterComponent::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	cmptType.PushDebug<AMFIntValue>("Current Activity Type") = GeneralUtils::ToUnderlying(m_CurrentActivity);
 	cmptType.PushDebug<AMFDoubleValue>("Property Clone ID") = m_Character->GetPropertyCloneID();
 
-	GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, m_Parent->GetSystemAddress());
-
-	LOG("Handled!");
 	return true;
 }
 

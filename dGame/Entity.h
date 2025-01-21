@@ -325,6 +325,12 @@ public:
 
 	bool HandleMsg(GameMessages::GameMsg& msg) const;
 
+	bool OnRequestServerObjectInfo(GameMessages::GameMsg& msg);
+
+	void RegisterMsg(const MessageType::Game msgId, auto* self, const auto handler) {
+		RegisterMsg(msgId, std::bind(handler, self, std::placeholders::_1));
+	}
+
 	/**
 	 * @brief The observable for player entity position updates.
 	 */

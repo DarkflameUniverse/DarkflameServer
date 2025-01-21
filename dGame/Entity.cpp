@@ -140,6 +140,8 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Enti
 
 		PlayerManager::AddPlayer(this);
 	}
+
+	RegisterMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, this, &Entity::OnRequestServerObjectInfo);
 }
 
 Entity::~Entity() {
@@ -2232,4 +2234,26 @@ bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
 
 void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler) {
 	m_MsgHandlers.emplace(msgId, handler);
+}
+
+bool Entity::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
+	auto& request = static_cast<GameMessages::RequestServerObjectInfo&>(msg);
+
+	AMFArrayValue response;
+
+	response.Insert("visible", true);
+	response.Insert("objectID", std::to_string(request.targetForReport));
+	response.Insert("serverInfo", true);
+
+	auto& data = *response.InsertArray("data");
+	
+	GameMessages::GetObjectReportInfo report;
+	report.target = request.targetForReport;
+	report.bVerbose = request.bVerbose;
+	report.info = &data;
+	SEND_ENTITY_MSG(report);
+
+	GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, GetSystemAddress());
+
+	return true;
 }

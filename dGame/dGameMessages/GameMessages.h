@@ -23,6 +23,7 @@ class Leaderboard;
 class PropertySelectQueryProperty;
 class TradeItem;
 class LDFBaseData;
+class AMFArrayValue;
 
 enum class eAnimationFlags : uint32_t;
 
@@ -804,6 +805,13 @@ namespace GameMessages {
 
 	struct SetRetroactiveFlags : public GameMsg {
 		SetRetroactiveFlags() : GameMsg(MessageType::Game::SET_RETROACTIVE_FLAGS) {}
+	};
+
+	struct GetObjectReportInfo : public GameMsg {
+		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO) {}
+
+		AMFArrayValue* info{};
+		bool bVerbose{};
 	};
 };
 

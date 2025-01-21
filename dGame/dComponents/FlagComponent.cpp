@@ -6,17 +6,18 @@
 #include "ePlayerFlag.h"
 
 #include "MissionComponent.h"
+#include "Amf3.h"
 
 FlagComponent::FlagComponent(Entity* parent) : Component(parent) {
 	RegisterMsg(MessageType::Game::SET_FLAG, this, &FlagComponent::OnSetFlag);
 	RegisterMsg(MessageType::Game::GET_FLAG, this, &FlagComponent::OnGetFlag);
 	RegisterMsg(MessageType::Game::CLEAR_SESSION_FLAGS, this, &FlagComponent::OnClearSessionFlags);
 	RegisterMsg(MessageType::Game::SET_RETROACTIVE_FLAGS, this, &FlagComponent::OnSetRetroactiveFlags);
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &FlagComponent::OnGetObjectReportInfo);
 }
 
 bool FlagComponent::OnSetFlag(GameMessages::GameMsg& msg) {
 	auto& setFlag = static_cast<GameMessages::SetFlag&>(msg);
-	LOG("Set %i", setFlag.iFlagId);
 	SetPlayerFlag(setFlag.iFlagId, setFlag.bFlag);
 
 	// This is always set the first time a player loads into a world from character select
@@ -30,8 +31,6 @@ bool FlagComponent::OnSetFlag(GameMessages::GameMsg& msg) {
 
 bool FlagComponent::OnGetFlag(GameMessages::GameMsg& msg) {
 	auto& getFlag = static_cast<GameMessages::GetFlag&>(msg);
-	LOG("Get %i", getFlag.iFlagId);
-
 	getFlag.bFlag = GetPlayerFlag(getFlag.iFlagId);
 	return true;
 }
@@ -178,6 +177,30 @@ bool FlagComponent::OnSetRetroactiveFlags(GameMessages::GameMsg& msg) {
 		GetPlayerFlag(ePlayerFlag::SENTINEL_FACTION)) {
 		SetPlayerFlag(ePlayerFlag::JOINED_A_FACTION, true);
 	}
+	return true;
+}
+
+bool FlagComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& request = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+
+	auto& cmptType = request.info->PushDebug("Player Flag");
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GeneralUtils::ToUnderlying(ComponentType);
+
+	auto& allFlags = cmptType.PushDebug("All flags");
+	for (const auto& [id, flagChunk] : m_PlayerFlags) {
+		const auto base = id * 64;
+		auto flagChunkCopy = flagChunk;
+		for (int i = 0; i < 64; i++) {
+			if (static_cast<bool>(flagChunkCopy & 1)) {
+				const int32_t flagId = base + i;
+				std::stringstream stream;
+				stream << "Flag: " << flagId;
+				allFlags.PushDebug(stream.str().c_str());
+			}
+			flagChunkCopy >>= 1;
+		}
+	}
+
 	return true;
 }
 

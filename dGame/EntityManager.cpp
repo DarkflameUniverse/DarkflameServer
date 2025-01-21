@@ -419,7 +419,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 void EntityManager::SerializeEntity(Entity* entity) {
 	if (!entity) return;
-	
+
 	EntityManager::SerializeEntity(*entity);
 }
 
@@ -605,9 +605,22 @@ bool EntityManager::IsExcludedFromGhosting(LOT lot) {
 	return std::find(m_GhostingExcludedLOTs.begin(), m_GhostingExcludedLOTs.end(), lot) != m_GhostingExcludedLOTs.end();
 }
 
+#ifndef _DEBUG
+bool EntityManager::SendMsg(GameMessages::GameMsg& msg, std::source_location location) {
+	if (msg.target == LWOOBJID_EMPTY) {
+		LOG("Attempted to send message to empty target");
+	}
+	bool bRet = false;
+	auto* entity = GetEntity(msg.target);
+	if (entity) bRet = entity->HandleMsg(msg);
+	return bRet;
+}
+#else
 bool EntityManager::SendMsg(GameMessages::GameMsg& msg) {
 	bool bRet = false;
 	auto* entity = GetEntity(msg.target);
 	if (entity) bRet = entity->HandleMsg(msg);
 	return bRet;
 }
+#endif
+

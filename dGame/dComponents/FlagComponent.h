@@ -44,6 +44,9 @@ private:
 	 * missing in a previous patch.
 	 */
 	bool OnSetRetroactiveFlags(GameMessages::GameMsg& msg);
+
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 	/**
 	 * Flags only set for the duration of a session
 	 *
