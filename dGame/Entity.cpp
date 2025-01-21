@@ -2302,13 +2302,12 @@ bool Entity::OnRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 			}
 			LWOOBJID upper32Bits = GetObjectID();
 			upper32Bits >>= 32;
-			bool bVar2 = ((upper32Bits & 0xfc000000) == 0x4000000) && ((upper32Bits & 0xffffc000) != 0x4000000);
-			if (bVar2) {
+			if (((upper32Bits & 0xfc000000) == 0x4000000) && ((upper32Bits & 0xffffc000) != 0x4000000)) {
 				objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Spawned";
-			} else if ((upper32Bits & 0xf8000000U) == 0) {
+			} else if (!(upper32Bits & 0xf8000000U)) {
 				if ((upper32Bits & 0xffffc000U) == 0x4000000) {
 					objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Local";
-				} else if ((upper32Bits & 0xfc000000U) == 0) {
+				} else if (!(upper32Bits & 0xfc000000U)) {
 					objectDetails.PushDebug<AMFStringValue>("Object ID Type") = "Static";
 				}
 			} else {
