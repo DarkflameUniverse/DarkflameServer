@@ -74,13 +74,13 @@ void DamagingPets::OnTimerDone(Entity* self, std::string message) {
 }
 
 void DamagingPets::MakeUntamable(Entity* self) {
-	auto* petComponent = self->GetComponent<PetComponent>();
+	auto* const petComponent = self->GetComponent<PetComponent>();
 
 	// If the pet is currently not being tamed, make it hostile
-	if (petComponent != nullptr && petComponent->GetStatus() != 5) {
+	if (petComponent != nullptr && !petComponent->m_Flags.Has<PetFlag::NOT_WAITING>()) {
 		self->SetNetworkVar<bool>(u"bIAmTamable", false);
 		self->SetVar<bool>(u"IsEvil", true);
-		petComponent->SetStatus(1);
+		petComponent->m_Flags.Set<PetFlag::IDLE>();
 
 		auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();
 		if (combatAIComponent != nullptr) {
@@ -110,7 +110,7 @@ void DamagingPets::ClearEffects(Entity* self) {
 
 	auto* petComponent = self->GetComponent<PetComponent>();
 	if (petComponent != nullptr) {
-		petComponent->SetStatus(67108866);
+		petComponent->m_Flags.Set<PetFlag::TAMEABLE, PetFlag::UNKNOWN2>();
 	}
 
 	auto* combatAIComponent = self->GetComponent<BaseCombatAIComponent>();

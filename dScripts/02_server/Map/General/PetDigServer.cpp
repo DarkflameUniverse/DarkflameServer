@@ -1,5 +1,6 @@
 #include "dZoneManager.h"
 #include "PetDigServer.h"
+#include "DestroyableComponent.h"
 #include "MissionComponent.h"
 #include "EntityManager.h"
 #include "Character.h"
@@ -70,7 +71,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 		treasures.erase(iterator);
 	}
 
-	auto* owner = killer->GetOwner();
+	auto* const owner = killer->GetOwner();
 	const auto digInfoIterator = digInfoMap.find(self->GetLOT());
 	const auto digInfo = digInfoIterator != digInfoMap.end() ? digInfoIterator->second : defaultDigInfo;
 
@@ -79,7 +80,7 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	} else if (digInfo.builderOnly) {
 
 		// Some treasures may only be retrieved by the player that built the diggable
-		auto builder = self->GetVar<LWOOBJID>(u"builder"); // Set by the pet dig build script
+		const auto builder = self->GetVar<LWOOBJID>(u"builder"); // Set by the pet dig build script
 		if (builder != owner->GetObjectID())
 			return;
 	} else if (digInfo.xBuild) {
@@ -95,22 +96,33 @@ void PetDigServer::OnDie(Entity* self, Entity* killer) {
 	// TODO: Reset other pets
 
 	// Handles smashing leftovers (edge case for the AG X)
-	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* const xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
 		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
+void PetDigServer::OnUse(Entity* self, Entity* user) {
+	LOG_DEBUG("Treasure used! LWOOBJID: %d", self->GetObjectID());
+
+	auto* const petComponent = PetComponent::GetActivePet(user->GetObjectID());
+	if (!petComponent) return;
+
+	if (petComponent->IsReadyToInteract()) {
+		petComponent->StartInteractTreasureDig();
+	}
+}
+
 void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pet) {
-	auto playerID = self->GetVar<LWOOBJID>(u"builder");
+	const auto playerID = self->GetVar<LWOOBJID>(u"builder");
 	if (playerID == LWOOBJID_EMPTY || playerID != owner->GetObjectID())
 		return;
 
-	auto* playerEntity = Game::entityManager->GetEntity(playerID);
+	auto* const playerEntity = Game::entityManager->GetEntity(playerID);
 	if (!playerEntity || !playerEntity->GetCharacter())
 		return;
 
-	auto* player = playerEntity->GetCharacter();
+	auto* const player = playerEntity->GetCharacter();
 	const auto groupID = self->GetVar<std::u16string>(u"groupID");
 	int32_t playerFlag = 0;
 
@@ -125,7 +137,7 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 
 	// If the player doesn't have the flag yet
 	if (playerFlag != 0 && !player->GetPlayerFlag(playerFlag)) {
-		auto* petComponent = pet->GetComponent<PetComponent>();
+		auto* const petComponent = pet->GetComponent<PetComponent>();
 		if (petComponent != nullptr) {
 			// TODO: Pet state = 9 ??
 		}
@@ -134,22 +146,22 @@ void PetDigServer::HandleXBuildDig(const Entity* self, Entity* owner, Entity* pe
 		player->SetPlayerFlag(playerFlag, true);
 	}
 
-	auto* xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
+	auto* const xObject = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"X"));
 	if (xObject != nullptr) {
 		xObject->Smash(xObject->GetObjectID(), eKillType::VIOLENT);
 	}
 }
 
 void PetDigServer::HandleBouncerDig(const Entity* self, const Entity* owner) {
-	auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
-	auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
-	auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
+	const auto bounceNumber = GeneralUtils::UTF16ToWTF8(self->GetVar<std::u16string>(u"BouncerNumber"));
+	const auto bouncerSpawners = Game::zoneManager->GetSpawnersByName("PetBouncer" + bounceNumber);
+	const auto switchSpawners = Game::zoneManager->GetSpawnersByName("PetBouncerSwitch" + bounceNumber);
 
-	for (auto* bouncerSpawner : bouncerSpawners) {
+	for (auto* const bouncerSpawner : bouncerSpawners) {
 		bouncerSpawner->Activate();
 	}
 
-	for (auto* switchSpawner : switchSpawners) {
+	for (auto* const switchSpawner : switchSpawners) {
 		switchSpawner->Activate();
 	}
 }

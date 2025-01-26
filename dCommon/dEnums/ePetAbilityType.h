@@ -1,5 +1,5 @@
-#ifndef __EPETABILITYTYPE__H__
-#define __EPETABILITYTYPE__H__
+#ifndef EPETABILITYTYPE_H
+#define EPETABILITYTYPE_H
 
 #include <cstdint>
 
@@ -10,4 +10,4 @@ enum class ePetAbilityType : uint32_t {
 	DigAtPosition
 };
 
-#endif  //!__EPETABILITYTYPE__H__
+#endif  //!EPETABILITYTYPE_H

@@ -5,7 +5,7 @@
 #include <string>
 
 struct WorldConfig {
-	int32_t worldConfigID{};						//! Primary key for WorlcConfig table
+	int32_t worldConfigID{};						//! Primary key for WorldConfig table
 	float peGravityValue{};							//! Unknown
 	float peBroadphaseWorldSize{};					//! Unknown
 	float peGameObjScaleFactor{};					//! Unknown
