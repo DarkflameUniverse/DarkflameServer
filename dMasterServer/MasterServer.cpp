@@ -43,6 +43,13 @@
 #include "CDZoneTableTable.h"
 #include "eGameMasterLevel.h"
 
+#ifdef DARKFLAME_PLATFORM_UNIX
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#endif
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -454,6 +461,12 @@ int main(int argc, char** argv) {
 				Game::im->RemoveInstance(instance);
 			}
 		}
+
+#ifdef DARKFLAME_PLATFORM_UNIX
+		// kill off dead zombie instances
+		int status{};
+		waitpid(static_cast<pid_t>(-1), &status, WNOHANG);
+#endif
 
 		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
