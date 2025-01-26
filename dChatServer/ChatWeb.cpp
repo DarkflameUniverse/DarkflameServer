@@ -99,7 +99,7 @@ void HandleWSUnsubscribe(mg_connection* connection, json data) {
 	}
 }
 
-void RegisterRoutes() {
+void ChatWeb::RegisterRoutes() {
 	// REST API v1 routes
 	std::string v1_route = "/api/v1/";
 	Game::web.RegisterHTTPRoute({

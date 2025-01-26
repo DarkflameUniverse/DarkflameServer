@@ -7,6 +7,9 @@
 #include "GeneralUtils.h"
 #include "JSONUtils.h"
 
+namespace Game {
+	Web web;
+}
 
 namespace {
 	const char * json_content_type = "application/json";

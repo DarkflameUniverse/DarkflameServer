@@ -235,6 +235,8 @@ include_directories(
 
 	"dNet"
 
+	"dWeb"
+
 	"tests"
 	"tests/dCommonTests"
 	"tests/dGameTests"

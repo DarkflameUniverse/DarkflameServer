@@ -8,7 +8,10 @@
 #include "json_fwd.hpp"
 #include "eHTTPStatusCode.h"
 
-
+class Web;
+namespace Game {
+	extern Web web;
+}
 
 enum class eHTTPMethod;
 
@@ -48,9 +51,5 @@ public:
 private:
 	mg_mgr mgr;
 };
-
-namespace Game {
-	Web web;
-}
 
 #endif // !__WEB_H__
