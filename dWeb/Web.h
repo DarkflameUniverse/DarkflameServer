@@ -1,11 +1,14 @@
-#ifndef __CHATWEBAPI_H__
-#define __CHATWEBAPI_H__
-#include <string>
-#include <functional>
+#ifndef __WEB_H__
+#define __WEB_H__
 
+#include <functional>
+#include <string>
+#include <optional>
 #include "mongoose.h"
 #include "json_fwd.hpp"
 #include "eHTTPStatusCode.h"
+
+
 
 enum class eHTTPMethod;
 
@@ -24,20 +27,30 @@ struct HTTPRoute {
 
 struct WSAction {
 	std::string action;
-	std::function<void(nlohmann::json)> handle;
+	std::function<void(mg_connection*, nlohmann::json)> handle;
 };
 
-class ChatWebAPI {
+struct WSMessage {
+	uint32_t id;
+	std::string sub;
+	std::string message;
+};
+
+class Web {
 public:
-	ChatWebAPI();
-	~ChatWebAPI();
+	Web();
+	~Web();
 	void ReceiveRequests();
+	void static SendWSMessage(std::string sub, const std::string& message);
+	bool Startup(const std::string& listen_ip, const uint32_t listen_port);
 	void RegisterHTTPRoute(HTTPRoute route);
 	void RegisterWSAction(WSAction action);
-	void SendWSMessage(const std::string& message);
-	bool Startup();
 private:
 	mg_mgr mgr;
 };
 
-#endif // __CHATWEBAPI_H__
+namespace Game {
+	Web web;
+}
+
+#endif // !__WEB_H__

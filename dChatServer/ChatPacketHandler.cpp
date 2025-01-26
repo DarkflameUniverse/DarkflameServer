@@ -19,8 +19,8 @@
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
-#include "ChatWebAPI.h"
 #include "json.hpp"
+#include "Web.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -447,18 +447,20 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	inStream.Read(message);
 
 	LOG("Got message %s from (%s) via [%s]: %s", message.GetAsString().c_str(), sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
+	
+	// build chat json data
+	nlohmann::json data;
+	data["action"] = "chat";
+	data["playerName"] = sender.playerName;
+	data["message"] = message.GetAsString();
+	auto& zoneID = data["zone_id"];
+	zoneID["map_id"] = sender.zoneID.GetMapID();
+	zoneID["instance_id"] = sender.zoneID.GetInstanceID();
+	zoneID["clone_id"] = sender.zoneID.GetCloneID();
+	
 	switch (channel) {
 	case eChatChannel::LOCAL: {
-		// Send to connected websockets
-		nlohmann::json data;
-		data["action"] = "chat";
-		data["playerName"] = sender.playerName;
-		data["message"] = message.GetAsString();
-		auto& zoneID = data["zone_id"];
-		zoneID["map_id"] = sender.zoneID.GetMapID();
-		zoneID["instance_id"] = sender.zoneID.GetInstanceID();
-		zoneID["clone_id"] = sender.zoneID.GetCloneID();
-		Game::chatwebapi.SendWSMessage(data.dump());
+		Game::web.SendWSMessage("WorldChat", data.dump());
 		break;
 	}
 	case eChatChannel::TEAM: {
@@ -469,6 +471,8 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
 			if (!otherMember) return;
 			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
+			data["teamID"] = team->teamID;
+			Game::web.SendWSMessage("teamchat", data.dump());
 		}
 		break;
 	}

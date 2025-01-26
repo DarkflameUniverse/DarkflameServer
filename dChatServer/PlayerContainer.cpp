@@ -13,7 +13,7 @@
 #include "dConfig.h"
 #include "MessageType/Chat.h"
 #include "json.hpp"
-#include "ChatWebAPI.h"
+#include "Web.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -70,7 +70,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	zoneID["map_id"] = data.zoneID.GetMapID();
 	zoneID["instance_id"] = data.zoneID.GetInstanceID();
 	zoneID["clone_id"] = data.zoneID.GetCloneID();
-	Game::chatwebapi.SendWSMessage(wsdata.dump());
+	Game::web.SendWSMessage("player", wsdata.dump());
 	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
 }
@@ -130,7 +130,7 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 	wsdata["type"] = "remove";
 	wsdata["playerName"] = player.playerName;
 	wsdata["playerID"] = player.playerID;
-	Game::chatwebapi.SendWSMessage(wsdata.dump());
+	Game::web.SendWSMessage("player", wsdata.dump());
 
 	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);

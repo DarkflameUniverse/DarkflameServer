@@ -15,7 +15,6 @@ struct SystemAddress;
 class EntityManager;
 class dZoneManager;
 class PlayerContainer;
-class ChatWebAPI;
 
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;
@@ -33,8 +32,6 @@ namespace Game {
 	extern dZoneManager* zoneManager;
 	extern PlayerContainer playerContainer;
 	extern std::string projectVersion;
-	extern ChatWebAPI chatwebapi;
-
 
 	inline bool ShouldShutdown() {
 		return lastSignal != 0;

@@ -1,9 +1,13 @@
 set(DCHATSERVER_SOURCES
 	"ChatIgnoreList.cpp"
+	"ChatJSONUtils.cpp"
 	"ChatPacketHandler.cpp"
 	"PlayerContainer.cpp"
-	"ChatWebAPI.cpp"
-	"JSONUtils.cpp"
+	"ChatWeb.cpp"
+)
+
+include_directories(
+	${PROJECT_SOURCE_DIR}/dWeb
 )
 
 add_executable(ChatServer "ChatServer.cpp")
@@ -14,5 +18,5 @@ add_library(dChatServer ${DCHATSERVER_SOURCES})
 target_include_directories(dChatServer PRIVATE "${PROJECT_SOURCE_DIR}/dServer")
 
 target_link_libraries(dChatServer ${COMMON_LIBRARIES} dChatFilter)
-target_link_libraries(ChatServer ${COMMON_LIBRARIES} dChatFilter dChatServer dServer mongoose)
+target_link_libraries(ChatServer ${COMMON_LIBRARIES} dChatFilter dChatServer dServer mongoose dWeb)
 

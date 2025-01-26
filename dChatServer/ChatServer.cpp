@@ -28,7 +28,7 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
-#include "ChatWebAPI.h"
+#include "ChatWeb.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -39,7 +39,6 @@ namespace Game {
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 	PlayerContainer playerContainer;
-	ChatWebAPI chatwebapi;
 }
 
 void HandlePacket(Packet* packet);
@@ -93,16 +92,20 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	// seyup the chat api web server
+	// setup the chat api web server
 	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
-	if (web_server_enabled && !Game::chatwebapi.Startup()){
+	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(2005);
+	if (web_server_enabled && !Game::web.Startup("localhost", web_server_port)) {
 		// if we want the web api and it fails to start, exit
 		LOG("Failed to start web server, shutting down.");
 		Database::Destroy("ChatServer");
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
-	};
+	}
+	if (web_server_enabled) {
+		ChatWeb::RegisterRoutes();
+	}
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -168,7 +171,7 @@ int main(int argc, char** argv) {
 
 		//Check and handle web requests:
 		if (web_server_enabled) {
-			Game::chatwebapi.ReceiveRequests();
+			Game::web.ReceiveRequests();
 		}
 
 		//Push our log every 30s:
