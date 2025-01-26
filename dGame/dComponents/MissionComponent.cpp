@@ -99,16 +99,7 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 	mission->Accept();
 
 	this->m_Missions.insert_or_assign(missionId, mission);
-
-	if (missionId == 1728) {
-		//Needs to send a mail
-
-		auto address = m_Parent->GetSystemAddress();
-
-		Mail::HandleNotificationRequest(address, m_Parent->GetObjectID());
-	}
 }
-
 
 void MissionComponent::CompleteMission(const uint32_t missionId, const bool skipChecks, const bool yieldRewards) {
 	// Get the mission first

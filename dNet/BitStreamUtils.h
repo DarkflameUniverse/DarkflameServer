@@ -2,12 +2,13 @@
 #define __BITSTREAMUTILS__H__
 
 #include "GeneralUtils.h"
-#include "MessageIdentifiers.h"
 #include "BitStream.h"
+#include "MessageIdentifiers.h"
+#include "eConnectionType.h"
 #include <string>
 #include <algorithm>
 
-enum class eConnectionType : uint16_t;
+#define VALIDATE_READ(x) do { if (!x) return false; } while (0)
 
 struct LUString {
 	std::string string;
@@ -45,6 +46,28 @@ struct LUWString {
 	};
 };
 
+struct LUBitStream {
+	eConnectionType connectionType = eConnectionType::UNKNOWN;
+	uint32_t internalPacketID = 0xFFFFFFFF;
+
+	LUBitStream() = default;
+
+	template <typename T> 
+	LUBitStream(eConnectionType connectionType, T internalPacketID) {
+		this->connectionType = connectionType;
+		this->internalPacketID = static_cast<uint32_t>(internalPacketID);
+	}
+
+	void WriteHeader(RakNet::BitStream& bitStream) const;
+	bool ReadHeader(RakNet::BitStream& bitStream);
+	void Send(const SystemAddress& sysAddr) const;
+
+	virtual void Serialize(RakNet::BitStream& bitStream) const {}
+	virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }
+	virtual void Handle() {};
+};
+
+
 namespace BitStreamUtils {
 	template<typename T>
 	void WriteHeader(RakNet::BitStream& bitStream, eConnectionType connectionType, T internalPacketID) {
@@ -53,7 +76,6 @@ namespace BitStreamUtils {
 		bitStream.Write(static_cast<uint32_t>(internalPacketID));
 		bitStream.Write<uint8_t>(0);
 	}
-
 }
 
 namespace RakNet {

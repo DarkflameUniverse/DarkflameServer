@@ -828,7 +828,7 @@ void CharacterComponent::AwardClaimCodes() {
 		subject << "%[RewardCodes_" << rewardCode << "_subjectText]";
 		std::ostringstream body;
 		body << "%[RewardCodes_" << rewardCode << "_bodyText]";
-		Mail::SendMail(LWOOBJID_EMPTY, "%[MAIL_SYSTEM_NOTIFICATION]", m_Parent, subject.str(), body.str(), attachmentLOT, 1);
+		Mail::SendMail(m_Parent, subject.str(), body.str(), attachmentLOT, 1);
 	}
 }
 
