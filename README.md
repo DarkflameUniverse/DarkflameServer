@@ -26,6 +26,7 @@ Darkflame Universe is a server emulator and does not distribute any LEGO® Unive
 * Single player installs now no longer require building the server from source or installing development tools.
 * Download the [latest windows release](https://github.com/DarkflameUniverse/DarkflameServer/releases) (or whichever release you need) and extract the files into a folder inside your client. Note that this setup is expecting that when double clicking the folder that you put in the same folder as `legouniverse.exe`, the file `MasterServer.exe` is in there.
 * To connect to the server, either delete the file `boot.cfg` which is found in your LEGO Universe client, rename the file `boot.cfg` to something else or follow the steps [here](#allowing-a-user-to-connect-to-your-server) if you wish to keep the file.
+* If you would like to put the server in a different location, make sure client_location has the full path to the folder with `legouniverse.exe` in it. You can then exclude the `msvc` folder from the image below.
 * You should be able to see the folder with the server files in the same folder as `legouniverse.exe`. An example valid configuration is below with the 3 highlighted items.
 # <img style="float: left; padding-right: 5px" src="docs/setup.png">
 * The inside of the `msvc` folder (or whatever you choose to name this folder) should look something like this
