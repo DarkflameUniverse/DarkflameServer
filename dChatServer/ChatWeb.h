@@ -6,15 +6,6 @@
 
 #include "Web.h"
 
-enum class eWSSubscription {
-	WORLD_CHAT,
-	PRIVATE_CHAT,
-	TEAM_CHAT,
-	TEAM,
-	PLAYER,
-	INVALID
-};
-
 namespace ChatWeb {
 	void RegisterRoutes();
 };

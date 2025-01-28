@@ -14,7 +14,8 @@ namespace Game {
 namespace {
 	const char * json_content_type = "application/json";
 	std::map<std::pair<eHTTPMethod, std::string>, HTTPRoute> g_HTTPRoutes;
-	std::map<std::string, WSAction> g_WSactions;
+	std::map<std::string, WSEvent> g_WSEvents;
+	std::vector<std::string> g_WSSubscriptions;
 }
 
 using json = nlohmann::json;
@@ -80,23 +81,78 @@ void HandleWSMessage(mg_connection* connection, const mg_ws_message* ws_msg) {
 		auto data = GeneralUtils::TryParse<json>(std::string(ws_msg->data.buf, ws_msg->data.len));
 		if (data) {
 			const auto& good_data = data.value();
-			auto check = JSONUtils::CheckRequiredData(good_data, { "action" });
+			auto check = JSONUtils::CheckRequiredData(good_data, { "event" });
 			if (!check.empty()) {
 				LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
 			} else {
-				const auto action = good_data["action"].get<std::string>();
-				const auto actionItr = g_WSactions.find(action);
-				if (actionItr != g_WSactions.end()) {
-					const auto& [_, action] = *actionItr;
-					action.handle(connection, good_data);
+				const auto event = good_data["event"].get<std::string>();
+				const auto eventItr = g_WSEvents.find(event);
+				if (eventItr != g_WSEvents.end()) {
+					const auto& [_, event] = *eventItr;
+					event.handle(connection, good_data);
 				} else {
-					LOG_DEBUG("Received invalid websocket action: %s", action.c_str());
+					LOG_DEBUG("Received invalid websocket event: %s", event.c_str());
 				}
 			}
 		} else {
 			LOG_DEBUG("Received invalid websocket message: %.*s", static_cast<uint32_t>(ws_msg->data.len), ws_msg->data.buf);
 		}
 	}
+}
+
+void HandleWSSubscribe(mg_connection* connection, json data) {
+	auto check = JSONUtils::CheckRequiredData(data, { "subscription" });
+	if (!check.empty()) {
+		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
+	} else {
+		const auto subscription = data["subscription"].get<std::string>();
+		LOG_DEBUG("subscription %s subscribed", subscription.c_str());
+		// check subscription vector
+		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+		if (subItr != g_WSSubscriptions.end()) {
+			// get index of subscription
+			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
+			connection->data[index] = 1;
+			mg_ws_send(connection, "{\"status\":\"subscribed\"}", 23, WEBSOCKET_OP_TEXT);
+		}
+	}
+}
+
+void HandleWSUnsubscribe(mg_connection* connection, json data) {
+	auto check = JSONUtils::CheckRequiredData(data, { "subscription" });
+	if (!check.empty()) {
+		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
+	} else {
+		const auto subscription = data["subscription"].get<std::string>();
+		LOG_DEBUG("subscription %s unsubscribed", subscription.c_str());
+		// check subscription vector
+		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+		if (subItr != g_WSSubscriptions.end()) {
+			// get index of subscription
+			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
+			connection->data[index] = 0;
+			mg_ws_send(connection, "{\"status\":\"unsubscribed\"}", 25, WEBSOCKET_OP_TEXT);
+		}
+	}
+}
+
+void HandleWSGetSubscriptions(mg_connection* connection, json data) {
+	// list subscribed and non subscribed subscriptions
+	json response;
+	// check subscription vector
+	for (const auto& sub : g_WSSubscriptions) {
+		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), sub);
+		if (subItr != g_WSSubscriptions.end()) {
+			// get index of subscription
+			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
+			if (connection->data[index] == 1) {
+				response["subscribed"].push_back(sub);
+			} else {
+				response["unsubscribed"].push_back(sub);
+			}
+		}
+	}
+	mg_ws_send(connection, response.dump().c_str(), response.dump().size(), WEBSOCKET_OP_TEXT);
 }
 
 void HandleMessages(mg_connection* connection, int message, void* message_data) {
@@ -121,12 +177,23 @@ void Web::RegisterHTTPRoute(HTTPRoute route) {
 	}
 }
 
-void Web::RegisterWSAction(WSAction action) {
-	auto [_, success] = g_WSactions.try_emplace(action.action, action);
+void Web::RegisterWSEvent(WSEvent event) {
+	auto [_, success] = g_WSEvents.try_emplace(event.name, event);
 	if (!success) {
-		LOG_DEBUG("Failed to register WS action %s", action.action.c_str());
+		LOG_DEBUG("Failed to register WS event %s", event.name.c_str());
 	} else {
-		LOG_DEBUG("Registered WS action %s", action.action.c_str());
+		LOG_DEBUG("Registered WS event %s", event.name.c_str());
+	}
+}
+
+void Web::RegisterWSSubscription(const std::string& subscription) {
+	// check that subsction is not already in the vector
+	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+	if (subItr != g_WSSubscriptions.end()) {
+		LOG_DEBUG("Failed to register WS subscription %s: duplicate", subscription.c_str());
+	} else {
+		LOG_DEBUG("Registered WS subscription %s", subscription.c_str());
+		g_WSSubscriptions.push_back(subscription);
 	}
 }
 
@@ -148,7 +215,24 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 	if (!mg_http_listen(&mgr, listen_address.c_str(), HandleMessages, NULL)) {
 		LOG("Failed to create web server listener on %s", listen_address.c_str());
 		return false;
-	}	
+	}
+
+	// WebSocket Events
+	Game::web.RegisterWSEvent({
+		.name = "subscribe",
+		.handle = HandleWSSubscribe
+	});
+
+	Game::web.RegisterWSEvent({
+		.name = "unsubscribe",
+		.handle = HandleWSUnsubscribe
+	});
+
+	Game::web.RegisterWSEvent({
+		.name = "getSubscriptions",
+		.handle = HandleWSGetSubscriptions
+	});
+
 	return true;
 }
 
@@ -156,10 +240,19 @@ void Web::ReceiveRequests() {
 	mg_mgr_poll(&mgr, 15);
 }
 
-void Web::SendWSMessage(const std::string subscription, const std::string& message) {
+void Web::SendWSMessage(const std::string subscription, json& data) {
+	// find subscription
+	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+	if (subItr == g_WSSubscriptions.end()) {
+		LOG_DEBUG("Failed to send WS message: subscription %s not found", subscription.c_str());
+		return;
+	}
+	// tell it the event type
+	data["event"] = subscription;
+	auto index = std::distance(g_WSSubscriptions.begin(), subItr);
 	for (struct mg_connection *wc = Game::web.mgr.conns; wc != NULL; wc = wc->next) {
-		if (wc->is_websocket /* && wc->data[GeneralUtils::ToUnderlying(sub)] == 1*/) {
-			mg_ws_send(wc, message.c_str(), message.size(), WEBSOCKET_OP_TEXT);
+		if (wc->is_websocket && wc->data[index] == 1) {
+			mg_ws_send(wc, data.dump().c_str(), data.dump().size(), WEBSOCKET_OP_TEXT);
 		}
 	}
 }

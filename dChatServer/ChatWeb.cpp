@@ -69,36 +69,6 @@ void HandleWSChat(mg_connection* connection, json data) {
 	}
 }
 
-void HandleWSSubscribe(mg_connection* connection, json data) {
-	auto check = JSONUtils::CheckRequiredData(data, { "type" });
-	if (!check.empty()) {
-		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
-	} else {
-		const auto type = data["type"].get<std::string>();
-		LOG_DEBUG("type %s subscribed", type.c_str());
-		const auto sub =  magic_enum::enum_cast<eWSSubscription>(type).value_or(eWSSubscription::INVALID);
-		if (sub != eWSSubscription::INVALID) {
-			connection->data[GeneralUtils::ToUnderlying(sub)] = 1;
-			mg_ws_send(connection, "{\"status\":\"subscribed\"}", 18, WEBSOCKET_OP_TEXT);
-		}
-	}
-}
-
-void HandleWSUnsubscribe(mg_connection* connection, json data) {
-	auto check = JSONUtils::CheckRequiredData(data, { "type" });
-	if (!check.empty()) {
-		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
-	} else {
-		const auto type = data["type"].get<std::string>();
-		LOG_DEBUG("type %s unsubscribed", type.c_str());
-		const auto sub =  magic_enum::enum_cast<eWSSubscription>(type).value_or(eWSSubscription::INVALID);
-		if (sub != eWSSubscription::INVALID) {
-			connection->data[GeneralUtils::ToUnderlying(sub)] = 0;
-			mg_ws_send(connection, "{\"status\":\"unsubscribed\"}", 18, WEBSOCKET_OP_TEXT);
-		}
-	}
-}
-
 void ChatWeb::RegisterRoutes() {
 	// REST API v1 routes
 	std::string v1_route = "/api/v1/";
@@ -120,19 +90,16 @@ void ChatWeb::RegisterRoutes() {
 		.handle = HandleHTTPAnnounceRequest
 	});
 
-	// WebSocket Actions
-	Game::web.RegisterWSAction({
-		.action = "subscribe",
-		.handle = HandleWSSubscribe
-	});
-
-	Game::web.RegisterWSAction({
-		.action = "unsubscribe",
-		.handle = HandleWSUnsubscribe
-	});
-
-	Game::web.RegisterWSAction({
-		.action = "chat",
+	// WebSocket Events
+	Game::web.RegisterWSEvent({
+		.name = "chat",
 		.handle = HandleWSChat
 	});
+
+	// WebSocket subscriptions
+	Game::web.RegisterWSSubscription("chat_local");
+	Game::web.RegisterWSSubscription("chat_team");
+	Game::web.RegisterWSSubscription("chat_private");
+	Game::web.RegisterWSSubscription("player");
+	Game::web.RegisterWSSubscription("team");
 }

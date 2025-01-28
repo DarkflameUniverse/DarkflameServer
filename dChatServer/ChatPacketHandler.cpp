@@ -450,7 +450,6 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	
 	// build chat json data
 	nlohmann::json data;
-	data["action"] = "chat";
 	data["playerName"] = sender.playerName;
 	data["message"] = message.GetAsString();
 	auto& zoneID = data["zone_id"];
@@ -460,7 +459,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	
 	switch (channel) {
 	case eChatChannel::LOCAL: {
-		Game::web.SendWSMessage("WorldChat", data.dump());
+		Game::web.SendWSMessage("chat_local", data);
 		break;
 	}
 	case eChatChannel::TEAM: {
@@ -472,7 +471,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 			if (!otherMember) return;
 			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
 			data["teamID"] = team->teamID;
-			Game::web.SendWSMessage("teamchat", data.dump());
+			Game::web.SendWSMessage("chat_team", data);
 		}
 		break;
 	}
@@ -528,6 +527,14 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	// only freinds can whispr each other
 	for (const auto& fr : receiver.friends) {
 		if (fr.friendID == sender.playerID) {
+			nlohmann::json data;
+			data["sender"] = sender.playerName;
+			data["receiver"] = receiverName;
+			data["message"] = message.GetAsString();
+			data["zone_id"]["map_id"] = sender.zoneID.GetMapID();
+			data["zone_id"]["instance_id"] = sender.zoneID.GetInstanceID();
+			data["zone_id"]["clone_id"] = sender.zoneID.GetCloneID();
+			Game::web.SendWSMessage("chat_private", data);
 			//To the sender:
 			SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::SENT);
 			//To the receiver:

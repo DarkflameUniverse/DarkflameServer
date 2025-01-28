@@ -28,8 +28,8 @@ struct HTTPRoute {
 	std::function<void(HTTPReply&, const std::string&)> handle;
 };
 
-struct WSAction {
-	std::string action;
+struct WSEvent {
+	std::string name;
 	std::function<void(mg_connection*, nlohmann::json)> handle;
 };
 
@@ -44,10 +44,11 @@ public:
 	Web();
 	~Web();
 	void ReceiveRequests();
-	void static SendWSMessage(std::string sub, const std::string& message);
+	void static SendWSMessage(std::string sub, nlohmann::json& message);
 	bool Startup(const std::string& listen_ip, const uint32_t listen_port);
 	void RegisterHTTPRoute(HTTPRoute route);
-	void RegisterWSAction(WSAction action);
+	void RegisterWSEvent(WSEvent event);
+	void RegisterWSSubscription(const std::string& subscription);
 private:
 	mg_mgr mgr;
 };

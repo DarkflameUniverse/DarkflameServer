@@ -70,7 +70,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	zoneID["map_id"] = data.zoneID.GetMapID();
 	zoneID["instance_id"] = data.zoneID.GetInstanceID();
 	zoneID["clone_id"] = data.zoneID.GetCloneID();
-	Game::web.SendWSMessage("player", wsdata.dump());
+	Game::web.SendWSMessage("player", wsdata);
 	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
 }
@@ -130,7 +130,7 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 	wsdata["type"] = "remove";
 	wsdata["playerName"] = player.playerName;
 	wsdata["playerID"] = player.playerID;
-	Game::web.SendWSMessage("player", wsdata.dump());
+	Game::web.SendWSMessage("player", wsdata);
 
 	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);
