@@ -12,8 +12,7 @@
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "MessageType/Chat.h"
-#include "json.hpp"
-#include "Web.h"
+#include "ChatWeb.h"
 
 void PlayerContainer::Initialize() {
 	m_MaxNumberOfBestFriends =
@@ -60,18 +59,8 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
-	// Send to connected websockets
-	nlohmann::json wsdata;
-	wsdata["action"] = "character_update";
-	wsdata["type"] = "add";
-	wsdata["playerName"] = data.playerName;
-	wsdata["playerID"] = data.playerID;
-	auto& zoneID = wsdata["zone_id"];
-	zoneID["map_id"] = data.zoneID.GetMapID();
-	zoneID["instance_id"] = data.zoneID.GetInstanceID();
-	zoneID["clone_id"] = data.zoneID.GetCloneID();
-	Game::web.SendWSMessage("player", wsdata);
-	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
+	ChatWeb::SendWSPlayerUpdate(data, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone);
+	Database::Get()->UpdateActivityLog(data.playerID, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
 }
 
@@ -125,12 +114,7 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 		}
 	}
 
-	nlohmann::json wsdata;
-	wsdata["action"] = "character_update";
-	wsdata["type"] = "remove";
-	wsdata["playerName"] = player.playerName;
-	wsdata["playerID"] = player.playerID;
-	Game::web.SendWSMessage("player", wsdata);
+	ChatWeb::SendWSPlayerUpdate(player, eActivityType::PlayerLoggedOut);
 
 	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);

@@ -44,6 +44,14 @@ enum class eChatMessageResponseCode : uint8_t {
     RECEIVERFREETRIAL,
 };
 
+struct ChatMessage {
+	LUWString message;
+	PlayerData sender;
+	PlayerData receiver;
+	eChatChannel channel;
+	LWOOBJID teamID;
+};
+
 namespace ChatPacketHandler {
 	void HandleFriendlistRequest(Packet* packet);
 	void HandleFriendRequest(Packet* packet);
