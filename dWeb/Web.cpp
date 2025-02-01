@@ -12,7 +12,7 @@ namespace Game {
 }
 
 namespace {
-	const char * json_content_type = "application/json";
+	const char* json_content_type = "Content-Type: application/json\r\n";
 	std::map<std::pair<eHTTPMethod, std::string>, HTTPRoute> g_HTTPRoutes;
 	std::map<std::string, WSEvent> g_WSEvents;
 	std::vector<std::string> g_WSSubscriptions;
@@ -170,6 +170,11 @@ void HandleMessages(mg_connection* connection, int message, void* message_data) 
 }
 
 void Web::RegisterHTTPRoute(HTTPRoute route) {
+	if (!Game::web.enabled) {
+		LOG_DEBUG("Failed to register HTTP route %s: web server not enabled", route.path.c_str());
+		return;
+	}
+
 	auto [_, success] = g_HTTPRoutes.try_emplace({ route.method, route.path }, route);
 	if (!success) {
 		LOG_DEBUG("Failed to register HTTP route %s", route.path.c_str());
@@ -179,6 +184,11 @@ void Web::RegisterHTTPRoute(HTTPRoute route) {
 }
 
 void Web::RegisterWSEvent(WSEvent event) {
+	if (!Game::web.enabled) {
+		LOG_DEBUG("Failed to register WS event %s: web server not enabled", event.name.c_str());
+		return;
+	}
+
 	auto [_, success] = g_WSEvents.try_emplace(event.name, event);
 	if (!success) {
 		LOG_DEBUG("Failed to register WS event %s", event.name.c_str());
@@ -188,6 +198,11 @@ void Web::RegisterWSEvent(WSEvent event) {
 }
 
 void Web::RegisterWSSubscription(const std::string& subscription) {
+	if (!Game::web.enabled) {
+		LOG_DEBUG("Failed to register WS subscription %s: web server not enabled", subscription.c_str());
+		return;
+	}
+
 	// check that subsction is not already in the vector
 	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
 	if (subItr != g_WSSubscriptions.end()) {
@@ -208,6 +223,7 @@ Web::~Web() {
 }
 
 bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
+
 	// Make listen address
 	const std::string& listen_address = "http://" + listen_ip + ":" + std::to_string(listen_port);
 	LOG("Starting web server on %s", listen_address.c_str());
@@ -217,7 +233,7 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 		LOG("Failed to create web server listener on %s", listen_address.c_str());
 		return false;
 	}
-
+	
 	// WebSocket Events
 	Game::web.RegisterWSEvent({
 		.name = "subscribe",
@@ -242,7 +258,7 @@ void Web::ReceiveRequests() {
 }
 
 void Web::SendWSMessage(const std::string subscription, json& data) {
-	if (!Game::web.enabled) return;
+	if (!Game::web.enabled) return; // don't attempt to send if web is not enabled
 
 	// find subscription
 	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);

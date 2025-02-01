@@ -33,12 +33,6 @@ struct WSEvent {
 	std::function<void(mg_connection*, nlohmann::json)> handle;
 };
 
-struct WSMessage {
-	uint32_t id;
-	std::string sub;
-	std::string message;
-};
-
 class Web {
 public:
 	Web();

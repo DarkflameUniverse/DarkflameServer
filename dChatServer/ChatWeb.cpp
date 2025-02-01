@@ -73,8 +73,8 @@ void HandleWSChat(mg_connection* connection, json data) {
 			LOG_DEBUG("Chat message \"%s\" from %s was not allowed", message.c_str(), user.c_str());
 			data["error"] = "Chat message blocked by filter";
 			data["filtered"] = json::array();
-			for (const auto& filtered : filter_check) {
-				data["filtered"].push_back(message.substr(filtered.first, filtered.second));
+			for (const auto& [start, len] : filter_check) {
+				data["filtered"].push_back(message.substr(start, len));
 			}
 			mg_ws_send(connection, data.dump().c_str(), data.dump().size(), WEBSOCKET_OP_TEXT);
 			return;
@@ -102,10 +102,6 @@ void HandleWSChat(mg_connection* connection, json data) {
 		}
 		bitStream.Write<uint16_t>(0);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
-		
-		// send to world servers with macthing zone
-		// Cry: this is the hard part since there is no instance manager
-		// Do we send it to master and let master sort it out via instance manager?
 	}
 }
 

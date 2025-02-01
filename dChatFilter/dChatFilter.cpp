@@ -114,7 +114,7 @@ std::set<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::str
 	std::string segment;
 	std::regex reg("(!*|\\?*|\\;*|\\.*|\\,*)");
 
-	std::set<std::pair<uint8_t, uint8_t>> listOfBadSegments = std::set<std::pair<uint8_t, uint8_t>>();
+	std::set<std::pair<uint8_t, uint8_t>> listOfBadSegments;
 
 	uint32_t position = 0;
 
