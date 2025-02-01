@@ -7,7 +7,8 @@ enum class eConnectionType : uint16_t {
 	CHAT,
 	WORLD = 4,
 	CLIENT,
-	MASTER
+	MASTER,
+	UNKNOWN
 };
 
 #endif  //!__ECONNECTIONTYPE__H__
