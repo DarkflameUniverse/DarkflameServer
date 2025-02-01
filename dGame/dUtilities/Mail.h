@@ -125,8 +125,6 @@ namespace Mail {
 
 	struct SendResponse :public MailLUBitStream {
 		eSendResponse status = eSendResponse::UnknownError;
-		
-		SendResponse(eSendResponse _status) : MailLUBitStream(eMessageID::SendResponse), status{_status} {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
@@ -134,8 +132,7 @@ namespace Mail {
 		eNotificationResponse status = eNotificationResponse::UnknownError;
 		LWOOBJID auctionID = LWOOBJID_EMPTY;
 		uint32_t mailCount = 1;
-		NotificationResponse(eNotificationResponse _status) : MailLUBitStream(eMessageID::NotificationResponse), status{_status} {};
-		NotificationResponse(eNotificationResponse _status, uint32_t _mailCount) : MailLUBitStream(eMessageID::NotificationResponse), status{_status}, mailCount{_mailCount} {};
+		NotificationResponse() : MailLUBitStream(eMessageID::NotificationResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
@@ -165,15 +162,13 @@ namespace Mail {
 	struct AttachmentCollectResponse : public MailLUBitStream {
 		eAttachmentCollectResponse status = eAttachmentCollectResponse::UnknownError;
 		uint64_t mailID = 0;
-		AttachmentCollectResponse(eAttachmentCollectResponse _status) : MailLUBitStream(eMessageID::AttachmentCollectResponse), status{_status} {};
-		AttachmentCollectResponse(eAttachmentCollectResponse _status, uint64_t _mailID) : MailLUBitStream(eMessageID::AttachmentCollectResponse), status{_status}, mailID{_mailID} {};
+		AttachmentCollectResponse() : MailLUBitStream(eMessageID::AttachmentCollectResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
 	struct DeleteRequest : public MailLUBitStream {
 		uint64_t mailID = 0;
 		LWOOBJID playerID = LWOOBJID_EMPTY;
-
 
 		DeleteRequest() : MailLUBitStream(eMessageID::DeleteRequest) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override;
@@ -183,8 +178,7 @@ namespace Mail {
 	struct DeleteResponse : public MailLUBitStream {
 		eDeleteResponse status = eDeleteResponse::UnknownError;
 		uint64_t mailID = 0;
-		DeleteResponse(uint64_t _mailID) : MailLUBitStream(eMessageID::DeleteResponse), mailID{_mailID} {};
-		DeleteResponse(eDeleteResponse _status, uint64_t _mailID) : MailLUBitStream(eMessageID::DeleteResponse), status{_status}, mailID{_mailID} {};
+		DeleteResponse() : MailLUBitStream(eMessageID::DeleteResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
@@ -201,7 +195,6 @@ namespace Mail {
 		eReadResponse status = eReadResponse::UnknownError;
 
 		ReadResponse() : MailLUBitStream(eMessageID::ReadResponse) {};
-		ReadResponse(uint64_t _mailID) : MailLUBitStream(eMessageID::ReadResponse), mailID{_mailID} {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 

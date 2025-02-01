@@ -70,7 +70,7 @@ namespace Mail {
 	}
 
 	void SendRequest::Handle() {
-		SendResponse response(eSendResponse::UnknownError);
+		SendResponse response;
 		auto* character = player->GetCharacter();
 		if (character && !(character->HasPermission(ePermissionMap::RestrictedMailAccess) || character->GetParentUser()->GetIsMuted())) {
 			mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
@@ -178,7 +178,7 @@ namespace Mail {
 	}
 
 	void AttachmentCollectRequest::Handle() {
-		auto response = AttachmentCollectResponse(eAttachmentCollectResponse::UnknownError);
+		AttachmentCollectResponse response;
 		auto inv = player->GetComponent<InventoryComponent>();
 
 		if (mailID > 0 && playerID == player->GetObjectID() && inv) {
@@ -211,8 +211,9 @@ namespace Mail {
 	}
 
 	void DeleteRequest::Handle() {
-		auto response = DeleteResponse(mailID);
-		
+		DeleteResponse response;
+		response.mailID = mailID;
+
 		auto mailData = Database::Get()->GetMail(mailID);
 		if (mailData && !(mailData->itemLOT != 0 && mailData->itemCount > 0)) {
 			Database::Get()->DeleteMail(mailID);
@@ -239,7 +240,8 @@ namespace Mail {
 	}
 
 	void ReadRequest::Handle() {
-		auto response = ReadResponse(mailID);
+		ReadResponse response;
+		response.mailID = mailID;
 
 		if (Database::Get()->GetMail(mailID)) {
 			response.status = eReadResponse::Success;
@@ -255,7 +257,7 @@ namespace Mail {
 	}
 
 	void NotificationRequest::Handle() {
-		auto response = NotificationResponse(eNotificationResponse::UnknownError);
+		NotificationResponse response;
 		auto character = player->GetCharacter();
 		if (character) {
 			auto unreadMailCount = Database::Get()->GetUnreadMailCount(character->GetID());
@@ -352,6 +354,7 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	Database::Get()->InsertNewMail(mailInsert);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
-
-	NotificationResponse(eNotificationResponse::NewMail).Send(sysAddr);
+	NotificationResponse response;
+	response.status = eNotificationResponse::NewMail;
+	response.Send(sysAddr);
 }
