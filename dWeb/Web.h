@@ -49,8 +49,10 @@ public:
 	void RegisterHTTPRoute(HTTPRoute route);
 	void RegisterWSEvent(WSEvent event);
 	void RegisterWSSubscription(const std::string& subscription);
+	bool IsEnabled() const { return enabled; };
 private:
 	mg_mgr mgr;
+	bool enabled = false;
 };
 
 #endif // !__WEB_H__

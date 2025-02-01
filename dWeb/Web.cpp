@@ -156,6 +156,7 @@ void HandleWSGetSubscriptions(mg_connection* connection, json data) {
 }
 
 void HandleMessages(mg_connection* connection, int message, void* message_data) {
+	if (!Game::web.IsEnabled()) return;
 	switch (message) {
 		case MG_EV_HTTP_MSG:
 			HandleHTTPMessage(connection, static_cast<mg_http_message*>(message_data));
@@ -232,7 +233,7 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 		.name = "getSubscriptions",
 		.handle = HandleWSGetSubscriptions
 	});
-
+	enabled = true;
 	return true;
 }
 
@@ -241,6 +242,8 @@ void Web::ReceiveRequests() {
 }
 
 void Web::SendWSMessage(const std::string subscription, json& data) {
+	if (!Game::web.enabled) return;
+
 	// find subscription
 	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
 	if (subItr == g_WSSubscriptions.end()) {

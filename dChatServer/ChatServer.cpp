@@ -93,19 +93,17 @@ int main(int argc, char** argv) {
 	}
 
 	// setup the chat api web server
-	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
 	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(2005);
-	if (web_server_enabled && !Game::web.Startup("localhost", web_server_port)) {
-		// if we want the web api and it fails to start, exit
+	if (Game::config->GetValue("web_server_enabled") == "1" && !Game::web.Startup("localhost", web_server_port)) {
+		// if we want the web server and it fails to start, exit
 		LOG("Failed to start web server, shutting down.");
 		Database::Destroy("ChatServer");
 		delete Game::logger;
 		delete Game::config;
 		return EXIT_FAILURE;
 	}
-	if (web_server_enabled) {
-		ChatWeb::RegisterRoutes();
-	}
+
+	if (Game::web.IsEnabled()) ChatWeb::RegisterRoutes();
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -169,10 +167,8 @@ int main(int argc, char** argv) {
 			packet = nullptr;
 		}
 
-		//Check and handle web requests:
-		if (web_server_enabled) {
-			Game::web.ReceiveRequests();
-		}
+		// Check and handle web requests:
+		if (Game::web.IsEnabled()) Game::web.ReceiveRequests();
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
