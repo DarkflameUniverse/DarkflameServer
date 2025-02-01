@@ -9,11 +9,7 @@
 #include "NiQuaternion.h"
 #include "NiPoint3.h"
 #include "MailInfo.h"
-
-namespace RakNet {
-	class BitStream;
-}
-
+ 
 class IMail {
 public:
 	// Insert a new mail into the database.
