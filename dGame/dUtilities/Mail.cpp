@@ -152,7 +152,9 @@ namespace Mail {
 	}
 
 	void DataRequest::Handle() {
-		auto playerMail = Database::Get()->GetMailForPlayer(player->GetCharacter()->GetID(), 20);
+		const auto* character = player->GetCharacter();
+		if (!character) return;
+		auto playerMail = Database::Get()->GetMailForPlayer(character->GetID(), 20);
 		DataResponse response;
 		response.playerMail = playerMail;
 		response.Send(sysAddr);
