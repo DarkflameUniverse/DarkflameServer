@@ -16,6 +16,8 @@
 #include "Database.h"
 #include "ChatJSONUtils.h"
 #include "JSONUtils.h"
+#include "eGameMasterLevel.h"
+#include "dChatFilter.h"
 
 using json = nlohmann::json;
 
@@ -57,15 +59,53 @@ void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
 }
 
 void HandleWSChat(mg_connection* connection, json data) {
-	auto check = JSONUtils::CheckRequiredData(data, { "user", "message" });
+	auto check = JSONUtils::CheckRequiredData(data, { "user", "message", "gmlevel", "zone" });
 	if (!check.empty()) {
 		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
 	} else {
 		const auto user = data["user"].get<std::string>();
 		const auto message = data["message"].get<std::string>();
-		LOG_DEBUG("EXTERNAL Chat message from %s: %s", user.c_str(), message.c_str());
-		// TODO: use chat filter and respond if the message isn't allowed
-		// TODO: Send chat message to  corret world server to broadcast to players
+		const auto gmlevel = GeneralUtils::TryParse<eGameMasterLevel>(data["gmlevel"].get<std::string>()).value_or(eGameMasterLevel::CIVILIAN);
+		const auto zone = data["zone"].get<uint32_t>();
+
+		const auto filter_check = Game::chatFilter->IsSentenceOkay(message, gmlevel);
+		if (!filter_check.empty()) {
+			LOG_DEBUG("Chat message \"%s\" from %s was not allowed", message.c_str(), user.c_str());
+			data["error"] = "Chat message blocked by filter";
+			data["filtered"] = json::array();
+			for (const auto& filtered : filter_check) {
+				data["filtered"].push_back(message.substr(filtered.first, filtered.second));
+			}
+			mg_ws_send(connection, data.dump().c_str(), data.dump().size(), WEBSOCKET_OP_TEXT);
+			return;
+		}
+		LOG("%s: %s", user.c_str(), message.c_str());
+
+		// bodge to test
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+		bitStream.Write(zone);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+
+		bitStream.Write<uint64_t>(0);
+		bitStream.Write(eChatChannel::LOCAL);
+
+		bitStream.Write<uint32_t>(message.size());
+		bitStream.Write(LUWString(user));
+
+		bitStream.Write<uint64_t>(0);
+		bitStream.Write<uint16_t>(0);
+		bitStream.Write<char>(0);
+
+		for (uint32_t i = 0; i < message.size(); ++i) {
+			bitStream.Write<uint16_t>(message[i]);
+		}
+		bitStream.Write<uint16_t>(0);
+		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		
+		// send to world servers with macthing zone
+		// Cry: this is the hard part since there is no instance manager
+		// Do we send it to master and let master sort it out via instance manager?
 	}
 }
 
@@ -110,7 +150,7 @@ namespace ChatWeb {
 		json data;
 		data["player_data"] = player;
 		data["update_type"] = magic_enum::enum_name(activityType);
-		Game::web.SendWSMessage("player_update", data);
+		Game::web.SendWSMessage("player", data);
 	}
 
 	void SendWSChatMessage(const ChatMessage& chatMessage) {

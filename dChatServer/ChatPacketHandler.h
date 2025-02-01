@@ -2,8 +2,7 @@
 #include "dCommonVars.h"
 #include "dNetCommon.h"
 #include "BitStream.h"
-
-struct PlayerData;
+#include "PlayerContainer.h"
 
 enum class eAddFriendResponseType : uint8_t;
 

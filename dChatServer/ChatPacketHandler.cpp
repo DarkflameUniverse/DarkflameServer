@@ -436,21 +436,20 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	data.sender = Game::playerContainer.GetPlayerData(sender);
 	if (!data.sender || data.sender.GetIsMuted()) return;
 
-	eChatChannel channel;
 	uint32_t size;
 
 	inStream.IgnoreBytes(4);
 	inStream.Read(data.channel);
 	inStream.Read(size);
 	inStream.IgnoreBytes(77);
-	LOG("message size: %u", size);
+
 	data.message = LUWString(size);
 	inStream.Read(data.message);
 
 	LOG("Got message from (%s) via [%s]: %s", data.sender.playerName.c_str(), StringifiedEnum::ToString(data.channel).data(), data.message.GetAsString().c_str());
 	
 	
-	switch (channel) {
+	switch (data.channel) {
 	case eChatChannel::LOCAL: {
 		break;
 	}
@@ -467,7 +466,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 		break;
 	}
 	default:
-		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(channel).data());
+		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(data.channel).data());
 		break;
 	}
 	ChatWeb::SendWSChatMessage(data);
@@ -526,7 +525,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 			SendPrivateChatMessage(data.sender, data.receiver, data.sender, data.message, data.channel, eChatMessageResponseCode::SENT);
 			// To the receiver:
 			SendPrivateChatMessage(data.sender, data.receiver, data.receiver, data.message, data.channel, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
-			// To the WebSocket
+			// To the websocket:
 			ChatWeb::SendWSChatMessage(data);
 			return;
 		}

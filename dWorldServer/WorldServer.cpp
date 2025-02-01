@@ -647,6 +647,21 @@ void HandlePacketChat(Packet* packet) {
 
 				break;
 			}
+			case MessageType::Chat::GENERAL_CHAT_MESSAGE: {
+				// First get the zone and check if we should forward it
+				CINSTREAM_SKIP_HEADER;
+				uint32_t zoneID;
+				inStream.Read(zoneID);
+				if (zoneID != Game::server->GetZoneID()) return;
+				//Write our stream outwards:
+				CBITSTREAM;
+				unsigned char data;
+				while (inStream.Read(data)) {
+					bitStream.Write(data);
+				}
+				SEND_PACKET_BROADCAST;
+				break;
+			}
 			default:
 				LOG("Received an unknown chat: %i", int(packet->data[3]));
 			}
@@ -1288,7 +1303,7 @@ void HandlePacket(Packet* packet) {
 			}
 		}
 
-		std::vector<std::pair<uint8_t, uint8_t>> segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
+		auto segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
 
 		bool bAllClean = segments.empty();
 
@@ -1327,24 +1342,28 @@ void HandlePacket(Packet* packet) {
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
 			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+			{
+				// TODO: make it so we don't write this manually, but instead use a proper read and writes
+				// aka: this is awful and should be fixed, but I can't be bothered to do it right now
+				// Forward to the chat server
+				CBITSTREAM;
+				BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
 
-			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+				bitStream.Write(user->GetLoggedInChar());
+				bitStream.Write<uint32_t>(chatMessage.message.size());
+				bitStream.Write(chatMessage.chatChannel);
+				bitStream.Write<uint32_t>(chatMessage.message.size());
 
-			bitStream.Write(user->GetLoggedInChar());
-			bitStream.Write<uint32_t>(chatMessage.message.size());
-			bitStream.Write(chatMessage.chatChannel);
-			bitStream.Write<uint32_t>(chatMessage.message.size());
+				for (uint32_t i = 0; i < 77; ++i) {
+					bitStream.Write<uint8_t>(0);
+				}
 
-			for (uint32_t i = 0; i < 77; ++i) {
-				bitStream.Write<uint8_t>(0);
+				for (uint32_t i = 0; i < chatMessage.message.size(); ++i) {
+					bitStream.Write<uint16_t>(chatMessage.message[i]);
+				}
+				bitStream.Write<uint16_t>(0);
+				Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
 			}
-
-			for (uint32_t i = 0; i < chatMessage.message.size(); ++i) {
-				bitStream.Write<uint16_t>(chatMessage.message[i]);
-			}
-			bitStream.Write<uint16_t>(0);
-			Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, Game::chatSysAddr, false);
 
 		}
 
