@@ -123,6 +123,7 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	uint32_t GetAccountCount() override;
+	bool IsNameInUse(const std::string_view name) override;
 private:
 	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 
