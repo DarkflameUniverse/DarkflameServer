@@ -274,7 +274,7 @@ void InventoryComponent::AddItem(
 
 			switch (sourceType) {
 			case 0:
-				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(m_Parent, "%[MAIL_ACTIVITY_OVERFLOW_HEADER]", "%[MAIL_ACTIVITY_OVERFLOW_BODY]", lot, size);
 				break;
 
 			case 1:

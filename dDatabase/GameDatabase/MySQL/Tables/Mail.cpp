@@ -1,6 +1,7 @@
 #include "MySQLDatabase.h"
 
-void MySQLDatabase::InsertNewMail(const IMail::MailInfo& mail) {
+
+void MySQLDatabase::InsertNewMail(const MailInfo& mail) {
 	ExecuteInsert(
 		"INSERT INTO `mail` "
 		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`)"
@@ -18,17 +19,17 @@ void MySQLDatabase::InsertNewMail(const IMail::MailInfo& mail) {
 		mail.itemCount);
 }
 
-std::vector<IMail::MailInfo> MySQLDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
+std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
 	auto res = ExecuteSelect(
 		"SELECT id, subject, body, sender_name, attachment_id, attachment_lot, attachment_subkey, attachment_count, was_read, time_sent"
 		" FROM mail WHERE receiver_id=? limit ?;",
 		characterId, numberOfMail);
 
-	std::vector<IMail::MailInfo> toReturn;
+	std::vector<MailInfo> toReturn;
 	toReturn.reserve(res->rowsCount());
 
 	while (res->next()) {
-		IMail::MailInfo mail;
+		MailInfo mail;
 		mail.id = res->getUInt64("id");
 		mail.subject = res->getString("subject").c_str();
 		mail.body = res->getString("body").c_str();
@@ -46,14 +47,14 @@ std::vector<IMail::MailInfo> MySQLDatabase::GetMailForPlayer(const uint32_t char
 	return toReturn;
 }
 
-std::optional<IMail::MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
+std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
 	auto res = ExecuteSelect("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (!res->next()) {
 		return std::nullopt;
 	}
 
-	IMail::MailInfo toReturn;
+	MailInfo toReturn;
 	toReturn.itemLOT = res->getInt("attachment_lot");
 	toReturn.itemCount = res->getInt("attachment_count");
 

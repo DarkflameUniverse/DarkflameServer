@@ -996,7 +996,7 @@ void SlashCommandHandler::Startup() {
 	Command RequestMailCountCommand{
 		.help = "Gets the players mail count",
 		.info = "Sends notification with number of unread messages in the player's mailbox",
-		.aliases = { "requestmailcount" },
+		.aliases = { "requestmailcount", "checkmail" },
 		.handle = GMZeroCommands::RequestMailCount,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
