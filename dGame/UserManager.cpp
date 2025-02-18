@@ -305,13 +305,13 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
 
-	if (!name.empty() && Database::Get()->GetCharacterInfo(name)) {
+	if (!name.empty() && Database::Get()->IsNameInUse(name)) {
 		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
 		return;
 	}
 
-	if (Database::Get()->GetCharacterInfo(predefinedName)) {
+	if (Database::Get()->IsNameInUse(predefinedName)) {
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
@@ -324,7 +324,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) mutable {
+	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
@@ -369,13 +369,14 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		// If predefined name is invalid, change it to be their object id
 		// that way more than one player can create characters if the predefined name files are not provided
-		if (predefinedName == "INVALID") {
+		auto assignedPredefinedName = predefinedName;
+		if (assignedPredefinedName == "INVALID") {
 			std::stringstream nameObjID;
 			nameObjID << "minifig" << objectID;
-			predefinedName = nameObjID.str();
+			assignedPredefinedName = nameObjID.str();
 		}
 
-		std::string_view nameToAssign = !name.empty() && nameOk ? name : predefinedName;
+		std::string_view nameToAssign = !name.empty() && nameOk ? name : assignedPredefinedName;
 		std::string pendingName = !name.empty() && !nameOk ? name : "";
 
 		ICharInfo::Info info;
