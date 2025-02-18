@@ -28,7 +28,8 @@ enum eInventoryType : uint32_t {
 	DONATION,
 	VAULT_MODELS,
 	ITEM_SETS, //internal, technically this is BankBehaviors.
-	INVALID // made up, for internal use!!!, Technically this called the ALL inventory.
+	INVALID, // made up, for internal use!!!, Technically this called the ALL inventory.
+	ALL, // Use this to search all inventories instead of a specific one.
 };
 
 class InventoryType {

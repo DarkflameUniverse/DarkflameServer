@@ -100,7 +100,7 @@ public:
 	 * @param lot the lot to search for
 	 * @return the amount of items this entity possesses of the specified lot
 	 */
-	uint32_t GetLotCountNonTransfer(LOT lot) const;
+	uint32_t GetLotCountNonTransfer(LOT lot, bool includeVault = true) const;
 
 	/**
 	 * Returns the items that are currently equipped by this entity
@@ -373,7 +373,7 @@ public:
 	 * @param type the inventory type to check
 	 * @return if the inventory type is a temp inventory
 	 */
-	static bool IsTransferInventory(eInventoryType type);
+	static bool IsTransferInventory(eInventoryType type, bool includeVault = true);
 
 	/**
 	 * Finds the skill related to the passed LOT from the ObjectSkills table
