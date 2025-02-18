@@ -102,7 +102,7 @@ namespace GMGreaterThanZeroCommands {
 			return;
 		}
 
-		IMail::MailInfo mailInsert;
+		MailInfo mailInsert;
 		mailInsert.senderId = entity->GetObjectID();
 		mailInsert.senderUsername = "Darkflame Universe";
 		mailInsert.receiverId = receiverID;

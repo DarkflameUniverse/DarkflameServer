@@ -833,15 +833,20 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (packet->data[0] != ID_USER_PACKET_ENUM || packet->length < 4) return;
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
-		if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
+
+	CINSTREAM;
+	LUBitStream luBitStream;
+	luBitStream.ReadHeader(inStream);
+
+	if (luBitStream.connectionType == eConnectionType::SERVER) {
+		if (static_cast<MessageType::Server>(luBitStream.internalPacketID) == MessageType::Server::VERSION_CONFIRM) {
 			AuthPackets::HandleHandshake(Game::server, packet);
 		}
 	}
 
-	if (static_cast<eConnectionType>(packet->data[1]) != eConnectionType::WORLD) return;
+	if (luBitStream.connectionType != eConnectionType::WORLD) return;
 
-	switch (static_cast<MessageType::World>(packet->data[3])) {
+	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
 	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
 		LUWString username;
@@ -1187,11 +1192,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::MAIL: {
-		RakNet::BitStream bitStream(packet->data, packet->length, false);
-		// FIXME: Change this to the macro to skip the header...
-		LWOOBJID space;
-		bitStream.Read(space);
-		Mail::HandleMailStuff(bitStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::HandleMail(inStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 

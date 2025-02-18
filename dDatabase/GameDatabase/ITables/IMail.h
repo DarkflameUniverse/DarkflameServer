@@ -8,27 +8,10 @@
 #include "dCommonVars.h"
 #include "NiQuaternion.h"
 #include "NiPoint3.h"
-
+#include "MailInfo.h"
+ 
 class IMail {
 public:
-	struct MailInfo {
-		std::string senderUsername;
-		std::string recipient;
-		std::string subject;
-		std::string body;
-		uint64_t id{};
-		uint32_t senderId{};
-		uint32_t receiverId{};
-		uint64_t timeSent{};
-		bool wasRead{};
-		struct {
-			LWOOBJID itemID{};
-			int32_t itemCount{};
-			LOT itemLOT{};
-			LWOOBJID itemSubkey{};
-		};
-	};
-
 	// Insert a new mail into the database.
 	virtual void InsertNewMail(const MailInfo& mail) = 0;
 
