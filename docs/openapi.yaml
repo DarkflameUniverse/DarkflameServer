@@ -1,0 +1,121 @@
+openapi: 3.0.0
+info:
+  title: DarkflameServer API
+  version: 1.0.0
+  description: API documentation for DarkflameServer HTTP endpoints
+
+servers:
+  - url: http://localhost:2005/api/v1
+
+paths:
+  /players:
+    get:
+      summary: Get list of online players
+      responses:
+        '200':
+          description: A list of online players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+        '204':
+          description: No players online
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No Players Online"
+
+  /teams:
+    get:
+      summary: Get list of online teams
+      responses:
+        '200':
+          description: A list of online teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+        '204':
+          description: No teams online
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No Teams Online"
+
+  /announce:
+    post:
+      summary: Send an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+      responses:
+        '200':
+          description: Announcement sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "Announcement Sent"
+        '400':
+          description: Invalid JSON or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid JSON"
+
+components:
+  schemas:
+    Player:
+      type: object
+      properties:
+        playerID:
+          type: integer
+          example: 12345
+        playerName:
+          type: string
+          example: "Player1"
+
+    Team:
+      type: object
+      properties:
+        teamID:
+          type: integer
+          example: 67890
+        teamName:
+          type: string
+          example: "Team1"
+
+    Announcement:
+      type: object
+      required:
+        - title
+        - message
+      properties:
+        title:
+          type: string
+          example: "Server Maintenance"
+        message:
+          type: string
+          example: "The server will be down for maintenance at 10 PM."
