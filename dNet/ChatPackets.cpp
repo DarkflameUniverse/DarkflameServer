@@ -11,98 +11,82 @@
 #include "dServer.h"
 #include "eConnectionType.h"
 #include "MessageType/Chat.h"
-
-void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) {
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::SHOW_ALL);
-	bitStream.Write(this->requestor);
-	bitStream.Write(this->displayZoneData);
-	bitStream.Write(this->displayIndividualPlayers);
-}
-
-void ShowAllRequest::Deserialize(RakNet::BitStream& inStream) {
-	inStream.Read(this->requestor);
-	inStream.Read(this->displayZoneData);
-	inStream.Read(this->displayIndividualPlayers);
-}
-
-void FindPlayerRequest::Serialize(RakNet::BitStream& bitStream) {
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WHO);
-	bitStream.Write(this->requestor);
-	bitStream.Write(this->playerName);
-}
-
-void FindPlayerRequest::Deserialize(RakNet::BitStream& inStream) {
-	inStream.Read(this->requestor);
-	inStream.Read(this->playerName);
-}
-
-void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
-
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write(chatChannel);
-
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(LUWString(senderName));
-
-	bitStream.Write(playerObjectID);
-	bitStream.Write<uint16_t>(0);
-	bitStream.Write<char>(0);
-
-	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write<uint16_t>(message[i]);
-	}
-	bitStream.Write<uint16_t>(0);
-	SEND_PACKET_BROADCAST;
-}
-
-void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
-
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write<char>(4);
-
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(LUWString("", 33));
-
-	bitStream.Write<uint64_t>(0);
-	bitStream.Write<uint16_t>(0);
-	bitStream.Write<char>(0);
-
-	for (uint32_t i = 0; i < message.size(); ++i) {
-		bitStream.Write<uint16_t>(message[i]);
+namespace ChatPackets {
+	void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->requestor);
+		bitStream.Write(this->displayZoneData);
+		bitStream.Write(this->displayIndividualPlayers);
 	}
 
-	bitStream.Write<uint16_t>(0);
-
-	//This is so Wincent's announcement works:
-	if (sysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-		SEND_PACKET;
-		return;
+	bool ShowAllRequest::Deserialize(RakNet::BitStream& inStream) {
+		VALIDATE_READ(inStream.Read(this->requestor));
+		VALIDATE_READ(inStream.Read(this->displayZoneData));
+		VALIDATE_READ(inStream.Read(this->displayIndividualPlayers));
+		return true;
 	}
 
-	SEND_PACKET_BROADCAST;
-}
+	void FindPlayerRequest::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->requestor);
+		bitStream.Write(this->playerName);
+	}
 
-void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
-	//0x00 - "Chat is currently disabled."
-	//0x01 - "Upgrade to a full LEGO Universe Membership to chat with other players."
+	bool FindPlayerRequest::Deserialize(RakNet::BitStream& inStream) {
+		VALIDATE_READ(inStream.Read(this->requestor));
+		VALIDATE_READ(inStream.Read(this->playerName));
+		return true;
+	}
 
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::SEND_CANNED_TEXT);
-	bitStream.Write<uint8_t>(0); //response type, options above ^
-	//docs say there's a wstring here-- no idea what it's for, or if it's even needed so leaving it as is for now.
-	SEND_PACKET;
-}
+	void ChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint64_t>(0);// senderID
+		bitStream.Write(chatChannel);
 
-void ChatPackets::Announcement::Send() {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
-	bitStream.Write<uint32_t>(title.size());
-	bitStream.Write(title);
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(message);
-	SEND_PACKET_BROADCAST;
+		bitStream.Write<uint32_t>(message.GetAsString().size());
+		bitStream.Write(LUWString(senderName));
+
+		bitStream.Write(playerObjectID); // senderID
+		bitStream.Write<uint16_t>(0); // sourceID
+		bitStream.Write(responseCode);
+		bitStream.Write(message)
+		
+	}
+
+	void SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
+		CBITSTREAM;
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);
+
+		bitStream.Write<uint64_t>(0);
+		bitStream.Write<char>(4);
+
+		bitStream.Write<uint32_t>(message.size());
+		bitStream.Write(LUWString("", 33));
+
+		bitStream.Write<uint64_t>(0);
+		bitStream.Write<uint16_t>(0);
+		bitStream.Write<char>(0);
+
+		for (uint32_t i = 0; i < message.size(); ++i) {
+			bitStream.Write<uint16_t>(message[i]);
+		}
+
+		bitStream.Write<uint16_t>(0);
+
+		//This is so Wincent's announcement works:
+		if (sysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
+			SEND_PACKET;
+			return;
+		}
+
+		SEND_PACKET_BROADCAST;
+	}
+
+	void MessageFailure::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->cannedText);
+	}
+
+	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint32_t>(title.size());
+		bitStream.Write(title);
+		bitStream.Write<uint32_t>(message.size());
+		bitStream.Write(message);
+	}
 }

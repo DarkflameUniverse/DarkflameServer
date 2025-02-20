@@ -134,9 +134,6 @@ namespace ChatWeb {
 		});
 
 		// WebSocket subscriptions
-		Game::web.RegisterWSSubscription("chat_local");
-		Game::web.RegisterWSSubscription("chat_team");
-		Game::web.RegisterWSSubscription("chat_private");
 		Game::web.RegisterWSSubscription("chat");
 		Game::web.RegisterWSSubscription("player");
 		Game::web.RegisterWSSubscription("team");
@@ -156,24 +153,20 @@ namespace ChatWeb {
 		
 		data["channel"] = magic_enum::enum_name(chatMessage.channel);
 
-		std::string event = "chat"; // generic catch all
 		switch (chatMessage.channel) {
-		case eChatChannel::LOCAL:
-			event = "chat_local";
-			break;
-		case eChatChannel::TEAM:
-			event = "chat_team";
-			data["teamID"] = chatMessage.teamID;
-			break;
-		case eChatChannel::PRIVATE_CHAT:
-			data["receiver"] = chatMessage.receiver;
-			event = "chat_private";
-			break;
-		default:
-			LOG_DEBUG("Unhandled Chat channel [%s] in websocket send", StringifiedEnum::ToString(chatMessage.channel).data());
-			break;
+			case eChatChannel::LOCAL:
+				break;
+			case eChatChannel::TEAM:
+				data["teamID"] = chatMessage.teamID;
+				break;
+			case eChatChannel::PRIVATE_CHAT:
+				data["receiver"] = chatMessage.receiver;
+				break;
+			default:
+				// do nothing
+				break;
 		}
-		Game::web.SendWSMessage(event, data);
+		Game::web.SendWSMessage("chat", data);
 	}
 }
 

@@ -169,6 +169,17 @@ void HandleMessages(mg_connection* connection, int message, void* message_data) 
 	}
 }
 
+// Redirect logs to our logger
+static void DLOG(char ch, void *param) {
+	static char buf[256];
+	static size_t len;
+	if (ch != '\n') buf[len++] = ch; // we provide the newline in our logger
+	if (ch == '\n' || len >= sizeof(buf)) {
+		LOG_DEBUG("%.*s", static_cast<int>(len), buf);
+		len = 0;
+	}
+}
+
 void Web::RegisterHTTPRoute(HTTPRoute route) {
 	if (!Game::web.enabled) {
 		LOG_DEBUG("Failed to register HTTP route %s: web server not enabled", route.path.c_str());
@@ -214,8 +225,9 @@ void Web::RegisterWSSubscription(const std::string& subscription) {
 }
 
 Web::Web() {
-	mg_log_set(MG_LL_NONE);
-	mg_mgr_init(&mgr);  // Initialize event manager
+	mg_log_set_fn(DLOG, NULL); // Redirect logs to our logger
+	mg_log_set(MG_LL_DEBUG);
+	mg_mgr_init(&mgr); // Initialize event manager
 }
 
 Web::~Web() {
