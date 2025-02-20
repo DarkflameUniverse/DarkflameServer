@@ -1,0 +1,66 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="files">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="file" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="objects">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="object" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="equipment" type="xs:string" minOccurs="0"/>
+              <xs:element name="phrases" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="phrase" type="xs:string" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="config" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="key" type="xs:string" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="locations">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="location" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="zone" type="xs:integer" use="required"/>
+                        <xs:attribute name="x" type="xs:float" use="required"/>
+                        <xs:attribute name="y" type="xs:float" use="required"/>
+                        <xs:attribute name="z" type="xs:float" use="required"/>
+                        <xs:attribute name="rw" type="xs:float" use="required"/>
+                        <xs:attribute name="rx" type="xs:float" use="required"/>
+                        <xs:attribute name="ry" type="xs:float" use="required"/>
+                        <xs:attribute name="rz" type="xs:float" use="required"/>
+                        <xs:attribute name="scale" type="xs:float" use="optional"/>
+                        <xs:attribute name="chance" type="xs:float" use="optional"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="optional"/>
+            <xs:attribute name="lot" type="xs:integer" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
