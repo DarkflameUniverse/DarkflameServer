@@ -1,0 +1,163 @@
+asyncapi: 2.0.0
+info:
+  title: DarkflameServer WebSocket API
+  version: 1.0.0
+  description: API documentation for DarkflameServer WebSocket endpoints
+
+servers:
+  production:
+    url: http://localhost:2005/ws
+    protocol: http
+    description: Production server
+
+channels:
+  chat:
+    subscribe:
+      summary: Subscribe to chat messages
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/ChatMessage'
+    publish:
+      summary: Send a chat message
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/ChatMessage'
+
+  player:
+    subscribe:
+      summary: Subscribe to player updates
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/PlayerUpdate'
+
+  team:
+    subscribe:
+      summary: Subscribe to team updates
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/TeamUpdate'
+
+  subscribe:
+    publish:
+      summary: Subscribe to an event
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/Subscription'
+
+  unsubscribe:
+    publish:
+      summary: Unsubscribe from an event
+      message:
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/Subscription'
+
+components:
+  schemas:
+    ChatMessage:
+      type: object
+      properties:
+        user:
+          type: string
+          example: "Player1"
+        message:
+          type: string
+          example: "Hello, world!"
+        gmlevel:
+          type: integer
+          minimum: 0
+          maximum: 9
+          example: 0
+        zone:
+          type: integer
+          example: 1000
+
+    PlayerUpdate:
+      type: object
+      properties:
+        player_data:
+          $ref: '#/components/schemas/Player'
+        update_type:
+          type: string
+          example: "JOIN"
+
+    TeamUpdate:
+      type: object
+      properties:
+        team_data:
+          $ref: '#/components/schemas/Team'
+        update_type:
+          type: string
+          example: "CREATE"
+
+    Subscription:
+      type: object
+      required:
+        - subscription
+      properties:
+        subscription:
+          type: string
+          example: "chat_local"
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1152921508901824000
+        gm_level:
+          type: integer
+          format: uint8
+          example: 0
+        name:
+          type: string
+          example: thisisatestname
+        muted:
+          type: boolean
+          example: false
+        zone_id:
+          $ref: '#/components/schemas/ZoneID'
+
+    ZoneID:
+      type: object
+      properties:
+        map_id:
+          type: integer
+          format: uint16
+          example: 1200
+        instance_id:
+          type: integer
+          format: uint16
+          example: 2
+        clone_id:
+          type: integer
+          format: uint32
+          example: 0
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1152921508901824000
+        loot_flag:
+          type: integer
+          format: uint8
+          example: 1
+        local:
+          type: boolean
+          example: false
+        leader:
+          type: string
+          example: thisisatestname
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
