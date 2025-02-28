@@ -65,7 +65,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	}
 }
 
-void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
+void Mission::LoadFromXmlDone(const tinyxml2::XMLElement& element) {
 	// Start custom XML
 	if (element.Attribute("state") != nullptr) {
 		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
@@ -76,11 +76,15 @@ void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
 		m_Completions = std::stoul(element.Attribute("cct"));
 
 		m_Timestamp = std::stoul(element.Attribute("cts"));
-
-		if (IsComplete()) {
-			return;
-		}
 	}
+}
+
+void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
+	// Start custom XML
+	if (element.Attribute("state") != nullptr) {
+		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
+	}
+	// End custom XML
 
 	auto* task = element.FirstChildElement();
 
@@ -132,7 +136,7 @@ void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
 	}
 }
 
-void Mission::UpdateXml(tinyxml2::XMLElement& element) {
+void Mission::UpdateXmlDone(tinyxml2::XMLElement& element) {
 	// Start custom XML
 	element.SetAttribute("state", static_cast<unsigned int>(m_State));
 	// End custom XML
@@ -141,15 +145,21 @@ void Mission::UpdateXml(tinyxml2::XMLElement& element) {
 
 	element.SetAttribute("id", static_cast<unsigned int>(info.id));
 
-	if (m_Completions > 0) {
-		element.SetAttribute("cct", static_cast<unsigned int>(m_Completions));
+	element.SetAttribute("cct", static_cast<unsigned int>(m_Completions));
 
-		element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
+	element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
+}
 
-		if (IsComplete()) {
-			return;
-		}
-	}
+void Mission::UpdateXmlCur(tinyxml2::XMLElement& element) {
+	// Start custom XML
+	element.SetAttribute("state", static_cast<unsigned int>(m_State));
+	// End custom XML
+
+	element.DeleteChildren();
+
+	element.SetAttribute("id", static_cast<unsigned int>(info.id));
+
+	if (IsComplete()) return;
 
 	for (auto* task : m_Tasks) {
 		if (task->GetType() == eMissionTaskType::COLLECTION ||
