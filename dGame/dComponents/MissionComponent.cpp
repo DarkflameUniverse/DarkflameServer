@@ -512,7 +512,7 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 		auto* mission = new Mission(this, missionId);
 
-		mission->LoadFromXml(*doneM);
+		mission->LoadFromXmlDone(*doneM);
 
 		doneM = doneM->NextSiblingElement();
 
@@ -527,9 +527,9 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 		currentM->QueryAttribute("id", &missionId);
 
-		auto* mission = new Mission(this, missionId);
+		auto* mission = m_Missions.contains(missionId) ? m_Missions[missionId] : new Mission(this, missionId);
 
-		mission->LoadFromXml(*currentM);
+		mission->LoadFromXmlCur(*currentM);
 
 		if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
 			mission->SetUniqueMissionOrderID(missionOrder);
@@ -565,20 +565,23 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 		auto* mission = pair.second;
 
 		if (mission) {
-			const auto complete = mission->IsComplete();
+			const auto completions = mission->GetCompletions();
 
 			auto* m = doc.NewElement("m");
 
-			if (complete) {
-				mission->UpdateXml(*m);
+			if (completions > 0) {
+				mission->UpdateXmlDone(*m);
 
 				done->LinkEndChild(m);
 
-				continue;
+				if (mission->IsComplete()) continue;
+
+				m = doc.NewElement("m");
 			}
+
 			if (mission->IsMission()) m->SetAttribute("o", mission->GetUniqueMissionOrderID());
 
-			mission->UpdateXml(*m);
+			mission->UpdateXmlCur(*m);
 
 			cur->LinkEndChild(m);
 		}
