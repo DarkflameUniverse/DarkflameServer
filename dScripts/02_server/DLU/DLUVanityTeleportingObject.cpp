@@ -28,7 +28,6 @@ void DLUVanityTeleportingObject::OnTimerDone(Entity* self, std::string timerName
 	} else if (timerName == "teleport") {
 		std::vector<VanityObjectLocation>& locations = m_Object->m_Locations[Game::server->GetZoneID()];
 
-	selectLocation:
 		VanityObjectLocation& newLocation = locations[GeneralUtils::GenerateRandomNumber<size_t>(0, locations.size() - 1)];
 
 		// try to get not the same position, but if we get the same one twice, it's fine
