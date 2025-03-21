@@ -7,6 +7,7 @@ set(DCOMMON_SOURCES
 		"Logger.cpp"
 		"Game.cpp"
 		"GeneralUtils.cpp"
+		"JSONUtils.cpp"
 		"LDFFormat.cpp"
 		"Metrics.cpp"
 		"NiPoint3.cpp"
