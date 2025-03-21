@@ -500,3 +500,9 @@ This is a Work in Progress, but below are some quick links to documentaion for s
 * pwjones1969
 * [Simon](https://github.com/SimonNitzsche)
 * [ALL OF THE NETDEVIL AND LEGO TEAMS!](https://www.mobygames.com/game/macintosh/lego-universe/credits)
+
+                        
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/DarkflameUniverse/DarkflameServer.svg?variant=adaptive)](https://starchart.cc/DarkflameUniverse/DarkflameServer)
+
+                    
