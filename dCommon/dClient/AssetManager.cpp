@@ -21,12 +21,20 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 
 		m_RootPath = m_Path;
 		m_ResPath = (m_Path / "client" / "res");
-	} else if (std::filesystem::exists(m_Path / ".." / "versions") && std::filesystem::exists(m_Path / "res")) {
+	} else if (std::filesystem::exists(m_Path / "res" / "pack")) {
+		if (!std::filesystem::exists(m_Path / ".." / "versions")) {
+			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
+		}
+		
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / "..");
 		m_ResPath = (m_Path / "res");
-	} else if (std::filesystem::exists(m_Path / "pack") && std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
+	} else if (std::filesystem::exists(m_Path / "pack")) {
+		if (!std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
+			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
+		}
+		
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / ".." / "..");
