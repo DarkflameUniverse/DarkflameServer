@@ -7,7 +7,7 @@
 #include "zlib.h"
 
 constexpr uint32_t CRC32_INIT = 0xFFFFFFFF;
-constexpr auto NULL_TERMINATOR = std::string_view{(char [4]){}, 4};
+constexpr auto NULL_TERMINATOR = std::string_view{"/0/0/0", 4};
 
 AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
