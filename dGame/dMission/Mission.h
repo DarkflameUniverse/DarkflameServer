@@ -28,8 +28,13 @@ public:
 	Mission(MissionComponent* missionComponent, uint32_t missionId);
 	~Mission();
 
-	void LoadFromXml(const tinyxml2::XMLElement& element);
-	void UpdateXml(tinyxml2::XMLElement& element);
+	// XML functions to load and save completed mission state to xml
+	void LoadFromXmlDone(const tinyxml2::XMLElement& element);
+	void UpdateXmlDone(tinyxml2::XMLElement& element);
+
+	// XML functions to load and save current mission state and task data to xml
+	void LoadFromXmlCur(const tinyxml2::XMLElement& element);
+	void UpdateXmlCur(tinyxml2::XMLElement& element);
 
 	/**
 	 * Returns the ID of this mission
