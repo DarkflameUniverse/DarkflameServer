@@ -86,7 +86,7 @@ private:
 
 	// Modified crc algorithm (mpeg2)
 	// Reference: https://stackoverflow.com/questions/54339800/how-to-modify-crc-32-to-crc-32-mpeg-2
-	inline uint32_t crc32b(uint32_t crc, std::string_view message) const;
+	static inline uint32_t crc32b(uint32_t crc, std::string_view message);
 
 	std::filesystem::path m_Path;
 	std::filesystem::path m_RootPath;
