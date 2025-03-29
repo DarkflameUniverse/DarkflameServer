@@ -158,7 +158,7 @@ AssetStream AssetManager::GetFile(const char* name) const {
 	return AssetStream(buf, len, success);
 }
 
-static uint32_t AssetManager::crc32b(uint32_t crc, const std::string_view message) {
+uint32_t AssetManager::crc32b(uint32_t crc, const std::string_view message) {
 	for (const auto byte : message) {
 		// xor next byte to upper bits of crc
 		crc ^= (static_cast<uint32_t>(std::bit_cast<uint8_t>(byte)) << 24);
