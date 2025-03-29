@@ -61,23 +61,32 @@ struct AssetStream : std::istream {
 class AssetManager {
 public:
 	AssetManager(const std::filesystem::path& path);
-	~AssetManager();
 
-	std::filesystem::path GetResPath();
-	eAssetBundleType GetAssetBundleType();
+	[[nodiscard]]
+	const std::filesystem::path& GetResPath() const {
+		return m_ResPath;
+	}
+	
+	[[nodiscard]]
+	eAssetBundleType GetAssetBundleType() const {
+		return m_AssetBundleType;
+	}
 
-	bool HasFile(const char* name);
-	bool GetFile(const char* name, char** data, uint32_t* len);
-	AssetStream GetFile(const char* name);
+	[[nodiscard]]
+	bool HasFile(std::string name) const;
+
+	[[nodiscard]]
+	bool GetFile(std::string name, char** data, uint32_t* len) const;
+
+	[[nodiscard]]
+	AssetStream GetFile(const char* name) const;
 
 private:
 	void LoadPackIndex();
 
 	// Modified crc algorithm (mpeg2)
 	// Reference: https://stackoverflow.com/questions/54339800/how-to-modify-crc-32-to-crc-32-mpeg-2
-	inline uint32_t crc32b(uint32_t base, uint8_t* message, size_t l);
-
-	bool m_SuccessfullyLoaded;
+	static inline uint32_t crc32b(uint32_t crc, std::string_view message);
 
 	std::filesystem::path m_Path;
 	std::filesystem::path m_RootPath;
@@ -85,5 +94,5 @@ private:
 
 	eAssetBundleType m_AssetBundleType = eAssetBundleType::None;
 
-	PackIndex* m_PackIndex;
+	std::optional<PackIndex> m_PackIndex;
 };

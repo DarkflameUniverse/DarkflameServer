@@ -21,20 +21,23 @@ struct PackFileIndex {
 class PackIndex {
 public:
 	PackIndex(const std::filesystem::path& filePath);
-	~PackIndex();
 
-	const std::vector<std::string>& GetPackPaths() { return m_PackPaths; }
-	const std::vector<PackFileIndex>& GetPackFileIndices() { return m_PackFileIndices; }
-	const std::vector<Pack*>& GetPacks() { return m_Packs; }
+	[[nodiscard]]
+	const std::vector<std::string>& GetPackPaths() const { return m_PackPaths; }
+
+	[[nodiscard]]
+	const std::vector<PackFileIndex>& GetPackFileIndices() const { return m_PackFileIndices; }
+
+	[[nodiscard]]
+	const std::vector<Pack>& GetPacks() const { return m_Packs; }
 private:
 	std::ifstream m_FileStream;
 
 	uint32_t m_Version;
 
-	uint32_t m_PackPathCount;
 	std::vector<std::string> m_PackPaths;
-	uint32_t m_PackFileIndexCount;
+
 	std::vector<PackFileIndex> m_PackFileIndices;
 
-	std::vector<Pack*> m_Packs;
+	std::vector<Pack> m_Packs;
 };

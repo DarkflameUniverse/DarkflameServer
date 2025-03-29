@@ -21,19 +21,20 @@ Pack::Pack(const std::filesystem::path& filePath) {
 
 	m_FileStream.seekg(recordCountPos, std::ios::beg);
 
-	BinaryIO::BinaryRead<uint32_t>(m_FileStream, m_RecordCount);
+	uint32_t recordCount = 0;
+	BinaryIO::BinaryRead<uint32_t>(m_FileStream, recordCount);
 
-	for (int i = 0; i < m_RecordCount; i++) {
+	m_Records.reserve(recordCount);
+	std::generate_n(std::back_inserter(m_Records), recordCount, [&] {
 		PackRecord record;
 		BinaryIO::BinaryRead<PackRecord>(m_FileStream, record);
-
-		m_Records.push_back(record);
-	}
+		return record;
+	});
 
 	m_FileStream.close();
 }
 
-bool Pack::HasFile(uint32_t crc) {
+bool Pack::HasFile(const uint32_t crc) const {
 	for (const auto& record : m_Records) {
 		if (record.m_Crc == crc) {
 			return true;
@@ -43,7 +44,7 @@ bool Pack::HasFile(uint32_t crc) {
 	return false;
 }
 
-bool Pack::ReadFileFromPack(uint32_t crc, char** data, uint32_t* len) {
+bool Pack::ReadFileFromPack(const uint32_t crc, char** data, uint32_t* len) const {
 	// Time for some wacky C file reading for speed reasons
 
 	PackRecord pkRecord{};

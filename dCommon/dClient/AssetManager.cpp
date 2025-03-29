@@ -6,6 +6,9 @@
 
 #include "zlib.h"
 
+constexpr uint32_t CRC32_INIT = 0xFFFFFFFF;
+constexpr auto NULL_TERMINATOR = std::string_view{"\0\0\0", 4};
+
 AssetManager::AssetManager(const std::filesystem::path& path) {
 	if (!std::filesystem::is_directory(path)) {
 		throw std::runtime_error("Attempted to load asset bundle (" + path.string() + ") however it is not a valid directory.");
@@ -18,12 +21,20 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 
 		m_RootPath = m_Path;
 		m_ResPath = (m_Path / "client" / "res");
-	} else if (std::filesystem::exists(m_Path / ".." / "versions") && std::filesystem::exists(m_Path / "res")) {
+	} else if (std::filesystem::exists(m_Path / "res" / "pack")) {
+		if (!std::filesystem::exists(m_Path / ".." / "versions")) {
+			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
+		}
+		
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / "..");
 		m_ResPath = (m_Path / "res");
-	} else if (std::filesystem::exists(m_Path / "pack") && std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
+	} else if (std::filesystem::exists(m_Path / "pack")) {
+		if (!std::filesystem::exists(m_Path / ".." / ".." / "versions")) {
+			throw std::runtime_error("No \"versions\" directory found in the parent directories of \"res\" - packed asset bundle cannot be loaded.");
+		}
+		
 		m_AssetBundleType = eAssetBundleType::Packed;
 
 		m_RootPath = (m_Path / ".." / "..");
@@ -48,6 +59,7 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 			break;
 		}
 		case eAssetBundleType::None:
+			[[fallthrough]];
 		case eAssetBundleType::Unpacked: {
 			break;
 		}
@@ -55,19 +67,10 @@ AssetManager::AssetManager(const std::filesystem::path& path) {
 }
 
 void AssetManager::LoadPackIndex() {
-	m_PackIndex = new PackIndex(m_RootPath);
+	m_PackIndex = PackIndex(m_RootPath);
 }
 
-std::filesystem::path AssetManager::GetResPath() {
-	return m_ResPath;
-}
-
-eAssetBundleType AssetManager::GetAssetBundleType() {
-	return m_AssetBundleType;
-}
-
-bool AssetManager::HasFile(const char* name) {
-	auto fixedName = std::string(name);
+bool AssetManager::HasFile(std::string fixedName) const {
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 
 	// Special case for unpacked client have BrickModels in upper case
@@ -81,8 +84,7 @@ bool AssetManager::HasFile(const char* name) {
 	std::replace(fixedName.begin(), fixedName.end(), '/', '\\');
 	if (fixedName.rfind("client\\res\\", 0) != 0) fixedName = "client\\res\\" + fixedName;
 
-	uint32_t crc = crc32b(0xFFFFFFFF, reinterpret_cast<uint8_t*>(const_cast<char*>(fixedName.c_str())), fixedName.size());
-	crc = crc32b(crc, reinterpret_cast<Bytef*>(const_cast<char*>("\0\0\0\0")), 4);
+	const auto crc = crc32b(crc32b(CRC32_INIT, fixedName), NULL_TERMINATOR);
 
 	for (const auto& item : this->m_PackIndex->GetPackFileIndices()) {
 		if (item.m_Crc == crc) {
@@ -93,8 +95,7 @@ bool AssetManager::HasFile(const char* name) {
 	return false;
 }
 
-bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
-	auto fixedName = std::string(name);
+bool AssetManager::GetFile(std::string fixedName, char** data, uint32_t* len) const {
 	std::transform(fixedName.begin(), fixedName.end(), fixedName.begin(), [](uint8_t c) { return std::tolower(c); });
 	std::replace(fixedName.begin(), fixedName.end(), '\\', '/'); // On the off chance someone has the wrong slashes, force forward slashes
 
@@ -129,8 +130,7 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 		fixedName = "client\\res\\" + fixedName;
 	}
 	int32_t packIndex = -1;
-	uint32_t crc = crc32b(0xFFFFFFFF, reinterpret_cast<uint8_t*>(const_cast<char*>(fixedName.c_str())), fixedName.size());
-	crc = crc32b(crc, reinterpret_cast<Bytef*>(const_cast<char*>("\0\0\0\0")), 4);
+	auto crc = crc32b(crc32b(CRC32_INIT, fixedName), NULL_TERMINATOR);
 
 	for (const auto& item : this->m_PackIndex->GetPackFileIndices()) {
 		if (item.m_Crc == crc) {
@@ -144,15 +144,13 @@ bool AssetManager::GetFile(const char* name, char** data, uint32_t* len) {
 		return false;
 	}
 
-	auto packs = this->m_PackIndex->GetPacks();
-	auto* pack = packs.at(packIndex);
-
-	bool success = pack->ReadFileFromPack(crc, data, len);
+	const auto& pack = this->m_PackIndex->GetPacks().at(packIndex);
+	const bool success = pack.ReadFileFromPack(crc, data, len);
 
 	return success;
 }
 
-AssetStream AssetManager::GetFile(const char* name) {
+AssetStream AssetManager::GetFile(const char* name) const {
 	char* buf; uint32_t len;
 
 	bool success = this->GetFile(name, &buf, &len);
@@ -160,23 +158,15 @@ AssetStream AssetManager::GetFile(const char* name) {
 	return AssetStream(buf, len, success);
 }
 
-uint32_t AssetManager::crc32b(uint32_t base, uint8_t* message, size_t l) {
-	size_t i, j;
-	uint32_t crc, msb;
-
-	crc = base;
-	for (i = 0; i < l; i++) {
+uint32_t AssetManager::crc32b(uint32_t crc, const std::string_view message) {
+	for (const auto byte : message) {
 		// xor next byte to upper bits of crc
-		crc ^= (static_cast<unsigned int>(message[i]) << 24);
-		for (j = 0; j < 8; j++) { // Do eight times.
-			msb = crc >> 31;
+		crc ^= (static_cast<uint32_t>(std::bit_cast<uint8_t>(byte)) << 24);
+		for (size_t _ = 0; _ < 8; _++) { // Do eight times.
+			const uint32_t msb = crc >> 31;
 			crc <<= 1;
 			crc ^= (0 - msb) & 0x04C11DB7;
 		}
 	}
 	return crc; // don't complement crc on output
-}
-
-AssetManager::~AssetManager() {
-	delete m_PackIndex;
 }
