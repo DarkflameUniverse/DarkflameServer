@@ -77,3 +77,9 @@ void SQLiteDatabase::SetPendingCharacterName(const uint32_t characterId, const s
 void SQLiteDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
 	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ?;", static_cast<uint32_t>(time(NULL)), characterId);
 }
+
+bool SQLiteDatabase::IsNameInUse(const std::string_view name) {
+	auto [_, result] = ExecuteSelect("SELECT name FROM charinfo WHERE name = ? or pending_name = ? LIMIT 1;", name, name);
+
+	return !result.eof();
+}

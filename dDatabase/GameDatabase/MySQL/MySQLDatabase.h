@@ -124,8 +124,9 @@ public:
 	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
-	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 	uint32_t GetAccountCount() override;
+	bool IsNameInUse(const std::string_view name) override;
+	sql::PreparedStatement* CreatePreppedStmt(const std::string& query);
 private:
 
 	// Generic query functions that can be used for any query.

@@ -102,6 +102,8 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
+
+	bool IsNameInUse(const std::string_view name) override { return false; };
 };
 
 #endif  //!TESTSQLDATABASE_H
