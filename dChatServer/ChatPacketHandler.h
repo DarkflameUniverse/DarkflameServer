@@ -2,8 +2,7 @@
 #include "dCommonVars.h"
 #include "dNetCommon.h"
 #include "BitStream.h"
-
-struct PlayerData;
+#include "PlayerContainer.h"
 
 enum class eAddFriendResponseType : uint8_t;
 
@@ -42,6 +41,14 @@ enum class eChatMessageResponseCode : uint8_t {
     NOTFRIENDS,
     SENDERFREETRIAL,
     RECEIVERFREETRIAL,
+};
+
+struct ChatMessage {
+	LUWString message;
+	PlayerData sender;
+	PlayerData receiver;
+	eChatChannel channel;
+	LWOOBJID teamID;
 };
 
 namespace ChatPacketHandler {
