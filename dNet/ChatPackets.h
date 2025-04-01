@@ -11,6 +11,8 @@ struct SystemAddress;
 #include <string>
 #include "dCommonVars.h"
 #include "BitStreamUtils.h"
+#include "MessageType/Chat.h"
+#include "eChatMessageResponseCode.h"
 
 enum class eCannedText : uint8_t {
 	CHAT_DISABLED = 0,
@@ -18,6 +20,8 @@ enum class eCannedText : uint8_t {
 };
 
 namespace ChatPackets {
+	void SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast = false);
+
 	struct ShowAllRequest : public LUBitStream {
 		LWOOBJID requestor = LWOOBJID_EMPTY;
 		bool displayZoneData = true;
@@ -53,6 +57,8 @@ namespace ChatPackets {
 		bool senderMythran;
 		eChatMessageResponseCode responseCode = eChatMessageResponseCode::SENT;
 		LUWString message;
+
+		ChatMessage() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE) {};
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 		virtual bool Deserialize(RakNet::BitStream& inStream) override;
 	};

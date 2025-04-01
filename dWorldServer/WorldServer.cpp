@@ -1319,7 +1319,7 @@ void HandlePacket(Packet* packet) {
 
 	case MessageType::World::GENERAL_CHAT_MESSAGE: {
 		if (chatDisabled) {
-			ChatPackets::SendMessageFail(packet->systemAddress);
+			ChatPackets::MessageFailure().Send(packet->systemAddress);
 		} else {
 			auto chatMessage = ClientPackets::HandleChatMessage(packet);
 			// TODO: Find a good home for the logic in this case.
@@ -1342,7 +1342,16 @@ void HandlePacket(Packet* packet) {
 
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+			//(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+
+			ChatPackets::ChatMessage outChatMessage; 
+			outChatMessage.chatChannel = chatMessage.chatChannel;
+			outChatMessage.message = chatMessage.message;
+			outChatMessage.senderMythran = isMythran;
+			outChatMessage.senderName = playerName;
+			outChatMessage.playerObjectID = user->GetLoggedInChar();
+			outChatMessage.Send(packet->systemAddress);
+
 			{
 				// TODO: make it so we don't write this manually, but instead use a proper read and writes
 				// aka: this is awful and should be fixed, but I can't be bothered to do it right now

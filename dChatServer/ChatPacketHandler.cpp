@@ -366,7 +366,7 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 
 void ChatPacketHandler::HandleWho(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	FindPlayerRequest request;
+	ChatPackets::FindPlayerRequest request;
 	request.Deserialize(inStream);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
@@ -392,7 +392,7 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 
 void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	ShowAllRequest request;
+	ChatPackets::ShowAllRequest request;
 	request.Deserialize(inStream);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);

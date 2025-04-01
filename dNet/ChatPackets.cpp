@@ -46,8 +46,13 @@ namespace ChatPackets {
 		bitStream.Write(playerObjectID); // senderID
 		bitStream.Write<uint16_t>(0); // sourceID
 		bitStream.Write(responseCode);
-		bitStream.Write(message)
+		bitStream.Write(message);
 		
+	}
+
+	bool ChatMessage::Deserialize(RakNet::BitStream& inStream) {
+		//TODO: Implement this
+		return false;
 	}
 
 	void SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {

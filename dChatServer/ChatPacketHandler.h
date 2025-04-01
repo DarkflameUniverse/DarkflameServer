@@ -3,6 +3,7 @@
 #include "dNetCommon.h"
 #include "BitStream.h"
 #include "PlayerContainer.h"
+#include "eChatMessageResponseCode.h"
 
 enum class eAddFriendResponseType : uint8_t;
 
@@ -33,15 +34,6 @@ enum class eChatChannel : uint8_t {
 };
 
 
-enum class eChatMessageResponseCode : uint8_t {
-    SENT = 0,
-    NOTONLINE,
-    GENERALERROR,
-    RECEIVEDNEWWHISPER,
-    NOTFRIENDS,
-    SENDERFREETRIAL,
-    RECEIVERFREETRIAL,
-};
 
 struct ChatMessage {
 	LUWString message;

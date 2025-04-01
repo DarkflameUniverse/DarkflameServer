@@ -51,7 +51,7 @@ void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
 		ChatPackets::Announcement announcement;
 		announcement.title = good_data["title"];
 		announcement.message = good_data["message"];
-		announcement.Send();
+		announcement.Send(UNASSIGNED_SYSTEM_ADDRESS);
 
 		reply.status = eHTTPStatusCode::OK;
 		reply.message = "{\"status\":\"Announcement Sent\"}";
