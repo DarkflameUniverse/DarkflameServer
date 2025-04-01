@@ -6442,4 +6442,18 @@ namespace GameMessages {
 		missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
 		missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
 	}
+
+	void Smash::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(bIgnoreObjectVisibility);
+		stream.Write(force);
+		stream.Write(ghostCapacity);
+		stream.Write(killerID);
+	}
+
+	void UnSmash::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(builderID != LWOOBJID_EMPTY);
+		if (builderID != LWOOBJID_EMPTY) stream.Write(builderID);
+		stream.Write(duration != 3.0f);
+		if (builderID != 3.0f) stream.Write(duration);
+	}
 }

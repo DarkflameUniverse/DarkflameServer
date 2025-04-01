@@ -801,6 +801,26 @@ namespace GameMessages {
 		// Used only for multi-interaction, is of the enum type InteractionType
 		int multiInteractType{};
 	};
+
+	struct Smash : public GameMsg {
+		Smash() : GameMsg(MessageType::Game::SMASH) {}
+
+		void Serialize(RakNet::BitStream& stream) const;
+
+		bool bIgnoreObjectVisibility{};
+		bool force{};
+		float ghostCapacity{};
+		LWOOBJID killerID{};
+	};
+
+	struct UnSmash : public GameMsg {
+		UnSmash() : GameMsg(MessageType::Game::UN_SMASH) {}
+
+		void Serialize(RakNet::BitStream& stream) const;
+
+		LWOOBJID builderID{ LWOOBJID_EMPTY };
+		float duration{ 3.0f };
+	};
 };
 
 #endif // GAMEMESSAGES_H

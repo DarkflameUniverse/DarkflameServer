@@ -98,7 +98,6 @@ void Strip::Spawn(LOT lot, Entity& entity) {
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = entity.GetObjectID();
 	Game::entityManager->ConstructEntity(Game::entityManager->CreateEntity(info, nullptr, &entity));
-	IncrementAction();
 }
 
 // Spawns a specific drop for all
@@ -106,12 +105,17 @@ void Strip::SpawnDrop(LOT dropLOT, Entity& entity) {
 	for (auto* const player : PlayerManager::GetAllPlayers()) {
 		GameMessages::SendDropClientLoot(player, entity.GetObjectID(), dropLOT, 0, entity.GetPosition());
 	}
-	IncrementAction();
 }
 
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
+	m_PausedTime -= deltaTime;
+	if (m_PausedTime > 0.0f) return;
+	m_PausedTime = 0.0f;
 	auto& entity = *modelComponent.GetParent();
-	auto number = static_cast<int32_t>(GetNextAction().GetValueParameterDouble());
+	auto& nextAction = GetNextAction();
+	auto number = nextAction.GetValueParameterDouble();
+	auto numberAsInt = static_cast<int32_t>(number);
+
 	if (GetNextAction().GetType() == "SpawnStromling") {
 		Spawn(10495, entity);
 	} else if (GetNextAction().GetType() == "SpawnPirate") {
@@ -119,12 +123,29 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	} else if (GetNextAction().GetType() == "SpawnRonin") {
 		Spawn(10498, entity);
 	} else if (GetNextAction().GetType() == "DropImagination") {
-		for (; number > 0; number--) SpawnDrop(935, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity);
 	} else if (GetNextAction().GetType() == "DropHealth") {
-		for (; number > 0; number--) SpawnDrop(177, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity);
 	} else if (GetNextAction().GetType() == "DropArmor") {
-		for (; number > 0; number--) SpawnDrop(6431, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity);
+	} else if (GetNextAction().GetType() == "Smash") {
+		GameMessages::Smash smash{};
+		smash.target = entity.GetObjectID();
+		smash.killerID = entity.GetObjectID();
+		smash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	} else if (GetNextAction().GetType() == "UnSmash") {
+		GameMessages::UnSmash unsmash{};
+		unsmash.target = entity.GetObjectID();
+		unsmash.duration = number;
+		unsmash.builderID = LWOOBJID_EMPTY;
+		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	} else if (nextAction.GetType() == "Wait") {
+		m_PausedTime = number;
+	} else {
+		return;
 	}
+
+	IncrementAction();
 }
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {

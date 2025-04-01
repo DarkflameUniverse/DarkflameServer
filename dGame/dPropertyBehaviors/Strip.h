@@ -34,6 +34,7 @@ public:
 	void Update(float deltaTime, ModelComponent& modelComponent);
 	void SpawnDrop(LOT dropLOT, Entity& entity);
 private:
+	float m_PausedTime{ 0.0f };
 	size_t m_NextActionIndex{ 0 };
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
