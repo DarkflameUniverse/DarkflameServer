@@ -4,6 +4,8 @@
 #include "Action.h"
 #include "StripUiPosition.h"
 
+#include "DluAssert.h"
+
 #include <vector>
 
 namespace tinyxml2 {
@@ -11,6 +13,7 @@ namespace tinyxml2 {
 }
 
 class AMFArrayValue;
+class ModelComponent;
 
 class Strip {
 public:
@@ -22,7 +25,16 @@ public:
 
 	void Serialize(tinyxml2::XMLElement& strip) const;
 	void Deserialize(const tinyxml2::XMLElement& strip);
+
+	const std::vector<Action>& GetActions() const { return m_Actions; }
+	const Action& GetNextAction() const { DluAssert(m_NextActionIndex < m_Actions.size()); return m_Actions[m_NextActionIndex]; }
+
+	void IncrementAction();
+	void Spawn(LOT object, Entity& entity);
+	void Update(float deltaTime, ModelComponent& modelComponent);
+	void SpawnDrop(LOT dropLOT, Entity& entity);
 private:
+	size_t m_NextActionIndex{ 0 };
 	std::vector<Action> m_Actions;
 	StripUiPosition m_Position;
 };

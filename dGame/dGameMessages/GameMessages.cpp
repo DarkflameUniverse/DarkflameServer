@@ -4954,54 +4954,6 @@ void GameMessages::HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* e
 	quickBuildComponent->CancelQuickBuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
 }
 
-void GameMessages::HandleRequestUse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bIsMultiInteractUse = false;
-	unsigned int multiInteractID;
-	int multiInteractType;
-	bool secondary;
-	LWOOBJID objectID;
-
-	inStream.Read(bIsMultiInteractUse);
-	inStream.Read(multiInteractID);
-	inStream.Read(multiInteractType);
-	inStream.Read(objectID);
-	inStream.Read(secondary);
-
-	Entity* interactedObject = Game::entityManager->GetEntity(objectID);
-
-	if (interactedObject == nullptr) {
-		LOG("Object %llu tried to interact, but doesn't exist!", objectID);
-
-		return;
-	}
-
-	if (interactedObject->GetLOT() == 9524) {
-		entity->GetCharacter()->SetBuildMode(true);
-	}
-
-	if (bIsMultiInteractUse) {
-		if (multiInteractType == 0) {
-			auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(eReplicaComponentType::MISSION_OFFER));
-
-			if (missionOfferComponent != nullptr) {
-				missionOfferComponent->OfferMissions(entity, multiInteractID);
-			}
-		} else {
-			interactedObject->OnUse(entity);
-		}
-	} else {
-		interactedObject->OnUse(entity);
-	}
-
-	//Perform use task if possible:
-	auto missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
-
-	if (missionComponent == nullptr) return;
-
-	missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
-	missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
-}
-
 void GameMessages::HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity) {
 	int emoteID;
 	LWOOBJID targetID;
@@ -6442,5 +6394,52 @@ namespace GameMessages {
 	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
 		if (handlingEntity) handlingEntity->HandleMsg(*this);
+	}
+
+	bool RequestUse::Deserialize(RakNet::BitStream& stream) {
+		if (!stream.Read(bIsMultiInteractUse)) return false;
+		if (!stream.Read(multiInteractID)) return false;
+		if (!stream.Read(multiInteractType)) return false;
+		if (!stream.Read(object)) return false;
+		if (!stream.Read(secondary)) return false;
+		return true;
+	}
+
+	void RequestUse::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		Entity* interactedObject = Game::entityManager->GetEntity(object);
+
+		if (interactedObject == nullptr) {
+			LOG("Object %llu tried to interact, but doesn't exist!", object);
+
+			return;
+		}
+
+		if (interactedObject->GetLOT() == 9524) {
+			entity.GetCharacter()->SetBuildMode(true);
+		}
+
+		if (bIsMultiInteractUse) {
+			if (multiInteractType == 0) {
+				auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(eReplicaComponentType::MISSION_OFFER));
+
+				if (missionOfferComponent != nullptr) {
+					missionOfferComponent->OfferMissions(&entity, multiInteractID);
+				}
+			} else {
+				interactedObject->OnUse(&entity);
+			}
+		} else {
+			interactedObject->OnUse(&entity);
+		}
+
+		interactedObject->HandleMsg(*this);
+
+		//Perform use task if possible:
+		auto missionComponent = entity.GetComponent<MissionComponent>();
+
+		if (!missionComponent) return;
+
+		missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
+		missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
 	}
 }

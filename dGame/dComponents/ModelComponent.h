@@ -30,6 +30,9 @@ public:
 	ModelComponent(Entity* parent);
 
 	void LoadBehaviors();
+	void Update(float deltaTime) override;
+
+	bool OnRequestUse(GameMessages::GameMsg& msg);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -113,6 +116,8 @@ public:
 	void VerifyBehaviors();
 
 	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
+
+	const std::vector<PropertyBehavior>& GetBehaviors() const { return m_Behaviors; };
 
 private:
 	/**

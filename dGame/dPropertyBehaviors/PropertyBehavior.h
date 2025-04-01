@@ -10,6 +10,7 @@ namespace tinyxml2 {
 enum class BehaviorState : uint32_t;
 
 class AMFArrayValue;
+class ModelComponent;
 
 /**
  * Represents the Entity of a Property Behavior and holds data associated with the behavior
@@ -31,7 +32,16 @@ public:
 
 	void Serialize(tinyxml2::XMLElement& behavior) const;
 	void Deserialize(const tinyxml2::XMLElement& behavior);
+
+	const std::map<BehaviorState, State>& GetStates() const { return m_States; }
+	const State& GetState(const BehaviorState state);
+	const State& GetActiveState() const { return m_States.at(m_ActiveState); }
+	State& GetActiveStateMut() { return m_States.at(m_ActiveState); }
+
+	void Update(float deltaTime, ModelComponent& modelComponent);
 private:
+
+	BehaviorState m_ActiveState;
 
 	// The states this behavior has.
 	std::map<BehaviorState, State> m_States;

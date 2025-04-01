@@ -10,12 +10,26 @@
 #include "SimplePhysicsComponent.h"
 
 #include "Database.h"
+#include "EntityInfo.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+	RegisterMsg(MessageType::Game::REQUEST_USE, this, &ModelComponent::OnRequestUse);
+}
+
+bool ModelComponent::OnRequestUse(GameMessages::GameMsg& msg) {
+	auto& requestUse = static_cast<GameMessages::RequestUse&>(msg);
+	for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);
+	return true;
+}
+
+void ModelComponent::Update(float deltaTime) {
+	for (auto& behavior : m_Behaviors) {
+		behavior.Update(deltaTime, *this);
+	}
 }
 
 void ModelComponent::LoadBehaviors() {
@@ -29,9 +43,9 @@ void ModelComponent::LoadBehaviors() {
 		LOG_DEBUG("Loading behavior %d", behaviorId.value());
 		auto& inserted = m_Behaviors.emplace_back();
 		inserted.SetBehaviorId(*behaviorId);
-		
+
 		const auto behaviorStr = Database::Get()->GetBehavior(behaviorId.value());
-		
+
 		tinyxml2::XMLDocument behaviorXml;
 		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
 		LOG_DEBUG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
@@ -56,14 +70,14 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 
 	//actual model component:
 	outBitStream.Write1(); // Yes we are writing model info
-	outBitStream.Write0(); // Is pickable
+	outBitStream.Write1(); // Is pickable
 	outBitStream.Write<uint32_t>(2); // Physics type
 	outBitStream.Write(m_OriginalPosition); // Original position
 	outBitStream.Write(m_OriginalRotation); // Original rotation
 
 	outBitStream.Write1(); // We are writing behavior info
-	outBitStream.Write<uint32_t>(0); // Number of behaviors
-	outBitStream.Write1(); // Is this model paused
+	outBitStream.Write<uint32_t>(m_Behaviors.size()); // Number of behaviors
+	outBitStream.Write0(); // Is this model paused
 	if (bIsInitialUpdate) outBitStream.Write0(); // We are not writing model editing info
 }
 

@@ -631,7 +631,6 @@ namespace GameMessages {
 	void HandleFireEventServerSide(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleRequestPlatformResync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* entity);
-	void HandleRequestUse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity);
 	void HandleModularBuildConvertModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr);
 	void HandleSetFlag(RakNet::BitStream& inStream, Entity* entity);
@@ -781,6 +780,26 @@ namespace GameMessages {
 		RequestServerObjectInfo() : GameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+	};
+
+	struct RequestUse : public GameMsg {
+		RequestUse() : GameMsg(MessageType::Game::REQUEST_USE) {}
+
+		bool Deserialize(RakNet::BitStream& stream) override;
+		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+
+		LWOOBJID object{};
+
+		bool secondary{ false };
+
+		// Set to true if this coming from a multi-interaction UI on the client.
+		bool bIsMultiInteractUse{};
+
+		// Used only for multi-interaction
+		unsigned int multiInteractID{};
+
+		// Used only for multi-interaction, is of the enum type InteractionType
+		int multiInteractType{};
 	};
 };
 
