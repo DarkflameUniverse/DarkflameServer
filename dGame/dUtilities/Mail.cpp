@@ -181,6 +181,7 @@ namespace Mail {
 
 	void AttachmentCollectRequest::Handle() {
 		AttachmentCollectResponse response;
+		response.mailID = mailID;
 		auto inv = player->GetComponent<InventoryComponent>();
 
 		if (mailID > 0 && playerID == player->GetObjectID() && inv) {
