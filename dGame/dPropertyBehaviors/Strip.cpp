@@ -107,15 +107,11 @@ void Strip::SpawnDrop(LOT dropLOT, Entity& entity) {
 	}
 }
 
-void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
-	m_PausedTime -= deltaTime;
-	if (m_PausedTime > 0.0f) return;
-	m_PausedTime = 0.0f;
+void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto& entity = *modelComponent.GetParent();
 	auto& nextAction = GetNextAction();
 	auto number = nextAction.GetValueParameterDouble();
 	auto numberAsInt = static_cast<int32_t>(number);
-
 	if (GetNextAction().GetType() == "SpawnStromling") {
 		Spawn(10495, entity);
 	} else if (GetNextAction().GetType() == "SpawnPirate") {
@@ -142,10 +138,28 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	} else if (nextAction.GetType() == "Wait") {
 		m_PausedTime = number;
 	} else {
+		LOG("Tried to play action (%s) which is not supported.", nextAction.GetType().data());
 		return;
 	}
 
 	IncrementAction();
+}
+
+void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
+	m_PausedTime -= deltaTime;
+	if (m_PausedTime > 0.0f) return;
+
+	m_PausedTime = 0.0f;
+	auto& entity = *modelComponent.GetParent();
+	auto& nextAction = GetNextAction();
+
+	// Check for starting blocks and if not a starting block proc this blocks action
+	if (nextAction.GetType() == "OnInteract") {
+		modelComponent.SetIsPickable(true);
+		Game::entityManager->SerializeEntity(entity);
+	} else { // should be a normal block
+		ProcNormalAction(deltaTime, modelComponent);
+	}
 }
 
 void Strip::SendBehaviorBlocksToClient(AMFArrayValue& args) const {

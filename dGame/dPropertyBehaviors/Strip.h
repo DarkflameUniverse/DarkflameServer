@@ -33,6 +33,7 @@ public:
 	void Spawn(LOT object, Entity& entity);
 	void Update(float deltaTime, ModelComponent& modelComponent);
 	void SpawnDrop(LOT dropLOT, Entity& entity);
+	void ProcNormalAction(float deltaTime, ModelComponent& modelComponent);
 private:
 	float m_PausedTime{ 0.0f };
 	size_t m_NextActionIndex{ 0 };

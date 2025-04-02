@@ -239,4 +239,6 @@ private:
 	 * The privacy setting before it was changed, saved to set back after a player finishes building
 	 */
 	PropertyPrivacyOption originalPrivacyOption = PropertyPrivacyOption::Private;
+
+	bool m_IsBuilding{};
 };

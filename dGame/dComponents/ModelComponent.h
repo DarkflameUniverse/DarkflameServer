@@ -62,7 +62,7 @@ public:
 
 	/**
 	 * Main gateway for all behavior messages to be passed to their respective behaviors.
-	 * 
+	 *
 	 * @tparam Msg The message type to pass
 	 * @param args the arguments of the message to be deserialized
 	 */
@@ -71,7 +71,7 @@ public:
 		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
 		Msg msg{ args };
 		for (auto&& behavior : m_Behaviors) {
-			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) { 
+			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) {
 				behavior.HandleMsg(msg);
 				return;
 			}
@@ -112,14 +112,24 @@ public:
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 
 	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const;
-	
+
 	void VerifyBehaviors();
 
 	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
 
 	const std::vector<PropertyBehavior>& GetBehaviors() const { return m_Behaviors; };
 
+	void SetIsPickable(bool pickable) { m_Dirty = m_IsPickable == pickable; m_IsPickable = pickable; }
+
+	void Pause() { m_Dirty = true; m_IsPaused = true; }
+
+	void Resume();
 private:
+	bool m_Dirty{};
+
+	bool m_IsPickable{};
+
+	bool m_IsPaused{};
 	/**
 	 * The behaviors of the model
 	 * Note: This is a vector because the order of the behaviors matters when serializing to the client.
