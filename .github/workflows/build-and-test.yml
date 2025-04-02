@@ -14,7 +14,6 @@ jobs:
     strategy:
       matrix:
         os: [ windows-2022, ubuntu-22.04, macos-13 ]
-        cmake: [ 3.25 ]
 
     steps:
     - uses: actions/checkout@v4
@@ -35,6 +34,7 @@ jobs:
       uses: lukka/run-cmake@v10
       with:
         workflowPreset: "ci-${{matrix.os}}"
+        cmake-version: 3.25
     - name: artifacts
       uses: actions/upload-artifact@v4
       with:
