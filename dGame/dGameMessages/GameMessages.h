@@ -829,6 +829,10 @@ namespace GameMessages {
 
 		int32_t soundID{ -1 };
 	};
+
+	struct ResetModelToDefaults : public GameMsg {
+		ResetModelToDefaults() : GameMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS) {}
+	};
 };
 
 #endif // GAMEMESSAGES_H

@@ -20,6 +20,17 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 	RegisterMsg(MessageType::Game::REQUEST_USE, this, &ModelComponent::OnRequestUse);
+	RegisterMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS, this, &ModelComponent::OnResetModelToDefaults);
+}
+
+bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
+	auto& reset = static_cast<GameMessages::ResetModelToDefaults&>(msg);
+	for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
+	GameMessages::UnSmash unsmash;
+	unsmash.target = GetParent()->GetObjectID();
+	unsmash.duration = 0.0f;
+	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	return true;
 }
 
 bool ModelComponent::OnRequestUse(GameMessages::GameMsg& msg) {

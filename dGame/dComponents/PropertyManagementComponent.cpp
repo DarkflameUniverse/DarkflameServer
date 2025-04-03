@@ -262,6 +262,9 @@ void PropertyManagementComponent::OnStartBuilding() {
 			auto* modelComponent = model->GetComponent<ModelComponent>();
 			if (modelComponent) modelComponent->Pause();
 			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
 		}
 	}
 }
@@ -285,6 +288,9 @@ void PropertyManagementComponent::OnFinishBuilding() {
 			auto* modelComponent = model->GetComponent<ModelComponent>();
 			if (modelComponent) modelComponent->Resume();
 			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
 		}
 	}
 }

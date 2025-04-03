@@ -88,6 +88,13 @@ void Strip::HandleMsg(GameMessages::RequestUse& msg) {
 	}
 }
 
+template<>
+void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
+	m_WaitingForAction = false;
+	m_PausedTime = 0.0f;
+	m_NextActionIndex = 0;
+}
+
 void Strip::IncrementAction() {
 	if (m_Actions.empty()) return;
 	m_NextActionIndex++;

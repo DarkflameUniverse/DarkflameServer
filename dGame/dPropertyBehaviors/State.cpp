@@ -122,6 +122,11 @@ void State::HandleMsg(GameMessages::RequestUse& msg) {
 	for (auto& strip : m_Strips) strip.HandleMsg(msg);
 }
 
+template<>
+void State::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
+	for (auto& strip : m_Strips) strip.HandleMsg(msg);
+}
+
 bool State::IsEmpty() const {
 	for (const auto& strip : m_Strips) {
 		if (!strip.IsEmpty()) return false;

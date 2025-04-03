@@ -93,6 +93,12 @@ void PropertyBehavior::HandleMsg(GameMessages::RequestUse& msg) {
 	m_States[m_ActiveState].HandleMsg(msg);
 }
 
+template<>
+void PropertyBehavior::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
+	m_ActiveState = BehaviorState::HOME_STATE;
+	for (auto& state : m_States | std::views::values) state.HandleMsg(msg);
+}
+
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) const {
 	args.Insert("id", std::to_string(m_BehaviorId));
 	args.Insert("name", m_Name);
