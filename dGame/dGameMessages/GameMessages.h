@@ -821,6 +821,14 @@ namespace GameMessages {
 		LWOOBJID builderID{ LWOOBJID_EMPTY };
 		float duration{ 3.0f };
 	};
+
+	struct PlayBehaviorSound : public GameMsg {
+		PlayBehaviorSound() : GameMsg(MessageType::Game::PLAY_BEHAVIOR_SOUND) {}
+
+		void Serialize(RakNet::BitStream& stream) const;
+
+		int32_t soundID{ -1 };
+	};
 };
 
 #endif // GAMEMESSAGES_H

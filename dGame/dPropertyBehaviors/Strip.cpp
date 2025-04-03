@@ -115,34 +115,44 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto& nextAction = GetNextAction();
 	auto number = nextAction.GetValueParameterDouble();
 	auto numberAsInt = static_cast<int32_t>(number);
-	if (GetNextAction().GetType() == "SpawnStromling") {
+	auto nextActionType = GetNextAction().GetType();
+	if (nextActionType == "SpawnStromling") {
 		Spawn(10495, entity);
-	} else if (GetNextAction().GetType() == "SpawnPirate") {
+	} else if (nextActionType == "SpawnPirate") {
 		Spawn(10497, entity);
-	} else if (GetNextAction().GetType() == "SpawnRonin") {
+	} else if (nextActionType == "SpawnRonin") {
 		Spawn(10498, entity);
-	} else if (GetNextAction().GetType() == "DropImagination") {
+	} else if (nextActionType == "DropImagination") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity);
-	} else if (GetNextAction().GetType() == "DropHealth") {
+	} else if (nextActionType == "DropHealth") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity);
-	} else if (GetNextAction().GetType() == "DropArmor") {
+	} else if (nextActionType == "DropArmor") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity);
-	} else if (GetNextAction().GetType() == "Smash") {
+	} else if (nextActionType == "Smash") {
 		GameMessages::Smash smash{};
 		smash.target = entity.GetObjectID();
 		smash.killerID = entity.GetObjectID();
 		smash.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	} else if (GetNextAction().GetType() == "UnSmash") {
+	} else if (nextActionType == "UnSmash") {
 		GameMessages::UnSmash unsmash{};
 		unsmash.target = entity.GetObjectID();
 		unsmash.duration = number;
 		unsmash.builderID = LWOOBJID_EMPTY;
 		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
 		m_PausedTime = number;
-	} else if (nextAction.GetType() == "Wait") {
+	} else if (nextActionType == "Wait") {
 		m_PausedTime = number;
+	} else if (nextActionType == "PlaySound") {
+		GameMessages::PlayBehaviorSound sound;
+		sound.target = modelComponent.GetParent()->GetObjectID();
+		sound.soundID = numberAsInt;
+		sound.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else {
-		LOG("Tried to play action (%s) which is not supported.", nextAction.GetType().data());
+		static std::set<std::string> g_PlayedSounds;
+		if (!g_PlayedSounds.contains(nextActionType.data())) {
+			LOG("Tried to play action (%s) which is not supported.", nextActionType.data());
+			g_PlayedSounds.insert(nextActionType.data());
+		}
 		return;
 	}
 
@@ -174,10 +184,13 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	RemoveStates(modelComponent);
 
 	// Check for starting blocks and if not a starting block proc this blocks action
-	if (nextAction.GetType() == "OnInteract") {
-		modelComponent.AddInteract();
-		Game::entityManager->SerializeEntity(entity);
-		m_WaitingForAction = true;
+	if (m_NextActionIndex == 0) {
+		if (nextAction.GetType() == "OnInteract") {
+			modelComponent.AddInteract();
+			Game::entityManager->SerializeEntity(entity);
+			m_WaitingForAction = true;
+
+		}
 	} else { // should be a normal block
 		ProcNormalAction(deltaTime, modelComponent);
 	}

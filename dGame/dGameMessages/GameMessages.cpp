@@ -6456,4 +6456,9 @@ namespace GameMessages {
 		stream.Write(duration != 3.0f);
 		if (builderID != 3.0f) stream.Write(duration);
 	}
+
+	void PlayBehaviorSound::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(soundID != -1);
+		if (soundID != -1) stream.Write(soundID);
+	}
 }
