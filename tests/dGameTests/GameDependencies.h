@@ -7,8 +7,9 @@
 #include "CDClientManager.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
-#include "dConfig.h"
 #include "dZoneManager.h"
+#include "dConfig.h"
+#include "WorldConfig.h"
 #include "GameDatabase/TestSQL/TestSQLDatabase.h"
 #include "Database.h"
 #include <gtest/gtest.h>
@@ -41,6 +42,11 @@ protected:
 		Game::zoneManager = new dZoneManager();
 		Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
 		Database::_setDatabase(new TestSQLDatabase()); // this new is managed by the Database
+
+		// Set up world config
+		auto worldConfig = new WorldConfig();
+		worldConfig->petFollowRadius = 10.0f;
+		Game::zoneManager->SetWorldConfig(worldConfig);
 
 		// Create a CDClientManager instance and load from defaults
 		CDClientManager::LoadValuesFromDefaults();

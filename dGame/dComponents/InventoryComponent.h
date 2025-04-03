@@ -339,7 +339,7 @@ public:
 	 * @param id the id of the pet to find
 	 * @param data the data to store on the pet
 	 */
-	void SetDatabasePet(LWOOBJID id, const DatabasePet& data);
+	void SetDatabasePet(LWOOBJID id, DatabasePet&& data);
 
 	/**
 	 * Returns the database pet information for an object
