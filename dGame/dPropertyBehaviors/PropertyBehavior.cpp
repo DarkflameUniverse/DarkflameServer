@@ -169,11 +169,6 @@ void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
 	}
 }
 
-const State& PropertyBehavior::GetState(const BehaviorState state) {
-	DluAssert(state >= BehaviorState::HOME_STATE && state <= BehaviorState::STAR_STATE);
-	return m_States[state];
-}
-
 void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
 	for (auto& state : m_States | std::views::values) state.Update(deltaTime, modelComponent);
 }

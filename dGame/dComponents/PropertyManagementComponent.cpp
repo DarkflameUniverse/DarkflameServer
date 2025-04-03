@@ -221,8 +221,6 @@ bool PropertyManagementComponent::Claim(const LWOOBJID playerId) {
 }
 
 void PropertyManagementComponent::OnStartBuilding() {
-	m_IsBuilding = true;
-
 	auto* ownerEntity = GetOwner();
 
 	if (ownerEntity == nullptr) return;
@@ -270,8 +268,6 @@ void PropertyManagementComponent::OnStartBuilding() {
 }
 
 void PropertyManagementComponent::OnFinishBuilding() {
-	m_IsBuilding = false;
-
 	auto* ownerEntity = GetOwner();
 
 	if (ownerEntity == nullptr) return;

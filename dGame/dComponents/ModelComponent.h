@@ -127,10 +127,13 @@ public:
 
 	void Resume();
 private:
+	// Whether or not this component needs to have its extra data serialized.
 	bool m_Dirty{};
 
+	// The number of strips listening for a RequestUse GM to come in.
 	uint32_t m_NumListeningInteract{};
 
+	// Whether or not the model is paused and should reject all interactions regarding behaviors.
 	bool m_IsPaused{};
 	/**
 	 * The behaviors of the model

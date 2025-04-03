@@ -4,8 +4,6 @@
 #include "Action.h"
 #include "StripUiPosition.h"
 
-#include "DluAssert.h"
-
 #include <vector>
 
 namespace tinyxml2 {
@@ -26,8 +24,7 @@ public:
 	void Serialize(tinyxml2::XMLElement& strip) const;
 	void Deserialize(const tinyxml2::XMLElement& strip);
 
-	const std::vector<Action>& GetActions() const { return m_Actions; }
-	const Action& GetNextAction() const { DluAssert(m_NextActionIndex < m_Actions.size()); return m_Actions[m_NextActionIndex]; }
+	const Action& GetNextAction() const;
 	const Action& GetPreviousAction() const;
 
 	void IncrementAction();
@@ -37,10 +34,19 @@ public:
 	void ProcNormalAction(float deltaTime, ModelComponent& modelComponent);
 	void RemoveStates(ModelComponent& modelComponent) const;
 private:
+	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };
+
+	// The amount of time this strip is paused for.  Any interactions with this strip should be bounced if this is greater than 0.
 	float m_PausedTime{ 0.0f };
+
+	// The index of the next action to be played. This should always be within range of [0, m_Actions.size()).
 	size_t m_NextActionIndex{ 0 };
+
+	// The list of actions to be executed on this behavior.
 	std::vector<Action> m_Actions;
+
+	// The location of this strip on the UGBehaviorEditor UI
 	StripUiPosition m_Position;
 };
 

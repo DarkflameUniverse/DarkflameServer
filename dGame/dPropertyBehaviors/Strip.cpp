@@ -7,6 +7,8 @@
 #include "ModelComponent.h"
 #include "PlayerManager.h"
 
+#include "DluAssert.h"
+
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
 	m_Actions = msg.GetActionsToAdd();
@@ -105,7 +107,7 @@ void Strip::IncrementAction() {
 
 void Strip::Spawn(LOT lot, Entity& entity) {
 	EntityInfo info{};
-	info.lot = lot; // Dark Ronin property
+	info.lot = lot;
 	info.pos = entity.GetPosition();
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = entity.GetObjectID();
@@ -126,17 +128,17 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto numberAsInt = static_cast<int32_t>(number);
 	auto nextActionType = GetNextAction().GetType();
 	if (nextActionType == "SpawnStromling") {
-		Spawn(10495, entity);
+		Spawn(10495, entity); // Stromling property
 	} else if (nextActionType == "SpawnPirate") {
-		Spawn(10497, entity);
+		Spawn(10497, entity); // Maelstrom Pirate property
 	} else if (nextActionType == "SpawnRonin") {
-		Spawn(10498, entity);
+		Spawn(10498, entity); // Dark Ronin property
 	} else if (nextActionType == "DropImagination") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
 	} else if (nextActionType == "DropHealth") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity); // 1 Life powerup
 	} else if (nextActionType == "DropArmor") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity);
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
 	} else if (nextActionType == "Smash") {
 		GameMessages::Smash smash{};
 		smash.target = entity.GetObjectID();
@@ -157,10 +159,10 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		sound.soundID = numberAsInt;
 		sound.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else {
-		static std::set<std::string> g_PlayedSounds;
-		if (!g_PlayedSounds.contains(nextActionType.data())) {
+		static std::set<std::string> g_WarnedActions;
+		if (!g_WarnedActions.contains(nextActionType.data())) {
 			LOG("Tried to play action (%s) which is not supported.", nextActionType.data());
-			g_PlayedSounds.insert(nextActionType.data());
+			g_WarnedActions.insert(nextActionType.data());
 		}
 		return;
 	}
@@ -233,6 +235,10 @@ void Strip::Deserialize(const tinyxml2::XMLElement& strip) {
 		auto& action = m_Actions.emplace_back();
 		action.Deserialize(*actionElement);
 	}
+}
+
+const Action& Strip::GetNextAction() const {
+	DluAssert(m_NextActionIndex < m_Actions.size()); return m_Actions[m_NextActionIndex];
 }
 
 const Action& Strip::GetPreviousAction() const {

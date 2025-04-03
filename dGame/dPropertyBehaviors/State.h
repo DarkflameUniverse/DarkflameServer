@@ -21,11 +21,10 @@ public:
 	void Serialize(tinyxml2::XMLElement& state) const;
 	void Deserialize(const tinyxml2::XMLElement& state);
 
-	const std::vector<Strip>& GetStrips() const { return m_Strips; }
-	std::vector<Strip>& GetStripsMut() { return m_Strips; }
-
 	void Update(float deltaTime, ModelComponent& modelComponent);
 private:
+
+	// The strips contained within this state.
 	std::vector<Strip> m_Strips;
 };
 

@@ -10,6 +10,7 @@
 #include "SimplePhysicsComponent.h"
 
 #include "Database.h"
+#include "DluAssert.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
@@ -36,9 +37,14 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 }
 
 bool ModelComponent::OnRequestUse(GameMessages::GameMsg& msg) {
-	auto& requestUse = static_cast<GameMessages::RequestUse&>(msg);
-	for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);
-	return true;
+	bool toReturn = false;
+	if (!m_IsPaused) {
+		auto& requestUse = static_cast<GameMessages::RequestUse&>(msg);
+		for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);
+		toReturn = true;
+	}
+
+	return toReturn;
 }
 
 void ModelComponent::Update(float deltaTime) {

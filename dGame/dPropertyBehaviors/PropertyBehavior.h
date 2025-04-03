@@ -33,14 +33,10 @@ public:
 	void Serialize(tinyxml2::XMLElement& behavior) const;
 	void Deserialize(const tinyxml2::XMLElement& behavior);
 
-	const std::map<BehaviorState, State>& GetStates() const { return m_States; }
-	const State& GetState(const BehaviorState state);
-	const State& GetActiveState() const { return m_States.at(m_ActiveState); }
-	State& GetActiveStateMut() { return m_States.at(m_ActiveState); }
-
 	void Update(float deltaTime, ModelComponent& modelComponent);
-private:
 
+private:
+	// The current active behavior state. Behaviors can only be in ONE state at a time.
 	BehaviorState m_ActiveState;
 
 	// The states this behavior has.
