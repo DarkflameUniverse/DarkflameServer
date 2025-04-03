@@ -253,6 +253,18 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	// Push equipped items
 	if (inventoryComponent) inventoryComponent->PushEquippedItems();
+
+	for (auto modelID : models | std::views::keys) {
+		auto* model = Game::entityManager->GetEntity(modelID);
+		if (model) {
+			auto* modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Pause();
+			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
+		}
+	}
 }
 
 void PropertyManagementComponent::OnFinishBuilding() {
@@ -265,6 +277,18 @@ void PropertyManagementComponent::OnFinishBuilding() {
 	UpdateApprovedStatus(false);
 
 	Save();
+
+	for (auto modelID : models | std::views::keys) {
+		auto* model = Game::entityManager->GetEntity(modelID);
+		if (model) {
+			auto* modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Resume();
+			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
+		}
+	}
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
@@ -316,6 +340,8 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		Entity* newEntity = Game::entityManager->CreateEntity(info);
 		if (newEntity != nullptr) {
 			Game::entityManager->ConstructEntity(newEntity);
+			auto* modelComponent = newEntity->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Pause();
 
 			// Make sure the propMgmt doesn't delete our model after the server dies
 			// Trying to do this after the entity is constructed. Shouldn't really change anything but
@@ -361,6 +387,8 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
 
 		auto* model = spawner->Spawn();
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) modelComponent->Pause();
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
