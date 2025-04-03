@@ -140,16 +140,20 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	} else if (nextActionType == "DropArmor") {
 		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
 	} else if (nextActionType == "Smash") {
-		GameMessages::Smash smash{};
-		smash.target = entity.GetObjectID();
-		smash.killerID = entity.GetObjectID();
-		smash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		if (!modelComponent.IsUnSmashing()) {
+			GameMessages::Smash smash{};
+			smash.target = entity.GetObjectID();
+			smash.killerID = entity.GetObjectID();
+			smash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		}
 	} else if (nextActionType == "UnSmash") {
 		GameMessages::UnSmash unsmash{};
 		unsmash.target = entity.GetObjectID();
 		unsmash.duration = number;
 		unsmash.builderID = LWOOBJID_EMPTY;
 		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		modelComponent.AddUnSmash();
+
 		m_PausedTime = number;
 	} else if (nextActionType == "Wait") {
 		m_PausedTime = number;
@@ -172,12 +176,14 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 
 // Decrement references to the previous state if we have progressed to the next one.
 void Strip::RemoveStates(ModelComponent& modelComponent) const {
-	// Starting blocks can only be at index one, don't bother trying to remove them otherwise.
-	if (m_NextActionIndex != 1) return;
+	const auto& prevAction = GetPreviousAction();
+	const auto prevActionType = prevAction.GetType();
 
-	if (GetPreviousAction().GetType() == "OnInteract") {
+	if (prevActionType == "OnInteract") {
 		modelComponent.RemoveInteract();
 		Game::entityManager->SerializeEntity(modelComponent.GetParent());
+	} else if (prevActionType == "UnSmash") {
+		modelComponent.RemoveUnSmash();
 	}
 }
 

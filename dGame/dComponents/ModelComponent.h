@@ -125,8 +125,15 @@ public:
 
 	void Pause() { m_Dirty = true; m_IsPaused = true; }
 
+	void AddUnSmash();
+	void RemoveUnSmash();
+	bool IsUnSmashing() const { return m_NumActiveUnSmash != 0; }
+
 	void Resume();
 private:
+	// Number of Actions that are awaiting an UnSmash to finish.
+	uint32_t m_NumActiveUnSmash{};
+
 	// Whether or not this component needs to have its extra data serialized.
 	bool m_Dirty{};
 

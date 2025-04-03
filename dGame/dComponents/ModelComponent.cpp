@@ -31,6 +31,7 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	unsmash.duration = 0.0f;
 	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	m_NumListeningInteract = 0;
+	m_NumActiveUnSmash = 0;
 	m_Dirty = true;
 	Game::entityManager->SerializeEntity(GetParent());
 	return true;
@@ -179,7 +180,7 @@ std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSa
 }
 
 void ModelComponent::AddInteract() {
-	LOG_DEBUG("adding interact %i", m_NumListeningInteract);
+	LOG_DEBUG("Adding interact %i", m_NumListeningInteract);
 	m_Dirty = true;
 	m_NumListeningInteract++;
 }
@@ -189,4 +190,16 @@ void ModelComponent::RemoveInteract() {
 	LOG_DEBUG("Removing interact %i", m_NumListeningInteract);
 	m_Dirty = true;
 	m_NumListeningInteract--;
+}
+
+void ModelComponent::AddUnSmash() {
+	LOG_DEBUG("Adding UnSmash %i", m_NumActiveUnSmash);
+	m_NumActiveUnSmash++;
+}
+
+void ModelComponent::RemoveUnSmash() {
+	// Players can assign an UnSmash without a Smash so an assert would be bad here
+	if (m_NumActiveUnSmash == 0) return;
+	LOG_DEBUG("Removing UnSmash %i", m_NumActiveUnSmash);
+	m_NumActiveUnSmash--;
 }
