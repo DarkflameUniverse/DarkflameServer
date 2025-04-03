@@ -24,7 +24,7 @@ public:
 	void ReadWordlistPlaintext(const std::string& filepath, bool allowList);
 	bool ReadWordlistDCF(const std::string& filepath, bool allowList);
 	void ExportWordlistToDCF(const std::string& filepath, bool allowList);
-	std::vector<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList = true);
+	std::set<std::pair<uint8_t, uint8_t>> IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList = true);
 
 private:
 	bool m_DontGenerateDCF;

@@ -19,6 +19,8 @@
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
+#include "json.hpp"
+#include "ChatWeb.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:
@@ -364,7 +366,7 @@ void ChatPacketHandler::HandleGMLevelUpdate(Packet* packet) {
 
 void ChatPacketHandler::HandleWho(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	FindPlayerRequest request;
+	ChatPackets::FindPlayerRequest request;
 	request.Deserialize(inStream);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
@@ -390,7 +392,7 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 
 void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	ShowAllRequest request;
+	ChatPackets::ShowAllRequest request;
 	request.Deserialize(inStream);
 
 	const auto& sender = Game::playerContainer.GetPlayerData(request.requestor);
@@ -426,97 +428,109 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
-	LWOOBJID playerID;
-	inStream.Read(playerID);
+	ChatMessage data;
+	LWOOBJID sender;
+	inStream.Read(sender);
+	LOG("Got a message from player %llu", sender);
 
-	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
-	if (!sender || sender.GetIsMuted()) return;
+	data.sender = Game::playerContainer.GetPlayerData(sender);
+	if (!data.sender || data.sender.GetIsMuted()) return;
 
-	eChatChannel channel;
 	uint32_t size;
 
 	inStream.IgnoreBytes(4);
-	inStream.Read(channel);
+	inStream.Read(data.channel);
 	inStream.Read(size);
 	inStream.IgnoreBytes(77);
 
-	LUWString message(size);
-	inStream.Read(message);
+	data.message = LUWString(size);
+	inStream.Read(data.message);
 
-	LOG("Got a message from (%s) via [%s]: %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
-
-	switch (channel) {
+	LOG("Got message from (%s) via [%s]: %s", data.sender.playerName.c_str(), StringifiedEnum::ToString(data.channel).data(), data.message.GetAsString().c_str());
+	
+	
+	switch (data.channel) {
+	case eChatChannel::LOCAL: {
+		break;
+	}
 	case eChatChannel::TEAM: {
-		auto* team = Game::playerContainer.GetTeam(playerID);
+		auto* team = Game::playerContainer.GetTeam(data.sender.playerID);
 		if (team == nullptr) return;
+		data.teamID = team->teamID;
 
 		for (const auto memberId : team->memberIDs) {
 			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
 			if (!otherMember) return;
-			SendPrivateChatMessage(sender, otherMember, otherMember, message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
+			SendPrivateChatMessage(data.sender, otherMember, otherMember, data.message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
 		}
 		break;
 	}
 	default:
-		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(channel).data());
+		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(data.channel).data());
 		break;
 	}
+	ChatWeb::SendWSChatMessage(data);
 }
 
 // the structure the client uses to send this packet is shared in many chat messages
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
+	ChatMessage data;
+	data.channel = eChatChannel::GENERAL;
+
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID playerID;
 	inStream.Read(playerID);
 
-	const auto& sender = Game::playerContainer.GetPlayerData(playerID);
-	if (!sender || sender.GetIsMuted()) return;
+	data.sender = Game::playerContainer.GetPlayerData(playerID);
+	if (!data.sender || data.sender.GetIsMuted()) return;
 
-	eChatChannel channel;
 	uint32_t size;
-	LUWString LUReceiverName;
 
 	inStream.IgnoreBytes(4);
-	inStream.Read(channel);
-	if (channel != eChatChannel::PRIVATE_CHAT) LOG("WARNING: Received Private chat with the wrong channel!");
+	inStream.Read(data.channel);
+	if (data.channel != eChatChannel::PRIVATE_CHAT) LOG("WARNING: Received Private chat with the wrong channel!");
 
 	inStream.Read(size);
 	inStream.IgnoreBytes(77);
 
+	LUWString LUReceiverName;
 	inStream.Read(LUReceiverName);
 	auto receiverName = LUReceiverName.GetAsString();
 	inStream.IgnoreBytes(2);
 
-	LUWString message(size);
-	inStream.Read(message);
+	data.message = LUWString(size);
+	inStream.Read(data.message);
 
-	LOG("Got a message from (%s) via [%s]: %s to %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str(), receiverName.c_str());
+	LOG("Got a message from (%s) via [%s]: %s to %s", data.sender.playerName.c_str(), StringifiedEnum::ToString(data.channel).data(), data.message.GetAsString().c_str(), receiverName.c_str());
 
-	const auto& receiver = Game::playerContainer.GetPlayerData(receiverName);
-	if (!receiver) {
+	data.receiver = Game::playerContainer.GetPlayerData(receiverName);
+	if (!data.receiver) {
 		PlayerData otherPlayer;
 		otherPlayer.playerName = receiverName;
 		auto responseType = Database::Get()->GetCharacterInfo(receiverName)
 			? eChatMessageResponseCode::NOTONLINE
 			: eChatMessageResponseCode::GENERALERROR;
 
-		SendPrivateChatMessage(sender, otherPlayer, sender, message, eChatChannel::GENERAL, responseType);
+		SendPrivateChatMessage(data.sender, otherPlayer, data.sender, data.message, data.channel, responseType);
 		return;
 	}
 
 	// Check to see if they are friends
 	// only freinds can whispr each other
-	for (const auto& fr : receiver.friends) {
-		if (fr.friendID == sender.playerID) {
-			//To the sender:
-			SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::SENT);
-			//To the receiver:
-			SendPrivateChatMessage(sender, receiver, receiver, message, eChatChannel::PRIVATE_CHAT, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
+	for (const auto& fr : data.receiver.friends) {
+		if (fr.friendID == data.sender.playerID) {
+			data.channel = eChatChannel::PRIVATE_CHAT;
+			// To the sender:
+			SendPrivateChatMessage(data.sender, data.receiver, data.sender, data.message, data.channel, eChatMessageResponseCode::SENT);
+			// To the receiver:
+			SendPrivateChatMessage(data.sender, data.receiver, data.receiver, data.message, data.channel, eChatMessageResponseCode::RECEIVEDNEWWHISPER);
+			// To the websocket:
+			ChatWeb::SendWSChatMessage(data);
 			return;
 		}
 	}
-	SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::GENERAL, eChatMessageResponseCode::NOTFRIENDS);
+	SendPrivateChatMessage(data.sender, data.receiver, data.sender, data.message, data.channel, eChatMessageResponseCode::NOTFRIENDS);
 }
 
 void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode) {
