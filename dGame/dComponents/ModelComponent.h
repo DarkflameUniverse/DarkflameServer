@@ -119,7 +119,8 @@ public:
 
 	const std::vector<PropertyBehavior>& GetBehaviors() const { return m_Behaviors; };
 
-	void SetIsPickable(bool pickable) { m_Dirty = m_IsPickable == pickable; m_IsPickable = pickable; }
+	void AddInteract();
+	void RemoveInteract();
 
 	void Pause() { m_Dirty = true; m_IsPaused = true; }
 
@@ -127,7 +128,7 @@ public:
 private:
 	bool m_Dirty{};
 
-	bool m_IsPickable{};
+	uint32_t m_NumListeningInteract{};
 
 	bool m_IsPaused{};
 	/**

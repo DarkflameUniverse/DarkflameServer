@@ -28,13 +28,16 @@ public:
 
 	const std::vector<Action>& GetActions() const { return m_Actions; }
 	const Action& GetNextAction() const { DluAssert(m_NextActionIndex < m_Actions.size()); return m_Actions[m_NextActionIndex]; }
+	const Action& GetPreviousAction() const;
 
 	void IncrementAction();
 	void Spawn(LOT object, Entity& entity);
 	void Update(float deltaTime, ModelComponent& modelComponent);
 	void SpawnDrop(LOT dropLOT, Entity& entity);
 	void ProcNormalAction(float deltaTime, ModelComponent& modelComponent);
+	void RemoveStates(ModelComponent& modelComponent) const;
 private:
+	bool m_WaitingForAction{ false };
 	float m_PausedTime{ 0.0f };
 	size_t m_NextActionIndex{ 0 };
 	std::vector<Action> m_Actions;

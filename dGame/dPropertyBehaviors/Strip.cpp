@@ -82,7 +82,10 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 
 template<>
 void Strip::HandleMsg(GameMessages::RequestUse& msg) {
-	if (m_Actions[m_NextActionIndex].GetType() == "OnInteract") IncrementAction();
+	if (m_Actions[m_NextActionIndex].GetType() == "OnInteract") {
+		IncrementAction();
+		m_WaitingForAction = false;
+	}
 }
 
 void Strip::IncrementAction() {
@@ -135,6 +138,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		unsmash.duration = number;
 		unsmash.builderID = LWOOBJID_EMPTY;
 		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		m_PausedTime = number;
 	} else if (nextAction.GetType() == "Wait") {
 		m_PausedTime = number;
 	} else {
@@ -145,18 +149,35 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	IncrementAction();
 }
 
+// Decrement references to the previous state if we have progressed to the next one.
+void Strip::RemoveStates(ModelComponent& modelComponent) const {
+	// Starting blocks can only be at index one, don't bother trying to remove them otherwise.
+	if (m_NextActionIndex != 1) return;
+
+	if (GetPreviousAction().GetType() == "OnInteract") {
+		modelComponent.RemoveInteract();
+		Game::entityManager->SerializeEntity(modelComponent.GetParent());
+	}
+}
+
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	m_PausedTime -= deltaTime;
 	if (m_PausedTime > 0.0f) return;
 
 	m_PausedTime = 0.0f;
+
+	if (m_WaitingForAction) return;
+
 	auto& entity = *modelComponent.GetParent();
 	auto& nextAction = GetNextAction();
 
+	RemoveStates(modelComponent);
+
 	// Check for starting blocks and if not a starting block proc this blocks action
 	if (nextAction.GetType() == "OnInteract") {
-		modelComponent.SetIsPickable(true);
+		modelComponent.AddInteract();
 		Game::entityManager->SerializeEntity(entity);
+		m_WaitingForAction = true;
 	} else { // should be a normal block
 		ProcNormalAction(deltaTime, modelComponent);
 	}
@@ -190,4 +211,10 @@ void Strip::Deserialize(const tinyxml2::XMLElement& strip) {
 		auto& action = m_Actions.emplace_back();
 		action.Deserialize(*actionElement);
 	}
+}
+
+const Action& Strip::GetPreviousAction() const {
+	DluAssert(m_NextActionIndex < m_Actions.size());
+	size_t index = m_NextActionIndex == 0 ? m_Actions.size() - 1 : m_NextActionIndex - 1;
+	return m_Actions[index];
 }

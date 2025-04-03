@@ -16,7 +16,7 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 	m_IsPaused = false;
-	m_IsPickable = false;
+	m_NumListeningInteract = 0;
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 	RegisterMsg(MessageType::Game::REQUEST_USE, this, &ModelComponent::OnRequestUse);
@@ -79,7 +79,7 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 
 	//actual model component:
 	outBitStream.Write1(); // Yes we are writing model info
-	outBitStream.Write(m_IsPickable); // Is pickable
+	outBitStream.Write(m_NumListeningInteract > 0); // Is pickable
 	outBitStream.Write<uint32_t>(2); // Physics type
 	outBitStream.Write(m_OriginalPosition); // Original position
 	outBitStream.Write(m_OriginalRotation); // Original rotation
@@ -157,4 +157,17 @@ std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSa
 		behaviorData = printer.CStr();
 	}
 	return toReturn;
+}
+
+void ModelComponent::AddInteract() {
+	LOG("adding interact %i", m_NumListeningInteract);
+	m_Dirty = true;
+	m_NumListeningInteract++;
+}
+
+void ModelComponent::RemoveInteract() {
+	DluAssert(m_NumListeningInteract > 0);
+	LOG("Removing interact %i", m_NumListeningInteract);
+	m_Dirty = true;
+	m_NumListeningInteract--;
 }
