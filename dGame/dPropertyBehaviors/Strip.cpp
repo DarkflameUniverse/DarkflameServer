@@ -82,6 +82,8 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 
 template<>
 void Strip::HandleMsg(GameMessages::RequestUse& msg) {
+	if (m_PausedTime > 0.0f) return;
+
 	if (m_Actions[m_NextActionIndex].GetType() == "OnInteract") {
 		IncrementAction();
 		m_WaitingForAction = false;
