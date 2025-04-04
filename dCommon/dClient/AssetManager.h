@@ -54,6 +54,7 @@ struct AssetStream : std::istream {
 	}
 
 	operator bool() {
+		// NEED TO FIX THIS
 		return reinterpret_cast<AssetMemoryBuffer*>(rdbuf())->m_Success;
 	}
 };

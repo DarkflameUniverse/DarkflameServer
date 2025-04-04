@@ -82,6 +82,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 			LWOOBJID_EMPTY, "", senderSysAddr);
 		scriptedActivityComponent->RemoveActivityPlayerData(senderId);
 	} else if (args == "course_finish") {
+
 		const auto raceEndTime = Game::server->GetUptime();
 		const auto fRaceEndTime = std::chrono::duration<float, std::ratio<1>>(raceEndTime).count();
 		const auto raceTimeElapsed = fRaceEndTime - data->values[1];
