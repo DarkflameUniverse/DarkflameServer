@@ -273,6 +273,16 @@ Instance* InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID
 	return nullptr;
 }
 
+Instance* InstanceManager::FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID) {
+	for (Instance* i : m_Instances) {
+		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
+			return i;
+		}
+	}
+
+	return nullptr;
+}
+
 Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password) {
 	auto* instance = FindPrivateInstance(password);
 

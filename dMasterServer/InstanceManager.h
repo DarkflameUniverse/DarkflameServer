@@ -125,6 +125,7 @@ public:
 
 	Instance* FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId = 0);
 	Instance* FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);
+	Instance* FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID);
 
 	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	Instance* FindPrivateInstance(const std::string& password);
