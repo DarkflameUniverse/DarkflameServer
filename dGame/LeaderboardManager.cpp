@@ -268,6 +268,9 @@ void Leaderboard::Send(const LWOOBJID targetID) const {
 }
 
 void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore, const float tertiaryScore) {
+	const auto* const playerEntity = Game::entityManager->GetEntity(playerID);
+	if (playerEntity && playerEntity->GetVar<bool>(u"cheated_score")) return;
+
 	const Leaderboard::Type leaderboardType = GetLeaderboardType(activityId);
 
 	const auto oldScore = Database::Get()->GetPlayerScore(playerID, activityId);

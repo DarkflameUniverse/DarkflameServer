@@ -42,6 +42,10 @@
 
 #include <ranges>
 
+namespace {
+	std::vector<LOT> g_RestrictedLOTs = {1727,};
+};
+
 InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
@@ -870,6 +874,8 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 				}
 			}
 			return;
+		} else if (std::ranges::find(g_RestrictedLOTs, item->GetLot()) != g_RestrictedLOTs.end()) {
+			m_Parent->SetVar<bool>(u"cheated_score", true);
 		}
 
 		const auto building = character->GetBuildMode();
