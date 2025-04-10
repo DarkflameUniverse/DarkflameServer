@@ -43,7 +43,7 @@ void MySQLDatabase::RemoveUnreferencedUgcModels() {
 }
 
 void MySQLDatabase::InsertNewUgcModel(
-	std::istringstream& sd0Data, // cant be const sad
+	std:: stringstream& sd0Data, // cant be const sad
 	const uint32_t blueprintId,
 	const uint32_t accountId,
 	const uint32_t characterId) {

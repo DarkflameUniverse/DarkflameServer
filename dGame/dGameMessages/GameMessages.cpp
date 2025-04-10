@@ -102,6 +102,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
 #include "eItemType.h"
+#include "Lxfml.h"
+#include "Sd0.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2613,16 +2615,26 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		LWOOBJID propertyId = LWOOBJID_EMPTY;
 		if (propertyInfo) propertyId = propertyInfo->id;
 
-		//Insert into ugc:
+		// Save the binary data to the Sd0 buffer
 		std::string str(sd0Data.get(), sd0Size);
 		std::istringstream sd0DataStream(str);
-		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+		Sd0 sd0(sd0DataStream);
+
+		// Uncompress the data and normalize the position
+		const auto asStr = sd0.GetAsStringUncompressed();
+		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
+		auto [x, y, z] = newCenter;
+
+		// Recompress the data and save to the database
+		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
+		auto sd0AsStream = sd0.GetAsStream();
+		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
 		IPropertyContents::Model model;
 		model.id = newIDL;
 		model.ugcId = blueprintIDSmall;
-		model.position = NiPoint3Constant::ZERO;
+		model.position = newCenter;
 		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
@@ -2648,6 +2660,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		//}
 
 		//Tell the client their model is saved: (this causes us to actually pop out of our current state):
+		const auto& newSd0 = sd0.GetAsVector();
+		uint32_t sd0Size{};
+		for (const auto& chunk : newSd0) sd0Size += chunk.size();
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write(localId);
@@ -2655,9 +2670,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		bitStream.Write<uint32_t>(1);
 		bitStream.Write(blueprintID);
 
-		bitStream.Write<uint32_t>(sd0Size);
+		bitStream.Write(sd0Size);
 
-		bitStream.WriteAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
+		for (const auto& chunk : newSd0) bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
 
 		SEND_PACKET;
 
@@ -2665,7 +2680,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 		EntityInfo info;
 		info.lot = 14;
-		info.pos = {};
+		info.pos = newCenter;
 		info.rot = {};
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();

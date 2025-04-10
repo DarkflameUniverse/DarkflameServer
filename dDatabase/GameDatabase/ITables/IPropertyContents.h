@@ -22,7 +22,7 @@ public:
 
 	// Inserts a new UGC model into the database.
 	virtual void InsertNewUgcModel(
-		std::istringstream& sd0Data,
+		std::stringstream& sd0Data,
 		const uint32_t blueprintId,
 		const uint32_t accountId,
 		const uint32_t characterId) = 0;

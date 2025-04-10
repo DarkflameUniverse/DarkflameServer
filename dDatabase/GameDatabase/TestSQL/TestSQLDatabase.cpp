@@ -188,7 +188,7 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
-void TestSQLDatabase::InsertNewUgcModel(std::istringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const uint32_t characterId) {
+void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const uint32_t characterId) {
 
 }
 

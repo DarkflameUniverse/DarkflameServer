@@ -99,7 +99,7 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 		}
 
 		// Exclude the zone control object from any flags
-		if (!controller && info.lot != 14) {
+		if (!controller) {
 
 			// The client flags means the client should render the entity
 			GeneralUtils::SetBit(id, eObjectBits::CLIENT);

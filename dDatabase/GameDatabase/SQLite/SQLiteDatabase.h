@@ -79,7 +79,7 @@ public:
 	void InsertCheatDetection(const IPlayerCheatDetections::Info& info) override;
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
-		std::istringstream& sd0Data,
+		std::stringstream& sd0Data,
 		const uint32_t blueprintId,
 		const uint32_t accountId,
 		const uint32_t characterId) override;
