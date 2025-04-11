@@ -1118,6 +1118,8 @@ void HandlePacket(Packet* packet) {
 						GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
 						GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
+						// Workaround for not having a UGC server to get model LXFML onto the client so it
+						// can generate the physics and nif for the object.
 						CBITSTREAM;
 						BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 						bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes

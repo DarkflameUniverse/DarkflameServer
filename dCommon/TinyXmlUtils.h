@@ -16,8 +16,8 @@ namespace TinyXmlUtils {
 		ElementIterator(tinyxml2::XMLElement* elem);
 
 		ElementIterator& operator++();
-		tinyxml2::XMLElement* operator->() { DluAssert(m_CurElem); return m_CurElem; }
-		tinyxml2::XMLElement& operator*() { DluAssert(m_CurElem); return *m_CurElem; }
+		[[nodiscard]] tinyxml2::XMLElement* operator->() { DluAssert(m_CurElem); return m_CurElem; }
+		[[nodiscard]] tinyxml2::XMLElement& operator*() { DluAssert(m_CurElem); return *m_CurElem; }
 
 		bool operator==(const ElementIterator& other) const { return other.m_CurElem == m_CurElem; }
 
@@ -32,21 +32,21 @@ namespace TinyXmlUtils {
 		Element(tinyxml2::XMLElement* xmlElem, const std::string_view elem);
 
 		// The first child element of this element.
-		ElementIterator begin();
+		[[nodiscard]] ElementIterator begin();
 
 		// Always returns an ElementIterator which points to nullptr.
 		// TinyXml2 return NULL when you've reached the last child element so
 		// you can't do any funny one past end logic here.
-		ElementIterator end();
+		[[nodiscard]] ElementIterator end();
 
 		// Get a child element
-		Element operator[](const std::string_view elem) const;
-		Element operator[](const char* elem) const { return operator[](std::string_view(elem)); };
+		[[nodiscard]] Element operator[](const std::string_view elem) const;
+		[[nodiscard]] Element operator[](const char* elem) const { return operator[](std::string_view(elem)); };
 
 		// Whether or not data exists for this element
 		operator bool() const { return m_Elem != nullptr; }
 
-		const tinyxml2::XMLElement* operator->() const { return m_Elem; }
+		[[nodiscard]] const tinyxml2::XMLElement* operator->() const { return m_Elem; }
 	private:
 		const char* GetElementName() const { return m_IteratedName.empty() ? nullptr : m_IteratedName.c_str(); }
 		const std::string m_IteratedName;
@@ -57,7 +57,7 @@ namespace TinyXmlUtils {
 	public:
 		DocumentReader(tinyxml2::XMLDocument& doc) : m_Doc{ doc } {}
 
-		Element operator[](const std::string_view elem) const;
+		[[nodiscard]] Element operator[](const std::string_view elem) const;
 	private:
 		tinyxml2::XMLDocument& m_Doc;
 	};

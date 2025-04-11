@@ -40,9 +40,9 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	}
 
 	// These points are well out of bounds for an actual player
-	NiPoint3 lowest{10'000, 10'000, 10'000};
-	NiPoint3 highest{-10'000, -10'000, -10'000};
-	
+	NiPoint3 lowest{ 10'000.0f, 10'000.0f, 10'000.0f };
+	NiPoint3 highest{ -10'000.0f, -10'000.0f, -10'000.0f };
+
 	// Calculate the lowest and highest points on the entire model
 	for (const auto& transformation : transformations | std::views::values) {
 		auto split = GeneralUtils::SplitString(transformation, ',');
@@ -100,7 +100,7 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 					auto* refID = bone->Attribute("refID");
 					if (refID) {
 						bone->SetAttribute("transformation", transformations[refID].c_str());
-					} 
+					}
 				}
 			}
 		}
@@ -109,7 +109,6 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	tinyxml2::XMLPrinter printer;
 	doc.Print(&printer);
 
-	LOG("root pos %f %f %f", newRootPos.x, newRootPos.y, newRootPos.z);
 	toReturn.lxfml = printer.CStr();
 	toReturn.center = newRootPos;
 	return toReturn;

@@ -2611,7 +2611,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		// Uncompress the data and normalize the position
 		const auto asStr = sd0.GetAsStringUncompressed();
 		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
-		auto [x, y, z] = newCenter;
 
 		// Recompress the data and save to the database
 		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());

@@ -23,13 +23,13 @@ public:
 	Sd0(std::istream& buffer);
 
 	// Uncompresses the entire Sd0 buffer and returns it as a string
-	std::string GetAsStringUncompressed() const;
+	[[nodiscard]] std::string GetAsStringUncompressed() const;
 
 	// Gets the Sd0 buffer as a stream in its raw compressed form
-	std::stringstream GetAsStream() const;
+	[[nodiscard]] std::stringstream GetAsStream() const;
 
 	// Gets the Sd0 buffer as a vector in its raw compressed form
-	const std::vector<BinaryBuffer>& GetAsVector() const;
+	[[nodiscard]] const std::vector<BinaryBuffer>& GetAsVector() const;
 
 	// Compress data into a Sd0 buffer
 	void FromData(const uint8_t* data, size_t bufferSize);
