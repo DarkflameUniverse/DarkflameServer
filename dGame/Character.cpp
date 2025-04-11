@@ -204,6 +204,7 @@ void Character::DoQuickXMLDataParse() {
 		while (currentChild) {
 			const auto* temp = currentChild->Attribute("v");
 			const auto* id = currentChild->Attribute("id");
+			const auto* si = currentChild->Attribute("si");
 			if (temp && id) {
 				uint32_t index = 0;
 				uint64_t value = 0;
@@ -212,6 +213,9 @@ void Character::DoQuickXMLDataParse() {
 				value = std::stoull(temp);
 
 				m_PlayerFlags.insert(std::make_pair(index, value));
+			} else if (si) {
+				auto value = GeneralUtils::TryParse<uint32_t>(si);
+				if (value) m_SessionFlags.insert(value.value());
 			}
 			currentChild = currentChild->NextSiblingElement();
 		}
