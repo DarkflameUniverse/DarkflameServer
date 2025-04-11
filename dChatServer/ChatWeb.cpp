@@ -150,12 +150,9 @@ namespace ChatWeb {
 		json data;
 		data["message"] = chatMessage.message.GetAsString();
 		data["sender"] = chatMessage.sender;
-		
 		data["channel"] = magic_enum::enum_name(chatMessage.channel);
 
 		switch (chatMessage.channel) {
-			case eChatChannel::LOCAL:
-				break;
 			case eChatChannel::TEAM:
 				data["teamID"] = chatMessage.teamID;
 				break;

@@ -1321,7 +1321,7 @@ void HandlePacket(Packet* packet) {
 		if (chatDisabled) {
 			ChatPackets::MessageFailure().Send(packet->systemAddress);
 		} else {
-			auto chatMessage = ClientPackets::HandleChatMessage(packet);
+			ChatPackets::WorldChatMessage inChatMessage;
 			// TODO: Find a good home for the logic in this case.
 			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 			if (!user) {
@@ -1342,15 +1342,12 @@ void HandlePacket(Packet* packet) {
 
 			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
 			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-			//(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
 
 			ChatPackets::ChatMessage outChatMessage; 
 			outChatMessage.chatChannel = chatMessage.chatChannel;
 			outChatMessage.message = chatMessage.message;
-			outChatMessage.senderMythran = isMythran;
-			outChatMessage.senderName = playerName;
-			outChatMessage.playerObjectID = user->GetLoggedInChar();
-			outChatMessage.Send(packet->systemAddress);
+			
+			outChatMessage.Broadcast();
 
 			{
 				// TODO: make it so we don't write this manually, but instead use a proper read and writes

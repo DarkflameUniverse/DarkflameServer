@@ -450,24 +450,21 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	
 	
 	switch (data.channel) {
-	case eChatChannel::LOCAL: {
-		break;
-	}
-	case eChatChannel::TEAM: {
-		auto* team = Game::playerContainer.GetTeam(data.sender.playerID);
-		if (team == nullptr) return;
-		data.teamID = team->teamID;
+		case eChatChannel::TEAM: {
+			auto* team = Game::playerContainer.GetTeam(data.sender.playerID);
+			if (team == nullptr) return;
+			data.teamID = team->teamID;
 
-		for (const auto memberId : team->memberIDs) {
-			const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
-			if (!otherMember) return;
-			SendPrivateChatMessage(data.sender, otherMember, otherMember, data.message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
+			for (const auto memberId : team->memberIDs) {
+				const auto& otherMember = Game::playerContainer.GetPlayerData(memberId);
+				if (!otherMember) return;
+				SendPrivateChatMessage(data.sender, otherMember, otherMember, data.message, eChatChannel::TEAM, eChatMessageResponseCode::SENT);
+			}
+			break;
 		}
-		break;
-	}
-	default:
-		LOG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(data.channel).data());
-		break;
+		default:
+			LOG_DEBUG("Unhandled Chat channel [%s]", StringifiedEnum::ToString(data.channel).data());
+			break;
 	}
 	ChatWeb::SendWSChatMessage(data);
 }

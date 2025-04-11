@@ -54,6 +54,55 @@ namespace ChatPackets {
 		//TODO: Implement this
 		return false;
 	}
+	void ChatMessage::Handle(){
+		
+	}
+
+	void WorldChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+
+	}
+	bool WorldChatMessage::Deserialize(RakNet::BitStream& inStream) {
+		VALIDATE_READ(inStream.Read(chatChannel));
+		uint16_t padding;
+		VALIDATE_READ(inStream.Read(padding));
+		uint32_t messageLength;
+		VALIDATE_READ(inStream.Read(messageLength));
+		string message_tmp;
+		for (uint32_t i = 0; i < messageLength; ++i) {
+			uint16_t character;
+			VALIDATE_READ(inStream.Read(character));
+			message_tmp.push_back(character);
+		}
+		
+		return true;
+	}
+	void WorldChatMessage::Handle() {
+
+	}
+
+
+	void PrivateChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+
+	}
+	bool PrivateChatMessage::Deserialize(RakNet::BitStream& inStream) {
+
+	}
+	void PrivateChatMessage::Handle() {
+
+	}
+
+
+	void UserChatMessage::Serialize(RakNet::BitStream& bitStream) const {
+
+	}
+	bool UserChatMessage::Deserialize(RakNet::BitStream& inStream) {
+
+	}
+	void UserChatMessage::Handle() {
+
+	}
+
+	
 
 	void SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
 		CBITSTREAM;

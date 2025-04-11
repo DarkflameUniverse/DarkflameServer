@@ -61,6 +61,25 @@ namespace ChatPackets {
 		ChatMessage() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE) {};
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 		virtual bool Deserialize(RakNet::BitStream& inStream) override;
+		virtual void Handle() override {};
+	};
+
+	struct WorldChatMessage : public ChatMessage {
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual void Handle() override;
+	};
+
+	struct PrivateChatMessage : public ChatMessage {
+		virtual bool Deserialize(RakNet::BitStream& inStream) override;
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual void Handle() override;
+	};
+
+	struct UserChatMessage : public ChatMessage {
+		virtual bool Deserialize(RakNet::BitStream& inStream) override;
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual void Handle() override;
 	};
 
 	// Should be in client packets since it is a client connection type, but whatever

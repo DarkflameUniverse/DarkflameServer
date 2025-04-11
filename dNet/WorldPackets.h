@@ -10,9 +10,6 @@ struct SystemAddress;
 enum class eGameMasterLevel : uint8_t;
 enum class eCharacterCreationResponse : uint8_t;
 enum class eRenameResponse : uint8_t;
-namespace RakNet {
-	class BitStream;
-};
 
 struct HTTPMonitorInfo {
 	uint16_t port = 80;
