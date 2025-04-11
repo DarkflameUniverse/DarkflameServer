@@ -53,8 +53,8 @@ void Logger::vLog(const char* format, va_list args) {
 	struct tm* time = localtime(&t);
 	char timeStr[70];
 	strftime(timeStr, sizeof(timeStr), "[%d-%m-%y %H:%M:%S ", time);
-	char message[900'000];
-	vsnprintf(message, 900'000, format, args);
+	char message[2048];
+	vsnprintf(message, 2048, format, args);
 	for (const auto& writer : m_Writers) {
 		writer->Log(timeStr, message);
 	}
