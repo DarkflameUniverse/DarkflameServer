@@ -2576,18 +2576,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		TODO Apparently the bricks are supposed to be taken via MoveInventoryBatch?
 	*/
 
-	////Decompress the SD0 from the client so we can process the lxfml properly
-	//uint8_t* outData = new uint8_t[327680];
-	//int32_t error;
-	//int32_t size = ZCompression::Decompress(inData, lxfmlSize, outData, 327680, error);
-
-	//if (size == -1) {
-	//	LOG("Failed to decompress LXFML: (%i)", error);
-	//	return;
-	//}
-	//
-	//std::string lxfml(reinterpret_cast<char*>(outData), size); //std::string version of the decompressed data!
-
 	//Now, the cave of dragons:
 
 	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.

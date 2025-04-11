@@ -19,8 +19,6 @@ public:
 	 */
 	static constexpr inline size_t MAX_UNCOMPRESSED_CHUNK_SIZE = 1024 * 256;
 
-	Sd0() {}
-
 	// Read the input buffer into an internal chunk stream to be used later
 	Sd0(std::istream& buffer);
 

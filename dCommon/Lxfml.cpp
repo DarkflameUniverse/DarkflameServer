@@ -19,7 +19,10 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	std::map<std::string/* refID */, std::string> transformations;
 
 	auto lxfml = reader["LXFML"];
-	if (!lxfml) return toReturn;
+	if (!lxfml) {
+		LOG("Failed to find LXFML element.");
+		return toReturn;
+	}
 
 	// First get all the positions of bricks
 	for (const auto& brick : lxfml["Bricks"]) {
@@ -106,6 +109,7 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	tinyxml2::XMLPrinter printer;
 	doc.Print(&printer);
 
+	LOG("root pos %f %f %f", newRootPos.x, newRootPos.y, newRootPos.z);
 	toReturn.lxfml = printer.CStr();
 	toReturn.center = newRootPos;
 	return toReturn;

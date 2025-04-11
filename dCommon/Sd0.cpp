@@ -34,16 +34,30 @@ int32_t GetDataOffset(bool firstBuffer) {
 
 Sd0::Sd0(std::istream& buffer) {
 	char header[5]{};
+
+	// Check if this is an sd0 buffer. It's possible we may be handed a zlib buffer directly due to old code so check for that too.
 	if (!BinaryIO::BinaryRead(buffer, header) || memcmp(header, SD0_HEADER, sizeof(header)) != 0) {
 		LOG("Failed to read SD0 header %i %i %i %i %i %i %i", buffer.good(), buffer.tellg(), header[0], header[1], header[2], header[3], header[4]);
+		LOG_DEBUG("This may be a zlib buffer directly? Trying again assuming its a zlib buffer.");
+		auto& firstChunk = m_Chunks.emplace_back();
+		WriteHeader(firstChunk);
+		buffer.seekg(0, std::ios::end);
+		uint32_t bufferSize = buffer.tellg();
+		buffer.seekg(0, std::ios::beg);
+		WriteSize(firstChunk, bufferSize);
+		firstChunk.resize(firstChunk.size() + bufferSize);
+		auto* dataStart = reinterpret_cast<char*>(firstChunk.data() + GetDataOffset(true));
+		if (!buffer.read(dataStart, bufferSize)) {
+			m_Chunks.pop_back();
+			LOG("Failed to read %u bytes from chunk %i", bufferSize, m_Chunks.size() - 1);
+		}
 		return;
 	}
 
 	while (buffer) {
 		uint32_t chunkSize{};
 		if (!BinaryIO::BinaryRead(buffer, chunkSize)) {
-			LOG("%i", m_Chunks.size());
-			LOG("Failed to read chunk size from stream %i %i", buffer.tellg(), static_cast<int>(m_Chunks.size()));
+			LOG("Failed to read chunk size from stream %li %li", buffer.tellg(), m_Chunks.size());
 			break;
 		}
 		auto& chunk = m_Chunks.emplace_back();

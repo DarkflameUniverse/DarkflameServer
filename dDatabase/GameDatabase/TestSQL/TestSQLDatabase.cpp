@@ -60,7 +60,7 @@ void TestSQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 
 }
 
-void TestSQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) {
+void TestSQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 
 }
 
@@ -164,7 +164,7 @@ void TestSQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const I
 
 }
 
-void TestSQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void TestSQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
 
 }
 

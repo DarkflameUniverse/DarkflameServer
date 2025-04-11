@@ -118,7 +118,7 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			}
 
 			std::string outputString(sd0ConvertedModel.get(), oldLxfmlSizeWithHeader);
-			std::istringstream outputStringStream(outputString);
+			std::stringstream outputStringStream(outputString);
 
 			try {
 				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);
