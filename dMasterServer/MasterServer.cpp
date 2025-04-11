@@ -42,6 +42,7 @@
 #include "Server.h"
 #include "CDZoneTableTable.h"
 #include "eGameMasterLevel.h"
+#include "StringifiedEnum.h"
 
 #ifdef DARKFLAME_PLATFORM_UNIX
 
@@ -556,7 +557,7 @@ void HandlePacket(Packet* packet) {
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				LOG("Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
+				LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
 			}
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
@@ -597,15 +598,10 @@ void HandlePacket(Packet* packet) {
 				if (!Game::im->IsPortInUse(theirPort)) {
 					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-					SystemAddress copy;
-					copy.binaryAddress = packet->systemAddress.binaryAddress;
-					copy.port = packet->systemAddress.port;
-
-					in->SetSysAddr(copy);
+					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
-					auto instance = Game::im->FindInstance(
-						theirZoneID, static_cast<uint16_t>(theirInstanceID));
+					auto* instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
 					if (instance) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
@@ -613,22 +609,14 @@ void HandlePacket(Packet* packet) {
 			}
 
 			if (theirServerType == ServerType::Chat) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				chatServerMasterPeerSysAddr = copy;
+				chatServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
 			if (theirServerType == ServerType::Auth) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				authServerMasterPeerSysAddr = copy;
+				authServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
-			LOG("Received server info, instance: %i port: %i", theirInstanceID, theirPort);
+			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
 
 			break;
 		}
@@ -692,7 +680,7 @@ void HandlePacket(Packet* packet) {
 			if (instance) {
 				instance->AddPlayer(Player());
 			} else {
-				printf("Instance missing? What?");
+				LOG("Instance missing? What?");
 			}
 			break;
 		}
@@ -733,8 +721,8 @@ void HandlePacket(Packet* packet) {
 				inStream.Read<char>(character);
 				password += character;
 			}
-
-			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			auto* newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			LOG("Creating private zone %i/%i/%i with password %s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), password.c_str());
 
 			break;
 		}
@@ -835,11 +823,10 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::SHUTDOWN_RESPONSE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
-
+			LOG("Got shutdown response from %s", packet->systemAddress.ToString());
 			if (instance == nullptr) {
 				return;
 			}
