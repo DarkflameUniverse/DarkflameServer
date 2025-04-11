@@ -235,6 +235,8 @@ include_directories(
 
 	"dNet"
 
+	"dWeb"
+
 	"tests"
 	"tests/dCommonTests"
 	"tests/dGameTests"
@@ -301,6 +303,7 @@ add_subdirectory(dZoneManager)
 add_subdirectory(dNavigation)
 add_subdirectory(dPhysics)
 add_subdirectory(dServer)
+add_subdirectory(dWeb)
 
 # Create a list of common libraries shared between all binaries
 set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")

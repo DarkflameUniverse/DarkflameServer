@@ -134,7 +134,7 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 	LOG("Sent CreateCharacter for ID: %llu", player);
 }
 
-void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::vector<std::pair<uint8_t, uint8_t>> unacceptedItems) {
+void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::set<std::pair<uint8_t, uint8_t>> unacceptedItems) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHAT_MODERATION_STRING);
 

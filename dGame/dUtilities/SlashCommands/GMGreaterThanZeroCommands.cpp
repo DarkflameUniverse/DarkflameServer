@@ -296,15 +296,12 @@ namespace GMGreaterThanZeroCommands {
 		if (!splitArgs.empty() && !splitArgs.at(0).empty()) displayZoneData = splitArgs.at(0) == "1";
 		if (splitArgs.size() > 1) displayIndividualPlayers = splitArgs.at(1) == "1";
 
-		ShowAllRequest request {
-			.requestor = entity->GetObjectID(),
-			.displayZoneData = displayZoneData,
-			.displayIndividualPlayers = displayIndividualPlayers
-		};
+		ChatPackets::ShowAllRequest request;
+		request.requestor = entity->GetObjectID();
+		request.displayZoneData = displayZoneData;
+		request.displayIndividualPlayers = displayIndividualPlayers;
 
-		CBITSTREAM;
-		request.Serialize(bitStream);
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		request.Send(Game::chatSysAddr);
 	}
 
 	void FindPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -313,14 +310,11 @@ namespace GMGreaterThanZeroCommands {
 			return;
 		}
 
-		FindPlayerRequest request {
-			.requestor = entity->GetObjectID(),
-			.playerName = LUWString(args)
-		};
+		ChatPackets::FindPlayerRequest request;
+		request.requestor = entity->GetObjectID();
+		request.playerName = LUWString(args);
 
-		CBITSTREAM;
-		request.Serialize(bitStream);
-		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+		request.Send(Game::chatSysAddr);
 	}
 
 	void Spectate(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
