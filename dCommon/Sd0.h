@@ -8,6 +8,8 @@
 #include <vector>
 
 // Sd0 is comprised of multiple zlib compressed buffers stored in a row.
+// The format starts with a SD0 header (see SD0_HEADER) followed by the size of a zlib buffer, and then the zlib buffer itself.
+// This repeats until end of file
 class Sd0 {
 public:
 	using BinaryBuffer = std::vector<uint8_t>;

@@ -54,10 +54,10 @@ Sd0::Sd0(std::istream& buffer) {
 		return;
 	}
 
-	while (buffer) {
+	while (buffer && buffer.peek() != std::istream::traits_type::eof()) {
 		uint32_t chunkSize{};
 		if (!BinaryIO::BinaryRead(buffer, chunkSize)) {
-			LOG("Failed to read chunk size from stream %li %li", buffer.tellg(), m_Chunks.size());
+			LOG("Failed to read chunk size from stream %lld %zu", buffer.tellg(), m_Chunks.size());
 			break;
 		}
 		auto& chunk = m_Chunks.emplace_back();
