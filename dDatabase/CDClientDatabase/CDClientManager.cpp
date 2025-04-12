@@ -20,6 +20,7 @@
 #include "CDMissionsTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDObjectsTable.h"
+#include "CDPetAbilitiesTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "CDRebuildComponentTable.h"
 #include "CDScriptComponentTable.h"
@@ -89,6 +90,7 @@ DEFINE_TABLE_STORAGE(CDObjectSkillsTable);
 DEFINE_TABLE_STORAGE(CDObjectsTable);
 DEFINE_TABLE_STORAGE(CDPhysicsComponentTable);
 DEFINE_TABLE_STORAGE(CDPackageComponentTable);
+DEFINE_TABLE_STORAGE(CDPetAbilitiesTable);
 DEFINE_TABLE_STORAGE(CDPetComponentTable);
 DEFINE_TABLE_STORAGE(CDProximityMonitorComponentTable);
 DEFINE_TABLE_STORAGE(CDPropertyEntranceComponentTable);
@@ -136,6 +138,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 	CDCLIENT_DONT_CACHE_TABLE(CDObjectsTable::Instance().LoadValuesFromDatabase());
 	CDPhysicsComponentTable::Instance().LoadValuesFromDatabase();
 	CDPackageComponentTable::Instance().LoadValuesFromDatabase();
+	CDPetAbilitiesTable::Instance().LoadValuesFromDatabase();
 	CDPetComponentTable::Instance().LoadValuesFromDatabase();
 	CDProximityMonitorComponentTable::Instance().LoadValuesFromDatabase();
 	CDPropertyEntranceComponentTable::Instance().LoadValuesFromDatabase();
@@ -155,5 +158,6 @@ void CDClientManager::LoadValuesFromDatabase() {
 void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
 
+	CDPetAbilitiesTable::Instance().LoadValuesFromDefaults();
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
 }
