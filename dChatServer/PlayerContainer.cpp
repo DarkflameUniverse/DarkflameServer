@@ -52,7 +52,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	if (!inStream.Read(data.zoneID)) return;
 	if (!inStream.Read(data.muteExpire)) return;
 	if (!inStream.Read(data.gmLevel)) return;
-	data.sysAddr = packet->systemAddress;
+	data.worldServerSysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
 	m_PlayerCount++;
@@ -241,7 +241,7 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 		LOG("Tried to add player to team that already had 4 players");
 		const auto& player = GetPlayerData(playerID);
 		if (!player) return;
-		ChatPackets::SendSystemMessage(player.sysAddr, u"The teams is full! You have not been added to a team!");
+		ChatPackets::SendSystemMessage(player.worldServerSysAddr, u"The teams is full! You have not been added to a team!");
 		return;
 	}
 

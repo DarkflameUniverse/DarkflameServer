@@ -42,7 +42,7 @@ struct PlayerData {
 		return muteExpire == 1 || muteExpire > time(NULL);
 	}
 
-	SystemAddress sysAddr{};
+	SystemAddress worldServerSysAddr{};
 	LWOZONEID zoneID{};
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	time_t muteExpire = 0;

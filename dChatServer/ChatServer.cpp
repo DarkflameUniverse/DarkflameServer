@@ -224,6 +224,10 @@ void HandlePacket(Packet* packet) {
 	if (connection != eConnectionType::CHAT) return;
 	inStream.Read(chatMessageID);
 
+	// Our packing byte wasnt there? Probably a false packet
+	if (inStream.GetNumberOfUnreadBits() < 8) return;
+	inStream.IgnoreBytes(1);
+
 	switch (chatMessageID) {
 	case MessageType::Chat::GM_MUTE:
 		Game::playerContainer.MuteUpdate(packet);
@@ -322,6 +326,9 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::SHOW_ALL:
 		ChatPacketHandler::HandleShowAll(packet);
 		break;
+	case MessageType::Chat::ACHIEVEMENT_NOTIFY:
+		ChatPacketHandler::OnAchievementNotify(inStream, packet->systemAddress);
+		break;
 	case MessageType::Chat::USER_CHANNEL_CHAT_MESSAGE:
 	case MessageType::Chat::WORLD_DISCONNECT_REQUEST:
 	case MessageType::Chat::WORLD_PROXIMITY_RESPONSE:
@@ -357,7 +364,6 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
 	case MessageType::Chat::UGCC_REQUEST:
 	case MessageType::Chat::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
-	case MessageType::Chat::ACHIEVEMENT_NOTIFY:
 	case MessageType::Chat::GM_CLOSE_PRIVATE_CHAT_WINDOW:
 	case MessageType::Chat::PLAYER_READY:
 	case MessageType::Chat::GET_DONATION_TOTAL:
