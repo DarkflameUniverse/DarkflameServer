@@ -602,19 +602,6 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	SendTeamInvite(other, player);
 
 	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.GetAsString().c_str());
-
-	bool failed = false;
-	for (const auto& ignore : other.ignoredPlayers) {
-		if (ignore.playerId == player.playerID) {
-			failed = true;
-			break;
-		}
-	}
-	
-	ChatPackets::TeamInviteInitialResponse response{};
-	response.inviteFailedToSend = failed;
-	response.playerName = invitedPlayer.string;
-	ChatPackets::SendRoutedMsg(response, playerID, player.worldServerSysAddr);
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -628,7 +615,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	inStream.Read(leaderID);
 
-	LOG("Invite reponse received: %llu -> %llu (%d)", playerID, leaderID, declined);
+	LOG("Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
 
 	if (declined) {
 		return;
