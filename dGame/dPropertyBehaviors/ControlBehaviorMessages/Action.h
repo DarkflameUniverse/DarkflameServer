@@ -17,9 +17,9 @@ class Action {
 public:
 	Action() = default;
 	Action(const AMFArrayValue& arguments);
-	[[nodiscard]] const std::string& GetType() const { return m_Type; };
-	[[nodiscard]] const std::string& GetValueParameterName() const { return m_ValueParameterName; };
-	[[nodiscard]] const std::string& GetValueParameterString() const { return m_ValueParameterString; };
+	[[nodiscard]] std::string_view GetType() const { return m_Type; };
+	[[nodiscard]] std::string_view GetValueParameterName() const { return m_ValueParameterName; };
+	[[nodiscard]] std::string_view GetValueParameterString() const { return m_ValueParameterString; };
 	[[nodiscard]] double GetValueParameterDouble() const noexcept { return m_ValueParameterDouble; };
 
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;

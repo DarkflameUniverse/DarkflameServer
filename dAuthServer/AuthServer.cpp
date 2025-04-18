@@ -21,12 +21,11 @@
 //Auth includes:
 #include "AuthPackets.h"
 #include "eConnectionType.h"
-#include "eServerMessageType.h"
-#include "eAuthMessageType.h"
+#include "MessageType/Server.h"
+#include "MessageType/Auth.h"
 
 #include "Game.h"
 #include "Server.h"
-
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -60,7 +59,7 @@ int main(int argc, char** argv) {
 
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("AuthServer");
 		delete Game::server;
@@ -71,12 +70,15 @@ int main(int argc, char** argv) {
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1500;
+	std::string masterPassword;
 
 	auto masterInfo = Database::Get()->GetMasterInfo();
 	if (masterInfo) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
+		masterPassword = masterInfo->password;
 	}
+
 	LOG("Master is at %s:%d", masterIP.c_str(), masterPort);
 
 	Game::randomEngine = std::mt19937(time(0));
@@ -90,7 +92,7 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal, masterPassword);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -102,7 +104,7 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceLastSQLPing = 0;
 
 	AuthPackets::LoadClaimCodes();
-	
+
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
 		//Check if we're still connected to master:
@@ -166,11 +168,11 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
 		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
-			if (static_cast<eServerMessageType>(packet->data[3]) == eServerMessageType::VERSION_CONFIRM) {
+			if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
 				AuthPackets::HandleHandshake(Game::server, packet);
 			}
 		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
-			if (static_cast<eAuthMessageType>(packet->data[3]) == eAuthMessageType::LOGIN_REQUEST) {
+			if (static_cast<MessageType::Auth>(packet->data[3]) == MessageType::Auth::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
 			}
 		}

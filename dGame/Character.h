@@ -38,6 +38,7 @@ public:
 
 	const std::string& GetXMLData() const { return m_XMLData; }
 	const tinyxml2::XMLDocument& GetXMLDoc() const { return m_Doc; }
+	void _setXmlDoc(tinyxml2::XMLDocument& doc) { doc.DeepCopy(&m_Doc); }
 
 	/**
 	 * Out of abundance of safety and clarity of what this saves, this is its own function.
@@ -459,6 +460,10 @@ public:
 
 	User* GetParentUser() const { return m_ParentUser; }
 
+	void _doQuickXMLDataParse() { DoQuickXMLDataParse(); }
+
+	void _setXmlData(const std::string& xmlData) { m_XMLData = xmlData; }
+
 private:
 	void UpdateInfoFromDatabase();
 	/**
@@ -614,6 +619,12 @@ private:
 	 * The last time this character logged in
 	 */
 	uint64_t m_LastLogin{};
+
+	/**
+	 * Flags only set for the duration of a session
+	 * 
+	 */
+	std::set<uint32_t> m_SessionFlags;
 
 	/**
 	 * The gameplay flags this character has (not just true values)

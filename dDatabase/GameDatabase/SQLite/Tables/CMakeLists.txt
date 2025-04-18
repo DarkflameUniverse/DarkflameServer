@@ -1,0 +1,26 @@
+set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
+	"Accounts.cpp"
+	"AccountsRewardCodes.cpp"
+	"ActivityLog.cpp"
+	"Behaviors.cpp"
+	"BugReports.cpp"
+	"CharInfo.cpp"
+	"CharXml.cpp"
+	"CommandLog.cpp"
+	"Friends.cpp"
+	"IgnoreList.cpp"
+	"Leaderboard.cpp"
+	"Mail.cpp"
+	"MigrationHistory.cpp"
+	"ObjectIdTracker.cpp"
+	"PetNames.cpp"
+	"PlayerCheatDetections.cpp"
+	"PlayKeys.cpp"
+	"Property.cpp"
+	"PropertyContents.cpp"
+	"Servers.cpp"
+	"Ugc.cpp"
+	"UgcModularBuild.cpp"
+	PARENT_SCOPE
+)
+

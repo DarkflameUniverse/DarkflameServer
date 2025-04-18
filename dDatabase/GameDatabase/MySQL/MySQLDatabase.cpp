@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "dConfig.h"
 #include "Logger.h"
+#include "dPlatforms.h"
 
 namespace {
 	std::string databaseName;
@@ -13,6 +14,7 @@ namespace {
 };
 
 void MySQLDatabase::Connect() {
+	LOG("Using MySQL database");
 	driver = sql::mariadb::get_driver_instance();
 
 	// The mariadb connector is *supposed* to handle unix:// and pipe:// prefixes to hostName, but there are bugs where
@@ -39,14 +41,13 @@ void MySQLDatabase::Connect() {
 	properties["autoReconnect"] = "true";
 
 	databaseName = Game::config->GetValue("mysql_database").c_str();
-
 	// `connect(const Properties& props)` segfaults in windows debug, but
 	// `connect(const SQLString& host, const SQLString& user, const SQLString& pwd)` doesn't handle pipes/unix sockets correctly
-	if (properties.find("localSocket") != properties.end() || properties.find("pipe") != properties.end()) {
-		con = driver->connect(properties);
-	} else {
+#if defined(DARKFLAME_PLATFORM_WIN32) && defined(_DEBUG)
 		con = driver->connect(properties["hostName"].c_str(), properties["user"].c_str(), properties["password"].c_str());
-	}
+#else
+		con = driver->connect(properties);
+#endif
 	con->setSchema(databaseName.c_str());
 }
 
@@ -67,7 +68,7 @@ void MySQLDatabase::ExecuteCustomQuery(const std::string_view query) {
 
 sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& query) {
 	if (!con) {
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL");
 	}
 
@@ -76,7 +77,7 @@ sql::PreparedStatement* MySQLDatabase::CreatePreppedStmt(const std::string& quer
 
 		con = nullptr;
 
-		Connect();
+		Database::Get()->Connect();
 		LOG("Trying to reconnect to MySQL from invalid or closed connection");
 	}
 

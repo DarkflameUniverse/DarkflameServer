@@ -34,6 +34,9 @@ services:
       - CLIENT_LOCATION=/app/luclient
       - DLU_CONFIG_DIR=/app/configs
       - DUMP_FOLDER=/app/dump
+      - DATABASE_TYPE=mariadb
+      - SQLITE_DATABASE_PATH=${SQLITE_DATABASE_PATH:-resServer/dlu.sqlite}
+      - SKIP_ACCOUNT_CREATION=${SKIP_ACCOUNT_CREATION:-1}
       - MYSQL_HOST=darkflamedb
       - MYSQL_DATABASE=${MARIADB_DATABASE:-darkflame}
       - MYSQL_USERNAME=${MARIADB_USER:-darkflame}

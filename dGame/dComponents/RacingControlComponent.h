@@ -8,6 +8,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include <chrono>
 
  /**
   * Information for each player in the race
@@ -72,12 +73,12 @@ struct RacingPlayerInfo {
 	/**
 	 * The fastest lap time of the player
 	 */
-	time_t bestLapTime = 0;
+	std::chrono::milliseconds bestLapTime;
 
 	/**
 	 * The current lap time of the player
 	 */
-	time_t lapTime = 0;
+	std::chrono::high_resolution_clock::time_point lapTime;
 
 	/**
 	 * The number of times this player smashed their car
@@ -97,7 +98,7 @@ struct RacingPlayerInfo {
 	/**
 	 * Unused
 	 */
-	time_t raceTime = 0;
+	std::chrono::milliseconds raceTime;
 };
 
 /**
@@ -134,7 +135,7 @@ public:
 	/**
 	 * Invoked when the client says it should be smashed.
 	 */
-	void OnRequestDie(Entity* player);
+	void OnRequestDie(Entity* player, const std::u16string& deathType = u"");
 
 	/**
 	 * Invoked when the player has finished respawning.
@@ -151,6 +152,8 @@ public:
 	 */
 	RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
+	void MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg);
+
 private:
 
 	/**
@@ -160,11 +163,13 @@ private:
 
 	/**
 	 * The paths that are followed for the camera scenes
+	 * Configurable in the ConfigureRacingControl msg with the key `Race_PathName`.
 	 */
 	std::u16string m_PathName;
 
 	/**
 	 * The ID of the activity for participating in this race
+	 * Configurable in the ConfigureRacingControl msg with the key `activityID`.
 	 */
 	uint32_t m_ActivityID;
 
@@ -231,7 +236,7 @@ private:
 	/**
 	 * The time the race was started
 	 */
-	time_t m_StartTime;
+	std::chrono::high_resolution_clock::time_point m_StartTime;
 
 	/**
 	 * Timer for tracking how long a player was alone in this race
@@ -244,5 +249,20 @@ private:
 	 * Value for message box response to know if we are exiting the race via the activity dialogue
 	 */
 	const int32_t m_ActivityExitConfirm = 1;
+
 	bool m_AllPlayersReady = false;
+
+	/**
+	 * @brief The number of laps in this race. Configurable in the ConfigureRacingControl msg
+	 * with the key `Number_of_Laps`.
+	 * 
+	 */
+	int32_t m_NumberOfLaps{ 3 };
+
+	/**
+	 * @brief The minimum number of players required to progress group achievements.
+	 * Configurable with the ConfigureRacingControl msg with the key `Minimum_Players_for_Group_Achievements`.
+	 * 
+	 */
+	int32_t m_MinimumPlayersForGroupAchievements{ 2 };
 };

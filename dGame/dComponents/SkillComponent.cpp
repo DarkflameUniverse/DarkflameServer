@@ -24,7 +24,7 @@
 #include "CDClientManager.h"
 #include "CDSkillBehaviorTable.h"
 #include "eConnectionType.h"
-#include "eClientMessageType.h"
+#include "MessageType/Client.h"
 
 ProjectileSyncEntry::ProjectileSyncEntry() {
 }
@@ -123,6 +123,11 @@ void SkillComponent::SyncPlayerProjectile(const LWOOBJID projectileId, RakNet::B
 	behavior->Handle(sync_entry.context, bitStream, branch);
 
 	this->m_managedProjectiles.erase(this->m_managedProjectiles.begin() + index);
+
+	GameMessages::ActivityNotify notify;
+	notify.notification.push_back( std::make_unique<LDFData<int32_t>>(u"shot_done", sync_entry.skillId));
+
+	m_Parent->OnActivityNotify(notify);
 }
 
 void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, BehaviorContext* context, const BehaviorBranchContext& branch, const LOT lot) {
@@ -132,6 +137,7 @@ void SkillComponent::RegisterPlayerProjectile(const LWOOBJID projectileId, Behav
 	entry.branchContext = branch;
 	entry.lot = lot;
 	entry.id = projectileId;
+	entry.skillId = context->skillID;
 
 	this->m_managedProjectiles.push_back(entry);
 }
@@ -320,7 +326,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 		// Write message
 		RakNet::BitStream message;
 
-		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+		BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
 		message.Write(this->m_Parent->GetObjectID());
 		start.Serialize(message);
 
@@ -451,7 +457,7 @@ void SkillComponent::SyncProjectileCalculation(const ProjectileSyncEntry& entry)
 
 	RakNet::BitStream message;
 
-	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, eClientMessageType::GAME_MSG);
+	BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
 	message.Write(this->m_Parent->GetObjectID());
 	projectileImpact.Serialize(message);
 

@@ -68,7 +68,7 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	array.Insert<int32_t>("Integer", 42U);
 	array.Insert("Double", 42.0);
 	array.InsertArray("Array");
-	array.Insert<std::vector<uint32_t>>("Undefined", {});
+	array.Insert<std::vector<uint32_t>>("Undefined", std::vector<uint32_t>{});
 	array.Insert("Null", nullptr);
 
 	ASSERT_EQ(array.Get<const char*>("CString")->GetValueType(), eAmf::String);
@@ -78,7 +78,7 @@ TEST(dCommonTests, AMF3InsertionAssociativeTest) {
 	ASSERT_EQ(array.Get<int32_t>("Integer")->GetValueType(), eAmf::Integer);
 	ASSERT_EQ(array.Get<double>("Double")->GetValueType(), eAmf::Double);
 	ASSERT_EQ(array.GetArray("Array")->GetValueType(), eAmf::Array);
-	ASSERT_EQ(array.Get<nullptr_t>("Null")->GetValueType(), eAmf::Null);
+	ASSERT_EQ(array.Get<std::nullptr_t>("Null")->GetValueType(), eAmf::Null);
 	ASSERT_EQ(array.Get<std::vector<uint32_t>>("Undefined")->GetValueType(), eAmf::Undefined);
 }
 
@@ -101,6 +101,6 @@ TEST(dCommonTests, AMF3InsertionDenseTest) {
 	ASSERT_EQ(array.Get<int32_t>(4)->GetValueType(), eAmf::Integer);
 	ASSERT_EQ(array.Get<double>(5)->GetValueType(), eAmf::Double);
 	ASSERT_EQ(array.GetArray(6)->GetValueType(), eAmf::Array);
-	ASSERT_EQ(array.Get<nullptr_t>(7)->GetValueType(), eAmf::Null);
+	ASSERT_EQ(array.Get<std::nullptr_t>(7)->GetValueType(), eAmf::Null);
 	ASSERT_EQ(array.Get<std::vector<uint32_t>>(8)->GetValueType(), eAmf::Undefined);
 }

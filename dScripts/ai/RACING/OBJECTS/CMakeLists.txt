@@ -7,4 +7,5 @@ set(DSCRIPTS_SOURCES_AI_RACING_OBJECTS
 	"FvRacePillarDServer.cpp"
 	"FvRaceSmashEggImagineServer.cpp"
 	"RaceSmashServer.cpp"
+	"VehicleDeathTriggerWaterServer.cpp"
 	PARENT_SCOPE)

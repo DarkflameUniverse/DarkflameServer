@@ -131,12 +131,16 @@ void Level::ReadChunks(std::istream& file) {
 			if (initPos == std::streamoff(0)) { //Really old chunk version
 				file.seekg(0);
 				Header header;
-				header.id = ChunkTypeID::FileInfo; //I guess?
+				header.id = ChunkTypeID::FileInfo;
 				BinaryIO::BinaryRead(file, header.chunkVersion);
 				BinaryIO::BinaryRead(file, header.chunkType);
-				file.ignore(1);
-				BinaryIO::BinaryRead(file, header.fileInfo.revision);
-
+				uint8_t important = 0;
+				BinaryIO::BinaryRead(file, important);
+				// file.ignore(1); //probably used
+				if (header.chunkVersion > 36) {
+					BinaryIO::BinaryRead(file, header.fileInfo.revision);
+				}
+				// HARDCODED 3
 				if (header.chunkVersion >= 45) file.ignore(4);
 				file.ignore(4 * (4 * 3));
 
@@ -170,25 +174,32 @@ void Level::ReadChunks(std::istream& file) {
 					}
 				}
 
-				for (uint32_t i = 0; i < 6; ++i) {
-					uint32_t count = 0;
-					BinaryIO::BinaryRead(file, count);
-					file.ignore(count);
-				}
-
-				file.ignore(4);
-
+				// skydome info
 				uint32_t count = 0;
 				BinaryIO::BinaryRead(file, count);
-				file.ignore(count * 12);
+				file.ignore(count);
 
+				if (header.chunkVersion >= 33) {
+					for (uint32_t i = 0; i < 5; ++i) {
+						uint32_t count = 0;
+						BinaryIO::BinaryRead(file, count);
+						file.ignore(count);
+					}
+				}
+				// editor settings
+				if (!important && header.chunkVersion >= 37){
+					file.ignore(4);
+
+					uint32_t count = 0;
+					BinaryIO::BinaryRead(file, count);
+					file.ignore(count * 12);
+
+				}
+
+				header.id = ChunkTypeID::SceneObjectData;
+				header.fileInfo.version = header.chunkVersion;
+				ReadSceneObjectDataChunk(file, header);
 				m_ChunkHeaders.insert(std::make_pair(header.id, header));
-
-				//Now pretend to be a normal file and read Objects chunk:
-				Header hdr;
-				hdr.id = ChunkTypeID::SceneObjectData;
-				ReadSceneObjectDataChunk(file, hdr);
-				m_ChunkHeaders.insert(std::make_pair(hdr.id, hdr));
 			} break;
 		}
 	}
@@ -224,8 +235,14 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		BinaryIO::BinaryRead(file, obj.id);
 		BinaryIO::BinaryRead(file, obj.lot);
 
-		/*if (header.fileInfo->version >= 0x26)*/ BinaryIO::BinaryRead(file, obj.nodeType);
-		/*if (header.fileInfo->version >= 0x20)*/ BinaryIO::BinaryRead(file, obj.glomId);
+		if (header.fileInfo.version >= 38) {
+			uint32_t tmp = 1;
+			BinaryIO::BinaryRead(file, tmp);
+			if (tmp > -1 && tmp < 11) obj.nodeType = tmp;
+		}
+		if (header.fileInfo.version >= 32) {
+			BinaryIO::BinaryRead(file, obj.glomId);
+		}
 
 		BinaryIO::BinaryRead(file, obj.position);
 		BinaryIO::BinaryRead(file, obj.rotation);

@@ -7,6 +7,10 @@
 #include <filesystem>
 #include <map>
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 template <typename T>
 static inline size_t MinSize(const size_t size, const std::basic_string_view<T> string) {
 	if (size == SIZE_MAX || size > string.size()) {
@@ -167,6 +171,15 @@ std::u16string GeneralUtils::ASCIIToUTF16(const std::string_view string, const s
 	return ret;
 }
 
+std::string GeneralUtils::Latin1ToUTF8(const std::u8string_view string, const size_t size) {
+	std::string toReturn{};
+
+	for (const auto u : string) {
+		PushUTF8CodePoint(toReturn, u);
+	}
+	return toReturn;
+}
+
 //! Converts a (potentially-ill-formed) UTF-16 string to UTF-8
 //! See: <http://simonsapin.github.io/wtf-8/#decoding-ill-formed-utf-16>
 std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const size_t size) {
@@ -175,9 +188,9 @@ std::string GeneralUtils::UTF16ToWTF8(const std::u16string_view string, const si
 	ret.reserve(newSize);
 
 	for (size_t i = 0; i < newSize; ++i) {
-		const char16_t u = string[i];
+		const auto u = string[i];
 		if (IsLeadSurrogate(u) && (i + 1) < newSize) {
-			const char16_t next = string[i + 1];
+			const auto next = string[i + 1];
 			if (IsTrailSurrogate(next)) {
 				i += 1;
 				const char32_t cp = 0x10000
@@ -291,11 +304,12 @@ std::u16string GeneralUtils::ReadWString(RakNet::BitStream& inStream) {
 
 std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::string_view folder) {
 	// Because we dont know how large the initial number before the first _ is we need to make it a map like so.
-    std::map<uint32_t, std::string> filenames{};
+	std::map<uint32_t, std::string> filenames{};
 	for (const auto& t : std::filesystem::directory_iterator(folder)) {
-        auto filename = t.path().filename().string();
-        const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
-        filenames.emplace(index, std::move(filename));
+		if (t.is_directory() || t.is_symlink()) continue;
+		auto filename = t.path().filename().string();
+		const auto index = std::stoi(GeneralUtils::SplitString(filename, '_').at(0));
+		filenames.emplace(index, std::move(filename));
 	}
 
 	// Now sort the map by the oldest migration.
@@ -315,6 +329,17 @@ std::vector<std::string> GeneralUtils::GetSqlFileNamesFromFolder(const std::stri
 	}
 
 	return sortedFiles;
+}
+
+template<>
+[[nodiscard]] std::optional<json> GeneralUtils::TryParse(std::string_view str) {
+	try {
+		return json::parse(str);
+	} catch (const std::exception& e) {
+		return std::nullopt;
+	} catch (...) {
+		return std::nullopt;
+	}
 }
 
 #if !(__GNUC__ >= 11 || _MSC_VER >= 1924)

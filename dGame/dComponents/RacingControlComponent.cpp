@@ -35,7 +35,8 @@
 RacingControlComponent::RacingControlComponent(Entity* parent)
 	: Component(parent) {
 	m_PathName = u"MainPath";
-	m_RemainingLaps = 3;
+	m_NumberOfLaps = 3;
+	m_RemainingLaps = m_NumberOfLaps;
 	m_LeadingPlayer = LWOOBJID_EMPTY;
 	m_RaceBestTime = 0;
 	m_RaceBestLap = 0;
@@ -45,7 +46,6 @@ RacingControlComponent::RacingControlComponent(Entity* parent)
 	m_LoadedPlayers = 0;
 	m_LoadTimer = 0;
 	m_Finished = 0;
-	m_StartTime = 0;
 	m_EmptyTimer = 0;
 	m_SoloRacing = Game::config->GetValue("solo_racing") == "1";
 
@@ -285,7 +285,7 @@ void RacingControlComponent::OnRacingClientReady(Entity* player) {
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
-void RacingControlComponent::OnRequestDie(Entity* player) {
+void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& deathType) {
 	// Sent by the client when they collide with something which should smash
 	// them.
 
@@ -301,8 +301,9 @@ void RacingControlComponent::OnRequestDie(Entity* player) {
 
 		if (!racingPlayer.noSmashOnReload) {
 			racingPlayer.smashedTimes++;
+			LOG("Death type %s", GeneralUtils::UTF16ToWTF8(deathType).c_str());
 			GameMessages::SendDie(vehicle, vehicle->GetObjectID(), LWOOBJID_EMPTY, true,
-				eKillType::VIOLENT, u"", 0, 0, 90.0f, false, true, 0);
+				eKillType::VIOLENT, deathType, 0, 0, 90.0f, false, true, 0);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
 			uint32_t respawnImagination = 0;
@@ -427,9 +428,9 @@ void RacingControlComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 		outBitStream.Write(player.playerID);
 
 		outBitStream.Write(player.data[0]);
-		if (player.finished != 0) outBitStream.Write<float>(player.raceTime);
+		if (player.finished != 0) outBitStream.Write<float>(player.raceTime.count() / 1000.0f);
 		else outBitStream.Write(player.data[1]);
-		if (player.finished != 0) outBitStream.Write<float>(player.bestLapTime);
+		if (player.finished != 0) outBitStream.Write<float>(player.bestLapTime.count() / 1000.0f);
 		else outBitStream.Write(player.data[2]);
 		if (player.finished == 1) outBitStream.Write<float>(1.0f);
 		else outBitStream.Write(player.data[3]);
@@ -490,8 +491,8 @@ void RacingControlComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 			if (player.finished == 0) continue;
 			outBitStream.Write1(); // Has more data
 			outBitStream.Write(player.playerID);
-			outBitStream.Write<float>(player.bestLapTime);
-			outBitStream.Write<float>(player.raceTime);
+			outBitStream.Write<float>(player.bestLapTime.count() / 1000.0f);
+			outBitStream.Write<float>(player.raceTime.count() / 1000.0f);
 		}
 
 		outBitStream.Write0(); // No more data
@@ -659,23 +660,9 @@ void RacingControlComponent::Update(float deltaTime) {
 					}
 				}
 
-				// Spawn imagination pickups
-				auto* minSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Min")[0];
-				auto* medSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Med")[0];
-				auto* maxSpawner = Game::zoneManager->GetSpawnersByName(
-					"ImaginationSpawn_Max")[0];
-
-				minSpawner->Activate();
-
-				if (m_LoadedPlayers > 2) {
-					medSpawner->Activate();
-				}
-
-				if (m_LoadedPlayers > 4) {
-					maxSpawner->Activate();
-				}
+				GameMessages::ZoneLoadedInfo zoneLoadInfo{};
+				zoneLoadInfo.maxPlayers = m_LoadedPlayers;
+				m_Parent->GetScript()->OnZoneLoadedInfo(m_Parent, zoneLoadInfo);
 
 				// Reset players to their start location, without smashing them
 				for (auto& player : m_RacingPlayers) {
@@ -721,7 +708,7 @@ void RacingControlComponent::Update(float deltaTime) {
 
 				Game::entityManager->SerializeEntity(m_Parent);
 
-				m_StartTime = std::time(nullptr);
+				m_StartTime = std::chrono::high_resolution_clock::now();
 			}
 
 			m_StartTimer += deltaTime;
@@ -765,7 +752,7 @@ void RacingControlComponent::Update(float deltaTime) {
 		// new checkpoint
 		uint32_t respawnIndex = 0;
 		for (const auto& waypoint : path->pathWaypoints) {
-			if (player.lap == 3) {
+			if (player.lap == m_NumberOfLaps) {
 				break;
 			}
 
@@ -810,22 +797,23 @@ void RacingControlComponent::Update(float deltaTime) {
 
 			// Reached the start point, lapped
 			if (respawnIndex == 0) {
-				time_t lapTime = std::time(nullptr) - (player.lap == 0 ? m_StartTime : player.lapTime);
+				const auto now = std::chrono::high_resolution_clock::now();
+				const auto lapTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - (player.lap == 0 ? m_StartTime : player.lapTime));
 
 				// Cheating check
-				if (lapTime < 40) {
+				if (lapTime.count() < 40000) {
 					continue;
 				}
 
-				player.lap++;
+				player.lapTime = now;
 
-				player.lapTime = std::time(nullptr);
-
-				if (player.bestLapTime == 0 || player.bestLapTime > lapTime) {
+				if (player.bestLapTime > lapTime || player.lap == 0) {
 					player.bestLapTime = lapTime;
 
 					LOG("Best lap time (%llu)", lapTime);
 				}
+
+				player.lap++;
 
 				auto* missionComponent =
 					playerEntity->GetComponent<MissionComponent>();
@@ -833,23 +821,21 @@ void RacingControlComponent::Update(float deltaTime) {
 				if (missionComponent != nullptr) {
 
 					// Progress lap time tasks
-					missionComponent->Progress(eMissionTaskType::RACING, (lapTime) * 1000, static_cast<LWOOBJID>(eRacingTaskParam::LAP_TIME));
+					missionComponent->Progress(eMissionTaskType::RACING, lapTime.count(), static_cast<LWOOBJID>(eRacingTaskParam::LAP_TIME));
 
-					if (player.lap == 3) {
+					if (player.lap == m_NumberOfLaps) {
 						m_Finished++;
 						player.finished = m_Finished;
 
-						const auto raceTime =
-							(std::time(nullptr) - m_StartTime);
+						const auto raceTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_StartTime);
 
 						player.raceTime = raceTime;
 
-						LOG("Completed time %llu, %llu",
-							raceTime, raceTime * 1000);
+						LOG("Completed time %llums %fs", raceTime.count(), raceTime.count() / 1000.0f);
 
-						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime), static_cast<float>(player.bestLapTime), static_cast<float>(player.finished == 1));
+						LeaderboardManager::SaveScore(playerEntity->GetObjectID(), m_ActivityID, static_cast<float>(player.raceTime.count()) / 1000, static_cast<float>(player.bestLapTime.count()) / 1000, static_cast<float>(player.finished == 1));
 						// Entire race time
-						missionComponent->Progress(eMissionTaskType::RACING, (raceTime) * 1000, static_cast<LWOOBJID>(eRacingTaskParam::TOTAL_TRACK_TIME));
+						missionComponent->Progress(eMissionTaskType::RACING, player.raceTime.count(), static_cast<LWOOBJID>(eRacingTaskParam::TOTAL_TRACK_TIME));
 
 						missionComponent->Progress(eMissionTaskType::RACING, 0, static_cast<LWOOBJID>(eRacingTaskParam::COMPETED_IN_RACE)); // Progress task for competing in a race
 						missionComponent->Progress(eMissionTaskType::RACING, player.smashedTimes, static_cast<LWOOBJID>(eRacingTaskParam::SAFE_DRIVER)); // Finish a race without being smashed.
@@ -873,14 +859,31 @@ void RacingControlComponent::Update(float deltaTime) {
 					}
 				}
 
-				LOG("Lapped (%i) in (%llu)", player.lap,
-					lapTime);
+				LOG("Lapped (%i) in (%llums %fs)", player.lap,
+					lapTime.count(), lapTime.count() / 1000.0f);
 			}
 
 			LOG("Reached point (%i)/(%i)", player.respawnIndex,
 				path->pathWaypoints.size());
 
 			break;
+		}
+	}
+}
+
+void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
+	for (const auto& dataUnique : msg.racingSettings) {
+		if (!dataUnique) continue;
+		const auto* const data = dataUnique.get(); 
+		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
+			m_PathName = static_cast<const LDFData<std::u16string>*>(data)->GetValue();
+		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
+			m_ActivityID = static_cast<const LDFData<int32_t>*>(data)->GetValue();
+		} else if (data->GetKey() == u"Number_of_Laps" && data->GetValueType() == LDF_TYPE_S32) {
+			m_NumberOfLaps = static_cast<const LDFData<int32_t>*>(data)->GetValue();
+			m_RemainingLaps = m_NumberOfLaps;
+		} else if (data->GetKey() == u"Minimum_Players_for_Group_Achievements" && data->GetValueType() == LDF_TYPE_S32) {
+			m_MinimumPlayersForGroupAchievements = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		}
 	}
 }

@@ -165,7 +165,8 @@ public:
 
     bool eof();
 
-    void nextRow();
+	// Returns true if there is another row to read, false otherwise.
+    bool nextRow();
 
     void finalize();
 
@@ -207,6 +208,9 @@ public:
     int getIntField(int nField, int nNullValue=0);
     int getIntField(const char* szField, int nNullValue=0);
 
+    sqlite_int64 getInt64Field(int nField, sqlite_int64 nNullValue=0);
+    sqlite_int64 getInt64Field(const char* szField, sqlite_int64 nNullValue=0);
+
     double getFloatField(int nField, double fNullValue=0.0);
     double getFloatField(const char* szField, double fNullValue=0.0);
 
@@ -218,6 +222,9 @@ public:
 
     void setRow(int nRow);
 
+    // Returns true if there is another row to read, false otherwise.
+    bool nextRow();
+
     void finalize();
 
 private:
@@ -226,6 +233,7 @@ private:
 
     int mnCols;
     int mnRows;
+    bool mbEof;
     int mnCurrentRow;
     char** mpaszResults;
 };
@@ -252,6 +260,7 @@ public:
     void bind(int nParam, const char* szValue);
     void bind(int nParam, const int nValue);
     void bind(int nParam, const double dwValue);
+    void bind(int nParam, const sqlite_int64 llValue);
     void bind(int nParam, const unsigned char* blobValue, int nLen);
     void bindNull(int nParam);
 
@@ -259,6 +268,7 @@ public:
     void bind(const char* szParam, const char* szValue);
     void bind(const char* szParam, const int nValue);
     void bind(const char* szParam, const double dwValue);
+    void bind(const char* szParam, const sqlite_int64 llValue);
     void bind(const char* szParam, const unsigned char* blobValue, int nLen);
     void bindNull(const char* szParam);
 

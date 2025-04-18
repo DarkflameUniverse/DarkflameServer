@@ -21,7 +21,7 @@ class RigidbodyPhantomPhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RIGID_BODY_PHANTOM_PHYSICS;
 
-	RigidbodyPhantomPhysicsComponent(Entity* parent);
+	RigidbodyPhantomPhysicsComponent(Entity* parent, int32_t componentId);
 
 	void Update(const float deltaTime) override;
 

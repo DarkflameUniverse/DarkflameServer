@@ -294,6 +294,9 @@
 #include "ShardArmor.h"
 #include "TeslaPack.h"
 #include "StunImmunity.h"
+#include "GfRaceServer.h"
+#include "FvRaceServer.h"
+#include "VehicleDeathTriggerWaterServer.h"
 
 // Survival scripts
 #include "AgSurvivalStromling.h"
@@ -327,6 +330,12 @@
 #include "VisToggleNotifierServer.h"
 #include "LupGenericInteract.h"
 #include "WblRobotCitizen.h"
+#include "EnemyClearThreat.h"
+#include "AgSpiderBossMessage.h"
+#include "GfRaceInstancer.h"
+#include "NsRaceServer.h"
+#include "TrialFactionArmorServer.h"
+#include "ImaginationBackPack.h"
 
 #include <map>
 #include <string>
@@ -686,7 +695,39 @@ namespace {
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenOrange.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenRed.lua", []() {return new WblRobotCitizen();}},
 		{"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_RobotCitizenYellow.lua", []() {return new WblRobotCitizen();}},
+		{"scripts\\02_server\\Map\\General\\L_ENEMY_CLEAR_THREAT.lua", []() {return new EnemyClearThreat();}},
+		{"scripts\\ai\\AG\\L_AG_SPIDER_BOSS_MESSAGE.lua", []() {return new AgSpiderBossMessage();}},
+		{"scripts\\ai\\GF\\L_GF_RACE_INSTANCER.lua", []() {return new GfRaceInstancer();}},
+		{"scripts\\ai\\RACING\\TRACK_NS\\NS_RACE_SERVER.lua", []() {return new NsRaceServer();}},
+		{"scripts\\ai\\RACING\\TRACK_GF\\GF_RACE_SERVER.lua", []() {return new GfRaceServer();}},
+		{"scripts\\ai\\RACING\\TRACK_FV\\FV_RACE_SERVER.lua", []() {return new FvRaceServer();}},
+		{"scripts\\ai\\RACING\\OBJECTS\\VEHICLE_DEATH_TRIGGER_WATER_SERVER.lua", []() {return new VehicleDeathTriggerWaterServer();}},
+		{"scripts\\equipmenttriggers\\L_TRIAL_FACTION_ARMOR_SERVER.lua", []() {return new TrialFactionArmorServer();}},
+		{"scripts\\equipmenttriggers\\ImaginationBackPack.lua", []() {return new ImaginationBackPack();}},
 
+	};
+
+	std::set<std::string> g_ExcludedScripts = {
+		"scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua",
+		"scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua",
+		"scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua",
+		"scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua",
+		"scripts\\ai\\WILD\\L_WILD_GF_FROG.lua",
+		"scripts\\empty.lua",
+		"scripts\\zone\\AG\\L_ZONE_AG.lua",
+		"scripts\\zone\\NS\\L_ZONE_NS.lua",
+		"scripts\\ai\\GF\\L_ZONE_GF.lua",
+		"scripts\\ai\\AG\\CONCERT_STAGE.lua",
+		"scripts\\ai\\NS\\L_NS_CAR_MODULAR_BUILD.lua", // In our implementation, this is done in GameMessages.cpp
+		"scripts\\ai\\PETS\\PET_BLOCKER.lua",
+		"scripts\\ai\\PETS\\PET_FLEA_MISSION.lua",
+		"scripts\\ai\\ACT\\L_ACT_PET_INSTANCE_EXIT.lua",
+		"scripts\\ai\\WILD\\L_WILD_GF_FROG.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_Robotanist.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_Seperator.lua",
+		"scripts\\zone\\LUPs\\RobotCity Intro\\WBL_RCIntro_InfectedCitizen.lua",
+		"scripts\\ai\\MINIGAME\\SIEGE\\OBJECTS\\ATTACKER_BOUNCER_SERVER.lua",
+		"scripts\\ai\\AG\\L_AG_ZONE_PLAYER.lua",
 	};
 };
 
@@ -699,14 +740,8 @@ CppScripts::Script* const CppScripts::GetScript(Entity* parent, const std::strin
 	const auto itrTernary = scriptLoader.find(scriptName);
 	Script* script = itrTernary != scriptLoader.cend() ? itrTernary->second() : &InvalidToReturn;
 
-	if (script == &InvalidToReturn) {
-		if ((scriptName.length() > 0) && !((scriptName == "scripts\\02_server\\Enemy\\General\\L_SUSPEND_LUA_AI.lua") ||
-			(scriptName == "scripts\\02_server\\Enemy\\General\\L_BASE_ENEMY_SPIDERLING.lua") ||
-			(scriptName == "scripts\\ai\\FV\\L_ACT_NINJA_STUDENT.lua") ||
-			(scriptName == "scripts\\ai\\WILD\\L_WILD_GF_FROG.lua") ||
-			(scriptName == "scripts\\empty.lua") ||
-			(scriptName == "scripts\\ai\\AG\\L_AG_SENTINEL_GUARD.lua")
-			)) LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
+	if (script == &InvalidToReturn && !scriptName.empty() && !g_ExcludedScripts.contains(scriptName)) {
+		LOG_DEBUG("LOT %i attempted to load CppScript for '%s', but returned InvalidScript.", parent->GetLOT(), scriptName.c_str());
 	}
 
 	g_Scripts[scriptName] = script;

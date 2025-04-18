@@ -51,6 +51,14 @@ namespace GeneralUtils {
 		bool _NextUTF8Char(std::string_view& slice, uint32_t& out);
 	}
 
+	//! Converts a Latin1 string to a UTF-8 string
+	/*!
+	  \param string The string to convert
+	  \param size A size to trim the string to. Default is SIZE_MAX (No trimming)
+	  \return An UTF-8 representation of the string
+	 */
+	std::string Latin1ToUTF8(const std::u8string_view string, const size_t size = SIZE_MAX);
+
 	//! Converts a UTF-16 string to a UTF-8 string
 	/*!
 	  \param string The string to convert
@@ -129,6 +137,29 @@ namespace GeneralUtils {
 
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string_view folder);
 
+	/**
+	 * Transparent string hasher - used to allow string_view key lookups for maps storing std::string keys
+	 * https://www.reddit.com/r/cpp_questions/comments/12xw3sn/find_stdstring_view_in_unordered_map_with/jhki225/
+	 * https://godbolt.org/z/789xv8Eeq
+	*/
+	template <typename... Bases>
+	struct overload : Bases... {
+		using is_transparent = void;
+		using Bases::operator() ... ;
+	};
+
+	struct char_pointer_hash {
+		auto operator()(const char* const ptr) const noexcept {
+			return std::hash<std::string_view>{}(ptr);
+		}
+	};
+
+	using transparent_string_hash = overload<
+		std::hash<std::string>,
+		std::hash<std::string_view>,
+		char_pointer_hash
+	>;
+
 	// Concept constraining to enum types
 	template <typename T>
 	concept Enum = std::is_enum_v<T>;
@@ -169,6 +200,10 @@ namespace GeneralUtils {
 
 		return isParsed ? static_cast<T>(result) : std::optional<T>{};
 	}
+
+	template<typename T>
+	requires(!Numeric<T>)
+	[[nodiscard]] std::optional<T> TryParse(std::string_view str);
 
 #if !(__GNUC__ >= 11 || _MSC_VER >= 1924)
 

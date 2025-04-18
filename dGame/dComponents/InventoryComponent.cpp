@@ -31,6 +31,7 @@
 #include "eStateChangeType.h"
 #include "eUseItemResponse.h"
 #include "Mail.h"
+#include "ProximityMonitorComponent.h"
 
 #include "CDComponentsRegistryTable.h"
 #include "CDInventoryComponentTable.h"
@@ -68,9 +69,10 @@ InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
 	auto slot = 0u;
 
 	for (const auto& item : items) {
-		if (!item.equip || !Inventory::IsValidItem(item.itemid)) {
-			continue;
-		}
+		if (!Inventory::IsValidItem(item.itemid)) continue;
+		AddItem(item.itemid, item.count);
+
+		if (!item.equip) continue;
 
 		const LWOOBJID id = ObjectIDManager::GenerateObjectID();
 
@@ -148,11 +150,11 @@ uint32_t InventoryComponent::GetLotCount(const LOT lot) const {
 	return count;
 }
 
-uint32_t InventoryComponent::GetLotCountNonTransfer(LOT lot) const {
+uint32_t InventoryComponent::GetLotCountNonTransfer(LOT lot, bool includeVault) const {
 	uint32_t count = 0;
 
 	for (const auto& inventory : m_Inventories) {
-		if (IsTransferInventory(inventory.second->GetType())) continue;
+		if (IsTransferInventory(inventory.second->GetType(), includeVault)) continue;
 
 		count += inventory.second->GetLotCount(lot);
 	}
@@ -272,7 +274,7 @@ void InventoryComponent::AddItem(
 
 			switch (sourceType) {
 			case 0:
-				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(m_Parent, "%[MAIL_ACTIVITY_OVERFLOW_HEADER]", "%[MAIL_ACTIVITY_OVERFLOW_BODY]", lot, size);
 				break;
 
 			case 1:
@@ -303,21 +305,35 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
 		return false;
 	}
-	if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
-	auto* inventory = GetInventory(inventoryType);
-	if (!inventory) return false;
+	if (inventoryType != eInventoryType::ALL) {
+		if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
+		auto* inventory = GetInventory(inventoryType);
+		if (!inventory) return false;
 
-	auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
-	if (left != count) return false;
+		auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
+		if (left != count) return false;
 
-	while (left > 0) {
-		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
-		if (!item) break;
-		const auto delta = std::min<uint32_t>(left, item->GetCount());
-		item->SetCount(item->GetCount() - delta, silent);
-		left -= delta;
+		while (left > 0) {
+			auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
+			if (!item) break;
+			const auto delta = std::min<uint32_t>(left, item->GetCount());
+			item->SetCount(item->GetCount() - delta, silent);
+			left -= delta;
+		}
+		return true;
+	} else {
+		auto left = count;
+		for (const auto& inventory : m_Inventories | std::views::values) {
+			while (left > 0 && inventory->GetLotCount(lot) > 0) {
+				auto* item = inventory->FindItemByLot(lot, false, ignoreBound);
+				if (!item) break;
+				const auto delta = std::min<uint32_t>(item->GetCount(), left);
+				item->SetCount(item->GetCount() - delta, silent);
+				left -= delta;
+			}
+		}
+		return left == 0;
 	}
-	return true;
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
@@ -830,6 +846,30 @@ void InventoryComponent::EquipItem(Item* item, const bool skipChecks) {
 			}
 
 			return;
+		} else if (item->GetLot() == 8092) {
+			// Trying to equip a car
+			const auto proximityObjects = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::PROXIMITY_MONITOR);
+
+			// look for car instancers and check if we are in its setup range
+			for (auto* const entity : proximityObjects) {
+				if (!entity) continue;
+
+				auto* proximityMonitorComponent = entity->GetComponent<ProximityMonitorComponent>();
+				if (!proximityMonitorComponent) continue;
+
+				if (proximityMonitorComponent->IsInProximity("Interaction_Distance", m_Parent->GetObjectID())) {
+					// in the range of a car instancer
+					entity->OnUse(m_Parent);
+					GameMessages::UseItemOnClient itemMsg;
+					itemMsg.target = entity->GetObjectID();
+					itemMsg.itemLOT = item->GetLot();
+					itemMsg.itemToUse = item->GetId();
+					itemMsg.playerId = m_Parent->GetObjectID();
+					itemMsg.Send(m_Parent->GetSystemAddress());
+					break;
+				}
+			}
+			return;
 		}
 
 		const auto building = character->GetBuildMode();
@@ -1141,6 +1181,25 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 	SetSkill(slot, skill);
 }
 
+void InventoryComponent::FixInvisibleItems() {
+	const auto numberItemsLoadedPerFrame = 12.0f;
+	const auto callbackTime = 0.125f;
+	const auto arbitaryInventorySize = 300.0f; // max in live + dlu is less than 300, seems like a good number.
+	auto* const items = GetInventory(eInventoryType::ITEMS);
+	if (!items) return;
+
+	// Add an extra update to make sure the client can see all the items.
+	const auto something = static_cast<int32_t>(std::ceil(items->GetItems().size() / arbitaryInventorySize)) + 1;
+	LOG_DEBUG("Fixing invisible items with %i updates", something);
+
+	for (int32_t i = 1; i < something + 1; i++) {
+		// client loads 12 items every 1/8 seconds, we're adding a small hack to fix invisible inventory items due to closing the news screen too fast.
+		m_Parent->AddCallbackTimer((arbitaryInventorySize / numberItemsLoadedPerFrame) * callbackTime * i, [this]() {
+			GameMessages::SendUpdateInventoryUi(m_Parent->GetObjectID(), m_Parent->GetSystemAddress());
+			});
+	}
+}
+
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
@@ -1273,8 +1332,8 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 	}
 }
 
-bool InventoryComponent::IsTransferInventory(eInventoryType type) {
-	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
+bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
+	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {

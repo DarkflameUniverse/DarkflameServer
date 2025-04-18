@@ -44,6 +44,8 @@ public:
 
 	// Updates the given character ids last login to be right now.
 	virtual void UpdateLastLoggedInCharacter(const uint32_t characterId) = 0;
+
+	virtual bool IsNameInUse(const std::string_view name) = 0;
 };
 
 #endif  //!__ICHARINFO__H__

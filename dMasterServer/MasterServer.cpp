@@ -24,7 +24,7 @@
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
 #include "eConnectionType.h"
-#include "eMasterMessageType.h"
+#include "MessageType/Master.h"
 
 //RakNet includes:
 #include "RakNetDefines.h"
@@ -42,6 +42,14 @@
 #include "Server.h"
 #include "CDZoneTableTable.h"
 #include "eGameMasterLevel.h"
+#include "StringifiedEnum.h"
+
+#ifdef DARKFLAME_PLATFORM_UNIX
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#endif
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -61,6 +69,14 @@ void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
+
+int GenerateBCryptPassword(const std::string& password, const int workFactor, char salt[BCRYPT_HASHSIZE], char hash[BCRYPT_HASHSIZE]) {
+	int32_t bcryptState = ::bcrypt_gensalt(workFactor, salt);
+	assert(bcryptState == 0);
+	bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+	assert(bcryptState == 0);
+	return 0;
+}
 
 int main(int argc, char** argv) {
 	constexpr uint32_t masterFramerate = mediumFramerate;
@@ -84,6 +100,24 @@ int main(int argc, char** argv) {
 	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
 
+	auto folders = { "navmeshes", "migrations", "vanity" };
+
+	for (const auto folder : folders) {
+		if (!std::filesystem::exists(BinaryPathFinder::GetBinaryDir() / folder)) {
+			std::string msg = "The (" +
+				std::string(folder) +
+				") folder was not copied to the binary directory. Please copy the (" +
+				std::string(folder) +
+				") folder from your download to the binary directory or re-run cmake.";
+			LOG("%s", msg.c_str());
+			// toss an error box up for windows users running the download
+#ifdef DARKFLAME_PLATFORM_WIN32
+			MessageBoxA(nullptr, msg.c_str(), "Missing Folder", MB_OK | MB_ICONERROR);
+#endif
+			return EXIT_FAILURE;
+		}
+	}
+
 	if (!dConfig::Exists("authconfig.ini")) LOG("Could not find authconfig.ini, using default settings");
 	if (!dConfig::Exists("chatconfig.ini")) LOG("Could not find chatconfig.ini, using default settings");
 	if (!dConfig::Exists("masterconfig.ini")) LOG("Could not find masterconfig.ini, using default settings");
@@ -103,7 +137,7 @@ int main(int argc, char** argv) {
 	//Connect to the MySQL Database
 	try {
 		Database::Connect();
-	} catch (sql::SQLException& ex) {
+	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		LOG("Migrations not run");
 		return EXIT_FAILURE;
@@ -126,6 +160,7 @@ int main(int argc, char** argv) {
 
 	MigrationRunner::RunMigrations();
 	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+	std::filesystem::create_directories(resServerPath);
 	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
 	const bool oldCDServerExists = std::filesystem::exists(Game::assetManager->GetResPath() / "CDServer.sqlite");
 	const bool fdbExists = std::filesystem::exists(Game::assetManager->GetResPath() / "cdclient.fdb");
@@ -180,8 +215,12 @@ int main(int argc, char** argv) {
 
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
-	if (argc > 1 &&
-		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) {
+	bool createAccount = Database::Get()->GetAccountCount() == 0 && Game::config->GetValue("skip_account_creation") != "1";
+	if (createAccount) {
+		LOG("No accounts exist in the database.  Please create an account.");
+	}
+	if ((argc > 1 &&
+		(strcmp(argv[1], "-a") == 0 || strcmp(argv[1], "--account") == 0)) || createAccount) {
 		std::string username;
 		std::string password;
 
@@ -215,10 +254,8 @@ int main(int argc, char** argv) {
 				// Regenerate hash based on new password
 				char salt[BCRYPT_HASHSIZE];
 				char hash[BCRYPT_HASHSIZE];
-				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-				assert(bcryptState == 0);
-				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-				assert(bcryptState == 0);
+				int res = GenerateBCryptPassword(password, 12, salt, hash);
+				assert(res == 0);
 
 				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
@@ -256,15 +293,13 @@ int main(int argc, char** argv) {
 		//Generate new hash for bcrypt
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-		assert(bcryptState == 0);
-		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-		assert(bcryptState == 0);
+		int res = GenerateBCryptPassword(password, 12, salt, hash);
+		assert(res == 0);
 
 		//Create account
 		try {
 			Database::Get()->InsertNewAccount(username, std::string(hash, BCRYPT_HASHSIZE));
-		} catch (sql::SQLException& e) {
+		} catch (std::exception& e) {
 			LOG("A SQL error occurred!:\n %s", e.what());
 			return EXIT_FAILURE;
 		}
@@ -295,15 +330,25 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
+	char salt[BCRYPT_HASHSIZE];
+	char hash[BCRYPT_HASHSIZE];
+	const auto& cfgPassword = Game::config->GetValue("master_password");
+	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+	assert(res == 0);
+
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
 	if (!masterServerIPString.empty()) master_server_ip = masterServerIPString;
 
 	if (master_server_ip == "") master_server_ip = Game::server->GetIP();
+	IServers::MasterInfo info;
+	info.ip = master_server_ip;
+	info.port = Game::server->GetPort();
+	info.password = hash;
 
-	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
+	Database::Get()->SetMasterInfo(info);
 
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
@@ -418,6 +463,12 @@ int main(int argc, char** argv) {
 			}
 		}
 
+#ifdef DARKFLAME_PLATFORM_UNIX
+		// kill off dead zombie instances
+		int status{};
+		waitpid(static_cast<pid_t>(-1), &status, WNOHANG);
+#endif
+
 		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
@@ -473,8 +524,8 @@ void HandlePacket(Packet* packet) {
 	if (packet->length < 4) return;
 
 	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
-		switch (static_cast<eMasterMessageType>(packet->data[3])) {
-		case eMasterMessageType::REQUEST_PERSISTENT_ID: {
+		switch (static_cast<MessageType::Master>(packet->data[3])) {
+		case MessageType::Master::REQUEST_PERSISTENT_ID: {
 			LOG("A persistent ID req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -486,7 +537,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_ZONE_TRANSFER: {
+		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
 			LOG("Received zone transfer req");
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
@@ -506,7 +557,7 @@ void HandlePacket(Packet* packet) {
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				LOG("Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
+				LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
 			}
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
@@ -522,7 +573,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SERVER_INFO: {
+		case MessageType::Master::SERVER_INFO: {
 			//MasterPackets::HandleServerInfo(packet);
 
 			//This is here because otherwise we'd have to include IM in
@@ -547,15 +598,10 @@ void HandlePacket(Packet* packet) {
 				if (!Game::im->IsPortInUse(theirPort)) {
 					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-					SystemAddress copy;
-					copy.binaryAddress = packet->systemAddress.binaryAddress;
-					copy.port = packet->systemAddress.port;
-
-					in->SetSysAddr(copy);
+					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
-					auto instance = Game::im->FindInstance(
-						theirZoneID, static_cast<uint16_t>(theirInstanceID));
+					auto* instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
 					if (instance) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
@@ -563,27 +609,19 @@ void HandlePacket(Packet* packet) {
 			}
 
 			if (theirServerType == ServerType::Chat) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				chatServerMasterPeerSysAddr = copy;
+				chatServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
 			if (theirServerType == ServerType::Auth) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				authServerMasterPeerSysAddr = copy;
+				authServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
-			LOG("Received server info, instance: %i port: %i", theirInstanceID, theirPort);
+			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
 
 			break;
 		}
 
-		case eMasterMessageType::SET_SESSION_KEY: {
+		case MessageType::Master::SET_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			uint32_t sessionKey = 0;
 			inStream.Read(sessionKey);
@@ -595,7 +633,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
@@ -609,7 +647,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_SESSION_KEY: {
+		case MessageType::Master::REQUEST_SESSION_KEY: {
 			CINSTREAM_SKIP_HEADER;
 			LUWString username;
 			inStream.Read(username);
@@ -617,7 +655,7 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
 					Game::server->Send(bitStream, packet->systemAddress, false);
@@ -627,7 +665,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_ADDED: {
+		case MessageType::Master::PLAYER_ADDED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -642,12 +680,12 @@ void HandlePacket(Packet* packet) {
 			if (instance) {
 				instance->AddPlayer(Player());
 			} else {
-				printf("Instance missing? What?");
+				LOG("Instance missing? What?");
 			}
 			break;
 		}
 
-		case eMasterMessageType::PLAYER_REMOVED: {
+		case MessageType::Master::PLAYER_REMOVED: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -665,7 +703,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::CREATE_PRIVATE_ZONE: {
+		case MessageType::Master::CREATE_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -683,13 +721,13 @@ void HandlePacket(Packet* packet) {
 				inStream.Read<char>(character);
 				password += character;
 			}
-
-			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			auto* newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			LOG("Creating private zone %i/%i/%i with password %s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), password.c_str());
 
 			break;
 		}
 
-		case eMasterMessageType::REQUEST_PRIVATE_ZONE: {
+		case MessageType::Master::REQUEST_PRIVATE_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -724,7 +762,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::WORLD_READY: {
+		case MessageType::Master::WORLD_READY: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -748,7 +786,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::PREP_ZONE: {
+		case MessageType::Master::PREP_ZONE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -764,7 +802,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::AFFIRM_TRANSFER_RESPONSE: {
+		case MessageType::Master::AFFIRM_TRANSFER_RESPONSE: {
 			RakNet::BitStream inStream(packet->data, packet->length, false);
 			uint64_t header = inStream.Read(header);
 
@@ -784,12 +822,11 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_RESPONSE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+		case MessageType::Master::SHUTDOWN_RESPONSE: {
+			CINSTREAM_SKIP_HEADER;
 
 			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
-
+			LOG("Got shutdown response from %s", packet->systemAddress.ToString());
 			if (instance == nullptr) {
 				return;
 			}
@@ -799,7 +836,7 @@ void HandlePacket(Packet* packet) {
 			break;
 		}
 
-		case eMasterMessageType::SHUTDOWN_UNIVERSE: {
+		case MessageType::Master::SHUTDOWN_UNIVERSE: {
 			LOG("Received shutdown universe command, shutting down in 10 minutes.");
 			Game::universeShutdownRequested = true;
 			break;
@@ -829,7 +866,7 @@ int ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, eMasterMessageType::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}

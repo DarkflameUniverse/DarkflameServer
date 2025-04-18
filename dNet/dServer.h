@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <chrono>
 #include <csignal>
 #include "RakPeerInterface.h"
 #include "ReplicaManager.h"
@@ -45,6 +46,7 @@ public:
 		ServerType serverType,
 		dConfig* config,
 		Game::signal_t* shouldShutdown,
+		const std::string& masterPassword,
 		unsigned int zoneID = 0);
 	~dServer();
 
@@ -80,13 +82,18 @@ public:
 
 	const ServerType GetServerType() const { return mServerType; }
 
+	[[nodiscard]]
+	std::chrono::steady_clock::duration GetUptime() const {
+		return std::chrono::steady_clock::now() - mStartTime;
+	}
+
 private:
 	bool Startup();
 	void Shutdown();
 	void SetupForMasterConnection();
 	bool ConnectToMaster();
 
-private:
+protected:
 	Logger* mLogger = nullptr;
 	dConfig* mConfig = nullptr;
 	RakPeerInterface* mPeer = nullptr;
@@ -114,4 +121,6 @@ private:
 	SystemAddress mMasterSystemAddress;
 	std::string mMasterIP;
 	int mMasterPort;
+	std::chrono::steady_clock::time_point mStartTime = std::chrono::steady_clock::now();
+	std::string mMasterPassword;
 };

@@ -13,9 +13,9 @@
 #include "dConfig.h"
 #include "eObjectBits.h"
 #include "eConnectionType.h"
-#include "eChatMessageType.h"
-#include "eClientMessageType.h"
-#include "eGameMessageType.h"
+#include "MessageType/Chat.h"
+#include "MessageType/Client.h"
+#include "MessageType/Game.h"
 #include "StringifiedEnum.h"
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
@@ -49,7 +49,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 			fd.zoneID = fr.zoneID;
 
 			//Since this friend is online, we need to update them on the fact that we've just logged in:
-			SendFriendUpdate(fr, player, 1, fd.isBestFriend);
+			if (player.isLogin) SendFriendUpdate(fr, player, 1, fd.isBestFriend);
 		} else {
 			fd.isOnline = false;
 			fd.zoneID = LWOZONEID();
@@ -60,11 +60,11 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 	//Now, we need to send the friendlist to the server they came from:
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::GET_FRIENDS_LIST_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::GET_FRIENDS_LIST_RESPONSE);
 	bitStream.Write<uint8_t>(0);
 	bitStream.Write<uint16_t>(1); //Length of packet -- just writing one as it doesn't matter, client skips it.
 	bitStream.Write<uint16_t>(player.friends.size());
@@ -103,7 +103,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 		return;
 	};
 
-	auto& requestee = Game::playerContainer.GetPlayerDataMutable(playerName);
+	// Intentional copy
+	PlayerData requestee = Game::playerContainer.GetPlayerData(playerName);
 
 	// Check if player is online first
 	if (isBestFriendRequest && !requestee) {
@@ -140,7 +141,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 
 	// Prevent GM friend spam
 	// If the player we are trying to be friends with is not a civilian and we are a civilian, abort the process
-	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN ) {
+	if (requestee.gmLevel > eGameMasterLevel::CIVILIAN && requestor.gmLevel == eGameMasterLevel::CIVILIAN) {
 		SendFriendResponse(requestor, requestee, eAddFriendResponseType::MYTHRAN);
 		return;
 	}
@@ -188,19 +189,24 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				Database::Get()->SetBestFriendStatus(requestorPlayerID, requestee.playerID, bestFriendStatus);
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
-					requestee.countOfBestFriends += 1;
-					requestor.countOfBestFriends += 1;
 					if (requestee.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, eAddFriendResponseType::ACCEPTED, false, true);
 					if (requestor.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::ACCEPTED, false, true);
+
 					for (auto& friendData : requestor.friends) {
 						if (friendData.friendID == requestee.playerID) {
 							friendData.isBestFriend = true;
 						}
 					}
-					for (auto& friendData : requestee.friends) {
-						if (friendData.friendID == requestor.playerID) {
-							friendData.isBestFriend = true;
+					requestor.countOfBestFriends += 1;
+
+					auto& toModify = Game::playerContainer.GetPlayerDataMutable(playerName);
+					if (toModify) {
+						for (auto& friendData : toModify.friends) {
+							if (friendData.friendID == requestor.playerID) {
+								friendData.isBestFriend = true;
+							}
 						}
+						toModify.countOfBestFriends += 1;
 					}
 				}
 			}
@@ -368,10 +374,10 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 	bool online = player;
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(request.requestor);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::WHO_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::WHO_RESPONSE);
 	bitStream.Write<uint8_t>(online);
 	bitStream.Write(player.zoneID.GetMapID());
 	bitStream.Write(player.zoneID.GetInstanceID());
@@ -391,17 +397,17 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	if (!sender) return;
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(request.requestor);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::SHOW_ALL_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::SHOW_ALL_RESPONSE);
 	bitStream.Write<uint8_t>(!request.displayZoneData && !request.displayIndividualPlayers);
 	bitStream.Write(Game::playerContainer.GetPlayerCount());
 	bitStream.Write(Game::playerContainer.GetSimCount());
 	bitStream.Write<uint8_t>(request.displayIndividualPlayers);
 	bitStream.Write<uint8_t>(request.displayZoneData);
-	if (request.displayZoneData || request.displayIndividualPlayers){
-		for (auto& [playerID, playerData ]: Game::playerContainer.GetAllPlayers()){
+	if (request.displayZoneData || request.displayIndividualPlayers) {
+		for (auto& [playerID, playerData] : Game::playerContainer.GetAllPlayers()) {
 			if (!playerData) continue;
 			bitStream.Write<uint8_t>(0); // structure packing
 			if (request.displayIndividualPlayers) bitStream.Write(LUWString(playerData.playerName));
@@ -416,7 +422,7 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	SEND_PACKET;
 }
 
-// the structure the client uses to send this packet is shared in many chat messages 
+// the structure the client uses to send this packet is shared in many chat messages
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
@@ -428,7 +434,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 
 	eChatChannel channel;
 	uint32_t size;
-	
+
 	inStream.IgnoreBytes(4);
 	inStream.Read(channel);
 	inStream.Read(size);
@@ -436,7 +442,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 
 	LUWString message(size);
 	inStream.Read(message);
-	
+
 	LOG("Got a message from (%s) via [%s]: %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str());
 
 	switch (channel) {
@@ -457,7 +463,7 @@ void ChatPacketHandler::HandleChatMessage(Packet* packet) {
 	}
 }
 
-// the structure the client uses to send this packet is shared in many chat messages 
+// the structure the client uses to send this packet is shared in many chat messages
 // that are sent to the server. Because of this, there are large gaps of unused data in chat messages
 void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
@@ -484,7 +490,7 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 	LUWString message(size);
 	inStream.Read(message);
-	
+
 	LOG("Got a message from (%s) via [%s]: %s to %s", sender.playerName.c_str(), StringifiedEnum::ToString(channel).data(), message.GetAsString().c_str(), receiverName.c_str());
 
 	const auto& receiver = Game::playerContainer.GetPlayerData(receiverName);
@@ -515,10 +521,10 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 
 void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(routeTo.playerID);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::PRIVATE_CHAT_MESSAGE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE);
 	bitStream.Write(sender.playerID);
 	bitStream.Write(channel);
 	bitStream.Write<uint32_t>(0); // not used
@@ -757,11 +763,11 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 
 void ChatPacketHandler::SendTeamInvite(const PlayerData& receiver, const PlayerData& sender) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::TEAM_INVITE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::TEAM_INVITE);
 
 	bitStream.Write(LUWString(sender.playerName.c_str()));
 	bitStream.Write(sender.playerID);
@@ -772,14 +778,14 @@ void ChatPacketHandler::SendTeamInvite(const PlayerData& receiver, const PlayerD
 
 void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_INVITE_CONFIRM);
+	bitStream.Write(MessageType::Game::TEAM_INVITE_CONFIRM);
 
 	bitStream.Write(bLeaderIsFreeTrial);
 	bitStream.Write(i64LeaderID);
@@ -799,14 +805,14 @@ void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, bool b
 
 void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_GET_STATUS_RESPONSE);
+	bitStream.Write(MessageType::Game::TEAM_GET_STATUS_RESPONSE);
 
 	bitStream.Write(i64LeaderID);
 	bitStream.Write(i64LeaderZoneID);
@@ -824,14 +830,14 @@ void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64L
 
 void ChatPacketHandler::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_SET_LEADER);
+	bitStream.Write(MessageType::Game::TEAM_SET_LEADER);
 
 	bitStream.Write(i64PlayerID);
 
@@ -841,14 +847,14 @@ void ChatPacketHandler::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i
 
 void ChatPacketHandler::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_ADD_PLAYER);
+	bitStream.Write(MessageType::Game::TEAM_ADD_PLAYER);
 
 	bitStream.Write(bIsFreeTrial);
 	bitStream.Write(bLocal);
@@ -870,14 +876,14 @@ void ChatPacketHandler::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFr
 
 void ChatPacketHandler::SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_REMOVE_PLAYER);
+	bitStream.Write(MessageType::Game::TEAM_REMOVE_PLAYER);
 
 	bitStream.Write(bDisband);
 	bitStream.Write(bIsKicked);
@@ -896,14 +902,14 @@ void ChatPacketHandler::SendTeamRemovePlayer(const PlayerData& receiver, bool bD
 
 void ChatPacketHandler::SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
 	CMSGHEADER;
 
 	bitStream.Write(receiver.playerID);
-	bitStream.Write(eGameMessageType::TEAM_SET_OFF_WORLD_FLAG);
+	bitStream.Write(MessageType::Game::TEAM_SET_OFF_WORLD_FLAG);
 
 	bitStream.Write(i64PlayerID);
 	if (receiver.zoneID.GetCloneID() == zoneID.GetCloneID()) {
@@ -930,11 +936,11 @@ void ChatPacketHandler::SendFriendUpdate(const PlayerData& friendData, const Pla
 		[bool] - is FTP*/
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(friendData.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::UPDATE_FRIEND_NOTIFY);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::UPDATE_FRIEND_NOTIFY);
 	bitStream.Write<uint8_t>(notifyType);
 
 	std::string playerName = playerData.playerName.c_str();
@@ -967,11 +973,11 @@ void ChatPacketHandler::SendFriendRequest(const PlayerData& receiver, const Play
 	}
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::ADD_FRIEND_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::ADD_FRIEND_REQUEST);
 	bitStream.Write(LUWString(sender.playerName));
 	bitStream.Write<uint8_t>(0); // This is a BFF flag however this is unused in live and does not have an implementation client side.
 
@@ -981,11 +987,11 @@ void ChatPacketHandler::SendFriendRequest(const PlayerData& receiver, const Play
 
 void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const PlayerData& sender, eAddFriendResponseType responseCode, uint8_t isBestFriendsAlready, uint8_t isBestFriendRequest) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	// Portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::ADD_FRIEND_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
 	// For all requests besides accepted, write a flag that says whether or not we are already best friends with the receiver.
 	bitStream.Write<uint8_t>(responseCode != eAddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender.sysAddr != UNASSIGNED_SYSTEM_ADDRESS);
@@ -1004,11 +1010,11 @@ void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const Pla
 
 void ChatPacketHandler::SendRemoveFriend(const PlayerData& receiver, std::string& personToRemove, bool isSuccessful) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, eChatMessageType::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, eClientMessageType::REMOVE_FRIEND_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::REMOVE_FRIEND_RESPONSE);
 	bitStream.Write<uint8_t>(isSuccessful); //isOnline
 	bitStream.Write(LUWString(personToRemove));
 

@@ -16,12 +16,12 @@ jobs:
         os: [ windows-2022, ubuntu-22.04, macos-13 ]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
       with:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
       if: ${{ matrix.os == 'windows-2022' }}
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@767f00a3f09872d96a0cb9fcd5e6a4ff33311330
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
@@ -30,24 +30,27 @@ jobs:
       run: |
         brew install openssl@3
         sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
-    - name: cmake
-      uses: lukka/run-cmake@v10
+    - name: Get CMake 3.x
+      uses: lukka/get-cmake@28983e0d3955dba2bb0a6810caae0c6cf268ec0c
       with:
-        configurePreset: "ci-${{matrix.os}}"
-        buildPreset: "ci-${{matrix.os}}"
-        testPreset: "ci-${{matrix.os}}"
+        cmakeVersion: "~3.25.0"  # <--= optional, use most recent 3.25.x version
+    - name: cmake
+      uses: lukka/run-cmake@67c73a83a46f86c4e0b96b741ac37ff495478c38
+      with:
+        workflowPreset: "ci-${{matrix.os}}"
     - name: artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@6027e3dd177782cd8ab9af838c04fd81a07f1d47
       with:
         name: build-${{matrix.os}}
         path: |
-          build/*Server*
-          build/*.ini
-          build/*.so
-          build/*.dll
-          build/vanity/
-          build/navmeshes/
-          build/migrations/
-          build/*.dcf
-          !build/*.pdb
-          !build/d*/
+          build/*/*Server*
+          build/*/*.ini
+          build/*/*.so
+          build/*/*.dll
+          build/*/*.dylib
+          build/*/vanity/
+          build/*/navmeshes/
+          build/*/migrations/
+          build/*/*.dcf
+          !build/*/*.pdb
+          !build/*/d*/

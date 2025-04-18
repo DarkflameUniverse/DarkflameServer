@@ -205,7 +205,7 @@ public:
 	 *
 	 * @param item The item that represents this pet in the inventory.
 	 */
-	void AddDrainImaginationTimer(Item* item, bool fromTaming = false);
+	void AddDrainImaginationTimer(bool fromTaming = false);
 
 private:
 
@@ -329,7 +329,7 @@ private:
 	 * Timer that tracks how long a pet has been digging up some treasure, required to spawn the treasure contents
 	 * on time
 	 */
-	float m_TresureTime;
+	float m_TreasureTime;
 
 	/**
 	 * The position that this pet was spawned at

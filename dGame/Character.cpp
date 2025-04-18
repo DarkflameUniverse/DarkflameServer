@@ -21,6 +21,7 @@
 #include "eObjectBits.h"
 #include "eGameMasterLevel.h"
 #include "ePlayerFlag.h"
+#include "CDPlayerFlagsTable.h"
 
 Character::Character(uint32_t id, User* parentUser) {
 	//First load the name, etc:
@@ -40,8 +41,8 @@ void Character::UpdateInfoFromDatabase() {
 	auto charInfo = Database::Get()->GetCharacterInfo(m_ID);
 
 	if (charInfo) {
-		m_Name = charInfo->name; 
-		m_UnapprovedName = charInfo->pendingName; 
+		m_Name = charInfo->name;
+		m_UnapprovedName = charInfo->pendingName;
 		m_NameRejected = charInfo->needsRename;
 		m_PropertyCloneID = charInfo->cloneId;
 		m_PermissionMap = charInfo->permissionMap;
@@ -76,7 +77,7 @@ void Character::DoQuickXMLDataParse() {
 	if (m_Doc.Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
 		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
 	} else {
-		LOG("Failed to load xmlData!");
+		LOG("Failed to load xmlData (%i) (%s) (%s)!", m_Doc.ErrorID(), m_Doc.ErrorIDToName(m_Doc.ErrorID()), m_Doc.ErrorStr());
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
 		return;
 	}
@@ -203,6 +204,7 @@ void Character::DoQuickXMLDataParse() {
 		while (currentChild) {
 			const auto* temp = currentChild->Attribute("v");
 			const auto* id = currentChild->Attribute("id");
+			const auto* si = currentChild->Attribute("si");
 			if (temp && id) {
 				uint32_t index = 0;
 				uint64_t value = 0;
@@ -211,6 +213,9 @@ void Character::DoQuickXMLDataParse() {
 				value = std::stoull(temp);
 
 				m_PlayerFlags.insert(std::make_pair(index, value));
+			} else if (si) {
+				auto value = GeneralUtils::TryParse<uint32_t>(si);
+				if (value) m_SessionFlags.insert(value.value());
 			}
 			currentChild = currentChild->NextSiblingElement();
 		}
@@ -231,6 +236,12 @@ void Character::SetBuildMode(bool buildMode) {
 }
 
 void Character::SaveXMLToDatabase() {
+	// Check that we can actually _save_ before saving
+	if (!m_OurEntity) {
+		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		return;
+	}
+
 	//For metrics, we'll record the time it took to save:
 	auto start = std::chrono::system_clock::now();
 
@@ -277,32 +288,18 @@ void Character::SaveXMLToDatabase() {
 	}
 
 	flags->DeleteChildren(); //Clear it if we have anything, so that we can fill it up again without dupes
-	for (std::pair<uint32_t, uint64_t> flag : m_PlayerFlags) {
-		auto* f = m_Doc.NewElement("f");
-		f->SetAttribute("id", flag.first);
-
-		//Because of the joy that is tinyxml2, it doesn't offer a function to set a uint64 as an attribute.
-		//Only signed 64-bits ints would work.
-		std::string v = std::to_string(flag.second);
-		f->SetAttribute("v", v.c_str());
-
-		flags->LinkEndChild(f);
+	for (const auto& [index, flagBucket] : m_PlayerFlags) {
+		auto* f = flags->InsertNewChildElement("f");
+		f->SetAttribute("id", index);
+		f->SetAttribute("v", flagBucket);
 	}
 
-	// Prevents the news feed from showing up on world transfers
-	if (GetPlayerFlag(ePlayerFlag::IS_NEWS_SCREEN_VISIBLE)) {
-		auto* s = m_Doc.NewElement("s");
-		s->SetAttribute("si", ePlayerFlag::IS_NEWS_SCREEN_VISIBLE);
-		flags->LinkEndChild(s);
+	for (const auto& sessionFlag : m_SessionFlags) {
+		auto* s = flags->InsertNewChildElement("s");
+		s->SetAttribute("si", sessionFlag);
 	}
 
 	SaveXmlRespawnCheckpoints();
-
-	//Call upon the entity to update our xmlDoc:
-	if (!m_OurEntity) {
-		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
-		return;
-	}
 
 	m_OurEntity->UpdateXMLDoc(m_Doc);
 
@@ -323,8 +320,8 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
+			LOG("Removed session flag (%s) from character %i:%s, saving character to database", currentChild->Attribute("si"), GetID(), GetName().c_str());
 			flags->DeleteChild(currentChild);
-			LOG("Removed isLoggedIn flag from character %i:%s, saving character to database", GetID(), GetName().c_str());
 			WriteToDatabase();
 		}
 		currentChild = nextChild;
@@ -357,49 +354,64 @@ void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {
 		}
 	}
 
-	// Calculate the index first
-	auto flagIndex = uint32_t(std::floor(flagId / 64));
+	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);	
 
-	const auto shiftedValue = 1ULL << flagId % 64;
-
-	auto it = m_PlayerFlags.find(flagIndex);
-
-	// Check if flag index exists
-	if (it != m_PlayerFlags.end()) {
-		// Update the value
-		if (value) {
-			it->second |= shiftedValue;
-		} else {
-			it->second &= ~shiftedValue;
-		}
+	if (flagEntry && flagEntry->sessionOnly) {
+		if (value) m_SessionFlags.insert(flagId);
+		else m_SessionFlags.erase(flagId);
 	} else {
-		if (value) {
-			// Otherwise, insert the value
-			uint64_t flagValue = 0;
+		// Calculate the index first
+		auto flagIndex = uint32_t(std::floor(flagId / 64));
 
-			flagValue |= shiftedValue;
+		const auto shiftedValue = 1ULL << flagId % 64;
 
-			m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
+		auto it = m_PlayerFlags.find(flagIndex);
+
+		// Check if flag index exists
+		if (it != m_PlayerFlags.end()) {
+			// Update the value
+			if (value) {
+				it->second |= shiftedValue;
+			} else {
+				it->second &= ~shiftedValue;
+			}
+		} else {
+			if (value) {
+				// Otherwise, insert the value
+				uint64_t flagValue = 0;
+
+				flagValue |= shiftedValue;
+
+				m_PlayerFlags.insert(std::make_pair(flagIndex, flagValue));
+			}
 		}
 	}
-
 	// Notify the client that a flag has changed server-side
 	GameMessages::SendNotifyClientFlagChange(m_ObjectID, flagId, value, m_ParentUser->GetSystemAddress());
 }
 
 bool Character::GetPlayerFlag(const uint32_t flagId) const {
-	// Calculate the index first
-	const auto flagIndex = uint32_t(std::floor(flagId / 64));
+	using enum ePlayerFlag;
 
-	const auto shiftedValue = 1ULL << flagId % 64;
+	bool toReturn = false; //by def, return false.
 
-	auto it = m_PlayerFlags.find(flagIndex);
-	if (it != m_PlayerFlags.end()) {
-		// Don't set the data if we don't have to
-		return (it->second & shiftedValue) != 0;
+	const auto flagEntry = CDPlayerFlagsTable::GetEntry(flagId);
+	if (flagEntry && flagEntry->sessionOnly) {
+		toReturn = m_SessionFlags.contains(flagId);
+	} else {
+		// Calculate the index first
+		const auto flagIndex = uint32_t(std::floor(flagId / 64));
+
+		const auto shiftedValue = 1ULL << flagId % 64;
+
+		auto it = m_PlayerFlags.find(flagIndex);
+		if (it != m_PlayerFlags.end()) {
+			// Don't set the data if we don't have to
+			toReturn = (it->second & shiftedValue) != 0;
+		}
 	}
 
-	return false; //by def, return false.
+	return toReturn;
 }
 
 void Character::SetRetroactiveFlags() {

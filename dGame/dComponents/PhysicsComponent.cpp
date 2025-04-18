@@ -14,10 +14,21 @@
 
 #include "EntityInfo.h"
 
-PhysicsComponent::PhysicsComponent(Entity* parent) : Component(parent) {
+PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
 	m_Rotation = NiQuaternionConstant::IDENTITY;
 	m_DirtyPosition = false;
+
+	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
+
+	if (physicsComponentTable) {
+		auto* info = physicsComponentTable->GetByID(componentId);
+		if (info) {
+			m_CollisionGroup = info->collisionGroup;
+		}
+	}
+
+	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
 }
 
 void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -73,7 +84,12 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	} else if (info->physicsAsset == "env\\env_won_fv_gas-blocking-volume.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 390.496826f, 111.467964f, 600.821534f, true);
 		m_Position.y -= (111.467964f * m_Parent->GetDefaultScale()) / 2;
-	} else {
+		// Leaving these out for now since they cause more issues than they solve in racing tracks without proper OBB checks.
+	} /* else if (info->physicsAsset == "env\\GFTrack_DeathVolume1_CaveExit.hkx") {
+		toReturn = new dpEntity(m_Parent->GetObjectID(), 112.416870f, 50.363434f, 87.679268f);
+	} else if (info->physicsAsset == "env\\GFTrack_DeathVolume2_RoadGaps.hkx") {
+		toReturn = new dpEntity(m_Parent->GetObjectID(), 48.386536f, 50.363434f, 259.361755f);
+	} */ else {
 		// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
 
 		//add fallback cube:

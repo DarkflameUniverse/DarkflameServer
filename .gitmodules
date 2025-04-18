@@ -1,6 +1,3 @@
-[submodule "thirdparty/cpp-httplib"]
-	path = thirdparty/cpp-httplib
-	url = https://github.com/yhirose/cpp-httplib
 [submodule "thirdparty/tinyxml2"]
 	path = thirdparty/tinyxml2
 	url = https://github.com/leethomason/tinyxml2
