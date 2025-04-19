@@ -45,6 +45,7 @@ namespace {
 	using namespace GameMessages;
 	using MessageCreator = std::function<std::unique_ptr<GameMessages::GameMsg>()>;
 	std::map<MessageType::Game, MessageCreator> g_MessageHandlers = {
+		{ REQUEST_USE, []() { return std::make_unique<RequestUse>(); }},
 		{ REQUEST_SERVER_OBJECT_INFO, []() { return std::make_unique<RequestServerObjectInfo>(); } },
 		{ SHOOTING_GALLERY_FIRE, []() { return std::make_unique<ShootingGalleryFire>(); } },
 	};
@@ -115,11 +116,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::RESPOND_TO_MISSION: {
 		GameMessages::HandleRespondToMission(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::REQUEST_USE: {
-		GameMessages::HandleRequestUse(inStream, entity, sysAddr);
 		break;
 	}
 
