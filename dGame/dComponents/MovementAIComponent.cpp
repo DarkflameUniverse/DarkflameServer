@@ -182,6 +182,10 @@ const MovementAIInfo& MovementAIComponent::GetInfo() const {
 	return m_Info;
 }
 
+MovementAIInfo& MovementAIComponent::GetInfo() {
+	return m_Info;
+}
+
 bool MovementAIComponent::AdvanceWaypointIndex() {
 	if (m_PathIndex >= m_InterpolatedWaypoints.size()) {
 		return false;

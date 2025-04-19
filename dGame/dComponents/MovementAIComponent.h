@@ -75,6 +75,12 @@ public:
 	const MovementAIInfo& GetInfo() const;
 
 	/**
+	 * Returns a mutable reference to the basic settings that this entity uses to move around
+	 * @return a mutable reference to the basic settings that this entity uses to move around
+	 */
+	MovementAIInfo& GetInfo();
+
+	/**
 	 * Set a destination point for the entity to move towards
 	 * @param value the destination point to move towards
 	 */
