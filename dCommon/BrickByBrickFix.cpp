@@ -8,6 +8,7 @@
 
 #include "Database.h"
 #include "Game.h"
+#include "Sd0.h"
 #include "ZCompression.h"
 #include "Logger.h"
 
@@ -44,10 +45,10 @@ uint32_t BrickByBrickFix::TruncateBrokenBrickByBrickXml() {
 				}
 
 				// Ignore the valgrind warning about uninitialized values.  These are discarded later when we know the actual uncompressed size.
-				std::unique_ptr<uint8_t[]> uncompressedChunk(new uint8_t[ZCompression::MAX_SD0_CHUNK_SIZE]);
+				std::unique_ptr<uint8_t[]> uncompressedChunk(new uint8_t[Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE]);
 				int32_t err{};
 				int32_t actualUncompressedSize = ZCompression::Decompress(
-					compressedChunk.get(), chunkSize, uncompressedChunk.get(), ZCompression::MAX_SD0_CHUNK_SIZE, err);
+					compressedChunk.get(), chunkSize, uncompressedChunk.get(), Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE, err);
 
 				if (actualUncompressedSize != -1) {
 					uint32_t previousSize = completeUncompressedModel.size();
@@ -117,7 +118,7 @@ uint32_t BrickByBrickFix::UpdateBrickByBrickModelsToSd0() {
 			}
 
 			std::string outputString(sd0ConvertedModel.get(), oldLxfmlSizeWithHeader);
-			std::istringstream outputStringStream(outputString);
+			std::stringstream outputStringStream(outputString);
 
 			try {
 				Database::Get()->UpdateUgcModelData(model.id, outputStringStream);

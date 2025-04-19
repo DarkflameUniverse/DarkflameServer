@@ -52,14 +52,39 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 	}
 }
 
-void MySQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void MySQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
 	ExecuteUpdate(
 		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, "
 		"behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?;",
 		position.x, position.y, position.z, rotation.x, rotation.y, rotation.z, rotation.w,
-		behaviors[0].first, behaviors[1].first, behaviors[2].first, behaviors[3].first, behaviors[4].first, propertyId);
+		behaviors[0].first, behaviors[1].first, behaviors[2].first, behaviors[3].first, behaviors[4].first, modelID);
 }
 
 void MySQLDatabase::RemoveModel(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE id = ?;", modelId);
+}
+
+IPropertyContents::Model MySQLDatabase::GetModel(const LWOOBJID modelID) {
+	auto result = ExecuteSelect("SELECT * FROM properties_contents WHERE id = ?", modelID);
+
+	IPropertyContents::Model model{};
+	while (result->next()) {
+		model.id = result->getUInt64("id");
+		model.lot = static_cast<LOT>(result->getUInt("lot"));
+		model.position.x = result->getFloat("x");
+		model.position.y = result->getFloat("y");
+		model.position.z = result->getFloat("z");
+		model.rotation.w = result->getFloat("rw");
+		model.rotation.x = result->getFloat("rx");
+		model.rotation.y = result->getFloat("ry");
+		model.rotation.z = result->getFloat("rz");
+		model.ugcId = result->getUInt64("ugc_id");
+		model.behaviors[0] = result->getInt("behavior_1");
+		model.behaviors[1] = result->getInt("behavior_2");
+		model.behaviors[2] = result->getInt("behavior_3");
+		model.behaviors[3] = result->getInt("behavior_4");
+		model.behaviors[4] = result->getInt("behavior_5");
+	}
+
+	return model;
 }

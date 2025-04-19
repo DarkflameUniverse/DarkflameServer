@@ -12,6 +12,7 @@ public:
 	struct Model {
 		std::stringstream lxfmlData;
 		LWOOBJID id{};
+		LWOOBJID modelID{};
 	};
 
 	// Gets all UGC models for the given property id.
@@ -27,6 +28,6 @@ public:
 	virtual void DeleteUgcModelData(const LWOOBJID& modelId) = 0;
 
 	// Inserts a new UGC model into the database.
-	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) = 0;
+	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) = 0;
 };
 #endif  //!__IUGC__H__
