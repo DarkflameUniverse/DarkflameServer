@@ -503,7 +503,7 @@ void BaseSurvivalServer::ActivateSpawnerNetwork(SpawnerNetworkCollection& spawne
 			if (!possibleSpawners.empty()) {
 				auto* spawnerObject = possibleSpawners.at(0);
 				spawnerObject->Activate();
-				spawnerObject->Reset();
+				spawnerObject->SoftReset();
 			}
 		}
 	}
