@@ -9,9 +9,10 @@ void ActSharkPlayerDeathTrigger::OnFireEventServerSide(Entity* self, Entity* sen
 		auto missionComponent = sender->GetComponent<MissionComponent>();
 		if (!missionComponent) return;
 
-		missionComponent->Progress(eMissionTaskType::SCRIPT, 8419);
-
+		// This check is only needed because dlu doesnt have proper collision checks on rotated phantom physics
 		if (sender->GetIsDead() || !sender->GetPlayerReadyForUpdates()) return; //Don't kill already dead players or players not ready
+		
+		missionComponent->Progress(eMissionTaskType::SCRIPT, 8419);
 
 		if (sender->GetCharacter()) {
 			sender->Smash(self->GetObjectID(), eKillType::VIOLENT, u"big-shark-death");
