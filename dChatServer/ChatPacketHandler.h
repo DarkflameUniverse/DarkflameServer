@@ -64,6 +64,7 @@ namespace ChatPacketHandler {
 	void HandleTeamPromote(Packet* packet);
 	void HandleTeamLootOption(Packet* packet);
 	void HandleTeamStatusRequest(Packet* packet);
+	void OnAchievementNotify(RakNet::BitStream& bitstream, const SystemAddress& sysAddr);
 
 	void SendTeamInvite(const PlayerData& receiver, const PlayerData& sender);
 	void SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName);
