@@ -602,6 +602,19 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	SendTeamInvite(other, player);
 
 	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.GetAsString().c_str());
+
+	bool failed = false;
+	for (const auto& ignore : other.ignoredPlayers) {
+		if (ignore.playerId == player.playerID) {
+			failed = true;
+			break;
+		}
+	}
+	
+	ChatPackets::TeamInviteInitialResponse response{};
+	response.inviteFailedToSend = failed;
+	response.playerName = invitedPlayer.string;
+	ChatPackets::SendRoutedMsg(response, playerID, player.worldServerSysAddr);
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -615,7 +628,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	inStream.Read(leaderID);
 
-	LOG("Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
+	LOG("Invite reponse received: %llu -> %llu (%d)", playerID, leaderID, declined);
 
 	if (declined) {
 		return;
@@ -744,14 +757,15 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 	const auto& data = Game::playerContainer.GetPlayerData(playerID);
 
 	if (team != nullptr && data) {
+		LOG_DEBUG("Player %llu is requesting team status", playerID);
 		if (team->local && data.zoneID.GetMapID() != team->zoneId.GetMapID() && data.zoneID.GetCloneID() != team->zoneId.GetCloneID()) {
-			Game::playerContainer.RemoveMember(team, playerID, false, false, true, true);
+			Game::playerContainer.RemoveMember(team, playerID, false, false, false, true);
 
 			return;
 		}
 
 		if (team->memberIDs.size() <= 1 && !team->local) {
-			Game::playerContainer.DisbandTeam(team);
+			Game::playerContainer.DisbandTeam(team, LWOOBJID_EMPTY, u"");
 
 			return;
 		}

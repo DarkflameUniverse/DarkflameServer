@@ -71,6 +71,8 @@ namespace ChatPacketHandler {
 	void SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName);
 	void SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID);
 	void SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID);
+
+	/* Sends a message to the provided `receiver` with information about the updated team. If `i64LeaderID` is not LWOOBJID_EMPTY, the client will update the leader to that new playerID. */
 	void SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName);
 	void SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID);
 
