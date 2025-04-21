@@ -28,7 +28,7 @@ typedef struct mg_http_message mg_http_message;
 
 namespace {
 	const char* json_content_type = "Content-Type: application/json\r\n";
-	std::map<std::pair<eHTTPMethod, std::string>, WebAPIHTTPRoute> Routes {};
+	std::map<std::pair<eHTTPMethod, std::string>, WebAPIHTTPRoute> Routes{};
 }
 
 bool ValidateAuthentication(const mg_http_message* http_msg) {
@@ -54,7 +54,7 @@ void HandlePlayersRequest(HTTPReply& reply, std::string body) {
 }
 
 void HandleTeamsRequest(HTTPReply& reply, std::string body) {
-	const json data = Game::playerContainer.GetTeamContainer();
+	const json data = TeamContainer::GetTeamContainer();
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
 }
@@ -87,12 +87,12 @@ void HandleInvalidRoute(HTTPReply& reply) {
 
 void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_msg) {
 	HTTPReply reply;
-	
+
 	if (!http_msg) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
 		reply.message = "{\"error\":\"Invalid Request\"}";
 	} else if (ValidateAuthentication(http_msg)) {
-		
+
 		// convert method from cstring to std string
 		std::string method_string(http_msg->method.buf, http_msg->method.len);
 		// get mehtod from mg to enum
@@ -105,8 +105,8 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		// convert body from cstring to std string
 		std::string body(http_msg->body.buf, http_msg->body.len);
 
-		
-		const auto routeItr = Routes.find({method, uri});
+
+		const auto routeItr = Routes.find({ method, uri });
 
 		if (routeItr != Routes.end()) {
 			const auto& [_, route] = *routeItr;
@@ -122,11 +122,11 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 
 void HandleRequests(mg_connection* connection, int request, void* request_data) {
 	switch (request) {
-		case MG_EV_HTTP_MSG:
-			HandleHTTPMessage(connection, static_cast<mg_http_message*>(request_data));
-			break;
-		default:
-			break;
+	case MG_EV_HTTP_MSG:
+		HandleHTTPMessage(connection, static_cast<mg_http_message*>(request_data));
+		break;
+	default:
+		break;
 	}
 }
 
@@ -172,19 +172,19 @@ bool ChatWebAPI::Startup() {
 		.path = v1_route + "players",
 		.method = eHTTPMethod::GET,
 		.handle = HandlePlayersRequest
-	});
+		});
 
 	RegisterHTTPRoutes({
 		.path = v1_route + "teams",
 		.method = eHTTPMethod::GET,
 		.handle = HandleTeamsRequest
-	});
+		});
 
 	RegisterHTTPRoutes({
 		.path = v1_route + "announce",
 		.method = eHTTPMethod::POST,
 		.handle = HandleAnnounceRequest
-	});
+		});
 	return true;
 }
 
