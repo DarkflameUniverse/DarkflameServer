@@ -33,8 +33,8 @@ struct CDZoneTable {
 	bool mountsAllowed;                 //!< Whether or not mounts are allowed
 };
 
-class CDZoneTableTable : public CDTable<CDZoneTableTable, std::map<uint32_t, CDZoneTable>> {
-public:
+namespace CDZoneTableTable {
+	using Table = std::map<uint32_t, CDZoneTable>;
 	void LoadValuesFromDatabase();
 
 	// Queries the table with a zoneID to find.

@@ -81,7 +81,7 @@ namespace Mail {
 			} else if (GeneralUtils::CaseInsensitiveStringCompare(mailInfo.recipient, character->GetName()) || receiverID->id == character->GetID()) {
 				response.status = eSendResponse::CannotMailSelf;
 			} else {
-				uint32_t mailCost = Game::zoneManager->GetWorldConfig()->mailBaseFee;
+				uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
 				uint32_t stackSize = 0;
 				
 				auto inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -92,7 +92,7 @@ namespace Mail {
 				if (hasAttachment) {
 					item = inventoryComponent->FindItemById(mailInfo.itemID);
 					if (item) {
-						mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig()->mailPercentAttachmentFee);
+						mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig().mailPercentAttachmentFee);
 						mailInfo.itemLOT = item->GetLot();
 					}
 				}

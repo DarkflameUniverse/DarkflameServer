@@ -70,22 +70,19 @@ std::map<LWOMAPID, PerformanceProfile> PerformanceManager::m_Profiles = {
 
 void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 	// Try to get it from zoneTable
-	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
-	if (zoneTable) {
-		const CDZoneTable* zone = zoneTable->Query(mapID);
-		if (zone) {
-			if (zone->serverPhysicsFramerate == "high"){
-				m_CurrentProfile = { highFrameDelta };
-				return;
-			}
-			if (zone->serverPhysicsFramerate == "medium"){
-				m_CurrentProfile = { mediumFrameDelta };
-				return;
-			}
-			if (zone->serverPhysicsFramerate == "low"){
-				m_CurrentProfile = { lowFrameDelta };
-				return;
-			}
+	const CDZoneTable* zone = CDZoneTableTable::Query(mapID);
+	if (zone) {
+		if (zone->serverPhysicsFramerate == "high") {
+			m_CurrentProfile = { highFrameDelta };
+			return;
+		}
+		if (zone->serverPhysicsFramerate == "medium") {
+			m_CurrentProfile = { mediumFrameDelta };
+			return;
+		}
+		if (zone->serverPhysicsFramerate == "low") {
+			m_CurrentProfile = { lowFrameDelta };
+			return;
 		}
 	}
 
