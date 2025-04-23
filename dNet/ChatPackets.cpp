@@ -132,3 +132,19 @@ bool ChatPackets::AchievementNotify::Deserialize(RakNet::BitStream& bitstream) {
 
 	return true;
 }
+
+void ChatPackets::TeamInviteInitialResponse::Serialize(RakNet::BitStream& bitstream) const {
+	bitstream.Write<uint8_t>(inviteFailedToSend);
+	bitstream.Write(playerName);
+}
+
+void ChatPackets::SendRoutedMsg(const LUBitStream& msg, const LWOOBJID targetID, const SystemAddress& sysAddr) {
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	bitStream.Write(targetID);
+
+	// Now write the actual packet
+	msg.WriteHeader(bitStream);
+	msg.Serialize(bitStream);
+	Game::server->Send(bitStream, sysAddr, sysAddr == UNASSIGNED_SYSTEM_ADDRESS);
+}
