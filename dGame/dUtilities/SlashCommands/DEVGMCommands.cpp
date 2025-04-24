@@ -1622,4 +1622,10 @@ namespace DEVGMCommands {
 			}
 		}
 	}
+
+	void Shutdown(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		auto* character = entity->GetCharacter();
+		if (character) LOG("Mythran (%s) has shutdown the world", character->GetName().c_str());
+		Game::OnSignal(-1);
+	}
 };

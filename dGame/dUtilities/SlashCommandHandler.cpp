@@ -1444,4 +1444,13 @@ void SlashCommandHandler::Startup() {
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(removeIgnoreCommand);
+
+	Command shutdownCommand{
+		.help = "Shuts this world down",
+		.info = "Shuts this world down",
+		.aliases = {"shutdown"},
+		.handle = DEVGMCommands::Shutdown,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(shutdownCommand);
 }
