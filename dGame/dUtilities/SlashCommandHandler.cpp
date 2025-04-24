@@ -777,7 +777,7 @@ void SlashCommandHandler::Startup() {
 		.info = "Crashes the server",
 		.aliases = { "crash", "pumpkin" },
 		.handle = DEVGMCommands::Crash,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::OPERATOR
 	};
 	RegisterCommand(CrashCommand);
 
