@@ -175,6 +175,10 @@ void SQLiteDatabase::UpdatePropertyDetails(const IProperty::Info& info) {
 	ExecuteUpdate("UPDATE properties SET name = ?, description = ? WHERE id = ?;", info.name, info.description, info.id);
 }
 
+void SQLiteDatabase::UpdateLastSave(const IProperty::Info& info) {
+	ExecuteUpdate("UPDATE properties SET last_updated = ? WHERE id = ?;", info.lastUpdatedTime, info.id);
+}
+
 void SQLiteDatabase::UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) {
 	ExecuteUpdate("UPDATE properties SET performance_cost = ? WHERE zone_id = ? AND clone_id = ?;", performanceCost, zoneId.GetMapID(), zoneId.GetCloneID());
 }
