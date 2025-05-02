@@ -688,12 +688,12 @@ void PropertyManagementComponent::Save() {
 
 		Database::Get()->RemoveModel(model.id);
 	}
-//temp block
+	//temp block
 	IProperty::Info info;
 	info.id = propertyId;
-	info.LastUpdatedTime = std::chrono::system_clock::now();
+	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	Database::Get()->UpdateLastSave(info);
-//
+	//
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {
