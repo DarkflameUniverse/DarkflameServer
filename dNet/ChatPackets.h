@@ -10,6 +10,8 @@ struct SystemAddress;
 
 #include <string>
 #include "dCommonVars.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Chat.h"
 
 struct ShowAllRequest{
 	LWOOBJID requestor = LWOOBJID_EMPTY;
@@ -28,10 +30,12 @@ struct FindPlayerRequest{
 
 namespace ChatPackets {
 
-	struct Announcement {
+	struct Announcement : public LUBitStream {
 		std::string title;
 		std::string message;
-		void Send();
+
+		Announcement() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE) {};
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
 	void SendChatMessage(const SystemAddress& sysAddr, char chatChannel, const std::string& senderName, LWOOBJID playerObjectID, bool senderMythran, const std::u16string& message);

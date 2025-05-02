@@ -98,12 +98,11 @@ void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
 	SEND_PACKET;
 }
 
-void ChatPackets::Announcement::Send() {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE);
-	bitStream.Write<uint32_t>(title.size());
-	bitStream.Write(title);
-	bitStream.Write<uint32_t>(message.size());
-	bitStream.Write(message);
-	SEND_PACKET_BROADCAST;
+namespace ChatPackets {
+	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write<uint32_t>(title.size());
+		bitStream.Write(title);
+		bitStream.Write<uint32_t>(message.size());
+		bitStream.Write(message);
+	}
 }

@@ -105,7 +105,7 @@ void dChatFilter::ExportWordlistToDCF(const std::string& filepath, bool allowLis
 	}
 }
 
-std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList) {
+std::set<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::string& message, eGameMasterLevel gmLevel, bool allowList) {
 	if (gmLevel > eGameMasterLevel::FORUM_MODERATOR) return { }; //If anything but a forum mod, return true.
 	if (message.empty()) return { };
 	if (!allowList && m_DeniedWords.empty()) return { { 0, message.length() } };
@@ -114,7 +114,7 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 	std::string segment;
 	std::regex reg("(!*|\\?*|\\;*|\\.*|\\,*)");
 
-	std::vector<std::pair<uint8_t, uint8_t>> listOfBadSegments = std::vector<std::pair<uint8_t, uint8_t>>();
+	std::set<std::pair<uint8_t, uint8_t>> listOfBadSegments;
 
 	uint32_t position = 0;
 
@@ -127,17 +127,17 @@ std::vector<std::pair<uint8_t, uint8_t>> dChatFilter::IsSentenceOkay(const std::
 		size_t hash = CalculateHash(segment);
 
 		if (std::find(m_UserUnapprovedWordCache.begin(), m_UserUnapprovedWordCache.end(), hash) != m_UserUnapprovedWordCache.end() && allowList) {
-			listOfBadSegments.emplace_back(position, originalSegment.length());
+			listOfBadSegments.emplace(position, originalSegment.length());
 		}
 
 		if (std::find(m_ApprovedWords.begin(), m_ApprovedWords.end(), hash) == m_ApprovedWords.end() && allowList) {
 			m_UserUnapprovedWordCache.push_back(hash);
-			listOfBadSegments.emplace_back(position, originalSegment.length());
+			listOfBadSegments.emplace(position, originalSegment.length());
 		}
 
 		if (std::find(m_DeniedWords.begin(), m_DeniedWords.end(), hash) != m_DeniedWords.end() && !allowList) {
 			m_UserUnapprovedWordCache.push_back(hash);
-			listOfBadSegments.emplace_back(position, originalSegment.length());
+			listOfBadSegments.emplace(position, originalSegment.length());
 		}
 
 		position += originalSegment.length() + 1;

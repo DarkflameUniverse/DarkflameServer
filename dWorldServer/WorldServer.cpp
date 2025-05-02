@@ -1289,7 +1289,7 @@ void HandlePacket(Packet* packet) {
 			}
 		}
 
-		std::vector<std::pair<uint8_t, uint8_t>> segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
+		auto segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
 
 		bool bAllClean = segments.empty();
 
