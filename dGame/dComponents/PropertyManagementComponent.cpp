@@ -165,7 +165,9 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 	info.id = propertyId;
 	info.name = propertyName;
 	info.description = propertyDescription;
-
+	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	
+	Database::Get()->UpdateLastSave(info);
 	Database::Get()->UpdatePropertyDetails(info);
 
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
@@ -688,12 +690,10 @@ void PropertyManagementComponent::Save() {
 
 		Database::Get()->RemoveModel(model.id);
 	}
-	//temp block
 	IProperty::Info info;
 	info.id = propertyId;
 	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	Database::Get()->UpdateLastSave(info);
-	//
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {
