@@ -271,9 +271,11 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 			new LDFData<std::u16string>(u"groupID", u"SGEnemy"),
 			new LDFData<uint32_t>(u"wave", self->GetVar<uint32_t>(ThisWaveVariable)),
 		};
-
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
+		if (info.lot == 2565) {
+			LOG("id is %llu", enemy->GetObjectID());
+		}
 		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
@@ -612,7 +614,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// Destroy all spawners
 	for (auto* entity : Game::entityManager->GetEntitiesInGroup("SGEnemy")) {
-		entity->Kill();
+		entity->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 	}
 
 	ResetVars(self);
