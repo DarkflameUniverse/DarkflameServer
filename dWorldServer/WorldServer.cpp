@@ -1042,25 +1042,29 @@ void HandlePacket(Packet* packet) {
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				auto* const inventoryComponent = player->GetComponent<InventoryComponent>();
-				const auto* const missionComponent = player->GetComponent<MissionComponent>();
+				auto* const missionComponent = player->GetComponent<MissionComponent>();
 				if (!levelComponent || !missionComponent || !inventoryComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
 				switch (version) {
 				case eCharacterVersion::RELEASE:
 					// TODO: Implement, super low priority
+					[[fallthrough]];
 				case eCharacterVersion::LIVE:
 					LOG("Updating Character Flags");
 					c->SetRetroactiveFlags();
 					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+					[[fallthrough]];
 				case eCharacterVersion::PLAYER_FACTION_FLAGS:
 					LOG("Updating Vault Size");
 					player->RetroactiveVaultSize();
 					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+					[[fallthrough]];
 				case eCharacterVersion::VAULT_SIZE:
 					LOG("Updaing Speedbase");
 					levelComponent->SetRetroactiveBaseSpeed();
 					levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+					[[fallthrough]];
 				case eCharacterVersion::SPEED_BASE: {
 					LOG("Removing lots from NJ Jay missions bugged at foss");
 					// https://explorer.lu/missions/1789
@@ -1075,7 +1079,22 @@ void HandlePacket(Packet* packet) {
 						inventoryComponent->RemoveItem(14493, 1, eInventoryType::ITEMS);
 						inventoryComponent->RemoveItem(14493, 1, eInventoryType::VAULT_ITEMS);
 					}
-					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+					levelComponent->SetCharacterVersion(eCharacterVersion::NJ_JAYMISSIONS);
+					[[fallthrough]];
+				}
+				case eCharacterVersion::NJ_JAYMISSIONS: {
+					LOG("Fixing Nexus Force Explorer missions");
+					auto missions = { 502 /* Pet Cove */, 593/* Nimbus Station */, 938/* Avant Gardens */, 284/* Gnarled Forest */, 754/* Forbidden Valley */ };
+					bool complete = true;
+					for (auto missionID : missions) {
+						auto* mission = missionComponent->GetMission(missionID);
+						if (!mission->IsComplete()) {
+							complete = false;
+						}
+					}
+
+					if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
+					[[fallthrough]];
 				}
 				case eCharacterVersion::UP_TO_DATE:
 					break;
