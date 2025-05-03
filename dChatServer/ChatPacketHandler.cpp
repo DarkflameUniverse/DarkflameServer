@@ -73,7 +73,7 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 		data.Serialize(bitStream);
 	}
 
-	SystemAddress sysAddr = player.sysAddr;
+	SystemAddress sysAddr = player.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -122,7 +122,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 			requesteeFriendData.isOnline = false;
 			requesteeFriendData.zoneID = requestor.zoneID;
 			requestee.friends.push_back(requesteeFriendData);
-			requestee.sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
+			requestee.worldServerSysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 			break;
 		}
 	}
@@ -189,8 +189,8 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				Database::Get()->SetBestFriendStatus(requestorPlayerID, requestee.playerID, bestFriendStatus);
 				// Sent the best friend update here if the value is 3
 				if (bestFriendStatus == 3U) {
-					if (requestee.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, eAddFriendResponseType::ACCEPTED, false, true);
-					if (requestor.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::ACCEPTED, false, true);
+					if (requestee.worldServerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestee, requestor, eAddFriendResponseType::ACCEPTED, false, true);
+					if (requestor.worldServerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::ACCEPTED, false, true);
 
 					for (auto& friendData : requestor.friends) {
 						if (friendData.friendID == requestee.playerID) {
@@ -211,7 +211,7 @@ void ChatPacketHandler::HandleFriendRequest(Packet* packet) {
 				}
 			}
 		} else {
-			if (requestor.sysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::WAITINGAPPROVAL, true, true);
+			if (requestor.worldServerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) SendFriendResponse(requestor, requestee, eAddFriendResponseType::WAITINGAPPROVAL, true, true);
 		}
 	} else {
 		auto maxFriends = Game::playerContainer.GetMaxNumberOfFriends();
@@ -384,7 +384,7 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 	bitStream.Write(player.zoneID.GetCloneID());
 	bitStream.Write(request.playerName);
 
-	SystemAddress sysAddr = sender.sysAddr;
+	SystemAddress sysAddr = sender.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -418,7 +418,7 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 			}
 		}
 	}
-	SystemAddress sysAddr = sender.sysAddr;
+	SystemAddress sysAddr = sender.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -519,6 +519,28 @@ void ChatPacketHandler::HandlePrivateChatMessage(Packet* packet) {
 	SendPrivateChatMessage(sender, receiver, sender, message, eChatChannel::GENERAL, eChatMessageResponseCode::NOTFRIENDS);
 }
 
+void ChatPacketHandler::OnAchievementNotify(RakNet::BitStream& bitstream, const SystemAddress& sysAddr) {
+	ChatPackets::AchievementNotify notify{};
+	notify.Deserialize(bitstream);
+	const auto& playerData = Game::playerContainer.GetPlayerData(notify.earnerName.GetAsString());
+	if (!playerData) return;
+
+	for (const auto& myFriend : playerData.friends) {
+		auto& friendData = Game::playerContainer.GetPlayerData(myFriend.friendID);
+		if (friendData) {
+			notify.targetPlayerName.string = GeneralUtils::ASCIIToUTF16(friendData.playerName);
+			LOG_DEBUG("Sending achievement notify to %s", notify.targetPlayerName.GetAsString().c_str());
+
+			RakNet::BitStream worldStream;
+			BitStreamUtils::WriteHeader(worldStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+			worldStream.Write(friendData.playerID);
+			notify.WriteHeader(worldStream);
+			notify.Serialize(worldStream);
+			Game::server->Send(worldStream, friendData.worldServerSysAddr, false);
+		}
+	}
+}
+
 void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
@@ -537,7 +559,7 @@ void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const P
 	bitStream.Write(responseCode);
 	bitStream.Write(message);
 
-	SystemAddress sysAddr = routeTo.sysAddr;
+	SystemAddress sysAddr = routeTo.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -580,6 +602,19 @@ void ChatPacketHandler::HandleTeamInvite(Packet* packet) {
 	SendTeamInvite(other, player);
 
 	LOG("Got team invite: %llu -> %s", playerID, invitedPlayer.GetAsString().c_str());
+
+	bool failed = false;
+	for (const auto& ignore : other.ignoredPlayers) {
+		if (ignore.playerId == player.playerID) {
+			failed = true;
+			break;
+		}
+	}
+	
+	ChatPackets::TeamInviteInitialResponse response{};
+	response.inviteFailedToSend = failed;
+	response.playerName = invitedPlayer.string;
+	ChatPackets::SendRoutedMsg(response, playerID, player.worldServerSysAddr);
 }
 
 void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
@@ -593,7 +628,7 @@ void ChatPacketHandler::HandleTeamInviteResponse(Packet* packet) {
 	LWOOBJID leaderID = LWOOBJID_EMPTY;
 	inStream.Read(leaderID);
 
-	LOG("Accepted invite: %llu -> %llu (%d)", playerID, leaderID, declined);
+	LOG("Invite reponse received: %llu -> %llu (%d)", playerID, leaderID, declined);
 
 	if (declined) {
 		return;
@@ -722,14 +757,15 @@ void ChatPacketHandler::HandleTeamStatusRequest(Packet* packet) {
 	const auto& data = Game::playerContainer.GetPlayerData(playerID);
 
 	if (team != nullptr && data) {
+		LOG_DEBUG("Player %llu is requesting team status", playerID);
 		if (team->local && data.zoneID.GetMapID() != team->zoneId.GetMapID() && data.zoneID.GetCloneID() != team->zoneId.GetCloneID()) {
-			Game::playerContainer.RemoveMember(team, playerID, false, false, true, true);
+			Game::playerContainer.RemoveMember(team, playerID, false, false, false, true);
 
 			return;
 		}
 
 		if (team->memberIDs.size() <= 1 && !team->local) {
-			Game::playerContainer.DisbandTeam(team);
+			Game::playerContainer.DisbandTeam(team, LWOOBJID_EMPTY, u"");
 
 			return;
 		}
@@ -772,7 +808,7 @@ void ChatPacketHandler::SendTeamInvite(const PlayerData& receiver, const PlayerD
 	bitStream.Write(LUWString(sender.playerName.c_str()));
 	bitStream.Write(sender.playerID);
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -799,7 +835,7 @@ void ChatPacketHandler::SendTeamInviteConfirm(const PlayerData& receiver, bool b
 		bitStream.Write(character);
 	}
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -824,7 +860,7 @@ void ChatPacketHandler::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64L
 		bitStream.Write(character);
 	}
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -841,7 +877,7 @@ void ChatPacketHandler::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i
 
 	bitStream.Write(i64PlayerID);
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -870,7 +906,7 @@ void ChatPacketHandler::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFr
 	}
 	bitStream.Write(zoneID);
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -896,7 +932,7 @@ void ChatPacketHandler::SendTeamRemovePlayer(const PlayerData& receiver, bool bD
 		bitStream.Write(character);
 	}
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -917,7 +953,7 @@ void ChatPacketHandler::SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOO
 	}
 	bitStream.Write(zoneID);
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -959,7 +995,7 @@ void ChatPacketHandler::SendFriendUpdate(const PlayerData& friendData, const Pla
 	bitStream.Write<uint8_t>(isBestFriend); //isBFF
 	bitStream.Write<uint8_t>(0); //isFTP
 
-	SystemAddress sysAddr = friendData.sysAddr;
+	SystemAddress sysAddr = friendData.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -981,7 +1017,7 @@ void ChatPacketHandler::SendFriendRequest(const PlayerData& receiver, const Play
 	bitStream.Write(LUWString(sender.playerName));
 	bitStream.Write<uint8_t>(0); // This is a BFF flag however this is unused in live and does not have an implementation client side.
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -994,7 +1030,7 @@ void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const Pla
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
 	// For all requests besides accepted, write a flag that says whether or not we are already best friends with the receiver.
-	bitStream.Write<uint8_t>(responseCode != eAddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender.sysAddr != UNASSIGNED_SYSTEM_ADDRESS);
+	bitStream.Write<uint8_t>(responseCode != eAddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender.worldServerSysAddr != UNASSIGNED_SYSTEM_ADDRESS);
 	// Then write the player name
 	bitStream.Write(LUWString(sender.playerName));
 	// Then if this is an acceptance code, write the following extra info.
@@ -1004,7 +1040,7 @@ void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const Pla
 		bitStream.Write(isBestFriendRequest); //isBFF
 		bitStream.Write<uint8_t>(0); //isFTP
 	}
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }
 
@@ -1018,6 +1054,6 @@ void ChatPacketHandler::SendRemoveFriend(const PlayerData& receiver, std::string
 	bitStream.Write<uint8_t>(isSuccessful); //isOnline
 	bitStream.Write(LUWString(personToRemove));
 
-	SystemAddress sysAddr = receiver.sysAddr;
+	SystemAddress sysAddr = receiver.worldServerSysAddr;
 	SEND_PACKET;
 }

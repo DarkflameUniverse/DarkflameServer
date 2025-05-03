@@ -12,8 +12,8 @@
 // not allowing teams, rejecting DMs, friends requets etc.
 // The only thing not auto-handled is instance activities force joining the team on the server.
 
-void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const ChatIgnoreList::Response type) {
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT,  MessageType::Chat::WORLD_ROUTE_PACKET);
+void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const MessageType::Client type) {
+	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receivingPlayer);
 
 	//portion that will get routed:
@@ -48,9 +48,9 @@ void ChatIgnoreList::GetIgnoreList(Packet* packet) {
 	}
 
 	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, ChatIgnoreList::Response::GET_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::GET_IGNORE_LIST_RESPONSE);
 
-	bitStream.Write<uint8_t>(false); // Probably is Is Free Trial, but we don't care about that
+	bitStream.Write<uint8_t>(false); // Is Free Trial, but we don't care about that
 	bitStream.Write<uint16_t>(0); // literally spacing due to struct alignment
 
 	bitStream.Write<uint16_t>(receiver.ignoredPlayers.size());
@@ -86,7 +86,7 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 	std::string toIgnoreStr = toIgnoreName.GetAsString();
 
 	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, ChatIgnoreList::Response::ADD_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::ADD_IGNORE_RESPONSE);
 
 	// Check if the player exists
 	LWOOBJID ignoredPlayerId = LWOOBJID_EMPTY;
@@ -161,7 +161,7 @@ void ChatIgnoreList::RemoveIgnore(Packet* packet) {
 	receiver.ignoredPlayers.erase(toRemove, receiver.ignoredPlayers.end());
 
 	CBITSTREAM;
-	WriteOutgoingReplyHeader(bitStream, receiver.playerID, ChatIgnoreList::Response::REMOVE_IGNORE);
+	WriteOutgoingReplyHeader(bitStream, receiver.playerID, MessageType::Client::REMOVE_IGNORE_RESPONSE);
 
 	bitStream.Write<int8_t>(0);
 	LUWString playerNameSend(removedIgnoreStr, 33);
