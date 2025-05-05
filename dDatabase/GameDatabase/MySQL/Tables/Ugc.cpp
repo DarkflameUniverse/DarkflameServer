@@ -2,7 +2,7 @@
 
 std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId) {
 	auto result = ExecuteSelect(
-		"SELECT lxfml, u.id FROM ugc AS u JOIN properties_contents AS pc ON u.id = pc.ugc_id WHERE lot = 14 AND property_id = ? AND pc.ugc_id IS NOT NULL;",
+		"SELECT lxfml, u.id as ugcID, pc.id as modelID FROM ugc AS u JOIN properties_contents AS pc ON u.id = pc.ugc_id WHERE lot = 14 AND property_id = ? AND pc.ugc_id IS NOT NULL;",
 		propertyId);
 
 	std::vector<IUgc::Model> toReturn;
@@ -13,7 +13,8 @@ std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId)
 		// blob is owned by the query, so we need to do a deep copy :/
 		std::unique_ptr<std::istream> blob(result->getBlob("lxfml"));
 		model.lxfmlData << blob->rdbuf();
-		model.id = result->getUInt64("id");
+		model.id = result->getUInt64("ugcID");
+		model.modelID = result->getUInt64("modelID");
 		toReturn.push_back(std::move(model));
 	}
 
@@ -21,13 +22,14 @@ std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId)
 }
 
 std::vector<IUgc::Model> MySQLDatabase::GetAllUgcModels() {
-	auto result = ExecuteSelect("SELECT id, lxfml FROM ugc;");
+	auto result = ExecuteSelect("SELECT u.id AS ugcID, lxfml, pc.id AS modelID FROM ugc AS u JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE pc.lot = 14 AND pc.ugc_id IS NOT NULL;");
 
 	std::vector<IUgc::Model> models;
 	models.reserve(result->rowsCount());
 	while (result->next()) {
 		IUgc::Model model;
-		model.id = result->getInt64("id");
+		model.id = result->getInt64("ugcID");
+		model.modelID = result->getUInt64("modelID");
 
 		// blob is owned by the query, so we need to do a deep copy :/
 		std::unique_ptr<std::istream> blob(result->getBlob("lxfml"));
@@ -43,7 +45,7 @@ void MySQLDatabase::RemoveUnreferencedUgcModels() {
 }
 
 void MySQLDatabase::InsertNewUgcModel(
-	std::istringstream& sd0Data, // cant be const sad
+	std:: stringstream& sd0Data, // cant be const sad
 	const uint32_t blueprintId,
 	const uint32_t accountId,
 	const uint32_t characterId) {
@@ -65,7 +67,7 @@ void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE ugc_id = ?;", modelId);
 }
 
-void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) {
+void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 	const std::istream stream(lxfml.rdbuf());
 	ExecuteUpdate("UPDATE ugc SET lxfml = ? WHERE id = ?;", &stream, modelId);
 }

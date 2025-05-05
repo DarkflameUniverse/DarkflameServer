@@ -1,6 +1,7 @@
 #include "Pack.h"
 
 #include "BinaryIO.h"
+#include "Sd0.h"
 #include "ZCompression.h"
 
 Pack::Pack(const std::filesystem::path& filePath) {
@@ -106,7 +107,7 @@ bool Pack::ReadFileFromPack(const uint32_t crc, char** data, uint32_t* len) cons
 		pos += size; // Move pointer position the amount of bytes read to the right
 
 		int32_t err;
-		currentReadPos += ZCompression::Decompress(reinterpret_cast<uint8_t*>(chunk), size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), ZCompression::MAX_SD0_CHUNK_SIZE, err);
+		currentReadPos += ZCompression::Decompress(reinterpret_cast<uint8_t*>(chunk), size, reinterpret_cast<uint8_t*>(decompressedData + currentReadPos), Sd0::MAX_UNCOMPRESSED_CHUNK_SIZE, err);
 
 		free(chunk);
 	}

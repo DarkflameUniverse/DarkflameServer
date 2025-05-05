@@ -7,6 +7,7 @@
 #include "GeneralUtils.h"
 #include "Logger.h"
 #include "BinaryPathFinder.h"
+#include "ModelNormalizeMigration.h"
 
 #include <fstream>
 
@@ -35,7 +36,7 @@ void MigrationRunner::RunMigrations() {
 	Database::Get()->CreateMigrationHistoryTable();
 
 	// has to be here because when moving the files to the new folder, the migration_history table is not updated so it will run them all again.
-	
+
 	const auto migrationFolder = Database::GetMigrationFolder();
 	if (!Database::Get()->IsMigrationRun("17_migration_for_migrations.sql") && migrationFolder == "mysql") {
 		LOG("Running migration: 17_migration_for_migrations.sql");
@@ -45,6 +46,7 @@ void MigrationRunner::RunMigrations() {
 
 	std::string finalSQL = "";
 	bool runSd0Migrations = false;
+	bool runNormalizeMigrations = false;
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
 		auto migration = LoadMigration("dlu/" + migrationFolder + "/", entry);
 
@@ -57,6 +59,8 @@ void MigrationRunner::RunMigrations() {
 		LOG("Running migration: %s", migration.name.c_str());
 		if (migration.name == "5_brick_model_sd0.sql") {
 			runSd0Migrations = true;
+		} else if (migration.name.ends_with("_normalize_model_positions.sql")) {
+			runNormalizeMigrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -64,7 +68,7 @@ void MigrationRunner::RunMigrations() {
 		Database::Get()->InsertMigration(migration.name);
 	}
 
-	if (finalSQL.empty() && !runSd0Migrations) {
+	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations) {
 		LOG("Server database is up to date.");
 		return;
 	}
@@ -87,6 +91,10 @@ void MigrationRunner::RunMigrations() {
 		LOG("%i models were updated from zlib to sd0.", numberOfUpdatedModels);
 		uint32_t numberOfTruncatedModels = BrickByBrickFix::TruncateBrokenBrickByBrickXml();
 		LOG("%i models were truncated from the database.", numberOfTruncatedModels);
+	}
+
+	if (runNormalizeMigrations) {
+		ModelNormalizeMigration::Run();
 	}
 }
 
