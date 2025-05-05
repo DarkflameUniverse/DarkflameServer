@@ -53,6 +53,9 @@ public:
 	// Update the property details for the given property id.
 	virtual void UpdatePropertyDetails(const IProperty::Info& info) = 0;
 
+	// Update the last updated time for the given property id.
+	virtual void UpdateLastSave(const IProperty::Info& info) = 0;
+
 	// Update the property performance cost for the given property id.
 	virtual void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) = 0;
 	

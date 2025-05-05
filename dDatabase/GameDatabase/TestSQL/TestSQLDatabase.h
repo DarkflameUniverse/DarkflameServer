@@ -47,6 +47,7 @@ class TestSQLDatabase : public GameDatabase {
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) override;
 	void UpdatePropertyModerationInfo(const IProperty::Info& info) override;
 	void UpdatePropertyDetails(const IProperty::Info& info) override;
+	void UpdateLastSave(const IProperty::Info& info) override;
 	void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) override;
 	std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) override;
 	void RemoveUnreferencedUgcModels() override;

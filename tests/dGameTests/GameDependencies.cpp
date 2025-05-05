@@ -12,4 +12,5 @@ namespace Game {
 	SystemAddress chatSysAddr;
 	EntityManager* entityManager = nullptr;
 	std::string projectVersion;
+	Game::signal_t lastSignal = 0;
 }
