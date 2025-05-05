@@ -16,9 +16,19 @@
 
 std::unordered_map<int32_t, float> RenderComponent::m_DurationCache{};
 
+std::unordered_map<int32_t, std::vector<int32_t>> RenderComponent::m_AnimationGroupCache{};
+
 RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t componentId) : Component{ parentEntity } {
 	m_LastAnimationName = "";
 	if (componentId == -1) return;
+
+	const auto& it = m_AnimationGroupCache.find(componentId);
+
+	if (it != m_AnimationGroupCache.end()) {
+		m_animationGroupIds = it->second;
+
+		return;
+	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM RenderComponent WHERE id = ?;");
 	query.bind(1, componentId);
@@ -43,6 +53,8 @@ RenderComponent::RenderComponent(Entity* const parentEntity, const int32_t compo
 		}
 	}
 	result.finalize();
+
+	m_AnimationGroupCache[componentId] = m_animationGroupIds;
 }
 
 void RenderComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {

@@ -1,0 +1,1507 @@
+#include "Recorder.h"
+
+#include "ControllablePhysicsComponent.h"
+#include "GameMessages.h"
+#include "InventoryComponent.h"
+#include "ObjectIDManager.h"
+#include "ChatPackets.h"
+#include "EntityManager.h"
+#include "EntityInfo.h"
+#include "ServerPreconditions.h"
+#include "MovementAIComponent.h"
+#include "BaseCombatAIComponent.h"
+#include "MissionComponent.h"
+
+using namespace Cinema::Recording;
+
+namespace {
+
+	std::unordered_map<LWOOBJID, Recorder*> m_Recorders = {};
+
+	std::unordered_map<int32_t, std::string> m_EffectAnimations = {};
+
+}
+
+Recorder::Recorder() {
+	this->m_StartTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+	this->m_IsRecording = false;
+	this->m_LastRecordTime = this->m_StartTime;
+}
+
+Recorder::~Recorder() = default;
+
+void Recorder::AddRecord(Record* record)
+{
+	if (!this->m_IsRecording) {
+		return;
+	}
+
+	LOG("Adding record");
+
+	const auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+
+	// Time since the last record time in seconds
+	record->m_Delay = (currentTime - this->m_LastRecordTime).count() / 1000.0f;
+
+	m_LastRecordTime = currentTime;
+
+	this->m_Records.push_back(record);
+}
+
+void Recorder::Act(Entity* actor, Play* variables) {
+	LOG("Acting %d steps", m_Records.size());
+
+	// Loop through all records
+	ActingDispatch(actor, m_Records, 0, variables);
+}
+
+void Recorder::ActingDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables) {
+	if (index >= records.size()) {
+		return;
+	}
+
+	auto* record = records[index];
+
+	// Check if the record is a fork
+	auto* forkRecord = dynamic_cast<ForkRecord*>(record);
+
+	float delay = record->m_Delay;
+
+	if (forkRecord) {
+		if (variables == nullptr) {
+			// Skip the fork
+			ActingDispatch(actor, records, index + 1, variables);
+			return;
+		}
+
+		bool success = false;
+
+		if (!forkRecord->variable.empty()) {
+			const auto& variable = variables->variables.find(forkRecord->variable);
+
+			if (variable != variables->variables.end()) {
+				success = variable->second == forkRecord->value;
+			}
+		} else if (!forkRecord->precondition.empty()) {
+			auto precondtion = Preconditions::CreateExpression(forkRecord->precondition);
+
+			auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+			if (playerEntity != nullptr) {
+				success = precondtion.Check(playerEntity);
+			}
+			else {
+				success = true;
+			}
+		} else {
+			success = true;
+		}
+
+		if (success) {
+			// Find the success record
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
+
+				if (record->m_Name == forkRecord->success) {
+					ActingDispatch(actor, records, i, variables);
+					return;
+				}
+			}
+
+			LOG("Failed to find fork label success: %s", forkRecord->success.c_str());
+
+			return;
+		}
+		else {
+			// Find the failure record
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
+
+				if (record->m_Name == forkRecord->failure) {
+					ActingDispatch(actor, records, i, variables);
+					return;
+				}
+			}
+
+			LOG("Failed to find fork label failure: %s", forkRecord->failure.c_str());
+
+			return;
+		}
+	}
+
+	// Check if the record is a jump
+	auto* jumpRecord = dynamic_cast<JumpRecord*>(record);
+
+	if (jumpRecord) {
+		// Find the jump record
+		for (auto i = 0; i < records.size(); ++i) {
+			auto* record = records[i];
+
+			if (record->m_Name == jumpRecord->label) {
+				ActingDispatch(actor, records, i, variables);
+				return;
+			}
+		}
+
+		LOG("Failed to find jump label: %s", jumpRecord->label.c_str());
+
+		return;
+	}
+
+	// Check if the record is a set variable
+	auto* setVariableRecord = dynamic_cast<SetVariableRecord*>(record);
+
+	if (setVariableRecord) {
+		if (variables == nullptr) {
+			// Skip the set variable
+			ActingDispatch(actor, records, index + 1, variables);
+			return;
+		}
+
+		variables->variables[setVariableRecord->variable] = setVariableRecord->value;
+
+		ActingDispatch(actor, records,index + 1, variables);
+		return;
+	}
+
+	// Check if the record is a barrier
+	auto* barrierRecord = dynamic_cast<BarrierRecord*>(record);
+
+	if (barrierRecord) {
+		if (variables == nullptr) {
+			// Skip the barrier
+			ActingDispatch(actor, records, index + 1, variables);
+			return;
+		}
+
+		auto actionTaken = std::make_shared<bool>(false);
+
+		variables->SetupBarrier(barrierRecord->signal, [actor, records, index, variables, actionTaken]() {
+			if (*actionTaken) {
+				return;
+			}
+
+			*actionTaken = true;
+
+			ActingDispatch(actor, records, index + 1, variables);
+		});
+		
+		if (barrierRecord->timeout <= 0.0001f) {
+			return;
+		}
+
+		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(barrierRecord->timeout, [barrierRecord, records, actor, index, variables, actionTaken]() {
+			if (*actionTaken) {
+				return;
+			}
+
+			*actionTaken = true;
+
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
+
+				if (record->m_Name == barrierRecord->timeoutLabel) {
+					ActingDispatch(actor, records, i, variables);
+					return;
+				}
+			}
+		});
+
+		return;
+	}
+
+	// Check if the record is a signal
+	auto* signalRecord = dynamic_cast<SignalRecord*>(record);
+
+	if (signalRecord) {
+		if (variables != nullptr) {
+			variables->SignalBarrier(signalRecord->signal);
+		}
+	}
+
+	// Check if the record is a conclude
+	auto* concludeRecord = dynamic_cast<ConcludeRecord*>(record);
+
+	if (concludeRecord) {
+		if (variables != nullptr) {
+			variables->Conclude();
+
+			if (concludeRecord->cleanUp) {
+				variables->CleanUp();
+			}
+		}
+	}
+
+	// Check if the record is a companion record
+	auto* companionRecord = dynamic_cast<CompanionRecord*>(record);
+
+	if (companionRecord && variables != nullptr) {
+		EntityInfo info;
+		info.lot = actor->GetLOT();
+		info.pos = actor->GetPosition();
+		info.rot = actor->GetRotation();
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = variables->player;
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// Spawn it
+		auto* companion = Game::entityManager->CreateEntity(info);
+
+		// Construct it
+		Game::entityManager->ConstructEntity(companion);
+
+		CompanionRecord::SetCompanion(companion, variables->player);
+
+		if (!companionRecord->records.empty()) {
+			ActingDispatch(companion, companionRecord->records, 0, variables);
+		}
+
+		variables->entities.emplace(companion->GetObjectID());
+	}
+
+	auto* spawnRecord = dynamic_cast<SpawnRecord*>(record);
+
+	if (spawnRecord && variables != nullptr) {
+		EntityInfo info;
+		info.lot = spawnRecord->lot;
+		info.pos = spawnRecord->position;
+		info.rot = spawnRecord->rotation;
+		info.scale = 1;
+		info.spawner = nullptr;
+		info.spawnerID = variables->player;
+		info.spawnerNodeID = 0;
+		info.settings = {
+			new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+			new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+		};
+
+		// Spawn it
+		auto* entity = Game::entityManager->CreateEntity(info);
+
+		// Construct it
+		Game::entityManager->ConstructEntity(entity);
+
+		variables->entities.emplace(entity->GetObjectID());
+
+		if (!spawnRecord->onSpawnRecords.empty()) {
+			ActingDispatch(entity, spawnRecord->onSpawnRecords, 0, variables);
+		}
+
+		entity->AddDieCallback([entity, variables, spawnRecord]() {
+			variables->entities.erase(entity->GetObjectID());
+
+			ActingDispatch(entity, spawnRecord->onDespawnRecords, 0, variables);
+		});
+
+		auto* combatAIComponent = entity->GetComponent<BaseCombatAIComponent>();
+
+		if (combatAIComponent) {
+			combatAIComponent->SetAggroRadius(200);
+			combatAIComponent->SetSoftTetherRadius(200);
+			combatAIComponent->SetHardTetherRadius(200);
+			combatAIComponent->SetTarget(variables->player);
+		}
+	}
+
+	auto* missionRecord = dynamic_cast<MissionRecord*>(record);
+
+	if (missionRecord && variables != nullptr) {
+		auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+		if (playerEntity) {
+			auto* missionComponent = playerEntity->GetComponent<MissionComponent>();
+
+			if (missionComponent) {
+				missionComponent->CompleteMission(missionRecord->mission);
+			}
+		}
+	}
+
+	auto* cinematicRecord = dynamic_cast<CinematicRecord*>(record);
+
+	if (cinematicRecord) {
+		if (variables != nullptr) {
+			auto* playerEntity = Game::entityManager->GetEntity(variables->player);
+
+			if (playerEntity) {
+				GameMessages::SendPlayCinematic(playerEntity->GetObjectID(), GeneralUtils::UTF8ToUTF16(cinematicRecord->cinematic), playerEntity->GetSystemAddress());
+			}
+		}
+	}
+
+	// Check if the record is a visibility record
+	auto* visibilityRecord = dynamic_cast<VisibilityRecord*>(record);
+
+	if (visibilityRecord) {
+		if (!visibilityRecord->visible) {
+			ServerPreconditions::AddExcludeFor(actor->GetObjectID(), variables->player);
+		} else {
+			ServerPreconditions::RemoveExcludeFor(actor->GetObjectID(), variables->player);
+		}
+	}
+
+	// Check if the record is a player proximity record
+	auto* playerProximityRecord = dynamic_cast<PlayerProximityRecord*>(record);
+
+	if (playerProximityRecord) {
+		if (variables == nullptr) {
+			// Skip the player proximity record
+			ActingDispatch(actor, records, index + 1, variables);
+			return;
+		}
+
+		auto actionTaken = std::make_shared<bool>(false);
+
+		PlayerProximityDispatch(actor, records, index, variables, actionTaken);
+
+		if (playerProximityRecord->timeout <= 0.0f) {
+			return;
+		}
+
+		Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(playerProximityRecord->timeout, [playerProximityRecord, actor, records, index, variables, actionTaken]() {
+			if (*actionTaken) {
+				return;
+			}
+
+			*actionTaken = true;
+
+			for (auto i = 0; i < records.size(); ++i) {
+				auto* record = records[i];
+
+				if (record->m_Name == playerProximityRecord->timeoutLabel) {
+					ActingDispatch(actor, records, i, variables);
+					return;
+				}
+			}
+		});
+
+		return;
+	}
+
+	// Check if the record is a coroutine record
+	auto* coroutineRecord = dynamic_cast<CoroutineRecord*>(record);
+
+	if (coroutineRecord) {
+		actor->AddCallbackTimer(delay, [actor, coroutineRecord, index, variables]() {
+			ActingDispatch(actor, coroutineRecord->records, 0, variables);
+		});
+	}
+
+	// Check if the record is a path find record
+	auto* pathFindRecord = dynamic_cast<PathFindRecord*>(record);
+
+	if (pathFindRecord) {
+		auto* movementAiComponent = actor->GetComponent<MovementAIComponent>();
+
+		if (movementAiComponent == nullptr) {
+			movementAiComponent = actor->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		}
+		
+		movementAiComponent->SetDestination(pathFindRecord->position);
+		movementAiComponent->SetMaxSpeed(pathFindRecord->speed);
+		
+		PathFindDispatch(actor, records, index, variables);
+
+		return;
+	}
+
+	actor->AddCallbackTimer(delay, [actor, records, index, variables]() {
+		ActingDispatch(actor, records, index + 1, variables);
+	});
+
+	record->Act(actor);
+}
+
+void Cinema::Recording::Recorder::PlayerProximityDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables, std::shared_ptr<bool> actionTaken) {
+	auto* record = dynamic_cast<PlayerProximityRecord*>(records[index]);
+	auto* player = Game::entityManager->GetEntity(variables->player);
+
+	if (player == nullptr || record == nullptr) {
+		return;
+	}
+
+	const auto& playerPosition = player->GetPosition();
+	const auto& actorPosition = actor->GetPosition();
+
+	const auto distance = NiPoint3::Distance(playerPosition, actorPosition);
+
+	if (distance <= record->distance) {
+		if (*actionTaken) {
+			return;
+		}
+
+		*actionTaken = true;
+
+		ActingDispatch(actor, records, index + 1, variables);
+
+		return;
+	}
+	
+	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [actor, records, index, variables, actionTaken]() {
+		PlayerProximityDispatch(actor, records, index, variables, actionTaken);
+	});
+}
+
+void Cinema::Recording::Recorder::PathFindDispatch(Entity* actor, const std::vector<Record*>& records, size_t index, Play* variables) {
+	auto* record = dynamic_cast<PathFindRecord*>(records[index]);
+
+	if (record == nullptr) {
+		return;
+	}
+
+	auto* movementAiComponent = actor->GetComponent<MovementAIComponent>();
+
+	if (movementAiComponent == nullptr) {
+		return;
+	}
+
+	if (movementAiComponent->AtFinalWaypoint()) {
+		ActingDispatch(actor, records, index + 1, variables);
+		return;
+	}
+
+	Game::entityManager->GetZoneControlEntity()->AddCallbackTimer(1.0f, [actor, records, index, variables]() {
+		PathFindDispatch(actor, records, index, variables);
+	});
+}
+
+void Cinema::Recording::Recorder::LoadRecords(tinyxml2::XMLElement* root, std::vector<Record*>& records) {
+
+	for (auto* element = root->FirstChildElement(); element; element = element->NextSiblingElement()) {
+		std::string name = element->Name();
+
+		if (!element->Attribute("t")) {
+			element->SetAttribute("t", 0.0f);
+		}
+
+		// If the name does not end with Record, add it
+		if (name.find("Record") == std::string::npos) {
+			name += "Record";
+		}
+
+		Record* record = nullptr;
+
+		if (name == "MovementRecord") {
+			record = new MovementRecord();
+		} else if (name == "SpeakRecord") {
+			record = new SpeakRecord();
+		} else if (name == "AnimationRecord") {
+			record = new AnimationRecord();
+		} else if (name == "EquipRecord") {
+			record = new EquipRecord();
+		} else if (name == "UnequipRecord") {
+			record = new UnequipRecord();
+		} else if (name == "ClearEquippedRecord") {
+			record = new ClearEquippedRecord();
+		} else if (name == "ForkRecord") {
+			record = new ForkRecord();
+		} else if (name == "WaitRecord") {
+			record = new WaitRecord();
+		} else if (name == "JumpRecord") {
+			record = new JumpRecord();
+		} else if (name == "SetVariableRecord") {
+			record = new SetVariableRecord();
+		} else if (name == "BarrierRecord") {
+			record = new BarrierRecord();
+		} else if (name == "SignalRecord") {
+			record = new SignalRecord();
+		} else if (name == "ConcludeRecord") {
+			record = new ConcludeRecord();
+		} else if (name == "PlayerProximityRecord") {
+			record = new PlayerProximityRecord();
+		} else if (name == "VisibilityRecord") {
+			record = new VisibilityRecord();
+		} else if (name == "PlayEffectRecord") {
+			record = new PlayEffectRecord();
+		} else if (name == "CoroutineRecord") {
+			record = new CoroutineRecord();
+		} else if (name == "PathFindRecord") {
+			record = new PathFindRecord();
+		} else if (name == "CombatAIRecord") {
+			record = new CombatAIRecord();
+		} else if (name == "CompanionRecord") {
+			record = new CompanionRecord();
+		} else if (name == "SpawnRecord") {
+			record = new SpawnRecord();
+		} else if (name == "MissionRecord") {
+			record = new MissionRecord();
+		} else if (name == "CinematicRecord") {
+			record = new CinematicRecord();
+		} else {
+			LOG("Unknown record type: %s", name.c_str());
+			continue;
+		}
+
+		record->Deserialize(element);
+		records.push_back(record);
+
+		if (element->Attribute("name")) {
+			records.back()->m_Name = element->Attribute("name");
+		}
+	}
+
+}
+
+Entity* Recorder::ActFor(Entity* actorTemplate, Entity* player, Play* variables) {
+	EntityInfo info;
+	info.lot = actorTemplate->GetLOT();
+	info.pos = actorTemplate->GetPosition();
+	info.rot = actorTemplate->GetRotation();
+	info.scale = 1;
+	info.spawner = nullptr;
+	info.spawnerID = player->GetObjectID();
+	info.spawnerNodeID = 0;
+	info.settings = {
+		new LDFData<std::vector<std::u16string>>(u"syncLDF", { u"custom_script_client" }),
+		new LDFData<std::u16string>(u"custom_script_client", u"scripts\\ai\\SPEC\\MISSION_MINIGAME_CLIENT.lua")
+	};
+
+	// Spawn it
+	auto* actor = Game::entityManager->CreateEntity(info);
+
+	// Hide the template from the player
+	ServerPreconditions::AddExcludeFor(player->GetObjectID(), actorTemplate->GetObjectID());
+
+	// Solo act for the player
+	ServerPreconditions::AddSoloActor(actor->GetObjectID(), player->GetObjectID());
+
+	Game::entityManager->ConstructEntity(actor);
+
+	Act(actor, variables);
+
+	return actor;
+}
+
+void Recorder::StopActingFor(Entity* actor, Entity* actorTemplate, LWOOBJID playerID) {
+	// Remove the exclude for the player
+	ServerPreconditions::RemoveExcludeFor(playerID, actorTemplate->GetObjectID());
+
+	Game::entityManager->DestroyEntity(actor);
+}
+
+bool Recorder::IsRecording() const {
+	return this->m_IsRecording;
+}
+
+void Recorder::StartRecording(LWOOBJID actorID) {
+	const auto& it = m_Recorders.find(actorID);
+
+	// Delete the old recorder if it exists
+	if (it != m_Recorders.end()) {
+		delete it->second;
+		m_Recorders.erase(it);
+	}
+
+	Recorder* recorder = new Recorder();
+	m_Recorders.insert_or_assign(actorID, recorder);
+	recorder->m_IsRecording = true;
+}
+
+void Recorder::StopRecording(LWOOBJID actorID) {
+	auto iter = m_Recorders.find(actorID);
+	if (iter == m_Recorders.end()) {
+		return;
+	}
+
+	iter->second->m_IsRecording = false;
+}
+
+Recorder* Recorder::GetRecorder(LWOOBJID actorID) {
+	auto iter = m_Recorders.find(actorID);
+	if (iter == m_Recorders.end()) {
+		return nullptr;
+	}
+
+	return iter->second;
+}
+
+void Cinema::Recording::Recorder::RegisterEffectForActor(LWOOBJID actorID, const int32_t& effectId) {
+	auto iter = m_Recorders.find(actorID);
+	if (iter == m_Recorders.end()) {
+		return;
+	}
+
+	auto& recorder = iter->second;
+
+	const auto& effectIter = m_EffectAnimations.find(effectId);
+
+	if (effectIter == m_EffectAnimations.end()) {
+		auto statement = CDClientDatabase::CreatePreppedStmt("SELECT animationName FROM BehaviorEffect WHERE effectID = ? LIMIT 1;");
+
+		statement.bind(1, effectId);
+
+		auto result = statement.execQuery();
+
+		if (result.eof()) {
+			result.finalize();
+
+			m_EffectAnimations.emplace(effectId, "");
+		}
+		else {
+			const auto animationName = result.getStringField(0);
+
+			m_EffectAnimations.emplace(effectId, animationName);
+
+			recorder->AddRecord(new AnimationRecord(animationName));
+		}
+	}
+	else {
+		recorder->AddRecord(new AnimationRecord(effectIter->second));
+	}
+
+	recorder->AddRecord(new PlayEffectRecord(std::to_string(effectId)));
+}
+
+MovementRecord::MovementRecord(const NiPoint3& position, const NiQuaternion& rotation, const NiPoint3& velocity, const NiPoint3& angularVelocity, bool onGround, bool dirtyVelocity, bool dirtyAngularVelocity) {
+	this->position = position;
+	this->rotation = rotation;
+	this->velocity = velocity;
+	this->angularVelocity = angularVelocity;
+	this->onGround = onGround;
+	this->dirtyVelocity = dirtyVelocity;
+	this->dirtyAngularVelocity = dirtyAngularVelocity;
+}
+
+void MovementRecord::Act(Entity* actor) {
+	auto* controllableComponent = actor->GetComponent<ControllablePhysicsComponent>();
+
+	if (controllableComponent) {
+		controllableComponent->SetPosition(position);
+		controllableComponent->SetRotation(rotation);
+		controllableComponent->SetVelocity(velocity);
+		controllableComponent->SetAngularVelocity(angularVelocity);
+		controllableComponent->SetIsOnGround(onGround);
+	}
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void MovementRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("MovementRecord");
+
+	element->SetAttribute("x", position.x);
+	element->SetAttribute("y", position.y);
+	element->SetAttribute("z", position.z);
+
+	element->SetAttribute("qx", rotation.x);
+	element->SetAttribute("qy", rotation.y);
+	element->SetAttribute("qz", rotation.z);
+	element->SetAttribute("qw", rotation.w);
+
+	element->SetAttribute("vx", velocity.x);
+	element->SetAttribute("vy", velocity.y);
+	element->SetAttribute("vz", velocity.z);
+
+	element->SetAttribute("avx", angularVelocity.x);
+	element->SetAttribute("avy", angularVelocity.y);
+	element->SetAttribute("avz", angularVelocity.z);
+
+	element->SetAttribute("g", onGround);
+
+	element->SetAttribute("dv", dirtyVelocity);
+
+	element->SetAttribute("dav", dirtyAngularVelocity);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void MovementRecord::Deserialize(tinyxml2::XMLElement* element) {
+	position.x = element->FloatAttribute("x");
+	position.y = element->FloatAttribute("y");
+	position.z = element->FloatAttribute("z");
+
+	rotation.x = element->FloatAttribute("qx");
+	rotation.y = element->FloatAttribute("qy");
+	rotation.z = element->FloatAttribute("qz");
+	rotation.w = element->FloatAttribute("qw");
+
+	velocity.x = element->FloatAttribute("vx");
+	velocity.y = element->FloatAttribute("vy");
+	velocity.z = element->FloatAttribute("vz");
+
+	angularVelocity.x = element->FloatAttribute("avx");
+	angularVelocity.y = element->FloatAttribute("avy");
+	angularVelocity.z = element->FloatAttribute("avz");
+
+	onGround = element->BoolAttribute("g");
+
+	dirtyVelocity = element->BoolAttribute("dv");
+
+	dirtyAngularVelocity = element->BoolAttribute("dav");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+SpeakRecord::SpeakRecord(const std::string& text) {
+	this->text = text;
+}
+
+void SpeakRecord::Act(Entity* actor) {
+	GameMessages::SendNotifyClientZoneObject(
+		actor->GetObjectID(), u"sendToclient_bubble", 0, 0, actor->GetObjectID(), text, UNASSIGNED_SYSTEM_ADDRESS);
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void SpeakRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("SpeakRecord");
+
+	element->SetAttribute("text", text.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void SpeakRecord::Deserialize(tinyxml2::XMLElement* element) {
+	text = element->Attribute("text");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+AnimationRecord::AnimationRecord(const std::string& animation) {
+	this->animation = animation;
+}
+
+void AnimationRecord::Act(Entity* actor) {
+	GameMessages::SendPlayAnimation(actor, GeneralUtils::ASCIIToUTF16(animation));
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void AnimationRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("AnimationRecord");
+
+	element->SetAttribute("animation", animation.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void AnimationRecord::Deserialize(tinyxml2::XMLElement* element) {
+	animation = element->Attribute("animation");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+EquipRecord::EquipRecord(LOT item) {
+	this->item = item;
+}
+
+void EquipRecord::Act(Entity* actor) {
+	auto* inventoryComponent = actor->GetComponent<InventoryComponent>();
+
+	const LWOOBJID id = ObjectIDManager::GenerateObjectID();
+
+	const auto& info = Inventory::FindItemComponent(item);
+	
+	if (inventoryComponent) {
+		inventoryComponent->UpdateSlot(info.equipLocation, { id, item, 1, 0 });
+	}
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void EquipRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("EquipRecord");
+
+	element->SetAttribute("item", item);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void EquipRecord::Deserialize(tinyxml2::XMLElement* element) {
+	item = element->IntAttribute("item");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+UnequipRecord::UnequipRecord(LOT item) {
+	this->item = item;
+}
+
+void UnequipRecord::Act(Entity* actor) {
+	auto* inventoryComponent = actor->GetComponent<InventoryComponent>();
+
+	const auto& info = Inventory::FindItemComponent(item);
+	
+	if (inventoryComponent) {
+		inventoryComponent->RemoveSlot(info.equipLocation);
+	}
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void UnequipRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("UnequipRecord");
+
+	element->SetAttribute("item", item);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void UnequipRecord::Deserialize(tinyxml2::XMLElement* element) {
+	item = element->IntAttribute("item");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+void ClearEquippedRecord::Act(Entity* actor) {
+	auto* inventoryComponent = actor->GetComponent<InventoryComponent>();
+
+	if (inventoryComponent) {
+		auto equipped = inventoryComponent->GetEquippedItems();
+
+		for (auto entry : equipped) {
+			inventoryComponent->RemoveSlot(entry.first);
+		}
+	}
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void ClearEquippedRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("ClearEquippedRecord");
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void ClearEquippedRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+}
+
+void Recorder::SaveToFile(const std::string& filename) {
+	tinyxml2::XMLDocument document;
+
+	auto* root = document.NewElement("Recorder");
+
+	for (auto* record : m_Records) {
+		record->Serialize(document, root);
+	}
+
+	document.InsertFirstChild(root);
+
+	document.SaveFile(filename.c_str());
+}
+
+float Recorder::GetDuration() const {
+	// Return the sum of all the record delays
+	float duration = 0.0f;
+
+	for (auto* record : m_Records) {
+		duration += record->m_Delay;
+	}
+
+	return duration;
+}
+
+Recorder* Recorder::LoadFromFile(const std::string& filename) {
+	tinyxml2::XMLDocument document;
+
+	if (document.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) {
+		return nullptr;
+	}
+
+	auto* root = document.FirstChildElement("Recorder");
+
+	if (!root) {
+		return nullptr;
+	}
+
+	Recorder* recorder = new Recorder();
+
+	LoadRecords(root, recorder->m_Records);
+
+	return recorder;
+}
+
+void Recorder::AddRecording(LWOOBJID actorID, Recorder* recorder) {
+	const auto& it = m_Recorders.find(actorID);
+
+	// Delete the old recorder if it exists
+	if (it != m_Recorders.end()) {
+		delete it->second;
+		m_Recorders.erase(it);
+	}
+
+	m_Recorders.insert_or_assign(actorID, recorder);
+}
+
+Cinema::Recording::ForkRecord::ForkRecord(const std::string& variable, const std::string& value, const std::string& success, const std::string& failure) {
+	this->variable = variable;
+	this->value = value;
+	this->success = success;
+	this->failure = failure;
+}
+
+void Cinema::Recording::ForkRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::ForkRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("ForkRecord");
+
+	if (!variable.empty()) {
+		element->SetAttribute("variable", variable.c_str());
+		element->SetAttribute("value", value.c_str());
+	}
+
+	element->SetAttribute("success", success.c_str());
+	element->SetAttribute("failure", failure.c_str());
+
+	if (!precondition.empty()) {
+		element->SetAttribute("precondtion", precondition.c_str());
+	}
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::ForkRecord::Deserialize(tinyxml2::XMLElement* element) {
+	if (element->Attribute("variable")) {
+		variable = element->Attribute("variable");
+		value = element->Attribute("value");
+	}
+
+	success = element->Attribute("success");
+	failure = element->Attribute("failure");
+
+	if (element->Attribute("precondition")) {
+		precondition = element->Attribute("precondition");
+	}
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::WaitRecord::WaitRecord(float delay) {
+	this->m_Delay = delay;
+}
+
+void Cinema::Recording::WaitRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::WaitRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("WaitRecord");
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::WaitRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::JumpRecord::JumpRecord(const std::string& label) {
+	this->label = label;
+}
+
+void Cinema::Recording::JumpRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::JumpRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("JumpRecord");
+
+	element->SetAttribute("label", label.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::JumpRecord::Deserialize(tinyxml2::XMLElement* element) {
+	label = element->Attribute("label");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::SetVariableRecord::SetVariableRecord(const std::string& variable, const std::string& value) {
+	this->variable = variable;
+	this->value = value;
+}
+
+void Cinema::Recording::SetVariableRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::SetVariableRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("SetVariableRecord");
+
+	element->SetAttribute("variable", variable.c_str());
+	element->SetAttribute("value", value.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::SetVariableRecord::Deserialize(tinyxml2::XMLElement* element) {
+	variable = element->Attribute("variable");
+	value = element->Attribute("value");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::BarrierRecord::BarrierRecord(const std::string& signal, float timeout, const std::string& timeoutLabel) {
+	this->signal = signal;
+	this->timeout = timeout;
+	this->timeoutLabel = timeoutLabel;
+}
+
+void Cinema::Recording::BarrierRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::BarrierRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("BarrierRecord");
+
+	element->SetAttribute("signal", signal.c_str());
+	if (timeout > 0.0f) {
+		element->SetAttribute("timeout", timeout);
+	}
+
+	if (!timeoutLabel.empty()) {
+		element->SetAttribute("timeoutLabel", timeoutLabel.c_str());
+	}
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::BarrierRecord::Deserialize(tinyxml2::XMLElement* element) {
+	signal = element->Attribute("signal");
+	
+	if (element->Attribute("timeout")) {
+		timeout = element->FloatAttribute("timeout");
+	}
+
+	if (element->Attribute("timeoutLabel")) {
+		timeoutLabel = element->Attribute("timeoutLabel");
+	}
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::SignalRecord::SignalRecord(const std::string& signal) {
+	this->signal = signal;
+}
+
+void Cinema::Recording::SignalRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::SignalRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("SignalRecord");
+
+	element->SetAttribute("signal", signal.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::SignalRecord::Deserialize(tinyxml2::XMLElement* element) {
+	signal = element->Attribute("signal");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::PlayerProximityRecord::PlayerProximityRecord(float distance, float timeout, const std::string& timeoutLabel) {
+	this->distance = distance;
+	this->timeout = timeout;
+	this->timeoutLabel = timeoutLabel;
+}
+
+void Cinema::Recording::PlayerProximityRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::PlayerProximityRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("PlayerProximityRecord");
+
+	element->SetAttribute("distance", distance);
+	if (timeout > 0.0f) {
+		element->SetAttribute("timeout", timeout);
+	}
+
+	if (!timeoutLabel.empty()) {
+		element->SetAttribute("timeoutLabel", timeoutLabel.c_str());
+	}
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::PlayerProximityRecord::Deserialize(tinyxml2::XMLElement* element) {
+	distance = element->FloatAttribute("distance");
+
+	if (element->Attribute("timeout")) {
+		timeout = element->FloatAttribute("timeout");
+	}
+
+	if (element->Attribute("timeoutLabel")) {
+		timeoutLabel = element->Attribute("timeoutLabel");
+	}
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+void Cinema::Recording::ConcludeRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::ConcludeRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("ConcludeRecord");
+
+	element->SetAttribute("t", m_Delay);
+
+	element->SetAttribute("cleanUp", true);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::ConcludeRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+
+	if (element->Attribute("cleanUp")) {
+		cleanUp = element->BoolAttribute("clean-up");
+	}
+}
+
+Cinema::Recording::VisibilityRecord::VisibilityRecord(bool visible) {
+	this->visible = visible;
+}
+
+void Cinema::Recording::VisibilityRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::VisibilityRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("VisibilityRecord");
+
+	element->SetAttribute("visible", visible);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::VisibilityRecord::Deserialize(tinyxml2::XMLElement* element) {
+	visible = element->BoolAttribute("visible");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::PlayEffectRecord::PlayEffectRecord(const std::string& effect) {
+	this->effect = effect;
+}
+
+void Cinema::Recording::PlayEffectRecord::Act(Entity* actor) {
+	int32_t effectID = GeneralUtils::TryParse<int32_t>(effect).value_or(0);
+
+	GameMessages::SendPlayFXEffect(
+		actor->GetObjectID(),
+		effectID,
+		u"cast",
+		std::to_string(ObjectIDManager::GenerateRandomObjectID())
+	);
+
+	Game::entityManager->SerializeEntity(actor);
+}
+
+void Cinema::Recording::PlayEffectRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("PlayEffectRecord");
+
+	element->SetAttribute("effect", effect.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::PlayEffectRecord::Deserialize(tinyxml2::XMLElement* element) {
+	effect = element->Attribute("effect");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+void Cinema::Recording::CoroutineRecord::Act(Entity* actor) {
+	
+}
+
+void Cinema::Recording::CoroutineRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CoroutineRecord");
+
+	for (auto* record : records) {
+		record->Serialize(document, element);
+	}
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::CoroutineRecord::Deserialize(tinyxml2::XMLElement* element) {
+	Recorder::LoadRecords(element, records);
+}
+
+Cinema::Recording::PathFindRecord::PathFindRecord(const NiPoint3& position, float speed) {
+	this->position = position;
+	this->speed = speed;
+}
+
+void Cinema::Recording::PathFindRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::PathFindRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("PathFindRecord");
+
+	element->SetAttribute("x", position.x);
+	element->SetAttribute("y", position.y);
+	element->SetAttribute("z", position.z);
+
+	element->SetAttribute("speed", speed);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::PathFindRecord::Deserialize(tinyxml2::XMLElement* element) {
+	position.x = element->FloatAttribute("x");
+	position.y = element->FloatAttribute("y");
+	position.z = element->FloatAttribute("z");
+	
+	speed = element->FloatAttribute("speed");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::CombatAIRecord::CombatAIRecord(bool enabled) {
+	this->enabled = enabled;
+}
+
+void Cinema::Recording::CombatAIRecord::Act(Entity* actor) {
+	auto* baseCombatAIComponent = actor->GetComponent<BaseCombatAIComponent>();
+
+	if (baseCombatAIComponent == nullptr) {
+		return;
+	}
+
+	baseCombatAIComponent->SetDisabled(!enabled);
+}
+
+void Cinema::Recording::CombatAIRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CombatAIRecord");
+
+	element->SetAttribute("enabled", enabled);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::CombatAIRecord::Deserialize(tinyxml2::XMLElement* element) {
+	enabled = element->BoolAttribute("enabled");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+void Cinema::Recording::CompanionRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::CompanionRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CompanionRecord");
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+	
+}
+
+void Cinema::Recording::CompanionRecord::Deserialize(tinyxml2::XMLElement* element) {
+	m_Delay = element->DoubleAttribute("t");
+
+	records.clear();
+
+	Recorder::LoadRecords(element, records);
+}
+
+void CompanionProtcol(Entity* entity, LWOOBJID follow) {
+	auto* followEntity = Game::entityManager->GetEntity(follow);
+
+	if (followEntity == nullptr) {
+		return;
+	}
+
+	auto* movementAI = entity->GetComponent<MovementAIComponent>();
+
+	if (movementAI == nullptr) {
+		movementAI = entity->AddComponent<MovementAIComponent>(MovementAIInfo());
+	}
+
+	if (movementAI == nullptr) {
+		return;
+	}
+
+	auto* combatAI = entity->GetComponent<BaseCombatAIComponent>();
+
+	if (combatAI == nullptr) {
+		return;
+	}
+
+	const auto distance = NiPoint3::Distance(entity->GetPosition(), followEntity->GetPosition());
+
+	combatAI->SetStartPosition(followEntity->GetPosition());
+	combatAI->SetSoftTetherRadius(15.0f);
+	combatAI->SetHardTetherRadius(25.0f);
+	combatAI->SetFocusPosition(followEntity->GetPosition());
+	combatAI->SetFocusRadius(5.0f);
+	auto& info = movementAI->GetInfo();
+	info.wanderChance = 1.0f;
+	info.wanderDelayMin = 0.5f;
+	info.wanderDelayMax = 1.0f;
+	info.wanderSpeed = 1.0f;
+
+	/*if (distance > 50.0f) {
+		movementAI->Warp(followEntity->GetPosition());
+
+		Game::entityManager->SerializeEntity(entity);
+	}*/
+
+	/*if (distance > 30.0f) {
+		movementAI->SetDestination(followEntity->GetPosition());
+		movementAI->SetHaltDistance(5.0f);
+		movementAI->SetMaxSpeed(1.0f);
+
+		if (combatAI) {
+			combatAI->SetDisabled(true);
+		}
+	}
+	else {
+		if (combatAI) {
+			combatAI->SetDisabled(false);
+		}
+	}*/
+
+	entity->AddCallbackTimer(1.0f, [entity, follow]() {
+		CompanionProtcol(entity, follow);
+	});
+}
+
+void Cinema::Recording::CompanionRecord::SetCompanion(Entity* actor, LWOOBJID player) {
+	CompanionProtcol(actor, player);
+}
+
+Cinema::Recording::SpawnRecord::SpawnRecord(LOT lot, const NiPoint3& position, const NiQuaternion& rotation) {
+	this->lot = lot;
+	this->position = position;
+	this->rotation = rotation;
+}
+
+void Cinema::Recording::SpawnRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::SpawnRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("SpawnRecord");
+
+	element->SetAttribute("lot", lot);
+	element->SetAttribute("x", position.x);
+	element->SetAttribute("y", position.y);
+	element->SetAttribute("z", position.z);
+
+	element->SetAttribute("qx", rotation.x);
+	element->SetAttribute("qy", rotation.y);
+	element->SetAttribute("qz", rotation.z);
+	element->SetAttribute("qw", rotation.w);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::SpawnRecord::Deserialize(tinyxml2::XMLElement* element) {
+	lot = element->IntAttribute("lot");
+
+	position.x = element->FloatAttribute("x");
+	position.y = element->FloatAttribute("y");
+	position.z = element->FloatAttribute("z");
+	
+	if (element->Attribute("qx")) {
+		rotation.x = element->FloatAttribute("qx");
+		rotation.y = element->FloatAttribute("qy");
+		rotation.z = element->FloatAttribute("qz");
+		rotation.w = element->FloatAttribute("qw");
+	}
+
+	m_Delay = element->DoubleAttribute("t");
+
+	auto* onSpawn = element->FirstChildElement("OnSpawn");
+
+	if (onSpawn) {
+		Recorder::LoadRecords(onSpawn, onSpawnRecords);
+	}
+
+	auto* onDespawn = element->FirstChildElement("OnDespawn");
+
+	if (onDespawn) {
+		Recorder::LoadRecords(onDespawn, onDespawnRecords);
+	}
+}
+
+Cinema::Recording::MissionRecord::MissionRecord(const int32_t& mission) {
+	this->mission = mission;
+}
+
+void Cinema::Recording::MissionRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::MissionRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("MissionRecord");
+
+	element->SetAttribute("mission", mission);
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::MissionRecord::Deserialize(tinyxml2::XMLElement* element) {
+	mission = element->IntAttribute("mission");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+
+Cinema::Recording::CinematicRecord::CinematicRecord(const std::string& cinematic) {
+	this->cinematic = cinematic;
+}
+
+void Cinema::Recording::CinematicRecord::Act(Entity* actor) {
+}
+
+void Cinema::Recording::CinematicRecord::Serialize(tinyxml2::XMLDocument& document, tinyxml2::XMLElement* parent) {
+	auto* element = document.NewElement("CinematicRecord");
+
+	element->SetAttribute("cinematic", cinematic.c_str());
+
+	element->SetAttribute("t", m_Delay);
+
+	parent->InsertEndChild(element);
+}
+
+void Cinema::Recording::CinematicRecord::Deserialize(tinyxml2::XMLElement* element) {
+	cinematic = element->Attribute("cinematic");
+
+	m_Delay = element->DoubleAttribute("t");
+}
+

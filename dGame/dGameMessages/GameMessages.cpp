@@ -103,6 +103,8 @@
 #include "CDObjectsTable.h"
 #include "eItemType.h"
 
+#include "Recorder.h"
+
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -193,6 +195,12 @@ void GameMessages::SendPlayAnimation(Entity* entity, const std::u16string& anima
 	if (fScale != 1.0f) bitStream.Write(fScale);
 
 	SEND_PACKET_BROADCAST;
+
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Cinema::Recording::AnimationRecord(GeneralUtils::UTF16ToWTF8(animationName)));
+	}
 }
 
 void GameMessages::SendPlayerReady(Entity* entity, const SystemAddress& sysAddr) {
@@ -5255,6 +5263,12 @@ void GameMessages::HandleEquipItem(RakNet::BitStream& inStream, Entity* entity) 
 	item->Equip();
 
 	Game::entityManager->SerializeEntity(entity);
+
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Cinema::Recording::EquipRecord(item->GetLot()));
+	}
 }
 
 void GameMessages::HandleUnequipItem(RakNet::BitStream& inStream, Entity* entity) {
@@ -5275,6 +5289,12 @@ void GameMessages::HandleUnequipItem(RakNet::BitStream& inStream, Entity* entity
 	item->UnEquip();
 
 	Game::entityManager->SerializeEntity(entity);
+
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(entity->GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Cinema::Recording::UnequipRecord(item->GetLot()));
+	}
 }
 
 void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {

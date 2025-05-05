@@ -16,7 +16,7 @@ include_directories(
 add_library(dGameBase OBJECT ${DGAME_SOURCES})
 target_precompile_headers(dGameBase PRIVATE ${HEADERS_DGAME})
 target_include_directories(dGameBase PUBLIC "." "dEntity"
-	PRIVATE "dComponents" "dGameMessages" "dBehaviors" "dMission" "dUtilities" "dInventory"
+	PRIVATE "dComponents" "dGameMessages" "dBehaviors" "dMission" "dUtilities" "dInventory" "dCinema"
 	$<TARGET_PROPERTY:dPropertyBehaviors,INTERFACE_INCLUDE_DIRECTORIES>
 	"${PROJECT_SOURCE_DIR}/dCommon"
 	"${PROJECT_SOURCE_DIR}/dCommon/dEnums"
@@ -40,6 +40,7 @@ add_subdirectory(dInventory)
 add_subdirectory(dMission)
 add_subdirectory(dPropertyBehaviors)
 add_subdirectory(dUtilities)
+add_subdirectory(dCinema)
 
 add_library(dGame STATIC
 	$<TARGET_OBJECTS:dGameBase>
@@ -51,6 +52,7 @@ add_library(dGame STATIC
 	$<TARGET_OBJECTS:dMission>
 	$<TARGET_OBJECTS:dPropertyBehaviors>
 	$<TARGET_OBJECTS:dUtilities>
+	$<TARGET_OBJECTS:dCinema>
 )
 target_link_libraries(dGame INTERFACE dNet)
 target_include_directories(dGame INTERFACE
@@ -63,4 +65,5 @@ target_include_directories(dGame INTERFACE
 	$<TARGET_PROPERTY:dMission,INTERFACE_INCLUDE_DIRECTORIES>
 	$<TARGET_PROPERTY:dPropertyBehaviors,INTERFACE_INCLUDE_DIRECTORIES>
 	$<TARGET_PROPERTY:dUtilities,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:dCinema,INTERFACE_INCLUDE_DIRECTORIES>
 )

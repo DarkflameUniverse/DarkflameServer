@@ -82,6 +82,7 @@
 #include "CollectibleComponent.h"
 #include "ItemComponent.h"
 #include "GhostComponent.h"
+#include "Recorder.h"
 #include "AchievementVendorComponent.h"
 #include "VanityUtilities.h"
 
@@ -2178,6 +2179,20 @@ void Entity::ProcessPositionUpdate(PositionUpdate& update) {
 
 	if (updateChar) Game::entityManager->SerializeEntity(this);
 
+	auto* recorder = Cinema::Recording::Recorder::GetRecorder(GetObjectID());
+
+	if (recorder != nullptr) {
+		recorder->AddRecord(new Cinema::Recording::MovementRecord(
+			update.position,
+			update.rotation,
+			update.velocity,
+			update.angularVelocity,
+			update.onGround,
+			update.velocity != NiPoint3Constant::ZERO,
+			update.angularVelocity != NiPoint3Constant::ZERO
+		));
+	}
+	
 	OnPlayerPositionUpdate.Notify(this, update);
 }
 

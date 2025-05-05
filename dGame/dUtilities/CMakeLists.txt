@@ -6,6 +6,7 @@ set(DGAME_DUTILITIES_SOURCES "BrickDatabase.cpp"
 	"ObjectIDManager.cpp"
 	"Preconditions.cpp"
 	"SlashCommandHandler.cpp"
+	"ServerPreconditions.cpp"
 	"VanityUtilities.cpp")
 
 add_subdirectory(SlashCommands)

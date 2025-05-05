@@ -611,7 +611,23 @@ void BaseCombatAIComponent::ClearThreat() {
 	m_DirtyThreat = true;
 }
 
+void BaseCombatAIComponent::SetStartPosition(const NiPoint3& position) {
+	m_StartPosition = position;
+}
+
 void BaseCombatAIComponent::Wander() {
+	if (m_FocusPosition != NiPoint3Constant::ZERO) {
+		m_MovementAI->SetHaltDistance(m_FocusRadius);
+
+		m_MovementAI->SetDestination(m_FocusPosition);
+		
+		m_MovementAI->SetMaxSpeed(m_TetherSpeed);
+		
+		m_Timer += 0.5f;
+
+		return;
+	}
+
 	if (!m_MovementAI->AtFinalWaypoint()) {
 		return;
 	}
@@ -760,6 +776,38 @@ float BaseCombatAIComponent::GetAggroRadius() const {
 
 void BaseCombatAIComponent::SetAggroRadius(const float value) {
 	m_AggroRadius = value;
+}
+
+float BaseCombatAIComponent::GetSoftTetherRadius() const {
+	return m_SoftTetherRadius;
+}
+
+void BaseCombatAIComponent::SetSoftTetherRadius(const float value) {
+	m_SoftTetherRadius = value;
+}
+
+void BaseCombatAIComponent::SetHardTetherRadius(const float value) {
+	m_HardTetherRadius = value;
+}
+
+const NiPoint3& BaseCombatAIComponent::GetFocusPosition() const {
+	return m_FocusPosition;
+}
+
+void BaseCombatAIComponent::SetFocusPosition(const NiPoint3& value) {
+	m_FocusPosition = value;
+}
+
+float BaseCombatAIComponent::GetFocusRadius() const {
+	return m_FocusRadius;
+}
+
+void BaseCombatAIComponent::SetFocusRadius(const float value) {
+	m_FocusRadius = value;
+}
+
+float BaseCombatAIComponent::GetHardTetherRadius() const {
+	return m_HardTetherRadius;
 }
 
 void BaseCombatAIComponent::LookAt(const NiPoint3& point) {

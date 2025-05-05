@@ -1,0 +1,5 @@
+<Scene>
+    <Prefab file="vanity/prefabs/SFlagSmall.xml" x="-655.564" y="1123.76" z="75.993"/>
+    <NPC name="John" act="vanity/acts/my-act.xml"/>
+    <NPC name="Bill" act="vanity/acts/my-act-2.xml"/>
+</Scene>
