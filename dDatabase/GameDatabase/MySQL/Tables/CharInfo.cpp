@@ -76,3 +76,9 @@ void MySQLDatabase::SetPendingCharacterName(const uint32_t characterId, const st
 void MySQLDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
 	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ? LIMIT 1", static_cast<uint32_t>(time(NULL)), characterId);
 }
+
+bool MySQLDatabase::IsNameInUse(const std::string_view name) {
+	auto result = ExecuteSelect("SELECT name FROM charinfo WHERE name = ? or pending_name = ? LIMIT 1;", name, name);
+
+	return result->next();
+}

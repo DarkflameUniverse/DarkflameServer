@@ -150,11 +150,11 @@ uint32_t InventoryComponent::GetLotCount(const LOT lot) const {
 	return count;
 }
 
-uint32_t InventoryComponent::GetLotCountNonTransfer(LOT lot) const {
+uint32_t InventoryComponent::GetLotCountNonTransfer(LOT lot, bool includeVault) const {
 	uint32_t count = 0;
 
 	for (const auto& inventory : m_Inventories) {
-		if (IsTransferInventory(inventory.second->GetType())) continue;
+		if (IsTransferInventory(inventory.second->GetType(), includeVault)) continue;
 
 		count += inventory.second->GetLotCount(lot);
 	}
@@ -274,7 +274,7 @@ void InventoryComponent::AddItem(
 
 			switch (sourceType) {
 			case 0:
-				Mail::SendMail(LWOOBJID_EMPTY, "Darkflame Universe", m_Parent, "Lost Reward", "You received an item and didn&apos;t have room for it.", lot, size);
+				Mail::SendMail(m_Parent, "%[MAIL_ACTIVITY_OVERFLOW_HEADER]", "%[MAIL_ACTIVITY_OVERFLOW_BODY]", lot, size);
 				break;
 
 			case 1:
@@ -305,21 +305,35 @@ bool InventoryComponent::RemoveItem(const LOT lot, const uint32_t count, eInvent
 		LOG("Attempted to remove 0 of item (%i) from the inventory!", lot);
 		return false;
 	}
-	if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
-	auto* inventory = GetInventory(inventoryType);
-	if (!inventory) return false;
+	if (inventoryType != eInventoryType::ALL) {
+		if (inventoryType == INVALID) inventoryType = Inventory::FindInventoryTypeForLot(lot);
+		auto* inventory = GetInventory(inventoryType);
+		if (!inventory) return false;
 
-	auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
-	if (left != count) return false;
+		auto left = std::min<uint32_t>(count, inventory->GetLotCount(lot));
+		if (left != count) return false;
 
-	while (left > 0) {
-		auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
-		if (!item) break;
-		const auto delta = std::min<uint32_t>(left, item->GetCount());
-		item->SetCount(item->GetCount() - delta, silent);
-		left -= delta;
+		while (left > 0) {
+			auto* item = FindItemByLot(lot, inventoryType, false, ignoreBound);
+			if (!item) break;
+			const auto delta = std::min<uint32_t>(left, item->GetCount());
+			item->SetCount(item->GetCount() - delta, silent);
+			left -= delta;
+		}
+		return true;
+	} else {
+		auto left = count;
+		for (const auto& inventory : m_Inventories | std::views::values) {
+			while (left > 0 && inventory->GetLotCount(lot) > 0) {
+				auto* item = inventory->FindItemByLot(lot, false, ignoreBound);
+				if (!item) break;
+				const auto delta = std::min<uint32_t>(item->GetCount(), left);
+				item->SetCount(item->GetCount() - delta, silent);
+				left -= delta;
+			}
+		}
+		return left == 0;
 	}
-	return true;
 }
 
 void InventoryComponent::MoveItemToInventory(Item* item, const eInventoryType inventory, const uint32_t count, const bool showFlyingLot, bool isModMoveAndEquip, const bool ignoreEquipped, const int32_t preferredSlot) {
@@ -1318,8 +1332,8 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 	}
 }
 
-bool InventoryComponent::IsTransferInventory(eInventoryType type) {
-	return type == VENDOR_BUYBACK || type == VAULT_ITEMS || type == VAULT_MODELS || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
+bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
+	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
 }
 
 uint32_t InventoryComponent::FindSkill(const LOT lot) {

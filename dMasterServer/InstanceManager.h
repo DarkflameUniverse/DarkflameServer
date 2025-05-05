@@ -76,25 +76,25 @@ public:
 	void Shutdown();
 
 private:
-	std::string m_IP;
-	uint32_t m_Port;
-	LWOZONEID m_ZoneID;
-	int m_MaxClientsSoftCap;
-	int m_MaxClientsHardCap;
-	int m_CurrentClientCount;
-	std::vector<Player> m_Players;
-	SystemAddress m_SysAddr;
-	bool m_Ready;
-	bool m_IsShuttingDown;
-	std::vector<PendingInstanceRequest> m_PendingRequests;
-	std::vector<PendingInstanceRequest> m_PendingAffirmations;
+	std::string m_IP{};
+	uint32_t m_Port{};
+	LWOZONEID m_ZoneID{};
+	int m_MaxClientsSoftCap{};
+	int m_MaxClientsHardCap{};
+	int m_CurrentClientCount{};
+	std::vector<Player> m_Players{};
+	SystemAddress m_SysAddr{};
+	bool m_Ready{};
+	bool m_IsShuttingDown{};
+	std::vector<PendingInstanceRequest> m_PendingRequests{};
+	std::vector<PendingInstanceRequest> m_PendingAffirmations{};
 
-	uint32_t m_AffirmationTimeout;
+	uint32_t m_AffirmationTimeout{};
 
-	bool m_IsPrivate;
-	std::string m_Password;
+	bool m_IsPrivate{};
+	std::string m_Password{};
 
-	bool m_Shutdown;
+	bool m_Shutdown{};
 
 	//Private functions:
 };
@@ -125,6 +125,7 @@ public:
 
 	Instance* FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId = 0);
 	Instance* FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);
+	Instance* FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID);
 
 	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	Instance* FindPrivateInstance(const std::string& password);

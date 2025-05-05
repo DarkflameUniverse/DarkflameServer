@@ -5,6 +5,7 @@
 #include "Logger.h"
 #include "Game.h"
 
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -39,6 +40,7 @@ public:
 // AMFValue template class instantiations
 template <typename ValueType>
 class AMFValue : public AMFBaseValue {
+	static_assert(!std::is_same_v<ValueType, std::string_view>, "AMFValue cannot be instantiated with std::string_view");
 public:
 	AMFValue() = default;
 	AMFValue(const ValueType value) : m_Data{ value } {}
@@ -50,6 +52,15 @@ public:
 	[[nodiscard]] const ValueType& GetValue() const { return m_Data; }
 
 	void SetValue(const ValueType value) { m_Data = value; }
+
+	AMFValue<ValueType>& operator=(const AMFValue<ValueType>& other) {
+		return operator=(other.m_Data);
+	}
+
+	AMFValue<ValueType>& operator=(const ValueType& other) {
+		m_Data = other;
+		return *this;
+	}
 
 protected:
 	ValueType m_Data;
@@ -210,13 +221,17 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const std::string_view key, std::unique_ptr<AMFBaseValue> value) {
+	template<typename AmfType>
+	AmfType& Insert(const std::string_view key, std::unique_ptr<AmfType> value) {
 		const auto element = m_Associative.find(key);
+		auto& toReturn = *value;
 		if (element != m_Associative.cend() && element->second) {
 			element->second = std::move(value);
 		} else {
 			m_Associative.emplace(key, std::move(value));
 		}
+
+		return toReturn;
 	}
 
 	/**
@@ -228,11 +243,15 @@ public:
 	 * @param key The key to associate with the value
 	 * @param value The value to insert
 	 */
-	void Insert(const size_t index, std::unique_ptr<AMFBaseValue> value) {
+	template<typename AmfType>
+	AmfType& Insert(const size_t index, std::unique_ptr<AmfType> value) {
+		auto& toReturn = *value;
 		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
 		}
+
 		m_Dense.at(index) = std::move(value);
+		return toReturn;
 	}
 
 	/**
@@ -257,10 +276,10 @@ public:
 	 *
 	 * @param key The key to remove from the associative portion
 	 */
-	void Remove(const std::string& key, const bool deleteValue = true) {
+	void Remove(const std::string& key) {
 		const AMFAssociative::const_iterator it = m_Associative.find(key);
 		if (it != m_Associative.cend()) {
-			if (deleteValue) m_Associative.erase(it);
+			m_Associative.erase(it);
 		}
 	}
 
@@ -341,6 +360,18 @@ public:
 	// Get from the dense but dont cast it
 	[[nodiscard]] AMFBaseValue* Get(const size_t index) const {
 		return index < m_Dense.size() ? m_Dense.at(index).get() : nullptr;
+	}
+
+	void Reset() {
+		m_Associative.clear();
+		m_Dense.clear();
+	}
+
+	template<typename AmfType = AMFArrayValue>
+	AmfType& PushDebug(const std::string_view name) {
+		auto* value = PushArray();
+		value->Insert("name", name.data());
+		return value->Insert<AmfType>("value", std::make_unique<AmfType>());
 	}
 
 private:

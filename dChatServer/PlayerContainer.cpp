@@ -32,7 +32,10 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 		return;
 	}
 
+	auto isLogin = !m_Players.contains(playerId);
 	auto& data = m_Players[playerId];
+	data = PlayerData();
+	data.isLogin = isLogin;
 	data.playerID = playerId;
 
 	uint32_t len;
@@ -49,7 +52,7 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	if (!inStream.Read(data.zoneID)) return;
 	if (!inStream.Read(data.muteExpire)) return;
 	if (!inStream.Read(data.gmLevel)) return;
-	data.sysAddr = packet->systemAddress;
+	data.worldServerSysAddr = packet->systemAddress;
 
 	m_Names[data.playerID] = GeneralUtils::UTF8ToUTF16(data.playerName);
 	m_PlayerCount++;
@@ -216,7 +219,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 	team->leaderID = leader;
 	team->local = local;
 
-	mTeams.push_back(team);
+	GetTeamsMut().push_back(team);
 
 	AddMember(team, leader);
 
@@ -224,7 +227,7 @@ TeamData* PlayerContainer::CreateTeam(LWOOBJID leader, bool local) {
 }
 
 TeamData* PlayerContainer::GetTeam(LWOOBJID playerID) {
-	for (auto* team : mTeams) {
+	for (auto* team : GetTeams()) {
 		if (std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID) == team->memberIDs.end()) continue;
 
 		return team;
@@ -238,7 +241,7 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 		LOG("Tried to add player to team that already had 4 players");
 		const auto& player = GetPlayerData(playerID);
 		if (!player) return;
-		ChatPackets::SendSystemMessage(player.sysAddr, u"The teams is full! You have not been added to a team!");
+		ChatPackets::SendSystemMessage(player.worldServerSysAddr, u"The teams is full! You have not been added to a team!");
 		return;
 	}
 
@@ -281,41 +284,39 @@ void PlayerContainer::AddMember(TeamData* team, LWOOBJID playerID) {
 	}
 }
 
-void PlayerContainer::RemoveMember(TeamData* team, LWOOBJID playerID, bool disband, bool kicked, bool leaving, bool silent) {
-	const auto index = std::find(team->memberIDs.begin(), team->memberIDs.end(), playerID);
+void PlayerContainer::RemoveMember(TeamData* team, LWOOBJID causingPlayerID, bool disband, bool kicked, bool leaving, bool silent) {
+	LOG_DEBUG("Player %llu is leaving team %i", causingPlayerID, team->teamID);
+	const auto index = std::ranges::find(team->memberIDs, causingPlayerID);
 
 	if (index == team->memberIDs.end()) return;
 
-	const auto& member = GetPlayerData(playerID);
-
-	if (member && !silent) {
-		ChatPacketHandler::SendTeamSetLeader(member, LWOOBJID_EMPTY);
-	}
-
-	const auto memberName = GetName(playerID);
-
-	for (const auto memberId : team->memberIDs) {
-		if (silent && memberId == playerID) {
-			continue;
-		}
-
-		const auto& otherMember = GetPlayerData(memberId);
-
-		if (!otherMember) continue;
-
-		ChatPacketHandler::SendTeamRemovePlayer(otherMember, disband, kicked, leaving, false, team->leaderID, playerID, memberName);
-	}
-
 	team->memberIDs.erase(index);
 
-	UpdateTeamsOnWorld(team, false);
+	const auto& member = GetPlayerData(causingPlayerID);
+
+	const auto causingMemberName = GetName(causingPlayerID);
+
+	if (member && !silent) {
+		ChatPacketHandler::SendTeamRemovePlayer(member, disband, kicked, leaving, team->local, LWOOBJID_EMPTY, causingPlayerID, causingMemberName);
+	}
 
 	if (team->memberIDs.size() <= 1) {
-		DisbandTeam(team);
-	} else {
-		if (playerID == team->leaderID) {
-			PromoteMember(team, team->memberIDs[0]);
+		DisbandTeam(team, causingPlayerID, causingMemberName);
+	} else /* team has enough members to be a team still */ {
+		team->leaderID = (causingPlayerID == team->leaderID) ? team->memberIDs[0] : team->leaderID;
+		for (const auto memberId : team->memberIDs) {
+			if (silent && memberId == causingPlayerID) {
+				continue;
+			}
+
+			const auto& otherMember = GetPlayerData(memberId);
+
+			if (!otherMember) continue;
+
+			ChatPacketHandler::SendTeamRemovePlayer(otherMember, disband, kicked, leaving, team->local, team->leaderID, causingPlayerID, causingMemberName);
 		}
+
+		UpdateTeamsOnWorld(team, false);
 	}
 }
 
@@ -331,33 +332,32 @@ void PlayerContainer::PromoteMember(TeamData* team, LWOOBJID newLeader) {
 	}
 }
 
-void PlayerContainer::DisbandTeam(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+void PlayerContainer::DisbandTeam(TeamData* team, const LWOOBJID causingPlayerID, const std::u16string& causingPlayerName) {
+	const auto index = std::ranges::find(GetTeams(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
+	LOG_DEBUG("Disbanding team %i", (*index)->teamID);
 
 	for (const auto memberId : team->memberIDs) {
 		const auto& otherMember = GetPlayerData(memberId);
 
 		if (!otherMember) continue;
 
-		const auto memberName = GeneralUtils::UTF8ToUTF16(otherMember.playerName);
-
 		ChatPacketHandler::SendTeamSetLeader(otherMember, LWOOBJID_EMPTY);
-		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, otherMember.playerID, memberName);
+		ChatPacketHandler::SendTeamRemovePlayer(otherMember, true, false, false, team->local, team->leaderID, causingPlayerID, causingPlayerName);
 	}
 
 	UpdateTeamsOnWorld(team, true);
 
-	mTeams.erase(index);
+	GetTeamsMut().erase(index);
 
 	delete team;
 }
 
 void PlayerContainer::TeamStatusUpdate(TeamData* team) {
-	const auto index = std::find(mTeams.begin(), mTeams.end(), team);
+	const auto index = std::find(GetTeams().begin(), GetTeams().end(), team);
 
-	if (index == mTeams.end()) return;
+	if (index == GetTeams().end()) return;
 
 	const auto& leader = GetPlayerData(team->leaderID);
 
@@ -444,5 +444,5 @@ void PlayerContainer::Shutdown() {
 		Database::Get()->UpdateActivityLog(id, eActivityType::PlayerLoggedOut, playerData.zoneID.GetMapID());
 		m_Players.erase(m_Players.begin());
 	}
-	for (auto* team : mTeams) if (team) delete team;
+	for (auto* team : GetTeams()) if (team) delete team;
 }

@@ -48,8 +48,6 @@
 #include <chrono>
 #include "RakString.h"
 
-#include "httplib.h" //sorry not sorry.
-
 //CDB includes:
 #include "CDClientManager.h"
 #include "CDEmoteTable.h"
@@ -845,8 +843,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::DIE);
+
 	bitStream.Write(bClientDeath);
 	bitStream.Write(bSpawnLoot);
+	bitStream.Write<uint32_t>(deathType.size());
 	bitStream.Write(deathType);
 	bitStream.Write(directionRelative_AngleXZ);
 	bitStream.Write(directionRelative_AngleY);
@@ -856,7 +856,10 @@ void GameMessages::SendDieNoImplCode(Entity* entity, const LWOOBJID& killerID, c
 	if (killType != eKillType::VIOLENT) bitStream.Write(killType);
 
 	bitStream.Write(killerID);
-	bitStream.Write(lootOwnerID);
+	bitStream.Write(lootOwnerID != LWOOBJID_EMPTY);
+	if (lootOwnerID != LWOOBJID_EMPTY) {
+		bitStream.Write(lootOwnerID);
+	}
 
 	SEND_PACKET_BROADCAST;
 }
@@ -968,6 +971,8 @@ void GameMessages::SendResurrect(Entity* entity) {
 	// and just make sure the client has time to be ready.
 	constexpr float respawnTime = 3.66700005531311f + 0.5f;
 	entity->AddCallbackTimer(respawnTime, [=]() {
+		GameMessages::PlayerResurrectionFinished msg;
+		entity->NotifyPlayerResurrectionFinished(msg);
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
@@ -6426,5 +6431,17 @@ namespace GameMessages {
 
 	void ShootingGalleryFire::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		entity.OnShootingGalleryFire(*this);
+	}
+
+	bool RequestServerObjectInfo::Deserialize(RakNet::BitStream& bitStream) {
+		if (!bitStream.Read(bVerbose)) return false;
+		if (!bitStream.Read(clientId)) return false;
+		if (!bitStream.Read(targetForReport)) return false;
+		return true;
+	}
+
+	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
+		if (handlingEntity) handlingEntity->HandleMsg(*this);
 	}
 }

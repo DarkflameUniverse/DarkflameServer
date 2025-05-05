@@ -27,6 +27,8 @@
 #include "Character.h"
 
 #include "CDMissionEmailTable.h"
+#include "ChatPackets.h"
+#include "PlayerManager.h"
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -65,7 +67,7 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	}
 }
 
-void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
+void Mission::LoadFromXmlDone(const tinyxml2::XMLElement& element) {
 	// Start custom XML
 	if (element.Attribute("state") != nullptr) {
 		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
@@ -76,11 +78,15 @@ void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
 		m_Completions = std::stoul(element.Attribute("cct"));
 
 		m_Timestamp = std::stoul(element.Attribute("cts"));
-
-		if (IsComplete()) {
-			return;
-		}
 	}
+}
+
+void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
+	// Start custom XML
+	if (element.Attribute("state") != nullptr) {
+		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
+	}
+	// End custom XML
 
 	auto* task = element.FirstChildElement();
 
@@ -132,7 +138,7 @@ void Mission::LoadFromXml(const tinyxml2::XMLElement& element) {
 	}
 }
 
-void Mission::UpdateXml(tinyxml2::XMLElement& element) {
+void Mission::UpdateXmlDone(tinyxml2::XMLElement& element) {
 	// Start custom XML
 	element.SetAttribute("state", static_cast<unsigned int>(m_State));
 	// End custom XML
@@ -141,15 +147,21 @@ void Mission::UpdateXml(tinyxml2::XMLElement& element) {
 
 	element.SetAttribute("id", static_cast<unsigned int>(info.id));
 
-	if (m_Completions > 0) {
-		element.SetAttribute("cct", static_cast<unsigned int>(m_Completions));
+	element.SetAttribute("cct", static_cast<unsigned int>(m_Completions));
 
-		element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
+	element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
+}
 
-		if (IsComplete()) {
-			return;
-		}
-	}
+void Mission::UpdateXmlCur(tinyxml2::XMLElement& element) {
+	// Start custom XML
+	element.SetAttribute("state", static_cast<unsigned int>(m_State));
+	// End custom XML
+
+	element.DeleteChildren();
+
+	element.SetAttribute("id", static_cast<unsigned int>(info.id));
+
+	if (IsComplete()) return;
 
 	for (auto* task : m_Tasks) {
 		if (task->GetType() == eMissionTaskType::COLLECTION ||
@@ -345,12 +357,25 @@ void Mission::Complete(const bool yieldRewards) {
 	for (const auto& email : missionEmails) {
 		const auto missionEmailBase = "MissionEmail_" + std::to_string(email.ID) + "_";
 
-		if (email.messageType == 1) {
+		if (email.messageType == 1 /* Send an email to the player */) {
 			const auto subject = "%[" + missionEmailBase + "subjectText]";
 			const auto body = "%[" + missionEmailBase + "bodyText]";
 			const auto sender = "%[" + missionEmailBase + "senderName]";
 
 			Mail::SendMail(LWOOBJID_EMPTY, sender, GetAssociate(), subject, body, email.attachmentLOT, 1);
+		} else if (email.messageType == 2 /* Send an announcement in chat */) {
+			auto* character = entity->GetCharacter();
+
+			ChatPackets::AchievementNotify notify{};
+			notify.missionEmailID = email.ID;
+			notify.earningPlayerID = entity->GetObjectID();
+			notify.earnerName.string = character ? GeneralUtils::ASCIIToUTF16(character->GetName()) : u"";
+
+			// Manual write since it's sent to chat server and not a game client
+			RakNet::BitStream bitstream;
+			notify.WriteHeader(bitstream);
+			notify.Serialize(bitstream);
+			Game::chatServer->Send(&bitstream, HIGH_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
 		}
 	}
 }

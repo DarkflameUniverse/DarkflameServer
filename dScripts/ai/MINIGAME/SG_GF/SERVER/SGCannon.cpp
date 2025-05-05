@@ -613,7 +613,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 
 	// Destroy all spawners
 	for (auto* entity : Game::entityManager->GetEntitiesInGroup("SGEnemy")) {
-		entity->Kill();
+		entity->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 	}
 
 	ResetVars(self);

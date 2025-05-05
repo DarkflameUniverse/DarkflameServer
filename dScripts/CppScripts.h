@@ -186,6 +186,8 @@ namespace CppScripts {
 		 */
 		virtual void NotifyHitOrHealResult(Entity* self, Entity* attacker, int32_t damage) {};
 
+		virtual void NotifyPlayerResurrectionFinished(Entity& self, GameMessages::PlayerResurrectionFinished& msg) {};
+
 		/**
 		 * Invoked when a player has responsed to a mission.
 		 *

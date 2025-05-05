@@ -777,7 +777,7 @@ void SlashCommandHandler::Startup() {
 		.info = "Crashes the server",
 		.aliases = { "crash", "pumpkin" },
 		.handle = DEVGMCommands::Crash,
-		.requiredLevel = eGameMasterLevel::DEVELOPER
+		.requiredLevel = eGameMasterLevel::OPERATOR
 	};
 	RegisterCommand(CrashCommand);
 
@@ -996,7 +996,7 @@ void SlashCommandHandler::Startup() {
 	Command RequestMailCountCommand{
 		.help = "Gets the players mail count",
 		.info = "Sends notification with number of unread messages in the player's mailbox",
-		.aliases = { "requestmailcount" },
+		.aliases = { "requestmailcount", "checkmail" },
 		.handle = GMZeroCommands::RequestMailCount,
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
@@ -1444,4 +1444,13 @@ void SlashCommandHandler::Startup() {
 		.requiredLevel = eGameMasterLevel::CIVILIAN
 	};
 	RegisterCommand(removeIgnoreCommand);
+
+	Command shutdownCommand{
+		.help = "Shuts this world down",
+		.info = "Shuts this world down",
+		.aliases = {"shutdown"},
+		.handle = DEVGMCommands::Shutdown,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(shutdownCommand);
 }

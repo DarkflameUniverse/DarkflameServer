@@ -28,6 +28,8 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
+#include "ChatWebAPI.h"
+
 namespace Game {
 	Logger* logger = nullptr;
 	dServer* server = nullptr;
@@ -74,7 +76,8 @@ int main(int argc, char** argv) {
 		Game::assetManager = new AssetManager(clientPath);
 	} catch (std::runtime_error& ex) {
 		LOG("Got an error while setting up assets: %s", ex.what());
-
+		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
 
@@ -84,18 +87,32 @@ int main(int argc, char** argv) {
 	} catch (std::exception& ex) {
 		LOG("Got an error while connecting to the database: %s", ex.what());
 		Database::Destroy("ChatServer");
-		delete Game::server;
 		delete Game::logger;
+		delete Game::config;
 		return EXIT_FAILURE;
 	}
+
+	// seyup the chat api web server
+	bool web_server_enabled = Game::config->GetValue("web_server_enabled") == "1";
+	ChatWebAPI chatwebapi;
+	if (web_server_enabled && !chatwebapi.Startup()){
+		// if we want the web api and it fails to start, exit
+		LOG("Failed to start web server, shutting down.");
+		Database::Destroy("ChatServer");
+		delete Game::logger;
+		delete Game::config;
+		return EXIT_FAILURE;
+	};
 
 	//Find out the master's IP:
 	std::string masterIP;
 	uint32_t masterPort = 1000;
+	std::string masterPassword;
 	auto masterInfo = Database::Get()->GetMasterInfo();
 	if (masterInfo) {
 		masterIP = masterInfo->ip;
 		masterPort = masterInfo->port;
+		masterPassword = masterInfo->password;
 	}
 	//It's safe to pass 'localhost' here, as the IP is only used as the external IP.
 	std::string ourIP = "localhost";
@@ -104,7 +121,7 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Chat, Game::config, &Game::lastSignal, masterPassword);
 
 	const bool dontGenerateDCF = GeneralUtils::TryParse<bool>(Game::config->GetValue("dont_generate_dcf")).value_or(false);
 	Game::chatFilter = new dChatFilter(Game::assetManager->GetResPath().string() + "/chatplus_en_us", dontGenerateDCF);
@@ -147,6 +164,11 @@ int main(int argc, char** argv) {
 			HandlePacket(packet);
 			Game::server->DeallocatePacket(packet);
 			packet = nullptr;
+		}
+
+		//Check and handle web requests:
+		if (web_server_enabled) {
+			chatwebapi.ReceiveRequests();
 		}
 
 		//Push our log every 30s:
@@ -201,6 +223,10 @@ void HandlePacket(Packet* packet) {
 	inStream.Read(connection);
 	if (connection != eConnectionType::CHAT) return;
 	inStream.Read(chatMessageID);
+
+	// Our packing byte wasnt there? Probably a false packet
+	if (inStream.GetNumberOfUnreadBits() < 8) return;
+	inStream.IgnoreBytes(1);
 
 	switch (chatMessageID) {
 	case MessageType::Chat::GM_MUTE:
@@ -286,12 +312,11 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::LOGIN_SESSION_NOTIFY:
 		Game::playerContainer.InsertPlayer(packet);
 		break;
-	case MessageType::Chat::GM_ANNOUNCE: {
+	case MessageType::Chat::GM_ANNOUNCE:
 		// we just forward this packet to every connected server
 		inStream.ResetReadPointer();
 		Game::server->Send(inStream, packet->systemAddress, true); // send to everyone except origin
-	}
-									   break;
+		break;
 	case MessageType::Chat::UNEXPECTED_DISCONNECT:
 		Game::playerContainer.ScheduleRemovePlayer(packet);
 		break;
@@ -300,6 +325,9 @@ void HandlePacket(Packet* packet) {
 		break;
 	case MessageType::Chat::SHOW_ALL:
 		ChatPacketHandler::HandleShowAll(packet);
+		break;
+	case MessageType::Chat::ACHIEVEMENT_NOTIFY:
+		ChatPacketHandler::OnAchievementNotify(inStream, packet->systemAddress);
 		break;
 	case MessageType::Chat::USER_CHANNEL_CHAT_MESSAGE:
 	case MessageType::Chat::WORLD_DISCONNECT_REQUEST:
@@ -336,7 +364,6 @@ void HandlePacket(Packet* packet) {
 	case MessageType::Chat::UGCMANIFEST_REPORT_DONE_BLUEPRINT:
 	case MessageType::Chat::UGCC_REQUEST:
 	case MessageType::Chat::WORLD_PLAYERS_PET_MODERATED_ACKNOWLEDGE:
-	case MessageType::Chat::ACHIEVEMENT_NOTIFY:
 	case MessageType::Chat::GM_CLOSE_PRIVATE_CHAT_WINDOW:
 	case MessageType::Chat::PLAYER_READY:
 	case MessageType::Chat::GET_DONATION_TOTAL:

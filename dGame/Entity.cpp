@@ -386,6 +386,9 @@ void Entity::Initialize() {
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
+			// extraInfo overrides. Client ORs the database smashable and the luz smashable.
+			comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
+
 			if (componentID > 0) {
 				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
@@ -420,9 +423,6 @@ void Entity::Initialize() {
 						comp->SetMinCoins(currencyValues[0].minvalue);
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
 					}
-
-					// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-					comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
 				}
 			} else {
 				comp->SetHealth(1);
@@ -860,6 +860,9 @@ void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, co
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
+	} else if (notificationName == "PlayerResurrectionFinished") {
+		LOG("Subscribing to PlayerResurrectionFinished");
+		m_Subscriptions[scriptObjId][notificationName] = scriptToAdd;
 	}
 }
 
@@ -868,6 +871,9 @@ void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationNa
 		auto* destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Unsubscribe(scriptObjId);
+	} else if (notificationName == "PlayerResurrectionFinished") {
+		LOG("Unsubscribing from PlayerResurrectionFinished");
+		m_Subscriptions[scriptObjId].erase(notificationName);
 	}
 }
 
@@ -1511,6 +1517,15 @@ void Entity::OnChildLoaded(GameMessages::ChildLoaded& childLoaded) {
 	GetScript()->OnChildLoaded(*this, childLoaded);
 }
 
+void Entity::NotifyPlayerResurrectionFinished(GameMessages::PlayerResurrectionFinished& msg) {
+	for (const auto& [id, scriptList] : m_Subscriptions) {
+		auto it = scriptList.find("PlayerResurrectionFinished");
+		if (it == scriptList.end()) continue;
+
+		it->second->NotifyPlayerResurrectionFinished(*this, msg);
+	}
+}
+
 void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled) {
 	GetScript()->OnRequestActivityExit(sender, player, canceled);
 }
@@ -1550,7 +1565,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	m_DieCallbacks.clear();
 
-	//OMAI WA MOU, SHINDERIU
+	//お前はもう死んでいる
 
 	GetScript()->OnDie(this, murderer);
 
@@ -2193,11 +2208,25 @@ void Entity::SetRespawnRot(const NiQuaternion& rotation) {
 
 int32_t Entity::GetCollisionGroup() const {
 	for (const auto* component : m_Components | std::views::values) {
-		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);	
+		auto* compToCheck = dynamic_cast<const PhysicsComponent*>(component);
 		if (compToCheck) {
 			return compToCheck->GetCollisionGroup();
 		}
 	}
 
 	return 0;
+}
+
+bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
+	bool handled = false;
+	const auto [beg, end] = m_MsgHandlers.equal_range(msg.msgId);
+	for (auto it = beg; it != end; ++it) {
+		if (it->second) handled |= it->second(msg);
+	}
+
+	return handled;
+}
+
+void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler) {
+	m_MsgHandlers.emplace(msgId, handler);
 }

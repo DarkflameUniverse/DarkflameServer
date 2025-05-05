@@ -334,6 +334,8 @@
 #include "AgSpiderBossMessage.h"
 #include "GfRaceInstancer.h"
 #include "NsRaceServer.h"
+#include "TrialFactionArmorServer.h"
+#include "ImaginationBackPack.h"
 
 #include <map>
 #include <string>
@@ -700,6 +702,8 @@ namespace {
 		{"scripts\\ai\\RACING\\TRACK_GF\\GF_RACE_SERVER.lua", []() {return new GfRaceServer();}},
 		{"scripts\\ai\\RACING\\TRACK_FV\\FV_RACE_SERVER.lua", []() {return new FvRaceServer();}},
 		{"scripts\\ai\\RACING\\OBJECTS\\VEHICLE_DEATH_TRIGGER_WATER_SERVER.lua", []() {return new VehicleDeathTriggerWaterServer();}},
+		{"scripts\\equipmenttriggers\\L_TRIAL_FACTION_ARMOR_SERVER.lua", []() {return new TrialFactionArmorServer();}},
+		{"scripts\\equipmenttriggers\\ImaginationBackPack.lua", []() {return new ImaginationBackPack();}},
 
 	};
 

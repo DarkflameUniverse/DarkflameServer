@@ -46,6 +46,7 @@ public:
 		ServerType serverType,
 		dConfig* config,
 		Game::signal_t* shouldShutdown,
+		const std::string& masterPassword,
 		unsigned int zoneID = 0);
 	~dServer();
 
@@ -121,4 +122,5 @@ protected:
 	std::string mMasterIP;
 	int mMasterPort;
 	std::chrono::steady_clock::time_point mStartTime = std::chrono::steady_clock::now();
+	std::string mMasterPassword;
 };

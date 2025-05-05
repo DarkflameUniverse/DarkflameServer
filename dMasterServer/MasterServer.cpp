@@ -42,6 +42,14 @@
 #include "Server.h"
 #include "CDZoneTableTable.h"
 #include "eGameMasterLevel.h"
+#include "StringifiedEnum.h"
+
+#ifdef DARKFLAME_PLATFORM_UNIX
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#endif
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -61,6 +69,14 @@ void HandlePacket(Packet* packet);
 std::map<uint32_t, std::string> activeSessions;
 SystemAddress authServerMasterPeerSysAddr;
 SystemAddress chatServerMasterPeerSysAddr;
+
+int GenerateBCryptPassword(const std::string& password, const int workFactor, char salt[BCRYPT_HASHSIZE], char hash[BCRYPT_HASHSIZE]) {
+	int32_t bcryptState = ::bcrypt_gensalt(workFactor, salt);
+	assert(bcryptState == 0);
+	bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
+	assert(bcryptState == 0);
+	return 0;
+}
 
 int main(int argc, char** argv) {
 	constexpr uint32_t masterFramerate = mediumFramerate;
@@ -94,7 +110,7 @@ int main(int argc, char** argv) {
 				std::string(folder) +
 				") folder from your download to the binary directory or re-run cmake.";
 			LOG("%s", msg.c_str());
-// toss an error box up for windows users running the download
+			// toss an error box up for windows users running the download
 #ifdef DARKFLAME_PLATFORM_WIN32
 			MessageBoxA(nullptr, msg.c_str(), "Missing Folder", MB_OK | MB_ICONERROR);
 #endif
@@ -197,6 +213,13 @@ int main(int argc, char** argv) {
 	// Run migrations should any need to be run.
 	MigrationRunner::RunSQLiteMigrations();
 
+	// Check for the --migrations-only flag
+	if ((argc > 1 &&
+		(strcmp(argv[1], "--migrations-only") == 0 || strcmp(argv[1], "-m") == 0))) {
+		LOG("Migrations only flag detected.  Exiting.");
+		return EXIT_SUCCESS;
+	}
+
 	//If the first command line argument is -a or --account then make the user
 	//input a username and password, with the password being hidden.
 	bool createAccount = Database::Get()->GetAccountCount() == 0 && Game::config->GetValue("skip_account_creation") != "1";
@@ -238,10 +261,8 @@ int main(int argc, char** argv) {
 				// Regenerate hash based on new password
 				char salt[BCRYPT_HASHSIZE];
 				char hash[BCRYPT_HASHSIZE];
-				int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-				assert(bcryptState == 0);
-				bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-				assert(bcryptState == 0);
+				int res = GenerateBCryptPassword(password, 12, salt, hash);
+				assert(res == 0);
 
 				Database::Get()->UpdateAccountPassword(accountId->id, std::string(hash, BCRYPT_HASHSIZE));
 
@@ -279,10 +300,8 @@ int main(int argc, char** argv) {
 		//Generate new hash for bcrypt
 		char salt[BCRYPT_HASHSIZE];
 		char hash[BCRYPT_HASHSIZE];
-		int32_t bcryptState = ::bcrypt_gensalt(12, salt);
-		assert(bcryptState == 0);
-		bcryptState = ::bcrypt_hashpw(password.c_str(), salt, hash);
-		assert(bcryptState == 0);
+		int res = GenerateBCryptPassword(password, 12, salt, hash);
+		assert(res == 0);
 
 		//Create account
 		try {
@@ -318,15 +337,25 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal);
+	char salt[BCRYPT_HASHSIZE];
+	char hash[BCRYPT_HASHSIZE];
+	const auto& cfgPassword = Game::config->GetValue("master_password");
+	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+	assert(res == 0);
+
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
 	if (!masterServerIPString.empty()) master_server_ip = masterServerIPString;
 
 	if (master_server_ip == "") master_server_ip = Game::server->GetIP();
+	IServers::MasterInfo info;
+	info.ip = master_server_ip;
+	info.port = Game::server->GetPort();
+	info.password = hash;
 
-	Database::Get()->SetMasterIp(master_server_ip, Game::server->GetPort());
+	Database::Get()->SetMasterInfo(info);
 
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
@@ -441,6 +470,12 @@ int main(int argc, char** argv) {
 			}
 		}
 
+#ifdef DARKFLAME_PLATFORM_UNIX
+		// kill off dead zombie instances
+		int status{};
+		waitpid(static_cast<pid_t>(-1), &status, WNOHANG);
+#endif
+
 		t += std::chrono::milliseconds(masterFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
@@ -529,7 +564,7 @@ void HandlePacket(Packet* packet) {
 			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
 
 			for (auto* instance : Game::im->GetInstances()) {
-				LOG("Instance: %i/%i/%i -> %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in);
+				LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
 			}
 
 			if (in && !in->GetIsReady()) //Instance not ready, make a pending request
@@ -570,15 +605,10 @@ void HandlePacket(Packet* packet) {
 				if (!Game::im->IsPortInUse(theirPort)) {
 					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-					SystemAddress copy;
-					copy.binaryAddress = packet->systemAddress.binaryAddress;
-					copy.port = packet->systemAddress.port;
-
-					in->SetSysAddr(copy);
+					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
-					auto instance = Game::im->FindInstance(
-						theirZoneID, static_cast<uint16_t>(theirInstanceID));
+					auto* instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
 					if (instance) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
@@ -586,22 +616,14 @@ void HandlePacket(Packet* packet) {
 			}
 
 			if (theirServerType == ServerType::Chat) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				chatServerMasterPeerSysAddr = copy;
+				chatServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
 			if (theirServerType == ServerType::Auth) {
-				SystemAddress copy;
-				copy.binaryAddress = packet->systemAddress.binaryAddress;
-				copy.port = packet->systemAddress.port;
-
-				authServerMasterPeerSysAddr = copy;
+				authServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
-			LOG("Received server info, instance: %i port: %i", theirInstanceID, theirPort);
+			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
 
 			break;
 		}
@@ -665,7 +687,7 @@ void HandlePacket(Packet* packet) {
 			if (instance) {
 				instance->AddPlayer(Player());
 			} else {
-				printf("Instance missing? What?");
+				LOG("Instance missing? What?");
 			}
 			break;
 		}
@@ -706,8 +728,8 @@ void HandlePacket(Packet* packet) {
 				inStream.Read<char>(character);
 				password += character;
 			}
-
-			Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			auto* newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			LOG("Creating private zone %i/%i/%i with password %s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), password.c_str());
 
 			break;
 		}
@@ -808,11 +830,10 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::SHUTDOWN_RESPONSE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
-
+			LOG("Got shutdown response from %s", packet->systemAddress.ToString());
 			if (instance == nullptr) {
 				return;
 			}

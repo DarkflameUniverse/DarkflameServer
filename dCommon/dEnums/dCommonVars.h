@@ -98,6 +98,7 @@ public:
 	constexpr LWOZONEID() noexcept = default;
 	constexpr LWOZONEID(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) noexcept { m_MapID = mapID; m_InstanceID = instanceID; m_CloneID = cloneID; }
 	constexpr LWOZONEID(const LWOZONEID& replacement) noexcept { *this = replacement; }
+	constexpr bool operator==(const LWOZONEID&) const = default;
 
 private:
 	LWOMAPID m_MapID = LWOMAPID_INVALID; //1000 for VE, 1100 for AG, etc...

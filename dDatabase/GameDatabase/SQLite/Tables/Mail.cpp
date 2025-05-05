@@ -1,6 +1,6 @@
 #include "SQLiteDatabase.h"
 
-void SQLiteDatabase::InsertNewMail(const IMail::MailInfo& mail) {
+void SQLiteDatabase::InsertNewMail(const MailInfo& mail) {
 	ExecuteInsert(
 		"INSERT INTO `mail` "
 		"(`sender_id`, `sender_name`, `receiver_id`, `receiver_name`, `time_sent`, `subject`, `body`, `attachment_id`, `attachment_lot`, `attachment_subkey`, `attachment_count`, `was_read`)"
@@ -18,16 +18,16 @@ void SQLiteDatabase::InsertNewMail(const IMail::MailInfo& mail) {
 		mail.itemCount);
 }
 
-std::vector<IMail::MailInfo> SQLiteDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
+std::vector<MailInfo> SQLiteDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
 	auto [_, res] = ExecuteSelect(
 		"SELECT id, subject, body, sender_name, attachment_id, attachment_lot, attachment_subkey, attachment_count, was_read, time_sent"
 		" FROM mail WHERE receiver_id=? limit ?;",
 		characterId, numberOfMail);
 
-	std::vector<IMail::MailInfo> toReturn;
+	std::vector<MailInfo> toReturn;
 
 	while (!res.eof()) {
-		IMail::MailInfo mail;
+		MailInfo mail;
 		mail.id = res.getInt64Field("id");
 		mail.subject = res.getStringField("subject");
 		mail.body = res.getStringField("body");
@@ -46,14 +46,14 @@ std::vector<IMail::MailInfo> SQLiteDatabase::GetMailForPlayer(const uint32_t cha
 	return toReturn;
 }
 
-std::optional<IMail::MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
+std::optional<MailInfo> SQLiteDatabase::GetMail(const uint64_t mailId) {
 	auto [_, res] = ExecuteSelect("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (res.eof()) {
 		return std::nullopt;
 	}
 
-	IMail::MailInfo toReturn;
+	MailInfo toReturn;
 	toReturn.itemLOT = res.getIntField("attachment_lot");
 	toReturn.itemCount = res.getIntField("attachment_count");
 

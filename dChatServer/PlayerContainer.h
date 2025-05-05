@@ -9,6 +9,12 @@
 
 enum class eGameMasterLevel : uint8_t;
 
+struct TeamData;
+
+struct TeamContainer {
+	std::vector<TeamData*> mTeams;
+};
+
 struct IgnoreData {
 	IgnoreData(const std::string& name, const LWOOBJID& id) : playerName{ name }, playerId{ id } {}
 	inline bool operator==(const std::string& other) const noexcept {
@@ -36,7 +42,7 @@ struct PlayerData {
 		return muteExpire == 1 || muteExpire > time(NULL);
 	}
 
-	SystemAddress sysAddr{};
+	SystemAddress worldServerSysAddr{};
 	LWOZONEID zoneID{};
 	LWOOBJID playerID = LWOOBJID_EMPTY;
 	time_t muteExpire = 0;
@@ -46,7 +52,9 @@ struct PlayerData {
 	std::vector<IgnoreData> ignoredPlayers;
 	eGameMasterLevel gmLevel = static_cast<eGameMasterLevel>(0); // CIVILLIAN
 	bool isFTP = false;
+	bool isLogin = false;
 };
+
 
 struct TeamData {
 	TeamData();
@@ -75,7 +83,7 @@ public:
 	PlayerData& GetPlayerDataMutable(const std::string& playerName);
 	uint32_t GetPlayerCount() { return m_PlayerCount; };
 	uint32_t GetSimCount() { return m_SimCount; };
-	const std::map<LWOOBJID, PlayerData>& GetAllPlayers() { return m_Players; };
+	const std::map<LWOOBJID, PlayerData>& GetAllPlayers() const { return m_Players; };
 
 	TeamData* CreateLocalTeam(std::vector<LWOOBJID> members);
 	TeamData* CreateTeam(LWOOBJID leader, bool local = false);
@@ -83,13 +91,16 @@ public:
 	void AddMember(TeamData* team, LWOOBJID playerID);
 	void RemoveMember(TeamData* team, LWOOBJID playerID, bool disband, bool kicked, bool leaving, bool silent = false);
 	void PromoteMember(TeamData* team, LWOOBJID newLeader);
-	void DisbandTeam(TeamData* team);
+	void DisbandTeam(TeamData* team, const LWOOBJID causingPlayerID, const std::u16string& causingPlayerName);
 	void TeamStatusUpdate(TeamData* team);
 	void UpdateTeamsOnWorld(TeamData* team, bool deleteTeam);
 	std::u16string GetName(LWOOBJID playerID);
 	LWOOBJID GetId(const std::u16string& playerName);
 	uint32_t GetMaxNumberOfBestFriends() { return m_MaxNumberOfBestFriends; }
 	uint32_t GetMaxNumberOfFriends() { return m_MaxNumberOfFriends; }
+	const TeamContainer& GetTeamContainer() { return m_TeamContainer; }
+	std::vector<TeamData*>& GetTeamsMut() { return m_TeamContainer.mTeams; };
+	const std::vector<TeamData*>& GetTeams() { return GetTeamsMut(); };
 
 	void Update(const float deltaTime);
 	bool PlayerBeingRemoved(const LWOOBJID playerID) { return m_PlayersToRemove.contains(playerID); }
@@ -97,7 +108,7 @@ public:
 private:
 	LWOOBJID m_TeamIDCounter = 0;
 	std::map<LWOOBJID, PlayerData> m_Players;
-	std::vector<TeamData*> mTeams;
+	TeamContainer m_TeamContainer{};
 	std::unordered_map<LWOOBJID, std::u16string> m_Names;
 	std::map<LWOOBJID, float> m_PlayersToRemove;
 	uint32_t m_MaxNumberOfBestFriends = 5;

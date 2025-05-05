@@ -65,3 +65,5 @@ if(UNIX AND NOT APPLE)
 endif()
 
 add_subdirectory(MD5)
+
+add_subdirectory(mongoose)

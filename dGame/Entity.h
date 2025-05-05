@@ -14,10 +14,16 @@
 #include "Observable.h"
 
 namespace GameMessages {
+	struct GameMsg;
 	struct ActivityNotify;
 	struct ShootingGalleryFire;
 	struct ChildLoaded;
+	struct PlayerResurrectionFinished;
 };
+
+namespace MessageType {
+	enum class Game : uint16_t;
+}
 
 namespace Loot {
 	class Info;
@@ -219,6 +225,7 @@ public:
 	void OnActivityNotify(GameMessages::ActivityNotify& notify);
 	void OnShootingGalleryFire(GameMessages::ShootingGalleryFire& notify);
 	void OnChildLoaded(GameMessages::ChildLoaded& childLoaded);
+	void NotifyPlayerResurrectionFinished(GameMessages::PlayerResurrectionFinished& msg);
 
 	void OnMessageBoxResponse(Entity* sender, int32_t button, const std::u16string& identifier, const std::u16string& userData);
 	void OnChoiceBoxResponse(Entity* sender, int32_t button, const std::u16string& buttonIdentifier, const std::u16string& identifier);
@@ -314,6 +321,10 @@ public:
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
 
+	void RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler);
+
+	bool HandleMsg(GameMessages::GameMsg& msg) const;
+
 	/**
 	 * @brief The observable for player entity position updates.
 	 */
@@ -372,6 +383,11 @@ protected:
 	 * Collision
 	 */
 	std::vector<LWOOBJID> m_TargetsInPhantom;
+
+	// objectID of receiver and map of notification name to script
+	std::map<LWOOBJID, std::map<std::string, CppScripts::Script*>> m_Subscriptions;
+
+	std::multimap<MessageType::Game, std::function<bool(GameMessages::GameMsg&)>> m_MsgHandlers;
 };
 
 /**
