@@ -21,11 +21,13 @@
 #include "eUseItemResponse.h"
 #include "dZoneManager.h"
 #include "ChatPackets.h"
+#include "eDeletionRestrictionsCheckType.h"
 
 #include "CDBrickIDTableTable.h"
 #include "CDObjectSkillsTable.h"
 #include "CDComponentsRegistryTable.h"
 #include "CDPackageComponentTable.h"
+#include "CDDeletionRestrictionsTable.h"
 
 namespace {
 	const std::map<std::string, std::string> ExtraSettingAbbreviations = {
@@ -566,5 +568,45 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 
 		const auto value = pair.first + "=" + data;
 		config.push_back(LDFBaseData::DataFromString(value));
+	}
+}
+
+bool Item::CanDeleteItem(Item* item) {
+	if (!item) return false;
+	// TODO:
+	// Check if item is being possessed
+	// Check if the owner is mounting item? (how is this different than the above)
+	// Allow GM 9 to freely delete
+	// Finally, check Deletion Restriction
+	const auto& itemComponent = item->inventory->FindItemComponent(item->lot);
+	if (itemComponent.delResIndex == -1) return true;
+	return CheckDeletionRestriction(itemComponent.delResIndex, item->lot);
+}
+
+bool Item::CheckDeletionRestriction(uint32_t delResIndex, LOT item) {
+	auto* delresTable = CDClientManager::GetTable<CDDeletionRestrictionsTable>();
+	const auto restriction = delresTable->GetByID(delResIndex);
+
+	switch(restriction.checkType) {
+		case eDeletionRestrictionsCheckType::INCLUDE_LOTS:
+			if (std::ranges::find(restriction.ids, item) != restriction.ids.end()) return false;
+			else return true;
+		case eDeletionRestrictionsCheckType::EXCLUDE_LOTS:
+			if (std::ranges::find(restriction.ids, item) != restriction.ids.end()) return true;
+			else return false;
+		case eDeletionRestrictionsCheckType::ANY_OF_THESE:
+			// TODO: Implement
+			return true;
+		case eDeletionRestrictionsCheckType::ALL_OF_THESE:
+			// TODO: Implement
+			return true;
+		case eDeletionRestrictionsCheckType::WHILE_IN_ZONE:
+			if (std::ranges::find(restriction.ids, Game::zoneManager->GetZoneID().GetMapID()) != restriction.ids.end()) return false;
+			else return true;
+		case eDeletionRestrictionsCheckType::ALWAYS_RESTRICTED:
+			return false;
+		case eDeletionRestrictionsCheckType::MAX:
+		default:
+			return true;
 	}
 }
