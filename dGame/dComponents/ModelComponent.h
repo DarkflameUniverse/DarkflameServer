@@ -30,6 +30,10 @@ public:
 	ModelComponent(Entity* parent);
 
 	void LoadBehaviors();
+	void Update(float deltaTime) override;
+
+	bool OnRequestUse(GameMessages::GameMsg& msg);
+	bool OnResetModelToDefaults(GameMessages::GameMsg& msg);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -59,7 +63,7 @@ public:
 
 	/**
 	 * Main gateway for all behavior messages to be passed to their respective behaviors.
-	 * 
+	 *
 	 * @tparam Msg The message type to pass
 	 * @param args the arguments of the message to be deserialized
 	 */
@@ -68,7 +72,7 @@ public:
 		static_assert(std::is_base_of_v<BehaviorMessageBase, Msg>, "Msg must be a BehaviorMessageBase");
 		Msg msg{ args };
 		for (auto&& behavior : m_Behaviors) {
-			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) { 
+			if (behavior.GetBehaviorId() == msg.GetBehaviorId()) {
 				behavior.HandleMsg(msg);
 				return;
 			}
@@ -109,12 +113,35 @@ public:
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 
 	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const;
-	
+
 	void VerifyBehaviors();
 
 	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
 
+	const std::vector<PropertyBehavior>& GetBehaviors() const { return m_Behaviors; };
+
+	void AddInteract();
+	void RemoveInteract();
+
+	void Pause() { m_Dirty = true; m_IsPaused = true; }
+
+	void AddUnSmash();
+	void RemoveUnSmash();
+	bool IsUnSmashing() const { return m_NumActiveUnSmash != 0; }
+
+	void Resume();
 private:
+	// Number of Actions that are awaiting an UnSmash to finish.
+	uint32_t m_NumActiveUnSmash{};
+
+	// Whether or not this component needs to have its extra data serialized.
+	bool m_Dirty{};
+
+	// The number of strips listening for a RequestUse GM to come in.
+	uint32_t m_NumListeningInteract{};
+
+	// Whether or not the model is paused and should reject all interactions regarding behaviors.
+	bool m_IsPaused{};
 	/**
 	 * The behaviors of the model
 	 * Note: This is a vector because the order of the behaviors matters when serializing to the client.

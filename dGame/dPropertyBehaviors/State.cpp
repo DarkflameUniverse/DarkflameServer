@@ -117,6 +117,16 @@ void State::HandleMsg(MigrateActionsMessage& msg) {
 	}
 };
 
+template<>
+void State::HandleMsg(GameMessages::RequestUse& msg) {
+	for (auto& strip : m_Strips) strip.HandleMsg(msg);
+}
+
+template<>
+void State::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
+	for (auto& strip : m_Strips) strip.HandleMsg(msg);
+}
+
 bool State::IsEmpty() const {
 	for (const auto& strip : m_Strips) {
 		if (!strip.IsEmpty()) return false;
@@ -151,4 +161,8 @@ void State::Deserialize(const tinyxml2::XMLElement& state) {
 		auto& strip = m_Strips.emplace_back();
 		strip.Deserialize(*stripElement);
 	}
+}
+
+void State::Update(float deltaTime, ModelComponent& modelComponent) {
+	for (auto& strip : m_Strips) strip.Update(deltaTime, modelComponent);
 }

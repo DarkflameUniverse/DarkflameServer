@@ -4,9 +4,13 @@
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
+#include "ModelComponent.h"
+
+#include <ranges>
 
 PropertyBehavior::PropertyBehavior() {
 	m_LastEditedState = BehaviorState::HOME_STATE;
+	m_ActiveState = BehaviorState::HOME_STATE;
 }
 
 template<>
@@ -84,6 +88,17 @@ void PropertyBehavior::HandleMsg(AddMessage& msg) {
 	isLoot = m_BehaviorId != 7965;
 };
 
+template<>
+void PropertyBehavior::HandleMsg(GameMessages::RequestUse& msg) {
+	m_States[m_ActiveState].HandleMsg(msg);
+}
+
+template<>
+void PropertyBehavior::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
+	m_ActiveState = BehaviorState::HOME_STATE;
+	for (auto& state : m_States | std::views::values) state.HandleMsg(msg);
+}
+
 void PropertyBehavior::SendBehaviorListToClient(AMFArrayValue& args) const {
 	args.Insert("id", std::to_string(m_BehaviorId));
 	args.Insert("name", m_Name);
@@ -152,4 +167,8 @@ void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
 		if (stateId < 0 || stateId > 5) continue;
 		m_States[static_cast<BehaviorState>(stateId)].Deserialize(*stateElement);
 	}
+}
+
+void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
+	for (auto& state : m_States | std::views::values) state.Update(deltaTime, modelComponent);
 }

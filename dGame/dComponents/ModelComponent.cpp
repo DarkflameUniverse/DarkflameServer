@@ -10,12 +10,50 @@
 #include "SimplePhysicsComponent.h"
 
 #include "Database.h"
+#include "DluAssert.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
+	m_IsPaused = false;
+	m_NumListeningInteract = 0;
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
+	RegisterMsg(MessageType::Game::REQUEST_USE, this, &ModelComponent::OnRequestUse);
+	RegisterMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS, this, &ModelComponent::OnResetModelToDefaults);
+}
+
+bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
+	auto& reset = static_cast<GameMessages::ResetModelToDefaults&>(msg);
+	for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
+	GameMessages::UnSmash unsmash;
+	unsmash.target = GetParent()->GetObjectID();
+	unsmash.duration = 0.0f;
+	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	m_NumListeningInteract = 0;
+	m_NumActiveUnSmash = 0;
+	m_Dirty = true;
+	Game::entityManager->SerializeEntity(GetParent());
+	return true;
+}
+
+bool ModelComponent::OnRequestUse(GameMessages::GameMsg& msg) {
+	bool toReturn = false;
+	if (!m_IsPaused) {
+		auto& requestUse = static_cast<GameMessages::RequestUse&>(msg);
+		for (auto& behavior : m_Behaviors) behavior.HandleMsg(requestUse);
+		toReturn = true;
+	}
+
+	return toReturn;
+}
+
+void ModelComponent::Update(float deltaTime) {
+	if (m_IsPaused) return;
+
+	for (auto& behavior : m_Behaviors) {
+		behavior.Update(deltaTime, *this);
+	}
 }
 
 void ModelComponent::LoadBehaviors() {
@@ -29,9 +67,9 @@ void ModelComponent::LoadBehaviors() {
 		LOG_DEBUG("Loading behavior %d", behaviorId.value());
 		auto& inserted = m_Behaviors.emplace_back();
 		inserted.SetBehaviorId(*behaviorId);
-		
+
 		const auto behaviorStr = Database::Get()->GetBehavior(behaviorId.value());
-		
+
 		tinyxml2::XMLDocument behaviorXml;
 		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
 		LOG_DEBUG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
@@ -45,6 +83,11 @@ void ModelComponent::LoadBehaviors() {
 	}
 }
 
+void ModelComponent::Resume() {
+	m_Dirty = true;
+	m_IsPaused = false;
+}
+
 void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	// ItemComponent Serialization.  Pets do not get this serialization.
 	if (!m_Parent->HasComponent(eReplicaComponentType::PET)) {
@@ -56,14 +99,14 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 
 	//actual model component:
 	outBitStream.Write1(); // Yes we are writing model info
-	outBitStream.Write0(); // Is pickable
+	outBitStream.Write(m_NumListeningInteract > 0); // Is pickable
 	outBitStream.Write<uint32_t>(2); // Physics type
 	outBitStream.Write(m_OriginalPosition); // Original position
 	outBitStream.Write(m_OriginalRotation); // Original rotation
 
 	outBitStream.Write1(); // We are writing behavior info
-	outBitStream.Write<uint32_t>(0); // Number of behaviors
-	outBitStream.Write1(); // Is this model paused
+	outBitStream.Write<uint32_t>(m_Behaviors.size()); // Number of behaviors
+	outBitStream.Write(m_IsPaused); // Is this model paused
 	if (bIsInitialUpdate) outBitStream.Write0(); // We are not writing model editing info
 }
 
@@ -134,4 +177,29 @@ std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSa
 		behaviorData = printer.CStr();
 	}
 	return toReturn;
+}
+
+void ModelComponent::AddInteract() {
+	LOG_DEBUG("Adding interact %i", m_NumListeningInteract);
+	m_Dirty = true;
+	m_NumListeningInteract++;
+}
+
+void ModelComponent::RemoveInteract() {
+	DluAssert(m_NumListeningInteract > 0);
+	LOG_DEBUG("Removing interact %i", m_NumListeningInteract);
+	m_Dirty = true;
+	m_NumListeningInteract--;
+}
+
+void ModelComponent::AddUnSmash() {
+	LOG_DEBUG("Adding UnSmash %i", m_NumActiveUnSmash);
+	m_NumActiveUnSmash++;
+}
+
+void ModelComponent::RemoveUnSmash() {
+	// Players can assign an UnSmash without a Smash so an assert would be bad here
+	if (m_NumActiveUnSmash == 0) return;
+	LOG_DEBUG("Removing UnSmash %i", m_NumActiveUnSmash);
+	m_NumActiveUnSmash--;
 }
