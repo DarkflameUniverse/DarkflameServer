@@ -1110,6 +1110,7 @@ void HandlePacket(Packet* packet) {
 					}
 
 					if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
+					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 					[[fallthrough]];
 				}
 				case eCharacterVersion::UP_TO_DATE:
