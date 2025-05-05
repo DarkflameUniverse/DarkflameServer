@@ -35,13 +35,13 @@ enum class eChatChannel : uint8_t {
 
 
 enum class eChatMessageResponseCode : uint8_t {
-    SENT = 0,
-    NOTONLINE,
-    GENERALERROR,
-    RECEIVEDNEWWHISPER,
-    NOTFRIENDS,
-    SENDERFREETRIAL,
-    RECEIVERFREETRIAL,
+	SENT = 0,
+	NOTONLINE,
+	GENERALERROR,
+	RECEIVEDNEWWHISPER,
+	NOTFRIENDS,
+	SENDERFREETRIAL,
+	RECEIVERFREETRIAL,
 };
 
 namespace ChatPacketHandler {
@@ -52,33 +52,14 @@ namespace ChatPacketHandler {
 	void HandleGMLevelUpdate(Packet* packet);
 	void HandleWho(Packet* packet);
 	void HandleShowAll(Packet* packet);
-
 	void HandleChatMessage(Packet* packet);
 	void HandlePrivateChatMessage(Packet* packet);
-	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode);
 
-	void HandleTeamInvite(Packet* packet);
-	void HandleTeamInviteResponse(Packet* packet);
-	void HandleTeamLeave(Packet* packet);
-	void HandleTeamKick(Packet* packet);
-	void HandleTeamPromote(Packet* packet);
-	void HandleTeamLootOption(Packet* packet);
-	void HandleTeamStatusRequest(Packet* packet);
 	void OnAchievementNotify(RakNet::BitStream& bitstream, const SystemAddress& sysAddr);
-
-	void SendTeamInvite(const PlayerData& receiver, const PlayerData& sender);
-	void SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName);
-	void SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName);
-	void SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID);
-	void SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID);
-
-	/* Sends a message to the provided `receiver` with information about the updated team. If `i64LeaderID` is not LWOOBJID_EMPTY, the client will update the leader to that new playerID. */
-	void SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName);
-	void SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID);
 
 	//FriendData is the player we're SENDING this stuff to. Player is the friend that changed state.
 	void SendFriendUpdate(const PlayerData& friendData, const PlayerData& playerData, uint8_t notifyType, uint8_t isBestFriend);
-
+	void SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode);
 	void SendFriendRequest(const PlayerData& receiver, const PlayerData& sender);
 	void SendFriendResponse(const PlayerData& receiver, const PlayerData& sender, eAddFriendResponseType responseCode, uint8_t isBestFriendsAlready = 0U, uint8_t isBestFriendRequest = 0U);
 	void SendRemoveFriend(const PlayerData& receiver, std::string& personToRemove, bool isSuccessful);
