@@ -91,7 +91,7 @@ public:
 	void AddMember(TeamData* team, LWOOBJID playerID);
 	void RemoveMember(TeamData* team, LWOOBJID playerID, bool disband, bool kicked, bool leaving, bool silent = false);
 	void PromoteMember(TeamData* team, LWOOBJID newLeader);
-	void DisbandTeam(TeamData* team);
+	void DisbandTeam(TeamData* team, const LWOOBJID causingPlayerID, const std::u16string& causingPlayerName);
 	void TeamStatusUpdate(TeamData* team);
 	void UpdateTeamsOnWorld(TeamData* team, bool deleteTeam);
 	std::u16string GetName(LWOOBJID playerID);

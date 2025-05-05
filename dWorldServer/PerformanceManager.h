@@ -1,22 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 
 #include "dCommonVars.h"
 
-struct PerformanceProfile {
-	uint32_t serverFrameDelta;
-};
+using PerformanceProfile = uint32_t;
 
-class PerformanceManager {
-public:
-	static void SelectProfile(LWOMAPID mapID);
+namespace PerformanceManager {
+	/* Sets a performance profile for a given world. */
+	void SelectProfile(LWOMAPID mapID);
 
-	static uint32_t GetServerFrameDelta();
-
-private:
-	static PerformanceProfile m_CurrentProfile;
-	static PerformanceProfile m_DefaultProfile;
-	static PerformanceProfile m_InactiveProfile;
-	static std::map<LWOMAPID, PerformanceProfile> m_Profiles;
+	/* Gets the frame millisecond delta. Will return a higher value if the zone is empty. */
+	uint32_t GetServerFrameDelta();
 };

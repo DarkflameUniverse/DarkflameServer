@@ -148,6 +148,10 @@ void TestSQLDatabase::UpdatePropertyDetails(const IProperty::Info& info) {
 
 }
 
+void TestSQLDatabase::UpdateLastSave(const IProperty::Info& info) {
+
+}
+
 void TestSQLDatabase::InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) {
 
 }
