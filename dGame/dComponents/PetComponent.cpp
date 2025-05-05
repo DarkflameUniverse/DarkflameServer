@@ -2,6 +2,8 @@
 #include "GameMessages.h"
 #include "BrickDatabase.h"
 #include "CDClientDatabase.h"
+#include "CDPetAbilitiesTable.h"
+#include "CDPetComponentTable.h"
 #include "CDTamingBuildPuzzleTable.h"
 #include "ChatPackets.h"
 #include "EntityManager.h"
@@ -18,12 +20,15 @@
 #include "eUnequippableActiveType.h"
 #include "eTerminateType.h"
 #include "ePetTamingNotifyType.h"
+#include "ePetAbilityType.h"
 #include "eUseItemResponse.h"
 #include "ePlayerFlag.h"
+#include "eHelpType.h"
 
 #include "Game.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
+#include "dZoneManager.h"
 #include "Database.h"
 #include "EntityInfo.h"
 #include "eMissionTaskType.h"
@@ -72,44 +77,40 @@ const std::map<LOT, int32_t> PetComponent::petFlags{
 		{ 13067, 838 }, // Skeleton dragon
 };
 
-PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
+PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId)
+	: Component{ parentEntity }
+	, m_Flags{ PetFlag::SPAWNING }
+{
 	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
 	m_ComponentId = componentId;
-
-	m_Interaction = LWOOBJID_EMPTY;
-	m_Owner = LWOOBJID_EMPTY;
-	m_ModerationStatus = 0;
-	m_Tamer = LWOOBJID_EMPTY;
-	m_ModelId = LWOOBJID_EMPTY;
-	m_Timer = 0;
-	m_TimerAway = 0;
-	m_DatabaseId = LWOOBJID_EMPTY;
-	m_Status = 67108866; // Tamable
-	m_Ability = ePetAbilityType::Invalid;
-	m_StartPosition = NiPoint3Constant::ZERO;
+	m_StartPosition = m_Parent->GetPosition();
 	m_MovementAI = nullptr;
-	m_TreasureTime = 0;
+
+	m_ReadyToInteract = false;
+	m_State = PetAiState::spawn;
+	SetIsHandlingInteraction(false);
 
 	std::string checkPreconditions = GeneralUtils::UTF16ToWTF8(parentEntity->GetVar<std::u16string>(u"CheckPrecondition"));
+	m_Preconditions =
+		checkPreconditions.empty() ? std::nullopt : std::make_optional(PreconditionExpression(checkPreconditions));
 
-	if (!checkPreconditions.empty()) {
-		SetPreconditions(checkPreconditions);
-	}
+	m_FollowRadius = 8.0f; //Game::zoneManager->GetPetFollowRadius(); // TODO: FIX THIS TO LOAD DYNAMICALLY
 }
 
 void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	const bool tamed = m_Owner != LWOOBJID_EMPTY;
 
-	outBitStream.Write1(); // Always serialize as dirty for now
+	constexpr bool isDirty = true;
+	outBitStream.Write(isDirty); // Always serialize as dirty for now
 
-	outBitStream.Write<uint32_t>(m_Status);
-	outBitStream.Write(tamed ? m_Ability : ePetAbilityType::Invalid); // Something with the overhead icon?
+	outBitStream.Write(m_Flags.Value());
+	outBitStream.Write(tamed ? m_Interaction.ability : ePetAbilityType::Invalid); // Something with the overhead icon?
 
-	const bool interacting = m_Interaction != LWOOBJID_EMPTY;
+	const bool interacting = m_Interaction.obj != LWOOBJID_EMPTY;
 
 	outBitStream.Write(interacting);
 	if (interacting) {
-		outBitStream.Write(m_Interaction);
+		outBitStream.Write(m_Interaction.obj);
 	}
 
 	outBitStream.Write(tamed);
@@ -139,31 +140,102 @@ void PetComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpd
 }
 
 void PetComponent::OnUse(Entity* originator) {
-	if (m_Owner != LWOOBJID_EMPTY) {
+	LOG_DEBUG("PET USE!");
+
+	if (IsReadyToInteract()) {
+		switch (m_Interaction.ability) {
+		case ePetAbilityType::DigAtPosition: // Treasure dig
+			StartInteractTreasureDig();
+			break;
+
+		case ePetAbilityType::JumpOnObject: // Bouncer
+			StartInteractBouncer();
+			break;
+
+		default:
+			LOG_DEBUG(
+				"Unhandled pet interaction - Owner: %ld, ePetAbilityType %d",
+				m_Owner,
+				GeneralUtils::ToUnderlying(m_Interaction.ability)
+			);
+			break;
+		}
+	} else {
+		StartTamingMinigame(originator);
+	}
+}
+
+void PetComponent::Update(float deltaTime) {
+	// Update timers
+	m_TimerBounce -= deltaTime;
+
+	if (m_Timer > 0) {
+		m_Timer -= deltaTime;
 		return;
 	}
 
-	if (m_Tamer != LWOOBJID_EMPTY) {
-		auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
-		if (tamer != nullptr) {
+	// Remove "left behind" pets and handle failing pet taming minigame
+	if (m_Owner != LWOOBJID_EMPTY) {
+		const Entity* const owner = GetOwner();
+		if (!owner) {
+			m_Parent->Kill();
 			return;
 		}
+	} else {
+		ClientFailTamingMinigame(); // TODO: This is not despawning the built model correctly
+	}
 
+	if (m_Flags.Has<PetFlag::SPAWNING>()) OnSpawn();
+
+	// Handle pet AI states
+	switch (m_State) {
+	case PetAiState::idle:
+		Wander();
+		break;
+
+	case PetAiState::follow:
+		OnFollow(deltaTime);
+		break;
+
+	case PetAiState::goToObj:
+		if (m_MovementAI->AtFinalWaypoint()) {
+			LOG_DEBUG("Reached object!");
+			m_MovementAI->Stop();
+			SetPetAiState(PetAiState::interact);
+		} else {
+			m_Timer += 0.5f;
+		}
+		break;
+
+	case PetAiState::interact:
+		OnInteract();
+		break;
+
+	default:
+		LOG_DEBUG("Unknown state: %d!", m_Flags);
+		break;
+	}
+}
+
+void PetComponent::StartTamingMinigame(Entity* originator) {
+	// The minigame logic beneath this comment should be rewritten... eventually
+	if (m_Owner != LWOOBJID_EMPTY) return;
+
+	if (m_Tamer != LWOOBJID_EMPTY) {
+		const auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
+		if (tamer != nullptr) return;
 		m_Tamer = LWOOBJID_EMPTY;
 	}
 
 	auto* const inventoryComponent = originator->GetComponent<InventoryComponent>();
-	if (inventoryComponent == nullptr) {
-		return;
-	}
+	if (!inventoryComponent) return;
 
 	if (m_Preconditions.has_value() && !m_Preconditions->Check(originator, true)) {
 		return;
 	}
 
 	auto* const movementAIComponent = m_Parent->GetComponent<MovementAIComponent>();
-	if (movementAIComponent != nullptr) {
+	if (movementAIComponent) {
 		movementAIComponent->Stop();
 	}
 
@@ -176,7 +248,7 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	const auto* const destroyableComponent = originator->GetComponent<DestroyableComponent>();
-	if (destroyableComponent == nullptr) {
+	if (!destroyableComponent) {
 		return;
 	}
 
@@ -194,7 +266,6 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	const auto petPosition = m_Parent->GetPosition();
-
 	const auto originatorPosition = originator->GetPosition();
 
 	m_Parent->SetRotation(NiQuaternion::LookAt(petPosition, originatorPosition));
@@ -205,22 +276,17 @@ void PetComponent::OnUse(Entity* originator) {
 	}
 
 	auto position = originatorPosition;
-
-	NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
+	auto forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
 	forward.y = 0;
 
 	if (dpWorld::IsLoaded()) {
-		NiPoint3 attempt = petPosition + forward * interactionDistance;
-
-		NiPoint3 nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
+		auto attempt = petPosition + forward * interactionDistance;
+		auto nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
 
 		while (std::abs(nearestPoint.y - petPosition.y) > 4 && interactionDistance > 10) {
-			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
-
+			const auto forward = m_Parent->GetRotation().GetForwardVector();
 			attempt = originatorPosition + forward * interactionDistance;
-
 			nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
-
 			interactionDistance -= 0.5f;
 		}
 
@@ -229,7 +295,7 @@ void PetComponent::OnUse(Entity* originator) {
 		position = petPosition + forward * interactionDistance;
 	}
 
-	auto rotation = NiQuaternion::LookAt(position, petPosition);
+	const auto rotation = NiQuaternion::LookAt(position, petPosition);
 
 	GameMessages::SendNotifyPetTamingMinigame(
 		originator->GetObjectID(),
@@ -258,202 +324,37 @@ void PetComponent::OnUse(Entity* originator) {
 	GameMessages::SendNotifyPetTamingPuzzleSelected(originator->GetObjectID(), bricks, originator->GetSystemAddress());
 
 	m_Tamer = originator->GetObjectID();
-	SetStatus(5);
-	Game::entityManager->SerializeEntity(m_Parent);
+	m_Flags.Set<PetFlag::IDLE, PetFlag::UNKNOWN4>();
 
 	currentActivities.insert_or_assign(m_Tamer, m_Parent->GetObjectID());
 
 	// Notify the start of a pet taming minigame
 	m_Parent->GetScript()->OnNotifyPetTamingMinigame(m_Parent, originator, ePetTamingNotifyType::BEGIN);
 
-	auto* characterComponent = originator->GetComponent<CharacterComponent>();
+	auto* const characterComponent = originator->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::PET_TAMING);
 		Game::entityManager->SerializeEntity(originator);
 	}
 }
 
-void PetComponent::Update(float deltaTime) {
-	if (m_StartPosition == NiPoint3Constant::ZERO) {
-		m_StartPosition = m_Parent->GetPosition();
-	}
-
-	if (m_Owner == LWOOBJID_EMPTY) {
-		if (m_Tamer != LWOOBJID_EMPTY) {
-			if (m_Timer > 0) {
-				m_Timer -= deltaTime;
-
-				if (m_Timer <= 0) {
-					m_Timer = 0;
-
-					ClientFailTamingMinigame();
-				}
-			}
-		} else {
-			if (m_Timer > 0) {
-				m_Timer -= deltaTime;
-
-				if (m_Timer <= 0) {
-					Wander();
-					Game::entityManager->SerializeEntity(m_Parent);
-				}
-			} else {
-				m_Timer = 5;
-			}
-		}
-
-		return;
-	}
-
-	auto* owner = GetOwner();
-
-	if (owner == nullptr) {
-		m_Parent->Kill();
-
-		return;
-	}
-
-	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-
-	if (m_MovementAI == nullptr) {
-		return;
-	}
-
-	if (m_TreasureTime > 0) {
-		auto* treasure = Game::entityManager->GetEntity(m_Interaction);
-
-		if (treasure == nullptr) {
-			m_TreasureTime = 0;
-
-			return;
-		}
-
-		m_TreasureTime -= deltaTime;
-
-		m_MovementAI->Stop();
-
-		if (m_TreasureTime <= 0) {
-			m_Parent->SetOwnerOverride(m_Owner);
-
-			treasure->Smash(m_Parent->GetObjectID());
-
-			m_Interaction = LWOOBJID_EMPTY;
-
-			m_TreasureTime = 0;
-		}
-
-		return;
-	}
-
-	auto destination = owner->GetPosition();
-	NiPoint3 position = m_MovementAI->GetParent()->GetPosition();
-
-	float distanceToOwner = Vector3::DistanceSquared(position, destination);
-
-	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
-		m_MovementAI->Warp(destination);
-
-		m_Timer = 1;
-		m_TimerAway = 0;
-
-		return;
-	}
-
-	if (distanceToOwner > 15 * 15 || std::abs(destination.y - position.y) >= 3) {
-		m_TimerAway += deltaTime;
-	} else {
-		m_TimerAway = 0;
-	}
-
-	if (m_Timer > 0) {
-		m_Timer -= deltaTime;
-
-		return;
-	}
-
-	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(position);
-
-	float haltDistance = 5;
-
-	if (closestSwitch != nullptr) {
-		if (!closestSwitch->GetActive()) {
-			NiPoint3 switchPosition = closestSwitch->GetParentEntity()->GetPosition();
-			float distance = Vector3::DistanceSquared(position, switchPosition);
-			if (distance < 3 * 3) {
-				m_Interaction = closestSwitch->GetParentEntity()->GetObjectID();
-				closestSwitch->OnUse(m_Parent);
-			} else if (distance < 20 * 20) {
-				haltDistance = 1;
-
-				destination = switchPosition;
-			}
-		}
-	}
-
-	auto* missionComponent = owner->GetComponent<MissionComponent>();
-	if (!missionComponent) return;
-
-	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
-	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
-
-	Entity* closestTreasure = PetDigServer::GetClosestTreasure(position);
-
-	if (closestTreasure != nullptr && digUnlocked) {
-		// Skeleton Dragon Pat special case for bone digging
-		if (closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067) {
-			goto skipTreasure;
-		}
-
-		NiPoint3 treasurePosition = closestTreasure->GetPosition();
-		float distance = Vector3::DistanceSquared(position, treasurePosition);
-		if (distance < 5 * 5) {
-			m_Interaction = closestTreasure->GetObjectID();
-
-			Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, 202, true);
-
-			m_TreasureTime = 2;
-		} else if (distance < 10 * 10) {
-			haltDistance = 1;
-
-			destination = treasurePosition;
-		}
-	}
-
-skipTreasure:
-
-	m_MovementAI->SetHaltDistance(haltDistance);
-
-	m_MovementAI->SetMaxSpeed(2.5f);
-
-	m_MovementAI->SetDestination(destination);
-
-	m_Timer = 1;
-}
-
 void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
 
-	auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
-	if (tamer == nullptr) {
+	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
+	if (!tamer) {
 		m_Tamer = LWOOBJID_EMPTY;
-
 		return;
 	}
+
+	auto* const destroyableComponent = tamer->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
 
 	const auto* const entry = CDClientManager::GetTable<CDTamingBuildPuzzleTable>()->GetByLOT(m_Parent->GetLOT());
 	if (!entry) return;
 
-	auto* destroyableComponent = tamer->GetComponent<DestroyableComponent>();
-
-	if (destroyableComponent == nullptr) return;
-
-	auto imagination = destroyableComponent->GetImagination();
-
-	imagination -= entry->imaginationCost;
-
+	const auto imagination = destroyableComponent->GetImagination() - entry->imaginationCost;
 	destroyableComponent->SetImagination(imagination);
-
 	Game::entityManager->SerializeEntity(tamer);
 
 	if (clientFailed) {
@@ -469,14 +370,12 @@ void PetComponent::TryBuild(uint32_t numBricks, bool clientFailed) {
 	GameMessages::SendPetTamingTryBuildResult(m_Tamer, !clientFailed, numBricks, tamer->GetSystemAddress());
 }
 
-void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
+void PetComponent::NotifyTamingBuildSuccess(const NiPoint3 position) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
 
-	auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
-	if (tamer == nullptr) {
+	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
+	if (!tamer) {
 		m_Tamer = LWOOBJID_EMPTY;
-
 		return;
 	}
 
@@ -486,42 +385,31 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	GameMessages::SendPlayFXEffect(tamer, -1, u"petceleb", "", LWOOBJID_EMPTY, 1, 1, true);
 	RenderComponent::PlayAnimation(tamer, u"rebuild-celebrate");
 
-	EntityInfo info{};
+	auto info = EntityInfo{};
 	info.lot = entry->puzzleModelLot;
 	info.pos = position;
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
 
-	auto* modelEntity = Game::entityManager->CreateEntity(info);
-
+	auto* const modelEntity = Game::entityManager->CreateEntity(info);
 	m_ModelId = modelEntity->GetObjectID();
-
 	Game::entityManager->ConstructEntity(modelEntity);
 
 	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
-
 	GameMessages::SendPetResponse(m_Tamer, m_Parent->GetObjectID(), 0, 10, 0, tamer->GetSystemAddress());
 
-	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	auto* const inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
 
-	if (inventoryComponent == nullptr) {
-		return;
-	}
-
-	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
-
+	auto petSubKey = ObjectIDManager::GenerateRandomObjectID();
 	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
 	GeneralUtils::SetBit(petSubKey, eObjectBits::PERSISTENT);
-
 	m_DatabaseId = petSubKey;
 
-	std::string petName = tamer->GetCharacter()->GetName();
-	petName += "'s Pet";
+	auto petName = tamer->GetCharacter()->GetName() + "'s Pet";
 
 	GameMessages::SendAddPetToPlayer(m_Tamer, 0, GeneralUtils::UTF8ToUTF16(petName), petSubKey, m_Parent->GetLOT(), tamer->GetSystemAddress());
-
 	GameMessages::SendRegisterPetID(m_Tamer, m_Parent->GetObjectID(), tamer->GetSystemAddress());
-
 	GameMessages::SendRegisterPetDBID(m_Tamer, petSubKey, tamer->GetSystemAddress());
 
 	inventoryComponent->AddItem(m_Parent->GetLOT(), 1, eLootSourceType::INVENTORY, eInventoryType::MODELS, {}, LWOOBJID_EMPTY, true, false, petSubKey);
@@ -537,7 +425,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	databasePet.moderationState = 1;
 	databasePet.name = petName;
 
-	inventoryComponent->SetDatabasePet(petSubKey, databasePet);
+	inventoryComponent->SetDatabasePet(petSubKey, std::move(databasePet));
 
 	Activate(item, false, true);
 
@@ -560,21 +448,20 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		tamer->GetCharacter()->SetPlayerFlag(petFlags.at(m_Parent->GetLOT()), true);
 	}
 
-	auto* missionComponent = tamer->GetComponent<MissionComponent>();
-
+	auto* const missionComponent = tamer->GetComponent<MissionComponent>();
 	if (missionComponent != nullptr) {
 		missionComponent->Progress(eMissionTaskType::PET_TAMING, m_Parent->GetLOT());
 	}
 
-	SetStatus(1);
+	m_Flags.Reset<PetFlag::IDLE>();
 
-	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	auto* const characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->UpdatePlayerStatistic(PetsTamed);
 	}
 }
 
-void PetComponent::RequestSetPetName(std::u16string name) {
+void PetComponent::RequestSetPetName(const std::u16string& name) {
 	if (m_Tamer == LWOOBJID_EMPTY) {
 		if (m_Owner != LWOOBJID_EMPTY) {
 			auto* owner = GetOwner();
@@ -592,21 +479,16 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		return;
 	}
 
-	auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
+	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
 	if (tamer == nullptr) {
 		m_Tamer = LWOOBJID_EMPTY;
-
 		return;
 	}
 
 	LOG("Got set pet name (%s)", GeneralUtils::UTF16ToWTF8(name).c_str());
 
-	auto* inventoryComponent = tamer->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent == nullptr) {
-		return;
-	}
+	auto* const inventoryComponent = tamer->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
 
 	m_ModerationStatus = 1; // Pending
 	m_Name = "";
@@ -616,8 +498,8 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
-	std::u16string u16name = GeneralUtils::UTF8ToUTF16(m_Name);
-	std::u16string u16ownerName = GeneralUtils::UTF8ToUTF16(m_OwnerName);
+	const auto u16name = GeneralUtils::UTF8ToUTF16(m_Name);
+	const auto u16ownerName = GeneralUtils::UTF8ToUTF16(m_OwnerName);
 	GameMessages::SendSetPetName(m_Tamer, u16name, m_DatabaseId, tamer->GetSystemAddress());
 	GameMessages::SendSetPetName(m_Tamer, u16name, LWOOBJID_EMPTY, tamer->GetSystemAddress());
 	GameMessages::SendPetNameChanged(m_Parent->GetObjectID(), m_ModerationStatus, u16name, u16ownerName, UNASSIGNED_SYSTEM_ADDRESS);
@@ -635,21 +517,19 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
-	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	auto* const characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(tamer);
 	}
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
-	auto* modelEntity = Game::entityManager->GetEntity(m_ModelId);
-
+	auto* const modelEntity = Game::entityManager->GetEntity(m_ModelId);
 	if (modelEntity != nullptr) {
 		modelEntity->Smash(m_Tamer);
 	}
 
 	currentActivities.erase(m_Tamer);
-
 	m_Tamer = LWOOBJID_EMPTY;
 
 	// Notify the end of a pet taming minigame
@@ -659,11 +539,9 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
 
-	auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
-	if (tamer == nullptr) {
+	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
+	if (!tamer) {
 		m_Tamer = LWOOBJID_EMPTY;
-
 		return;
 	}
 
@@ -685,12 +563,11 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		Game::entityManager->SerializeEntity(tamer);
 	}
 	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
-
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(67108866);
+	m_Flags.Reset<PetFlag::TAMEABLE>();
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -710,11 +587,9 @@ void PetComponent::StartTimer() {
 void PetComponent::ClientFailTamingMinigame() {
 	if (m_Tamer == LWOOBJID_EMPTY) return;
 
-	auto* tamer = Game::entityManager->GetEntity(m_Tamer);
-
-	if (tamer == nullptr) {
+	auto* const tamer = Game::entityManager->GetEntity(m_Tamer);
+	if (!tamer) {
 		m_Tamer = LWOOBJID_EMPTY;
-
 		return;
 	}
 
@@ -730,18 +605,17 @@ void PetComponent::ClientFailTamingMinigame() {
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
-	auto* characterComponent = tamer->GetComponent<CharacterComponent>();
+	auto* const characterComponent = tamer->GetComponent<CharacterComponent>();
 	if (characterComponent != nullptr) {
 		characterComponent->SetCurrentActivity(eGameActivity::NONE);
 		Game::entityManager->SerializeEntity(tamer);
 	}
 	GameMessages::SendNotifyTamingModelLoadedOnServer(m_Tamer, tamer->GetSystemAddress());
-
 	GameMessages::SendTerminateInteraction(m_Tamer, eTerminateType::FROM_INTERACTION, m_Parent->GetObjectID());
 
 	currentActivities.erase(m_Tamer);
 
-	SetStatus(67108866);
+	m_Flags.Reset<PetFlag::TAMEABLE>();
 	m_Tamer = LWOOBJID_EMPTY;
 	m_Timer = 0;
 
@@ -752,11 +626,7 @@ void PetComponent::ClientFailTamingMinigame() {
 }
 
 void PetComponent::Wander() {
-	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
-
-	if (m_MovementAI == nullptr || !m_MovementAI->AtFinalWaypoint()) {
-		return;
-	}
+	if (!m_MovementAI->AtFinalWaypoint()) return;
 
 	m_MovementAI->SetHaltDistance(0);
 
@@ -794,23 +664,334 @@ void PetComponent::Wander() {
 	m_Timer += (m_MovementAI->GetParent()->GetPosition().x - destination.x) / m_PetInfo.sprintSpeed;
 }
 
-void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
+void PetComponent::OnSpawn() {
+	m_MovementAI = m_Parent->GetComponent<MovementAIComponent>();
+
+	if (m_StartPosition == NiPoint3Constant::ZERO) {
+		m_StartPosition = m_Parent->GetPosition();
+	}
+
+	if (m_Owner != LWOOBJID_EMPTY) {
+		m_Parent->SetOwnerOverride(m_Owner);
+		m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
+		m_MovementAI->SetHaltDistance(m_FollowRadius);
+		SetPetAiState(PetAiState::follow);
+	} else {
+		m_Flags.Set<PetFlag::TAMEABLE>();
+		SetPetAiState(PetAiState::idle);
+	}
+
+	m_Flags.Set<PetFlag::IDLE>();
+	m_Flags.Unset<PetFlag::SPAWNING>();
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void PetComponent::OnFollow(const float deltaTime) {
+	Entity* owner = GetOwner();
+	if (!owner) return;
+
+	const NiPoint3 ownerPos = owner->GetPosition();
+
+	// Find interactions
+	const auto* const closestSwitch = SwitchComponent::GetClosestSwitch(ownerPos);
+	if (closestSwitch != nullptr && !closestSwitch->GetActive()) {
+		const NiPoint3 switchPos = closestSwitch->GetParentEntity()->GetPosition();
+		const LWOOBJID switchID = closestSwitch->GetParentEntity()->GetObjectID();
+		const float distance = Vector3::DistanceSquared(ownerPos, switchPos);
+		if (distance < 16 * 16) {
+			StartInteract(switchPos, PetInteractType::bouncer, switchID);
+			return;
+		}
+	}
+
+	// Determine if the "Lost Tags" mission has been completed and digging has been unlocked
+	const auto* const missionComponent = owner->GetComponent<MissionComponent>();
+	if (!missionComponent) return;
+	const bool digUnlocked = missionComponent->GetMissionState(842) == eMissionState::COMPLETE;
+
+	const auto* const closestTreasure = PetDigServer::GetClosestTreasure(ownerPos);
+	const bool nonDragonForBone = closestTreasure->GetLOT() == 12192 && m_Parent->GetLOT() != 13067;
+	if (!nonDragonForBone && closestTreasure != nullptr && digUnlocked) {
+		const NiPoint3 treasurePos = closestTreasure->GetPosition();
+		const float distance = Vector3::DistanceSquared(ownerPos, treasurePos);
+		if (distance < 16 * 16) {
+			StartInteract(treasurePos, PetInteractType::treasure, m_Owner);
+			return;
+		}
+	}
+
+	// Handle actual following logic
+	const NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	const float distanceToOwner = Vector3::DistanceSquared(currentPos, ownerPos);
+
+	// If the player's position is within range, stop moving
+	if (distanceToOwner <= m_FollowRadius * m_FollowRadius) {
+		m_MovementAI->Stop();
+	} else { // Chase the player's new position
+		m_MovementAI->SetDestination(ownerPos);
+	}
+
+	// Teleporting logic
+	if (distanceToOwner > 50 * 50 || m_TimerAway > 5) {
+		m_MovementAI->Warp(ownerPos);
+
+		m_Timer = 1;
+		m_TimerAway = 0;
+
+		return;
+	} else if (distanceToOwner > 15 * 15 || std::abs(ownerPos.y - currentPos.y) >= 3) {
+		m_TimerAway += deltaTime;
+	}
+
+	m_Timer += 0.5f;
+}
+
+void PetComponent::OnInteract() {
+	Entity* const owner = GetOwner();
+	if (!owner) return;
+
+	const NiPoint3 ownerPos = owner->GetPosition();
+	const NiPoint3 currentPos = m_MovementAI->GetParent()->GetPosition();
+	const float distanceFromOwner = Vector3::DistanceSquared(ownerPos, currentPos);
+
+	if (distanceFromOwner > 25 * 25) {
+		LOG_DEBUG("Disengaging from object interaction due to player distance.");
+		StopInteract();
+		return;
+	}
+
+	switch (m_Interaction.type) {
+	case PetInteractType::bouncer:
+		if (IsReadyToInteract()) HandleInteractBouncer();
+		else SetupInteractBouncer();
+		break;
+
+	case PetInteractType::treasure:
+		if (IsReadyToInteract()) HandleInteractTreasureDig();
+		else SetupInteractTreasureDig();
+		break;
+
+	default:
+		LOG_DEBUG("INTERACT = NONE! RETURNING!");
+		StopInteract();
+		m_Timer += 0.5f;
+		break;
+	}
+}
+
+void PetComponent::StartInteract(const NiPoint3 position, const PetInteractType interactionType, const LWOOBJID interactID) {
+	m_Interaction.obj = interactID; // TODO: Check if this should be serialized for goToObj
+	m_Interaction.type = interactionType;
+	m_Interaction.ability = ePetAbilityType::GoToObject;
+	SetPetAiState(PetAiState::goToObj);
+	m_MovementAI->SetMaxSpeed(m_PetInfo.runSpeed);
+	m_MovementAI->SetHaltDistance(0.0f);
+	m_MovementAI->SetDestination(position);
+	LOG_DEBUG("Starting interaction!");
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
+void PetComponent::StopInteract(bool bDontSerialize) {
+	Entity* const owner = GetOwner();
+	if (!owner) return;
+
+	constexpr auto petAbility = ePetAbilityType::Invalid;
+
+	m_Interaction.obj = LWOOBJID_EMPTY;
+	m_Interaction.type = PetInteractType::none;
+	m_Interaction.ability = petAbility;
+	SetPetAiState(PetAiState::follow);
+	m_Flags.Reset<PetFlag::IDLE>();
+	SetIsReadyToInteract(false);
+	SetIsHandlingInteraction(false); // Needed?
+	m_MovementAI->SetMaxSpeed(m_PetInfo.sprintSpeed);
+	m_MovementAI->SetHaltDistance(m_FollowRadius);
+	LOG_DEBUG("Stopping interaction!");
+
+	if (!bDontSerialize) {
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
+
+	GameMessages::SendShowPetActionButton(m_Owner, petAbility, false, owner->GetSystemAddress()); // Needed?
+}
+
+void PetComponent::SetupInteractBouncer() {
+	const auto* const owner = GetOwner();
+	if (!owner) return;
+
+	LOG_DEBUG("Setting up bouncer interaction!");
+	SetIsReadyToInteract(true);
+	constexpr auto petAbility = ePetAbilityType::JumpOnObject;
+
+	m_Interaction.ability = petAbility;
+	m_Flags.Unset<PetFlag::IDLE>();
+	m_Flags.Set<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: Double-check this is the right flag being set
+	LOG_DEBUG("m_Flags = %d", m_Flags);
+	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
+
+	const auto sysAddr = owner->GetSystemAddress();
+	GameMessages::SendHelp(m_Owner, eHelpType::PR_BOUNCER_TUTORIAL_03, sysAddr);
+	GameMessages::SendShowPetActionButton(m_Owner, petAbility, true, sysAddr);
+
+	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+	closestSwitch->EntityEnter(m_Parent);
+
+	m_Timer += 0.5f;
+}
+
+void PetComponent::StartInteractBouncer() {
+	Entity* const user = GetOwner();
+	if (IsHandlingInteraction() || !user) return;
+
+	auto* const destroyableComponent = user->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
+
+	auto imagination = destroyableComponent->GetImagination();
+	const auto imaginationCost =
+		CDClientManager::GetTable<CDPetAbilitiesTable>()->GetByID(ePetAbilityType::JumpOnObject).imaginationCost;
+
+	if (imagination < imaginationCost) {
+		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
+		return;
+	}
+	GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_TOOLTIP_1ST_PET_JUMPED_ON_SWITCH, user->GetSystemAddress());
+
+	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, user->GetSystemAddress());
+
+	imagination -= imaginationCost;
+	destroyableComponent->SetImagination(imagination);
+	Game::entityManager->SerializeEntity(user);
+
+	SetIsHandlingInteraction(true);
+	SwitchComponent* closestSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+	closestSwitch->OnUse(m_Parent);
+}
+
+void PetComponent::HandleInteractBouncer() {
+	if (IsHandlingInteraction()) {
+		auto* const petSwitch = SwitchComponent::GetClosestSwitch(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+		if (!petSwitch) return;
+
+		auto* const petSwitchEntity = petSwitch->GetParentEntity();
+		if (!petSwitchEntity) return;
+
+		m_Parent->AddCallbackTimer(1.0f, [this, petSwitch, petSwitchEntity]() {
+			auto* const bouncerComp = petSwitch->GetPetBouncer();
+			const auto bouncerCompPos = bouncerComp->GetParentEntity()->GetPosition();
+			const auto bouncerId = bouncerComp->GetParentEntity()->GetObjectID();
+
+			bouncerComp->SetPetBouncerEnabled(true);
+			GameMessages::SendRequestClientBounce(bouncerId, this->GetOwnerId(), NiPoint3Constant::ZERO, NiPoint3Constant::ZERO, bouncerId, true, false, UNASSIGNED_SYSTEM_ADDRESS); //TODO: Check packet captures!!
+			bouncerComp->SetPetBouncerEnabled(false);
+			RenderComponent::PlayAnimation(petSwitchEntity, u"up");
+			});
+
+		RenderComponent::PlayAnimation(petSwitchEntity, u"launch"); //u"engaged"); //TODO: Check if the timing on this is right
+		// TODO: Need to freeze player movement until the bounce begins!
+
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::ActivateSwitch), true); // Plays 'jump on switch' animation
+		StopInteract();
+	}
+	m_Timer += 0.5f;
+}
+
+void PetComponent::SetupInteractTreasureDig() {
+	const auto* owner = GetOwner();
+	if (!owner) return;
+
+	LOG_DEBUG("Setting up dig interaction!");
+	SetIsReadyToInteract(true);
+	constexpr auto petAbility = ePetAbilityType::DigAtPosition;
+
+	m_Interaction.ability = petAbility;
+	m_Flags.Unset<PetFlag::IDLE>();
+	m_Flags.Set<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: Double-check this is the right flag being set
+	LOG_DEBUG("m_Flags = %d", m_Flags);
+	Game::entityManager->SerializeEntity(m_Parent); // TODO: Double-check pet packet captures
+
+	const auto sysAddr = owner->GetSystemAddress();
+	GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_01, sysAddr);
+	GameMessages::SendShowPetActionButton(m_Owner, petAbility, true, sysAddr);
+
+	m_Timer += 0.5f;
+}
+
+void PetComponent::StartInteractTreasureDig() {
+	Entity* const user = GetOwner();
+	if (IsHandlingInteraction() || !user) return;
+
+	auto* const destroyableComponent = user->GetComponent<DestroyableComponent>();
+	if (!destroyableComponent) return;
+
+	auto imagination = destroyableComponent->GetImagination();
+	const auto imaginationCost =
+		CDClientManager::GetTable<CDPetAbilitiesTable>()->GetByID(ePetAbilityType::DigAtPosition).imaginationCost;
+
+	if (imagination < imaginationCost) {
+		//GameMessages::SendHelp(user->GetObjectID(), eHelpType::PR_NEED_IMAGINATION, user->GetSystemAddress()); // Check if right message!
+		return;
+	}
+
+	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, user->GetSystemAddress());
+
+	imagination -= imaginationCost;
+	destroyableComponent->SetImagination(imagination);
+	Game::entityManager->SerializeEntity(user);
+
+	SetIsHandlingInteraction(true);
+	m_Flags.Unset<PetFlag::ON_SWITCH, PetFlag::NOT_WAITING>(); // TODO: FIND THE CORRECT STATUS TO USE HERE
+	m_Flags.Set<PetFlag::IDLE>();
+	LOG_DEBUG("StartInteractTreasureDig() m_Flags = %d", m_Flags);
+	Game::entityManager->SerializeEntity(m_Parent);
+
+	Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::DigTreasure), true); // Plays 'dig' animation
+	m_Timer = 2.0f;
+}
+
+void PetComponent::HandleInteractTreasureDig() {
+	if (IsHandlingInteraction()) {
+		auto* const owner = GetOwner();
+		if (!owner) return;
+
+		auto* const treasure = PetDigServer::GetClosestTreasure(m_MovementAI->GetDestination()); // TODO: Find a better way to do this
+		if (!treasure) return;
+
+		treasure->Smash(m_Parent->GetObjectID());
+		GameMessages::SendHelp(m_Owner, eHelpType::PR_DIG_TUTORIAL_03, owner->GetSystemAddress());
+
+		LOG_DEBUG("Pet dig completed!");
+		StopInteract(true); // TODO: This may not be totally consistent with live behavior, where the pet seems to stay near the dig and not immediately follow
+
+		return;
+	}
+
+	if (m_TimerBounce <= 0.0f) {
+		Command(NiPoint3Constant::ZERO, LWOOBJID_EMPTY, 1, GeneralUtils::ToUnderlying(PetEmote::Bounce), true); // Plays 'bounce' animation
+		m_TimerBounce = 1.0f;
+	}
+
+	m_Timer += 0.5f;
+}
+
+void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) { // TODO: Offset spawn position so it's not on top of player char
+	AddDrainImaginationTimer(fromTaming);
+
 	m_ItemId = item->GetId();
 	m_DatabaseId = item->GetSubKey();
 
-	auto* inventoryComponent = item->GetInventory()->GetComponent();
+	auto* const inventoryComponent = item->GetInventory()->GetComponent();
 
-	if (inventoryComponent == nullptr) return;
+	if (!inventoryComponent) return;
 
 	inventoryComponent->DespawnPet();
 
 	m_Owner = inventoryComponent->GetParent()->GetObjectID();
 	AddDrainImaginationTimer(fromTaming);
 
-	auto* owner = GetOwner();
+	auto* const owner = GetOwner();
 
-	if (owner == nullptr) return;
-	SetStatus(1);
+	if (!owner) return;
+	m_Flags.Set<PetFlag::SPAWNING>();
 
 	auto databaseData = inventoryComponent->GetDatabasePet(m_DatabaseId);
 
@@ -825,7 +1006,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 		databaseData.name = m_Name;
 		databaseData.moderationState = m_ModerationStatus;
 
-		inventoryComponent->SetDatabasePet(m_DatabaseId, databaseData);
+		inventoryComponent->SetDatabasePet(m_DatabaseId, std::move(databaseData));
 
 		updatedModerationStatus = true;
 	} else {
@@ -841,9 +1022,7 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 
 	GameMessages::SendMarkInventoryItemAsActive(m_Owner, true, eUnequippableActiveType::PET, m_ItemId, GetOwner()->GetSystemAddress());
 
-	activePets[m_Owner] = m_Parent->GetObjectID();
-
-	m_Timer = 3;
+	activePets.emplace(m_Owner, m_Parent->GetObjectID());
 
 	Game::entityManager->SerializeEntity(m_Parent);
 
@@ -861,13 +1040,13 @@ void PetComponent::Activate(Item* item, bool registerPet, bool fromTaming) {
 void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 	if (Game::config->GetValue("pets_take_imagination") != "1") return;
 
-	auto* playerEntity = Game::entityManager->GetEntity(m_Owner);
+	auto* const playerEntity = Game::entityManager->GetEntity(m_Owner);
 	if (!playerEntity) {
 		LOG("owner was null or didnt exist!");
 		return;
 	}
 
-	auto playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
+	auto* const playerDestroyableComponent = playerEntity->GetComponent<DestroyableComponent>();
 	if (!playerDestroyableComponent) return;
 
 	// Drain by 1 when you summon pet or when this method is called, but not when we have just tamed this pet.
@@ -885,65 +1064,56 @@ void PetComponent::AddDrainImaginationTimer(bool fromTaming) {
 		if (!playerDestroyableComponent) return;
 
 		// If we are out of imagination despawn the pet.
-		if (playerDestroyableComponent->GetImagination() == 0) {
-			this->Deactivate();
+		if (playerDestroyableComponent->GetImagination() < 1) {
+			this->Deactivate(eHelpType::PR_NO_IMAGINATION_HIBERNATE);
 			auto playerEntity = playerDestroyableComponent->GetParent();
 			if (!playerEntity) return;
-
-			GameMessages::SendUseItemRequirementsResponse(playerEntity->GetObjectID(), playerEntity->GetSystemAddress(), eUseItemResponse::NoImaginationForPet);
 		}
 
 		this->AddDrainImaginationTimer();
 		});
 }
 
-void PetComponent::Deactivate() {
+void PetComponent::Deactivate(const eHelpType msg) {
+	if (msg != eHelpType::NONE) {
+		GameMessages::SendHelp(m_Parent->GetObjectID(), msg, m_Parent->GetSystemAddress());
+	}
+
 	GameMessages::SendPlayFXEffect(m_Parent->GetObjectID(), -1, u"despawn", "", LWOOBJID_EMPTY, 1, 1, true);
-
 	activePets.erase(m_Owner);
-
 	m_Parent->Kill();
 
-	auto* owner = GetOwner();
-
-	if (owner == nullptr) return;
+	const auto* const owner = GetOwner();
+	if (!owner) return;
 
 	GameMessages::SendMarkInventoryItemAsActive(m_Owner, false, eUnequippableActiveType::PET, m_ItemId, owner->GetSystemAddress());
-
 	GameMessages::SendAddPetToPlayer(m_Owner, 0, u"", LWOOBJID_EMPTY, LOT_NULL, owner->GetSystemAddress());
-
 	GameMessages::SendRegisterPetID(m_Owner, LWOOBJID_EMPTY, owner->GetSystemAddress());
-
 	GameMessages::SendRegisterPetDBID(m_Owner, LWOOBJID_EMPTY, owner->GetSystemAddress());
-
 	GameMessages::SendShowPetActionButton(m_Owner, ePetAbilityType::Invalid, false, owner->GetSystemAddress());
 }
 
 void PetComponent::Release() {
-	auto* inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
-
-	if (inventoryComponent == nullptr) {
-		return;
-	}
+	auto* const inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
+	if (!inventoryComponent) return;
 
 	Deactivate();
-
 	inventoryComponent->RemoveDatabasePet(m_DatabaseId);
 
-	auto* item = inventoryComponent->FindItemBySubKey(m_DatabaseId);
-
+	auto* const item = inventoryComponent->FindItemBySubKey(m_DatabaseId);
 	item->SetCount(0, false, false);
 }
 
 void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, const int32_t commandType, const int32_t typeId, const bool overrideObey) {
-	auto* owner = GetOwner();
+	auto* const owner = GetOwner();
 	if (!owner) return;
 
 	if (commandType == 1) {
 		// Emotes
 		GameMessages::SendPlayEmote(m_Parent->GetObjectID(), typeId, owner->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (commandType == 3) {
-		// Follow me, ???
+		StopInteract(); // TODO: Verify this is necessary
+		SetPetAiState(PetAiState::follow);
 	} else if (commandType == 6) {
 		// TODO: Go to player
 	}
@@ -951,58 +1121,27 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 	if (owner->GetGMLevel() >= eGameMasterLevel::DEVELOPER) {
 		ChatPackets::SendSystemMessage(owner->GetSystemAddress(), u"Commmand Type: " + (GeneralUtils::to_u16string(commandType)) + u" - Type Id: " + (GeneralUtils::to_u16string(typeId)));
 	}
-}
 
-LWOOBJID PetComponent::GetOwnerId() const {
-	return m_Owner;
+	// Add movement functionality
+	if (position != NiPoint3Constant::ZERO) {
+		m_MovementAI->SetDestination(position);
+	}
 }
 
 Entity* PetComponent::GetOwner() const {
 	return Game::entityManager->GetEntity(m_Owner);
 }
 
-LWOOBJID PetComponent::GetDatabaseId() const {
-	return m_DatabaseId;
-}
-
-LWOOBJID PetComponent::GetInteraction() const {
-	return m_Interaction;
-}
-
-LWOOBJID PetComponent::GetItemId() const {
-	return m_ItemId;
-}
-
-uint32_t PetComponent::GetStatus() const {
-	return m_Status;
-}
-
-ePetAbilityType PetComponent::GetAbility() const {
-	return m_Ability;
-}
-
-void PetComponent::SetInteraction(LWOOBJID value) {
-	m_Interaction = value;
-}
-
-void PetComponent::SetStatus(uint32_t value) {
-	m_Status = value;
-}
-
-void PetComponent::SetAbility(ePetAbilityType value) {
-	m_Ability = value;
-}
-
-PetComponent* PetComponent::GetTamingPet(LWOOBJID tamer) {
+PetComponent* PetComponent::GetTamingPet(const LWOOBJID tamer) {
 	const auto& pair = currentActivities.find(tamer);
 
 	if (pair == currentActivities.end()) {
 		return nullptr;
 	}
 
-	auto* entity = Game::entityManager->GetEntity(pair->second);
+	auto* const entity = Game::entityManager->GetEntity(pair->second);
 
-	if (entity == nullptr) {
+	if (!entity) {
 		currentActivities.erase(tamer);
 
 		return nullptr;
@@ -1011,30 +1150,22 @@ PetComponent* PetComponent::GetTamingPet(LWOOBJID tamer) {
 	return entity->GetComponent<PetComponent>();
 }
 
-PetComponent* PetComponent::GetActivePet(LWOOBJID owner) {
+PetComponent* PetComponent::GetActivePet(const LWOOBJID owner) {
 	const auto& pair = activePets.find(owner);
 
 	if (pair == activePets.end()) {
 		return nullptr;
 	}
 
-	auto* entity = Game::entityManager->GetEntity(pair->second);
+	auto* const entity = Game::entityManager->GetEntity(pair->second);
 
-	if (entity == nullptr) {
+	if (!entity) {
 		activePets.erase(owner);
 
 		return nullptr;
 	}
 
 	return entity->GetComponent<PetComponent>();
-}
-
-Entity* PetComponent::GetParentEntity() const {
-	return m_Parent;
-}
-
-PetComponent::~PetComponent() {
-	m_Owner = LWOOBJID_EMPTY;
 }
 
 void PetComponent::SetPetNameForModeration(const std::string& petName) {
@@ -1050,15 +1181,11 @@ void PetComponent::SetPetNameForModeration(const std::string& petName) {
 }
 
 void PetComponent::LoadPetNameFromModeration() {
-	auto petNameInfo = Database::Get()->GetPetNameInfo(m_DatabaseId);
+	const auto petNameInfo = Database::Get()->GetPetNameInfo(m_DatabaseId);
 	if (petNameInfo) {
 		m_ModerationStatus = petNameInfo->approvalStatus;
 		if (m_ModerationStatus == 2) {
 			m_Name = petNameInfo->petName;
 		}
 	}
-}
-
-void PetComponent::SetPreconditions(const std::string& preconditions) {
-	m_Preconditions = std::make_optional<PreconditionExpression>(preconditions);
 }

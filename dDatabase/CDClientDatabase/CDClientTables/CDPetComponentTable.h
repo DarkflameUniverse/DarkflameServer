@@ -28,7 +28,7 @@ public:
 	 * Load values from the CD client database
 	*/
 	void LoadValuesFromDatabase();
-	
+
 	/**
 	 * Load the default values into memory instead of attempting to connect to the CD client database
 	*/
@@ -38,5 +38,5 @@ public:
 	 * Gets the pet component table corresponding to the pet component ID
 	 * @returns A reference to the corresponding table, or the default if one could not be found
 	*/
-	CDPetComponent& GetByID(const uint32_t componentID);
+	const CDPetComponent& GetByID(const uint32_t componentID);
 };

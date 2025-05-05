@@ -1,8 +1,9 @@
-
 #ifndef __EHELPTYPE__H__
 #define __EHELPTYPE__H__
 
 #include <cstdint>
+
+#include "magic_enum.hpp"
 
 enum class eHelpType : int32_t {
 	NONE = 0,
@@ -36,6 +37,12 @@ enum class eHelpType : int32_t {
 	PET_DESPAWN_BY_OWNER_HIBERNATE = 69,
 	PET_DESPAWN_TAMING_NEW_PET = 70,
 	UI_INVENTORY_FULL_CANNOT_PICKUP_ITEM = 86
+};
+
+template <>
+struct magic_enum::customize::enum_range<eHelpType> {
+	static constexpr int min = 0;
+	static constexpr int max = 86;
 };
 
 #endif  //!__EHELPTYPE__H__

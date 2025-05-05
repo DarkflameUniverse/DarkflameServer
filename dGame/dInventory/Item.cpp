@@ -340,7 +340,7 @@ void Item::UseNonEquip(Item* item) {
 			if (packageComponentId == 0) return;
 
 			auto* packCompTable = CDClientManager::GetTable<CDPackageComponentTable>();
-			auto packages = packCompTable->Query([=](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
+			auto packages = packCompTable->Query([packageComponentId](const CDPackageComponent entry) {return entry.id == static_cast<uint32_t>(packageComponentId); });
 
 			auto success = !packages.empty();
 			if (success) {

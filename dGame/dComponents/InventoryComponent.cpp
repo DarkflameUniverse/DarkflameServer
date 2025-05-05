@@ -1261,7 +1261,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	auto* current = PetComponent::GetActivePet(m_Parent->GetObjectID());
 
 	if (current != nullptr) {
-		current->Deactivate();
+		current->Deactivate(eHelpType::PET_DESPAWN_BY_OWNER_HIBERNATE);
 
 		if (current->GetDatabaseId() == item->GetSubKey()) {
 			return;
@@ -1293,8 +1293,8 @@ void InventoryComponent::SpawnPet(Item* item) {
 	Game::entityManager->ConstructEntity(pet);
 }
 
-void InventoryComponent::SetDatabasePet(LWOOBJID id, const DatabasePet& data) {
-	m_Pets.insert_or_assign(id, data);
+void InventoryComponent::SetDatabasePet(LWOOBJID id, DatabasePet&& data) {
+	m_Pets.insert_or_assign(id, std::move(data));
 }
 
 const DatabasePet& InventoryComponent::GetDatabasePet(LWOOBJID id) const {
@@ -1620,12 +1620,13 @@ void InventoryComponent::LoadPetXml(const tinyxml2::XMLDocument& document) {
 		petElement->QueryAttribute("m", &moderationStatus);
 		const char* name = petElement->Attribute("n");
 
-		DatabasePet databasePet;
-		databasePet.lot = lot;
-		databasePet.moderationState = moderationStatus;
-		databasePet.name = std::string(name);
+		auto databasePet = DatabasePet{
+			.lot = lot,
+			.name = std::string(name),
+			.moderationState = moderationStatus,
+		};
 
-		SetDatabasePet(id, databasePet);
+		SetDatabasePet(id, std::move(databasePet));
 
 		petElement = petElement->NextSiblingElement();
 	}
