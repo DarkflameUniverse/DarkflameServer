@@ -1104,12 +1104,13 @@ void HandlePacket(Packet* packet) {
 					bool complete = true;
 					for (auto missionID : missions) {
 						auto* mission = missionComponent->GetMission(missionID);
-						if (!mission->IsComplete()) {
+						if (!mission || !mission->IsComplete()) {
 							complete = false;
 						}
 					}
 
 					if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
+					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 					[[fallthrough]];
 				}
 				case eCharacterVersion::UP_TO_DATE:
