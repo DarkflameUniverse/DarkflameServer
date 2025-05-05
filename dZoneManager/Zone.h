@@ -31,7 +31,7 @@ struct SceneRef {
 	uint8_t color_r{};
 	uint8_t color_g{};
 	uint8_t color_b{};
-	Level* level;
+	std::unique_ptr<Level> level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
 
@@ -203,18 +203,18 @@ public:
 	};
 
 public:
-	Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID);
+	Zone(const LWOZONEID zoneID);
 	~Zone();
 
 	void Initalize();
 	void LoadZoneIntoMemory();
-	std::string GetFilePathForZoneID();
-	uint32_t CalculateChecksum();
+	std::string GetFilePathForZoneID() const;
+	uint32_t CalculateChecksum() const;
 	void LoadLevelsIntoMemory();
 	void AddRevision(LWOSCENEID sceneID, uint32_t revision);
 	const LWOZONEID& GetZoneID() const { return m_ZoneID; }
 	const uint32_t GetChecksum() const { return m_CheckSum; }
-	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID);
+	LUTriggers::Trigger* GetTrigger(uint32_t sceneID, uint32_t triggerID) const;
 	const Path* GetPath(std::string name) const;
 
 	uint32_t GetWorldID() const { return m_WorldID; }

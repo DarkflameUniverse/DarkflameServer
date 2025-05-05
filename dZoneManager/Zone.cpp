@@ -2,6 +2,7 @@
 #include "Level.h"
 #include <fstream>
 #include <sstream>
+#include <ranges>
 #include "Game.h"
 #include "Logger.h"
 #include "GeneralUtils.h"
@@ -20,8 +21,8 @@
 #include "eWaypointCommandType.h"
 #include "dNavMesh.h"
 
-Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) :
-	m_ZoneID(mapID, instanceID, cloneID) {
+Zone::Zone(const LWOZONEID zoneID) :
+	m_ZoneID(zoneID) {
 	m_NumberOfObjectsLoaded = 0;
 	m_NumberOfSceneTransitionsLoaded = 0;
 	m_CheckSum = 0;
@@ -31,9 +32,6 @@ Zone::Zone(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLON
 
 Zone::~Zone() {
 	LOG("Destroying zone %i", m_ZoneID.GetMapID());
-	for (std::map<LWOSCENEID, SceneRef>::iterator it = m_Scenes.begin(); it != m_Scenes.end(); ++it) {
-		if (it->second.level != nullptr) delete it->second.level;
-	}
 }
 
 void Zone::Initalize() {
@@ -153,23 +151,25 @@ void Zone::LoadZoneIntoMemory() {
 	m_ZonePath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
 }
 
-std::string Zone::GetFilePathForZoneID() {
+std::string Zone::GetFilePathForZoneID() const {
 	//We're gonna go ahead and presume we've got the db loaded already:
-	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
-	const CDZoneTable* zone = zoneTable->Query(this->GetZoneID().GetMapID());
+	const CDZoneTable* zone = CDZoneTableTable::Query(this->GetZoneID().GetMapID());
+	std::string toReturn("ERR");
 	if (zone != nullptr) {
-		std::string toReturn = "maps/" + zone->zoneName;
+		toReturn = "maps/" + zone->zoneName;
 		std::transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::tolower);
+
+		/* Normalize to one slash type */
 		std::ranges::replace(toReturn, '\\', '/');
-		return toReturn;
 	}
 
-	return std::string("ERR");
+	return toReturn;
 }
 
 //Based off code from: https://www.liquisearch.com/fletchers_checksum/implementation/optimizations
-uint32_t Zone::CalculateChecksum() {
-	uint32_t sum1 = 0xffff, sum2 = 0xffff;
+uint32_t Zone::CalculateChecksum() const {
+	uint32_t sum1 = 0xffff;
+	uint32_t sum2 = 0xffff;
 
 	for (const auto& [scene, sceneRevision] : m_MapRevisions) {
 		uint32_t sceneID = scene.GetSceneID();
@@ -194,7 +194,7 @@ uint32_t Zone::CalculateChecksum() {
 void Zone::LoadLevelsIntoMemory() {
 	for (auto& [sceneID, scene] : m_Scenes) {
 		if (scene.level) continue;
-		scene.level = new Level(this, m_ZonePath + scene.filename);
+		scene.level = std::make_unique<Level>(this, m_ZonePath + scene.filename);
 
 		if (scene.level->m_ChunkHeaders.empty()) continue;
 
@@ -241,7 +241,7 @@ void Zone::LoadScene(std::istream& file) {
 		BinaryIO::BinaryRead(file, scene.color_g);
 	}
 
-	m_Scenes.insert(std::make_pair(lwoSceneID, scene));
+	m_Scenes[lwoSceneID] = std::move(scene);
 }
 
 void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
@@ -299,7 +299,7 @@ void Zone::LoadLUTriggers(std::string triggerFile, SceneRef& scene) {
 	}
 }
 
-LUTriggers::Trigger* Zone::GetTrigger(uint32_t sceneID, uint32_t triggerID) {
+LUTriggers::Trigger* Zone::GetTrigger(uint32_t sceneID, uint32_t triggerID) const {
 	auto scene = m_Scenes.find(sceneID);
 	if (scene == m_Scenes.end()) return nullptr;
 
