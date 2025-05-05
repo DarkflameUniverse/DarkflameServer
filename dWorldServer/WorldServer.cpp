@@ -1104,7 +1104,7 @@ void HandlePacket(Packet* packet) {
 					bool complete = true;
 					for (auto missionID : missions) {
 						auto* mission = missionComponent->GetMission(missionID);
-						if (!mission->IsComplete()) {
+						if (!mission || !mission->IsComplete()) {
 							complete = false;
 						}
 					}
