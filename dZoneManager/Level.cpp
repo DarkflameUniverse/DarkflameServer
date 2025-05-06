@@ -253,8 +253,8 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		//This is a little bit of a bodge, but because the alpha client (HF) doesn't store the
 		//spawn position / rotation like the later versions do, we need to check the LOT for the spawn pos & set it.
 		if (obj.lot == LOT_MARKER_PLAYER_START) {
-			Game::zoneManager->GetZone()->SetSpawnPos(obj.position);
-			Game::zoneManager->GetZone()->SetSpawnRot(obj.rotation);
+			Game::zoneManager->GetZoneMut()->SetSpawnPos(obj.position);
+			Game::zoneManager->GetZoneMut()->SetSpawnRot(obj.rotation);
 		}
 
 		std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);

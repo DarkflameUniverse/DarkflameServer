@@ -17,6 +17,9 @@ set(DCOMMON_SOURCES
 		"BinaryPathFinder.cpp"
 		"FdbToSqlite.cpp"
 		"JSONUtils.cpp"
+		"TinyXmlUtils.cpp"
+		"Sd0.cpp"
+		"Lxfml.cpp"
 )
 
 # Workaround for compiler bug where the optimized code could result in a memcpy of 0 bytes, even though that isnt possible.

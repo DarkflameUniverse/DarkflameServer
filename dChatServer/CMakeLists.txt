@@ -1,9 +1,10 @@
 set(DCHATSERVER_SOURCES
 	"ChatIgnoreList.cpp"
 	"ChatPacketHandler.cpp"
-	"PlayerContainer.cpp"
 	"ChatJSONUtils.cpp"
 	"ChatWeb.cpp"
+	"PlayerContainer.cpp"
+	"TeamContainer.cpp"
 )
 
 add_executable(ChatServer "ChatServer.cpp")

@@ -111,23 +111,23 @@ void ChatPackets::AchievementNotify::Serialize(RakNet::BitStream& bitstream) con
 	bitstream.Write<uint64_t>(0); // Packing
 	bitstream.Write<uint32_t>(0); // Packing
 	bitstream.Write<uint8_t>(0); // Packing
-	bitstream.Write(targetPlayerName);
+	bitstream.Write(earnerName);
 	bitstream.Write<uint64_t>(0); // Packing / No way to know meaning because of not enough data.
 	bitstream.Write<uint32_t>(0); // Packing / No way to know meaning because of not enough data.
 	bitstream.Write<uint16_t>(0); // Packing / No way to know meaning because of not enough data.
 	bitstream.Write<uint8_t>(0); // Packing / No way to know meaning because of not enough data.
 	bitstream.Write(missionEmailID);
 	bitstream.Write(earningPlayerID);
-	bitstream.Write(earnerName);
+	bitstream.Write(targetPlayerName);
 }
 
 bool ChatPackets::AchievementNotify::Deserialize(RakNet::BitStream& bitstream) {
 	bitstream.IgnoreBytes(13);
-	VALIDATE_READ(bitstream.Read(targetPlayerName));
+	VALIDATE_READ(bitstream.Read(earnerName));
 	bitstream.IgnoreBytes(15);
 	VALIDATE_READ(bitstream.Read(missionEmailID));
 	VALIDATE_READ(bitstream.Read(earningPlayerID));
-	VALIDATE_READ(bitstream.Read(earnerName));
+	VALIDATE_READ(bitstream.Read(targetPlayerName));
 
 	return true;
 }

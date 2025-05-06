@@ -25,7 +25,7 @@ class TestSQLDatabase : public GameDatabase {
 	void RemoveFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
 	void UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) override;
 	void DeleteUgcModelData(const LWOOBJID& modelId) override;
-	void UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) override;
+	void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) override;
 	std::vector<IUgc::Model> GetAllUgcModels() override;
 	void CreateMigrationHistoryTable() override;
 	bool IsMigrationRun(const std::string_view str) override;
@@ -47,18 +47,19 @@ class TestSQLDatabase : public GameDatabase {
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) override;
 	void UpdatePropertyModerationInfo(const IProperty::Info& info) override;
 	void UpdatePropertyDetails(const IProperty::Info& info) override;
+	void UpdateLastSave(const IProperty::Info& info) override;
 	void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) override;
 	std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) override;
 	void RemoveUnreferencedUgcModels() override;
 	void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) override;
-	void UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) override;
+	void UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) override;
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
 	void InsertCheatDetection(const IPlayerCheatDetections::Info& info) override;
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
-		std::istringstream& sd0Data,
+		std::stringstream& sd0Data,
 		const uint32_t blueprintId,
 		const uint32_t accountId,
 		const uint32_t characterId) override;
@@ -104,6 +105,7 @@ class TestSQLDatabase : public GameDatabase {
 	uint32_t GetAccountCount() override { return 0; };
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
+	IPropertyContents::Model GetModel(const LWOOBJID modelID) override { return {}; }
 };
 
 #endif  //!TESTSQLDATABASE_H

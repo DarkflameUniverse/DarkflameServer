@@ -22,7 +22,7 @@ public:
 
 	// Inserts a new UGC model into the database.
 	virtual void InsertNewUgcModel(
-		std::istringstream& sd0Data,
+		std::stringstream& sd0Data,
 		const uint32_t blueprintId,
 		const uint32_t accountId,
 		const uint32_t characterId) = 0;
@@ -34,9 +34,17 @@ public:
 	virtual void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) = 0;
 
 	// Update the model position and rotation for the given property id.
-	virtual void UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) = 0;
+	virtual void UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) = 0;
+	virtual void UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<int32_t, 5> behaviorIDs) {
+		std::array<std::pair<int32_t, std::string>, 5> behaviors;
+		for (int32_t i = 0; i < behaviors.size(); i++) behaviors[i].first = behaviorIDs[i];
+		UpdateModel(modelID, position, rotation, behaviors);
+	}
 
 	// Remove the model for the given property id.
 	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
+
+	// Gets a model by ID
+	virtual Model GetModel(const LWOOBJID modelID) = 0;
 };
 #endif  //!__IPROPERTIESCONTENTS__H__

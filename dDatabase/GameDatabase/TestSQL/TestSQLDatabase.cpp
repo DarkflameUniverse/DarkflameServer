@@ -60,7 +60,7 @@ void TestSQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 
 }
 
-void TestSQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::istringstream& lxfml) {
+void TestSQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 
 }
 
@@ -148,6 +148,10 @@ void TestSQLDatabase::UpdatePropertyDetails(const IProperty::Info& info) {
 
 }
 
+void TestSQLDatabase::UpdateLastSave(const IProperty::Info& info) {
+
+}
+
 void TestSQLDatabase::InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) {
 
 }
@@ -164,7 +168,7 @@ void TestSQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const I
 
 }
 
-void TestSQLDatabase::UpdateModel(const LWOOBJID& propertyId, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void TestSQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
 
 }
 
@@ -188,7 +192,7 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
-void TestSQLDatabase::InsertNewUgcModel(std::istringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const uint32_t characterId) {
+void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const uint32_t characterId) {
 
 }
 

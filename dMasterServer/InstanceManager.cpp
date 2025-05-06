@@ -37,9 +37,9 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	// If we are shutting down, return a nullptr so a new instance is not created.
 	if (m_IsShuttingDown) {
 		LOG("Tried to create a new instance map/instance/clone %i/%i/%i, but Master is shutting down.",
-		mapID,
-		m_LastInstanceID + 1,
-		cloneID);
+			mapID,
+			m_LastInstanceID + 1,
+			cloneID);
 		return nullptr;
 	}
 	//TODO: Update this so that the IP is read from a configuration file instead
@@ -292,9 +292,9 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 
 	if (m_IsShuttingDown) {
 		LOG("Tried to create a new private instance map/instance/clone %i/%i/%i, but Master is shutting down.",
-		mapID,
-		m_LastInstanceID + 1,
-		cloneID);
+			mapID,
+			m_LastInstanceID + 1,
+			cloneID);
 		return nullptr;
 	}
 
@@ -333,29 +333,17 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
-	if (zoneTable) {
-		const CDZoneTable* zone = zoneTable->Query(mapID);
+	const CDZoneTable* zone = CDZoneTableTable::Query(mapID);
 
-		if (zone != nullptr) {
-			return zone->population_soft_cap;
-		}
-	}
-
-	return 8;
+	// Default to 8 which is the cap for most worlds.
+	return zone ? zone->population_soft_cap : 8;
 }
 
 int InstanceManager::GetHardCap(LWOMAPID mapID) {
-	CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
-	if (zoneTable) {
-		const CDZoneTable* zone = zoneTable->Query(mapID);
+	const CDZoneTable* zone = CDZoneTableTable::Query(mapID);
 
-		if (zone != nullptr) {
-			return zone->population_hard_cap;
-		}
-	}
-
-	return 12;
+	// Default to 12 which is the cap for most worlds.
+	return zone ? zone->population_hard_cap : 12;
 }
 
 void Instance::SetShutdownComplete(const bool value) {

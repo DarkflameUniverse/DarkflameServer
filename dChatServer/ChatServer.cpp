@@ -20,6 +20,7 @@
 #include "MessageType/World.h"
 #include "ChatIgnoreList.h"
 #include "StringifiedEnum.h"
+#include "TeamContainer.h"
 
 #include "Game.h"
 #include "Server.h"
@@ -196,6 +197,7 @@ int main(int argc, char** argv) {
 		std::this_thread::sleep_until(t);
 	}
 	Game::playerContainer.Shutdown();
+	TeamContainer::Shutdown();
 	//Delete our objects here:
 	Database::Destroy("ChatServer");
 	delete Game::server;
@@ -233,7 +235,7 @@ void HandlePacket(Packet* packet) {
 		break;
 
 	case MessageType::Chat::CREATE_TEAM:
-		Game::playerContainer.CreateTeamServer(packet);
+		TeamContainer::CreateTeamServer(packet);
 		break;
 
 	case MessageType::Chat::GET_FRIENDS_LIST:
@@ -253,7 +255,7 @@ void HandlePacket(Packet* packet) {
 		break;
 
 	case MessageType::Chat::TEAM_GET_STATUS:
-		ChatPacketHandler::HandleTeamStatusRequest(packet);
+		TeamContainer::HandleTeamStatusRequest(packet);
 		break;
 
 	case MessageType::Chat::ADD_FRIEND_REQUEST:
@@ -283,27 +285,27 @@ void HandlePacket(Packet* packet) {
 		break;
 
 	case MessageType::Chat::TEAM_INVITE:
-		ChatPacketHandler::HandleTeamInvite(packet);
+		TeamContainer::HandleTeamInvite(packet);
 		break;
 
 	case MessageType::Chat::TEAM_INVITE_RESPONSE:
-		ChatPacketHandler::HandleTeamInviteResponse(packet);
+		TeamContainer::HandleTeamInviteResponse(packet);
 		break;
 
 	case MessageType::Chat::TEAM_LEAVE:
-		ChatPacketHandler::HandleTeamLeave(packet);
+		TeamContainer::HandleTeamLeave(packet);
 		break;
 
 	case MessageType::Chat::TEAM_SET_LEADER:
-		ChatPacketHandler::HandleTeamPromote(packet);
+		TeamContainer::HandleTeamPromote(packet);
 		break;
 
 	case MessageType::Chat::TEAM_KICK:
-		ChatPacketHandler::HandleTeamKick(packet);
+		TeamContainer::HandleTeamKick(packet);
 		break;
 
 	case MessageType::Chat::TEAM_SET_LOOT:
-		ChatPacketHandler::HandleTeamLootOption(packet);
+		TeamContainer::HandleTeamLootOption(packet);
 		break;
 	case MessageType::Chat::GMLEVEL_UPDATE:
 		ChatPacketHandler::HandleGMLevelUpdate(packet);

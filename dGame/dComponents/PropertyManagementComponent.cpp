@@ -165,7 +165,9 @@ void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::s
 	info.id = propertyId;
 	info.name = propertyName;
 	info.description = propertyDescription;
-
+	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	
+	Database::Get()->UpdateLastSave(info);
 	Database::Get()->UpdatePropertyDetails(info);
 
 	OnQueryPropertyData(GetOwner(), UNASSIGNED_SYSTEM_ADDRESS);
@@ -253,6 +255,18 @@ void PropertyManagementComponent::OnStartBuilding() {
 
 	// Push equipped items
 	if (inventoryComponent) inventoryComponent->PushEquippedItems();
+
+	for (auto modelID : models | std::views::keys) {
+		auto* model = Game::entityManager->GetEntity(modelID);
+		if (model) {
+			auto* modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Pause();
+			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
+		}
+	}
 }
 
 void PropertyManagementComponent::OnFinishBuilding() {
@@ -265,6 +279,18 @@ void PropertyManagementComponent::OnFinishBuilding() {
 	UpdateApprovedStatus(false);
 
 	Save();
+
+	for (auto modelID : models | std::views::keys) {
+		auto* model = Game::entityManager->GetEntity(modelID);
+		if (model) {
+			auto* modelComponent = model->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Resume();
+			Game::entityManager->SerializeEntity(model);
+			GameMessages::ResetModelToDefaults reset;
+			reset.target = modelID;
+			model->HandleMsg(reset);
+		}
+	}
 }
 
 void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const NiPoint3 position, NiQuaternion rotation) {
@@ -316,6 +342,8 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		Entity* newEntity = Game::entityManager->CreateEntity(info);
 		if (newEntity != nullptr) {
 			Game::entityManager->ConstructEntity(newEntity);
+			auto* modelComponent = newEntity->GetComponent<ModelComponent>();
+			if (modelComponent) modelComponent->Pause();
 
 			// Make sure the propMgmt doesn't delete our model after the server dies
 			// Trying to do this after the entity is constructed. Shouldn't really change anything but
@@ -361,6 +389,8 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
 
 		auto* model = spawner->Spawn();
+		auto* modelComponent = model->GetComponent<ModelComponent>();
+		if (modelComponent) modelComponent->Pause();
 
 		models.insert_or_assign(model->GetObjectID(), spawnerId);
 
@@ -688,6 +718,10 @@ void PropertyManagementComponent::Save() {
 
 		Database::Get()->RemoveModel(model.id);
 	}
+	IProperty::Info info;
+	info.id = propertyId;
+	info.lastUpdatedTime = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	Database::Get()->UpdateLastSave(info);
 }
 
 void PropertyManagementComponent::AddModel(LWOOBJID modelId, LWOOBJID spawnerId) {

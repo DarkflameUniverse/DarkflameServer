@@ -18,16 +18,9 @@ void to_json(json& data, const PlayerData& playerData) {
 
 void to_json(json& data, const PlayerContainer& playerContainer) {
 	data = json::array();
-	for(auto& playerData : playerContainer.GetAllPlayers()) {
+	for (auto& playerData : playerContainer.GetAllPlayers()) {
 		if (playerData.first == LWOOBJID_EMPTY) continue;
 		data.push_back(playerData.second);
-	}
-}
-
-void to_json(json& data, const TeamContainer& teamContainer) {
-	for (auto& teamData : Game::playerContainer.GetTeams()) {
-		if (!teamData) continue;
-		data.push_back(*teamData);
 	}
 }
 
@@ -45,5 +38,12 @@ void to_json(json& data, const TeamData& teamData) {
 
 		if (!playerData) continue;
 		members.push_back(playerData);
+	}
+}
+
+void TeamContainer::to_json(json& data, const TeamContainer::Data& teamContainer) {
+	for (auto& teamData : TeamContainer::GetTeams()) {
+		if (!teamData) continue;
+		data.push_back(*teamData);
 	}
 }

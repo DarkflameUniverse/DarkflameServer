@@ -102,6 +102,8 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDObjectsTable.h"
 #include "eItemType.h"
+#include "Lxfml.h"
+#include "Sd0.h"
 
 void GameMessages::SendFireEventClientSide(const LWOOBJID& objectID, const SystemAddress& sysAddr, std::u16string args, const LWOOBJID& object, int64_t param1, int param2, const LWOOBJID& sender) {
 	CBITSTREAM;
@@ -2574,18 +2576,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		TODO Apparently the bricks are supposed to be taken via MoveInventoryBatch?
 	*/
 
-	////Decompress the SD0 from the client so we can process the lxfml properly
-	//uint8_t* outData = new uint8_t[327680];
-	//int32_t error;
-	//int32_t size = ZCompression::Decompress(inData, lxfmlSize, outData, 327680, error);
-
-	//if (size == -1) {
-	//	LOG("Failed to decompress LXFML: (%i)", error);
-	//	return;
-	//}
-	//
-	//std::string lxfml(reinterpret_cast<char*>(outData), size); //std::string version of the decompressed data!
-
 	//Now, the cave of dragons:
 
 	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.
@@ -2613,16 +2603,25 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		LWOOBJID propertyId = LWOOBJID_EMPTY;
 		if (propertyInfo) propertyId = propertyInfo->id;
 
-		//Insert into ugc:
+		// Save the binary data to the Sd0 buffer
 		std::string str(sd0Data.get(), sd0Size);
 		std::istringstream sd0DataStream(str);
-		Database::Get()->InsertNewUgcModel(sd0DataStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+		Sd0 sd0(sd0DataStream);
+
+		// Uncompress the data and normalize the position
+		const auto asStr = sd0.GetAsStringUncompressed();
+		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
+
+		// Recompress the data and save to the database
+		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
+		auto sd0AsStream = sd0.GetAsStream();
+		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
 		//Insert into the db as a BBB model:
 		IPropertyContents::Model model;
 		model.id = newIDL;
 		model.ugcId = blueprintIDSmall;
-		model.position = NiPoint3Constant::ZERO;
+		model.position = newCenter;
 		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
@@ -2648,6 +2647,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		//}
 
 		//Tell the client their model is saved: (this causes us to actually pop out of our current state):
+		const auto& newSd0 = sd0.GetAsVector();
+		uint32_t sd0Size{};
+		for (const auto& chunk : newSd0) sd0Size += chunk.size();
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write(localId);
@@ -2655,9 +2657,9 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		bitStream.Write<uint32_t>(1);
 		bitStream.Write(blueprintID);
 
-		bitStream.Write<uint32_t>(sd0Size);
+		bitStream.Write(sd0Size);
 
-		bitStream.WriteAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
+		for (const auto& chunk : newSd0) bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
 
 		SEND_PACKET;
 
@@ -2665,7 +2667,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 		EntityInfo info;
 		info.lot = 14;
-		info.pos = {};
+		info.pos = newCenter;
 		info.rot = {};
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
@@ -4954,54 +4956,6 @@ void GameMessages::HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* e
 	quickBuildComponent->CancelQuickBuild(Game::entityManager->GetEntity(userID), eQuickBuildFailReason::CANCELED_EARLY);
 }
 
-void GameMessages::HandleRequestUse(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	bool bIsMultiInteractUse = false;
-	unsigned int multiInteractID;
-	int multiInteractType;
-	bool secondary;
-	LWOOBJID objectID;
-
-	inStream.Read(bIsMultiInteractUse);
-	inStream.Read(multiInteractID);
-	inStream.Read(multiInteractType);
-	inStream.Read(objectID);
-	inStream.Read(secondary);
-
-	Entity* interactedObject = Game::entityManager->GetEntity(objectID);
-
-	if (interactedObject == nullptr) {
-		LOG("Object %llu tried to interact, but doesn't exist!", objectID);
-
-		return;
-	}
-
-	if (interactedObject->GetLOT() == 9524) {
-		entity->GetCharacter()->SetBuildMode(true);
-	}
-
-	if (bIsMultiInteractUse) {
-		if (multiInteractType == 0) {
-			auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(eReplicaComponentType::MISSION_OFFER));
-
-			if (missionOfferComponent != nullptr) {
-				missionOfferComponent->OfferMissions(entity, multiInteractID);
-			}
-		} else {
-			interactedObject->OnUse(entity);
-		}
-	} else {
-		interactedObject->OnUse(entity);
-	}
-
-	//Perform use task if possible:
-	auto missionComponent = static_cast<MissionComponent*>(entity->GetComponent(eReplicaComponentType::MISSION));
-
-	if (missionComponent == nullptr) return;
-
-	missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
-	missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
-}
-
 void GameMessages::HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity) {
 	int emoteID;
 	LWOOBJID targetID;
@@ -6442,5 +6396,71 @@ namespace GameMessages {
 	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
 		if (handlingEntity) handlingEntity->HandleMsg(*this);
+	}
+
+	bool RequestUse::Deserialize(RakNet::BitStream& stream) {
+		if (!stream.Read(bIsMultiInteractUse)) return false;
+		if (!stream.Read(multiInteractID)) return false;
+		if (!stream.Read(multiInteractType)) return false;
+		if (!stream.Read(object)) return false;
+		if (!stream.Read(secondary)) return false;
+		return true;
+	}
+
+	void RequestUse::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		Entity* interactedObject = Game::entityManager->GetEntity(object);
+
+		if (interactedObject == nullptr) {
+			LOG("Object %llu tried to interact, but doesn't exist!", object);
+
+			return;
+		}
+
+		if (interactedObject->GetLOT() == 9524) {
+			entity.GetCharacter()->SetBuildMode(true);
+		}
+
+		if (bIsMultiInteractUse) {
+			if (multiInteractType == 0) {
+				auto* missionOfferComponent = static_cast<MissionOfferComponent*>(interactedObject->GetComponent(eReplicaComponentType::MISSION_OFFER));
+
+				if (missionOfferComponent != nullptr) {
+					missionOfferComponent->OfferMissions(&entity, multiInteractID);
+				}
+			} else {
+				interactedObject->OnUse(&entity);
+			}
+		} else {
+			interactedObject->OnUse(&entity);
+		}
+
+		interactedObject->HandleMsg(*this);
+
+		//Perform use task if possible:
+		auto missionComponent = entity.GetComponent<MissionComponent>();
+
+		if (!missionComponent) return;
+
+		missionComponent->Progress(eMissionTaskType::TALK_TO_NPC, interactedObject->GetLOT(), interactedObject->GetObjectID());
+		missionComponent->Progress(eMissionTaskType::INTERACT, interactedObject->GetLOT(), interactedObject->GetObjectID());
+	}
+
+	void Smash::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(bIgnoreObjectVisibility);
+		stream.Write(force);
+		stream.Write(ghostCapacity);
+		stream.Write(killerID);
+	}
+
+	void UnSmash::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(builderID != LWOOBJID_EMPTY);
+		if (builderID != LWOOBJID_EMPTY) stream.Write(builderID);
+		stream.Write(duration != 3.0f);
+		if (builderID != 3.0f) stream.Write(duration);
+	}
+
+	void PlayBehaviorSound::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(soundID != -1);
+		if (soundID != -1) stream.Write(soundID);
 	}
 }
