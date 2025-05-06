@@ -245,8 +245,11 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 		LOG("Failed to create web server listener on %s", listen_address.c_str());
 		return false;
 	}
+
+	// Set enabled flag
+	Game::web.enabled = true;
 	
-	// WebSocket Events
+	// Core WebSocket Events
 	Game::web.RegisterWSEvent({
 		.name = "subscribe",
 		.handle = HandleWSSubscribe
@@ -261,7 +264,7 @@ bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 		.name = "getSubscriptions",
 		.handle = HandleWSGetSubscriptions
 	});
-	enabled = true;
+
 	return true;
 }
 

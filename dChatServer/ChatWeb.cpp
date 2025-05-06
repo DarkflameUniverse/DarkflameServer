@@ -18,6 +18,7 @@
 #include "JSONUtils.h"
 #include "eGameMasterLevel.h"
 #include "dChatFilter.h"
+#include "TeamContainer.h"
 
 using json = nlohmann::json;
 
@@ -28,7 +29,7 @@ void HandleHTTPPlayersRequest(HTTPReply& reply, std::string body) {
 }
 
 void HandleHTTPTeamsRequest(HTTPReply& reply, std::string body) {
-	const json data = Game::playerContainer.GetTeamContainer();
+	const json data = TeamContainer::GetTeamContainer();
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
 }
@@ -88,7 +89,9 @@ void HandleWSChat(mg_connection* connection, json data) {
 
 namespace ChatWeb {
 	void RegisterRoutes() {
+		
 		// REST API v1 routes
+
 		std::string v1_route = "/api/v1/";
 		Game::web.RegisterHTTPRoute({
 			.path = v1_route + "players",
@@ -108,15 +111,16 @@ namespace ChatWeb {
 			.handle = HandleHTTPAnnounceRequest
 		});
 
-		// WebSocket Events
+		// WebSocket Events Handlers
+
 		// Game::web.RegisterWSEvent({
 		// 	.name = "chat",
 		// 	.handle = HandleWSChat
 		// });
 
 		// WebSocket subscriptions
+
 		Game::web.RegisterWSSubscription("player");
-		Game::web.RegisterWSSubscription("team");
 	}
 
 	void SendWSPlayerUpdate(const PlayerData& player, eActivityType activityType) {
