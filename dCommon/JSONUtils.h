@@ -4,7 +4,7 @@
 #include "json_fwd.hpp"
 
 namespace JSONUtils {
-	// check required data for reqeust
+	// check required data for request
 	std::string CheckRequiredData(const nlohmann::json& data, const std::vector<std::string>& requiredData);
 }
 
