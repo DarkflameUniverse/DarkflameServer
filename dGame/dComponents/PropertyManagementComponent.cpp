@@ -26,6 +26,7 @@
 #include <vector>
 #include "CppScripts.h"
 #include <ranges>
+#include "dConfig.h"
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
@@ -151,7 +152,11 @@ void PropertyManagementComponent::SetPrivacyOption(PropertyPrivacyOption value) 
 	info.rejectionReason = rejectionReason;
 	info.modApproved = 0;
 
-	Database::Get()->UpdatePropertyModerationInfo(info);
+	if (models.empty() && Game::config->GetValue("auto_reject_empty_properties") == "1") {
+		UpdateApprovedStatus(false, "Your property is empty. Please place a model to have a public property.");
+	} else {
+		Database::Get()->UpdatePropertyModerationInfo(info);
+	}
 }
 
 void PropertyManagementComponent::UpdatePropertyDetails(std::string name, std::string description) {
@@ -565,14 +570,14 @@ void PropertyManagementComponent::DeleteModel(const LWOOBJID id, const int delet
 	}
 }
 
-void PropertyManagementComponent::UpdateApprovedStatus(const bool value) {
+void PropertyManagementComponent::UpdateApprovedStatus(const bool value, const std::string& rejectionReason) {
 	if (owner == LWOOBJID_EMPTY) return;
 
 	IProperty::Info info;
 	info.id = propertyId;
 	info.modApproved = value;
 	info.privacyOption = static_cast<uint32_t>(privacyOption);
-	info.rejectionReason = "";
+	info.rejectionReason = rejectionReason;
 
 	Database::Get()->UpdatePropertyModerationInfo(info);
 }
