@@ -1,6 +1,8 @@
 #ifndef __EHTTPMETHODS__H__
 #define __EHTTPMETHODS__H__
 
+#include "dPlatforms.h"
+
 #ifdef DARKFLAME_PLATFORM_WIN32
 #pragma push_macro("DELETE")
 #undef DELETE

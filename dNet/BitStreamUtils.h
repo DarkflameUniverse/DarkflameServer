@@ -61,6 +61,7 @@ struct LUBitStream {
 	void WriteHeader(RakNet::BitStream& bitStream) const;
 	bool ReadHeader(RakNet::BitStream& bitStream);
 	void Send(const SystemAddress& sysAddr) const;
+	void Broadcast() const { Send(UNASSIGNED_SYSTEM_ADDRESS); };
 
 	virtual void Serialize(RakNet::BitStream& bitStream) const {}
 	virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }

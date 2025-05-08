@@ -16,6 +16,7 @@ set(DCOMMON_SOURCES
 		"BrickByBrickFix.cpp"
 		"BinaryPathFinder.cpp"
 		"FdbToSqlite.cpp"
+		"JSONUtils.cpp"
 		"TinyXmlUtils.cpp"
 		"Sd0.cpp"
 		"Lxfml.cpp"

@@ -8,6 +8,7 @@
 enum class eActivityType : uint32_t {
 	PlayerLoggedIn,
 	PlayerLoggedOut,
+	PlayerChangedZone
 };
 
 class IActivityLog {
