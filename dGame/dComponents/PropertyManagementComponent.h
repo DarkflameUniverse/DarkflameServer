@@ -135,7 +135,7 @@ public:
 	 * Updates whether or not this property is approved by a moderator
 	 * @param value true if the property should be approved, false otherwise
 	 */
-	void UpdateApprovedStatus(bool value);
+	void UpdateApprovedStatus(bool value, const std::string& rejectionReason = "");
 
 	/**
 	 * Loads all the models on this property from the database

@@ -101,7 +101,7 @@ void VendorComponent::SetupConstants() {
 	std::vector<CDVendorComponent> vendorComps = vendorComponentTable->Query([=](CDVendorComponent entry) { return (entry.id == componentID); });
 	if (vendorComps.empty()) return;
 	auto vendorData = vendorComps.at(0);
-	if (vendorData.buyScalar == 0.0) m_BuyScalar = Game::zoneManager->GetWorldConfig()->vendorBuyMultiplier;
+	if (vendorData.buyScalar == 0.0) m_BuyScalar = Game::zoneManager->GetWorldConfig().vendorBuyMultiplier;
 	else m_BuyScalar = vendorData.buyScalar;
 	m_SellScalar = vendorData.sellScalar;
 	m_RefreshTimeSeconds = vendorData.refreshTimeSeconds;

@@ -5,7 +5,6 @@
 #include <string>
 
 struct WorldConfig {
-	int32_t worldConfigID{};						//! Primary key for WorlcConfig table
 	float peGravityValue{};							//! Unknown
 	float peBroadphaseWorldSize{};					//! Unknown
 	float peGameObjScaleFactor{};					//! Unknown
@@ -53,8 +52,8 @@ struct WorldConfig {
 	float reputationPerVoteReceived{};				//! Unknown
 	int32_t showcaseTopModelConsiderationBattles{};	//! Unknown
 	float reputationPerBattlePromotion{};			//! Unknown
-	float coinsLostOnDeathMinTimeout{};				//! Unknown
-	float coinsLostOnDeathMaxTimeout{};				//! Unknown
+	float coinsLostOnDeathMinTimeout{};				//! Minimum amount of time coins lost on death will remain on the playfield.
+	float coinsLostOnDeathMaxTimeout{};				//! Maximum amount of time coins lost on death will remain on the playfield.
 	int32_t mailBaseFee{};							//! The base fee to take when a player sends mail
 	float mailPercentAttachmentFee{};				//! The scalar multiplied by an items base cost to determine how much that item costs to be mailed
 	int32_t propertyReputationDelay{};				//! Unknown

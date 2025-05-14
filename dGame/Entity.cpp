@@ -545,9 +545,8 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		CDZoneTableTable* zoneTable = CDClientManager::GetTable<CDZoneTableTable>();
 		const auto zoneID = Game::zoneManager->GetZoneID();
-		const CDZoneTable* zoneData = zoneTable->Query(zoneID.GetMapID());
+		const CDZoneTable* zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
 
 		if (zoneData != nullptr) {
 			int zoneScriptID = zoneData->scriptID;
