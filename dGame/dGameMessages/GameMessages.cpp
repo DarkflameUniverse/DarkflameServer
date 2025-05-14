@@ -4925,6 +4925,11 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 
 			if (character) {
+				auto* characterComponent = player->GetComponent<CharacterComponent>();
+				if (characterComponent) {
+					characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
+				}
+
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
 				character->SetZoneClone(zoneClone);
