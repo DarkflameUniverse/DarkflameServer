@@ -91,5 +91,5 @@ void PerformanceManager::SelectProfile(LWOMAPID mapID) {
 }
 
 uint32_t PerformanceManager::GetServerFrameDelta() {
-	return UserManager::Instance()->GetUserCount() == 0 ? m_CurrentProfile : m_InactiveProfile;
+	return UserManager::Instance()->GetUserCount() == 0 ? m_InactiveProfile : m_CurrentProfile;
 }
