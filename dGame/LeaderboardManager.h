@@ -37,7 +37,7 @@ public:
 		None
 	};
 	Leaderboard() = delete;
-	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type = None);
+	Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const uint32_t numResults, const Leaderboard::Type = None);
 
 	~Leaderboard();
 
@@ -79,6 +79,7 @@ private:
 	InfoType infoType;
 	Leaderboard::Type leaderboardType;
 	bool weekly;
+	uint32_t numResults;
 public:
 	LeaderboardEntry& PushBackEntry() {
 		return entries.emplace_back();
@@ -90,7 +91,7 @@ public:
 };
 
 namespace LeaderboardManager {
-	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID);
+	void SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t numResults);
 
 	void SaveScore(const LWOOBJID& playerID, const GameID activityId, const float primaryScore, const float secondaryScore = 0, const float tertiaryScore = 0);
 
