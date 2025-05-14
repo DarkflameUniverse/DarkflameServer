@@ -180,14 +180,16 @@ std::vector<ILeaderboard::Entry> FilterToNumResults(const std::vector<ILeaderboa
 }
 
 std::vector<ILeaderboard::Entry> FilterWeeklies(const std::vector<ILeaderboard::Entry>& leaderboard) {
+	using namespace std::chrono;
 	// Filter the leaderboard to only include entries from the last week
-	const auto currentTime = std::chrono::system_clock::now();
-	auto epochTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime.time_since_epoch()).count();
-	constexpr auto SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7; // if you think im taking leap seconds into account thats cute.
+	const auto epochTime = system_clock::now();
+	constexpr auto oneWeek = weeks(1);
 
 	std::vector<ILeaderboard::Entry> weeklyLeaderboard;
 	for (const auto& entry : leaderboard) {
-		if (epochTime - entry.lastPlayedTimestamp < SECONDS_IN_A_WEEK) {
+		const sys_time<seconds> asSysTime(seconds(entry.lastPlayedTimestamp));
+		const auto timeDiff = epochTime - asSysTime;
+		if (timeDiff < oneWeek) {
 			weeklyLeaderboard.push_back(entry);
 		}
 	}

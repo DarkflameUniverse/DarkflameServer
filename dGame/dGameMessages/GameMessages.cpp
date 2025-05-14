@@ -1698,7 +1698,7 @@ void GameMessages::HandleRequestActivitySummaryLeaderboardData(RakNet::BitStream
 
 	bool weekly = inStream.ReadBit();
 
-	// The client cant accept more than 10 results.
+	// The client won't accept more than 10 results even if we wanted it to
 	LeaderboardManager::SendLeaderboard(gameID, queryType, weekly, entity->GetObjectID(), entity->GetObjectID(), 10);
 }
 
