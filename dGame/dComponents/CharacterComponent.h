@@ -10,6 +10,7 @@
 #include "tinyxml2.h"
 #include "eReplicaComponentType.h"
 #include <array>
+#include <set>
 #include "Loot.h"
 
 enum class eGameActivity : uint32_t;
@@ -321,6 +322,13 @@ public:
 	 * Character info regarding this character, including clothing styles, etc.
 	 */
 	Character* m_Character;
+
+	/* Saves the provided zoneID as a visited level. Ignores InstanceID */
+	void AddVisitedLevel(const LWOZONEID zoneID);
+	/* Updates the VisitedLevels (vl) node of the charxml */
+	void UpdateVisitedLevelsXml(tinyxml2::XMLElement& doc);
+	/* Reads the VisitedLevels (vl) node of the charxml */
+	void LoadVisitedLevelsXml(const tinyxml2::XMLElement& doc);
 private:
 
 	bool OnRequestServerObjectInfo(GameMessages::GameMsg& msg);
@@ -619,6 +627,8 @@ private:
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
 
 	uint64_t m_DroppedCoins = 0;
+
+	std::set<LWOZONEID> m_VisitedLevels;
 };
 
 #endif // CHARACTERCOMPONENT_H

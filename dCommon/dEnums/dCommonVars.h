@@ -3,13 +3,14 @@
 #ifndef __DCOMMONVARS__H__
 #define __DCOMMONVARS__H__
 
+#include <compare>
 #include <cstdint>
-#include <string>
 #include <set>
+#include <string>
 #include "BitStream.h"
-#include "eConnectionType.h"
-#include "MessageType/Client.h"
 #include "BitStreamUtils.h"
+#include "MessageType/Client.h"
+#include "eConnectionType.h"
 
 #pragma warning (disable:4251) //Disables SQL warnings
 
@@ -99,6 +100,7 @@ public:
 	constexpr LWOZONEID(const LWOMAPID& mapID, const LWOINSTANCEID& instanceID, const LWOCLONEID& cloneID) noexcept { m_MapID = mapID; m_InstanceID = instanceID; m_CloneID = cloneID; }
 	constexpr LWOZONEID(const LWOZONEID& replacement) noexcept { *this = replacement; }
 	constexpr bool operator==(const LWOZONEID&) const = default;
+	constexpr auto operator<=>(const LWOZONEID&) const = default;
 
 private:
 	LWOMAPID m_MapID = LWOMAPID_INVALID; //1000 for VE, 1100 for AG, etc...

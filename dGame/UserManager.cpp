@@ -29,6 +29,7 @@
 #include "MessageType/Chat.h"
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
+#include "CharacterComponent.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -340,7 +341,10 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
 		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
-		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\"></char>";
+		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\">";
+		xml << "<vl><l id=\"1000\" cid=\"0\"/></vl>";
+
+		xml << "</char>";
 
 		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
 
@@ -522,6 +526,13 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
+				auto* entity = character->GetEntity();
+				if (entity) {
+					auto* characterComponent = entity->GetComponent<CharacterComponent>();
+					if (characterComponent) {
+						characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
+					}
+				}
 				character->SetZoneID(zoneID);
 				character->SetZoneInstance(zoneInstance);
 				character->SetZoneClone(zoneClone);

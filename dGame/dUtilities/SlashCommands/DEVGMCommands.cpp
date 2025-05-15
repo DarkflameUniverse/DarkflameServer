@@ -1049,6 +1049,10 @@ namespace DEVGMCommands {
 
 				LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 				if (entity->GetCharacter()) {
+					auto* characterComponent = entity->GetComponent<CharacterComponent>();
+					if (characterComponent) {
+						characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
+					}
 					entity->GetCharacter()->SetZoneID(zoneID);
 					entity->GetCharacter()->SetZoneInstance(zoneInstance);
 					entity->GetCharacter()->SetZoneClone(zoneClone);

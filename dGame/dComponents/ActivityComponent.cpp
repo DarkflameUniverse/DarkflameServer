@@ -27,6 +27,7 @@
 #include "CDActivityRewardsTable.h"
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
+#include "CharacterComponent.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
 	/*
@@ -526,6 +527,11 @@ void ActivityInstance::StartZone() {
 
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", player->GetCharacter()->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (player->GetCharacter()) {
+				auto* characterComponent = player->GetComponent<CharacterComponent>();
+				if (characterComponent) {
+					characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
+				}
+
 				player->GetCharacter()->SetZoneID(zoneID);
 				player->GetCharacter()->SetZoneInstance(zoneInstance);
 				player->GetCharacter()->SetZoneClone(zoneClone);

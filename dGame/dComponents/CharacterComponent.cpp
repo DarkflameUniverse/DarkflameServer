@@ -245,6 +245,8 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 		SetReputation(0);
 	}
 
+	auto* vl = character->FirstChildElement("vl");
+	if (vl) LoadVisitedLevelsXml(*vl);
 	character->QueryUnsigned64Attribute("co", &m_ClaimCodes[0]);
 	character->QueryUnsigned64Attribute("co1", &m_ClaimCodes[1]);
 	character->QueryUnsigned64Attribute("co2", &m_ClaimCodes[2]);
@@ -373,6 +375,10 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 		LOG("Failed to find char tag while updating XML!");
 		return;
 	}
+
+	auto* vl = character->FirstChildElement("vl");
+	if (!vl) vl = character->InsertNewChildElement("vl");
+	UpdateVisitedLevelsXml(*vl);
 
 	if (m_ClaimCodes[0] != 0) character->SetAttribute("co", m_ClaimCodes[0]);
 	if (m_ClaimCodes[1] != 0) character->SetAttribute("co1", m_ClaimCodes[1]);
@@ -855,8 +861,9 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 			character->SetZoneID(zoneID);
 			character->SetZoneInstance(zoneInstance);
 			character->SetZoneClone(zoneClone);
-
+			
 			characterComponent->SetLastRocketConfig(u"");
+			characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
 
 			character->SaveXMLToDatabase();
 		}
@@ -882,4 +889,31 @@ void CharacterComponent::SetRespawnPos(const NiPoint3& position) {
 
 void CharacterComponent::SetRespawnRot(const NiQuaternion& rotation) {
 	m_respawnRot = rotation;
+}
+
+void CharacterComponent::AddVisitedLevel(const LWOZONEID zoneID) {
+	LWOZONEID toInsert(zoneID.GetMapID(), LWOINSTANCEID_INVALID, zoneID.GetCloneID());
+	m_VisitedLevels.insert(toInsert);
+}
+
+void CharacterComponent::UpdateVisitedLevelsXml(tinyxml2::XMLElement& vl) {
+	vl.DeleteChildren();
+	// <vl>
+	for (const auto zoneID : m_VisitedLevels) {
+		// <l id=\"1100\" cid=\"0\"/>
+		auto* l = vl.InsertNewChildElement("l");
+		l->SetAttribute("id", zoneID.GetMapID());
+		l->SetAttribute("cid", zoneID.GetCloneID());
+	}
+	// </vl>
+}
+
+void CharacterComponent::LoadVisitedLevelsXml(const tinyxml2::XMLElement& vl) {
+	// <vl>
+	for (const auto* l = vl.FirstChildElement("l"); l != nullptr; l = l->NextSiblingElement("l")) {
+		// <l id=\"1100\" cid=\"0\"/>
+		LWOZONEID toInsert(l->IntAttribute("id"), LWOINSTANCEID_INVALID, l->IntAttribute("cid"));
+		m_VisitedLevels.insert(toInsert);
+	}
+	// </vl>
 }
