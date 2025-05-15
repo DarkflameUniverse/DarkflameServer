@@ -902,8 +902,8 @@ void CharacterComponent::UpdateVisitedLevelsXml(tinyxml2::XMLElement& vl) {
 	for (const auto zoneID : m_VisitedLevels) {
 		// <l id=\"1100\" cid=\"0\"/>
 		auto* l = vl.InsertNewChildElement("l");
-		l->SetAttribute("id", m_Character->GetZoneID());
-		l->SetAttribute("cid", m_Character->GetZoneClone());
+		l->SetAttribute("id", zoneID.GetMapID());
+		l->SetAttribute("cid", zoneID.GetCloneID());
 	}
 	// </vl>
 }
