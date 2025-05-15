@@ -1045,7 +1045,7 @@ void HandlePacket(Packet* packet) {
 
 				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
 
-				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS, true);
+				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
 
 				if (respawnPoint != NiPoint3Constant::ZERO) {
 					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternionConstant::IDENTITY);
