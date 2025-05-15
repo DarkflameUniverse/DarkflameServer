@@ -6,13 +6,16 @@
 #include "eHTTPMethod.h"
 #include "GeneralUtils.h"
 #include "JSONUtils.h"
+#include <ranges>
 
 namespace Game {
 	Web web;
 }
 
 namespace {
-	const char* json_content_type = "Content-Type: application/json\r\n";
+	const char* jsonContentType = "Content-Type: application/json\r\n";
+	const std::string wsSubscribed = "{\"status\":\"subscribed\"}";
+	const std::string wsUnsubscribed = "{\"status\":\"unsubscribed\"}";
 	std::map<std::pair<eHTTPMethod, std::string>, HTTPRoute> g_HTTPRoutes;
 	std::map<std::string, WSEvent> g_WSEvents;
 	std::vector<std::string> g_WSSubscriptions;
@@ -39,7 +42,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		
 		// convert method from cstring to std string
 		std::string method_string(http_msg->method.buf, http_msg->method.len);
-		// get mehtod from mg to enum
+		// get method from mg to enum
 		const eHTTPMethod method = magic_enum::enum_cast<eHTTPMethod>(method_string).value_or(eHTTPMethod::INVALID);
 
 		// convert uri from cstring to std string
@@ -52,10 +55,12 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		// Special case for websocket
 		if (uri == "/ws" && method == eHTTPMethod::GET) {
 			mg_ws_upgrade(connection, const_cast<mg_http_message*>(http_msg), NULL);
-			LOG("Upgraded connection to websocket: %d.%d.%d.%d:%i", MG_IPADDR_PARTS(&connection->rem.ip), connection->rem.port);
+			LOG_DEBUG("Upgraded connection to websocket: %d.%d.%d.%d:%i", MG_IPADDR_PARTS(&connection->rem.ip), connection->rem.port);
+			// return cause they are now a websocket
 			return;
 		}
 
+		// Handle HTTP request
 		const auto routeItr = g_HTTPRoutes.find({method, uri});
 		if (routeItr != g_HTTPRoutes.end()) {
 			const auto& [_, route] = *routeItr;
@@ -68,7 +73,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		reply.status = eHTTPStatusCode::UNAUTHORIZED;
 		reply.message = "{\"error\":\"Unauthorized\"}";
 	}
-	mg_http_reply(connection, static_cast<int>(reply.status), json_content_type, reply.message.c_str());
+	mg_http_reply(connection, static_cast<int>(reply.status), jsonContentType, reply.message.c_str());
 }
 
 
@@ -100,38 +105,42 @@ void HandleWSMessage(mg_connection* connection, const mg_ws_message* ws_msg) {
 	}
 }
 
+// Handle websocket connection subscribing to an event
 void HandleWSSubscribe(mg_connection* connection, json data) {
 	auto check = JSONUtils::CheckRequiredData(data, { "subscription" });
 	if (!check.empty()) {
 		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
 	} else {
 		const auto subscription = data["subscription"].get<std::string>();
-		LOG_DEBUG("subscription %s subscribed", subscription.c_str());
 		// check subscription vector
-		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+		auto subItr = std::ranges::find(g_WSSubscriptions, subscription);
 		if (subItr != g_WSSubscriptions.end()) {
 			// get index of subscription
 			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
-			connection->data[index] = 1;
-			mg_ws_send(connection, "{\"status\":\"subscribed\"}", 23, WEBSOCKET_OP_TEXT);
+			connection->data[index] = SubscriptionStatus::SUBSCRIBED;
+			// send subscribe message
+			mg_ws_send(connection, wsSubscribed.c_str(), wsSubscribed.size(), WEBSOCKET_OP_TEXT);
+			LOG_DEBUG("subscription %s subscribed", subscription.c_str());
 		}
 	}
 }
 
+// Handle websocket connection unsubscribing from an event
 void HandleWSUnsubscribe(mg_connection* connection, json data) {
 	auto check = JSONUtils::CheckRequiredData(data, { "subscription" });
 	if (!check.empty()) {
 		LOG_DEBUG("Received invalid websocket message: %s", check.c_str());
 	} else {
 		const auto subscription = data["subscription"].get<std::string>();
-		LOG_DEBUG("subscription %s unsubscribed", subscription.c_str());
 		// check subscription vector
-		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+		auto subItr = std::ranges::find(g_WSSubscriptions, subscription);
 		if (subItr != g_WSSubscriptions.end()) {
 			// get index of subscription
 			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
-			connection->data[index] = 0;
-			mg_ws_send(connection, "{\"status\":\"unsubscribed\"}", 25, WEBSOCKET_OP_TEXT);
+			connection->data[index] = SubscriptionStatus::UNSUBSCRIBED;
+			// send unsubscribe message
+			mg_ws_send(connection, wsUnsubscribed.c_str(), wsUnsubscribed.size(), WEBSOCKET_OP_TEXT);
+			LOG_DEBUG("subscription %s unsubscribed", subscription.c_str());
 		}
 	}
 }
@@ -141,11 +150,11 @@ void HandleWSGetSubscriptions(mg_connection* connection, json data) {
 	json response;
 	// check subscription vector
 	for (const auto& sub : g_WSSubscriptions) {
-		auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), sub);
+		auto subItr = std::ranges::find(g_WSSubscriptions, sub);
 		if (subItr != g_WSSubscriptions.end()) {
 			// get index of subscription
 			auto index = std::distance(g_WSSubscriptions.begin(), subItr);
-			if (connection->data[index] == 1) {
+			if (connection->data[index] == SubscriptionStatus::SUBSCRIBED) {
 				response["subscribed"].push_back(sub);
 			} else {
 				response["unsubscribed"].push_back(sub);
@@ -169,10 +178,10 @@ void HandleMessages(mg_connection* connection, int message, void* message_data) 
 	}
 }
 
-// Redirect logs to our logger
+// Redirect mongoose logs to our logger
 static void DLOG(char ch, void *param) {
-	static char buf[256];
-	static size_t len;
+	static char buf[256]{};
+	static size_t len{};
 	if (ch != '\n') buf[len++] = ch; // we provide the newline in our logger
 	if (ch == '\n' || len >= sizeof(buf)) {
 		LOG_DEBUG("%.*s", static_cast<int>(len), buf);
@@ -215,7 +224,7 @@ void Web::RegisterWSSubscription(const std::string& subscription) {
 	}
 
 	// check that subsction is not already in the vector
-	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+	auto subItr = std::ranges::find(g_WSSubscriptions, subscription);
 	if (subItr != g_WSSubscriptions.end()) {
 		LOG_DEBUG("Failed to register WS subscription %s: duplicate", subscription.c_str());
 	} else {
@@ -237,7 +246,7 @@ Web::~Web() {
 bool Web::Startup(const std::string& listen_ip, const uint32_t listen_port) {
 
 	// Make listen address
-	const std::string& listen_address = "http://" + listen_ip + ":" + std::to_string(listen_port);
+	const std::string listen_address = "http://" + listen_ip + ":" + std::to_string(listen_port);
 	LOG("Starting web server on %s", listen_address.c_str());
 
 	// Create HTTP listener
@@ -276,7 +285,7 @@ void Web::SendWSMessage(const std::string subscription, json& data) {
 	if (!Game::web.enabled) return; // don't attempt to send if web is not enabled
 
 	// find subscription
-	auto subItr = std::find(g_WSSubscriptions.begin(), g_WSSubscriptions.end(), subscription);
+	auto subItr = std::ranges::find(g_WSSubscriptions, subscription);
 	if (subItr == g_WSSubscriptions.end()) {
 		LOG_DEBUG("Failed to send WS message: subscription %s not found", subscription.c_str());
 		return;
@@ -284,8 +293,8 @@ void Web::SendWSMessage(const std::string subscription, json& data) {
 	// tell it the event type
 	data["event"] = subscription;
 	auto index = std::distance(g_WSSubscriptions.begin(), subItr);
-	for (struct mg_connection *wc = Game::web.mgr.conns; wc != NULL; wc = wc->next) {
-		if (wc->is_websocket && wc->data[index] == 1) {
+	for (auto *wc = Game::web.mgr.conns; wc != NULL; wc = wc->next) {
+		if (wc->is_websocket && wc->data[index] == SubscriptionStatus::SUBSCRIBED) {
 			mg_ws_send(wc, data.dump().c_str(), data.dump().size(), WEBSOCKET_OP_TEXT);
 		}
 	}
