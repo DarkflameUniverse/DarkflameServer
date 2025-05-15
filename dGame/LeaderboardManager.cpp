@@ -24,12 +24,13 @@ namespace LeaderboardManager {
 	std::map<GameID, Leaderboard::Type> leaderboardCache;
 }
 
-Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const Leaderboard::Type leaderboardType) {
+Leaderboard::Leaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, LWOOBJID relatedPlayer, const uint32_t numResults, const Leaderboard::Type leaderboardType) {
 	this->gameID = gameID;
 	this->weekly = weekly;
 	this->infoType = infoType;
 	this->leaderboardType = leaderboardType;
 	this->relatedPlayer = relatedPlayer;
+	this->numResults = numResults;
 }
 
 Leaderboard::~Leaderboard() {
@@ -144,7 +145,7 @@ void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>
 	}
 }
 
-std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer, const Leaderboard::InfoType infoType) {
+std::vector<ILeaderboard::Entry> FilterToNumResults(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer, const Leaderboard::InfoType infoType, const uint32_t numResults) {
 	std::vector<ILeaderboard::Entry> toReturn;
 
 	int32_t index = 0;
@@ -155,18 +156,19 @@ std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entr
 		}
 	}
 
-	if (leaderboard.size() < 10) {
+	if (leaderboard.size() < numResults) {
 		toReturn.assign(leaderboard.begin(), leaderboard.end());
 		index = 0;
-	} else if (index < 10) {
-		toReturn.assign(leaderboard.begin(), leaderboard.begin() + 10); // get the top 10 since we are in the top 10
+	} else if (index < numResults) {
+		toReturn.assign(leaderboard.begin(), leaderboard.begin() + numResults); // get the top 10 since we are in the top 10
 		index = 0;
-	} else if (index > leaderboard.size() - 10) {
-		toReturn.assign(leaderboard.end() - 10, leaderboard.end()); // get the bottom 10 since we are in the bottom 10
-		index = leaderboard.size() - 10;
+	} else if (index > leaderboard.size() - numResults) {
+		toReturn.assign(leaderboard.end() - numResults, leaderboard.end()); // get the bottom 10 since we are in the bottom 10
+		index = leaderboard.size() - numResults;
 	} else {
-		toReturn.assign(leaderboard.begin() + index - 5, leaderboard.begin() + index + 5); // get the 5 above and below
-		index -= 5;
+		auto half = numResults / 2;
+		toReturn.assign(leaderboard.begin() + index - half, leaderboard.begin() + index + half); // get the 5 above and below
+		index -= half;
 	}
 
 	int32_t i = index;
@@ -178,14 +180,16 @@ std::vector<ILeaderboard::Entry> FilterTo10(const std::vector<ILeaderboard::Entr
 }
 
 std::vector<ILeaderboard::Entry> FilterWeeklies(const std::vector<ILeaderboard::Entry>& leaderboard) {
+	using namespace std::chrono;
 	// Filter the leaderboard to only include entries from the last week
-	const auto currentTime = std::chrono::system_clock::now();
-	auto epochTime = currentTime.time_since_epoch().count();
-	constexpr auto SECONDS_IN_A_WEEK = 60 * 60 * 24 * 7; // if you think im taking leap seconds into account thats cute.
+	const auto epochTime = system_clock::now();
+	constexpr auto oneWeek = weeks(1);
 
 	std::vector<ILeaderboard::Entry> weeklyLeaderboard;
 	for (const auto& entry : leaderboard) {
-		if (epochTime - entry.lastPlayedTimestamp < SECONDS_IN_A_WEEK) {
+		const sys_time<seconds> asSysTime(seconds(entry.lastPlayedTimestamp));
+		const auto timeDiff = epochTime - asSysTime;
+		if (timeDiff < oneWeek) {
 			weeklyLeaderboard.push_back(entry);
 		}
 	}
@@ -213,14 +217,15 @@ std::vector<ILeaderboard::Entry> ProcessLeaderboard(
 	const std::vector<ILeaderboard::Entry>& leaderboard,
 	const bool weekly,
 	const Leaderboard::InfoType infoType,
-	const uint32_t relatedPlayer) {
+	const uint32_t relatedPlayer,
+	const uint32_t numResults) {
 	std::vector<ILeaderboard::Entry> toReturn;
 
 	if (infoType == Leaderboard::InfoType::Friends) {
 		const auto friendsLeaderboard = FilterFriends(leaderboard, relatedPlayer);
-		toReturn = FilterTo10(weekly ? FilterWeeklies(friendsLeaderboard) : friendsLeaderboard, relatedPlayer, infoType);
+		toReturn = FilterToNumResults(weekly ? FilterWeeklies(friendsLeaderboard) : friendsLeaderboard, relatedPlayer, infoType, numResults);
 	} else {
-		toReturn = FilterTo10(weekly ? FilterWeeklies(leaderboard) : leaderboard, relatedPlayer, infoType);
+		toReturn = FilterToNumResults(weekly ? FilterWeeklies(leaderboard) : leaderboard, relatedPlayer, infoType, numResults);
 	}
 
 	return toReturn;
@@ -255,7 +260,7 @@ void Leaderboard::SetupLeaderboard(bool weekly) {
 		break;
 	}
 
-	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer);
+	const auto processedLeaderboard = ProcessLeaderboard(leaderboardRes, weekly, infoType, relatedPlayer, numResults);
 
 	QueryToLdf(*this, processedLeaderboard);
 }
@@ -301,8 +306,8 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 	}
 }
 
-void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID) {
-	Leaderboard leaderboard(gameID, infoType, weekly, playerID, GetLeaderboardType(gameID));
+void LeaderboardManager::SendLeaderboard(const GameID gameID, const Leaderboard::InfoType infoType, const bool weekly, const LWOOBJID playerID, const LWOOBJID targetID, const uint32_t numResults) {
+	Leaderboard leaderboard(gameID, infoType, weekly, playerID, numResults, GetLeaderboardType(gameID));
 	leaderboard.SetupLeaderboard(weekly);
 	leaderboard.Send(targetID);
 }
