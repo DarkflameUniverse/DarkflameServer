@@ -12,6 +12,7 @@
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "MessageType/Chat.h"
+#include "ChatWeb.h"
 #include "TeamContainer.h"
 
 void PlayerContainer::Initialize() {
@@ -59,8 +60,9 @@ void PlayerContainer::InsertPlayer(Packet* packet) {
 	m_PlayerCount++;
 
 	LOG("Added user: %s (%llu), zone: %i", data.playerName.c_str(), data.playerID, data.zoneID.GetMapID());
+	ChatWeb::SendWSPlayerUpdate(data, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone);
 
-	Database::Get()->UpdateActivityLog(data.playerID, eActivityType::PlayerLoggedIn, data.zoneID.GetMapID());
+	Database::Get()->UpdateActivityLog(data.playerID, isLogin ? eActivityType::PlayerLoggedIn : eActivityType::PlayerChangedZone, data.zoneID.GetMapID());
 	m_PlayersToRemove.erase(playerId);
 }
 
@@ -113,6 +115,8 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 			TeamContainer::SendTeamSetOffWorldFlag(otherMember, playerID, { 0, 0, 0 });
 		}
 	}
+
+	ChatWeb::SendWSPlayerUpdate(player, eActivityType::PlayerLoggedOut);
 
 	m_PlayerCount--;
 	LOG("Removed user: %llu", playerID);

@@ -30,10 +30,12 @@ struct FindPlayerRequest{
 
 namespace ChatPackets {
 
-	struct Announcement {
+	struct Announcement : public LUBitStream {
 		std::string title;
 		std::string message;
-		void Send();
+
+		Announcement() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE) {};
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
 	struct AchievementNotify : public LUBitStream {

@@ -1,0 +1,131 @@
+asyncapi: 3.0.0
+info:
+  title: Darkflame Chat Server WebSocket API
+  version: 1.0.0
+  description: API documentation for Darkflame Chat Server WebSocket endpoints
+servers:
+  production:
+    host: 'localhost:2005'
+    pathname: /ws
+    protocol: http
+    description: Address of the websocket for the chat server
+channels:
+  subscribe:
+    address: subscribe
+    messages:
+      subscribe.message:
+        title: Subscribe
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/Subscription'
+  unsubscribe:
+    address: unsubscribe
+    messages:
+      unsubscribe.message:
+        title: Unsubscribe
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/Subscription'
+  getSubscriptions:
+    address: getSubscriptions
+    messages:
+      getSubscriptions.message:
+        title: Get Subscriptions
+        contentType: application/json
+        payload:
+          type: object
+          properties:
+            subscriptions:
+              type: array
+              items:
+                type: string
+                example: player
+  player:
+    address: player
+    messages:
+      player.message:
+        title: Player
+        contentType: application/json
+        payload:
+          $ref: '#/components/schemas/PlayerUpdate'
+operations:
+  subscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/subscribe'
+    summary: Subscribe to an event
+    messages:
+      - $ref: '#/channels/subscribe/messages/subscribe.message'
+  unsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/unsubscribe'
+    summary: Unsubscribe from an event
+    messages:
+      - $ref: '#/channels/unsubscribe/messages/unsubscribe.message'
+  getSubscriptions:
+    action: receive
+    channel:
+      $ref: '#/channels/getSubscriptions'
+    summary: Get the list of subscriptions
+    messages:
+      - $ref: '#/channels/getSubscriptions/messages/getSubscriptions.message'
+  player:
+    action: send
+    channel:
+      $ref: '#/channels/player'
+    summary: Player event
+    messages:
+      - $ref: '#/channels/player/messages/player.message'
+components:
+  schemas:
+    PlayerUpdate:
+      type: object
+      properties:
+        player_data:
+          $ref: '#/components/schemas/Player'
+        update_type:
+          type: string
+          example: JOIN
+    Subscription:
+      type: object
+      required:
+        - subscription
+      properties:
+        subscription:
+          type: string
+          example: player
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1152921508901824000
+        gm_level:
+          type: integer
+          format: uint8
+          example: 0
+        name:
+          type: string
+          example: thisisatestname
+        muted:
+          type: boolean
+          example: false
+        zone_id:
+          $ref: '#/components/schemas/ZoneID'
+    ZoneID:
+      type: object
+      properties:
+        map_id:
+          type: integer
+          format: uint16
+          example: 1200
+        instance_id:
+          type: integer
+          format: uint16
+          example: 2
+        clone_id:
+          type: integer
+          format: uint32
+          example: 0
