@@ -18,7 +18,7 @@ namespace WorldPackets {
 	struct UIHelpTop5: public LUBitStream {
 		eLanguageCodeID languageCode = eLanguageCodeID::EN_US;
 
-		// should these be shoved up to the base class?
+		// should these be moved up to the base class?
 		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 		Entity* player = nullptr;
 
