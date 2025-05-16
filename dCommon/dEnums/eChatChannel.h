@@ -1,0 +1,36 @@
+#pragma once
+
+#ifndef __ECHATCHANNEL__H__
+#define __ECHATCHANNEL__H__
+
+#include <cstdint>
+
+
+
+enum class eChatChannel : uint8_t {
+	SYSTEMNOTIFY = 0,
+	SYSTEMWARNING,
+	SYSTEMERROR,
+	BROADCAST,
+	LOCAL,
+	LOCALNOANIM,
+	EMOTE,
+	PRIVATE_CHAT,
+	TEAM,
+	TEAMLOCAL,
+	GUILD,
+	GUILDNOTIFY,
+	PROPERTY,
+	ADMIN,
+	COMBATDAMAGE,
+	COMBATHEALING,
+	COMBATLOOT,
+	COMBATEXP,
+	COMBATDEATH,
+	GENERAL,
+	TRADE,
+	LFG,
+	USER
+};
+
+#endif  //!__ECHATCHANNEL__H__

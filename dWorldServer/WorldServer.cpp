@@ -31,6 +31,7 @@
 #include "AuthPackets.h"
 #include "BitStreamUtils.h"
 #include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "UserManager.h"
 #include "CDClientManager.h"
 #include "CDClientDatabase.h"
@@ -715,18 +716,15 @@ void HandleMasterPacket(Packet* packet) {
 
 			auto zone = Game::zoneManager->GetZone();
 			if (zone) {
-				float x = 0.0f;
-				float y = 0.0f;
-				float z = 0.0f;
-
+				NiPoint3 pos = NiPoint3Constant::ZERO;
 				if (zone->GetZoneID().GetMapID() == 1100) {
-					auto pos = zone->GetSpawnPos();
-					x = pos.x;
-					y = pos.y;
-					z = pos.z;
+					pos = zone->GetSpawnPos();
 				}
 
-				WorldPackets::SendLoadStaticZone(it->second.sysAddr, x, y, z, zone->GetChecksum(), Game::zoneManager->GetZoneID());
+				ClientPackets::LoadStaticZone load;
+				load.zoneID = Game::zoneManager->GetZoneID();
+				load.checksum = zone->GetChecksum();
+				load.position = pos;
 			}
 
 			if (Game::server->GetZoneID() == 0) {
@@ -1040,8 +1038,17 @@ void HandlePacket(Packet* packet) {
 				auto* characterComponent = player->GetComponent<CharacterComponent>();
 				if (!characterComponent) return;
 
-				WorldPackets::SendCreateCharacter(packet->systemAddress, player->GetComponent<CharacterComponent>()->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel());
-				WorldPackets::SendServerState(packet->systemAddress);
+				ClientPackets::CreateCharacter createCharacter;
+				createCharacter.objid = player->GetObjectID();
+				createCharacter.name = username;
+				createCharacter.gmLevel = c->GetGMLevel();
+				createCharacter.xmlData = c->GetXMLData();
+				createCharacter.reputation = player->GetComponent<CharacterComponent>()->GetReputation();
+				createCharacter.Send(packet->systemAddress);
+
+				ClientPackets::ServerState serverState;
+				serverState.serverReady = true;
+				serverState.Send(packet->systemAddress);
 
 				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
 
@@ -1336,7 +1343,10 @@ void HandlePacket(Packet* packet) {
 		}
 
 		user->SetLastChatMessageApproved(bAllClean);
-		WorldPackets::SendChatModerationResponse(packet->systemAddress, bAllClean, request.requestID, request.receiver, segments);
+		ClientPackets::ChatModerationString response;
+		response.receiver = request.receiver;
+		response.rejectedWords = segments;
+		response.Send(packet->systemAddress);
 		break;
 	}
 
@@ -1392,13 +1402,8 @@ void HandlePacket(Packet* packet) {
 
 
 	case MessageType::World::UI_HELP_TOP_5: {
-		auto language = ClientPackets::SendTop5HelpIssues(packet);
-		// TODO: Handle different languages in a nice way
-		// 0: en_US
-		// 1: pl_US
-		// 2: de_DE
-		// 3: en_GB
-
+		WorldPackets::UIHelpTop5 help;
+		help.Deserialize(inStream);
 		// TODO: Find a good home for the logic in this case.
 		auto* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) return;
@@ -1406,23 +1411,10 @@ void HandlePacket(Packet* packet) {
 		if (!character) return;
 		auto* entity = character->GetEntity();
 		if (!entity) return;
-
-		AMFArrayValue data;
-		// Summaries
-		data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
-		data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
-		data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
-		data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
-		data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
-
-		// Descriptions
-		data.Insert("Description0", Game::config->GetValue("help_0_description"));
-		data.Insert("Description1", Game::config->GetValue("help_1_description"));
-		data.Insert("Description2", Game::config->GetValue("help_2_description"));
-		data.Insert("Description3", Game::config->GetValue("help_3_description"));
-		data.Insert("Description4", Game::config->GetValue("help_4_description"));
-
-		GameMessages::SendUIMessageServerToSingleClient(entity, packet->systemAddress, "UIHelpTop5", data);
+		help.sysAddr = packet->systemAddress;
+		help.player = entity;
+		help.Handle();
+		
 		break;
 	}
 

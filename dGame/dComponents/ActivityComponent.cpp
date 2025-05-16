@@ -7,7 +7,7 @@
 #include "ZoneInstanceManager.h"
 #include "Game.h"
 #include "Logger.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "EntityManager.h"
 #include "ChatPackets.h"
 #include "BitStreamUtils.h"
@@ -537,7 +537,11 @@ void ActivityInstance::StartZone() {
 				player->GetCharacter()->SetZoneClone(zoneClone);
 			}
 
-			WorldPackets::SendTransferToWorld(player->GetSystemAddress(), serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld response;
+			response.serverIP = serverIP;
+			response.serverPort = serverPort;
+			response.mythranShift = mythranShift;
+			response.Send(player->GetSystemAddress());
 			return;
 			});
 	}

@@ -17,7 +17,7 @@
 #include "UserManager.h"
 #include "User.h"
 #include "VanityUtilities.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "ZoneInstanceManager.h"
 
 // Database
@@ -73,7 +73,13 @@ namespace DEVGMCommands {
 		bool success = user->GetMaxGMLevel() >= level;
 
 		if (success) {
-			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), success, user->GetMaxGMLevel(), entity->GetGMLevel(), level);
+			ClientPackets::GMLevelChange response;
+			response.success = success;
+			response.prevLevel = entity->GetGMLevel();
+			response.newLevel = level;
+			response.highestLevel = user->GetMaxGMLevel();
+			response.Send(entity->GetSystemAddress());
+			
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), level);
 			entity->SetGMLevel(level);
 			LOG("User %s (%i) has changed their GM level to %i for charID %llu", user->GetUsername().c_str(), user->GetAccountID(), level, entity->GetObjectID());
@@ -81,7 +87,13 @@ namespace DEVGMCommands {
 
 #ifndef DEVELOPER_SERVER
 		if ((entity->GetGMLevel() > user->GetMaxGMLevel()) || (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN && user->GetMaxGMLevel() == eGameMasterLevel::JUNIOR_DEVELOPER)) {
-			WorldPackets::SendGMLevelChange(entity->GetSystemAddress(), true, user->GetMaxGMLevel(), entity->GetGMLevel(), eGameMasterLevel::CIVILIAN);
+			ClientPackets::GMLevelChange response;
+			response.success = false;
+			response.prevLevel = entity->GetGMLevel();
+			response.newLevel = eGameMasterLevel::CIVILIAN;
+			response.highestLevel = user->GetMaxGMLevel();
+			response.Send(entity->GetSystemAddress());
+
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
 			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
 
@@ -1061,7 +1073,11 @@ namespace DEVGMCommands {
 
 				entity->GetCharacter()->SaveXMLToDatabase();
 
-				WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+				ClientPackets::TransferToWorld response;
+				response.serverIP = serverIP;
+				response.serverPort = serverPort;
+				response.mythranShift = mythranShift;
+				response.Send(sysAddr);
 				return;
 				});
 		} else {

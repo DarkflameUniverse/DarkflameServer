@@ -8,7 +8,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "User.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "Character.h"
 #include "BitStream.h"
 #include "ObjectIDManager.h"
@@ -308,13 +308,17 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	if (!name.empty() && Database::Get()->IsNameInUse(name)) {
 		LOG("AccountID: %i chose unavailable name: %s", u->GetAccountID(), name.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::CUSTOM_NAME_IN_USE);
+		ClientPackets::CharacterCreationResponse response;
+		response.response = eCharacterCreationResponse::CUSTOM_NAME_IN_USE;
+		response.Send(sysAddr);
 		return;
 	}
 
 	if (Database::Get()->IsNameInUse(predefinedName)) {
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
+		ClientPackets::CharacterCreationResponse response;
+		response.response = eCharacterCreationResponse::PREDEFINED_NAME_IN_USE;
+		response.Send(sysAddr);
 		return;
 	}
 
@@ -328,7 +332,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
-			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
+			ClientPackets::CharacterCreationResponse response;
+			response.response = eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE;
 			return;
 		}
 
@@ -393,8 +398,10 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		//Now finally insert our character xml:
 		Database::Get()->InsertCharacterXml(objectID, xml.str());
-
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+		
+		ClientPackets::CharacterCreationResponse response;
+		response.response = eCharacterCreationResponse::SUCCESS;
+		response.Send(sysAddr);
 		UserManager::RequestCharacterList(sysAddr);
 		});
 }
@@ -419,10 +426,12 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		CheckType::User,
 		"User %i tried to delete a character that it does not own!",
 		u->GetAccountID());
-
+	
+	ClientPackets::CharacterDeleteResponse response;
 	if (!hasCharacter) {
-		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
+		response.success = false;		
 	} else {
+		response.success = true;
 		LOG("Deleting character %i", charID);
 		Database::Get()->DeleteCharacter(charID);
 
@@ -430,9 +439,9 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 		bitStream.Write(objectID);
 		Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
-
-		WorldPackets::SendCharacterDeleteResponse(sysAddr, true);
 	}
+	response.Send(sysAddr);
+
 }
 
 void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) {
@@ -473,32 +482,34 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return false;
 		});
 
+	ClientPackets::CharacterRenameResponse response;
 	if (!ownsCharacter || !character) {
-		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
+			response.response = eRenameResponse::UNKNOWN_ERROR;
+
 	} else if (ownsCharacter && character) {
 		if (newName == character->GetName()) {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
-			return;
-		}
-
-		if (!Database::Get()->GetCharacterInfo(newName)) {
+			response.response = eRenameResponse::NAME_UNAVAILABLE;
+		
+		} else if (!Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(charID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
-				UserManager::RequestCharacterList(sysAddr);
+				response.response = eRenameResponse::SUCCESS;
 			} else {
 				Database::Get()->SetPendingCharacterName(charID, newName);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
-				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
-				UserManager::RequestCharacterList(sysAddr);
+				response.response = eRenameResponse::SUCCESS;
 			}
 		} else {
-			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_IN_USE);
+			response.response = eRenameResponse::NAME_IN_USE;
 		}
 	} else {
 		LOG("Unknown error occurred when renaming character, either hasCharacter or character variable != true.");
-		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
+		response.response = eRenameResponse::UNKNOWN_ERROR;
+	}
+	response.Send(sysAddr);
+	if (response.response == eRenameResponse::SUCCESS) {
+		UserManager::RequestCharacterList(sysAddr);
 	}
 }
 
@@ -537,7 +548,11 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 				character->SetZoneInstance(zoneInstance);
 				character->SetZoneClone(zoneClone);
 			}
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld response;
+			response.serverIP = serverIP;
+			response.serverPort = serverPort;
+			response.mythranShift = mythranShift;
+			response.Send(sysAddr);
 			return;
 			});
 	} else {
