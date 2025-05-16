@@ -4958,7 +4958,7 @@ void GameMessages::HandleQuickBuildCancel(RakNet::BitStream& inStream, Entity* e
 }
 
 void GameMessages::HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity) {
-	int emoteID;
+	int32_t emoteID;
 	LWOOBJID targetID;
 
 	inStream.Read(emoteID);
@@ -4979,7 +4979,7 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity) 
 
 	GameMessages::EmotePlayed msg;
 	msg.target = entity->GetObjectID();
-	msg.emoteID = static_cast<int32_t>(emoteID);
+	msg.emoteID = emoteID;
 	msg.targetID = targetID;      // The emote’s target entity or 0 if none
 	msg.Send(UNASSIGNED_SYSTEM_ADDRESS);  // Broadcast to all clients
 
