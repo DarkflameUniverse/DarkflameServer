@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "PhysicsComponent.h"
 #include "eReplicaComponentType.h"
-#include "PositionUpdate.h"
+#include "WorldPackets.h"
 
 /**
  * Physics component for vehicles.
@@ -65,7 +65,7 @@ public:
 	 */
 	const bool GetIsOnRail() const { return m_IsOnRail; }
 
-	void SetRemoteInputInfo(const RemoteInputInfo&);
+	void SetRemoteInputInfo(const WorldPackets::PositionUpdate::RemoteInputInfo& remoteInputInfo);
 
 private:
 	NiPoint3 m_Velocity;
@@ -76,5 +76,5 @@ private:
 
 	float m_SoftUpdate = 0;
 	uint32_t m_EndBehavior;
-	RemoteInputInfo m_RemoteInputInfo;
+	WorldPackets::PositionUpdate::RemoteInputInfo m_RemoteInputInfo;
 };

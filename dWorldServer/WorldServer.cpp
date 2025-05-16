@@ -77,7 +77,6 @@
 #include "eGameMasterLevel.h"
 #include "StringifiedEnum.h"
 #include "Server.h"
-#include "PositionUpdate.h"
 #include "PlayerManager.h"
 #include "eLoginResponse.h"
 #include "MissionComponent.h"
@@ -1223,8 +1222,8 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::POSITION_UPDATE: {
-		auto positionUpdate = ClientPackets::HandleClientPositionUpdate(packet);
-
+		WorldPackets::PositionUpdate positionUpdate;
+		positionUpdate.Deserialize(inStream);
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (!user) {
 			LOG("Unable to get user to parse position update");
@@ -1276,7 +1275,8 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::STRING_CHECK: {
-		auto request = ClientPackets::HandleChatModerationRequest(packet);
+		WorldPackets::StringCheck request;
+		request.Deserialize(inStream);
 
 		// TODO: Find a good home for the logic in this case.
 		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -1354,7 +1354,8 @@ void HandlePacket(Packet* packet) {
 		if (g_ChatDisabled) {
 			ChatPackets::SendMessageFail(packet->systemAddress);
 		} else {
-			auto chatMessage = ClientPackets::HandleChatMessage(packet);
+			WorldPackets::GeneralChatMessage chatMessage;
+			chatMessage.Deserialize(inStream);
 
 			// TODO: Find a good home for the logic in this case.
 			User* user = UserManager::Instance()->GetUser(packet->systemAddress);
@@ -1399,7 +1400,6 @@ void HandlePacket(Packet* packet) {
 		}
 		break;
 	}
-
 
 	case MessageType::World::UI_HELP_TOP_5: {
 		WorldPackets::UIHelpTop5 help;

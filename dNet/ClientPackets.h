@@ -17,30 +17,12 @@ class PositionUpdate;
 
 struct Packet;
 
-struct ChatMessage {
-	uint8_t chatChannel = 0;
-	uint16_t unknown = 0;
-	std::u16string message;
-};
-
-struct ChatModerationRequest {
-	uint8_t chatLevel = 0;
-	uint8_t requestID = 0;
-	std::string receiver;
-	std::string message;
-};
-
-
 class User;
 struct SystemAddress;
 enum class eCharacterCreationResponse : uint8_t;
 enum class eRenameResponse : uint8_t;
 
 namespace ClientPackets {
-	ChatMessage HandleChatMessage(Packet* packet);
-	PositionUpdate HandleClientPositionUpdate(Packet* packet);
-	ChatModerationRequest HandleChatModerationRequest(Packet* packet);
-
 	struct LoadStaticZone : public LUBitStream {
 		LWOZONEID zoneID;
 		uint32_t checksum = 0;
