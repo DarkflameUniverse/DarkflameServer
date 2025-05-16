@@ -833,6 +833,15 @@ namespace GameMessages {
 	struct ResetModelToDefaults : public GameMsg {
 		ResetModelToDefaults() : GameMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS) {}
 	};
-};
 
+	struct EmotePlayed : public GameMsg {
+		EmotePlayed() : GameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(emoteID), targetID(targetID) {}
+	
+		void Serialize(RakNet::BitStream& stream) const override;
+	
+		int32_t emoteID;
+		LWOOBJID targetID;
+	};
+
+};
 #endif // GAMEMESSAGES_H
