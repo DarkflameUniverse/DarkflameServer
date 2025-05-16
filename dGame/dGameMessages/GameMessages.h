@@ -835,7 +835,7 @@ namespace GameMessages {
 	};
 
 	struct EmotePlayed : public GameMsg {
-		EmotePlayed() : GameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(emoteID), targetID(targetID) {}
+		EmotePlayed() : GameMsg(MessageType::Game::EMOTE_PLAYED), emoteID(0), targetID(0) {}
 	
 		void Serialize(RakNet::BitStream& stream) const override;
 	
