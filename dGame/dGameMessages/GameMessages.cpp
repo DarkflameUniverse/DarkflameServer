@@ -4977,7 +4977,6 @@ void GameMessages::HandlePlayEmote(RakNet::BitStream& inStream, Entity* entity) 
 		if (emote) sAnimationName = emote->animationName;
 	}
 
-	//RenderComponent::PlayAnimation(entity, sAnimationName);
 	GameMessages::EmotePlayed msg;
 	msg.target = entity->GetObjectID();
 	msg.emoteID = static_cast<int32_t>(emoteID);
