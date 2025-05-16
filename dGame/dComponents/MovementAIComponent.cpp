@@ -54,6 +54,7 @@ MovementAIComponent::MovementAIComponent(Entity* parent, MovementAIInfo info) : 
 	m_SourcePosition = m_Parent->GetPosition();
 	m_Paused = false;
 	m_SavedVelocity = NiPoint3Constant::ZERO;
+	m_IsBounced = false;
 
 	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
@@ -158,8 +159,9 @@ void MovementAIComponent::Update(const float deltaTime) {
 				if (m_Path->pathBehavior == PathBehavior::Loop) {
 					SetPath(m_Path->pathWaypoints);
 				} else if (m_Path->pathBehavior == PathBehavior::Bounce) {
+					m_IsBounced = !m_IsBounced;
 					std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
-					std::reverse(waypoints.begin(), waypoints.end());
+					if (m_IsBounced) std::reverse(waypoints.begin(), waypoints.end());
 					SetPath(waypoints);
 				} else if (m_Path->pathBehavior == PathBehavior::Once) {
 					Stop();
