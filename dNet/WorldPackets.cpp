@@ -8,6 +8,7 @@
 #include "User.h"
 #include "Character.h"
 #include "dChatFilter.h"
+#include "ChatPackets.h"
 
 namespace WorldPackets {
 	
@@ -154,7 +155,7 @@ namespace WorldPackets {
 
 	void PositionUpdate::Handle() {
 		Entity* entity = Game::entityManager->GetEntity(objectID);
-		if (entity) entity->ProcessPositionUpdate(positionUpdate);
+		if (entity) entity->ProcessPositionUpdate(*this);
 
 	}
 

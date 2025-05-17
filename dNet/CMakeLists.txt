@@ -29,4 +29,5 @@ target_include_directories(dNet PRIVATE
 	"${PROJECT_SOURCE_DIR}/dGame/dInventory" # via PossessableComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # via Item.h
 	"${PROJECT_SOURCE_DIR}/dScripts" # transitive through components
+	"${PROJECT_SOURCE_DIR}/dChatFilter" # for chat message handling
 )
