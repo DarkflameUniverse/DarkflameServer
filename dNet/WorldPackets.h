@@ -18,10 +18,6 @@ namespace WorldPackets {
 	struct UIHelpTop5: public LUBitStream {
 		eLanguageCodeID languageCode = eLanguageCodeID::EN_US;
 
-		// should these be moved up to the base class?
-		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
-		Entity* player = nullptr;
-
 		UIHelpTop5() : LUBitStream(eConnectionType::WORLD, MessageType::World::UI_HELP_TOP_5) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
@@ -29,7 +25,6 @@ namespace WorldPackets {
 
 	struct GeneralChatMessage : public LUBitStream {
 		uint8_t chatChannel = 0;
-		uint16_t unknown = 0;
 		std::u16string message;
 
 		GeneralChatMessage() : LUBitStream(eConnectionType::WORLD, MessageType::World::GENERAL_CHAT_MESSAGE) {};

@@ -1229,9 +1229,7 @@ void HandlePacket(Packet* packet) {
 			LOG("Unable to get user to parse position update");
 			return;
 		}
-
-		Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
-		if (entity) entity->ProcessPositionUpdate(positionUpdate);
+		positionUpdate.objectID = user->GetLastUsedChar()->GetObjectID();	
 		break;
 	}
 
@@ -1363,21 +1361,18 @@ void HandlePacket(Packet* packet) {
 				LOG("Unable to get user to parse chat message");
 				return;
 			}
+			auto* character = user->GetLastUsedChar();
+			if (!character) return;
+			auto* entity = character->GetEntity();
+			if (!entity) return;
 
 			if (user->GetIsMuted()) {
 				user->GetLastUsedChar()->SendMuteNotice();
 				return;
 			}
-			std::string playerName = user->GetLastUsedChar()->GetName();
-			bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastUsedChar()->GetGMLevel()).empty();
-			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
-			if (!isOk) return;
-			if (!isOk && !isMythran) return;
 
-			std::string sMessage = GeneralUtils::UTF16ToWTF8(chatMessage.message);
-			LOG("%s: %s", playerName.c_str(), sMessage.c_str());
-			ChatPackets::SendChatMessage(packet->systemAddress, chatMessage.chatChannel, playerName, user->GetLoggedInChar(), isMythran, chatMessage.message);
+			chatMessage.objectID = entity->GetObjectID();
+			chatMessage.Handle();
 		}
 
 		break;
@@ -1411,8 +1406,8 @@ void HandlePacket(Packet* packet) {
 		if (!character) return;
 		auto* entity = character->GetEntity();
 		if (!entity) return;
-		help.sysAddr = packet->systemAddress;
-		help.player = entity;
+
+		help.objectID = entity->GetObjectID();
 		help.Handle();
 		
 		break;

@@ -3,6 +3,11 @@
 #include "dConfig.h"
 #include "GameMessages.h"
 #include "Entity.h"
+#include "EntityManager.h"
+#include "UserManager.h"
+#include "User.h"
+#include "Character.h"
+#include "dChatFilter.h"
 
 namespace WorldPackets {
 	
@@ -12,6 +17,18 @@ namespace WorldPackets {
 	}
 
 	void UIHelpTop5::Handle() {
+		Entity* player = Game::entityManager->GetEntity(objectID);
+		if (!player) {
+			LOG("Unable to get player for UIHelpTop5");
+			return;
+		}
+
+		auto sysAddr = player->GetSystemAddress();
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			LOG("Unable to get system address for player for UIHelpTop5");
+			return;
+		}
+		
 		AMFArrayValue data;
 		switch (languageCode) {
 			case eLanguageCodeID::EN_US:
@@ -43,7 +60,8 @@ namespace WorldPackets {
 
 	bool GeneralChatMessage::Deserialize(RakNet::BitStream& bitStream) {
 		VALIDATE_READ(bitStream.Read(chatChannel));
-		VALIDATE_READ(bitStream.Read(unknown));
+		uint16_t padding;
+		VALIDATE_READ(bitStream.Read(padding));
 
 		uint32_t messageLength;
 		VALIDATE_READ(bitStream.Read(messageLength));
@@ -58,6 +76,25 @@ namespace WorldPackets {
 	}
 
 	void GeneralChatMessage::Handle() {
+		Entity* player = Game::entityManager->GetEntity(objectID);
+		if (!player) return;
+		auto sysAddr = player->GetSystemAddress();
+		User* user = UserManager::Instance()->GetUser(sysAddr);
+		if (!user) {
+			LOG("Unable to get user to parse chat message");
+			return;
+		}
+
+		std::string playerName = user->GetLastUsedChar()->GetName();
+		bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+		bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
+		LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+		if (!isOk) return;
+		if (!isOk && !isMythran) return;
+
+		std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
+		LOG("%s: %s", playerName.c_str(), sMessage.c_str());
+		ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
 	}
 
 	bool PositionUpdate::Deserialize(RakNet::BitStream& bitStream) {
@@ -116,7 +153,9 @@ namespace WorldPackets {
 	}
 
 	void PositionUpdate::Handle() {
-		
+		Entity* entity = Game::entityManager->GetEntity(objectID);
+		if (entity) entity->ProcessPositionUpdate(positionUpdate);
+
 	}
 
 	bool StringCheck::Deserialize(RakNet::BitStream& bitStream) {
