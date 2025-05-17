@@ -942,6 +942,11 @@ void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, cons
 	if (commandType == 1) {
 		// Emotes
 		GameMessages::SendPlayEmote(m_Parent->GetObjectID(), typeId, owner->GetObjectID(), UNASSIGNED_SYSTEM_ADDRESS);
+		GameMessages::EmotePlayed msg;
+		msg.target = owner->GetObjectID();
+		msg.emoteID = typeId;
+		msg.targetID = 0; // Or set to the intended target entity's ID, or 0 if no target
+		msg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	} else if (commandType == 3) {
 		// Follow me, ???
 	} else if (commandType == 6) {
