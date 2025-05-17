@@ -20,6 +20,7 @@
 #include "eGameMasterLevel.h"
 #include "ChatPackets.h"
 #include "TeamContainer.h"
+#include "eChatChannel.h"
 
 void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 	//Get from the packet which player we want to do something with:

@@ -2,40 +2,75 @@
 #define WORLDPACKETS_H
 
 #include "dCommonVars.h"
-#include <vector>
-#include <string>
+#include "BitStreamUtils.h"
+#include "MessageType/World.h"
 
-class User;
-struct SystemAddress;
-enum class eGameMasterLevel : uint8_t;
-enum class eCharacterCreationResponse : uint8_t;
-enum class eRenameResponse : uint8_t;
-namespace RakNet {
-	class BitStream;
-};
-
-struct HTTPMonitorInfo {
-	uint16_t port = 80;
-	bool openWeb = false;
-	bool supportsSum = false;
-	bool supportsDetail = false;
-	bool supportsWho = false;
-	bool supportsObjects = false;
-	void Serialize(RakNet::BitStream &bitstream) const;
+class Entity;
+enum class eLanguageCodeID : int32_t {
+	EN_US = 0,
+	PL_US = 1,
+	DE_DE = 2,
+	EN_GB = 3
 };
 
 namespace WorldPackets {
-	void SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum, LWOZONEID zone);
-	void SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response);
-	void SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response);
-	void SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response);
-	void SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift);
-	void SendServerState(const SystemAddress& sysAddr);
-	void SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm);
-	void SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::set<std::pair<uint8_t, uint8_t>> unacceptedItems);
-	void SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel);
-	void SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo& info);
-	void SendDebugOuput(const SystemAddress& sysAddr, const std::string& data);
+
+	struct UIHelpTop5: public LUBitStream {
+		eLanguageCodeID languageCode = eLanguageCodeID::EN_US;
+
+		UIHelpTop5() : LUBitStream(eConnectionType::WORLD, MessageType::World::UI_HELP_TOP_5) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct GeneralChatMessage : public LUBitStream {
+		uint8_t chatChannel = 0;
+		std::u16string message;
+
+		GeneralChatMessage() : LUBitStream(eConnectionType::WORLD, MessageType::World::GENERAL_CHAT_MESSAGE) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct PositionUpdate : public LUBitStream {
+		NiPoint3 position = NiPoint3Constant::ZERO;
+		NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
+		bool onGround = false;
+		bool onRail = false;
+		NiPoint3 velocity = NiPoint3Constant::ZERO;
+		NiPoint3 angularVelocity = NiPoint3Constant::ZERO;
+		struct LocalSpaceInfo {
+			LWOOBJID objectId = LWOOBJID_EMPTY;
+			NiPoint3 position = NiPoint3Constant::ZERO;
+			NiPoint3 linearVelocity = NiPoint3Constant::ZERO;
+		};
+		LocalSpaceInfo localSpaceInfo;
+		struct RemoteInputInfo {
+			bool operator==(const RemoteInputInfo& other) {
+				return m_RemoteInputX == other.m_RemoteInputX && m_RemoteInputY == other.m_RemoteInputY && m_IsPowersliding == other.m_IsPowersliding && m_IsModified == other.m_IsModified;
+			}
+			float m_RemoteInputX = 0;
+			float m_RemoteInputY = 0;
+			bool m_IsPowersliding = false;
+			bool m_IsModified = false;
+		};
+		RemoteInputInfo remoteInputInfo;
+
+		PositionUpdate() : LUBitStream(eConnectionType::WORLD, MessageType::World::POSITION_UPDATE) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	struct StringCheck : public LUBitStream {
+		uint8_t chatLevel = 0;
+		uint8_t requestID = 0;
+		std::string receiver;
+		std::string message;
+
+		StringCheck() : LUBitStream(eConnectionType::WORLD, MessageType::World::STRING_CHECK) {};
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
 }
 
 #endif // WORLDPACKETS_H
