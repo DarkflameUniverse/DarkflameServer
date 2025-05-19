@@ -12,6 +12,7 @@ namespace ClientPackets {
 	void LoadStaticZone::Serialize(RakNet::BitStream &bitStream) const {
 		bitStream.Write<uint16_t>(zoneID.GetMapID());
 		bitStream.Write<uint16_t>(zoneID.GetInstanceID());
+		bitStream.Write<uint32_t>(zoneID.GetCloneID());
 		bitStream.Write<uint32_t>(checksum);
 		bitStream.Write<uint8_t>(editorEnabled);
 		bitStream.Write<uint8_t>(editorLevel);
@@ -46,27 +47,13 @@ namespace ClientPackets {
 		RakNet::BitStream data;
 
 		data.Write<uint32_t>(7); //LDF key count
-		std::unique_ptr<LDFData<LWOOBJID>> objidLDF(new LDFData<LWOOBJID>(u"objid", objid));
-		objidLDF->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<LOT>> templateIDLDF(new LDFData<LOT>(u"template", templateID));
-		templateIDLDF->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<std::u16string>> nameLDF(new LDFData<std::u16string>(u"name", name));
-		nameLDF->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<int32_t>> gmlevelLDF(new LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gmLevel)));
-		gmlevelLDF->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<int32_t>> chatModeLDF(new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(chatMode)));
-		chatModeLDF->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<std::string>> xmlConfigData(new LDFData<std::string>(u"xmlData", xmlData));
-		xmlConfigData->WriteToPacket(data);
-
-		std::unique_ptr<LDFData<int64_t>> reputationLdf(new LDFData<int64_t>(u"reputation", reputation));
-		reputationLdf->WriteToPacket(data);
-
+		LDFData<LWOOBJID>(u"objid", objid).WriteToPacket(data);
+		LDFData<LOT>(u"template", templateID).WriteToPacket(data);;
+		LDFData<std::u16string>(u"name", name).WriteToPacket(data);;
+		LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gmLevel)).WriteToPacket(data);;
+		LDFData<int32_t>(u"chatmode", static_cast<int32_t>(chatMode)).WriteToPacket(data);;
+		LDFData<std::string>(u"xmlData", xmlData).WriteToPacket(data);;
+		LDFData<int64_t>(u"reputation", reputation).WriteToPacket(data);;
 		//Compress the data before sending:
 		const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
 		uint8_t* compressedData = new uint8_t[reservedSize];
