@@ -20,6 +20,9 @@ namespace GameMessages {
 	struct ChildLoaded;
 	struct PlayerResurrectionFinished;
 };
+namespace WorldPackets {
+	struct PositionUpdate;
+};
 
 namespace MessageType {
 	enum class Game : uint16_t;
@@ -316,7 +319,7 @@ public:
 
 	Entity* GetScheduledKiller() { return m_ScheduleKiller; }
 
-	void ProcessPositionUpdate(PositionUpdate& update);
+	void ProcessPositionUpdate(WorldPackets::PositionUpdate& update);
 
 	// Scale will only be communicated to the client when the construction packet is sent
 	void SetScale(const float scale) { m_Scale = scale; };
@@ -328,7 +331,7 @@ public:
 	/**
 	 * @brief The observable for player entity position updates.
 	 */
-	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
+	static Observable<Entity*, const WorldPackets::PositionUpdate&> OnPlayerPositionUpdate;
 	
 protected:
 	LWOOBJID m_ObjectID;
