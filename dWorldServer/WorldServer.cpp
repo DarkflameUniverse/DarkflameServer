@@ -1043,7 +1043,7 @@ void HandlePacket(Packet* packet) {
 				createCharacter.name = username;
 				createCharacter.gmLevel = c->GetGMLevel();
 				createCharacter.xmlData = c->GetXMLData();
-				createCharacter.reputation = player->GetComponent<CharacterComponent>()->GetReputation();
+				createCharacter.reputation = characterComponent->GetReputation();
 				createCharacter.Send(packet->systemAddress);
 
 				ClientPackets::ServerState serverState;
@@ -1230,7 +1230,8 @@ void HandlePacket(Packet* packet) {
 			LOG("Unable to get user to parse position update");
 			return;
 		}
-		positionUpdate.objectID = user->GetLastUsedChar()->GetObjectID();	
+		positionUpdate.objectID = user->GetLastUsedChar()->GetObjectID();
+		positionUpdate.Handle();	
 		break;
 	}
 
@@ -1277,75 +1278,14 @@ void HandlePacket(Packet* packet) {
 		WorldPackets::StringCheck request;
 		request.Deserialize(inStream);
 
-		// TODO: Find a good home for the logic in this case.
-		User* user = UserManager::Instance()->GetUser(packet->systemAddress);
-		if (!user) {
-			LOG("Unable to get user to parse chat moderation request");
-			return;
-		}
-
 		auto* entity = PlayerManager::GetPlayer(packet->systemAddress);
-
 		if (entity == nullptr) {
 			LOG("Unable to get player to parse chat moderation request");
 			return;
 		}
 
-		// Check if the player has restricted chat access
-		auto* character = entity->GetCharacter();
-
-		if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
-			// Send a message to the player
-			ChatPackets::SendSystemMessage(
-				packet->systemAddress,
-				u"This character has restricted chat access."
-			);
-
-			return;
-		}
-
-		bool isBestFriend = false;
-
-		if (request.chatLevel == 1) {
-			// Private chat
-			LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
-
-			{
-				auto characterIdFetch = Database::Get()->GetCharacterInfo(request.receiver);
-
-				if (characterIdFetch) {
-					idOfReceiver = characterIdFetch->id;
-				}
-			}
-			const auto& bffMap = user->GetIsBestFriendMap();
-			if (bffMap.find(request.receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
-				auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
-
-				if (bffInfo) {
-					isBestFriend = bffInfo->bestFriendStatus == 3;
-				}
-
-				if (isBestFriend) {
-					user->UpdateBestFriendValue(request.receiver, true);
-				}
-			} else if (bffMap.find(request.receiver) != bffMap.end()) {
-				isBestFriend = true;
-			}
-		}
-
-		const auto segments = Game::chatFilter->IsSentenceOkay(request.message, entity->GetGMLevel(), !(isBestFriend && request.chatLevel == 1));
-
-		bool bAllClean = segments.empty();
-
-		if (user->GetIsMuted()) {
-			bAllClean = false;
-		}
-
-		user->SetLastChatMessageApproved(bAllClean);
-		ClientPackets::ChatModerationString response;
-		response.receiver = request.receiver;
-		response.rejectedWords = segments;
-		response.Send(packet->systemAddress);
+		request.objectID = entity->GetObjectID();
+		request.Handle();
 		break;
 	}
 

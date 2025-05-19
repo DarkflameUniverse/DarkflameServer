@@ -46,28 +46,26 @@ namespace ClientPackets {
 
 		RakNet::BitStream data;
 
-		data.Write<uint32_t>(7); //LDF key count
+		data.Write<uint32_t>(7); // LDF key count
 		LDFData<LWOOBJID>(u"objid", objid).WriteToPacket(data);
-		LDFData<LOT>(u"template", templateID).WriteToPacket(data);;
-		LDFData<std::u16string>(u"name", name).WriteToPacket(data);;
-		LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gmLevel)).WriteToPacket(data);;
-		LDFData<int32_t>(u"chatmode", static_cast<int32_t>(chatMode)).WriteToPacket(data);;
-		LDFData<std::string>(u"xmlData", xmlData).WriteToPacket(data);;
-		LDFData<int64_t>(u"reputation", reputation).WriteToPacket(data);;
-		//Compress the data before sending:
+		LDFData<LOT>(u"template", templateID).WriteToPacket(data);
+		LDFData<std::u16string>(u"name", name).WriteToPacket(data);
+		LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gmLevel)).WriteToPacket(data);
+		LDFData<int32_t>(u"chatmode", static_cast<int32_t>(chatMode)).WriteToPacket(data);
+		LDFData<std::string_view>(u"xmlData", xmlData).WriteToPacket(data);
+		LDFData<int64_t>(u"reputation", reputation).WriteToPacket(data);
+
+		// Compress the data before sending:
 		const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
 		uint8_t* compressedData = new uint8_t[reservedSize];
 
-		if (!compressedData) {
-			throw std::runtime_error("Failed to allocate memory for compressed data");
-		}
+		if (!compressedData) throw std::runtime_error("Failed to allocate memory for compressed data");
 
 		size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
-
 		assert(size <= reservedSize);
 
-		bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
-		bitStream.Write<uint8_t>(1);         //compressed boolean, true
+		bitStream.Write<uint32_t>(size + 9); // size of data + header bytes (8)
+		bitStream.Write<uint8_t>(1);         // compressed boolean, true
 		bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed());
 		bitStream.Write<uint32_t>(size);
 
@@ -91,14 +89,16 @@ namespace ClientPackets {
 
 		bitStream.Write(LUWString(receiver, 42));
 
+		// Write the rejected words
+		// There has to be 64 items written so we need to pad the rest with 0s
+		int toWrite = 64;
 		for (auto it : rejectedWords) {
+			if (toWrite <= 0) return;
 			bitStream.Write<uint8_t>(it.first); // start index
 			bitStream.Write<uint8_t>(it.second); // length
+			toWrite--;
 		}
-
-		// Pad out the rest of the packet
-		// The client expects 64 items, so we need to write 64 - rejectedWords.size() empty items
-		for (int i = rejectedWords.size(); 64 > i; i++) {
+		for (toWrite; toWrite <= 0; toWrite--) {
 			bitStream.Write<uint16_t>(0);
 		}
 

@@ -74,12 +74,12 @@ namespace ClientPackets {
 	};
 
 	struct CreateCharacter : public LUBitStream {
-		LWOOBJID objid = 0;
+		LWOOBJID objid = LWOOBJID_EMPTY;
 		LOT templateID = 1;
 		std::u16string name;
 		eGameMasterLevel gmLevel = eGameMasterLevel::CIVILIAN;
 		int32_t chatMode = 0;
-		std::string xmlData;
+		std::string_view xmlData;
 		int64_t reputation = 0;
 
 		CreateCharacter() : LUBitStream(eConnectionType::CLIENT, MessageType::Client::CREATE_CHARACTER) {};

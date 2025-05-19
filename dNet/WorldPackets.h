@@ -4,6 +4,7 @@
 #include "dCommonVars.h"
 #include "BitStreamUtils.h"
 #include "MessageType/World.h"
+#include "eChatMode.h"
 
 class Entity;
 enum class eLanguageCodeID : int32_t {
@@ -62,7 +63,7 @@ namespace WorldPackets {
 	};
 
 	struct StringCheck : public LUBitStream {
-		uint8_t chatLevel = 0;
+		eChatMode chatMode = eChatMode::RESTRICTED;
 		uint8_t requestID = 0;
 		std::string receiver;
 		std::string message;

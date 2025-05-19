@@ -9,6 +9,8 @@
 #include "Character.h"
 #include "dChatFilter.h"
 #include "ChatPackets.h"
+#include "ClientPackets.h"
+#include "Database.h"
 
 namespace WorldPackets {
 	
@@ -160,7 +162,7 @@ namespace WorldPackets {
 	}
 
 	bool StringCheck::Deserialize(RakNet::BitStream& bitStream) {
-		VALIDATE_READ(bitStream.Read(chatLevel));
+		VALIDATE_READ(bitStream.Read(chatMode));
 		VALIDATE_READ(bitStream.Read(requestID));
 
 		for (uint32_t i = 0; i < 42; ++i) {
@@ -187,6 +189,58 @@ namespace WorldPackets {
 	}
 
 	void StringCheck::Handle() {
+		auto* entity = Game::entityManager->GetEntity(objectID);
+		if (!entity) {
+			LOG("Unable to get player to handle string check request");
+			return;
+		}
+		auto* character = entity->GetCharacter();
+		if (!character) {
+			LOG("Unable to get character to handle string check request");
+			return;
+		}
+		auto* user = character->GetParentUser();
+		if (!user) {
+			LOG("Unable to get user to handle string check request");
+			return;
+		}
+
+		// Check if the player has restricted chat access
+		if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
+			ChatPackets::SendSystemMessage(
+				entity->GetSystemAddress(),
+				u"This character has restricted chat access."
+			);
+			return;
+		}
+
+		bool isBestFriend = false;
+		if (chatMode == eChatMode::UNRESTRICTED) {
+			// Check if the receiver is a best friend
+			LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
+			{
+				auto characterIdFetch = Database::Get()->GetCharacterInfo(receiver);
+				if (characterIdFetch) idOfReceiver = characterIdFetch->id;
+			}
+			const auto& bffMap = user->GetIsBestFriendMap();
+			if (bffMap.find(receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
+				auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
+				if (bffInfo) isBestFriend = bffInfo->bestFriendStatus == 3;
+				if (isBestFriend) user->UpdateBestFriendValue(receiver, true);
+			} else if (bffMap.find(receiver) != bffMap.end()) {
+				isBestFriend = true;
+			}
+		}
+
+		const auto segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatMode == eChatMode::UNRESTRICTED));
+		bool bAllClean = segments.empty();
+		if (user->GetIsMuted()) bAllClean = false;
+
+		user->SetLastChatMessageApproved(bAllClean);
+		ClientPackets::ChatModerationString response;
+		response.receiver = receiver;
+		response.rejectedWords = segments;
+		response.Send(entity->GetSystemAddress());
 	}
 
 }
