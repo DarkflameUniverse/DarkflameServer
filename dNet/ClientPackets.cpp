@@ -98,7 +98,7 @@ namespace ClientPackets {
 			bitStream.Write<uint8_t>(it.second); // length
 			toWrite--;
 		}
-		for (toWrite; toWrite <= 0; toWrite--) {
+		for (; toWrite <= 0; toWrite--) {
 			bitStream.Write<uint16_t>(0);
 		}
 
