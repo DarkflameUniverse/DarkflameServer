@@ -724,6 +724,7 @@ void HandleMasterPacket(Packet* packet) {
 				load.zoneID = Game::zoneManager->GetZoneID();
 				load.checksum = zone->GetChecksum();
 				load.position = pos;
+				load.Send(it->second.sysAddr);
 			}
 
 			if (Game::server->GetZoneID() == 0) {
