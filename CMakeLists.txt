@@ -4,6 +4,18 @@ project(Darkflame
 	LANGUAGES C CXX
 )
 
+# Sanitizer flags - TODO: Make CMake preset before finalizing PR
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	add_compile_options("-fsanitize=undefined")
+	add_link_options("-fsanitize=undefined")
+
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+		add_link_options("-static-libsan")
+	else()
+		add_link_options("-static-libasan")
+	endif()
+endif()
+
 # check if the path to the source directory contains a space
 if("${CMAKE_SOURCE_DIR}" MATCHES " ")
 	message(FATAL_ERROR "The server cannot build in the path (" ${CMAKE_SOURCE_DIR} ") because it contains a space. Please move the server to a path without spaces.")
@@ -17,7 +29,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debugging
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
-set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
+set(CMAKE_VISIBILITY_INLINES_HIDDEN OFF) # Set C and C++ symbol visibility to hide inlined functions
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Read variables from file
@@ -265,7 +277,7 @@ if(MSVC)
 	# add_compile_options("/W4")
 	# Want to enable warnings eventually, but WAY too much noise right now
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	add_compile_options("-Wuninitialized" "-Wold-style-cast")
+	add_compile_options("-Wuninitialized" "-Wold-style-cast" "-Wstrict-aliasing=01")
 else()
 	message(WARNING "Unknown compiler: '${CMAKE_CXX_COMPILER_ID}' - No warning flags enabled.")
 endif()
