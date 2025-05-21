@@ -334,7 +334,7 @@ bool ActivityComponent::IsPlayedBy(LWOOBJID playerID) const {
 	return false;
 }
 
-bool ActivityComponent::TakeCost(Entity* player) const {
+bool ActivityComponent::CheckCost(Entity* player) const {
 	if (m_ActivityInfo.optionalCostLOT <= 0 || m_ActivityInfo.optionalCostCount <= 0)
 		return true;
 
@@ -345,9 +345,15 @@ bool ActivityComponent::TakeCost(Entity* player) const {
 	if (inventoryComponent->GetLotCount(m_ActivityInfo.optionalCostLOT) < m_ActivityInfo.optionalCostCount)
 		return false;
 
-	inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
+	//move to TakeCost
+	//inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
 
 	return true;
+}
+
+void ActivityComponent::TakeCost(Entity* player){
+	if (CheckCost(player)) inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
+	else; //don't know yet
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
@@ -382,7 +388,7 @@ ActivityInstance* ActivityComponent::NewInstance() {
 void ActivityComponent::LoadPlayersIntoInstance(ActivityInstance* instance, const std::vector<LobbyPlayer*>& lobby) const {
 	for (LobbyPlayer* player : lobby) {
 		auto* entity = player->GetEntity();
-		if (entity == nullptr || !TakeCost(entity)) {
+		if (entity == nullptr || !CheckCost(entity)) {
 			continue;
 		}
 
