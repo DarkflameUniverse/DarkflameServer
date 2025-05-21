@@ -345,9 +345,6 @@ bool ActivityComponent::CheckCost(Entity* player) const {
 	if (inventoryComponent->GetLotCount(m_ActivityInfo.optionalCostLOT) < m_ActivityInfo.optionalCostCount)
 		return false;
 
-	//move to TakeCost
-	//inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
-
 	return true;
 }
 
