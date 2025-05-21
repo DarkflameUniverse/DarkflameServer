@@ -1994,6 +1994,22 @@ void Entity::SetRotation(const NiQuaternion& rotation) {
 	Game::entityManager->SerializeEntity(this);
 }
 
+void Entity::SetVelocity(const NiPoint3& velocity) {
+	auto* controllable = GetComponent<ControllablePhysicsComponent>();
+
+	if (controllable != nullptr) {
+		controllable->SetVelocity(velocity);
+	}
+
+	auto* simple = GetComponent<SimplePhysicsComponent>();
+
+	if (simple != nullptr) {
+		simple->SetVelocity(velocity);
+	}
+
+	Game::entityManager->SerializeEntity(this);
+}
+
 bool Entity::GetBoolean(const std::u16string& name) const {
 	return GetVar<bool>(name);
 }

@@ -33,6 +33,13 @@ SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, int32_t component
 SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
+void SimplePhysicsComponent::Update(const float deltaTime) {
+	if (m_Velocity == NiPoint3Constant::ZERO) return;
+	m_Position += m_Velocity * deltaTime;
+	m_DirtyPosition = true;
+	Game::entityManager->SerializeEntity(m_Parent);
+}
+
 void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		outBitStream.Write(m_ClimbableType != eClimbableType::CLIMBABLE_TYPE_NOT);

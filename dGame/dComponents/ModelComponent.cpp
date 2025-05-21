@@ -30,10 +30,16 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	unsmash.target = GetParent()->GetObjectID();
 	unsmash.duration = 0.0f;
 	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+
+	m_Parent->SetPosition(m_OriginalPosition);
+	m_Parent->SetRotation(m_OriginalRotation);
+	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
+
 	m_NumListeningInteract = 0;
 	m_NumActiveUnSmash = 0;
 	m_Dirty = true;
 	Game::entityManager->SerializeEntity(GetParent());
+
 	return true;
 }
 

@@ -41,7 +41,7 @@ public:
 	 * Returns the original position of the model
 	 * @return the original position of the model
 	 */
-	const NiPoint3& GetPosition() { return m_OriginalPosition; }
+	const NiPoint3& GetOriginalPosition() { return m_OriginalPosition; }
 
 	/**
 	 * Sets the original position of the model
@@ -53,7 +53,7 @@ public:
 	 * Returns the original rotation of the model
 	 * @return the original rotation of the model
 	 */
-	const NiQuaternion& GetRotation() { return m_OriginalRotation; }
+	const NiQuaternion& GetOriginalRotation() { return m_OriginalRotation; }
 
 	/**
 	 * Sets the original rotation of the model

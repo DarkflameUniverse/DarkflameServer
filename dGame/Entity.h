@@ -148,6 +148,8 @@ public:
 
 	void SetRespawnRot(const NiQuaternion& rotation);
 
+	void SetVelocity(const NiPoint3& velocity);
+
 	/**
 	 * Component management
 	 */
