@@ -324,6 +324,8 @@ While a character has a gmlevel of anything but `0`, some gameplay behavior will
 Some changes to the client `boot.cfg` file are needed to play on your server.
 
 ## Allowing a user to connect to your server
+**ALL OF THESE CHANGES ARE REQUIRED. PLEASE FULLY READ THIS SECTION**
+
 To connect to a server follow these steps:
 * In the client directory, locate `boot.cfg`
 * Open `boot.cfg` in a text editor and locate the line `UGCUSE3DSERVICES=7:`
