@@ -23,9 +23,9 @@
 #include "eMissionTaskType.h"
 #include "eTriggerEventType.h"
 #include "eObjectBits.h"
-#include "PositionUpdate.h"
 #include "MessageType/Chat.h"
 #include "PlayerManager.h"
+#include "WorldPackets.h"
 
 //Component includes:
 #include "Component.h"
@@ -99,7 +99,7 @@
 
 #include <ranges>
 
-Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
+Observable<Entity*, const WorldPackets::PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
 Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
@@ -2112,7 +2112,7 @@ uint8_t Entity::GetCollectibleID() const {
 	return collectible ? collectible->GetCollectibleId() : 0;
 }
 
-void Entity::ProcessPositionUpdate(PositionUpdate& update) {
+void Entity::ProcessPositionUpdate(WorldPackets::PositionUpdate& update) {
 	if (!IsPlayer()) return;
 	auto* controllablePhysicsComponent = GetComponent<ControllablePhysicsComponent>();
 	if (!controllablePhysicsComponent) return;

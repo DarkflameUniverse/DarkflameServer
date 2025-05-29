@@ -1,186 +1,246 @@
 #include "WorldPackets.h"
-#include "dCommonVars.h"
-#include "BitStream.h"
-#include "GeneralUtils.h"
-#include "Logger.h"
-#include "Game.h"
-#include "LDFFormat.h"
-#include "dServer.h"
-#include "ZCompression.h"
-#include "eConnectionType.h"
-#include "BitStreamUtils.h"
+#include "Amf3.h"
+#include "dConfig.h"
+#include "GameMessages.h"
+#include "Entity.h"
+#include "EntityManager.h"
+#include "UserManager.h"
+#include "User.h"
+#include "Character.h"
+#include "dChatFilter.h"
+#include "ChatPackets.h"
+#include "ClientPackets.h"
+#include "Database.h"
 
-#include <iostream>
-
-void HTTPMonitorInfo::Serialize(RakNet::BitStream &bitStream) const {
-	bitStream.Write(port);
-	bitStream.Write<uint8_t>(openWeb);
-	bitStream.Write<uint8_t>(supportsSum);
-	bitStream.Write<uint8_t>(supportsDetail);
-	bitStream.Write<uint8_t>(supportsWho);
-	bitStream.Write<uint8_t>(supportsObjects);
-}
-
-void WorldPackets::SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum, LWOZONEID zone) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::LOAD_STATIC_ZONE);
-
-	bitStream.Write<uint16_t>(zone.GetMapID());
-	bitStream.Write<uint16_t>(zone.GetInstanceID());
-	//bitStream.Write<uint32_t>(zone.GetCloneID());
-	bitStream.Write(0);
-
-	bitStream.Write(checksum);
-	bitStream.Write<uint16_t>(0);     // ??
-
-	bitStream.Write(x);
-	bitStream.Write(y);
-	bitStream.Write(z);
-
-	bitStream.Write<uint32_t>(0);     // Change this to eventually use 4 on activity worlds
-
-	SEND_PACKET;
-}
-
-void WorldPackets::SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHARACTER_CREATE_RESPONSE);
-	bitStream.Write(response);
-	SEND_PACKET;
-}
-
-void WorldPackets::SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHARACTER_RENAME_RESPONSE);
-	bitStream.Write(response);
-	SEND_PACKET;
-}
-
-void WorldPackets::SendCharacterDeleteResponse(const SystemAddress& sysAddr, bool response) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::DELETE_CHARACTER_RESPONSE);
-	bitStream.Write<uint8_t>(response);
-	SEND_PACKET;
-}
-
-void WorldPackets::SendTransferToWorld(const SystemAddress& sysAddr, const std::string& serverIP, uint32_t serverPort, bool mythranShift) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::TRANSFER_TO_WORLD);
-
-	bitStream.Write(LUString(serverIP));
-	bitStream.Write<uint16_t>(serverPort);
-	bitStream.Write<uint8_t>(mythranShift);
-
-	SEND_PACKET;
-}
-
-void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::SERVER_STATES);
-	bitStream.Write<uint8_t>(1); //If the server is receiving this request, it probably is ready anyway.
-	SEND_PACKET;
-}
-
-void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CREATE_CHARACTER);
-
-	RakNet::BitStream data;
-	data.Write<uint32_t>(7); //LDF key count
-
-	std::unique_ptr<LDFData<LWOOBJID>> objid(new LDFData<LWOOBJID>(u"objid", player));
-	std::unique_ptr<LDFData<LOT>> lot(new LDFData<LOT>(u"template", 1));
-	std::unique_ptr<LDFData<std::string>> xmlConfigData(new LDFData<std::string>(u"xmlData", xmlData));
-	std::unique_ptr<LDFData<std::u16string>> name(new LDFData<std::u16string>(u"name", username));
-	std::unique_ptr<LDFData<int32_t>> gmlevel(new LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gm)));
-	std::unique_ptr<LDFData<int32_t>> chatmode(new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(gm)));
-	std::unique_ptr<LDFData<int64_t>> reputationLdf(new LDFData<int64_t>(u"reputation", reputation));
-
-	objid->WriteToPacket(data);
-	lot->WriteToPacket(data);
-	name->WriteToPacket(data);
-	gmlevel->WriteToPacket(data);
-	chatmode->WriteToPacket(data);
-	xmlConfigData->WriteToPacket(data);
-	reputationLdf->WriteToPacket(data);
-
-	//Compress the data before sending:
-    const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
-    uint8_t* compressedData = new uint8_t[reservedSize];
-
-	// TODO There should be better handling here for not enough memory...
-	if (!compressedData) return;
-
-	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
-
-	assert(size <= reservedSize);
-
-	bitStream.Write<uint32_t>(size + 9); //size of data + header bytes (8)
-	bitStream.Write<uint8_t>(1);         //compressed boolean, true
-	bitStream.Write<uint32_t>(data.GetNumberOfBytesUsed());
-	bitStream.Write<uint32_t>(size);
-
-	/**
-	 * In practice, this warning serves no purpose for us.  We allocate the max memory needed on the heap
-	 * and then compress the data.  In the off chance that the compression actually increases the size,
-	 * an assertion is done to prevent bad data from being saved or sent.
-	 */
-#pragma warning(disable:6385) // C6385 Reading invalid data from 'compressedData'.
-	bitStream.WriteAlignedBytes(compressedData, size);
-#pragma warning(default:6385)
-
-	SEND_PACKET;
-	delete[] compressedData;
-	LOG("Sent CreateCharacter for ID: %llu", player);
-}
-
-void WorldPackets::SendChatModerationResponse(const SystemAddress& sysAddr, bool requestAccepted, uint32_t requestID, const std::string& receiver, std::set<std::pair<uint8_t, uint8_t>> unacceptedItems) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CHAT_MODERATION_STRING);
-
-	bitStream.Write<uint8_t>(unacceptedItems.empty()); // Is sentence ok?
-	bitStream.Write<uint16_t>(0x16); // Source ID, unknown
-
-	bitStream.Write<uint8_t>(requestID); // request ID
-	bitStream.Write<char>(0); // chat mode
-
-	bitStream.Write(LUWString(receiver, 42)); // receiver name
-
-	for (auto it : unacceptedItems) {
-		bitStream.Write<uint8_t>(it.first); // start index
-		bitStream.Write<uint8_t>(it.second); // length
+namespace WorldPackets {
+	
+	bool UIHelpTop5::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(languageCode));
+		return true;
 	}
 
-	for (int i = unacceptedItems.size(); 64 > i; i++) {
-		bitStream.Write<uint16_t>(0);
+	void UIHelpTop5::Handle() {
+		Entity* player = Game::entityManager->GetEntity(objectID);
+		if (!player) {
+			LOG("Unable to get player for UIHelpTop5");
+			return;
+		}
+
+		auto sysAddr = player->GetSystemAddress();
+		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
+			LOG("Unable to get system address for player for UIHelpTop5");
+			return;
+		}
+		
+		AMFArrayValue data;
+		switch (languageCode) {
+			case eLanguageCodeID::EN_US:
+				// Summaries
+				data.Insert("Summary0", Game::config->GetValue("help_0_summary"));
+				data.Insert("Summary1", Game::config->GetValue("help_1_summary"));
+				data.Insert("Summary2", Game::config->GetValue("help_2_summary"));
+				data.Insert("Summary3", Game::config->GetValue("help_3_summary"));
+				data.Insert("Summary4", Game::config->GetValue("help_4_summary"));
+
+				// Descriptions
+				data.Insert("Description0", Game::config->GetValue("help_0_description"));
+				data.Insert("Description1", Game::config->GetValue("help_1_description"));
+				data.Insert("Description2", Game::config->GetValue("help_2_description"));
+				data.Insert("Description3", Game::config->GetValue("help_3_description"));
+				data.Insert("Description4", Game::config->GetValue("help_4_description"));
+				break;
+			case eLanguageCodeID::PL_US:
+			[[fallthrough]];
+			case eLanguageCodeID::DE_DE:
+			[[fallthrough]];
+			case eLanguageCodeID::EN_GB:
+			[[fallthrough]];
+			default:
+				break;
+		}
+		GameMessages::SendUIMessageServerToSingleClient(player, sysAddr, "UIHelpTop5", data);
 	}
 
-	SEND_PACKET;
-}
+	bool GeneralChatMessage::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(chatChannel));
+		uint16_t padding;
+		VALIDATE_READ(bitStream.Read(padding));
 
-void WorldPackets::SendGMLevelChange(const SystemAddress& sysAddr, bool success, eGameMasterLevel highestLevel, eGameMasterLevel prevLevel, eGameMasterLevel newLevel) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::MAKE_GM_RESPONSE);
+		uint32_t messageLength;
+		VALIDATE_READ(bitStream.Read(messageLength));
 
-	bitStream.Write<uint8_t>(success);
-	bitStream.Write(static_cast<uint16_t>(highestLevel));
-	bitStream.Write(static_cast<uint16_t>(prevLevel));
-	bitStream.Write(static_cast<uint16_t>(newLevel));
+		for (uint32_t i = 0; i < (messageLength - 1); ++i) {
+			uint16_t character;
+			VALIDATE_READ(bitStream.Read(character));
+			message.push_back(character);
+		}
 
-	SEND_PACKET;
-}
+		return true;
+	}
 
-void WorldPackets::SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPMonitorInfo& info) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::HTTP_MONITOR_INFO_RESPONSE);
-	info.Serialize(bitStream);
-	SEND_PACKET;
-}
+	void GeneralChatMessage::Handle() {
+		Entity* player = Game::entityManager->GetEntity(objectID);
+		if (!player) return;
+		auto sysAddr = player->GetSystemAddress();
+		User* user = UserManager::Instance()->GetUser(sysAddr);
+		if (!user) {
+			LOG("Unable to get user to parse chat message");
+			return;
+		}
 
-void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string& data){
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::DEBUG_OUTPUT);
-	bitStream.Write<uint32_t>(data.size());
-	bitStream.Write(data);
-	SEND_PACKET;
+		std::string playerName = user->GetLastUsedChar()->GetName();
+		bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+		bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(message), user->GetLastUsedChar()->GetGMLevel()).empty();
+		LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(message).c_str(), user->GetLastChatMessageApproved());
+		if (!isOk) return;
+		if (!isOk && !isMythran) return;
+
+		std::string sMessage = GeneralUtils::UTF16ToWTF8(message);
+		LOG("%s: %s", playerName.c_str(), sMessage.c_str());
+		ChatPackets::SendChatMessage(sysAddr, chatChannel, playerName, user->GetLoggedInChar(), isMythran, message);
+	}
+
+	bool PositionUpdate::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(position.x));
+		VALIDATE_READ(bitStream.Read(position.y));
+		VALIDATE_READ(bitStream.Read(position.z));
+
+		VALIDATE_READ(bitStream.Read(rotation.x));
+		VALIDATE_READ(bitStream.Read(rotation.y));
+		VALIDATE_READ(bitStream.Read(rotation.z));
+		VALIDATE_READ(bitStream.Read(rotation.w));
+
+		VALIDATE_READ(bitStream.Read(onGround));
+		VALIDATE_READ(bitStream.Read(onRail));
+
+		bool velocityFlag = false;
+		if (bitStream.Read(velocityFlag) && velocityFlag) {
+			VALIDATE_READ(bitStream.Read(velocity.x));
+			VALIDATE_READ(bitStream.Read(velocity.y));
+			VALIDATE_READ(bitStream.Read(velocity.z));
+		}
+
+		bool angVelocityFlag = false;
+		if (bitStream.Read(angVelocityFlag) && angVelocityFlag) {
+			VALIDATE_READ(bitStream.Read(angularVelocity.x));
+			VALIDATE_READ(bitStream.Read(angularVelocity.y));
+			VALIDATE_READ(bitStream.Read(angularVelocity.z));
+		}
+
+		// TODO figure out how to use these. Ignoring for now, but reading in if they exist.
+		bool hasLocalSpaceInfo{};
+		VALIDATE_READ(bitStream.Read(hasLocalSpaceInfo));
+		if (hasLocalSpaceInfo) {
+			VALIDATE_READ(bitStream.Read(localSpaceInfo.objectId));
+			VALIDATE_READ(bitStream.Read(localSpaceInfo.position.x));
+			VALIDATE_READ(bitStream.Read(localSpaceInfo.position.y));
+			VALIDATE_READ(bitStream.Read(localSpaceInfo.position.z));
+
+			bool hasLinearVelocity = false;
+			if (bitStream.Read(hasLinearVelocity) && hasLinearVelocity) {
+				VALIDATE_READ(bitStream.Read(localSpaceInfo.linearVelocity.x));
+				VALIDATE_READ(bitStream.Read(localSpaceInfo.linearVelocity.y));
+				VALIDATE_READ(bitStream.Read(localSpaceInfo.linearVelocity.z));
+			}
+		}
+		bool hasRemoteInputInfo{};
+		VALIDATE_READ(bitStream.Read(hasRemoteInputInfo));
+		if (hasRemoteInputInfo) {
+			VALIDATE_READ(bitStream.Read(remoteInputInfo.m_RemoteInputX));
+			VALIDATE_READ(bitStream.Read(remoteInputInfo.m_RemoteInputY));
+			VALIDATE_READ(bitStream.Read(remoteInputInfo.m_IsPowersliding));
+			VALIDATE_READ(bitStream.Read(remoteInputInfo.m_IsModified));
+		}
+
+		return true;
+	}
+
+	void PositionUpdate::Handle() {
+		Entity* entity = Game::entityManager->GetEntity(objectID);
+		if (entity) entity->ProcessPositionUpdate(*this);
+
+	}
+
+	bool StringCheck::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(chatMode));
+		VALIDATE_READ(bitStream.Read(requestID));
+
+		for (uint32_t i = 0; i < 42; ++i) {
+			uint16_t character;
+			VALIDATE_READ(bitStream.Read(character));
+			receiver.push_back(static_cast<uint8_t>(character));
+		}
+
+		if (!receiver.empty()) {
+			if (std::string(receiver.c_str(), 4) == "[GM]") { // Shift the string forward if we are speaking to a GM as the client appends "[GM]" if they are
+				receiver = std::string(receiver.c_str() + 4, receiver.size() - 4);
+			}
+		}
+
+		uint32_t messageLength;
+		VALIDATE_READ(bitStream.Read(messageLength));
+		for (uint32_t i = 0; i < messageLength; ++i) {
+			uint16_t character;
+			VALIDATE_READ(bitStream.Read(character));
+			message.push_back(static_cast<uint8_t>(character));
+		}
+
+		return true;
+	}
+
+	void StringCheck::Handle() {
+		auto* entity = Game::entityManager->GetEntity(objectID);
+		if (!entity) {
+			LOG("Unable to get player to handle string check request");
+			return;
+		}
+		auto* character = entity->GetCharacter();
+		if (!character) {
+			LOG("Unable to get character to handle string check request");
+			return;
+		}
+		auto* user = character->GetParentUser();
+		if (!user) {
+			LOG("Unable to get user to handle string check request");
+			return;
+		}
+
+		// Check if the player has restricted chat access
+		if (character->HasPermission(ePermissionMap::RestrictedChatAccess)) {
+			ChatPackets::SendSystemMessage(
+				entity->GetSystemAddress(),
+				u"This character has restricted chat access."
+			);
+			return;
+		}
+
+		bool isBestFriend = false;
+		if (chatMode == eChatMode::UNRESTRICTED) {
+			// Check if the receiver is a best friend
+			LWOOBJID idOfReceiver = LWOOBJID_EMPTY;
+			{
+				auto characterIdFetch = Database::Get()->GetCharacterInfo(receiver);
+				if (characterIdFetch) idOfReceiver = characterIdFetch->id;
+			}
+			const auto& bffMap = user->GetIsBestFriendMap();
+			if (bffMap.find(receiver) == bffMap.end() && idOfReceiver != LWOOBJID_EMPTY) {
+				auto bffInfo = Database::Get()->GetBestFriendStatus(entity->GetObjectID(), idOfReceiver);
+				if (bffInfo) isBestFriend = bffInfo->bestFriendStatus == 3;
+				if (isBestFriend) user->UpdateBestFriendValue(receiver, true);
+			} else if (bffMap.find(receiver) != bffMap.end()) {
+				isBestFriend = true;
+			}
+		}
+
+		const auto segments = Game::chatFilter->IsSentenceOkay(message, entity->GetGMLevel(), !(isBestFriend && chatMode == eChatMode::UNRESTRICTED));
+		bool bAllClean = segments.empty();
+		if (user->GetIsMuted()) bAllClean = false;
+
+		user->SetLastChatMessageApproved(bAllClean);
+		ClientPackets::ChatModerationString response;
+		response.receiver = receiver;
+		response.rejectedWords = segments;
+		response.Send(entity->GetSystemAddress());
+	}
+
 }
