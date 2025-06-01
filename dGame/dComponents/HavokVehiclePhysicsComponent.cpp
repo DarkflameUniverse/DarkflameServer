@@ -34,7 +34,7 @@ void HavokVehiclePhysicsComponent::SetIsOnRail(bool val) {
 	m_IsOnRail = val;
 }
 
-void HavokVehiclePhysicsComponent::SetRemoteInputInfo(const RemoteInputInfo& remoteInputInfo) {
+void HavokVehiclePhysicsComponent::SetRemoteInputInfo(const WorldPackets::PositionUpdate::RemoteInputInfo& remoteInputInfo) {
 	if (remoteInputInfo == m_RemoteInputInfo) return;
 	this->m_RemoteInputInfo = remoteInputInfo;
 	m_DirtyPosition = true;

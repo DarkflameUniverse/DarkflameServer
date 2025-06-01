@@ -17,7 +17,7 @@
 #include "CppScripts.h"
 #include "UserManager.h"
 #include "ZoneInstanceManager.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "Item.h"
 #include "ZCompression.h"
 #include "dConfig.h"
@@ -4936,7 +4936,11 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 				character->SetZoneClone(zoneClone);
 			}
 
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld response;
+			response.serverIP = serverIP;
+			response.serverPort = serverPort;
+			response.mythranShift = mythranShift;
+			response.Send(sysAddr);
 			return;
 			});
 	}

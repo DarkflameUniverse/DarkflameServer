@@ -10,7 +10,7 @@
 #include "PlayerManager.h"
 #include "SlashCommandHandler.h"
 #include "VanityUtilities.h"
-#include "WorldPackets.h"
+#include "ClientPackets.h"
 #include "ZoneInstanceManager.h"
 #include "Database.h"
 
@@ -179,7 +179,11 @@ namespace GMZeroCommands {
 
 			entity->GetCharacter()->SaveXMLToDatabase();
 
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld response;
+			response.serverIP = serverIP;
+			response.serverPort = serverPort;
+			response.mythranShift = mythranShift;
+			response.Send(sysAddr);
 			});
 	}
 
@@ -205,7 +209,11 @@ namespace GMZeroCommands {
 
 			entity->GetCharacter()->SaveXMLToDatabase();
 
-			WorldPackets::SendTransferToWorld(sysAddr, serverIP, serverPort, mythranShift);
+			ClientPackets::TransferToWorld response;
+			response.serverIP = serverIP;
+			response.serverPort = serverPort;
+			response.mythranShift = mythranShift;
+			response.Send(sysAddr);
 			});
 	}
 

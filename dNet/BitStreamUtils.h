@@ -5,6 +5,7 @@
 #include "BitStream.h"
 #include "MessageIdentifiers.h"
 #include "eConnectionType.h"
+#include "dCommonVars.h"
 #include <string>
 #include <algorithm>
 
@@ -49,6 +50,7 @@ struct LUWString {
 struct LUBitStream {
 	eConnectionType connectionType = eConnectionType::UNKNOWN;
 	uint32_t internalPacketID = 0xFFFFFFFF;
+	LWOOBJID objectID = LWOOBJID_EMPTY;
 
 	LUBitStream() = default;
 
