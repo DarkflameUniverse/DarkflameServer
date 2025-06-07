@@ -364,6 +364,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 		for (auto* player : PlayerManager::GetAllPlayers()) {
+			// Don't need to construct the player to themselves 
+			if (entity->GetObjectID() == player->GetObjectID()) continue;
 			if (player->GetPlayerReadyForUpdates()) {
 				Game::server->Send(stream, player->GetSystemAddress(), false);
 			} else {
