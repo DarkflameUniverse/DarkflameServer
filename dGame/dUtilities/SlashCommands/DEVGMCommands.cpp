@@ -121,7 +121,7 @@ namespace DEVGMCommands {
 
 	void ResetMission(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto missionId = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
 		if (!missionId) {
@@ -184,7 +184,7 @@ namespace DEVGMCommands {
 
 	void PlayAnimation(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		std::u16string anim = GeneralUtils::ASCIIToUTF16(splitArgs[0], splitArgs[0].size());
 		RenderComponent::PlayAnimation(entity, anim);
@@ -205,7 +205,7 @@ namespace DEVGMCommands {
 
 	void UnlockEmote(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto emoteID = GeneralUtils::TryParse<int32_t>(splitArgs[0]);
 
@@ -223,7 +223,7 @@ namespace DEVGMCommands {
 
 	void Kill(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Brutally murdering that player, if online on this server.");
 
@@ -240,7 +240,7 @@ namespace DEVGMCommands {
 
 	void SpeedBoost(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto boostOptional = GeneralUtils::TryParse<float>(splitArgs[0]);
 		if (!boostOptional) {
@@ -283,7 +283,7 @@ namespace DEVGMCommands {
 
 	void SetControlScheme(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto scheme = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
 
@@ -299,7 +299,7 @@ namespace DEVGMCommands {
 
 	void SetUiState(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		AMFArrayValue uiState;
 
@@ -312,7 +312,7 @@ namespace DEVGMCommands {
 
 	void Toggle(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		AMFArrayValue amfArgs;
 
@@ -325,7 +325,7 @@ namespace DEVGMCommands {
 
 	void SetInventorySize(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto sizeOptional = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
 		if (!sizeOptional) {
@@ -366,7 +366,7 @@ namespace DEVGMCommands {
 
 	void RunMacro(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		// Only process if input does not contain separator charaters
 		if (splitArgs[0].find("/") != std::string::npos) return;
@@ -394,7 +394,7 @@ namespace DEVGMCommands {
 
 	void AddMission(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto missionID = GeneralUtils::TryParse<uint32_t>(splitArgs.at(0));
 
@@ -409,7 +409,7 @@ namespace DEVGMCommands {
 
 	void CompleteMission(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto missionID = GeneralUtils::TryParse<uint32_t>(splitArgs.at(0));
 
@@ -452,7 +452,7 @@ namespace DEVGMCommands {
 
 	void ClearFlag(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto flagId = GeneralUtils::TryParse<int32_t>(splitArgs.at(0));
 
@@ -478,7 +478,7 @@ namespace DEVGMCommands {
 
 	void StopEffect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		GameMessages::SendStopFXEffect(entity, true, splitArgs[0]);
 	}
@@ -686,7 +686,7 @@ namespace DEVGMCommands {
 
 	void StartCelebration(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto celebration = GeneralUtils::TryParse<int32_t>(splitArgs.at(0));
 
@@ -739,8 +739,16 @@ namespace DEVGMCommands {
 	}
 
 	void Spawn(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		// Takes arguments:
+		// Spawn(LOT)
+		// Spawn(LOT, groupName)
+		// Spawn(LOT, x, y, z)
+		// Spawn(LOT, x, y, z, groupName)
+		// Spawn(LOT, x, y, z, rotw, rotx, roty, rotz)
+		// Spawn(LOT, x, y, z, rotw, rotx, roty, rotz, groupName)
+		if (args == "") return ChatPackets::SendSystemMessage(sysAddr, u"No lot provided.");
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		const auto argCount = splitArgs.size();
 
 		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
 		if (!comp) return;
@@ -748,14 +756,84 @@ namespace DEVGMCommands {
 		const auto lot = GeneralUtils::TryParse<uint32_t>(splitArgs[0]);
 
 		if (!lot) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Invalid lot.");
+			ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse lot.");
 			return;
+		}
+
+		std::string groupName = "";
+		if (argCount == 2) {
+			groupName = splitArgs[1];
+		} else if (argCount == 5) {
+			groupName = splitArgs[4];
+		} else if (argCount == 9) {
+			groupName = splitArgs[8];
+		}
+
+		NiPoint3 pos{};
+		if (argCount >= 4) {
+			const auto x = GeneralUtils::TryParse<float>(splitArgs[1]);
+			if (!x) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse x position.");
+				return;
+			}
+
+			const auto y = GeneralUtils::TryParse<float>(splitArgs[2]);
+			if (!y) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse y position.");
+				return;
+			}
+
+			const auto z = GeneralUtils::TryParse<float>(splitArgs[3]);
+			if (!z) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse z position.");
+				return;
+			}
+
+			pos.SetX(x.value());
+			pos.SetY(y.value());
+			pos.SetZ(z.value());
+		} else {
+			pos = comp->GetPosition();
+		}
+
+		NiQuaternion rot{};
+		if (argCount >= 8) {
+			const auto w = GeneralUtils::TryParse<float>(splitArgs[4]);
+			if (!w) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse w component of rotation quaternion.");
+				return;
+			}
+
+			const auto x = GeneralUtils::TryParse<float>(splitArgs[5]);
+			if (!x) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse x component of rotation quaternion.");
+				return;
+			}
+
+			const auto y = GeneralUtils::TryParse<float>(splitArgs[6]);
+			if (!y) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse y component of rotation quaternion.");
+				return;
+			}
+
+			const auto z = GeneralUtils::TryParse<float>(splitArgs[7]);
+			if (!z) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse z component of rotation quaternion.");
+				return;
+			}
+
+			rot.SetW(w.value());
+			rot.SetX(x.value());
+			rot.SetY(y.value());
+			rot.SetZ(z.value());
+		} else {
+			rot = comp->GetRotation();
 		}
 
 		EntityInfo info;
 		info.lot = lot.value();
-		info.pos = comp->GetPosition();
-		info.rot = comp->GetRotation();
+		info.pos = pos;
+		info.rot = rot;
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
@@ -767,7 +845,304 @@ namespace DEVGMCommands {
 			return;
 		}
 
+		newEntity->AddToGroup(groupName);
+
 		Game::entityManager->ConstructEntity(newEntity);
+	}
+
+	void GetPlayerID(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		auto targetPlayer = entity;
+		std::string targetName = "Your character";
+
+		if (args != "") {
+			targetName = splitArgs[0];
+			targetPlayer = PlayerManager::GetPlayer(targetName);
+		}
+
+		if (!targetPlayer) {
+			return ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Player not found."));
+		}
+
+		LWOOBJID objectID = targetPlayer->GetObjectID();
+
+		std::stringstream msg;
+		msg << targetName << " has object ID " << std::to_string(objectID) << ".";
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(msg.str()));
+	}
+
+	static void SendEntityList(const SystemAddress& sysAddr, std::vector<Entity*> entityList) {
+		for (auto* entity : entityList) {
+			std::stringstream entry;
+			entry << "[" << std::to_string(entity->GetObjectID()) << "], LOT " << std::to_string(entity->GetLOT());
+			const auto spawnerID = entity->GetSpawnerID();
+			const auto spawner = Game::entityManager->GetEntity(spawnerID);
+			if (spawner->IsPlayer()) {
+				entry << ", Spawned by " << spawner->GetCharacter()->GetName() << ".";
+			} else {
+				entry << ", SpawnerID " << std::to_string(spawnerID) << ".";
+			}
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(entry.str()));
+		}
+	}
+
+	static void DespawnEntityList(const SystemAddress& sysAddr, std::vector<Entity*> entityList) {
+		for (auto* entity : entityList) {
+			Game::entityManager->DestroyEntity(entity);
+		}
+	}
+
+	static void SaveEntityList(Entity* entity, const SystemAddress& sysAddr, std::vector<Entity*> entityList) {
+		IBugReports::Info reportInfo;
+		auto character = entity->GetCharacter();
+
+		if (entityList.empty()) return ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("No spawns found."));
+
+		std::stringstream entityInfo;
+		for (auto* entity : entityList) {
+			LOT lot = entity->GetLOT();
+			const NiPoint3 entityPosition = entity->GetPosition();
+			const auto x = entityPosition.GetX();
+			const auto y = entityPosition.GetY();
+			const auto z = entityPosition.GetZ();
+			const NiQuaternion entityRotation = entity->GetRotation();
+			const auto rotw = entityRotation.GetW();
+			const auto rotx = entityRotation.GetX();
+			const auto roty = entityRotation.GetY();
+			const auto rotz = entityRotation.GetZ();
+
+			entityInfo << "/spawn " << std::to_string(lot) << " ";
+			entityInfo << std::to_string(x) << " " << std::to_string(y) << " " << std::to_string(z) << " ";
+			entityInfo << std::to_string(rotw) << " " << std::to_string(rotx) << " " << std::to_string(roty) << " " << std::to_string(rotz) << " ";
+			entityInfo << "groupName\n ";
+		}
+		reportInfo.body = entityInfo.str();
+		reportInfo.clientVersion = "N/A";
+		reportInfo.otherPlayer = "N/A";
+		reportInfo.selection = "Saved spawn command.";
+		if (character) reportInfo.characterId = character->GetID();
+
+		Database::Get()->InsertNewBugReport(reportInfo);
+
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("List saved to Bug Report table."));
+	}
+
+	void ListGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		const std::string groupName = splitArgs[0];
+
+		const auto groupEntities = Game::entityManager->GetEntitiesInGroup(groupName);
+
+		std::stringstream header;
+		header << "Listing entities in group " << groupName << ":";
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(header.str()));
+
+		SendEntityList(sysAddr, groupEntities);
+	}
+
+	void DespawnGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		const std::string groupName = splitArgs[0];
+
+		const auto groupEntities = Game::entityManager->GetEntitiesInGroup(groupName);
+
+		DespawnEntityList(sysAddr, groupEntities);
+	}
+
+	void SaveGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		const std::string groupName = splitArgs[0];
+
+		const auto groupEntities = Game::entityManager->GetEntitiesInGroup(groupName);
+
+		SaveEntityList(entity, sysAddr, groupEntities);
+	}
+
+	static void SendEntitiesSpawnedByID(const SystemAddress& sysAddr, LWOOBJID& spawnerID) {
+		if (!Game::entityManager->GetEntity(spawnerID)) return;
+
+		const auto spawnedEntities = Game::entityManager->GetEntitiesBySpawnerID(spawnerID);
+
+		SendEntityList(sysAddr, spawnedEntities);
+	}
+
+	static void DespawnEntitiesSpawnedByID(const SystemAddress& sysAddr, LWOOBJID& spawnerID) {
+		if (!Game::entityManager->GetEntity(spawnerID)) return;
+
+		const auto spawnedEntities = Game::entityManager->GetEntitiesBySpawnerID(spawnerID);
+
+		DespawnEntityList(sysAddr, spawnedEntities);
+	}
+
+	static void SaveEntitiesSpawnedByID(Entity* entity, const SystemAddress& sysAddr, LWOOBJID& spawnerID) {
+		if (!Game::entityManager->GetEntity(spawnerID)) return;
+
+		const auto spawnedEntities = Game::entityManager->GetEntitiesBySpawnerID(spawnerID);
+
+		SaveEntityList(entity, sysAddr, spawnedEntities);
+	}
+
+	void ListSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		auto* spawner = entity;
+
+		if (args != "") {
+			spawner = PlayerManager::GetPlayer(splitArgs[0]);
+		}
+		if (!spawner) {
+			return ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Player not found."));
+		}
+
+		auto spawnerID = spawner->GetObjectID();
+
+		SendEntitiesSpawnedByID(sysAddr, spawnerID);
+	}
+
+	void DespawnSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		auto* spawner = entity;
+
+		if (args != "") {
+			spawner = PlayerManager::GetPlayer(splitArgs[0]);
+		}
+		if (!spawner) {
+			return ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Player not found."));
+		}
+
+		auto spawnerID = spawner->GetObjectID();
+
+		DespawnEntitiesSpawnedByID(sysAddr, spawnerID);
+	}
+
+	void SaveSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		auto* spawner = entity;
+
+		if (args != "") {
+			spawner = PlayerManager::GetPlayer(splitArgs[0]);
+		}
+		if (!spawner) {
+			return ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("Player not found."));
+		}
+
+		auto spawnerID = spawner->GetObjectID();
+
+		SaveEntitiesSpawnedByID(entity, sysAddr, spawnerID);
+	}
+
+	void ListSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = entity->GetObjectID();
+
+		SendEntitiesSpawnedByID(sysAddr, spawnerID);
+	}
+
+	void DespawnSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = entity->GetObjectID();
+
+		DespawnEntitiesSpawnedByID(sysAddr, spawnerID);
+	}
+
+	void SaveSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = entity->GetObjectID();
+
+		SaveEntitiesSpawnedByID(entity, sysAddr, spawnerID);
+	}
+
+	void ListSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+
+		if (!spawnerID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid object ID.");
+			return;
+		}
+
+		SendEntitiesSpawnedByID(sysAddr, spawnerID.value());
+	}
+
+	void DespawnSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+
+		if (!spawnerID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid object ID.");
+			return;
+		}
+
+		DespawnEntitiesSpawnedByID(sysAddr, spawnerID.value());
+	}
+
+	void SaveSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+
+		auto spawnerID = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+
+		if (!spawnerID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid object ID.");
+			return;
+		}
+
+		SaveEntitiesSpawnedByID(entity, sysAddr, spawnerID.value());
+	}
+
+	void ListAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
+			auto spawnerID = player->GetObjectID();
+			SendEntitiesSpawnedByID(sysAddr, spawnerID);
+		}
+	}
+
+	void DespawnAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		for (auto* player : PlayerManager::GetAllPlayers()) {
+			auto spawnerID = player->GetObjectID();
+			DespawnEntitiesSpawnedByID(sysAddr, spawnerID);
+		}
+	}
+
+	void SaveAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		// This one requires a custom implementation to put everything into a single list.
+		std::vector<Entity*> fullEntityList;
+		for (auto* player : PlayerManager::GetAllPlayers()) {
+			auto spawnerID = player->GetObjectID();
+			std::vector<Entity*> entityList = Game::entityManager->GetEntitiesBySpawnerID(spawnerID);
+			fullEntityList.insert(fullEntityList.end(), entityList.begin(), entityList.end());
+		}
+		SaveEntityList(entity, sysAddr, fullEntityList);
+	}
+
+	void Despawn(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		auto objectId = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+
+		if (!objectId) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Invalid object ID.");
+			return;
+		}
+
+		Entity* targetEntity = Game::entityManager->GetEntity(objectId.value());
+
+		if (targetEntity == nullptr) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Object ID not found.");
+			return;
+		}
+
+		Game::entityManager->DestroyEntity(targetEntity);
 	}
 
 	void SpawnGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -824,7 +1199,7 @@ namespace DEVGMCommands {
 
 	void GiveUScore(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto uscoreOptional = GeneralUtils::TryParse<int32_t>(splitArgs[0]);
 		if (!uscoreOptional) {
@@ -849,7 +1224,7 @@ namespace DEVGMCommands {
 
 	void SetLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		// We may be trying to set a specific players level to a level.  If so override the entity with the requested players.
 		std::string requestedPlayerToSetLevelOf = "";
@@ -951,7 +1326,7 @@ namespace DEVGMCommands {
 
 	void FreeMoney(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto money = GeneralUtils::TryParse<int64_t>(splitArgs[0]);
 
@@ -966,7 +1341,7 @@ namespace DEVGMCommands {
 
 	void SetCurrency(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		const auto money = GeneralUtils::TryParse<int64_t>(splitArgs[0]);
 
@@ -1002,7 +1377,7 @@ namespace DEVGMCommands {
 
 	void TestMap(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting map change...");
 		LWOCLONEID cloneId = 0;
@@ -1143,7 +1518,7 @@ namespace DEVGMCommands {
 
 	void ActivateSpawner(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto spawners = Game::zoneManager->GetSpawnersByName(splitArgs[0]);
 
@@ -1191,7 +1566,7 @@ namespace DEVGMCommands {
 
 	void TriggerSpawner(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto spawners = Game::zoneManager->GetSpawnersByName(splitArgs[0]);
 
@@ -1326,7 +1701,7 @@ namespace DEVGMCommands {
 
 	void DeleteInven(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		eInventoryType inventoryType = eInventoryType::INVALID;
 
@@ -1360,7 +1735,7 @@ namespace DEVGMCommands {
 
 	void CastSkill(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto* skillComponent = entity->GetComponent<SkillComponent>();
 		if (skillComponent) {
@@ -1401,7 +1776,7 @@ namespace DEVGMCommands {
 
 	void SetFaction(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) {
@@ -1419,7 +1794,7 @@ namespace DEVGMCommands {
 
 	void AddFaction(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 		if (destroyableComponent) {
@@ -1455,37 +1830,20 @@ namespace DEVGMCommands {
 		if (!character) return;
 		auto* user = character->GetParentUser();
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 		auto* cdrewardCodes = CDClientManager::GetTable<CDRewardCodesTable>();
 
 		auto id = cdrewardCodes->GetCodeID(splitArgs[0]);
 		if (id != -1) Database::Get()->InsertRewardCode(user->GetAccountID(), id);
 	}
 
-	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
-		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
-
+	static std::tuple<Entity*, float> ClosestToEntity(const NiPoint3 reference, const eReplicaComponentType component,
+											   const std::u16string ldf, const bool isLDF) {
 		Entity* closest = nullptr;
-
-		std::u16string ldf;
-
-		bool isLDF = false;
-
-		auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
-		if (!component) {
-			component = eReplicaComponentType::INVALID;
-
-			ldf = GeneralUtils::UTF8ToUTF16(splitArgs[0]);
-
-			isLDF = true;
-		}
-
-		auto reference = entity->GetPosition();
 
 		auto closestDistance = 0.0f;
 
-		const auto candidates = Game::entityManager->GetEntitiesByComponent(component.value());
+		const auto candidates = Game::entityManager->GetEntitiesByComponent(component);
 
 		for (auto* candidate : candidates) {
 			if (candidate->GetLOT() == 1 || candidate->GetLOT() == 8092) {
@@ -1512,6 +1870,61 @@ namespace DEVGMCommands {
 				closestDistance = distance;
 			}
 		}
+		return {closest, closestDistance};
+	}
+
+	void InspectDespawn(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		ControllablePhysicsComponent* comp = static_cast<ControllablePhysicsComponent*>(entity->GetComponent(eReplicaComponentType::CONTROLLABLE_PHYSICS));
+		if (!comp) return;
+
+		std::u16string ldf;
+
+		bool isLDF = false;
+
+		auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
+		if (!component) {
+			component = eReplicaComponentType::INVALID;
+
+			ldf = GeneralUtils::UTF8ToUTF16(splitArgs[0]);
+
+			isLDF = true;
+		}
+
+		auto reference = entity->GetPosition();
+
+		auto [closest, closestDistance] = ClosestToEntity(reference, component.value(), ldf, isLDF);
+
+		if (!closest) {
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16("No entities found with that component."));
+			return;
+		}
+
+		Game::entityManager->DestroyEntity(closest);
+	}
+
+	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		if (args == "") return;
+
+		std::u16string ldf;
+
+		bool isLDF = false;
+
+		auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
+		if (!component) {
+			component = eReplicaComponentType::INVALID;
+
+			ldf = GeneralUtils::UTF8ToUTF16(splitArgs[0]);
+
+			isLDF = true;
+		}
+
+		auto reference = entity->GetPosition();
+
+		auto [closest, closestDistance] = ClosestToEntity(reference, component.value(), ldf, isLDF);
 
 		if (!closest) return;
 
@@ -1526,6 +1939,12 @@ namespace DEVGMCommands {
 		header << info.name << " [" << std::to_string(info.id) << "]" << " " << std::to_string(closestDistance) << " " << std::to_string(closest->IsSleeping());
 
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(header.str()));
+
+		std::stringstream idMessage;
+
+		idMessage << "Object ID: " << std::to_string(closest->GetObjectID());
+
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(idMessage.str()));
 
 		for (const auto& pair : closest->GetComponents()) {
 			auto id = pair.first;

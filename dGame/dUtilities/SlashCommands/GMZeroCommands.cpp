@@ -185,7 +185,7 @@ namespace GMZeroCommands {
 
 	void Join(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting private map...");
 		const auto& password = splitArgs[0];
