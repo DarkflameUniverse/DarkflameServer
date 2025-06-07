@@ -271,6 +271,18 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 	return entitiesInGroup;
 }
 
+std::vector<Entity*> EntityManager::GetEntitiesBySpawnerID(const LWOOBJID& objectID) const {
+	std::vector<Entity*> entitiesSpawnedBy;
+	if (!GetEntity(objectID)) return entitiesSpawnedBy;
+	for (auto* entity : m_Entities | std::views::values) {
+		if (!(entity->GetSpawnerID() == objectID)) continue;
+
+		entitiesSpawnedBy.push_back(entity);
+	}
+
+	return entitiesSpawnedBy;
+}
+
 std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
 	if (componentType != eReplicaComponentType::INVALID) {
@@ -320,7 +332,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 	return m_SpawnPoints;
 }
 
-void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr) {
+void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
 	if (!entity) {
 		LOG("Attempted to construct null entity");
 		return;
@@ -363,12 +375,16 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	entity->WriteComponents(stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-		for (auto* player : PlayerManager::GetAllPlayers()) {
-			if (player->GetPlayerReadyForUpdates()) {
-				Game::server->Send(stream, player->GetSystemAddress(), false);
-			} else {
-				auto* ghostComponent = player->GetComponent<GhostComponent>();
-				if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
+		if (skipChecks) {
+			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
+		} else {
+			for (auto* player : PlayerManager::GetAllPlayers()) {
+				if (player->GetPlayerReadyForUpdates()) {
+					Game::server->Send(stream, player->GetSystemAddress(), false);
+				} else {
+					auto* ghostComponent = player->GetComponent<GhostComponent>();
+					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
+				}
 			}
 		}
 	} else {
