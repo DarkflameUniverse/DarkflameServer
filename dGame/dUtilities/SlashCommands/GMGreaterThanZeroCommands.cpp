@@ -228,7 +228,7 @@ namespace GMGreaterThanZeroCommands {
 					if (tempScaleStore) {
 						speedScale = tempScaleStore.value();
 					} else {
-						ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse speed scale argument.");
+						if (splitArgs.at(0) != "") ChatPackets::SendSystemMessage(sysAddr, u"Failed to parse speed scale argument.");
 					}
 				}
 
@@ -245,7 +245,7 @@ namespace GMGreaterThanZeroCommands {
 
 	void AttackImmune(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
@@ -261,7 +261,7 @@ namespace GMGreaterThanZeroCommands {
 
 	void GmImmune(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		if (splitArgs.empty()) return;
+		if (args == "") return;
 
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 

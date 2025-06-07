@@ -26,6 +26,7 @@ public:
 	void DestroyEntity(Entity* entity);
 	Entity* GetEntity(const LWOOBJID& objectId) const;
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
+	std::vector<Entity*> GetEntitiesBySpawnerID(const LWOOBJID& objectID) const;
 	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
 	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;
@@ -42,7 +43,7 @@ public:
 	const std::unordered_map<LWOOBJID, Entity*> GetAllEntities() const { return m_Entities; }
 #endif
 
-	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+	void ConstructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS, bool skipChecks = false);
 	void DestructEntity(Entity* entity, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 	void SerializeEntity(Entity* entity);
 	void SerializeEntity(const Entity& entity);
