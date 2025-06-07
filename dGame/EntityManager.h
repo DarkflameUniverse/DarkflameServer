@@ -26,6 +26,7 @@ public:
 	void DestroyEntity(Entity* entity);
 	Entity* GetEntity(const LWOOBJID& objectId) const;
 	std::vector<Entity*> GetEntitiesInGroup(const std::string& group);
+	std::vector<Entity*> GetEntitiesBySpawnerID(const LWOOBJID& objectID) const;
 	std::vector<Entity*> GetEntitiesByComponent(eReplicaComponentType componentType) const;
 	std::vector<Entity*> GetEntitiesByLOT(const LOT& lot) const;
 	std::vector<Entity*> GetEntitiesByProximity(NiPoint3 reference, float radius) const;

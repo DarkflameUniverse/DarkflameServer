@@ -72,6 +72,12 @@ These commands are primarily for development and testing. The usage of many of t
 |completemission|`/completemission <mission id>`|Completes the mission, removing it from your journal.|8|
 |createprivate|`/createprivate <zone id> <clone id> <password>`|Creates a private zone with password.|8|
 |debugui|`/debugui`|Toggle Debug UI.|8|
+|despawn|`/despawn <object id>`|Despawns an object based on its object id, such as that found by `/inspect`.|8|
+|despawn-group|`/despawn-group <groupname>`|Despawns all entities in a given group. Group name should not contain spaces. Alias: `/despawngroup`.|8|
+|despawn-player-spawns|`/despawn-player-spawns <player name>`|Despawns all entities spawned by a given player. Alias: `/despawnplayerspawns`.|8|
+|despawn-my-spawns|`/despawn-my-spawns`|Despawns all entities spawned by you. Aliases: `/despawnmyspawns`.|8|
+|despawn-by-spawner-id|`/despawn-by-spawner-id <spawner id>`|Despawns all entities with a given spawner id. Alias: `/despawnbyspawnerid`.|8|
+|despawn-all-player-spawns|`/despawn-all-player-spawns`|Despawns all entities spawned by online players. Alias: `/despawnallplayerspawns`.|8|
 |dismount|`/dismount`|Dismounts you from the vehicle or mount.|8|
 |reloadconfig|`/reloadconfig`|Reloads the server with the new config values.|8|
 |force-save|`/force-save`|While saving to database usually happens on regular intervals and when you disconnect from the server, this command saves your player's data to the database.|8|
@@ -81,11 +87,18 @@ These commands are primarily for development and testing. The usage of many of t
 |giveuscore|`/giveuscore <uscore>`|Gives uscore.|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id.|8|
 |inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
+|inspect-despawn|`/inspect-despawn <component>`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars) and despawns it. Alias: `/inspect-destroy`|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
+|list-group|`/list-group <groupname>`|Lists all entities in a given group. Group name should not contain spaces. Alias: `/listgroup`.|8|
+|list-spawned-by-player|`/list-spawned-by-player <player name>`|Lists all entities spawned by a given player. Alias: `/listspawnedbyplayer`.|8|
+|list-my-spawns|`/list-my-spawns`|Lists all entities spawned by you. Aliases: `/listmyspawns`, `/my-spawns`, `/myspawns`.|8|
+|list-spawned-by-id|`/list-spawned-by-id <spawner id>`|Lists all entities with a given spawner id. Alias: `/listspawnedbyid`.|8|
+|list-all-player-spawns|`/list-all-player-spawns`|Lists all entities spawned by online players. Alias: `/listallplayerspawns`.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
 |lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Plays animation with given ID. Alias: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect.|8|
+|playerid|`/playerid (player name)`|Gets your player's object id, or that of another character by name, if provided. Alias: `/getplayerid`.|8|
 |playlvlfx|`/playlvlfx`|Plays the level up animation on your character.|8|
 |playrebuildfx|`/playrebuildfx`|Plays the quickbuild animation on your character.|8|
 |pos|`/pos`|Displays your current position in chat and in the console.|8|
@@ -94,12 +107,17 @@ These commands are primarily for development and testing. The usage of many of t
 |resetmission|`/resetmission <mission id>`|Sets the state of the mission to accepted but not yet started.|8|
 |rot|`/rot`|Displays your current rotation in chat and in the console.|8|
 |runmacro|`/runmacro <macro>`|Runs any command macro found in `./res/macros/`|8|
+|save-group|`/save-group <groupname>`|Saves all entities in a given group. Group name should not contain spaces. Alias: `/savegroup`.|8|
+|save-player-spawns|`/save-player-spawns <player name>`|Saves all entities spawned by a given player. Alias: `/saveplayerspawns`.|8|
+|save-my-spawns|`/save-my-spawns`|Saves all entities spawned by you. Aliases: `/savemyspawns`.|8|
+|save-by-spawner-id|`/save-by-spawner-id <spawner id>`|Saves all entities with a given spawner id. Alias: `/savebyspawnerid`.|8|
+|save-all-player-spawns|`/save-all-player-spawns`|Saves all entities spawned by online players. Alias: `/saveallplayerspawns`.|8|
 |setcontrolscheme|`/setcontrolscheme <scheme number>`|Sets the character control scheme to the specified number.|8|
 |setcurrency|`/setcurrency <coins>`|Sets your coins.|8|
 |setflag|`/setflag (value) <flag id>`|Sets the given inventory or health flag to the given value, where value can be one of "on" or "off". If no value is given, by default this adds the flag to your character (equivalent of calling `/setflag on <flag id>`).|8|
 |setinventorysize|`/setinventorysize <size> (inventory)` or <br> `/setinvsize <size> (inventory)`|Sets your inventory size to the given size. If `inventory` is provided, the number or string will be used to set that inventory to the requested size. Alias: `/setinvsize`|8|
 |setuistate|`/setuistate <ui state>`|Changes UI state.|8|
-|spawn|`/spawn <id>`|Spawns an object at your location by id.|8|
+|spawn|`/spawn <id> (<x> <y> <z> (<rotw> <rotx> <roty> <rotz>)) (<groupname>)`|Spawns an object by id, defaulting to your position and rotation, or with a manual position, or manual position and rotation, provided. Additionally, a group name can be provided, to make working with large groups of spawns easier. Note, groupname should not include spaces.|8|
 |spawngroup|`/spawngroup <id> <amount> <radius>`|Spawns `<amount>` of object `<id>` within the given `<radius>` from your location|8|
 |speedboost|`/speedboost <amount>`|Sets the speed multiplier to the given amount. `/speedboost 1.5` will set the speed multiplier to 1.5x the normal speed.|8|
 |startcelebration|`/startcelebration <id>`|Starts a celebration effect on your character.|8|

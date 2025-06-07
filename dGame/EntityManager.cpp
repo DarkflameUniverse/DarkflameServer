@@ -271,6 +271,18 @@ std::vector<Entity*> EntityManager::GetEntitiesInGroup(const std::string& group)
 	return entitiesInGroup;
 }
 
+std::vector<Entity*> EntityManager::GetEntitiesBySpawnerID(const LWOOBJID& objectID) const {
+	std::vector<Entity*> entitiesSpawnedBy;
+	if (!GetEntity(objectID)) return entitiesSpawnedBy;
+	for (auto* entity : m_Entities | std::views::values) {
+		if (!(entity->GetSpawnerID() == objectID)) continue;
+
+		entitiesSpawnedBy.push_back(entity);
+	}
+
+	return entitiesSpawnedBy;
+}
+
 std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaComponentType componentType) const {
 	std::vector<Entity*> withComp;
 	if (componentType != eReplicaComponentType::INVALID) {

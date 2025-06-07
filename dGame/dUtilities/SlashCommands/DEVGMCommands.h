@@ -27,15 +27,18 @@ namespace DEVGMCommands {
 	void CompleteMission(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void CreatePrivate(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void DebugUi(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void Despawn(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Dismount(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void ReloadConfig(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void ForceSave(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Freecam(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void FreeMoney(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GetNavmeshHeight(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void GetPlayerID(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GiveUScore(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void GmAddItem(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void InspectDespawn(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void ListSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void LocRow(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Lookup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
@@ -74,6 +77,22 @@ namespace DEVGMCommands {
 	void CastSkill(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void DeleteInven(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Shutdown(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+
+	void DespawnGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void DespawnSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void DespawnSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void DespawnSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void DespawnAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ListGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ListSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ListSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ListSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void ListAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void SaveGroup(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void SaveSpawnedByPlayer(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void SaveSpawnedBySender(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void SaveSpawnedBySpawnerID(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void SaveAllPlayerSpawns(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
 #endif  //!DEVGMCOMMANDS_H
