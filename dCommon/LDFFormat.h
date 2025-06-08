@@ -83,6 +83,12 @@ public:
 		this->value = value;
 	}
 
+	//! Initializer
+	LDFData(const std::string& key, const T& value) {
+		this->key = GeneralUtils::ASCIIToUTF16(key);
+		this->value = value;
+	}
+
 	//! Destructor
 	~LDFData(void) override {}
 
