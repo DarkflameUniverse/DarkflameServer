@@ -13,6 +13,12 @@ foreach(file ${DSCRIPTS_SOURCES_AI_RACING_TRACK_NS})
 	set(DSCRIPTS_SOURCES_AI_RACING ${DSCRIPTS_SOURCES_AI_RACING} "TRACK_NS/${file}")
 endforeach()
 
+add_subdirectory(TRACK_NS_WINTER)
+
+foreach(file ${DSCRIPTS_SOURCES_AI_RACING_TRACK_NS_WINTER})
+	set(DSCRIPTS_SOURCES_AI_RACING ${DSCRIPTS_SOURCES_AI_RACING} "TRACK_NS_WINTER/${file}")
+endforeach()
+
 add_subdirectory(TRACK_GF)
 
 foreach(file ${DSCRIPTS_SOURCES_AI_RACING_TRACK_GF})
@@ -26,5 +32,5 @@ foreach(file ${DSCRIPTS_SOURCES_AI_RACING_TRACK_FV})
 endforeach()
 
 add_library(dScriptsAiRacing OBJECT ${DSCRIPTS_SOURCES_AI_RACING})
-target_include_directories(dScriptsAiRacing PUBLIC "." "OBJECTS" "TRACK_NS" "TRACK_GF" "TRACK_FV")
+target_include_directories(dScriptsAiRacing PUBLIC "." "OBJECTS" "TRACK_NS" "TRACK_NS_WINTER" "TRACK_GF" "TRACK_FV")
 target_precompile_headers(dScriptsAiRacing REUSE_FROM dScriptsBase)
