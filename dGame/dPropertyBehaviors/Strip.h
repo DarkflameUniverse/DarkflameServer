@@ -33,6 +33,9 @@ public:
 	void SpawnDrop(LOT dropLOT, Entity& entity);
 	void ProcNormalAction(float deltaTime, ModelComponent& modelComponent);
 	void RemoveStates(ModelComponent& modelComponent) const;
+
+	// 2 actions are required for strips to work
+	bool HasMinimumActions() const { return m_Actions.size() >= 2; }
 private:
 	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };
