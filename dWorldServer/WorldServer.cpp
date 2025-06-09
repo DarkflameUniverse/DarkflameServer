@@ -713,12 +713,12 @@ void HandleMasterPacket(Packet* packet) {
 			//Create our user and send them in:
 			UserManager::Instance()->CreateUser(it->second.sysAddr, username.GetAsString(), userHash);
 
-			auto zone = Game::zoneManager->GetZone();
-			if (zone) {
+			if (Game::zoneManager->HasZone()) {
 				float x = 0.0f;
 				float y = 0.0f;
 				float z = 0.0f;
 
+				auto zone = Game::zoneManager->GetZone();
 				if (zone->GetZoneID().GetMapID() == 1100) {
 					auto pos = zone->GetSpawnPos();
 					x = pos.x;

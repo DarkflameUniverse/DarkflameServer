@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #ifdef _DEBUG
-#	define DluAssert(expression) do { assert(expression) } while(0)
+#	define DluAssert(expression) do { assert(expression); } while(0)
 #else
 #	define DluAssert(expression)
 #endif
