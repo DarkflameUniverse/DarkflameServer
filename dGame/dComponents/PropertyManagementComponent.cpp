@@ -272,6 +272,10 @@ void PropertyManagementComponent::OnStartBuilding() {
 			model->HandleMsg(reset);
 		}
 	}
+
+	for (auto* const entity : Game::entityManager->GetEntitiesInGroup("SpawnedPropertyEnemies")) {
+		if (entity) entity->Smash();
+	}
 }
 
 void PropertyManagementComponent::OnFinishBuilding() {
@@ -295,6 +299,10 @@ void PropertyManagementComponent::OnFinishBuilding() {
 			reset.target = modelID;
 			model->HandleMsg(reset);
 		}
+	}
+
+	for (auto* const entity : Game::entityManager->GetEntitiesInGroup("SpawnedPropertyEnemies")) {
+		if (entity) entity->Smash();
 	}
 }
 

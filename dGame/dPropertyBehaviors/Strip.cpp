@@ -111,7 +111,9 @@ void Strip::Spawn(LOT lot, Entity& entity) {
 	info.pos = entity.GetPosition();
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = entity.GetObjectID();
-	Game::entityManager->ConstructEntity(Game::entityManager->CreateEntity(info, nullptr, &entity));
+	auto* const spawnedEntity = Game::entityManager->CreateEntity(info, nullptr, &entity);
+	spawnedEntity->AddToGroup("SpawnedPropertyEnemies");
+	Game::entityManager->ConstructEntity(spawnedEntity);
 }
 
 // Spawns a specific drop for all
