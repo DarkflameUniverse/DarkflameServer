@@ -84,9 +84,11 @@ void Strip::HandleMsg(MigrateActionsMessage& msg) {
 
 template<>
 void Strip::HandleMsg(GameMessages::RequestUse& msg) {
-	if (m_PausedTime > 0.0f) return;
+	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
-	if (m_Actions[m_NextActionIndex].GetType() == "OnInteract") {
+	auto& nextAction = GetNextAction();
+
+	if (nextAction.GetType() == "OnInteract") {
 		IncrementAction();
 		m_WaitingForAction = false;
 	}
@@ -113,7 +115,9 @@ void Strip::Spawn(LOT lot, Entity& entity) {
 	info.pos = entity.GetPosition();
 	info.rot = NiQuaternionConstant::IDENTITY;
 	info.spawnerID = entity.GetObjectID();
-	Game::entityManager->ConstructEntity(Game::entityManager->CreateEntity(info, nullptr, &entity));
+	auto* const spawnedEntity = Game::entityManager->CreateEntity(info, nullptr, &entity);
+	spawnedEntity->AddToGroup("SpawnedPropertyEnemies");
+	Game::entityManager->ConstructEntity(spawnedEntity);
 }
 
 // Spawns a specific drop for all
@@ -139,6 +143,7 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 
 		// Default velocity is 3 units per second.
 		entity.SetVelocity(NiPoint3{0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f});
+		modelComponent.SetVelocity(NiPoint3{0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f});
 	}
 	else if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
 		bool isMoveLeft = nextActionType == "MoveLeft";
@@ -205,7 +210,6 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 			LOG("Tried to play action (%s) which is not supported.", nextActionType.data());
 			g_WarnedActions.insert(nextActionType.data());
 		}
-		return;
 	}
 
 	IncrementAction();
@@ -259,13 +263,19 @@ bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
 }
 
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
+	// No point in running a strip with only one action.
+	// Strips are also designed to have 2 actions or more to run.
+	if (!HasMinimumActions()) return;
+
 	if (!CheckMovement(deltaTime, modelComponent)) return;
 
+	// Don't run this strip if we're paused.
 	m_PausedTime -= deltaTime;
 	if (m_PausedTime > 0.0f) return;
 
 	m_PausedTime = 0.0f;
 
+	// Return here if we're waiting for external interactions to continue.
 	if (m_WaitingForAction) return;
 
 	auto& entity = *modelComponent.GetParent();

@@ -324,13 +324,15 @@ While a character has a gmlevel of anything but `0`, some gameplay behavior will
 Some changes to the client `boot.cfg` file are needed to play on your server.
 
 ## Allowing a user to connect to your server
+**ALL OF THESE CHANGES ARE REQUIRED. PLEASE FULLY READ THIS SECTION**
+
 To connect to a server follow these steps:
 * In the client directory, locate `boot.cfg`
-* Open it in a text editor and locate where it says `AUTHSERVERIP=0:`
-* Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
-* Next locate the line `UGCUSE3DSERVICES=7:`
+* Open `boot.cfg` in a text editor and locate the line `UGCUSE3DSERVICES=7:`
 * Ensure the number after the 7 is a `0`
 * Alternatively, remove the line with `UGCUSE3DSERVICES` altogether
+* Next locate where it says `AUTHSERVERIP=0:`
+* Replace the contents after to `:` and the following `,` with what you configured as the server's public facing IP. For example `AUTHSERVERIP=0:localhost` for locally hosted servers
 * Launch `legouniverse.exe`, through `wine` if on a Unix-like operating system
 * Note that if you are on WSL2, you will need to configure the public IP in the server and client to be the IP of the WSL2 instance and not localhost, which can be found by running `ifconfig` in the terminal. Windows defaults to WSL1, so this will not apply to most users.
 As an example, here is what the boot.cfg is required to contain for a server with the ip 12.34.56.78

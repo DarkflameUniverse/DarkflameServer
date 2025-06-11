@@ -251,11 +251,6 @@ private:
 	static std::unordered_map<LWOOBJID, LWOOBJID> currentActivities;
 
 	/**
-	 * Flags that indicate that a player has tamed a pet, indexed by the LOT of the pet
-	 */
-	static const std::map<LOT, int32_t> petFlags;
-
-	/**
 	 * The ID of the component in the pet component table
 	 */
 	uint32_t m_ComponentId;

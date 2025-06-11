@@ -234,10 +234,17 @@ public:
 	 */
 	bool IsPlayedBy(LWOOBJID playerID) const;
 
+	/** 
+	 * Checks if the entity has enough cost to play this activity
+	 * @param player the entity to check
+	 * @return true if the entity has enough cost to play this activity, false otherwise
+	*/
+	bool CheckCost(Entity* player) const;
+
 	/**
 	 * Removes the cost of the activity (e.g. green imaginate) for the entity that plays this activity
 	 * @param player the entity to take cost for
-	 * @return true if the cost was successfully deducted, false otherwise
+	 * @return true if the cost was taken, false otherwise
 	 */
 	bool TakeCost(Entity* player) const;
 

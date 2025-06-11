@@ -321,6 +321,8 @@ private:
 	bool m_Paused;
 
 	NiPoint3 m_SavedVelocity;
+
+	bool m_IsBounced{};
 };
 
 #endif // MOVEMENTAICOMPONENT_H

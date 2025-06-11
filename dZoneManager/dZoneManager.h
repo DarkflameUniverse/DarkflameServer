@@ -29,6 +29,7 @@ public:
 	/* Gets a pointer to the currently loaded zone. */
 	Zone* GetZoneMut() const;
 	const Zone* GetZone() const { return GetZoneMut(); };
+	bool HasZone() const { return m_pZone != nullptr; };
 	void LoadZone(const LWOZONEID& zoneID); //Discard the current zone (if any) and loads a new zone.
 
 	/* Adds a spawner to the zone with the specified ID. */

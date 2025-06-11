@@ -16,7 +16,10 @@ body:
             I have validated that this issue is not a syntax error of either MySQL or SQLite.
           required: true
         - label: >
-            I have pulled the latest version of the main branch of DarkflameServer and have confirmed that the issue exists there.
+            I have downloaded/pulled the latest version of the main branch of DarkflameServer and have confirmed that the issue exists there.
+          required: true
+        - label: >
+            I have verified that my boot.cfg is configured as per the [README](https://github.com/DarkflameUniverse/DarkflameServer?tab=readme-ov-file#allowing-a-user-to-connect-to-your-server).
           required: true
   - type: input
     id: server-version

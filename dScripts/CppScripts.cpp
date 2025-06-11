@@ -336,6 +336,7 @@
 #include "NsRaceServer.h"
 #include "TrialFactionArmorServer.h"
 #include "ImaginationBackPack.h"
+#include "NsWinterRaceServer.h"
 
 #include <map>
 #include <string>
@@ -656,6 +657,7 @@ namespace {
 		//FB
 		{"scripts\\ai\\NS\\WH\\L_ROCKHYDRANT_BROKEN.lua", []() {return new RockHydrantBroken();}},
 		{"scripts\\ai\\NS\\L_NS_WH_FANS.lua", []() {return new WhFans();}},
+		{"scripts\\ai\\RACING\\TRACK_NS_WINTER\\NS_WINTER_RACE_SERVER.lua", []() {return new NsWinterRaceServer();}},
 
 		//WBL
 		{"scripts\\zone\\LUPs\\WBL_generic_zone.lua", []() {return new WblGenericZone();}},

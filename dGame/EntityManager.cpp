@@ -320,7 +320,7 @@ const std::unordered_map<std::string, LWOOBJID>& EntityManager::GetSpawnPointEnt
 	return m_SpawnPoints;
 }
 
-void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr, const bool skipChecks) {
+void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr) {
 	if (!entity) {
 		LOG("Attempted to construct null entity");
 		return;
@@ -363,16 +363,14 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 	entity->WriteComponents(stream, eReplicaPacketType::CONSTRUCTION);
 
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
-		if (skipChecks) {
-			Game::server->Send(stream, UNASSIGNED_SYSTEM_ADDRESS, true);
-		} else {
-			for (auto* player : PlayerManager::GetAllPlayers()) {
-				if (player->GetPlayerReadyForUpdates()) {
-					Game::server->Send(stream, player->GetSystemAddress(), false);
-				} else {
-					auto* ghostComponent = player->GetComponent<GhostComponent>();
-					if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
-				}
+		for (auto* player : PlayerManager::GetAllPlayers()) {
+			// Don't need to construct the player to themselves 
+			if (entity->GetObjectID() == player->GetObjectID()) continue;
+			if (player->GetPlayerReadyForUpdates()) {
+				Game::server->Send(stream, player->GetSystemAddress(), false);
+			} else {
+				auto* ghostComponent = player->GetComponent<GhostComponent>();
+				if (ghostComponent) ghostComponent->AddLimboConstruction(entity->GetObjectID());
 			}
 		}
 	} else {
