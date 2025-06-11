@@ -124,6 +124,8 @@ public:
 	// then return the collision group from that.
 	int32_t GetCollisionGroup() const;
 
+	const NiPoint3& GetVelocity() const;
+
 	/**
 	 * Setters
 	 */
@@ -331,7 +333,7 @@ public:
 	 * @brief The observable for player entity position updates.
 	 */
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
-	
+
 protected:
 	LWOOBJID m_ObjectID;
 
@@ -437,7 +439,7 @@ const T& Entity::GetVar(const std::u16string& name) const {
 template<typename T>
 T Entity::GetVarAs(const std::u16string& name) const {
 	const auto data = GetVarAsString(name);
-	
+
 	return GeneralUtils::TryParse<T>(data).value_or(LDFData<T>::Default);
 }
 

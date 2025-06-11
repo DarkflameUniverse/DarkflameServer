@@ -209,3 +209,31 @@ void ModelComponent::RemoveUnSmash() {
 	LOG_DEBUG("Removing UnSmash %i", m_NumActiveUnSmash);
 	m_NumActiveUnSmash--;
 }
+
+bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
+	auto currentVelocity = m_Parent->GetVelocity();
+
+	// If we're currently moving on an axis, prevent the move so only 1 behavior can have control over an axis
+	if (velocity != NiPoint3Constant::ZERO) {
+		const auto [x, y, z] = velocity;
+		if (x != 0.0f) {
+			if (currentVelocity.x != 0.0f) return false;
+			currentVelocity.x = x;
+		} else if (y != 0.0f) {
+			if (currentVelocity.y != 0.0f) return false;
+			currentVelocity.y = y;
+		} else if (z != 0.0f) {
+			if (currentVelocity.z != 0.0f) return false;
+			currentVelocity.z = z;
+		}
+	} else {
+		currentVelocity = velocity;
+	}
+
+	m_Parent->SetVelocity(currentVelocity);
+	return true;
+}
+
+void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
+	m_Parent->SetVelocity(velocity);
+}

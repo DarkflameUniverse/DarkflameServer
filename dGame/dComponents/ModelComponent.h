@@ -130,6 +130,14 @@ public:
 	bool IsUnSmashing() const { return m_NumActiveUnSmash != 0; }
 
 	void Resume();
+
+	// Attempts to set the velocity of an axis for movement.
+	// If the axis currently has a velocity of zero, returns true.
+	// If the axis is currently controlled by a behavior, returns false.
+	bool TrySetVelocity(const NiPoint3& velocity) const;
+
+	// Force sets the velocity to a value.
+	void SetVelocity(const NiPoint3& velocity) const;
 private:
 	// Number of Actions that are awaiting an UnSmash to finish.
 	uint32_t m_NumActiveUnSmash{};

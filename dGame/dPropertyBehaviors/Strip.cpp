@@ -136,30 +136,31 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
-	if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
-		bool isFlyDown = nextActionType == "FlyDown";
-		m_PreviousFramePosition = entity.GetPosition();
-		m_InActionMove.y = isFlyDown ? -number : number;
-
-		// Default velocity is 3 units per second.
-		entity.SetVelocity(NiPoint3{0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f});
-		modelComponent.SetVelocity(NiPoint3{0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f});
-	}
-	else if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
+	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
+		// X axis
 		bool isMoveLeft = nextActionType == "MoveLeft";
-		m_PreviousFramePosition = entity.GetPosition();
-		m_InActionMove.x = isMoveLeft ? -number : number;
-
 		// Default velocity is 3 units per second.
-		entity.SetVelocity(NiPoint3{isMoveLeft ? -3.0f : 3.0f, 0.0f, 0.0f});
-	}
-	else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
+		if (modelComponent.TrySetVelocity(NiPoint3{ isMoveLeft ? -3.0f : 3.0f, 0.0f, 0.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.x = isMoveLeft ? -number : number;
+		}
+	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
+		// Y axis
+		bool isFlyDown = nextActionType == "FlyDown";
+		// Default velocity is 3 units per second.
+		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.y = isFlyDown ? -number : number;
+		}
+
+	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
+		// Z axis
 		bool isMoveBackward = nextActionType == "MoveBackward";
-		m_PreviousFramePosition = entity.GetPosition();
-		m_InActionMove.z = isMoveBackward ? -number : number;
-
 		// Default velocity is 3 units per second.
-		entity.SetVelocity(NiPoint3{0.0f, 0.0f, isMoveBackward ? -3.0f : 3.0f});
+		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, 0.0f, isMoveBackward ? -3.0f : 3.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.z = isMoveBackward ? -number : number;
+		}
 	}
 	/* END Move */
 
@@ -239,23 +240,35 @@ bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
 	// Starts at true because we may not be doing a move at all.
 	// If one is being done, then one of the move_ variables will be non-zero
 	bool moveFinished = true;
+	NiPoint3 finalPositionAdjustment = NiPoint3Constant::ZERO;
 	if (moveX != 0.0f) {
 		m_InActionMove.x -= diff.x;
 		// If the sign bit is different between the two numbers, then we have finished our move.
 		moveFinished = std::signbit(m_InActionMove.x) != std::signbit(moveX);
+		finalPositionAdjustment.x = m_InActionMove.x;
 	} else if (moveY != 0.0f) {
 		m_InActionMove.y -= diff.y;
 		// If the sign bit is different between the two numbers, then we have finished our move.
 		moveFinished = std::signbit(m_InActionMove.y) != std::signbit(moveY);
+		finalPositionAdjustment.y = m_InActionMove.y;
 	} else if (moveZ != 0.0f) {
 		m_InActionMove.z -= diff.z;
 		// If the sign bit is different between the two numbers, then we have finished our move.
 		moveFinished = std::signbit(m_InActionMove.z) != std::signbit(moveZ);
+		finalPositionAdjustment.z = m_InActionMove.z;
 	}
 
-	// once done, set the in action move & velocity to zero
-	if (moveFinished) {
-		entity.SetVelocity(NiPoint3Constant::ZERO);
+	// Once done, set the in action move & velocity to zero
+	if (moveFinished && m_InActionMove != NiPoint3Constant::ZERO) {
+		auto entityVelocity = entity.GetVelocity();
+		// Zero out only the velocity that was acted on
+		if (moveX != 0.0f) entityVelocity.x = 0.0f;
+		else if (moveY != 0.0f) entityVelocity.y = 0.0f;
+		else if (moveZ != 0.0f) entityVelocity.z = 0.0f;
+		modelComponent.SetVelocity(entityVelocity);
+
+		// Do the final adjustment so we will have moved exactly the requested units
+		entity.SetPosition(entity.GetPosition() + finalPositionAdjustment);
 		m_InActionMove = NiPoint3Constant::ZERO;
 	}
 
@@ -267,6 +280,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	// Strips are also designed to have 2 actions or more to run.
 	if (!HasMinimumActions()) return;
 
+	// Return if this strip has an active movement action
 	if (!CheckMovement(deltaTime, modelComponent)) return;
 
 	// Don't run this strip if we're paused.
