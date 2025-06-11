@@ -41,7 +41,7 @@ public:
 	 * Returns the original position of the model
 	 * @return the original position of the model
 	 */
-	const NiPoint3& GetPosition() { return m_OriginalPosition; }
+	const NiPoint3& GetOriginalPosition() { return m_OriginalPosition; }
 
 	/**
 	 * Sets the original position of the model
@@ -53,7 +53,7 @@ public:
 	 * Returns the original rotation of the model
 	 * @return the original rotation of the model
 	 */
-	const NiQuaternion& GetRotation() { return m_OriginalRotation; }
+	const NiQuaternion& GetOriginalRotation() { return m_OriginalRotation; }
 
 	/**
 	 * Sets the original rotation of the model
@@ -130,6 +130,14 @@ public:
 	bool IsUnSmashing() const { return m_NumActiveUnSmash != 0; }
 
 	void Resume();
+
+	// Attempts to set the velocity of an axis for movement.
+	// If the axis currently has a velocity of zero, returns true.
+	// If the axis is currently controlled by a behavior, returns false.
+	bool TrySetVelocity(const NiPoint3& velocity) const;
+
+	// Force sets the velocity to a value.
+	void SetVelocity(const NiPoint3& velocity) const;
 private:
 	// Number of Actions that are awaiting an UnSmash to finish.
 	uint32_t m_NumActiveUnSmash{};

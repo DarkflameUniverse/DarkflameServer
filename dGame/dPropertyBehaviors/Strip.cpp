@@ -99,6 +99,8 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_WaitingForAction = false;
 	m_PausedTime = 0.0f;
 	m_NextActionIndex = 0;
+	m_InActionMove = NiPoint3Constant::ZERO;
+	m_PreviousFramePosition = NiPoint3Constant::ZERO;
 }
 
 void Strip::IncrementAction() {
@@ -131,19 +133,39 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto number = nextAction.GetValueParameterDouble();
 	auto numberAsInt = static_cast<int32_t>(number);
 	auto nextActionType = GetNextAction().GetType();
-	if (nextActionType == "SpawnStromling") {
-		Spawn(10495, entity); // Stromling property
-	} else if (nextActionType == "SpawnPirate") {
-		Spawn(10497, entity); // Maelstrom Pirate property
-	} else if (nextActionType == "SpawnRonin") {
-		Spawn(10498, entity); // Dark Ronin property
-	} else if (nextActionType == "DropImagination") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
-	} else if (nextActionType == "DropHealth") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity); // 1 Life powerup
-	} else if (nextActionType == "DropArmor") {
-		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
-	} else if (nextActionType == "Smash") {
+
+	// TODO replace with switch case and nextActionType with enum
+	/* BEGIN Move */
+	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
+		// X axis
+		bool isMoveLeft = nextActionType == "MoveLeft";
+		// Default velocity is 3 units per second.
+		if (modelComponent.TrySetVelocity(NiPoint3{ isMoveLeft ? -3.0f : 3.0f, 0.0f, 0.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.x = isMoveLeft ? -number : number;
+		}
+	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
+		// Y axis
+		bool isFlyDown = nextActionType == "FlyDown";
+		// Default velocity is 3 units per second.
+		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.y = isFlyDown ? -number : number;
+		}
+
+	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
+		// Z axis
+		bool isMoveBackward = nextActionType == "MoveBackward";
+		// Default velocity is 3 units per second.
+		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, 0.0f, isMoveBackward ? -3.0f : 3.0f })) {
+			m_PreviousFramePosition = entity.GetPosition();
+			m_InActionMove.z = isMoveBackward ? -number : number;
+		}
+	}
+	/* END Move */
+
+	/* BEGIN Action */
+	else if (nextActionType == "Smash") {
 		if (!modelComponent.IsUnSmashing()) {
 			GameMessages::Smash smash{};
 			smash.target = entity.GetObjectID();
@@ -166,7 +188,24 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		sound.target = modelComponent.GetParent()->GetObjectID();
 		sound.soundID = numberAsInt;
 		sound.Send(UNASSIGNED_SYSTEM_ADDRESS);
-	} else {
+	}
+	/* END Action */
+	/* BEGIN Gameplay */
+	else if (nextActionType == "SpawnStromling") {
+		Spawn(10495, entity); // Stromling property
+	} else if (nextActionType == "SpawnPirate") {
+		Spawn(10497, entity); // Maelstrom Pirate property
+	} else if (nextActionType == "SpawnRonin") {
+		Spawn(10498, entity); // Dark Ronin property
+	} else if (nextActionType == "DropImagination") {
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(935, entity); // 1 Imagination powerup
+	} else if (nextActionType == "DropHealth") {
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(177, entity); // 1 Life powerup
+	} else if (nextActionType == "DropArmor") {
+		for (; numberAsInt > 0; numberAsInt--) SpawnDrop(6431, entity); // 1 Armor powerup
+	}
+	/* END Gameplay */
+	else {
 		static std::set<std::string> g_WarnedActions;
 		if (!g_WarnedActions.contains(nextActionType.data())) {
 			LOG("Tried to play action (%s) which is not supported.", nextActionType.data());
@@ -190,10 +229,59 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 	}
 }
 
+bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
+	auto& entity = *modelComponent.GetParent();
+	const auto& currentPos = entity.GetPosition();
+	const auto diff = currentPos - m_PreviousFramePosition;
+	const auto [moveX, moveY, moveZ] = m_InActionMove;
+	m_PreviousFramePosition = currentPos;
+
+	// Only want to subtract from the move if one is being performed.
+	// Starts at true because we may not be doing a move at all.
+	// If one is being done, then one of the move_ variables will be non-zero
+	bool moveFinished = true;
+	NiPoint3 finalPositionAdjustment = NiPoint3Constant::ZERO;
+	if (moveX != 0.0f) {
+		m_InActionMove.x -= diff.x;
+		// If the sign bit is different between the two numbers, then we have finished our move.
+		moveFinished = std::signbit(m_InActionMove.x) != std::signbit(moveX);
+		finalPositionAdjustment.x = m_InActionMove.x;
+	} else if (moveY != 0.0f) {
+		m_InActionMove.y -= diff.y;
+		// If the sign bit is different between the two numbers, then we have finished our move.
+		moveFinished = std::signbit(m_InActionMove.y) != std::signbit(moveY);
+		finalPositionAdjustment.y = m_InActionMove.y;
+	} else if (moveZ != 0.0f) {
+		m_InActionMove.z -= diff.z;
+		// If the sign bit is different between the two numbers, then we have finished our move.
+		moveFinished = std::signbit(m_InActionMove.z) != std::signbit(moveZ);
+		finalPositionAdjustment.z = m_InActionMove.z;
+	}
+
+	// Once done, set the in action move & velocity to zero
+	if (moveFinished && m_InActionMove != NiPoint3Constant::ZERO) {
+		auto entityVelocity = entity.GetVelocity();
+		// Zero out only the velocity that was acted on
+		if (moveX != 0.0f) entityVelocity.x = 0.0f;
+		else if (moveY != 0.0f) entityVelocity.y = 0.0f;
+		else if (moveZ != 0.0f) entityVelocity.z = 0.0f;
+		modelComponent.SetVelocity(entityVelocity);
+
+		// Do the final adjustment so we will have moved exactly the requested units
+		entity.SetPosition(entity.GetPosition() + finalPositionAdjustment);
+		m_InActionMove = NiPoint3Constant::ZERO;
+	}
+
+	return moveFinished;
+}
+
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	// No point in running a strip with only one action.
 	// Strips are also designed to have 2 actions or more to run.
 	if (!HasMinimumActions()) return;
+
+	// Return if this strip has an active movement action
+	if (!CheckMovement(deltaTime, modelComponent)) return;
 
 	// Don't run this strip if we're paused.
 	m_PausedTime -= deltaTime;
@@ -209,7 +297,7 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 
 	RemoveStates(modelComponent);
 
-	// Check for starting blocks and if not a starting block proc this blocks action
+	// Check for trigger blocks and if not a trigger block proc this blocks action
 	if (m_NextActionIndex == 0) {
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
