@@ -65,6 +65,10 @@ public:
 	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
 
 	void SetPath(const std::string pathName);
+	void SetPath(const std::string pathName, uint32_t startIndex, bool reverse);
+	void TurnAroundOnPath();
+	void GoForwardOnPath();
+	void GoBackwardOnPath();
 
 	void Update(float deltaTime) override;
 

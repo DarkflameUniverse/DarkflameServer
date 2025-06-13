@@ -457,40 +457,43 @@ void TriggerComponent::HandleActivatePhysics(Entity* targetEntity, std::string a
 void TriggerComponent::HandleSetPath(Entity* targetEntity, std::vector<std::string> argArray) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
 	if (!movementAIComponent) return;
-	// movementAIComponent->SetupPath(argArray.at(0));
+	uint32_t start_index = 0;
+	bool reverse = false;
 	if (argArray.size() >= 2) {
 		auto index = GeneralUtils::TryParse<int32_t>(argArray.at(1));
-		if (!index) return;
-		// movementAIComponent->SetPathStartingWaypointIndex(index.value());
+		if (index) {
+			start_index = index.value();
+		}
 	}
 	if (argArray.size() >= 3 && argArray.at(2) == "1") {
-		// movementAIComponent->ReversePath();
+			reverse = true;
 	}
+	movementAIComponent->SetPath(argArray.at(0), start_index, reverse);
 }
 
 void TriggerComponent::HandleTurnAroundOnPath(Entity* targetEntity) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	// if (movementAIComponent) movementAIComponent->ReversePath();
+	if (movementAIComponent) movementAIComponent->TurnAroundOnPath();
 }
 
 void TriggerComponent::HandleGoForwardOnPath(Entity* targetEntity) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
 	if (!movementAIComponent) return;
-	// if (movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+	movementAIComponent->GoForwardOnPath();
 }
 
 void TriggerComponent::HandleGoBackwardOnPath(Entity* targetEntity) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
 	if (!movementAIComponent) return;
-	// if (!movementAIComponent->GetIsInReverse()) movementAIComponent->ReversePath();
+	movementAIComponent->GoBackwardOnPath();
 }
 
 void TriggerComponent::HandleStopPathing(Entity* targetEntity) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	// if (movementAIComponent) movementAIComponent->Pause();
+	if (movementAIComponent) movementAIComponent->Pause();
 }
 
 void TriggerComponent::HandleStartPathing(Entity* targetEntity) {
 	auto* movementAIComponent = targetEntity->GetComponent<MovementAIComponent>();
-	// if (movementAIComponent) movementAIComponent->Resume();
+	if (movementAIComponent) movementAIComponent->Resume();
 }
