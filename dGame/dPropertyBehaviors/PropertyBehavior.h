@@ -34,6 +34,7 @@ public:
 	void Deserialize(const tinyxml2::XMLElement& behavior);
 
 	void Update(float deltaTime, ModelComponent& modelComponent);
+	void OnChatMessageReceived(const std::string& sMessage);
 
 private:
 	// The current active behavior state. Behaviors can only be in ONE state at a time.

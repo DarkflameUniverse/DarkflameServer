@@ -22,6 +22,8 @@ public:
 	void Deserialize(const tinyxml2::XMLElement& state);
 
 	void Update(float deltaTime, ModelComponent& modelComponent);
+
+	void OnChatMessageReceived(const std::string& sMessage);
 private:
 
 	// The strips contained within this state.

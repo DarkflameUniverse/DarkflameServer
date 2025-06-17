@@ -164,6 +164,8 @@ public:
 
 	LWOOBJID GetId() const noexcept { return propertyId; }
 
+
+	void OnChatMessageReceived(const std::string& sMessage) const;
 private:
 	/**
 	 * This
@@ -193,7 +195,7 @@ private:
 	/**
 	 * The models that are placed on this property
 	 */
-	std::map<LWOOBJID, LWOOBJID> models = {};
+	std::map<LWOOBJID /* ObjectID */, LWOOBJID /* SpawnerID */> models = {};
 
 	/**
 	 * The name of this property
