@@ -20,6 +20,7 @@ target_include_directories(dPropertyBehaviors PUBLIC "." "ControlBehaviorMessage
 	"${PROJECT_SOURCE_DIR}/dGame/dUtilities" # ObjectIdManager.h
 	"${PROJECT_SOURCE_DIR}/dGame/dGameMessages" # GameMessages.h
 	"${PROJECT_SOURCE_DIR}/dGame/dComponents" # ModelComponent.h
+	"${PROJECT_SOURCE_DIR}/dChatFilter" # dChatFilter.h
 )
 target_precompile_headers(dPropertyBehaviors REUSE_FROM dGameBase)
 

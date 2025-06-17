@@ -237,3 +237,7 @@ bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
 void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
 	m_Parent->SetVelocity(velocity);
 }
+
+void ModelComponent::OnChatMessageReceived(const std::string& sMessage) {
+	for (auto& behavior : m_Behaviors) behavior.OnChatMessageReceived(sMessage);
+}

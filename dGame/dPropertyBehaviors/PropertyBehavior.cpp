@@ -172,3 +172,7 @@ void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
 void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
 	for (auto& state : m_States | std::views::values) state.Update(deltaTime, modelComponent);
 }
+
+void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage) {
+	for (auto& state : m_States | std::views::values) state.OnChatMessageReceived(sMessage);
+}

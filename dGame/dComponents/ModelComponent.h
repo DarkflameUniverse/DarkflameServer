@@ -138,6 +138,8 @@ public:
 
 	// Force sets the velocity to a value.
 	void SetVelocity(const NiPoint3& velocity) const;
+
+	void OnChatMessageReceived(const std::string& sMessage);
 private:
 	// Number of Actions that are awaiting an UnSmash to finish.
 	uint32_t m_NumActiveUnSmash{};
