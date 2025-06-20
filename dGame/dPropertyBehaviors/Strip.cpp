@@ -111,7 +111,7 @@ void Strip::OnChatMessageReceived(const std::string& sMessage) {
 	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
 
 	const auto& nextAction = GetNextAction();
-	if (nextAction.GetValueParameterString() == sMessage) {
+	if (nextAction.GetType() == "OnChat" && nextAction.GetValueParameterString() == sMessage) {
 		IncrementAction();
 		m_WaitingForAction = false;
 	}
