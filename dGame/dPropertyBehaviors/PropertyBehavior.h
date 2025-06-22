@@ -27,8 +27,8 @@ public:
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
 
-	[[nodiscard]] int32_t GetBehaviorId() const noexcept { return m_BehaviorId; }
-	void SetBehaviorId(int32_t id) noexcept { m_BehaviorId = id; }
+	[[nodiscard]] LWOOBJID GetBehaviorId() const noexcept { return m_BehaviorId; }
+	void SetBehaviorId(LWOOBJID id) noexcept { m_BehaviorId = id; }
 
 	void Serialize(tinyxml2::XMLElement& behavior) const;
 	void Deserialize(const tinyxml2::XMLElement& behavior);
@@ -58,7 +58,7 @@ private:
 
 	// The behavior id for this behavior. This is expected to be fully unique, however an id of -1 means this behavior was just created
 	// and needs to be assigned an id.
-	int32_t m_BehaviorId = -1;
+	LWOOBJID m_BehaviorId = -1;
 };
 
 #endif  //!__PROPERTYBEHAVIOR__H__

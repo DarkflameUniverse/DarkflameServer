@@ -52,7 +52,7 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) override;
 	void RemoveUnreferencedUgcModels() override;
 	void InsertNewPropertyModel(const LWOOBJID& propertyId, const IPropertyContents::Model& model, const std::string_view name) override;
-	void UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) override;
+	void UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<LWOOBJID, std::string>, 5>& behaviors) override;
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
@@ -87,8 +87,8 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
 	void AddBehavior(const IBehaviors::Info& info) override;
-	std::string GetBehavior(const int32_t behaviorId) override;
-	void RemoveBehavior(const int32_t behaviorId) override;
+	std::string GetBehavior(const LWOOBJID behaviorId) override;
+	void RemoveBehavior(const LWOOBJID behaviorId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override { return {}; };
 	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override { return {}; };

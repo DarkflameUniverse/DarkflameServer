@@ -19,11 +19,11 @@ std::vector<IPropertyContents::Model> SQLiteDatabase::GetPropertyModels(const LW
 		model.rotation.y = result.getFloatField("ry");
 		model.rotation.z = result.getFloatField("rz");
 		model.ugcId = result.getInt64Field("ugc_id");
-		model.behaviors[0] = result.getIntField("behavior_1");
-		model.behaviors[1] = result.getIntField("behavior_2");
-		model.behaviors[2] = result.getIntField("behavior_3");
-		model.behaviors[3] = result.getIntField("behavior_4");
-		model.behaviors[4] = result.getIntField("behavior_5");
+		model.behaviors[0] = result.getInt64Field("behavior_1");
+		model.behaviors[1] = result.getInt64Field("behavior_2");
+		model.behaviors[2] = result.getInt64Field("behavior_3");
+		model.behaviors[3] = result.getInt64Field("behavior_4");
+		model.behaviors[4] = result.getInt64Field("behavior_5");
 
 		toReturn.push_back(std::move(model));
 		result.nextRow();
@@ -52,7 +52,7 @@ void SQLiteDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IP
 	}
 }
 
-void SQLiteDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void SQLiteDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<LWOOBJID, std::string>, 5>& behaviors) {
 	ExecuteUpdate(
 		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, "
 		"behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?;",
@@ -80,11 +80,11 @@ IPropertyContents::Model SQLiteDatabase::GetModel(const LWOOBJID modelID) {
 			model.rotation.y = result.getFloatField("ry");
 			model.rotation.z = result.getFloatField("rz");
 			model.ugcId = result.getInt64Field("ugc_id");
-			model.behaviors[0] = result.getIntField("behavior_1");
-			model.behaviors[1] = result.getIntField("behavior_2");
-			model.behaviors[2] = result.getIntField("behavior_3");
-			model.behaviors[3] = result.getIntField("behavior_4");
-			model.behaviors[4] = result.getIntField("behavior_5");
+			model.behaviors[0] = result.getInt64Field("behavior_1");
+			model.behaviors[1] = result.getInt64Field("behavior_2");
+			model.behaviors[2] = result.getInt64Field("behavior_3");
+			model.behaviors[3] = result.getInt64Field("behavior_4");
+			model.behaviors[4] = result.getInt64Field("behavior_5");
 		} while (result.nextRow());
 	}
 

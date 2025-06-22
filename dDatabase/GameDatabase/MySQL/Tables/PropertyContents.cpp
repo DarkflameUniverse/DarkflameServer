@@ -20,11 +20,11 @@ std::vector<IPropertyContents::Model> MySQLDatabase::GetPropertyModels(const LWO
 		model.rotation.y = result->getFloat("ry");
 		model.rotation.z = result->getFloat("rz");
 		model.ugcId = result->getUInt64("ugc_id");
-		model.behaviors[0] = result->getInt("behavior_1");
-		model.behaviors[1] = result->getInt("behavior_2");
-		model.behaviors[2] = result->getInt("behavior_3");
-		model.behaviors[3] = result->getInt("behavior_4");
-		model.behaviors[4] = result->getInt("behavior_5");
+		model.behaviors[0] = result->getUInt64("behavior_1");
+		model.behaviors[1] = result->getUInt64("behavior_2");
+		model.behaviors[2] = result->getUInt64("behavior_3");
+		model.behaviors[3] = result->getUInt64("behavior_4");
+		model.behaviors[4] = result->getUInt64("behavior_5");
 
 		toReturn.push_back(std::move(model));
 	}
@@ -52,7 +52,7 @@ void MySQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const IPr
 	}
 }
 
-void MySQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void MySQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<LWOOBJID, std::string>, 5>& behaviors) {
 	ExecuteUpdate(
 		"UPDATE properties_contents SET x = ?, y = ?, z = ?, rx = ?, ry = ?, rz = ?, rw = ?, "
 		"behavior_1 = ?, behavior_2 = ?, behavior_3 = ?, behavior_4 = ?, behavior_5 = ? WHERE id = ?;",
@@ -79,11 +79,11 @@ IPropertyContents::Model MySQLDatabase::GetModel(const LWOOBJID modelID) {
 		model.rotation.y = result->getFloat("ry");
 		model.rotation.z = result->getFloat("rz");
 		model.ugcId = result->getUInt64("ugc_id");
-		model.behaviors[0] = result->getInt("behavior_1");
-		model.behaviors[1] = result->getInt("behavior_2");
-		model.behaviors[2] = result->getInt("behavior_3");
-		model.behaviors[3] = result->getInt("behavior_4");
-		model.behaviors[4] = result->getInt("behavior_5");
+		model.behaviors[0] = result->getUInt64("behavior_1");
+		model.behaviors[1] = result->getUInt64("behavior_2");
+		model.behaviors[2] = result->getUInt64("behavior_3");
+		model.behaviors[3] = result->getUInt64("behavior_4");
+		model.behaviors[4] = result->getUInt64("behavior_5");
 	}
 
 	return model;

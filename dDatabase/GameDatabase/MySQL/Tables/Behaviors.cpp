@@ -9,11 +9,11 @@ void MySQLDatabase::AddBehavior(const IBehaviors::Info& info) {
 	);
 }
 
-void MySQLDatabase::RemoveBehavior(const int32_t behaviorId) {
+void MySQLDatabase::RemoveBehavior(const LWOOBJID behaviorId) {
 	ExecuteDelete("DELETE FROM behaviors WHERE behavior_id = ?", behaviorId);
 }
 
-std::string MySQLDatabase::GetBehavior(const int32_t behaviorId) {
+std::string MySQLDatabase::GetBehavior(const LWOOBJID behaviorId) {
 	auto result = ExecuteSelect("SELECT behavior_info FROM behaviors WHERE behavior_id = ?", behaviorId);
 	return result->next() ? result->getString("behavior_info").c_str() : "";
 }
