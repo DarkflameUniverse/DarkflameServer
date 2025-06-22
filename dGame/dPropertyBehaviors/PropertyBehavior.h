@@ -10,6 +10,7 @@ namespace tinyxml2 {
 enum class BehaviorState : uint32_t;
 
 class AMFArrayValue;
+class BehaviorMessageBase;
 class ModelComponent;
 
 /**
@@ -17,7 +18,7 @@ class ModelComponent;
  */
 class PropertyBehavior {
 public:
-	PropertyBehavior();
+	PropertyBehavior(bool _isTemplated = false);
 
 	template <typename Msg>
 	void HandleMsg(Msg& msg);
@@ -26,9 +27,15 @@ public:
 	void VerifyLastEditedState();
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 	void SendBehaviorBlocksToClient(AMFArrayValue& args) const;
+	void CheckModifyState(BehaviorMessageBase& msg);
 
 	[[nodiscard]] LWOOBJID GetBehaviorId() const noexcept { return m_BehaviorId; }
 	void SetBehaviorId(LWOOBJID id) noexcept { m_BehaviorId = id; }
+
+	bool GetIsLoot() const noexcept { return isLoot; }
+	void SetIsLoot(const bool val) noexcept { isLoot = val; }
+
+	const std::string& GetName() const noexcept { return m_Name; }
 
 	void Serialize(tinyxml2::XMLElement& behavior) const;
 	void Deserialize(const tinyxml2::XMLElement& behavior);
@@ -51,6 +58,9 @@ private:
 
 	// Whether this behavior is custom or pre-fab.
 	bool isLoot = false;
+
+	// Whether or not the behavior has been modified from its original state.
+	bool isTemplated;
 
 	// The last state that was edited. This is used so when the client re-opens the behavior editor, it will open to the last edited state.
 	// If the last edited state has no strips, it will open to the first state that has strips.
