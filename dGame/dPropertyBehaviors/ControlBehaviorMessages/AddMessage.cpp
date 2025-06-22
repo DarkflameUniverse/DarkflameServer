@@ -5,5 +5,5 @@ AddMessage::AddMessage(const AMFArrayValue& arguments) : BehaviorMessageBase{ ar
 	if (!behaviorIndexValue) return;
 
 	m_BehaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	LOG_DEBUG("behaviorId %i index %i", m_BehaviorId, m_BehaviorIndex);
+	LOG_DEBUG("behaviorId %llu index %i", m_BehaviorId, m_BehaviorIndex);
 }

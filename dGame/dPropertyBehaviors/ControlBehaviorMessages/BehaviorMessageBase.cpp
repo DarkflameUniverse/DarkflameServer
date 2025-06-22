@@ -4,14 +4,14 @@
 #include "BehaviorStates.h"
 #include "dCommonVars.h"
 
-int32_t BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue& arguments) {
+LWOOBJID BehaviorMessageBase::GetBehaviorIdFromArgument(const AMFArrayValue& arguments) {
 	static constexpr std::string_view key = "BehaviorID";
 	const auto* const behaviorIDValue = arguments.Get<std::string>(key);
-	int32_t behaviorId = DefaultBehaviorId;
+	LWOOBJID behaviorId = DefaultBehaviorId;
 
 	if (behaviorIDValue && behaviorIDValue->GetValueType() == eAmf::String) {
 		behaviorId =
-			GeneralUtils::TryParse<int32_t>(behaviorIDValue->GetValue()).value_or(behaviorId);
+			GeneralUtils::TryParse<LWOOBJID>(behaviorIDValue->GetValue()).value_or(behaviorId);
 	} else if (arguments.Get(key) && arguments.Get(key)->GetValueType() != eAmf::Undefined) {
 		throw std::invalid_argument("Unable to find behavior ID");
 	}

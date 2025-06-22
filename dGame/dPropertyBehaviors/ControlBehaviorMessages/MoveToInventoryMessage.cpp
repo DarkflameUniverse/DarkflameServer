@@ -5,5 +5,5 @@ MoveToInventoryMessage::MoveToInventoryMessage(const AMFArrayValue& arguments) :
 	if (!behaviorIndexValue) return;
 
 	m_BehaviorIndex = static_cast<uint32_t>(behaviorIndexValue->GetValue());
-	LOG_DEBUG("behaviorId %i behaviorIndex %i", m_BehaviorId, m_BehaviorIndex);
+	LOG_DEBUG("behaviorId %llu behaviorIndex %i", m_BehaviorId, m_BehaviorIndex);
 }

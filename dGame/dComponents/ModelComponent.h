@@ -97,7 +97,7 @@ public:
 	void MoveToInventory(MoveToInventoryMessage& msg);
 
 	// Updates the pending behavior ID to the new ID.
-	void UpdatePendingBehaviorId(const int32_t newId);
+	void UpdatePendingBehaviorId(const LWOOBJID newId, const LWOOBJID oldId);
 
 	// Sends the behavior list to the client.
 
@@ -112,11 +112,11 @@ public:
 	 */
 	void SendBehaviorListToClient(AMFArrayValue& args) const;
 
-	void SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const;
+	void SendBehaviorBlocksToClient(const LWOOBJID behaviorToSend, AMFArrayValue& args) const;
 
 	void VerifyBehaviors();
 
-	std::array<std::pair<int32_t, std::string>, 5> GetBehaviorsForSave() const;
+	std::array<std::pair<LWOOBJID, std::string>, 5> GetBehaviorsForSave() const;
 
 	const std::vector<PropertyBehavior>& GetBehaviors() const { return m_Behaviors; };
 

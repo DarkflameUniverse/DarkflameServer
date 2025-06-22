@@ -9,11 +9,11 @@ void SQLiteDatabase::AddBehavior(const IBehaviors::Info& info) {
 	);
 }
 
-void SQLiteDatabase::RemoveBehavior(const int32_t behaviorId) {
+void SQLiteDatabase::RemoveBehavior(const LWOOBJID behaviorId) {
 	ExecuteDelete("DELETE FROM behaviors WHERE behavior_id = ?", behaviorId);
 }
 
-std::string SQLiteDatabase::GetBehavior(const int32_t behaviorId) {
+std::string SQLiteDatabase::GetBehavior(const LWOOBJID behaviorId) {
 	auto [_, result] = ExecuteSelect("SELECT behavior_info FROM behaviors WHERE behavior_id = ?", behaviorId);
 	return !result.eof() ? result.getStringField("behavior_info") : "";
 }

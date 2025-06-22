@@ -5,5 +5,5 @@ RenameMessage::RenameMessage(const AMFArrayValue& arguments) : BehaviorMessageBa
 	if (!nameAmf) return;
 
 	m_Name = nameAmf->GetValue();
-	LOG_DEBUG("behaviorId %i n %s", m_BehaviorId, m_Name.c_str());
+	LOG_DEBUG("behaviorId %llu n %s", m_BehaviorId, m_Name.c_str());
 }

@@ -168,7 +168,7 @@ void TestSQLDatabase::InsertNewPropertyModel(const LWOOBJID& propertyId, const I
 
 }
 
-void TestSQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<int32_t, std::string>, 5>& behaviors) {
+void TestSQLDatabase::UpdateModel(const LWOOBJID& modelID, const NiPoint3& position, const NiQuaternion& rotation, const std::array<std::pair<LWOOBJID, std::string>, 5>& behaviors) {
 
 }
 
@@ -292,11 +292,11 @@ void TestSQLDatabase::AddBehavior(const IBehaviors::Info& info) {
 
 }
 
-std::string TestSQLDatabase::GetBehavior(const int32_t behaviorId) {
+std::string TestSQLDatabase::GetBehavior(const LWOOBJID behaviorId) {
 	return {};
 }
 
-void TestSQLDatabase::RemoveBehavior(const int32_t behaviorId) {
+void TestSQLDatabase::RemoveBehavior(const LWOOBJID behaviorId) {
 
 }
 

@@ -67,7 +67,7 @@ void ModelComponent::LoadBehaviors() {
 	for (const auto& behavior : behaviors) {
 		if (behavior.empty()) continue;
 
-		const auto behaviorId = GeneralUtils::TryParse<int32_t>(behavior);
+		const auto behaviorId = GeneralUtils::TryParse<LWOOBJID>(behavior);
 		if (!behaviorId.has_value() || behaviorId.value() == 0) continue;
 
 		LOG_DEBUG("Loading behavior %d", behaviorId.value());
@@ -78,7 +78,7 @@ void ModelComponent::LoadBehaviors() {
 
 		tinyxml2::XMLDocument behaviorXml;
 		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
-		LOG_DEBUG("Behavior %i %d: %s", res, behaviorId.value(), behaviorStr.c_str());
+		LOG_DEBUG("Behavior %llu %d: %s", res, behaviorId.value(), behaviorStr.c_str());
 
 		const auto* const behaviorRoot = behaviorXml.FirstChildElement("Behavior");
 		if (!behaviorRoot) {
@@ -116,8 +116,11 @@ void ModelComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialU
 	if (bIsInitialUpdate) outBitStream.Write0(); // We are not writing model editing info
 }
 
-void ModelComponent::UpdatePendingBehaviorId(const int32_t newId) {
-	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == -1) behavior.SetBehaviorId(newId);
+void ModelComponent::UpdatePendingBehaviorId(const LWOOBJID newId, const LWOOBJID oldId) {
+	for (auto& behavior : m_Behaviors) {
+		if (behavior.GetBehaviorId() != oldId) continue;
+		behavior.SetBehaviorId(newId);
+	}
 }
 
 void ModelComponent::SendBehaviorListToClient(AMFArrayValue& args) const {
@@ -134,7 +137,7 @@ void ModelComponent::VerifyBehaviors() {
 	for (auto& behavior : m_Behaviors) behavior.VerifyLastEditedState();
 }
 
-void ModelComponent::SendBehaviorBlocksToClient(int32_t behaviorToSend, AMFArrayValue& args) const {
+void ModelComponent::SendBehaviorBlocksToClient(const LWOOBJID behaviorToSend, AMFArrayValue& args) const {
 	args.Insert("BehaviorID", std::to_string(behaviorToSend));
 	args.Insert("objectID", std::to_string(m_Parent->GetObjectID()));
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == behaviorToSend) behavior.SendBehaviorBlocksToClient(args);
@@ -165,8 +168,8 @@ void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
 	}
 }
 
-std::array<std::pair<int32_t, std::string>, 5> ModelComponent::GetBehaviorsForSave() const {
-	std::array<std::pair<int32_t, std::string>, 5> toReturn{};
+std::array<std::pair<LWOOBJID, std::string>, 5> ModelComponent::GetBehaviorsForSave() const {
+	std::array<std::pair<LWOOBJID, std::string>, 5> toReturn{};
 	for (auto i = 0; i < m_Behaviors.size(); i++) {
 		const auto& behavior = m_Behaviors.at(i);
 		if (behavior.GetBehaviorId() == -1) continue;
