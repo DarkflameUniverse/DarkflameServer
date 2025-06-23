@@ -119,12 +119,15 @@ namespace Mail {
 	struct SendRequest : public MailLUBitStream {
 		MailInfo mailInfo;
 
+		SendRequest() : MailLUBitStream(eMessageID::SendRequest) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
 	struct SendResponse :public MailLUBitStream {
 		eSendResponse status = eSendResponse::UnknownError;
+
+		SendResponse() : MailLUBitStream(eMessageID::SendResponse) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
@@ -137,6 +140,7 @@ namespace Mail {
 	};
 
 	struct DataRequest : public MailLUBitStream {
+		DataRequest() : MailLUBitStream(eMessageID::DataRequest) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override { return true; };
 		void Handle() override;
 	};
