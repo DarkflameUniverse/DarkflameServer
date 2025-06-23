@@ -7,7 +7,9 @@
 #include "BehaviorStates.h"
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
+#include "InventoryComponent.h"
 #include "SimplePhysicsComponent.h"
+#include "eObjectBits.h"
 
 #include "Database.h"
 #include "DluAssert.h"
@@ -70,22 +72,27 @@ void ModelComponent::LoadBehaviors() {
 		const auto behaviorId = GeneralUtils::TryParse<LWOOBJID>(behavior);
 		if (!behaviorId.has_value() || behaviorId.value() == 0) continue;
 
-		LOG_DEBUG("Loading behavior %d", behaviorId.value());
-		auto& inserted = m_Behaviors.emplace_back();
-		inserted.SetBehaviorId(*behaviorId);
+		// add behavior at the back
+		LoadBehavior(behaviorId.value(), m_Behaviors.size(), false);
+	}
+}
 
-		const auto behaviorStr = Database::Get()->GetBehavior(behaviorId.value());
+void ModelComponent::LoadBehavior(const LWOOBJID behaviorID, const size_t index, const bool isIndexed) {
+	LOG_DEBUG("Loading behavior %d", behaviorID);
+	auto& inserted = *m_Behaviors.emplace(m_Behaviors.begin() + index, PropertyBehavior(isIndexed));
+	inserted.SetBehaviorId(behaviorID);
 
-		tinyxml2::XMLDocument behaviorXml;
-		auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
-		LOG_DEBUG("Behavior %llu %d: %s", res, behaviorId.value(), behaviorStr.c_str());
+	const auto behaviorStr = Database::Get()->GetBehavior(behaviorID);
 
-		const auto* const behaviorRoot = behaviorXml.FirstChildElement("Behavior");
-		if (!behaviorRoot) {
-			LOG("Failed to load behavior %d due to missing behavior root", behaviorId.value());
-			continue;
-		}
+	tinyxml2::XMLDocument behaviorXml;
+	auto res = behaviorXml.Parse(behaviorStr.c_str(), behaviorStr.size());
+	LOG_DEBUG("Behavior %i %llu: %s", res, behaviorID, behaviorStr.c_str());
+
+	const auto* const behaviorRoot = behaviorXml.FirstChildElement("Behavior");
+	if (behaviorRoot) {
 		inserted.Deserialize(*behaviorRoot);
+	} else {
+		LOG("Failed to load behavior %d due to missing behavior root", behaviorID);
 	}
 }
 
@@ -120,6 +127,7 @@ void ModelComponent::UpdatePendingBehaviorId(const LWOOBJID newId, const LWOOBJI
 	for (auto& behavior : m_Behaviors) {
 		if (behavior.GetBehaviorId() != oldId) continue;
 		behavior.SetBehaviorId(newId);
+		behavior.SetIsLoot(false);
 	}
 }
 
@@ -146,8 +154,21 @@ void ModelComponent::SendBehaviorBlocksToClient(const LWOOBJID behaviorToSend, A
 void ModelComponent::AddBehavior(AddMessage& msg) {
 	// Can only have 1 of the loot behaviors
 	for (auto& behavior : m_Behaviors) if (behavior.GetBehaviorId() == msg.GetBehaviorId()) return;
-	m_Behaviors.insert(m_Behaviors.begin() + msg.GetBehaviorIndex(), PropertyBehavior());
-	m_Behaviors.at(msg.GetBehaviorIndex()).HandleMsg(msg);
+
+	// If we're loading a behavior from an ADD, it is from the database.
+	// Mark it as not modified by default to prevent wasting persistentIDs.
+	LoadBehavior(msg.GetBehaviorId(), msg.GetBehaviorIndex(), true);
+	auto& insertedBehavior = m_Behaviors[msg.GetBehaviorIndex()];
+
+	auto* const playerEntity = Game::entityManager->GetEntity(msg.GetOwningPlayerID());
+	if (playerEntity) {
+		auto* inventoryComponent = playerEntity->GetComponent<InventoryComponent>();
+		if (inventoryComponent) {
+			// Check if this behavior is able to be found via lot (if so, its a loot behavior).
+			insertedBehavior.SetIsLoot(inventoryComponent->FindItemByLot(msg.GetBehaviorId(), eInventoryType::BEHAVIORS));
+		}
+	}
+
 	auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
 	if (simplePhysComponent) {
 		simplePhysComponent->SetPhysicsMotionState(1);
@@ -155,8 +176,41 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 	}
 }
 
-void ModelComponent::MoveToInventory(MoveToInventoryMessage& msg) {
+std::string ModelComponent::SaveBehavior(const PropertyBehavior& behavior) const {
+	tinyxml2::XMLDocument doc;
+	auto* root = doc.NewElement("Behavior");
+	behavior.Serialize(*root);
+	doc.InsertFirstChild(root);
+
+	tinyxml2::XMLPrinter printer(0, true, 0);
+	doc.Print(&printer);
+	return printer.CStr();
+}
+
+void ModelComponent::RemoveBehavior(MoveToInventoryMessage& msg, const bool keepItem) {
 	if (msg.GetBehaviorIndex() >= m_Behaviors.size() || m_Behaviors.at(msg.GetBehaviorIndex()).GetBehaviorId() != msg.GetBehaviorId()) return;
+	const auto behavior = m_Behaviors[msg.GetBehaviorIndex()];
+	if (keepItem) {
+		auto* const playerEntity = Game::entityManager->GetEntity(msg.GetOwningPlayerID());
+		if (playerEntity) {
+			auto* const inventoryComponent = playerEntity->GetComponent<InventoryComponent>();
+			if (inventoryComponent && !behavior.GetIsLoot()) {
+				// config is owned by the item
+				std::vector<LDFBaseData*> config;
+				config.push_back(new LDFData<std::string>(u"userModelName", behavior.GetName()));
+				inventoryComponent->AddItem(7965, 1, eLootSourceType::PROPERTY, eInventoryType::BEHAVIORS, config, LWOOBJID_EMPTY, true, false, msg.GetBehaviorId());
+			}
+		}
+	}
+
+	// save the behavior before deleting it so players can re-add them
+	IBehaviors::Info info{};
+	info.behaviorId = msg.GetBehaviorId();
+	info.behaviorInfo = SaveBehavior(behavior);
+	info.characterId = msg.GetOwningPlayerID();
+
+	Database::Get()->AddBehavior(info);
+
 	m_Behaviors.erase(m_Behaviors.begin() + msg.GetBehaviorIndex());
 	// TODO move to the inventory
 	if (m_Behaviors.empty()) {
@@ -175,15 +229,7 @@ std::array<std::pair<LWOOBJID, std::string>, 5> ModelComponent::GetBehaviorsForS
 		if (behavior.GetBehaviorId() == -1) continue;
 		auto& [id, behaviorData] = toReturn[i];
 		id = behavior.GetBehaviorId();
-
-		tinyxml2::XMLDocument doc;
-		auto* root = doc.NewElement("Behavior");
-		behavior.Serialize(*root);
-		doc.InsertFirstChild(root);
-
-		tinyxml2::XMLPrinter printer(0, true, 0);
-		doc.Print(&printer);
-		behaviorData = printer.CStr();
+		behaviorData = SaveBehavior(behavior);
 	}
 	return toReturn;
 }

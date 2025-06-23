@@ -1,6 +1,6 @@
 #include "MoveToInventoryMessage.h"
 
-MoveToInventoryMessage::MoveToInventoryMessage(const AMFArrayValue& arguments) : BehaviorMessageBase{ arguments } {
+MoveToInventoryMessage::MoveToInventoryMessage(const AMFArrayValue& arguments, const LWOOBJID _owningPlayerID) : m_OwningPlayerID{ _owningPlayerID }, BehaviorMessageBase{ arguments } {
 	const auto* const behaviorIndexValue = arguments.Get<double>("BehaviorIndex");
 	if (!behaviorIndexValue) return;
 

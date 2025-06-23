@@ -213,7 +213,7 @@ TEST_F(GameMessageTests, ControlBehaviorAdd) {
 	RakNet::BitStream inStream(reinterpret_cast<unsigned char*>(&data[0]), data.length(), true);
 
 	const auto arr = ReadArrayFromBitStream(inStream);
-	AddMessage add(*arr);
+	AddMessage add(*arr, LWOOBJID_EMPTY);
 
 	ASSERT_EQ(add.GetBehaviorId(), 10446);
 	ASSERT_EQ(add.GetBehaviorIndex(), 0);
