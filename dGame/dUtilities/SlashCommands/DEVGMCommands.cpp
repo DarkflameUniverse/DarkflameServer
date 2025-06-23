@@ -1514,6 +1514,7 @@ namespace DEVGMCommands {
 		}
 
 		if (!closest) return;
+		LOG("%llu", closest->GetObjectID());
 
 		Game::entityManager->SerializeEntity(closest);
 
