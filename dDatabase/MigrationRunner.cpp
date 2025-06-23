@@ -47,6 +47,7 @@ void MigrationRunner::RunMigrations() {
 	std::string finalSQL = "";
 	bool runSd0Migrations = false;
 	bool runNormalizeMigrations = false;
+	bool runNormalizeAfterFirstPartMigrations = false;
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
 		auto migration = LoadMigration("dlu/" + migrationFolder + "/", entry);
 
@@ -61,6 +62,8 @@ void MigrationRunner::RunMigrations() {
 			runSd0Migrations = true;
 		} else if (migration.name.ends_with("_normalize_model_positions.sql")) {
 			runNormalizeMigrations = true;
+		} else if (migration.name.ends_with("_normalize_model_positions_after_first_part.sql")) {
+			runNormalizeAfterFirstPartMigrations = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -68,7 +71,7 @@ void MigrationRunner::RunMigrations() {
 		Database::Get()->InsertMigration(migration.name);
 	}
 
-	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations) {
+	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations && !runNormalizeAfterFirstPartMigrations) {
 		LOG("Server database is up to date.");
 		return;
 	}
@@ -95,6 +98,10 @@ void MigrationRunner::RunMigrations() {
 
 	if (runNormalizeMigrations) {
 		ModelNormalizeMigration::Run();
+	}
+
+	if (runNormalizeAfterFirstPartMigrations) {
+		ModelNormalizeMigration::RunAfterFirstPart();
 	}
 }
 
