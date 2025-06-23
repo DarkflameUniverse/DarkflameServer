@@ -50,6 +50,8 @@ void NjMonastryBossInstance::OnPlayerLoaded(Entity* self, Entity* player) {
 	// Join the player in the activity
 	UpdatePlayer(self, player->GetObjectID());
 
+	TakeActivityCost(self, player->GetObjectID());
+
 	// Buff the player
 	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
 	if (destroyableComponent != nullptr) {
