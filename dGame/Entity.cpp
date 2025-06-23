@@ -673,8 +673,9 @@ void Entity::Initialize() {
 	}
 
 	// Shooting gallery component
-	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY) > 0) {
-		AddComponent<ShootingGalleryComponent>();
+	const auto shootingGalleryComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SHOOTING_GALLERY);
+	if (shootingGalleryComponentID > 0) {
+		AddComponent<ShootingGalleryComponent>(shootingGalleryComponentID);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROPERTY, -1) != -1) {

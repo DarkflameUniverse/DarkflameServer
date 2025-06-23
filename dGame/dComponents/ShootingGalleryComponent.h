@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+#include "ActivityComponent.h"
 
 /**
  * Parameters for the shooting gallery that change during playtime
@@ -71,12 +72,11 @@ struct StaticShootingGalleryParams {
  * A very ancient component that was used to guide shooting galleries, it's still kind of used but a lot of logic is
  * also in the related scripts.
  */
-class ShootingGalleryComponent final : public Component {
+class ShootingGalleryComponent final : public ActivityComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SHOOTING_GALLERY;
 
-	explicit ShootingGalleryComponent(Entity* parent);
-	~ShootingGalleryComponent();
+	explicit ShootingGalleryComponent(Entity* parent, int32_t activityID);
 	void Serialize(RakNet::BitStream& outBitStream, bool isInitialUpdate) override;
 
 	/**

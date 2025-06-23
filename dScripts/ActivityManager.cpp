@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "Logger.h"
 #include "Loot.h"
+#include "ShootingGalleryComponent.h"
 
 bool ActivityManager::IsPlayerInActivity(Entity* self, LWOOBJID playerID) {
 	const auto* sac = self->GetComponent<ScriptedActivityComponent>();
@@ -93,15 +94,16 @@ void ActivityManager::SaveScore(Entity* self, const LWOOBJID playerID, const flo
 }
 
 bool ActivityManager::TakeActivityCost(const Entity* self, const LWOOBJID playerID) {
-	auto* sac = self->GetComponent<ScriptedActivityComponent>();
-	if (sac == nullptr)
-		return false;
+	ActivityComponent* activityComponent = self->GetComponent<ScriptedActivityComponent>();
+	if (activityComponent == nullptr) {
+		activityComponent = self->GetComponent<ShootingGalleryComponent>();
+	}
 
 	auto* player = Game::entityManager->GetEntity(playerID);
 	if (player == nullptr)
 		return false;
 
-	return sac->TakeCost(player);
+	return activityComponent->TakeCost(player);
 }
 
 uint32_t ActivityManager::CalculateActivityRating(Entity* self, const LWOOBJID playerID) {

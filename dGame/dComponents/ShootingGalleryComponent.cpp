@@ -2,10 +2,8 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 
-ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent) : Component(parent) {
+ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent, int32_t activityID) : ActivityComponent(parent, activityID) {
 }
-
-ShootingGalleryComponent::~ShootingGalleryComponent() = default;
 
 void ShootingGalleryComponent::SetStaticParams(const StaticShootingGalleryParams& params) {
 	m_StaticParams = params;
