@@ -158,6 +158,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 				inv->AddItemSkills(item.lot);
 			}
+
+			// Fixes a bug where testmapping too fast causes large item inventories to become invisible.
+			// Only affects item inventory
+			GameMessages::SendSetInventorySize(entity, eInventoryType::ITEMS, inv->GetInventory(eInventoryType::ITEMS)->GetSize());
 		}
 
 		GameMessages::SendRestoreToPostLoadStats(entity, sysAddr);
