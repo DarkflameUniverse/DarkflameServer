@@ -18,6 +18,10 @@ namespace Lxfml {
 	// Normalizes a LXFML model to be positioned relative to its local 0, 0, 0 rather than a game worlds 0, 0, 0.
 	// Returns a struct of its new center and the updated LXFML containing these edits.
 	[[nodiscard]] Result NormalizePosition(const std::string_view data);
+
+	// these are only for the migrations due to a bug in one of the implementations.
+	[[nodiscard]] Result NormalizePositionOnlyFirstPart(const std::string_view data);
+	[[nodiscard]] Result NormalizePositionAfterFirstPart(const std::string_view data, const NiPoint3& position);
 };
 
 #endif //!LXFML_H

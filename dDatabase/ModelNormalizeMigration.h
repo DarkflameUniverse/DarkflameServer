@@ -6,6 +6,7 @@
 
 namespace ModelNormalizeMigration {
 	void Run();
+	void RunAfterFirstPart();
 };
 
 #endif //!MODELNORMALIZEMIGRATION_H

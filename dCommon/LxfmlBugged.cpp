@@ -6,7 +6,9 @@
 
 #include <ranges>
 
-Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
+// this file should not be touched
+
+Lxfml::Result Lxfml::NormalizePositionOnlyFirstPart(const std::string_view data) {
 	Result toReturn;
 	tinyxml2::XMLDocument doc;
 	const auto err = doc.Parse(data.data());
@@ -27,7 +29,7 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	// First get all the positions of bricks
 	for (const auto& brick : lxfml["Bricks"]) {
 		const auto* part = brick.FirstChildElement("Part");
-		while (part) {
+		if (part) {
 			const auto* bone = part->FirstChildElement("Bone");
 			if (bone) {
 				auto* transformation = bone->Attribute("transformation");
@@ -36,7 +38,6 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 					if (refID) transformations[refID] = transformation;
 				}
 			}
-			part = part->NextSiblingElement("Part");
 		}
 	}
 
@@ -93,7 +94,7 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	// Finally write the new transformation back into the lxfml
 	for (auto& brick : lxfml["Bricks"]) {
 		auto* part = brick.FirstChildElement("Part");
-		while (part) {
+		if (part) {
 			auto* bone = part->FirstChildElement("Bone");
 			if (bone) {
 				auto* transformation = bone->Attribute("transformation");
@@ -101,6 +102,98 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 					auto* refID = bone->Attribute("refID");
 					if (refID) {
 						bone->SetAttribute("transformation", transformations[refID].c_str());
+					}
+				}
+			}
+		}
+	}
+
+	tinyxml2::XMLPrinter printer;
+	doc.Print(&printer);
+
+	toReturn.lxfml = printer.CStr();
+	toReturn.center = newRootPos;
+	return toReturn;
+}
+
+Lxfml::Result Lxfml::NormalizePositionAfterFirstPart(const std::string_view data, const NiPoint3& position) {
+	Result toReturn;
+	tinyxml2::XMLDocument doc;
+	const auto err = doc.Parse(data.data());
+	if (err != tinyxml2::XML_SUCCESS) {
+		LOG("Failed to parse xml %s.", StringifiedEnum::ToString(err).data());
+		return toReturn;
+	}
+
+	TinyXmlUtils::DocumentReader reader(doc);
+	std::map<std::string/* refID */, std::string> transformations;
+
+	auto lxfml = reader["LXFML"];
+	if (!lxfml) {
+		LOG("Failed to find LXFML element.");
+		return toReturn;
+	}
+
+	// First get all the positions of bricks
+	for (const auto& brick : lxfml["Bricks"]) {
+		const auto* part = brick.FirstChildElement("Part");
+		bool firstPart = true;
+		while (part) {
+			if (firstPart) {
+				firstPart = false;
+			} else {
+				LOG("Found extra bricks");
+				const auto* bone = part->FirstChildElement("Bone");
+				if (bone) {
+					auto* transformation = bone->Attribute("transformation");
+					if (transformation) {
+						auto* refID = bone->Attribute("refID");
+						if (refID) transformations[refID] = transformation;
+					}
+				}
+			}
+			part = part->NextSiblingElement("Part");
+		}
+	}
+
+	auto newRootPos = position;
+
+	// Adjust all positions to account for the new origin
+	for (auto& transformation : transformations | std::views::values) {
+		auto split = GeneralUtils::SplitString(transformation, ',');
+		if (split.size() < 12) {
+			LOG("Not enough in the split?");
+			continue;
+		}
+
+		auto x = GeneralUtils::TryParse<float>(split[9]).value() - newRootPos.x;
+		auto y = GeneralUtils::TryParse<float>(split[10]).value() - newRootPos.y;
+		auto z = GeneralUtils::TryParse<float>(split[11]).value() - newRootPos.z;
+		std::stringstream stream;
+		for (int i = 0; i < 9; i++) {
+			stream << split[i];
+			stream << ',';
+		}
+		stream << x << ',' << y << ',' << z;
+		transformation = stream.str();
+	}
+
+	// Finally write the new transformation back into the lxfml
+	for (auto& brick : lxfml["Bricks"]) {
+		auto* part = brick.FirstChildElement("Part");
+		bool firstPart = true;
+		while (part) {
+			if (firstPart) {
+				firstPart = false;
+			} else {
+				auto* bone = part->FirstChildElement("Bone");
+				if (bone) {
+					auto* transformation = bone->Attribute("transformation");
+					if (transformation) {
+						auto* refID = bone->Attribute("refID");
+						if (refID) {
+							bone->SetAttribute("transformation", transformations[refID].c_str());
+						}
 					}
 				}
 			}
