@@ -1,9 +1,10 @@
-#ifndef __AMF3__H__
-#define __AMF3__H__
+#ifndef AMF3_H
+#define AMF3_H
 
 #include "dCommonVars.h"
 #include "Logger.h"
 #include "Game.h"
+#include "GeneralUtils.h"
 
 #include <type_traits>
 #include <unordered_map>
@@ -85,27 +86,14 @@ template <> [[nodiscard]] constexpr eAmf AMFValue<double>::GetValueType() const 
 template <typename ValueType>
 [[nodiscard]] constexpr eAmf AMFValue<ValueType>::GetValueType() const noexcept { return eAmf::Undefined; }
 
-// As a string this is much easier to write and read from a BitStream.
-template <>
-class AMFValue<const char*> : public AMFBaseValue {
-public:
-	AMFValue() = default;
-	AMFValue(const char* value) { m_Data = value; }
-	virtual ~AMFValue() override = default;
-
-	[[nodiscard]] constexpr eAmf GetValueType() const noexcept override { return eAmf::String; }
-
-	[[nodiscard]] const std::string& GetValue() const { return m_Data; }
-	void SetValue(const std::string& value) { m_Data = value; }
-protected:
-	std::string m_Data;
-};
-
 using AMFNullValue = AMFValue<std::nullptr_t>;
 using AMFBoolValue = AMFValue<bool>;
 using AMFIntValue = AMFValue<int32_t>;
 using AMFStringValue = AMFValue<std::string>;
 using AMFDoubleValue = AMFValue<double>;
+
+// Template deduction guide to ensure string literals deduce
+AMFValue(const char*) -> AMFValue<std::string>; // AMFStringValue
 
 /**
  * The AMFArrayValue object holds 2 types of lists:
@@ -117,7 +105,7 @@ using AMFDoubleValue = AMFValue<double>;
  */
 class AMFArrayValue : public AMFBaseValue {
 	using AMFAssociative =
-		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<>>;
+		std::unordered_map<std::string, std::unique_ptr<AMFBaseValue>, GeneralUtils::transparent_string_hash, std::equal_to<void>>;
 
 	using AMFDense = std::vector<std::unique_ptr<AMFBaseValue>>;
 
@@ -148,17 +136,20 @@ public:
 	 * @return The inserted element if the type matched,
 	 * or nullptr if a key existed and was not the same type
 	 */
-	template <typename ValueType>
-	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const std::string_view key, const ValueType value) {
+	template <typename T>
+	[[maybe_unused]] auto Insert(const std::string_view key, const T value) -> std::pair<decltype(AMFValue(value))*, bool> {
+		// This ensures the deduced type matches the AMFValue constructor
+		using AMFValueType = decltype(AMFValue(value));
+
 		const auto element = m_Associative.find(key);
-		AMFValue<ValueType>* val = nullptr;
+		AMFValueType* val = nullptr;
 		bool found = true;
 		if (element == m_Associative.cend()) {
-			auto newVal = std::make_unique<AMFValue<ValueType>>(value);
+			auto newVal = std::make_unique<AMFValueType>(value);
 			val = newVal.get();
 			m_Associative.emplace(key, std::move(newVal));
 		} else {
-			val = dynamic_cast<AMFValue<ValueType>*>(element->second.get());
+			val = dynamic_cast<AMFValueType*>(element->second.get());
 			found = false;
 		}
 		return std::make_pair(val, found);
@@ -201,15 +192,18 @@ public:
 	 * @return The inserted element, or nullptr if the type did not match
 	 * what was at the index.
 	 */
-	template <typename ValueType>
-	[[maybe_unused]] std::pair<AMFValue<ValueType>*, bool> Insert(const size_t index, const ValueType value) {
+	template <typename T>
+	[[maybe_unused]] auto Insert(const size_t index, const T value) -> std::pair<decltype(AMFValue(value))*, bool> {
+		// This ensures the deduced type matches the AMFValue constructor
+		using AMFValueType = decltype(AMFValue(value));
+
 		bool inserted = false;
 		if (index >= m_Dense.size()) {
 			m_Dense.resize(index + 1);
-			m_Dense.at(index) = std::make_unique<AMFValue<ValueType>>(value);
+			m_Dense.at(index) = std::make_unique<AMFValueType>(value);
 			inserted = true;
 		}
-		return std::make_pair(dynamic_cast<AMFValue<ValueType>*>(m_Dense.at(index).get()), inserted);
+		return std::make_pair(dynamic_cast<AMFValueType*>(m_Dense.at(index).get()), inserted);
 	}
 
 	/**
@@ -264,8 +258,8 @@ public:
 	 *
 	 * @return The inserted pointer, or nullptr should the key already be in use.
 	 */
-	template <typename ValueType>
-	[[maybe_unused]] inline AMFValue<ValueType>* Push(const ValueType value) {
+	template <typename T>
+	[[maybe_unused]] inline auto Push(const T value) -> decltype(AMFValue(value))* {
 		return Insert(m_Dense.size(), value).first;
 	}
 
@@ -387,4 +381,4 @@ private:
 	AMFDense m_Dense;
 };
 
-#endif  //!__AMF3__H__
+#endif  //!AMF3_H

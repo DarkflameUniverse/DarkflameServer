@@ -1,6 +1,7 @@
 # Try and find a clang-16 install, falling back to a generic clang install otherwise
 find_program(CLANG_C_COMPILER clang-16 | clang REQUIRED)
 find_program(CLANG_CXX_COMPILER clang++-16 | clang++ REQUIRED)
+find_program(CLANG_CXX_LINKER lld REQUIRED)
 
 # Debug messages
 message(DEBUG "CLANG_C_COMPILER = ${CLANG_C_COMPILER}")
