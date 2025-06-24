@@ -101,7 +101,7 @@
 
 Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
 
-Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Entity* parentEntity) {
+Entity::Entity(const LWOOBJID& objectID, const EntityInfo& info, User* parentUser, Entity* parentEntity) {
 	m_ObjectID = objectID;
 	m_TemplateID = info.lot;
 	m_ParentEntity = parentEntity;
@@ -129,7 +129,8 @@ Entity::Entity(const LWOOBJID& objectID, EntityInfo info, User* parentUser, Enti
 	m_HasSpawnerNodeID = info.hasSpawnerNodeID;
 	m_SpawnerNodeID = info.spawnerNodeID;
 
-	if (info.lot != 1) m_PlayerIsReadyForUpdates = true;
+	m_PlayerIsReadyForUpdates = info.lot != 1;
+
 	if (parentUser) {
 		m_Character = parentUser->GetLastUsedChar();
 		parentUser->SetLoggedInChar(objectID);
@@ -158,7 +159,7 @@ Entity::~Entity() {
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
-			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+			if (zoneControl && scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				scriptEntity->GetScript()->OnPlayerExit(scriptEntity, this);
 			}
 		}
@@ -171,15 +172,11 @@ Entity::~Entity() {
 	CancelAllTimers();
 	CancelCallbackTimers();
 
-	const auto components = m_Components;
-
-	for (const auto& pair : components) {
-		delete pair.second;
-
-		m_Components.erase(pair.first);
+	for (const auto& component : m_Components | std::views::values) {
+		if (component) delete component;
 	}
 
-	for (auto child : m_ChildEntities) {
+	for (auto* const child : m_ChildEntities) {
 		if (child) child->RemoveParent();
 	}
 
@@ -219,7 +216,7 @@ void Entity::Initialize() {
 	}
 
 	// Get the registry table
-	CDComponentsRegistryTable* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+	CDComponentsRegistryTable* const compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 
 	/**
 	 * Special case for BBB models. They have components not corresponding to the registry.
@@ -253,7 +250,7 @@ void Entity::Initialize() {
 		AddComponent<MissionComponent>()->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
-	uint32_t petComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
+	const uint32_t petComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PET);
 	if (petComponentId > 0) {
 		AddComponent<PetComponent>(petComponentId);
 	}
@@ -262,7 +259,7 @@ void Entity::Initialize() {
 		AddComponent<MiniGameControlComponent>();
 	}
 
-	uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
+	const uint32_t possessableComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::POSSESSABLE);
 	if (possessableComponentId > 0) {
 		AddComponent<PossessableComponent>(possessableComponentId);
 	}
@@ -326,7 +323,7 @@ void Entity::Initialize() {
 	}
 
 	// If an entity is marked a phantom, simple physics is made into phantom phyics.
-	bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
+	const bool markedAsPhantom = GetVar<bool>(u"markedAsPhantom");
 
 	const auto simplePhysicsComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SIMPLE_PHYSICS);
 	if (!markedAsPhantom && simplePhysicsComponentID > 0) {
@@ -360,7 +357,7 @@ void Entity::Initialize() {
 		AddComponent<BuffComponent>();
 	}
 
-	int collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
+	const int collectibleComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::COLLECTIBLE);
 
 	if (collectibleComponentID > 0) {
 		AddComponent<CollectibleComponent>(GetVarAs<int32_t>(u"collectible_id"));
@@ -369,30 +366,29 @@ void Entity::Initialize() {
 	/**
 	 * Multiple components require the destructible component.
 	 */
-	int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
-	int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
+	const int buffComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::BUFF);
+	const int quickBuildComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD);
 
 	int componentID = -1;
 	if (collectibleComponentID > 0) componentID = collectibleComponentID;
 	if (quickBuildComponentID > 0) componentID = quickBuildComponentID;
 	if (buffComponentID > 0) componentID = buffComponentID;
 
-	CDDestructibleComponentTable* destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
-	std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
 
 	bool isSmashable = GetVarAs<int32_t>(u"is_smashable") != 0;
 	if (buffComponentID > 0 || collectibleComponentID > 0 || isSmashable) {
 		DestroyableComponent* comp = AddComponent<DestroyableComponent>();
+		auto* const destCompTable = CDClientManager::GetTable<CDDestructibleComponentTable>();
+		std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([componentID](const CDDestructibleComponent& entry) { return (entry.id == componentID); });
+
 		if (m_Character) {
 			comp->LoadFromXml(m_Character->GetXMLDoc());
 		} else {
 			// extraInfo overrides. Client ORs the database smashable and the luz smashable.
-			comp->SetIsSmashable(comp->GetIsSmashable() | isSmashable);
+			comp->SetIsSmashable(comp->GetIsSmashable() || isSmashable);
 
 			if (componentID > 0) {
-				std::vector<CDDestructibleComponent> destCompData = destCompTable->Query([=](CDDestructibleComponent entry) { return (entry.id == componentID); });
-
-				if (destCompData.size() > 0) {
+				if (!destCompData.empty()) {
 					if (HasComponent(eReplicaComponentType::RACING_STATS)) {
 						destCompData[0].imagination = 60;
 					}
@@ -412,13 +408,13 @@ void Entity::Initialize() {
 					Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
 
 					// Now get currency information
-					uint32_t npcMinLevel = destCompData[0].level;
-					uint32_t currencyIndex = destCompData[0].CurrencyIndex;
+					const uint32_t npcMinLevel = destCompData[0].level;
+					const uint32_t currencyIndex = destCompData[0].CurrencyIndex;
 
-					CDCurrencyTableTable* currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
-					std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([=](CDCurrencyTable entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
+					CDCurrencyTableTable* const currencyTable = CDClientManager::GetTable<CDCurrencyTableTable>();
+					const std::vector<CDCurrencyTable> currencyValues = currencyTable->Query([currencyIndex, npcMinLevel](const CDCurrencyTable& entry) { return (entry.currencyIndex == currencyIndex && entry.npcminlevel == npcMinLevel); });
 
-					if (currencyValues.size() > 0) {
+					if (!currencyValues.empty()) {
 						// Set the coins
 						comp->SetMinCoins(currencyValues[0].minvalue);
 						comp->SetMaxCoins(currencyValues[0].maxvalue);
@@ -441,26 +437,27 @@ void Entity::Initialize() {
 			}
 		}
 
-		if (destCompData.size() > 0) {
+		if (!destCompData.empty()) {
 			comp->AddFaction(destCompData[0].faction);
 			std::stringstream ss(destCompData[0].factionList);
 			std::string token;
 
 			while (std::getline(ss, token, ',')) {
-				if (std::stoi(token) == destCompData[0].faction) continue;
+				const auto tokenInt = GeneralUtils::TryParse<int32_t>(token);
+				if (tokenInt == destCompData[0].faction) continue;
 
-				if (token != "") {
+				if (!token.empty()) {
 					comp->AddFaction(std::stoi(token));
 				}
 			}
 		}
 
 		// override the factions if needed.
-		auto setFaction = GetVarAsString(u"set_faction");
+		const auto setFaction = GetVarAsString(u"set_faction");
 		if (!setFaction.empty()) {
 			// TODO also split on space here however we do not have a general util for splitting on multiple characters yet.
-			std::vector<std::string> factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
-			for (const auto faction : factionsToAdd) {
+			const auto factionsToAdd = GeneralUtils::SplitString(setFaction, ';');
+			for (const auto& faction : factionsToAdd) {
 				const auto factionToAdd = GeneralUtils::TryParse<int32_t>(faction);
 				if (factionToAdd) {
 					comp->AddFaction(factionToAdd.value(), true);
@@ -494,10 +491,11 @@ void Entity::Initialize() {
 
 	/**
 	 * This is a bit of a mess
+	 * yep i aint touching this
 	 */
 
-	CDScriptComponentTable* scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
-	int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
+	CDScriptComponentTable* const scriptCompTable = CDClientManager::GetTable<CDScriptComponentTable>();
+	const int32_t scriptComponentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPT, -1);
 
 	std::string scriptName = "";
 	bool client = false;
@@ -545,8 +543,8 @@ void Entity::Initialize() {
 
 	// ZoneControl script
 	if (m_TemplateID == 2365) {
-		const auto zoneID = Game::zoneManager->GetZoneID();
-		const CDZoneTable* zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
+		const auto& zoneID = Game::zoneManager->GetZoneID();
+		const CDZoneTable* const zoneData = CDZoneTableTable::Query(zoneID.GetMapID());
 
 		if (zoneData != nullptr) {
 			int zoneScriptID = zoneData->scriptID;
@@ -564,13 +562,13 @@ void Entity::Initialize() {
 		AddComponent<BaseCombatAIComponent>(combatAiId);
 	}
 
-	if (int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
-		auto* quickBuildComponent = AddComponent<QuickBuildComponent>();
+	if (const int componentID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::QUICK_BUILD) > 0) {
+		auto* const quickBuildComponent = AddComponent<QuickBuildComponent>();
 
-		CDRebuildComponentTable* rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
-		std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
+		CDRebuildComponentTable* const rebCompTable = CDClientManager::GetTable<CDRebuildComponentTable>();
+		const std::vector<CDRebuildComponent> rebCompData = rebCompTable->Query([=](CDRebuildComponent entry) { return (entry.id == quickBuildComponentID); });
 
-		if (rebCompData.size() > 0) {
+		if (!rebCompData.empty()) {
 			quickBuildComponent->SetResetTime(rebCompData[0].reset_time);
 			quickBuildComponent->SetCompleteTime(rebCompData[0].complete_time);
 			quickBuildComponent->SetTakeImagination(rebCompData[0].take_imagination);
@@ -637,7 +635,7 @@ void Entity::Initialize() {
 		AddComponent<BouncerComponent>();
 	}
 
-	int32_t renderComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
+	const int32_t renderComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RENDER);
 	if ((renderComponentId > 0 && m_TemplateID != 2365) || m_Character) {
 		AddComponent<RenderComponent>(renderComponentId);
 	}
@@ -651,15 +649,15 @@ void Entity::Initialize() {
 	}
 
 	// Scripted activity component
-	int scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
-	if ((scriptedActivityID != -1)) {
+	const int32_t scriptedActivityID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::SCRIPTED_ACTIVITY, -1);
+	if (scriptedActivityID != -1) {
 		AddComponent<ScriptedActivityComponent>(scriptedActivityID);
 	}
 
 	if (compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MODEL, -1) != -1 && !GetComponent<PetComponent>()) {
 		AddComponent<ModelComponent>()->LoadBehaviors();
 		if (!HasComponent(eReplicaComponentType::DESTROYABLE)) {
-			auto* destroyableComponent = AddComponent<DestroyableComponent>();
+			auto* const destroyableComponent = AddComponent<DestroyableComponent>();
 			destroyableComponent->SetHealth(1);
 			destroyableComponent->SetMaxHealth(1.0f);
 			destroyableComponent->SetFaction(-1, true);
@@ -692,22 +690,22 @@ void Entity::Initialize() {
 		AddComponent<RailActivatorComponent>(railComponentID);
 	}
 
-	int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
+	const int movementAIID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVEMENT_AI);
 	if (movementAIID > 0) {
 		CDMovementAIComponentTable* moveAITable = CDClientManager::GetTable<CDMovementAIComponentTable>();
 		std::vector<CDMovementAIComponent> moveAIComp = moveAITable->Query([=](CDMovementAIComponent entry) {return (entry.id == movementAIID); });
 
 		if (moveAIComp.size() > 0) {
-			MovementAIInfo moveInfo = MovementAIInfo();
+			MovementAIInfo moveInfo{
+				.movementType = moveAIComp[0].MovementType,
+				.wanderRadius = moveAIComp[0].WanderRadius,
+				.wanderSpeed = moveAIComp[0].WanderSpeed,
+				.wanderChance = moveAIComp[0].WanderChance,
+				.wanderDelayMin = moveAIComp[0].WanderDelayMin,
+				.wanderDelayMax = moveAIComp[0].WanderDelayMax,
+			};
 
-			moveInfo.movementType = moveAIComp[0].MovementType;
-			moveInfo.wanderChance = moveAIComp[0].WanderChance;
-			moveInfo.wanderRadius = moveAIComp[0].WanderRadius;
-			moveInfo.wanderSpeed = moveAIComp[0].WanderSpeed;
-			moveInfo.wanderDelayMax = moveAIComp[0].WanderDelayMax;
-			moveInfo.wanderDelayMin = moveAIComp[0].WanderDelayMin;
-
-			bool useWanderDB = GetVar<bool>(u"usewanderdb");
+			const bool useWanderDB = GetVar<bool>(u"usewanderdb");
 
 			if (!useWanderDB) {
 				const auto wanderOverride = GetVarAs<float>(u"wanderRadius");
@@ -720,19 +718,20 @@ void Entity::Initialize() {
 			AddComponent<MovementAIComponent>(moveInfo);
 		}
 	} else if (petComponentId > 0 || combatAiId > 0 && GetComponent<BaseCombatAIComponent>()->GetTetherSpeed() > 0) {
-		MovementAIInfo moveInfo = MovementAIInfo();
-		moveInfo.movementType = "";
-		moveInfo.wanderChance = 0;
-		moveInfo.wanderRadius = 16;
-		moveInfo.wanderSpeed = 2.5f;
-		moveInfo.wanderDelayMax = 5;
-		moveInfo.wanderDelayMin = 2;
+		MovementAIInfo moveInfo{
+			.movementType = "",
+			.wanderRadius = 16,
+			.wanderSpeed = 2.5f,
+			.wanderChance = 0,
+			.wanderDelayMin = 2,
+			.wanderDelayMax = 5,
+		};
 
 		AddComponent<MovementAIComponent>(moveInfo);
 	}
 
-	std::string pathName = GetVarAsString(u"attached_path");
-	const Path* path = Game::zoneManager->GetZone()->GetPath(pathName);
+	const std::string pathName = GetVarAsString(u"attached_path");
+	const Path* const path = Game::zoneManager->GetZone()->GetPath(pathName);
 
 	//Check to see if we have an attached path and add the appropiate component to handle it:
 	if (path) {
@@ -740,32 +739,34 @@ void Entity::Initialize() {
 		if (path->pathType == PathType::MovingPlatform) {
 			AddComponent<MovingPlatformComponent>(pathName);
 		} else if (path->pathType == PathType::Movement) {
-			auto movementAIcomponent = GetComponent<MovementAIComponent>();
+			auto* const movementAIcomponent = GetComponent<MovementAIComponent>();
 			if (movementAIcomponent && combatAiId == 0) {
 				movementAIcomponent->SetPath(pathName);
 			} else {
-				MovementAIInfo moveInfo = MovementAIInfo();
-				moveInfo.movementType = "";
-				moveInfo.wanderChance = 0;
-				moveInfo.wanderRadius = 16;
-				moveInfo.wanderSpeed = 2.5f;
-				moveInfo.wanderDelayMax = 5;
-				moveInfo.wanderDelayMin = 2;
+				MovementAIInfo moveInfo{
+					.movementType = "",
+					.wanderRadius = 16,
+					.wanderSpeed = 2.5f,
+					.wanderChance = 0,
+					.wanderDelayMin = 2,
+					.wanderDelayMax = 5,
+				};
+
 				AddComponent<MovementAIComponent>(moveInfo);
 			}
 		}
 	} else {
 		// else we still need to setup moving platform if it has a moving platform comp but no path
-		int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
+		const int32_t movingPlatformComponentId = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::MOVING_PLATFORM, -1);
 		if (movingPlatformComponentId >= 0) {
 			AddComponent<MovingPlatformComponent>(pathName);
 		}
 	}
 
-	int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
+	const int proximityMonitorID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::PROXIMITY_MONITOR);
 	if (proximityMonitorID > 0) {
-		CDProximityMonitorComponentTable* proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
-		std::vector<CDProximityMonitorComponent> proxCompData = proxCompTable->Query([=](CDProximityMonitorComponent entry) { return (entry.id == proximityMonitorID); });
+		auto* const proxCompTable = CDClientManager::GetTable<CDProximityMonitorComponentTable>();
+		const auto proxCompData = proxCompTable->Query([proximityMonitorID](const CDProximityMonitorComponent& entry) { return (entry.id == proximityMonitorID); });
 		if (proxCompData.size() > 0) {
 			std::vector<std::string> proximityStr = GeneralUtils::SplitString(proxCompData[0].Proximities, ',');
 			AddComponent<ProximityMonitorComponent>(std::stoi(proximityStr[0]), std::stoi(proximityStr[1]));
@@ -838,26 +839,21 @@ bool Entity::operator==(const Entity& other) const {
 }
 
 bool Entity::operator!=(const Entity& other) const {
-	return other.m_ObjectID != m_ObjectID;
+	return !operator==(other);
 }
 
 Component* Entity::GetComponent(eReplicaComponentType componentID) const {
 	const auto& index = m_Components.find(componentID);
-
-	if (index == m_Components.end()) {
-		return nullptr;
-	}
-
-	return index->second;
+	return index != m_Components.end() ? index->second : nullptr;
 }
 
 bool Entity::HasComponent(const eReplicaComponentType componentId) const {
-	return m_Components.find(componentId) != m_Components.end();
+	return m_Components.contains(componentId);
 }
 
 void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
-		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		auto* const  destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Subscribe(scriptObjId, scriptToAdd);
 	} else if (notificationName == "PlayerResurrectionFinished") {
@@ -868,7 +864,7 @@ void Entity::Subscribe(LWOOBJID scriptObjId, CppScripts::Script* scriptToAdd, co
 
 void Entity::Unsubscribe(LWOOBJID scriptObjId, const std::string& notificationName) {
 	if (notificationName == "HitOrHealResult" || notificationName == "Hit") {
-		auto* destroyableComponent = GetComponent<DestroyableComponent>();
+		auto* const  destroyableComponent = GetComponent<DestroyableComponent>();
 		if (!destroyableComponent) return;
 		destroyableComponent->Unsubscribe(scriptObjId);
 	} else if (notificationName == "PlayerResurrectionFinished") {
@@ -892,7 +888,7 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	m_GMLevel = value;
 	if (m_Character) m_Character->SetGMLevel(value);
 
-	auto* characterComponent = GetComponent<CharacterComponent>();
+	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
 	characterComponent->SetGMLevel(value);
@@ -910,137 +906,115 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
+void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStream& outBitStream) const {
+	RakNet::BitStream settingStream;
+	int32_t numberOfValidKeys = ldf.size();
+
+	// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
+	// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
+	for (LDFBaseData* data : ldf) {
+		if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
+			data->WriteToPacket(settingStream);
+		} else {
+			numberOfValidKeys--;
+		}
+	}
+	
+	// Now write it to the main bitstream
+	outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1 + sizeof(uint32_t));
+	outBitStream.Write<uint8_t>(0); //no compression used
+	outBitStream.Write(numberOfValidKeys);
+	outBitStream.Write(settingStream);
+}
+
 void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
 	if (packetType == eReplicaPacketType::CONSTRUCTION) {
 		outBitStream.Write(m_ObjectID);
 		outBitStream.Write(m_TemplateID);
 
-		if (IsPlayer()) {
-			std::string name = m_Character != nullptr ? m_Character->GetName() : "Invalid";
-			outBitStream.Write<uint8_t>(uint8_t(name.size()));
+		const auto& name = GeneralUtils::ASCIIToUTF16(IsPlayer() ?
+			m_Character ? m_Character->GetName() : "Invalid"
+			: GetVar<std::string>(u"npcName"));
 
-			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream.Write<uint16_t>(name[i]);
-			}
-		} else {
-			const auto& name = GetVar<std::string>(u"npcName");
-			outBitStream.Write<uint8_t>(uint8_t(name.size()));
-
-			for (size_t i = 0; i < name.size(); ++i) {
-				outBitStream.Write<uint16_t>(name[i]);
-			}
-		}
+		outBitStream.Write<uint8_t>(name.size());
+		outBitStream.Write(name);
 
 		outBitStream.Write<uint32_t>(0); //Time since created on server
 
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
-		if (m_Settings.size() > 0 && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
-			outBitStream.Write1(); //ldf data
-
-			RakNet::BitStream settingStream;
-			int32_t numberOfValidKeys = m_Settings.size();
-
-			// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
-			// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
-			// TODO should make this more efficient so that we dont waste loops evaluating the same condition twice
-			for (LDFBaseData* data : m_Settings) {
-				if (!data || data->GetValueType() == eLDFType::LDF_TYPE_UNKNOWN) {
-					numberOfValidKeys--;
-				}
-			}
-			settingStream.Write<uint32_t>(numberOfValidKeys);
-
-			for (LDFBaseData* data : m_Settings) {
-				if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
-					data->WriteToPacket(settingStream);
-				}
-			}
-
-			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream.Write<uint8_t>(0); //no compression used
-			outBitStream.Write(settingStream);
+		if (!m_Settings.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
+			outBitStream.Write1(); // Has ldf data
+			WriteLDFData(m_Settings, outBitStream);
 		} else if (!syncLDF.empty()) {
+			// Find all the ldf data we need to write
 			std::vector<LDFBaseData*> ldfData;
+			ldfData.reserve(m_Settings.size());
 
 			for (const auto& data : syncLDF) {
 				ldfData.push_back(GetVarData(data));
 			}
 
-			outBitStream.Write1(); //ldf data
-
-			RakNet::BitStream settingStream;
-			settingStream.Write<uint32_t>(ldfData.size());
-			for (LDFBaseData* data : ldfData) {
-				if (data) {
-					data->WriteToPacket(settingStream);
-				}
-			}
-
-			outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1);
-			outBitStream.Write<uint8_t>(0); //no compression used
-			outBitStream.Write(settingStream);
+			outBitStream.Write1(); // Has ldf data
+			WriteLDFData(ldfData, outBitStream);
 		} else {
-			outBitStream.Write0(); //No ldf data
+			outBitStream.Write0(); // No ldf data
 		}
 
-		TriggerComponent* triggerComponent;
-		if (TryGetComponent(eReplicaComponentType::TRIGGER, triggerComponent)) {
-			// has trigger component, check to see if we have events to handle
+		const auto* const triggerComponent = GetComponent<TriggerComponent>();
+		if (triggerComponent) {
+			// Has trigger component, check to see if we have events to handle
 			auto* trigger = triggerComponent->GetTrigger();
-			outBitStream.Write<bool>(trigger && trigger->events.size() > 0);
-		} else { // no trigger componenet, so definitely no triggers
+			outBitStream.Write<bool>(trigger && !trigger->events.empty());
+		} else { // No trigger componenet, so definitely no triggers
 			outBitStream.Write0();
 		}
 
-
-		if (m_ParentEntity != nullptr || m_SpawnerID != 0) {
-			outBitStream.Write1();
+		const bool hasParent = m_ParentEntity != nullptr || m_SpawnerID != 0;
+		outBitStream.Write(hasParent);
+		if (hasParent) {
 			if (m_ParentEntity != nullptr) outBitStream.Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream.Write(m_SpawnerID);
 			else outBitStream.Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
-		} else outBitStream.Write0();
+		}
 
 		outBitStream.Write(m_HasSpawnerNodeID);
 		if (m_HasSpawnerNodeID) outBitStream.Write(m_SpawnerNodeID);
 
-		//outBitStream.Write0(); //Spawner node id
-
-		if (m_Scale == 1.0f || m_Scale == 0.0f) outBitStream.Write0();
-		else {
-			outBitStream.Write1();
-			outBitStream.Write(m_Scale);
-		}
+		// This zero check should not be here?
+		const bool hasDefaultScale = m_Scale != 1.0f && m_Scale != 0.0f;
+		outBitStream.Write(hasDefaultScale);
+		if (hasDefaultScale) outBitStream.Write(m_Scale);
 
 		outBitStream.Write0(); //ObjectWorldState
 
-		if (m_GMLevel != eGameMasterLevel::CIVILIAN) {
-			outBitStream.Write1();
-			outBitStream.Write(m_GMLevel);
-		} else outBitStream.Write0(); //No GM Level
+		const bool hasGMLevel = m_GMLevel != eGameMasterLevel::CIVILIAN;
+		outBitStream.Write(hasGMLevel);
+		if (hasGMLevel) outBitStream.Write(m_GMLevel);
 	}
 
 	// Only serialize parent / child info should the info be dirty (changed) or if this is the construction of the entity.
-	outBitStream.Write(m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION);
-	if (m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION) {
+	const bool writeParentChild = m_IsParentChildDirty || packetType == eReplicaPacketType::CONSTRUCTION;
+	outBitStream.Write(writeParentChild);
+	if (writeParentChild) {
 		m_IsParentChildDirty = false;
 		outBitStream.Write(m_ParentEntity != nullptr);
 		if (m_ParentEntity) {
 			outBitStream.Write(m_ParentEntity->GetObjectID());
-			outBitStream.Write0();
+			outBitStream.Write0(); // Updates position with parent, usually false in live. Haven't seen a case where its supposed to be true
 		}
-		outBitStream.Write(m_ChildEntities.size() > 0);
-		if (m_ChildEntities.size() > 0) {
+		outBitStream.Write(!m_ChildEntities.empty());
+		if (!m_ChildEntities.empty()) {
 			outBitStream.Write<uint16_t>(m_ChildEntities.size());
-			for (Entity* child : m_ChildEntities) {
-				outBitStream.Write<uint64_t>(child->GetObjectID());
+			for (const auto* const child : m_ChildEntities) {
+				if (child) outBitStream.Write<LWOOBJID>(child->GetObjectID());
 			}
 		}
 	}
 }
 
-void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) {
+void Entity::WriteComponents(RakNet::BitStream& outBitStream, eReplicaPacketType packetType) const {
 
 	/**
 	 * This has to be done in a specific order.
@@ -1268,10 +1242,10 @@ void Entity::UpdateXMLDoc(tinyxml2::XMLDocument& doc) {
 	//This function should only ever be called from within Character, meaning doc should always exist when this is called.
 	//Naturally, we don't include any non-player components in this update function.
 
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
+	for (const auto& component : m_Components | std::views::values) {
+		if (!component) continue;
 
-		pair.second->UpdateXml(doc);
+		component->UpdateXml(doc);
 	}
 }
 
@@ -1319,29 +1293,38 @@ void Entity::Update(const float deltaTime) {
 
 	// Add pending timers to the list of timers so they start next tick.
 	if (!m_PendingTimers.empty()) {
+		m_Timers.reserve(m_Timers.size() + m_PendingTimers.size());
 		m_Timers.insert(m_Timers.end(), m_PendingTimers.begin(), m_PendingTimers.end());
 		m_PendingTimers.clear();
 	}
 
 	if (!m_PendingCallbackTimers.empty()) {
+		m_CallbackTimers.reserve(m_CallbackTimers.size() + m_PendingCallbackTimers.size());
 		m_CallbackTimers.insert(m_CallbackTimers.end(), m_PendingCallbackTimers.begin(), m_PendingCallbackTimers.end());
 		m_PendingCallbackTimers.clear();
 	}
 
 	if (IsSleeping()) {
-		Sleep();
+		if (!m_IsSleeping) {
+			Sleep();
+			m_IsSleeping = true;
+		}
 
 		return;
 	} else {
-		Wake();
+		if (m_IsSleeping) {
+			m_IsSleeping = false;
+			Wake();
+		}
 	}
+
 
 	GetScript()->OnUpdate(this);
 
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
+	for (const auto& component : m_Components | std::views::values) {
+		if (!component) continue;
 
-		pair.second->Update(deltaTime);
+		component->Update(deltaTime);
 	}
 
 	if (m_ShouldDestroyAfterUpdate) {
@@ -1350,13 +1333,13 @@ void Entity::Update(const float deltaTime) {
 }
 
 void Entity::OnCollisionProximity(LWOOBJID otherEntity, const std::string& proxName, const std::string& status) {
-	Entity* other = Game::entityManager->GetEntity(otherEntity);
+	Entity* const other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	GetScript()->OnProximityUpdate(this, other, proxName, status);
 	VanityUtilities::OnProximityUpdate(this, other, proxName, status);
 
-	RocketLaunchpadControlComponent* rocketComp = GetComponent<RocketLaunchpadControlComponent>();
+	auto* const rocketComp = GetComponent<RocketLaunchpadControlComponent>();
 	if (!rocketComp) return;
 
 	rocketComp->OnProximityUpdate(other, proxName, status);
@@ -1372,7 +1355,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 		callback(other);
 	}
 
-	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
+	SwitchComponent* const switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
 		switchComp->OnUse(other);
 	}
@@ -1392,7 +1375,7 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 
 	if (!other->GetIsDead()) {
 		if (GetComponent<BaseCombatAIComponent>() != nullptr) {
-			const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
+			const auto index = std::ranges::find(m_TargetsInPhantom, otherEntity);
 
 			if (index != m_TargetsInPhantom.end()) return;
 
@@ -1402,19 +1385,19 @@ void Entity::OnCollisionPhantom(const LWOOBJID otherEntity) {
 }
 
 void Entity::OnCollisionLeavePhantom(const LWOOBJID otherEntity) {
-	auto* other = Game::entityManager->GetEntity(otherEntity);
+	auto* const other = Game::entityManager->GetEntity(otherEntity);
 	if (!other) return;
 
 	GetScript()->OnOffCollisionPhantom(this, other);
 
 	TriggerEvent(eTriggerEventType::EXIT, other);
 
-	SwitchComponent* switchComp = GetComponent<SwitchComponent>();
+	SwitchComponent* const switchComp = GetComponent<SwitchComponent>();
 	if (switchComp) {
 		switchComp->EntityLeave(other);
 	}
 
-	const auto index = std::find(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), otherEntity);
+	const auto index = std::ranges::find(m_TargetsInPhantom, otherEntity);
 
 	if (index == m_TargetsInPhantom.end()) return;
 
@@ -1449,10 +1432,10 @@ void Entity::OnUse(Entity* originator) {
 
 	GetScript()->OnUse(this, originator);
 
-	for (const auto& pair : m_Components) {
-		if (pair.second == nullptr) continue;
+	for (const auto& component : m_Components | std::views::values) {
+		if (!component) continue;
 
-		pair.second->OnUse(originator);
+		component->OnUse(originator);
 	}
 }
 
@@ -1518,7 +1501,7 @@ void Entity::OnChildLoaded(GameMessages::ChildLoaded& childLoaded) {
 }
 
 void Entity::NotifyPlayerResurrectionFinished(GameMessages::PlayerResurrectionFinished& msg) {
-	for (const auto& [id, scriptList] : m_Subscriptions) {
+	for (const auto& scriptList : m_Subscriptions | std::views::values) {
 		auto it = scriptList.find("PlayerResurrectionFinished");
 		if (it == scriptList.end()) continue;
 
@@ -1530,7 +1513,7 @@ void Entity::RequestActivityExit(Entity* sender, LWOOBJID player, bool canceled)
 	GetScript()->OnRequestActivityExit(sender, player, canceled);
 }
 
-CppScripts::Script* const Entity::GetScript() {
+CppScripts::Script* const Entity::GetScript() const {
 	auto* scriptComponent = GetComponent<ScriptComponent>();
 	auto* script = scriptComponent ? scriptComponent->GetScript() : CppScripts::GetInvalidScript();
 	DluAssert(script != nullptr);
@@ -1641,68 +1624,67 @@ void Entity::AddQuickBuildCompleteCallback(const std::function<void(Entity* user
 
 bool Entity::GetIsDead() const {
 	DestroyableComponent* dest = GetComponent<DestroyableComponent>();
-	if (dest && dest->GetArmor() == 0 && dest->GetHealth() == 0) return true;
-
-	return false;
+	return dest && dest->GetArmor() == 0 && dest->GetHealth() == 0;
 }
 
-void Entity::AddLootItem(const Loot::Info& info) {
+void Entity::AddLootItem(const Loot::Info& info) const {
 	if (!IsPlayer()) return;
 
-	auto* characterComponent = GetComponent<CharacterComponent>();
+	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
 	auto& droppedLoot = characterComponent->GetDroppedLoot();
-	droppedLoot.insert(std::make_pair(info.id, info));
+	droppedLoot[info.id] = info;
 }
 
-void Entity::PickupItem(const LWOOBJID& objectID) {
+void Entity::PickupItem(const LWOOBJID& objectID) const {
 	if (!IsPlayer()) return;
-	InventoryComponent* inv = GetComponent<InventoryComponent>();
-	auto* characterComponent = GetComponent<CharacterComponent>();
+	auto* const inv = GetComponent<InventoryComponent>();
+	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!inv || !characterComponent) return;
 
 	CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
 
 	auto& droppedLoot = characterComponent->GetDroppedLoot();
 
-	for (const auto& p : droppedLoot) {
-		if (p.first == objectID) {
-			auto* characterComponent = GetComponent<CharacterComponent>();
-			if (characterComponent != nullptr) {
-				characterComponent->TrackLOTCollection(p.second.lot);
-			}
+	const auto itr = droppedLoot.find(objectID);
 
-			const CDObjects& object = objectsTable->GetByID(p.second.lot);
-			if (object.id != 0 && object.type == "Powerup") {
-				CDObjectSkillsTable* skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
-				std::vector<CDObjectSkills> skills = skillsTable->Query([=](CDObjectSkills entry) {return (entry.objectTemplate == p.second.lot); });
-				for (CDObjectSkills skill : skills) {
-					auto* skillComponent = GetComponent<SkillComponent>();
-					if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
-
-					auto* missionComponent = GetComponent<MissionComponent>();
-
-					if (missionComponent != nullptr) {
-						missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
-					}
-				}
-			} else {
-				inv->AddItem(p.second.lot, p.second.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
-			}
+	if (itr != droppedLoot.end()) {
+		const auto& info = itr->second;
+		auto* const characterComponent = GetComponent<CharacterComponent>();
+		if (characterComponent != nullptr) {
+			characterComponent->TrackLOTCollection(info.lot);
 		}
-	}
 
-	droppedLoot.erase(objectID);
+		const CDObjects& object = objectsTable->GetByID(info.lot);
+		if (object.id != 0 && object.type == "Powerup") {
+			auto* const skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
+			const auto skills = skillsTable->Query([&info](CDObjectSkills entry) {return (entry.objectTemplate == info.lot); });
+			for (const auto& skill : skills) {
+				auto* skillComponent = GetComponent<SkillComponent>();
+				if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
+
+				auto* missionComponent = GetComponent<MissionComponent>();
+
+				if (missionComponent != nullptr) {
+					missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
+				}
+			}
+		} else {
+			inv->AddItem(info.lot, info.count, eLootSourceType::PICKUP, eInventoryType::INVALID, {}, LWOOBJID_EMPTY, true, false, LWOOBJID_EMPTY, eInventoryType::INVALID, 1);
+		}
+
+		droppedLoot.erase(objectID);
+	}
 }
 
-bool Entity::CanPickupCoins(uint64_t count) {
+bool Entity::PickupCoins(uint64_t count) const {
 	if (!IsPlayer()) return false;
 
-	auto* characterComponent = GetComponent<CharacterComponent>();
+	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return false;
 
-	auto droppedCoins = characterComponent->GetDroppedCoins();
+	const auto droppedCoins = characterComponent->GetDroppedCoins();
 	if (count > droppedCoins) {
 		return false;
 	} else {
@@ -1711,15 +1693,13 @@ bool Entity::CanPickupCoins(uint64_t count) {
 	}
 }
 
-void Entity::RegisterCoinDrop(uint64_t count) {
+void Entity::RegisterCoinDrop(uint64_t count) const {
 	if (!IsPlayer()) return;
 
-	auto* characterComponent = GetComponent<CharacterComponent>();
+	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
 
-	auto droppedCoins = characterComponent->GetDroppedCoins();
-	droppedCoins += count;
-	characterComponent->SetDroppedCoins(droppedCoins);
+	characterComponent->SetDroppedCoins(characterComponent->GetDroppedCoins() + count);
 }
 
 void Entity::AddChild(Entity* child) {
@@ -1731,7 +1711,8 @@ void Entity::RemoveChild(Entity* child) {
 	if (!child) return;
 	uint32_t entityPosition = 0;
 	while (entityPosition < m_ChildEntities.size()) {
-		if (!m_ChildEntities[entityPosition] || (m_ChildEntities[entityPosition])->GetObjectID() == child->GetObjectID()) {
+		auto* const childEntity = m_ChildEntities[entityPosition];
+		if (!childEntity || childEntity->GetObjectID() == child->GetObjectID()) {
 			m_IsParentChildDirty = true;
 			m_ChildEntities.erase(m_ChildEntities.begin() + entityPosition);
 		} else {
@@ -1742,13 +1723,14 @@ void Entity::RemoveChild(Entity* child) {
 
 void Entity::RemoveParent() {
 	this->m_ParentEntity = nullptr;
+	m_IsParentChildDirty = true;
 }
 
-void Entity::AddTimer(std::string name, float time) {
+void Entity::AddTimer(const std::string& name, float time) {
 	m_PendingTimers.emplace_back(name, time);
 }
 
-void Entity::AddCallbackTimer(float time, std::function<void()> callback) {
+void Entity::AddCallbackTimer(float time, const std::function<void()> callback) {
 	m_PendingCallbackTimers.emplace_back(time, callback);
 }
 
@@ -1762,7 +1744,6 @@ void Entity::CancelCallbackTimers() {
 }
 
 void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
-	//if (m_Info.spawner) m_Info.spawner->ScheduleKill(this);
 	Game::entityManager->ScheduleForKill(this);
 
 	if (murderer) m_ScheduleKiller = murderer;
@@ -1770,8 +1751,7 @@ void Entity::ScheduleKillAfterUpdate(Entity* murderer) {
 
 void Entity::CancelTimer(const std::string& name) {
 	for (int i = 0; i < m_Timers.size(); i++) {
-		auto& timer = m_Timers[i];
-		if (timer == name) {
+		if (m_Timers[i] == name) {
 			m_Timers.erase(m_Timers.begin() + i);
 			return;
 		}
@@ -1789,8 +1769,8 @@ bool Entity::IsPlayer() const {
 	return m_TemplateID == 1 && GetSystemAddress() != UNASSIGNED_SYSTEM_ADDRESS;
 }
 
-void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) {
-	auto* triggerComponent = GetComponent<TriggerComponent>();
+void Entity::TriggerEvent(eTriggerEventType event, Entity* optionalTarget) const {
+	auto* const triggerComponent = GetComponent<TriggerComponent>();
 	if (triggerComponent) triggerComponent->TriggerEvent(event, optionalTarget);
 }
 
@@ -1838,7 +1818,7 @@ void Entity::SetObservers(int8_t value) {
 	m_Observers = value;
 }
 
-void Entity::Sleep() {
+void Entity::Sleep() const {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
 
 	if (baseCombatAIComponent != nullptr) {
@@ -1846,7 +1826,7 @@ void Entity::Sleep() {
 	}
 }
 
-void Entity::Wake() {
+void Entity::Wake() const {
 	auto* baseCombatAIComponent = GetComponent<BaseCombatAIComponent>();
 
 	if (baseCombatAIComponent != nullptr) {
@@ -1859,38 +1839,11 @@ bool Entity::IsSleeping() const {
 }
 
 
-const NiPoint3& Entity::GetPosition() const {
-	auto* controllable = GetComponent<ControllablePhysicsComponent>();
-
-	if (controllable != nullptr) {
-		return controllable->GetPosition();
-	}
-
-	auto* phantom = GetComponent<PhantomPhysicsComponent>();
-
-	if (phantom != nullptr) {
-		return phantom->GetPosition();
-	}
-
-	auto* simple = GetComponent<SimplePhysicsComponent>();
-
-	if (simple != nullptr) {
-		return simple->GetPosition();
-	}
-
-	auto* vehicel = GetComponent<HavokVehiclePhysicsComponent>();
-
-	if (vehicel != nullptr) {
-		return vehicel->GetPosition();
-	}
-
-	auto* rigidBodyPhantomPhysicsComponent = GetComponent<RigidbodyPhantomPhysicsComponent>();
-
-	if (rigidBodyPhantomPhysicsComponent != nullptr) {
-		return rigidBodyPhantomPhysicsComponent->GetPosition();
-	}
-
-	return NiPoint3Constant::ZERO;
+NiPoint3 Entity::GetPosition() const {
+	GameMessages::GetPosition posMsg{};
+	posMsg.pos = NiPoint3Constant::ZERO;
+	HandleMsg(posMsg);
+	return posMsg.pos;
 }
 
 const NiQuaternion& Entity::GetRotation() const {
@@ -2071,13 +2024,13 @@ void Entity::SetNetworkId(const uint16_t id) {
 
 std::vector<LWOOBJID> Entity::GetTargetsInPhantom() {
 	// Clean up invalid targets, like disconnected players
-	m_TargetsInPhantom.erase(std::remove_if(m_TargetsInPhantom.begin(), m_TargetsInPhantom.end(), [](const LWOOBJID id) {
+	m_TargetsInPhantom.erase(std::ranges::remove_if(m_TargetsInPhantom, [](const LWOOBJID id) {
 		return !Game::entityManager->GetEntity(id);
-		}), m_TargetsInPhantom.end());
+		}).begin(), m_TargetsInPhantom.end());
 
 	std::vector<LWOOBJID> enemies;
 	for (const auto id : m_TargetsInPhantom) {
-		auto* combat = GetComponent<BaseCombatAIComponent>();
+		const auto* const combat = GetComponent<BaseCombatAIComponent>();
 		if (!combat || !combat->IsEnemy(id)) continue;
 
 		enemies.push_back(id);
@@ -2108,12 +2061,7 @@ LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
 	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		return "";
-	}
-
-	return data->GetValueAsString();
+	return data ? data->GetValueAsString() : "";
 }
 
 void Entity::Resurrect() {
@@ -2123,13 +2071,13 @@ void Entity::Resurrect() {
 }
 
 void Entity::AddToGroup(const std::string& group) {
-	if (std::find(m_Groups.begin(), m_Groups.end(), group) == m_Groups.end()) {
+	if (std::ranges::find(m_Groups, group) == m_Groups.end()) {
 		m_Groups.push_back(group);
 	}
 }
 
-void Entity::RetroactiveVaultSize() {
-	auto inventoryComponent = GetComponent<InventoryComponent>();
+void Entity::RetroactiveVaultSize() const {
+	auto* const inventoryComponent = GetComponent<InventoryComponent>();
 	if (!inventoryComponent) return;
 
 	auto itemsVault = inventoryComponent->GetInventory(eInventoryType::VAULT_ITEMS);
@@ -2228,12 +2176,12 @@ const NiQuaternion& Entity::GetRespawnRotation() const {
 	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
 }
 
-void Entity::SetRespawnPos(const NiPoint3& position) {
+void Entity::SetRespawnPos(const NiPoint3& position) const {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnPos(position);
 }
 
-void Entity::SetRespawnRot(const NiQuaternion& rotation) {
+void Entity::SetRespawnRot(const NiQuaternion& rotation) const {
 	auto* characterComponent = GetComponent<CharacterComponent>();
 	if (characterComponent) characterComponent->SetRespawnRot(rotation);
 }
@@ -2251,8 +2199,8 @@ int32_t Entity::GetCollisionGroup() const {
 
 bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
 	bool handled = false;
-	const auto [beg, end] = m_MsgHandlers.equal_range(msg.msgId);
-	for (auto it = beg; it != end; ++it) {
+	auto [beg, end] = m_MsgHandlers.equal_range(msg.msgId);
+	for (auto& it = beg; it != end; ++it) {
 		if (it->second) handled |= it->second(msg);
 	}
 

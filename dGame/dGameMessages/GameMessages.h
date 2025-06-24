@@ -843,5 +843,10 @@ namespace GameMessages {
 		LWOOBJID targetID;
 	};
 
+	struct GetPosition : public GameMsg {
+		GetPosition() : GameMsg(MessageType::Game::GET_POSITION) {}
+
+		NiPoint3 pos{};
+	};
 };
 #endif // GAMEMESSAGES_H
