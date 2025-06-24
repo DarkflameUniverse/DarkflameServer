@@ -132,6 +132,7 @@ namespace Mail {
 		} else {
 			response.status = eSendResponse::SenderAccountIsMuted;
 		}
+		LOG("Finished send with status %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
 
@@ -158,6 +159,7 @@ namespace Mail {
 		DataResponse response;
 		response.playerMail = playerMail;
 		response.Send(sysAddr);
+		LOG("DataRequest");
 	}
 
 	void DataResponse::Serialize(RakNet::BitStream& bitStream) const {
@@ -196,6 +198,7 @@ namespace Mail {
 				response.status = eAttachmentCollectResponse::Success;
 			}
 		}
+		LOG("AttachmentCollectResponse %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
 
@@ -218,14 +221,15 @@ namespace Mail {
 		response.mailID = mailID;
 
 		auto mailData = Database::Get()->GetMail(mailID);
-		if (mailData && !(mailData->itemLOT != 0 && mailData->itemCount > 0)) {
+		if (mailData && !(mailData->itemLOT > 0 && mailData->itemCount > 0)) {
 			Database::Get()->DeleteMail(mailID);
 			response.status = eDeleteResponse::Success;
-		} else if (mailData && mailData->itemLOT != 0 && mailData->itemCount > 0) {
+		} else if (mailData && mailData->itemLOT > 0 && mailData->itemCount > 0) {
 			response.status = eDeleteResponse::HasAttachments;
 		} else {
 			response.status = eDeleteResponse::NotFound;
 		}
+		LOG("DeleteRequest status %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
 
@@ -249,7 +253,9 @@ namespace Mail {
 		if (Database::Get()->GetMail(mailID)) {
 			response.status = eReadResponse::Success;
 			Database::Get()->MarkMailRead(mailID);
-		}	
+		}
+
+		LOG("ReadRequest %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
 
@@ -267,6 +273,8 @@ namespace Mail {
 			response.status = eNotificationResponse::NewMail;
 			response.mailCount = unreadMailCount;
 		}
+
+		LOG("NotificationRequest %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
 }
@@ -288,6 +296,7 @@ void Mail::HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr,
 			LOG_DEBUG("Error Reading Mail Request: %s", StringifiedEnum::ToString(data.messageID).data());
 			return;
 		}
+		LOG("Received mail message %s", StringifiedEnum::ToString(data.messageID).data());
 		request->Handle();
 	} else {
 		LOG_DEBUG("Unhandled Mail Request with ID: %i", data.messageID);

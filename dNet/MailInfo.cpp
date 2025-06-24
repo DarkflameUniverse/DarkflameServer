@@ -58,6 +58,7 @@ bool MailInfo::Deserialize(RakNet::BitStream& bitStream) {
 	bitStream.IgnoreBytes(4); // padding
 
 	DluAssert(bitStream.GetNumberOfUnreadBits() == 0);
+	LOG_DEBUG("MailInfo: %llu, %s, %s, %s, %llu, %i, %llu, %i, %llu, %i", id, subject.GetAsString().c_str(), body.GetAsString().c_str(), recipientName.GetAsString().c_str(), itemID, itemLOT, itemSubkey, itemCount, timeSent, wasRead);
 
 	return true;
 }
