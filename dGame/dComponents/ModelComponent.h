@@ -66,7 +66,7 @@ public:
 	 *
 	 * @tparam Msg The message type to pass
 	 * @param args the arguments of the message to be deserialized
-	 * 
+	 *
 	 * @return returns true if a new behaviorID is needed.
 	 */
 	template<typename Msg>
@@ -145,6 +145,8 @@ public:
 	void SetVelocity(const NiPoint3& velocity) const;
 
 	void OnChatMessageReceived(const std::string& sMessage);
+
+	void SetSpeed(const float newSpeed) { m_Speed = newSpeed; }
 private:
 
 	// Loads a behavior from the database.
@@ -185,4 +187,7 @@ private:
 	 * The ID of the user that made the model
 	 */
 	LWOOBJID m_userModelID;
+
+	// The speed at which this model moves
+	float m_Speed{ 3.0f };
 };
