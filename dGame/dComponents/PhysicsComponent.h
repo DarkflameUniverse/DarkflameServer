@@ -20,7 +20,7 @@ public:
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
-	const NiPoint3& GetPosition() const { return m_Position; }
+	const NiPoint3& GetPosition() const noexcept { return m_Position; }
 	virtual void SetPosition(const NiPoint3& pos) { if (m_Position == pos) return; m_Position = pos; m_DirtyPosition = true; }
 
 	const NiQuaternion& GetRotation() const { return m_Rotation; }
@@ -34,6 +34,8 @@ protected:
 	dpEntity* CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const;
 
 	void SpawnVertices(dpEntity* entity) const;
+
+	bool OnGetPosition(GameMessages::GameMsg& msg);
 
 	NiPoint3 m_Position;
 

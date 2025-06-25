@@ -5207,7 +5207,7 @@ void GameMessages::HandlePickupCurrency(RakNet::BitStream& inStream, Entity* ent
 	if (currency == 0) return;
 
 	auto* ch = entity->GetCharacter();
-	if (ch && entity->CanPickupCoins(currency)) {
+	if (ch && entity->PickupCoins(currency)) {
 		ch->SetCoins(ch->GetCoins() + currency, eLootSourceType::PICKUP);
 	}
 }

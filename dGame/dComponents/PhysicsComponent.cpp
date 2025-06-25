@@ -29,6 +29,13 @@ PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Compon
 	}
 
 	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
+
+	RegisterMsg(MessageType::Game::GET_POSITION, this, &PhysicsComponent::OnGetPosition);
+}
+
+bool PhysicsComponent::OnGetPosition(GameMessages::GameMsg& msg) {
+	static_cast<GameMessages::GetPosition&>(msg).pos = GetPosition();
+	return true;
 }
 
 void PhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {

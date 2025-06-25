@@ -24,9 +24,8 @@ namespace {
 }
 
 void Loot::CacheMatrix(uint32_t matrixIndex) {
-	if (CachedMatrices.find(matrixIndex) != CachedMatrices.end()) {
-		return;
-	}
+	if (CachedMatrices.contains(matrixIndex)) return;
+
 	CachedMatrices.insert(matrixIndex);
 	CDComponentsRegistryTable* componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
 	CDItemComponentTable* itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
