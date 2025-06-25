@@ -394,7 +394,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 		}
 	}
 
-	UpdateGhosting(PlayerManager::GetPlayer(sysAddr));
+	UpdateGhosting(PlayerManager::GetPlayer(sysAddr), true);
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
@@ -417,7 +417,7 @@ void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr)
 
 void EntityManager::SerializeEntity(Entity* entity) {
 	if (!entity) return;
-	
+
 	EntityManager::SerializeEntity(*entity);
 }
 
@@ -463,7 +463,7 @@ void EntityManager::UpdateGhosting() {
 	m_PlayersToUpdateGhosting.clear();
 }
 
-void EntityManager::UpdateGhosting(Entity* player) {
+void EntityManager::UpdateGhosting(Entity* player, const bool constructAll) {
 	if (!player) return;
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -511,9 +511,12 @@ void EntityManager::UpdateGhosting(Entity* player) {
 
 			ghostComponent->ObserveEntity(id);
 
-			ConstructEntity(entity, player->GetSystemAddress());
-
 			entity->SetObservers(entity->GetObservers() + 1);
+
+			// TODO: figure out if zone control should be ghosted at all
+			if (constructAll && entity->GetObjectID() == GetZoneControlEntity()->GetObjectID()) continue;
+
+			ConstructEntity(entity, player->GetSystemAddress());
 		}
 	}
 }
