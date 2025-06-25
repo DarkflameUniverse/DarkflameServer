@@ -37,6 +37,7 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
 
+	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
 	m_NumActiveUnSmash = 0;
 	m_Dirty = true;
@@ -279,6 +280,7 @@ bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
 		currentVelocity = velocity;
 	}
 
+	currentVelocity *= m_Speed;
 	m_Parent->SetVelocity(currentVelocity);
 	return true;
 }

@@ -8,6 +8,7 @@
 #include "ChatPackets.h"
 #include "PropertyManagementComponent.h"
 #include "PlayerManager.h"
+#include "SimplePhysicsComponent.h"
 
 #include "dChatFilter.h"
 
@@ -154,16 +155,18 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
 		// X axis
 		bool isMoveLeft = nextActionType == "MoveLeft";
+		int negative = isMoveLeft ? -1 : 1;
 		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3{ isMoveLeft ? -3.0f : 3.0f, 0.0f, 0.0f })) {
+		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_X * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionMove.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
 		// Y axis
 		bool isFlyDown = nextActionType == "FlyDown";
+		int negative = isFlyDown ? -1 : 1;
 		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, isFlyDown ? -3.0f : 3.0f, 0.0f })) {
+		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Y * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionMove.y = isFlyDown ? -number : number;
 		}
@@ -171,13 +174,20 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
 		// Z axis
 		bool isMoveBackward = nextActionType == "MoveBackward";
+		int negative = isMoveBackward ? -1 : 1;
 		// Default velocity is 3 units per second.
-		if (modelComponent.TrySetVelocity(NiPoint3{ 0.0f, 0.0f, isMoveBackward ? -3.0f : 3.0f })) {
+		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Z * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
 			m_InActionMove.z = isMoveBackward ? -number : number;
 		}
 	}
 	/* END Move */
+
+	/* BEGIN Navigation */
+	else if (nextActionType == "SetSpeed") {
+		modelComponent.SetSpeed(number);
+	}
+	/* END Navigation */
 
 	/* BEGIN Action */
 	else if (nextActionType == "Smash") {
