@@ -921,7 +921,7 @@ void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStrea
 	}
 	
 	// Now write it to the main bitstream
-	outBitStream.Write(settingStream.GetNumberOfBytesUsed() + 1 + sizeof(uint32_t));
+	outBitStream.Write<uint32_t>(settingStream.GetNumberOfBytesUsed() + 1 + sizeof(uint32_t));
 	outBitStream.Write<uint8_t>(0); //no compression used
 	outBitStream.Write(numberOfValidKeys);
 	outBitStream.Write(settingStream);
