@@ -526,7 +526,7 @@ void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID
 		ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, zoneID, character->GetZoneClone(), false, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", character->GetName().c_str(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);
 			if (character) {
-				auto* entity = character->GetEntity();
+				auto* entity = Game::entityManager->GetEntity(character->GetObjectID());
 				if (entity) {
 					auto* characterComponent = entity->GetComponent<CharacterComponent>();
 					if (characterComponent) {
