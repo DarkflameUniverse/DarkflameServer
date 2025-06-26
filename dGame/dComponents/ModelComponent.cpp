@@ -265,7 +265,7 @@ bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
 
 	// If we're currently moving on an axis, prevent the move so only 1 behavior can have control over an axis
 	if (velocity != NiPoint3Constant::ZERO) {
-		const auto [x, y, z] = velocity;
+		const auto [x, y, z] = velocity * m_Speed;
 		if (x != 0.0f) {
 			if (currentVelocity.x != 0.0f) return false;
 			currentVelocity.x = x;
@@ -280,7 +280,6 @@ bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
 		currentVelocity = velocity;
 	}
 
-	currentVelocity *= m_Speed;
 	m_Parent->SetVelocity(currentVelocity);
 	return true;
 }
