@@ -167,6 +167,7 @@ Entity::~Entity() {
 
 	if (m_Character) {
 		m_Character->SaveXMLToDatabase();
+		m_Character->SetEntity(nullptr);
 	}
 
 	CancelAllTimers();
