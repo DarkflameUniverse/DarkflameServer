@@ -5,6 +5,8 @@
 #include "Sd0.h"
 
 void ModelNormalizeMigration::Run() {
+	// Take this out when model position normalization works (never)
+	return;
 	const auto oldCommit = Database::Get()->GetAutoCommit();
 	Database::Get()->SetAutoCommit(false);
 	for (auto& [lxfmlData, id, modelID] : Database::Get()->GetAllUgcModels()) {
@@ -30,6 +32,8 @@ void ModelNormalizeMigration::Run() {
 }
 
 void ModelNormalizeMigration::RunAfterFirstPart() {
+	// Take this out when model position normalization works (never)
+	return;
 	const auto oldCommit = Database::Get()->GetAutoCommit();
 	Database::Get()->SetAutoCommit(false);
 	for (auto& [lxfmlData, id, modelID] : Database::Get()->GetAllUgcModels()) {

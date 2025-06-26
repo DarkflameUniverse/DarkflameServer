@@ -2611,10 +2611,15 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 		// Uncompress the data and normalize the position
 		const auto asStr = sd0.GetAsStringUncompressed();
-		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
+
+		// This logic doesnt work
+		/*
+		// const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
 
 		// Recompress the data and save to the database
-		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
+		// sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
+		*/
+
 		auto sd0AsStream = sd0.GetAsStream();
 		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
@@ -2622,8 +2627,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		IPropertyContents::Model model;
 		model.id = newIDL;
 		model.ugcId = blueprintIDSmall;
-		model.position = newCenter;
-		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		model.position = NiPoint3Constant::ZERO;
+		model.rotation = NiQuaternionConstant::IDENTITY;
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
 
@@ -2668,8 +2673,8 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 		EntityInfo info;
 		info.lot = 14;
-		info.pos = newCenter;
-		info.rot = {};
+		info.pos = NiPoint3Constant::ZERO;
+		info.rot = NiQuaternionConstant::IDENTITY;
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;

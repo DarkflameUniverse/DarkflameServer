@@ -9,6 +9,8 @@
 // this file should not be touched
 
 Lxfml::Result Lxfml::NormalizePositionOnlyFirstPart(const std::string_view data) {
+	// this is bugged
+	return;
 	Result toReturn;
 	tinyxml2::XMLDocument doc;
 	const auto err = doc.Parse(data.data());
@@ -117,6 +119,9 @@ Lxfml::Result Lxfml::NormalizePositionOnlyFirstPart(const std::string_view data)
 }
 
 Lxfml::Result Lxfml::NormalizePositionAfterFirstPart(const std::string_view data, const NiPoint3& position) {
+	// this is bugged
+	return;
+
 	Result toReturn;
 	tinyxml2::XMLDocument doc;
 	const auto err = doc.Parse(data.data());

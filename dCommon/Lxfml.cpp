@@ -66,9 +66,11 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 
 	auto delta = (highest - lowest) / 2.0f;
 	auto newRootPos = lowest + delta;
-
+	
 	// Clamp the Y to the lowest point on the model 
 	newRootPos.y = lowest.y;
+	// newRootPos = newRootPos - NiPoint3{-0.4f, 0, 0.4};
+	const auto posToReturn = newRootPos;
 
 	// Adjust all positions to account for the new origin
 	for (auto& transformation : transformations | std::views::values) {
@@ -112,6 +114,6 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data) {
 	doc.Print(&printer);
 
 	toReturn.lxfml = printer.CStr();
-	toReturn.center = newRootPos;
+	toReturn.center = posToReturn;
 	return toReturn;
 }
