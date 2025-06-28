@@ -48,6 +48,7 @@ void MigrationRunner::RunMigrations() {
 	bool runSd0Migrations = false;
 	bool runNormalizeMigrations = false;
 	bool runNormalizeAfterFirstPartMigrations = false;
+	bool runBrickBuildsNotOnGrid = false;
 	for (const auto& entry : GeneralUtils::GetSqlFileNamesFromFolder((BinaryPathFinder::GetBinaryDir() / "./migrations/dlu/" / migrationFolder).string())) {
 		auto migration = LoadMigration("dlu/" + migrationFolder + "/", entry);
 
@@ -64,6 +65,8 @@ void MigrationRunner::RunMigrations() {
 			runNormalizeMigrations = true;
 		} else if (migration.name.ends_with("_normalize_model_positions_after_first_part.sql")) {
 			runNormalizeAfterFirstPartMigrations = true;
+		} else if (migration.name.ends_with("_brickbuilds_not_on_grid.sql")) {
+			runBrickBuildsNotOnGrid = true;
 		} else {
 			finalSQL.append(migration.data.c_str());
 		}
@@ -71,7 +74,7 @@ void MigrationRunner::RunMigrations() {
 		Database::Get()->InsertMigration(migration.name);
 	}
 
-	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations && !runNormalizeAfterFirstPartMigrations) {
+	if (finalSQL.empty() && !runSd0Migrations && !runNormalizeMigrations && !runNormalizeAfterFirstPartMigrations && !runBrickBuildsNotOnGrid) {
 		LOG("Server database is up to date.");
 		return;
 	}
@@ -102,6 +105,10 @@ void MigrationRunner::RunMigrations() {
 
 	if (runNormalizeAfterFirstPartMigrations) {
 		ModelNormalizeMigration::RunAfterFirstPart();
+	}
+
+	if (runBrickBuildsNotOnGrid) {
+		ModelNormalizeMigration::RunBrickBuildGrid();
 	}
 }
 
