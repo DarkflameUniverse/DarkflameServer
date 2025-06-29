@@ -130,11 +130,23 @@ namespace GeneralUtils {
 
 	std::u16string ReadWString(RakNet::BitStream& inStream);
 
-	std::vector<std::wstring> SplitString(const std::wstring_view str, const wchar_t delimiter);
+	template<typename StringType, typename CharType = typename StringType::value_type>
+	std::vector<std::basic_string<CharType>> SplitString(const StringType& str, const typename StringType::value_type delimiter) {
+		std::vector<std::basic_string<CharType>> toReturn{};
 
-	std::vector<std::u16string> SplitString(const std::u16string_view str, const char16_t delimiter);
+		toReturn.emplace_back();
+		auto itr = toReturn.rbegin();
+		for (const auto c : str) {
+			if (c == delimiter) {
+				toReturn.emplace_back();
+				itr = toReturn.rbegin();
+			} else {
+				(*itr).push_back(c);
+			}
+		}
 
-	std::vector<std::string> SplitString(const std::string_view str, const char delimiter);
+		return toReturn;
+	}
 
 	std::vector<std::string> GetSqlFileNamesFromFolder(const std::string_view folder);
 

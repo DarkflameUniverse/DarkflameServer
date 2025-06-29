@@ -1777,7 +1777,7 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 			group.groupId = groupId;
 			group.groupName = groupName;
 
-			for (const auto& lotStr : GeneralUtils::SplitString(lots, ' ')) {
+			for (const auto& lotStr : GeneralUtils::SplitString(std::string_view(lots), ' ')) {
 				auto lot = GeneralUtils::TryParse<LOT>(lotStr);
 				if (lot) group.lots.insert(*lot);
 			}
