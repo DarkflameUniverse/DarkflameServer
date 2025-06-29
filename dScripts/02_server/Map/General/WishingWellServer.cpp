@@ -23,7 +23,7 @@ void WishingWellServer::OnUse(Entity* self, Entity* user) {
 
 	Loot::DropActivityLoot(
 		user,
-		self,
+		self->GetObjectID(),
 		static_cast<uint32_t>(scriptedActivity->GetActivityID()),
 		GeneralUtils::GenerateRandomNumber<int32_t>(1, 1000)
 	);

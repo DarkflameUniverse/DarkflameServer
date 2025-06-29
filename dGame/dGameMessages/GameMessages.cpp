@@ -6312,6 +6312,10 @@ void GameMessages::SendUpdateInventoryUi(LWOOBJID objectId, const SystemAddress&
 }
 
 namespace GameMessages {
+	bool GameMsg::Send() {
+		return Game::entityManager->SendMessage(*this);
+	}
+
 	void GameMsg::Send(const SystemAddress& sysAddr) const {
 		CBITSTREAM;
 		CMSGHEADER;

@@ -214,7 +214,7 @@ void Loot::GiveLoot(Entity* player, std::unordered_map<LOT, int32_t>& result, eL
 	}
 }
 
-void Loot::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
+void Loot::GiveActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating) {
 	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 
@@ -248,7 +248,7 @@ void Loot::GiveActivityLoot(Entity* player, Entity* source, uint32_t activityID,
 	character->SetCoins(character->GetCoins() + coins, eLootSourceType::ACTIVITY);
 }
 
-void Loot::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
+void Loot::DropLoot(Entity* player, const LWOOBJID source, uint32_t matrixIndex, uint32_t minCoins, uint32_t maxCoins) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -258,10 +258,10 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, uint32_t matrixIndex, 
 
 	std::unordered_map<LOT, int32_t> result = RollLootMatrix(player, matrixIndex);
 
-	DropLoot(player, killedObject, result, minCoins, maxCoins);
+	DropLoot(player, source, result, minCoins, maxCoins);
 }
 
-void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins) {
+void Loot::DropLoot(Entity* player, const LWOOBJID source, std::unordered_map<LOT, int32_t>& result, uint32_t minCoins, uint32_t maxCoins) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -269,9 +269,11 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT
 	if (!inventoryComponent)
 		return;
 
-	const auto spawnPosition = killedObject->GetPosition();
+	GameMessages::GetPosition posMsg;
+	posMsg.target = source;
+	posMsg.Send();
 
-	const auto source = killedObject->GetObjectID();
+	const auto spawnPosition = posMsg.pos;
 
 	for (const auto& pair : result) {
 		for (int i = 0; i < pair.second; ++i) {
@@ -284,7 +286,7 @@ void Loot::DropLoot(Entity* player, Entity* killedObject, std::unordered_map<LOT
 	GameMessages::SendDropClientLoot(player, source, LOT_NULL, coins, spawnPosition);
 }
 
-void Loot::DropActivityLoot(Entity* player, Entity* source, uint32_t activityID, int32_t rating) {
+void Loot::DropActivityLoot(Entity* player, const LWOOBJID source, uint32_t activityID, int32_t rating) {
 	CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
 	std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([activityID](CDActivityRewards entry) { return (entry.objectTemplate == activityID); });
 

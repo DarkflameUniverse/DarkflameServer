@@ -755,18 +755,18 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 					auto* member = Game::entityManager->GetEntity(specificOwner);
 
-					if (member) Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+					if (member) Loot::DropLoot(member, m_Parent->GetObjectID(), lootMatrixId, GetMinCoins(), GetMaxCoins());
 				} else {
 					for (const auto memberId : team->members) { // Free for all
 						auto* member = Game::entityManager->GetEntity(memberId);
 
 						if (member == nullptr) continue;
 
-						Loot::DropLoot(member, m_Parent, lootMatrixId, GetMinCoins(), GetMaxCoins());
+						Loot::DropLoot(member, m_Parent->GetObjectID(), lootMatrixId, GetMinCoins(), GetMaxCoins());
 					}
 				}
 			} else { // drop loot for non team user
-				Loot::DropLoot(owner, m_Parent, GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
+				Loot::DropLoot(owner, m_Parent->GetObjectID(), GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 			}
 		}
 	} else {
@@ -784,7 +784,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				Loot::DropLoot(m_Parent, m_Parent, -1, coinsToLose, coinsToLose);
+				Loot::DropLoot(m_Parent, m_Parent->GetObjectID(), -1, coinsToLose, coinsToLose);
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
