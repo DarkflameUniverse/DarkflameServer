@@ -1640,7 +1640,7 @@ namespace DEVGMCommands {
 
 		for (auto* const player : PlayerManager::GetAllPlayers()) {
 			auto* const pCharacterComponent = player->GetComponent<CharacterComponent>();
-			if (pCharacterComponent) pCharacterComponent->SetPvpEnabled(args == "start");
+			if (pCharacterComponent) pCharacterComponent->SetPvpEnabled(true);
 			Game::entityManager->SerializeEntity(player);
 		}
 		const auto msg = u"Pvp has been turned on for all players by " + GeneralUtils::ASCIIToUTF16(characterComponent->GetName());
