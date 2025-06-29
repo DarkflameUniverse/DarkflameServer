@@ -66,6 +66,67 @@ void MovementAIComponent::SetPath(const std::string pathName) {
 	SetMaxSpeed(1);
 	SetCurrentSpeed(m_BaseSpeed);
 	SetPath(m_Path->pathWaypoints);
+	
+	auto start_index = m_Parent->GetVarAs<uint32_t>(u"attached_path_start");
+	if (start_index >= m_Path->waypointCount) start_index = 0;
+	
+	SetDestination(m_Path->pathWaypoints[m_PathIndex].position);
+	m_PathIndex = start_index;
+
+}
+
+void MovementAIComponent::SetPath(const std::string pathName, uint32_t startIndex, bool reverse) {
+	m_Path = Game::zoneManager->GetZone()->GetPath(pathName);
+	if (!pathName.empty()) LOG("WARNING: %s path %s", m_Path ? "Found" : "Failed to find", pathName.c_str());
+	if (!m_Path) return;
+	SetMaxSpeed(1);
+	SetCurrentSpeed(m_BaseSpeed);
+
+	if (reverse) {
+		m_IsBounced = !m_IsBounced;
+		auto pathWaypoints = m_Path->pathWaypoints;
+		std::reverse(pathWaypoints.begin(), pathWaypoints.end());
+		SetPath(pathWaypoints);
+	} else {
+		SetPath(m_Path->pathWaypoints);
+	}
+
+	SetDestination(m_Path->pathWaypoints[startIndex].position);
+	m_PathIndex = startIndex;
+}
+
+void MovementAIComponent::TurnAroundOnPath() {
+	if (m_Path) {
+		auto currentIndex = m_PathIndex;
+		m_IsBounced = !m_IsBounced;
+		std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
+		if (m_IsBounced) std::reverse(waypoints.begin(), waypoints.end());
+		SetPath(waypoints);
+		SetDestination(waypoints[currentIndex].position);
+		m_PathIndex = currentIndex;
+	}
+}
+
+void MovementAIComponent::GoForwardOnPath() {
+	if (m_Path) {
+		auto currentIndex = m_PathIndex;
+		m_IsBounced = false;
+		SetPath(m_Path->pathWaypoints);
+		SetDestination(m_Path->pathWaypoints[currentIndex].position);
+		m_PathIndex = currentIndex;
+	}
+}
+
+void MovementAIComponent::GoBackwardOnPath() {
+	if (m_Path) {
+		auto currentIndex = m_PathIndex;
+		m_IsBounced = true;
+		std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
+		std::reverse(waypoints.begin(), waypoints.end());
+		SetPath(waypoints);
+		SetDestination(waypoints[currentIndex].position);
+		m_PathIndex = currentIndex;
+	}
 }
 
 void MovementAIComponent::Pause() {
@@ -188,7 +249,7 @@ bool MovementAIComponent::AdvanceWaypointIndex() {
 	if (m_PathIndex >= m_InterpolatedWaypoints.size()) {
 		return false;
 	}
-
+	m_Parent->GetScript()->OnWaypointReached(m_Parent, m_PathIndex);
 	m_PathIndex++;
 
 	return true;
