@@ -114,6 +114,7 @@ These commands are primarily for development and testing. The usage of many of t
 |addfaction|`/addfaction <faction id>`|Add the faction to the users list of factions|8|
 |getfactions|`/getfactions`|Shows the player's factions|8|
 |setrewardcode|`/setrewardcode <code>`|Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`|8|
+|barfight|`/barfight start`|Starts a barfight (turns everyones pvp on)|8|
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
 |castskill|`/castskill <skill id>`|Casts the skill as the player|9|
