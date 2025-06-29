@@ -572,7 +572,7 @@ void SGCannon::StopGame(Entity* self, bool cancel) {
 			missionComponent->Progress(eMissionTaskType::ACTIVITY, m_CannonLot, 0, "", self->GetVar<int32_t>(TotalScoreVariable));
 		}
 
-		Loot::GiveActivityLoot(player, self, GetGameID(self), self->GetVar<int32_t>(TotalScoreVariable));
+		Loot::GiveActivityLoot(player, self->GetObjectID(), GetGameID(self), self->GetVar<int32_t>(TotalScoreVariable));
 
 		SaveScore(self, player->GetObjectID(),
 			static_cast<float>(self->GetVar<int32_t>(TotalScoreVariable)), static_cast<float>(self->GetVar<uint32_t>(MaxStreakVariable)), percentage);

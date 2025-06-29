@@ -54,6 +54,12 @@ namespace GameMessages {
 		GameMsg(MessageType::Game gmId, eGameMasterLevel lvl) : msgId{ gmId }, requiredGmLevel{ lvl } {}
 		GameMsg(MessageType::Game gmId) : GameMsg(gmId, eGameMasterLevel::CIVILIAN) {}
 		virtual ~GameMsg() = default;
+
+		// Sends a message to the entity manager to route to the target
+		bool Send();
+
+		// Sends the message to the specified client or
+		// all clients if UNASSIGNED_SYSTEM_ADDRESS is specified
 		void Send(const SystemAddress& sysAddr) const;
 		virtual void Serialize(RakNet::BitStream& bitStream) const {}
 		virtual bool Deserialize(RakNet::BitStream& bitStream) { return true; }

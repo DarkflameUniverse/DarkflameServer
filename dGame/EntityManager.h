@@ -14,6 +14,10 @@ class Player;
 class User;
 enum class eReplicaComponentType : uint32_t;
 
+namespace GameMessages {
+	struct GameMsg;
+}
+
 struct SystemAddress;
 
 class EntityManager {
@@ -71,6 +75,9 @@ public:
 	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
 	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+
+	// Messaging
+	bool SendMessage(GameMessages::GameMsg& msg) const;
 
 private:
 	void SerializeEntities();

@@ -605,3 +605,14 @@ void EntityManager::FireEventServerSide(Entity* origin, std::string args) {
 bool EntityManager::IsExcludedFromGhosting(LOT lot) {
 	return std::find(m_GhostingExcludedLOTs.begin(), m_GhostingExcludedLOTs.end(), lot) != m_GhostingExcludedLOTs.end();
 }
+
+bool EntityManager::SendMessage(GameMessages::GameMsg& msg) const {
+	bool handled = false;
+	const auto entityItr = m_Entities.find(msg.target);
+	if (entityItr != m_Entities.end()) {
+		auto* const entity = entityItr->second;
+		if (entity) handled = entity->HandleMsg(msg);
+	}
+
+	return handled;
+}
