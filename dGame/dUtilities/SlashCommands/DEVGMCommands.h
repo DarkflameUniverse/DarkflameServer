@@ -74,6 +74,7 @@ namespace DEVGMCommands {
 	void CastSkill(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void DeleteInven(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 	void Shutdown(Entity* entity, const SystemAddress& sysAddr, const std::string args);
+	void Barfight(Entity* entity, const SystemAddress& sysAddr, const std::string args);
 }
 
 #endif  //!DEVGMCOMMANDS_H
