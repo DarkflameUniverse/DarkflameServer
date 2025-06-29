@@ -14,24 +14,21 @@
 
 #include "Start.h"
 
-InstanceManager::InstanceManager(Logger* logger, const std::string& externalIP) {
-	mLogger = logger;
-	mExternalIP = externalIP;
+using std::make_unique;
+
+namespace {
+	const InstancePtr g_Empty{ nullptr };
+}
+
+InstanceManager::InstanceManager(const std::string& externalIP) : mExternalIP{ externalIP } {
 	m_LastPort =
 		GeneralUtils::TryParse<uint16_t>(Game::config->GetValue("world_port_start")).value_or(m_LastPort);
 	m_LastInstanceID = LWOINSTANCEID_INVALID;
 }
 
-InstanceManager::~InstanceManager() {
-	for (Instance* i : m_Instances) {
-		delete i;
-		i = nullptr;
-	}
-}
-
-Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
+const InstancePtr& InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID) {
 	LOG("Searching for an instance for mapID %i/%i", mapID, cloneID);
-	Instance* instance = FindInstance(mapID, isFriendTransfer, cloneID);
+	auto& instance = FindInstance(mapID, isFriendTransfer, cloneID);
 	if (instance) return instance;
 
 	// If we are shutting down, return a nullptr so a new instance is not created.
@@ -40,7 +37,7 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 			mapID,
 			m_LastInstanceID + 1,
 			cloneID);
-		return nullptr;
+		return g_Empty;
 	}
 	//TODO: Update this so that the IP is read from a configuration file instead
 
@@ -56,23 +53,23 @@ Instance* InstanceManager::GetInstance(LWOMAPID mapID, bool isFriendTransfer, LW
 	}
 
 	uint32_t port = GetFreePort();
-	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
+	auto newInstance = make_unique<Instance>(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, softCap, maxPlayers);
 
 	//Start the actual process:
 	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
-	m_Instances.push_back(instance);
+	m_Instances.push_back(std::move(newInstance));
 
-	if (instance) {
+	if (m_Instances.back()) {
 		LOG("Created new instance: %i/%i/%i with min/max %i/%i", mapID, m_LastInstanceID, cloneID, softCap, maxPlayers);
-		return instance;
+		return m_Instances.back();
 	} else LOG("Failed to create a new instance!");
 
-	return nullptr;
+	return g_Empty;
 }
 
 bool InstanceManager::IsPortInUse(uint32_t port) {
-	for (Instance* i : m_Instances) {
+	for (const auto& i : m_Instances) {
 		if (i && i->GetPort() == port) {
 			return true;
 		}
@@ -84,7 +81,7 @@ bool InstanceManager::IsPortInUse(uint32_t port) {
 uint32_t InstanceManager::GetFreePort() {
 	uint32_t port = m_LastPort;
 	std::vector<uint32_t> usedPorts;
-	for (Instance* i : m_Instances) {
+	for (const auto& i : m_Instances) {
 		usedPorts.push_back(i->GetPort());
 	}
 
@@ -101,7 +98,7 @@ uint32_t InstanceManager::GetFreePort() {
 }
 
 void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
-	Instance* inst = FindInstance(mapID, instanceID);
+	const auto& inst = FindInstance(mapID, instanceID);
 	if (inst) {
 		Player player;
 		player.addr = systemAddr;
@@ -111,7 +108,7 @@ void InstanceManager::AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINS
 }
 
 void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID) {
-	Instance* inst = FindInstance(mapID, instanceID);
+	const auto& inst = FindInstance(mapID, instanceID);
 	if (inst) {
 		Player player;
 		player.addr = systemAddr;
@@ -120,24 +117,22 @@ void InstanceManager::RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWO
 	}
 }
 
-std::vector<Instance*> InstanceManager::GetInstances() const {
+const std::vector<InstancePtr>& InstanceManager::GetInstances() const {
 	return m_Instances;
 }
 
-void InstanceManager::AddInstance(Instance* instance) {
+void InstanceManager::AddInstance(InstancePtr& instance) {
 	if (instance == nullptr) return;
 
-	m_Instances.push_back(instance);
+	m_Instances.push_back(std::move(instance));
 }
 
-void InstanceManager::RemoveInstance(Instance* instance) {
+void InstanceManager::RemoveInstance(const InstancePtr& instance) {
 	for (uint32_t i = 0; i < m_Instances.size(); ++i) {
 		if (m_Instances[i] == instance) {
 			instance->SetShutdownComplete(true);
 
 			if (!Game::ShouldShutdown()) RedirectPendingRequests(instance);
-
-			delete m_Instances[i];
 
 			m_Instances.erase(m_Instances.begin() + i);
 
@@ -146,7 +141,7 @@ void InstanceManager::RemoveInstance(Instance* instance) {
 	}
 }
 
-void InstanceManager::ReadyInstance(Instance* instance) {
+void InstanceManager::ReadyInstance(const InstancePtr& instance) {
 	instance->SetIsReady(true);
 
 	auto& pending = instance->GetPendingRequests();
@@ -172,7 +167,7 @@ void InstanceManager::ReadyInstance(Instance* instance) {
 	pending.clear();
 }
 
-void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstanceRequest& request) {
+void InstanceManager::RequestAffirmation(const InstancePtr& instance, const PendingInstanceRequest& request) {
 	instance->GetPendingAffirmations().push_back(request);
 
 	CBITSTREAM;
@@ -189,7 +184,7 @@ void InstanceManager::RequestAffirmation(Instance* instance, const PendingInstan
 	);
 }
 
-void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transferID) {
+void InstanceManager::AffirmTransfer(const InstancePtr& instance, const uint64_t transferID) {
 	auto& pending = instance->GetPendingAffirmations();
 
 	for (auto i = 0u; i < pending.size(); ++i) {
@@ -217,11 +212,11 @@ void InstanceManager::AffirmTransfer(Instance* instance, const uint64_t transfer
 	}
 }
 
-void InstanceManager::RedirectPendingRequests(Instance* instance) {
+void InstanceManager::RedirectPendingRequests(const InstancePtr& instance) {
 	const auto& zoneId = instance->GetZoneID();
 
 	for (const auto& request : instance->GetPendingAffirmations()) {
-		auto* in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
+		const auto& in = Game::im->GetInstance(zoneId.GetMapID(), false, zoneId.GetCloneID());
 
 		if (in && !in->GetIsReady()) // Instance not ready, make a pending request
 		{
@@ -234,57 +229,48 @@ void InstanceManager::RedirectPendingRequests(Instance* instance) {
 	}
 }
 
-Instance* InstanceManager::GetInstanceBySysAddr(SystemAddress& sysAddr) {
-	for (uint32_t i = 0; i < m_Instances.size(); ++i) {
-		if (m_Instances[i] && m_Instances[i]->GetSysAddr() == sysAddr) {
-			return m_Instances[i];
+const InstancePtr& InstanceManager::GetInstanceBySysAddr(SystemAddress& sysAddr) {
+	for (const auto& instance : m_Instances) {
+		if (instance && instance->GetSysAddr() == sysAddr) {
+			return instance;
 		}
 	}
 
-	return nullptr;
+	return g_Empty;
 }
 
-bool InstanceManager::IsInstanceFull(Instance* instance, bool isFriendTransfer) {
-	if (!isFriendTransfer && instance->GetSoftCap() > instance->GetCurrentClientCount())
-		return false;
-	else if (isFriendTransfer && instance->GetHardCap() > instance->GetCurrentClientCount())
-		return false;
-
-	return true;
-}
-
-Instance* InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
-	for (Instance* i : m_Instances) {
-		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !IsInstanceFull(i, isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
+const InstancePtr& InstanceManager::FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId) {
+	for (const auto& i : m_Instances) {
+		if (i && i->GetMapID() == mapID && i->GetCloneID() == cloneId && !i->IsFull(isFriendTransfer) && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
 
-	return nullptr;
+	return g_Empty;
 }
 
-Instance* InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
-	for (Instance* i : m_Instances) {
+const InstancePtr& InstanceManager::FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID) {
+	for (const auto& i : m_Instances) {
 		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetIsPrivate() && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
 
-	return nullptr;
+	return g_Empty;
 }
 
-Instance* InstanceManager::FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID) {
-	for (Instance* i : m_Instances) {
+const InstancePtr& InstanceManager::FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID) {
+	for (const auto& i : m_Instances) {
 		if (i && i->GetMapID() == mapID && i->GetInstanceID() == instanceID && !i->GetShutdownComplete() && !i->GetIsShuttingDown()) {
 			return i;
 		}
 	}
 
-	return nullptr;
+	return g_Empty;
 }
 
-Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password) {
-	auto* instance = FindPrivateInstance(password);
+const InstancePtr& InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password) {
+	const auto& instance = FindPrivateInstance(password);
 
 	if (instance != nullptr) {
 		return instance;
@@ -295,27 +281,27 @@ Instance* InstanceManager::CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID clon
 			mapID,
 			m_LastInstanceID + 1,
 			cloneID);
-		return nullptr;
+		return g_Empty;
 	}
 
 	int maxPlayers = 999;
 
 	uint32_t port = GetFreePort();
-	instance = new Instance(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
+	auto newInstance = make_unique<Instance>(mExternalIP, port, mapID, ++m_LastInstanceID, cloneID, maxPlayers, maxPlayers, true, password);
 
 	//Start the actual process:
 	StartWorldServer(mapID, port, m_LastInstanceID, maxPlayers, cloneID);
 
-	m_Instances.push_back(instance);
+	m_Instances.push_back(std::move(newInstance));
 
-	if (instance) return instance;
+	if (m_Instances.back()) return m_Instances.back();
 	else LOG("Failed to create a new instance!");
 
-	return instance;
+	return g_Empty;
 }
 
-Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
-	for (auto* instance : m_Instances) {
+const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& password) {
+	for (const auto& instance : m_Instances) {
 		if (!instance) continue;
 
 		if (!instance->GetIsPrivate()) {
@@ -329,7 +315,7 @@ Instance* InstanceManager::FindPrivateInstance(const std::string& password) {
 		}
 	}
 
-	return nullptr;
+	return g_Empty;
 }
 
 int InstanceManager::GetSoftCap(LWOMAPID mapID) {
@@ -363,3 +349,14 @@ void Instance::Shutdown() {
 
 	LOG("Triggered world shutdown for zone/clone/instance %i/%i/%i", GetMapID(), GetCloneID(), GetInstanceID());
 }
+
+
+bool Instance::IsFull(bool isFriendTransfer) const {
+	if (!isFriendTransfer && GetSoftCap() > GetCurrentClientCount())
+		return false;
+	else if (isFriendTransfer && GetHardCap() > GetCurrentClientCount())
+		return false;
+
+	return true;
+}
+

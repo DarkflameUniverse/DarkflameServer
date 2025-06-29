@@ -75,6 +75,8 @@ public:
 
 	void Shutdown();
 
+	bool IsFull(bool isFriendTransfer) const;
+
 private:
 	std::string m_IP{};
 	uint32_t m_Port{};
@@ -99,42 +101,42 @@ private:
 	//Private functions:
 };
 
+using InstancePtr = std::unique_ptr<Instance>;
+
 class InstanceManager {
 public:
-	InstanceManager(Logger* logger, const std::string& externalIP);
-	~InstanceManager();
+	InstanceManager(const std::string& externalIP);
 
-	Instance* GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID); //Creates an instance if none found
+	const InstancePtr& GetInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneID); //Creates an instance if none found
 	bool IsPortInUse(uint32_t port);
 	uint32_t GetFreePort();
 
 	void AddPlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 	void RemovePlayer(SystemAddress systemAddr, LWOMAPID mapID, LWOINSTANCEID instanceID);
 
-	std::vector<Instance*> GetInstances() const;
-	void AddInstance(Instance* instance);
-	void RemoveInstance(Instance* instance);
+	const std::vector<InstancePtr>& GetInstances() const;
+	void AddInstance(InstancePtr& instance);
+	void RemoveInstance(const InstancePtr& instance);
 
-	void ReadyInstance(Instance* instance);
-	void RequestAffirmation(Instance* instance, const PendingInstanceRequest& request);
-	void AffirmTransfer(Instance* instance, uint64_t transferID);
+	void ReadyInstance(const InstancePtr& instance);
+	void RequestAffirmation(const InstancePtr& instance, const PendingInstanceRequest& request);
+	void AffirmTransfer(const InstancePtr& instance, uint64_t transferID);
 
-	void RedirectPendingRequests(Instance* instance);
+	void RedirectPendingRequests(const InstancePtr& instance);
 
-	Instance* GetInstanceBySysAddr(SystemAddress& sysAddr);
+	const InstancePtr& GetInstanceBySysAddr(SystemAddress& sysAddr);
 
-	Instance* FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId = 0);
-	Instance* FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);
-	Instance* FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID);
+	const InstancePtr& FindInstance(LWOMAPID mapID, bool isFriendTransfer, LWOCLONEID cloneId = 0);
+	const InstancePtr& FindInstance(LWOMAPID mapID, LWOINSTANCEID instanceID);
+	const InstancePtr& FindInstanceWithPrivate(LWOMAPID mapID, LWOINSTANCEID instanceID);
 
-	Instance* CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
-	Instance* FindPrivateInstance(const std::string& password);
+	const InstancePtr& CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
+	const InstancePtr& FindPrivateInstance(const std::string& password);
 	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
 
 private:
-	Logger* mLogger;
 	std::string mExternalIP;
-	std::vector<Instance*> m_Instances;
+	std::vector<std::unique_ptr<Instance>> m_Instances;
 	uint16_t m_LastPort = 3000;
 	LWOINSTANCEID m_LastInstanceID;
 
@@ -144,7 +146,6 @@ private:
 	bool m_IsShuttingDown = false;
 
 	//Private functions:
-	bool IsInstanceFull(Instance* instance, bool isFriendTransfer);
 	int GetSoftCap(LWOMAPID mapID);
 	int GetHardCap(LWOMAPID mapID);
 };

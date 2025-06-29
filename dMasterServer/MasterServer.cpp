@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
 
 	//Create additional objects here:
 	PersistentIDManager::Initialize();
-	Game::im = new InstanceManager(Game::logger, Game::server->GetIP());
+	Game::im = new InstanceManager(Game::server->GetIP());
 
 	//Get CDClient initial information
 	try {
@@ -434,9 +434,9 @@ int main(int argc, char** argv) {
 				framesSinceKillUniverseCommand++;
 		}
 
-		const auto instances = Game::im->GetInstances();
+		const auto& instances = Game::im->GetInstances();
 
-		for (auto* instance : instances) {
+		for (const auto& instance : instances) {
 			if (instance == nullptr) {
 				break;
 			}
@@ -460,7 +460,7 @@ int main(int argc, char** argv) {
 		}
 
 		//Remove dead instances
-		for (auto* instance : instances) {
+		for (const auto& instance : instances) {
 			if (instance == nullptr) {
 				break;
 			}
@@ -489,7 +489,7 @@ void HandlePacket(Packet* packet) {
 
 		//Since this disconnection is intentional, we'll just delete it as
 		//we'll start a new one anyway if needed:
-		Instance* instance =
+		const auto& instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
 			LOG("Actually disconnected from zone %i clone %i instance %i port %i", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance->GetPort());
@@ -510,7 +510,7 @@ void HandlePacket(Packet* packet) {
 	if (packet->data[0] == ID_CONNECTION_LOST) {
 		LOG("A server has lost the connection");
 
-		Instance* instance =
+		const auto& instance =
 			Game::im->GetInstanceBySysAddr(packet->systemAddress);
 		if (instance) {
 			LWOZONEID zoneID = instance->GetZoneID(); //Get the zoneID so we can recreate a server
@@ -561,9 +561,9 @@ void HandlePacket(Packet* packet) {
 				LOG("Shutdown sequence has been started.  Not creating a new zone.");
 				break;
 			}
-			Instance* in = Game::im->GetInstance(zoneID, false, zoneClone);
+			const auto& in = Game::im->GetInstance(zoneID, false, zoneClone);
 
-			for (auto* instance : Game::im->GetInstances()) {
+			for (const auto& instance : Game::im->GetInstances()) {
 				LOG("Instance: %i/%i/%i -> %i %s", instance->GetMapID(), instance->GetCloneID(), instance->GetInstanceID(), instance == in, instance->GetSysAddr().ToString());
 			}
 
@@ -603,12 +603,12 @@ void HandlePacket(Packet* packet) {
 
 			if (theirServerType == ServerType::World) {
 				if (!Game::im->IsPortInUse(theirPort)) {
-					Instance* in = new Instance(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
 					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
-					auto* instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
+					const auto& instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
 					if (instance) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
@@ -682,7 +682,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
 
-			auto instance =
+			const auto& instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
 				instance->AddPlayer(Player());
@@ -702,7 +702,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirZoneID);
 			inStream.Read(theirInstanceID);
 
-			auto instance =
+			const auto& instance =
 				Game::im->FindInstance(theirZoneID, theirInstanceID);
 			if (instance) {
 				instance->RemovePlayer(Player());
@@ -728,7 +728,7 @@ void HandlePacket(Packet* packet) {
 				inStream.Read<char>(character);
 				password += character;
 			}
-			auto* newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
+			const auto& newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
 			LOG("Creating private zone %i/%i/%i with password %s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), password.c_str());
 
 			break;
@@ -754,9 +754,9 @@ void HandlePacket(Packet* packet) {
 				password += character;
 			}
 
-			auto* instance = Game::im->FindPrivateInstance(password.c_str());
+			const auto& instance = Game::im->FindPrivateInstance(password.c_str());
 
-			LOG("Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance);
+			LOG("Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance.get());
 
 			if (instance == nullptr) {
 				return;
@@ -781,7 +781,7 @@ void HandlePacket(Packet* packet) {
 
 			LOG("Got world ready %i %i", zoneID, instanceID);
 
-			auto* instance = Game::im->FindInstance(zoneID, instanceID);
+			const auto& instance = Game::im->FindInstance(zoneID, instanceID);
 
 			if (instance == nullptr) {
 				LOG("Failed to find zone to ready");
@@ -819,7 +819,7 @@ void HandlePacket(Packet* packet) {
 
 			LOG("Got affirmation of transfer %llu", requestID);
 
-			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			const auto& instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 
 			if (instance == nullptr)
 				return;
@@ -832,7 +832,7 @@ void HandlePacket(Packet* packet) {
 		case MessageType::Master::SHUTDOWN_RESPONSE: {
 			CINSTREAM_SKIP_HEADER;
 
-			auto* instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
+			const auto& instance = Game::im->GetInstanceBySysAddr(packet->systemAddress);
 			LOG("Got shutdown response from %s", packet->systemAddress.ToString());
 			if (instance == nullptr) {
 				return;
@@ -882,13 +882,13 @@ int ShutdownSequence(int32_t signal) {
 	LOG("Saved ObjectIDTracker to DB");
 
 	// A server might not be finished spinning up yet, remove all of those here.
-	for (auto* instance : Game::im->GetInstances()) {
+	for (const auto& instance : Game::im->GetInstances()) {
+		if (!instance) continue;
+
 		if (!instance->GetIsReady()) {
 			Game::im->RemoveInstance(instance);
 		}
-	}
-
-	for (auto* instance : Game::im->GetInstances()) {
+		
 		instance->SetIsShuttingDown(true);
 	}
 
@@ -909,7 +909,7 @@ int ShutdownSequence(int32_t signal) {
 
 		allInstancesShutdown = true;
 
-		for (auto* instance : Game::im->GetInstances()) {
+		for (const auto& instance : Game::im->GetInstances()) {
 			if (instance == nullptr) {
 				continue;
 			}
