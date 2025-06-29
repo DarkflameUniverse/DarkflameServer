@@ -146,7 +146,11 @@ public:
 
 	void OnChatMessageReceived(const std::string& sMessage);
 
+	// Sets the speed of the model
 	void SetSpeed(const float newSpeed) { m_Speed = newSpeed; }
+
+	// Whether or not to restart at the end of the frame
+	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
 private:
 
 	// Loads a behavior from the database.
@@ -190,4 +194,7 @@ private:
 
 	// The speed at which this model moves
 	float m_Speed{ 3.0f };
+
+	// Whether or not to restart at the end of the frame.
+	bool m_RestartAtEndOfFrame{ false };
 };

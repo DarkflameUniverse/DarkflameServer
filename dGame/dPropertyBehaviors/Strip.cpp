@@ -221,6 +221,8 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 		sound.target = modelComponent.GetParent()->GetObjectID();
 		sound.soundID = numberAsInt;
 		sound.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	} else if (nextActionType == "Restart") {
+		modelComponent.RestartAtEndOfFrame();
 	}
 	/* END Action */
 	/* BEGIN Gameplay */

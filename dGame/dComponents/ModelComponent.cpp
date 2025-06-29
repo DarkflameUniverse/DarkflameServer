@@ -63,6 +63,12 @@ void ModelComponent::Update(float deltaTime) {
 	for (auto& behavior : m_Behaviors) {
 		behavior.Update(deltaTime, *this);
 	}
+
+	if (!m_RestartAtEndOfFrame) return;
+
+	GameMessages::ResetModelToDefaults reset{};
+	OnResetModelToDefaults(reset);
+	m_RestartAtEndOfFrame = false;
 }
 
 void ModelComponent::LoadBehaviors() {

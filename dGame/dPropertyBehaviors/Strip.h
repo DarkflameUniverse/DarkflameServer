@@ -65,6 +65,8 @@ private:
 
 	// The position of the parent model on the previous frame
 	NiPoint3 m_PreviousFramePosition{};
+
+	NiPoint3 m_SavedVelocity{};
 };
 
 #endif  //!__STRIP__H__
