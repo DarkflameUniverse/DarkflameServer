@@ -6165,12 +6165,9 @@ void GameMessages::HandleRemoveDonationItem(RakNet::BitStream& inStream, Entity*
 }
 
 void GameMessages::HandleConfirmDonationOnPlayer(RakNet::BitStream& inStream, Entity* entity) {
-	auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
-	if (!inventoryComponent) return;
-	auto* missionComponent = entity->GetComponent<MissionComponent>();
-	if (!missionComponent) return;
-	auto* characterComponent = entity->GetComponent<CharacterComponent>();
-	if (!characterComponent || !characterComponent->GetCurrentInteracting()) return;
+	const auto [inventoryComponent, missionComponent, characterComponent] = entity->GetComponentsMut<InventoryComponent, MissionComponent, CharacterComponent>();
+	if (!inventoryComponent || !missionComponent || !characterComponent || !characterComponent->GetCurrentInteracting()) return;
+
 	auto* donationEntity = Game::entityManager->GetEntity(characterComponent->GetCurrentInteracting());
 	if (!donationEntity) return;
 	auto* donationVendorComponent = donationEntity->GetComponent<DonationVendorComponent>();

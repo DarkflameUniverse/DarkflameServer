@@ -1662,10 +1662,8 @@ void Entity::PickupItem(const LWOOBJID& objectID) const {
 			auto* const skillsTable = CDClientManager::GetTable<CDObjectSkillsTable>();
 			const auto skills = skillsTable->Query([&info](CDObjectSkills entry) {return (entry.objectTemplate == info.lot); });
 			for (const auto& skill : skills) {
-				auto* skillComponent = GetComponent<SkillComponent>();
+				const auto [skillComponent, missionComponent] = GetComponentsMut<SkillComponent, MissionComponent>();
 				if (skillComponent) skillComponent->CastSkill(skill.skillID, GetObjectID(), GetObjectID(), skill.castOnType, NiQuaternion(0, 0, 0, 0));
-
-				auto* missionComponent = GetComponent<MissionComponent>();
 
 				if (missionComponent != nullptr) {
 					missionComponent->Progress(eMissionTaskType::POWERUP, skill.skillID);
