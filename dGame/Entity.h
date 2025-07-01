@@ -2,6 +2,7 @@
 
 #include <map>
 #include <functional>
+#include <tuple>
 #include <typeinfo>
 #include <type_traits>
 #include <unordered_map>
@@ -160,6 +161,12 @@ public:
 
 	template<typename T>
 	T* GetComponent() const;
+
+	template<typename... T>
+	auto GetComponents() const;
+
+	template<typename... T>
+	auto GetComponentsMut() const;
 
 	template<typename T>
 	bool TryGetComponent(eReplicaComponentType componentId, T*& component) const;
@@ -578,4 +585,14 @@ inline ComponentType* Entity::AddComponent(VaArgs... args) {
 	// Because of the assert above, this should always be a ComponentType* but I need a way to guarantee the map cannot be modifed outside this function
 	// To allow a static cast here instead of a dynamic one.
 	return dynamic_cast<ComponentType*>(componentToReturn);
+}
+
+template<typename... T>
+auto Entity::GetComponents() const {
+	return GetComponentsMut<const T...>();
+}
+
+template<typename... T>
+auto Entity::GetComponentsMut() const {
+	return std::tuple{GetComponent<T>()...};
 }
