@@ -300,6 +300,12 @@ namespace GeneralUtils {
 		return T();
 	}
 
+	template<typename Container>
+	inline Container::value_type GetRandomElement(const Container& container) {
+		DluAssert(!container.empty());
+		return container[GenerateRandomNumber<typename Container::value_type>(0, container.size() - 1)];
+	}
+
 	/**
 	 * Casts the value of an enum entry to its underlying type
 	 * @param entry Enum entry to cast
