@@ -129,6 +129,8 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	// Set the zone control entity if the entity is a zone control object, this should only happen once
 	if (controller) {
 		m_ZoneControlEntity = entity;
+		// Proooooobably shouldn't ghost zoneControl
+		m_ZoneControlEntity->SetIsGhostingCandidate(false);
 	}
 
 	// Check if this entity is a respawn point, if so add it to the registry
@@ -394,7 +396,7 @@ void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
 		}
 	}
 
-	UpdateGhosting(PlayerManager::GetPlayer(sysAddr), true);
+	UpdateGhosting(PlayerManager::GetPlayer(sysAddr));
 }
 
 void EntityManager::DestructEntity(Entity* entity, const SystemAddress& sysAddr) {
@@ -463,7 +465,7 @@ void EntityManager::UpdateGhosting() {
 	m_PlayersToUpdateGhosting.clear();
 }
 
-void EntityManager::UpdateGhosting(Entity* player, const bool constructAll) {
+void EntityManager::UpdateGhosting(Entity* player) {
 	if (!player) return;
 
 	auto* missionComponent = player->GetComponent<MissionComponent>();
@@ -512,9 +514,6 @@ void EntityManager::UpdateGhosting(Entity* player, const bool constructAll) {
 			ghostComponent->ObserveEntity(id);
 
 			entity->SetObservers(entity->GetObservers() + 1);
-
-			// TODO: figure out if zone control should be ghosted at all
-			if (constructAll && entity->GetObjectID() == GetZoneControlEntity()->GetObjectID()) continue;
 
 			ConstructEntity(entity, player->GetSystemAddress());
 		}

@@ -58,7 +58,7 @@ public:
 	void SetGhostDistanceMin(float value);
 	void QueueGhostUpdate(LWOOBJID playerID);
 	void UpdateGhosting();
-	void UpdateGhosting(Entity* player, const bool constructAll = false);
+	void UpdateGhosting(Entity* player);
 	void CheckGhosting(Entity* entity);
 	Entity* GetGhostCandidate(LWOOBJID id) const;
 	bool GetGhostingEnabled() const;
