@@ -129,6 +129,8 @@ Entity* EntityManager::CreateEntity(EntityInfo info, User* user, Entity* parentE
 	// Set the zone control entity if the entity is a zone control object, this should only happen once
 	if (controller) {
 		m_ZoneControlEntity = entity;
+		// Proooooobably shouldn't ghost zoneControl
+		m_ZoneControlEntity->SetIsGhostingCandidate(false);
 	}
 
 	// Check if this entity is a respawn point, if so add it to the registry
