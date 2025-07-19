@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-void HTTPMonitorInfo::Serialize(RakNet::BitStream &bitStream) const {
+void HTTPMonitorInfo::Serialize(RakNet::BitStream& bitStream) const {
 	bitStream.Write(port);
 	bitStream.Write<uint8_t>(openWeb);
 	bitStream.Write<uint8_t>(supportsSum);
@@ -81,32 +81,29 @@ void WorldPackets::SendServerState(const SystemAddress& sysAddr) {
 	SEND_PACKET;
 }
 
-void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm) {
+void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t reputation, LWOOBJID player, const std::string& xmlData, const std::u16string& username, eGameMasterLevel gm, const LWOCLONEID cloneID) {
+	using namespace std;
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::CREATE_CHARACTER);
 
 	RakNet::BitStream data;
-	data.Write<uint32_t>(7); //LDF key count
 
-	std::unique_ptr<LDFData<LWOOBJID>> objid(new LDFData<LWOOBJID>(u"objid", player));
-	std::unique_ptr<LDFData<LOT>> lot(new LDFData<LOT>(u"template", 1));
-	std::unique_ptr<LDFData<std::string>> xmlConfigData(new LDFData<std::string>(u"xmlData", xmlData));
-	std::unique_ptr<LDFData<std::u16string>> name(new LDFData<std::u16string>(u"name", username));
-	std::unique_ptr<LDFData<int32_t>> gmlevel(new LDFData<int32_t>(u"gmlevel", static_cast<int32_t>(gm)));
-	std::unique_ptr<LDFData<int32_t>> chatmode(new LDFData<int32_t>(u"chatmode", static_cast<int32_t>(gm)));
-	std::unique_ptr<LDFData<int64_t>> reputationLdf(new LDFData<int64_t>(u"reputation", reputation));
-
-	objid->WriteToPacket(data);
-	lot->WriteToPacket(data);
-	name->WriteToPacket(data);
-	gmlevel->WriteToPacket(data);
-	chatmode->WriteToPacket(data);
-	xmlConfigData->WriteToPacket(data);
-	reputationLdf->WriteToPacket(data);
+	std::vector<std::unique_ptr<LDFBaseData>> ldfData;
+	ldfData.push_back(move(make_unique<LDFData<LWOOBJID>>(u"objid", player)));
+	ldfData.push_back(move(make_unique<LDFData<LOT>>(u"template", 1)));
+	ldfData.push_back(move(make_unique<LDFData<string>>(u"xmlData", xmlData)));
+	ldfData.push_back(move(make_unique<LDFData<u16string>>(u"name", username)));
+	ldfData.push_back(move(make_unique<LDFData<int32_t>>(u"gmlevel", static_cast<int32_t>(gm))));
+	ldfData.push_back(move(make_unique<LDFData<int32_t>>(u"chatmode", static_cast<int32_t>(gm))));
+	ldfData.push_back(move(make_unique<LDFData<int64_t>>(u"reputation", reputation)));
+	ldfData.push_back(move(make_unique<LDFData<int32_t>>(u"propertycloneid", cloneID)));
+	
+	data.Write<uint32_t>(ldfData.size());
+	for (const auto& toSerialize : ldfData) toSerialize->WriteToPacket(data);
 
 	//Compress the data before sending:
-    const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
-    uint8_t* compressedData = new uint8_t[reservedSize];
+	const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
+	uint8_t* compressedData = new uint8_t[reservedSize];
 
 	// TODO There should be better handling here for not enough memory...
 	if (!compressedData) return;
@@ -177,7 +174,7 @@ void WorldPackets::SendHTTPMonitorInfo(const SystemAddress& sysAddr, const HTTPM
 	SEND_PACKET;
 }
 
-void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string& data){
+void WorldPackets::SendDebugOuput(const SystemAddress& sysAddr, const std::string& data) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::DEBUG_OUTPUT);
 	bitStream.Write<uint32_t>(data.size());

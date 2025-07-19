@@ -15,6 +15,7 @@
 #include "eGameMasterLevel.h"
 
 class AMFBaseValue;
+class AMFArrayValue;
 class Entity;
 class Item;
 class NiQuaternion;
@@ -786,6 +787,13 @@ namespace GameMessages {
 		RequestServerObjectInfo() : GameMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, eGameMasterLevel::DEVELOPER) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
+	};
+
+	struct GetObjectReportInfo : public GameMsg {
+		AMFArrayValue* info{};
+		bool bVerbose{};
+
+		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, eGameMasterLevel::DEVELOPER) {}
 	};
 
 	struct RequestUse : public GameMsg {
