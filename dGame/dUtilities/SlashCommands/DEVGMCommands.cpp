@@ -1,5 +1,7 @@
 #include "DEVGMCommands.h"
 
+#include <ranges>
+
 // Classes
 #include "AssetManager.h"
 #include "Character.h"
@@ -48,6 +50,7 @@
 #include "MessageType/Master.h"
 #include "eInventoryType.h"
 #include "ePlayerFlag.h"
+#include "StringifiedEnum.h"
 
 
 namespace DEVGMCommands {
@@ -1514,7 +1517,12 @@ namespace DEVGMCommands {
 		}
 
 		if (!closest) return;
-		LOG("%llu", closest->GetObjectID());
+
+		GameMessages::RequestServerObjectInfo objectInfo;
+		objectInfo.bVerbose = true;
+		objectInfo.target = closest->GetObjectID();
+		objectInfo.targetForReport = entity->GetObjectID();
+		closest->HandleMsg(objectInfo);
 
 		Game::entityManager->SerializeEntity(closest);
 
@@ -1527,16 +1535,6 @@ namespace DEVGMCommands {
 		header << info.name << " [" << std::to_string(info.id) << "]" << " " << std::to_string(closestDistance) << " " << std::to_string(closest->IsSleeping());
 
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(header.str()));
-
-		for (const auto& pair : closest->GetComponents()) {
-			auto id = pair.first;
-
-			std::stringstream stream;
-
-			stream << "Component [" << std::to_string(static_cast<uint32_t>(id)) << "]";
-
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(stream.str()));
-		}
 
 		if (splitArgs.size() >= 2) {
 			if (splitArgs[1] == "-m" && splitArgs.size() >= 3) {
@@ -1557,13 +1555,6 @@ namespace DEVGMCommands {
 				Game::entityManager->SerializeEntity(closest);
 			} else if (splitArgs[1] == "-a" && splitArgs.size() >= 3) {
 				RenderComponent::PlayAnimation(closest, splitArgs.at(2));
-			} else if (splitArgs[1] == "-s") {
-				for (auto* entry : closest->GetSettings()) {
-					ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(entry->GetString()));
-				}
-
-				ChatPackets::SendSystemMessage(sysAddr, u"------");
-				ChatPackets::SendSystemMessage(sysAddr, u"Spawner ID: " + GeneralUtils::to_u16string(closest->GetSpawnerID()));
 			} else if (splitArgs[1] == "-p") {
 				const auto postion = closest->GetPosition();
 

@@ -97,6 +97,8 @@
 #include "CDSkillBehaviorTable.h"
 #include "CDZoneTableTable.h"
 
+#include "StringifiedEnum.h"
+
 #include <ranges>
 
 Observable<Entity*, const PositionUpdate&> Entity::OnPlayerPositionUpdate;
@@ -187,6 +189,7 @@ Entity::~Entity() {
 }
 
 void Entity::Initialize() {
+	RegisterMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, this, &Entity::MsgRequestServerObjectInfo);
 	/**
 	 * Setup trigger
 	 */
@@ -920,7 +923,7 @@ void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStrea
 			numberOfValidKeys--;
 		}
 	}
-	
+
 	// Now write it to the main bitstream
 	outBitStream.Write<uint32_t>(settingStream.GetNumberOfBytesUsed() + 1 + sizeof(uint32_t));
 	outBitStream.Write<uint8_t>(0); //no compression used
@@ -2208,4 +2211,39 @@ bool Entity::HandleMsg(GameMessages::GameMsg& msg) const {
 
 void Entity::RegisterMsg(const MessageType::Game msgId, std::function<bool(GameMessages::GameMsg&)> handler) {
 	m_MsgHandlers.emplace(msgId, handler);
+}
+
+bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
+	auto& requestInfo = static_cast<GameMessages::RequestServerObjectInfo&>(msg);
+	AMFArrayValue response;
+	response.Insert("visible", true);
+	response.Insert("objectID", std::to_string(m_ObjectID));
+	response.Insert("serverInfo", true);
+	GameMessages::GetObjectReportInfo info{};
+	info.info = response.InsertArray("data");
+	auto& objectInfo = info.info->PushDebug("Object Details");
+	auto* table = CDClientManager::GetTable<CDObjectsTable>();
+
+	const auto& objTableInfo = table->GetByID(GetLOT());
+
+	objectInfo.PushDebug<AMFStringValue>("Name") = objTableInfo.name;
+	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
+	objectInfo.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
+	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(GetSpawnerID());
+
+	auto& componentDetails = objectInfo.PushDebug("Component Information");
+	for (const auto [id, component] : m_Components) {
+		componentDetails.PushDebug<AMFStringValue>(StringifiedEnum::ToString(id)) = "";
+	}
+
+	auto& configData = objectInfo.PushDebug("Config Data");
+	for (const auto config : m_Settings) {
+		configData.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(config->GetKey())) = config->GetValueAsString();
+
+	}
+	HandleMsg(info);
+
+	auto* targetForReport = Game::entityManager->GetEntity(requestInfo.targetForReport);
+	if (targetForReport) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, targetForReport->GetSystemAddress());
+	return true;
 }
