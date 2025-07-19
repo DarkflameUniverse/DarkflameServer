@@ -762,6 +762,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
+		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
@@ -803,6 +804,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
+		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
 
 		auto playerPosition = entity->GetPosition();
 		while (numberToSpawn > 0) {
@@ -1636,5 +1638,28 @@ namespace DEVGMCommands {
 		}
 		const auto msg = u"Pvp has been turned on for all players by " + GeneralUtils::ASCIIToUTF16(characterComponent->GetName());
 		ChatPackets::SendSystemMessage(UNASSIGNED_SYSTEM_ADDRESS, msg, true);
+	}
+
+	void Despawn(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) return;
+
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		const auto objId = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+		if (!objId) return;
+
+		auto* const target = Game::entityManager->GetEntity(*objId);
+		if (!target) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Entity not found: " + GeneralUtils::UTF8ToUTF16(splitArgs[0]));
+			return;
+		}
+
+		if (!target->GetVar<bool>(u"SpawnedFromSlashCommand")) {
+			ChatPackets::SendSystemMessage(sysAddr, u"You cannot despawn this entity as it was not despawned from a slash command.");
+			return;
+		}
+
+		target->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
+		LOG("Despawned entity (%llu)", target->GetObjectID());
+		ChatPackets::SendSystemMessage(sysAddr, u"Despawned entity: " + GeneralUtils::to_u16string(target->GetObjectID()));
 	}
 };
