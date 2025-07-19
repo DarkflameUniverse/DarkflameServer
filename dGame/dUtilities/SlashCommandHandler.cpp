@@ -1461,4 +1461,12 @@ void SlashCommandHandler::Startup() {
 		.handle = DEVGMCommands::Barfight,
 		.requiredLevel = eGameMasterLevel::DEVELOPER
 	});
+
+	RegisterCommand({
+		.help = "Despawns an object by id",
+		.info = "Despawns an object by id",
+		.aliases = {"despawn"},
+		.handle = DEVGMCommands::Despawn,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	});
 }
