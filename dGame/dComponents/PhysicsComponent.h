@@ -5,6 +5,10 @@
 #include "NiPoint3.h"
 #include "NiQuaternion.h"
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+};
+
 namespace Raknet {
 	class BitStream;
 };
@@ -29,6 +33,8 @@ public:
 	int32_t GetCollisionGroup() const noexcept { return m_CollisionGroup; }
 	void SetCollisionGroup(int32_t group) noexcept { m_CollisionGroup = group; }
 protected:
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 	dpEntity* CreatePhysicsEntity(eReplicaComponentType type);
 
 	dpEntity* CreatePhysicsLnv(const float scale, const eReplicaComponentType type) const;

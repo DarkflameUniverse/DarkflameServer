@@ -791,6 +791,7 @@ namespace GameMessages {
 
 	struct GetObjectReportInfo : public GameMsg {
 		AMFArrayValue* info{};
+		AMFArrayValue* subCategory{};
 		bool bVerbose{};
 
 		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, eGameMasterLevel::DEVELOPER) {}

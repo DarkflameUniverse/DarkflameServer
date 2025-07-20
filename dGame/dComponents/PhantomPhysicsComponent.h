@@ -9,8 +9,6 @@
 #include "NiQuaternion.h"
 #include "BitStream.h"
 #include <vector>
-#include "CppScripts.h"
-#include "InvalidScript.h"
 #include "eReplicaComponentType.h"
 #include "PhysicsComponent.h"
 
@@ -118,6 +116,8 @@ public:
 	void SetMax(uint32_t max);
 
 private:
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 	/**
 	 * A scale to apply to the size of the physics object
 	 */

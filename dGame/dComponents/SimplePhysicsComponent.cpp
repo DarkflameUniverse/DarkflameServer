@@ -12,8 +12,12 @@
 #include "CDPhysicsComponentTable.h"
 
 #include "Entity.h"
+#include "StringifiedEnum.h"
+#include "Amf3.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, int32_t componentID) : PhysicsComponent(parent, componentID) {
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &SimplePhysicsComponent::OnGetObjectReportInfo);
+
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 
@@ -70,4 +74,21 @@ uint32_t SimplePhysicsComponent::GetPhysicsMotionState() const {
 void SimplePhysicsComponent::SetPhysicsMotionState(uint32_t value) {
 	m_DirtyPhysicsMotionState = m_PhysicsMotionState != value;
 	m_PhysicsMotionState = value;
+}
+
+bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	PhysicsComponent::OnGetObjectReportInfo(msg);
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& info = reportInfo.subCategory->PushDebug("Simple Physics Info");
+	auto& velocity = info.PushDebug("Velocity");
+	velocity.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
+	velocity.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
+	velocity.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+	auto& angularVelocity = info.PushDebug("Angular Velocity");
+	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
+	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
+	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+	info.PushDebug<AMFIntValue>("Physics Motion State") = m_PhysicsMotionState;
+	info.PushDebug<AMFStringValue>("Climbable Type") = StringifiedEnum::ToString(m_ClimbableType).data();
+	return true;
 }

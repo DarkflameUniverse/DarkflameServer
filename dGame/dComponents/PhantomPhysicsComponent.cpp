@@ -21,6 +21,7 @@
 #include "CDPhysicsComponentTable.h"
 #include "dServer.h"
 #include "EntityInfo.h"
+#include "Amf3.h"
 
 #include "dpWorld.h"
 #include "dpEntity.h"
@@ -28,6 +29,8 @@
 #include "dpShapeSphere.h"
 
 PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &PhantomPhysicsComponent::OnGetObjectReportInfo);
+
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
@@ -237,4 +240,44 @@ void PhantomPhysicsComponent::SetPosition(const NiPoint3& pos) {
 void PhantomPhysicsComponent::SetRotation(const NiQuaternion& rot) {
 	PhysicsComponent::SetRotation(rot);
 	if (m_dpEntity) m_dpEntity->SetRotation(rot);
+}
+
+bool PhantomPhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	PhysicsComponent::OnGetObjectReportInfo(msg);
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	if (!reportInfo.subCategory) {
+		return false;
+	}
+	auto& info = reportInfo.subCategory->PushDebug("Phantom Physics Info");
+	info.PushDebug<AMFDoubleValue>("Scale") = m_Scale;
+	info.PushDebug<AMFBoolValue>("Is Physics Effect Active") = m_IsPhysicsEffectActive;
+	info.PushDebug<AMFIntValue>("Effect Type") = static_cast<int>(m_EffectType);
+	info.PushDebug<AMFDoubleValue>("Directional Multiplier") = m_DirectionalMultiplier;
+	info.PushDebug<AMFBoolValue>("Is Directional") = m_IsDirectional;
+	auto& direction = info.PushDebug("Direction");
+	direction.PushDebug<AMFDoubleValue>("x") = m_Direction.x;
+	direction.PushDebug<AMFDoubleValue>("y") = m_Direction.y;
+	direction.PushDebug<AMFDoubleValue>("z") = m_Direction.z;
+
+	if (m_MinMax) {
+		auto& minMaxInfo = info.PushDebug("Min Max Info");
+		minMaxInfo.PushDebug<AMFIntValue>("Min") = m_Min;
+		minMaxInfo.PushDebug<AMFIntValue>("Max") = m_Max;
+	}
+
+	if (m_IsRespawnVolume) {
+		auto& respawnInfo = info.PushDebug("Respawn Info");
+		respawnInfo.PushDebug<AMFBoolValue>("Is Respawn Volume") = m_IsRespawnVolume;
+		auto& respawnPos = respawnInfo.PushDebug("Respawn Position");
+		respawnPos.PushDebug<AMFDoubleValue>("x") = m_RespawnPos.x;
+		respawnPos.PushDebug<AMFDoubleValue>("y") = m_RespawnPos.y;
+		respawnPos.PushDebug<AMFDoubleValue>("z") = m_RespawnPos.z;
+		auto& respawnRot = respawnInfo.PushDebug("Respawn Rotation");
+		respawnRot.PushDebug<AMFDoubleValue>("w") = m_RespawnRot.w;
+		respawnRot.PushDebug<AMFDoubleValue>("x") = m_RespawnRot.x;
+		respawnRot.PushDebug<AMFDoubleValue>("y") = m_RespawnRot.y;
+		respawnRot.PushDebug<AMFDoubleValue>("z") = m_RespawnRot.z;
+	}
+
+	return true;
 }

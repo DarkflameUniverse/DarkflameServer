@@ -13,6 +13,7 @@
 #include "dpShapeSphere.h"
 
 #include "EntityInfo.h"
+#include "Amf3.h"
 
 PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
@@ -97,9 +98,9 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 	} else if (info->physicsAsset == "env\\GFTrack_DeathVolume2_RoadGaps.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 48.386536f, 50.363434f, 259.361755f);
 	} */ else {
-		// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
+	// LOG_DEBUG("This one is supposed to have %s", info->physicsAsset.c_str());
 
-		//add fallback cube:
+	//add fallback cube:
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 2.0f, 2.0f, 2.0f);
 	}
 	return toReturn;
@@ -242,4 +243,25 @@ void PhysicsComponent::SpawnVertices(dpEntity* entity) const {
 		newEntity = Game::entityManager->CreateEntity(info);
 		Game::entityManager->ConstructEntity(newEntity);
 	}
+}
+
+bool PhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& info = reportInfo.info->PushDebug("Physics");
+	reportInfo.subCategory = &info;
+
+	auto& pos = info.PushDebug("Position");
+	pos.PushDebug<AMFDoubleValue>("x") = m_Position.x;
+	pos.PushDebug<AMFDoubleValue>("y") = m_Position.y;
+	pos.PushDebug<AMFDoubleValue>("z") = m_Position.z;
+
+	auto& rot = info.PushDebug("Rotation");
+	rot.PushDebug<AMFDoubleValue>("w") = m_Rotation.w;
+	rot.PushDebug<AMFDoubleValue>("x") = m_Rotation.x;
+	rot.PushDebug<AMFDoubleValue>("y") = m_Rotation.y;
+	rot.PushDebug<AMFDoubleValue>("z") = m_Rotation.z;
+
+	info.PushDebug<AMFIntValue>("CollisionGroup") = m_CollisionGroup;
+
+	return true;
 }

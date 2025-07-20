@@ -281,6 +281,8 @@ std::vector<Entity*> EntityManager::GetEntitiesByComponent(const eReplicaCompone
 
 			withComp.push_back(entity);
 		}
+	} else {
+		for (auto* const entity : m_Entities | std::views::values) withComp.push_back(entity);
 	}
 	return withComp;
 }

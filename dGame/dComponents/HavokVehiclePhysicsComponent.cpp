@@ -1,7 +1,10 @@
 #include "HavokVehiclePhysicsComponent.h"
 #include "EntityManager.h"
+#include "Amf3.h"
 
 HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
+
 	m_Velocity = NiPoint3Constant::ZERO;
 	m_AngularVelocity = NiPoint3Constant::ZERO;
 	m_IsOnGround = true;
@@ -97,4 +100,35 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	}
 
 	outBitStream.Write0();
+}
+
+bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	PhysicsComponent::OnGetObjectReportInfo(msg);
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	if (!reportInfo.subCategory) {
+		return false;
+	}
+
+	auto& info = reportInfo.subCategory->PushDebug("Havok Vehicle Physics Info");
+
+	auto& velocity = info.PushDebug("Velocity");
+	velocity.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
+	velocity.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
+	velocity.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+
+	auto& angularVelocity = info.PushDebug("Angular Velocity");
+	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
+	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
+	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+
+	info.PushDebug<AMFBoolValue>("Is On Ground") = m_IsOnGround;
+	info.PushDebug<AMFBoolValue>("Is On Rail") = m_IsOnRail;
+	info.PushDebug<AMFIntValue>("End Behavior") = m_EndBehavior;
+
+	auto& remoteInputInfo = info.PushDebug("Remote Input Info");
+	remoteInputInfo.PushDebug<AMFDoubleValue>("Remote Input X") = m_RemoteInputInfo.m_RemoteInputX;
+	remoteInputInfo.PushDebug<AMFDoubleValue>("Remote Input Y") = m_RemoteInputInfo.m_RemoteInputY;
+	remoteInputInfo.PushDebug<AMFBoolValue>("Is Powersliding") = m_RemoteInputInfo.m_IsPowersliding;
+	remoteInputInfo.PushDebug<AMFBoolValue>("Is Modified") = m_RemoteInputInfo.m_IsModified;
+	return true;
 }
