@@ -44,6 +44,7 @@
 #include "SkillComponent.h"
 #include "TriggerComponent.h"
 #include "RigidbodyPhantomPhysicsComponent.h"
+#include "PhantomPhysicsComponent.h"
 
 // Enums
 #include "eGameMasterLevel.h"

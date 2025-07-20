@@ -14,8 +14,12 @@
 #include "dZoneManager.h"
 #include "LevelProgressionComponent.h"
 #include "eStateChangeType.h"
+#include "StringifiedEnum.h"
+#include "Amf3.h"
 
 ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, int32_t componentId) : PhysicsComponent(entity, componentId) {
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &ControllablePhysicsComponent::OnGetObjectReportInfo);
+
 	m_Velocity = {};
 	m_AngularVelocity = {};
 	m_InJetpackMode = false;
@@ -353,4 +357,56 @@ void ControllablePhysicsComponent::SetStunImmunity(
 		bImmuneToStunTurn,
 		bImmuneToStunUseItem
 	);
+}
+
+bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	PhysicsComponent::OnGetObjectReportInfo(msg);
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& info = reportInfo.subCategory->PushDebug("Controllable Info");
+
+	auto& vel = info.PushDebug("Velocity");
+	vel.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
+	vel.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
+	vel.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+
+	auto& angularVelocity = info.PushDebug("Angular Velocity");
+	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
+	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
+	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+
+	info.PushDebug<AMFBoolValue>("Is On Ground") = m_IsOnGround;
+	info.PushDebug<AMFBoolValue>("Is On Rail") = m_IsOnRail;
+	info.PushDebug<AMFBoolValue>("Is In Jetpack Mode") = m_InJetpackMode;
+	info.PushDebug<AMFBoolValue>("Is Jetpack Flying") = m_JetpackFlying;
+	info.PushDebug<AMFBoolValue>("Is Bypassing Jetpack Checks") = m_JetpackBypassChecks;
+	info.PushDebug<AMFIntValue>("Jetpack Effect ID") = m_JetpackEffectID;
+	info.PushDebug<AMFDoubleValue>("Speed Multiplier") = m_SpeedMultiplier;
+	info.PushDebug<AMFDoubleValue>("Gravity Scale") = m_GravityScale;
+	info.PushDebug<AMFBoolValue>("Is Static") = m_Static;
+
+	auto& pickupRadii = info.PushDebug("Active Pickup Radius Scales");
+	for (const auto& scale : m_ActivePickupRadiusScales) {
+		pickupRadii.PushDebug<AMFStringValue>(std::to_string(scale)) = "";
+	}
+
+	info.PushDebug<AMFDoubleValue>("Largest Pickup Radius") = m_PickupRadius;
+	info.PushDebug<AMFBoolValue>("Is Teleporting") = m_IsTeleporting;
+
+	auto& activeSpeedBoosts = info.PushDebug("Active Speed Boosts");
+	for (const auto& boost : m_ActiveSpeedBoosts) {
+		activeSpeedBoosts.PushDebug<AMFStringValue>(std::to_string(boost)) = "";
+	}
+
+	info.PushDebug<AMFDoubleValue>("Speed Boost") = m_SpeedBoost;
+	info.PushDebug<AMFBoolValue>("Is In Bubble") = m_IsInBubble;
+	info.PushDebug<AMFStringValue>("Bubble Type") = StringifiedEnum::ToString(m_BubbleType).data();
+	info.PushDebug<AMFBoolValue>("Special Anims") = m_SpecialAnims;
+	info.PushDebug<AMFIntValue>("Immune To Stun Attack Count") = m_ImmuneToStunAttackCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun Equip Count") = m_ImmuneToStunEquipCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun Interact Count") = m_ImmuneToStunInteractCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun Jump Count") = m_ImmuneToStunJumpCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun Move Count") = m_ImmuneToStunMoveCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun Turn Count") = m_ImmuneToStunTurnCount;
+	info.PushDebug<AMFIntValue>("Immune To Stun UseItem Count") = m_ImmuneToStunUseItemCount;
+	return true;
 }

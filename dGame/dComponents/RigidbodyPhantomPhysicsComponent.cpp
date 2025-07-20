@@ -10,9 +10,12 @@
 #include "dpWorld.h"
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
-#include"EntityInfo.h"
+#include "EntityInfo.h"
+#include "Amf3.h"
 
 RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &RigidbodyPhantomPhysicsComponent::OnGetObjectReportInfo);
+
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
 	m_Scale = m_Parent->GetDefaultScale();
@@ -54,4 +57,12 @@ void RigidbodyPhantomPhysicsComponent::SpawnVertices() const {
 		return;
 	}
 	PhysicsComponent::SpawnVertices(m_dpEntity);
+}
+
+bool RigidbodyPhantomPhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	PhysicsComponent::OnGetObjectReportInfo(msg);
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& info = reportInfo.subCategory->PushDebug("Rigidbody Phantom Info");
+	info.PushDebug<AMFDoubleValue>("Scale") = m_Scale;
+	return true;
 }
