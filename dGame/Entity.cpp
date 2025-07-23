@@ -2243,7 +2243,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	}
 	HandleMsg(info);
 
-	auto* targetForReport = Game::entityManager->GetEntity(requestInfo.targetForReport);
-	if (targetForReport) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, targetForReport->GetSystemAddress());
+	auto* client = Game::entityManager->GetEntity(requestInfo.clientId);
+	if (client) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, client->GetSystemAddress());
 	return true;
 }

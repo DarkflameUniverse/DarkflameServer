@@ -9,6 +9,10 @@
 #include "eReplicaComponentType.h"
 #include "Implementation.h"
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+};
+
 namespace CppScripts {
 	class Script;
 }; //! namespace CppScripts
@@ -464,6 +468,8 @@ public:
 	// handle hardcode mode drops
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 	static Implementation<bool, const Entity*> IsEnemyImplentation;
 	static Implementation<bool, const Entity*> IsFriendImplentation;
 
@@ -591,7 +597,7 @@ private:
 	/**
 	 * The ID of the entity that smashed this entity, if any
 	 */
-	LWOOBJID m_KillerID;
+	LWOOBJID m_KillerID{};
 
 	/**
 	 * The list of callbacks that will be called when this entity gets hit
