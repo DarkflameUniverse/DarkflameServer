@@ -1524,7 +1524,8 @@ namespace DEVGMCommands {
 		GameMessages::RequestServerObjectInfo objectInfo;
 		objectInfo.bVerbose = true;
 		objectInfo.target = closest->GetObjectID();
-		objectInfo.targetForReport = entity->GetObjectID();
+		objectInfo.targetForReport = closest->GetObjectID();
+		objectInfo.clientId = entity->GetObjectID();
 		closest->HandleMsg(objectInfo);
 
 		Game::entityManager->SerializeEntity(closest);
