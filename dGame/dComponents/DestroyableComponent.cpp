@@ -1052,12 +1052,14 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	destroyableInfo.PushDebug<AMFIntValue>("Attacks To Block") = m_AttacksToBlock;
 	destroyableInfo.PushDebug<AMFIntValue>("Damage Reduction") = m_DamageReduction;
 	auto& factions = destroyableInfo.PushDebug("Factions");
+	size_t i = 0;
 	for (const auto factionID : m_FactionIDs) {
-		factions.PushDebug<AMFStringValue>(std::to_string(factionID)) = "";
+		factions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(factionID)) = "";
 	}
 	auto& enemyFactions = destroyableInfo.PushDebug("Enemy Factions");
+	i = 0;
 	for (const auto enemyFactionID : m_EnemyFactionIDs) {
-		enemyFactions.PushDebug<AMFStringValue>(std::to_string(enemyFactionID)) = "";
+		enemyFactions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(enemyFactionID)) = "";
 	}
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashable") = m_IsSmashable;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;

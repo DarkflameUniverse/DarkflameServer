@@ -28,8 +28,11 @@
 #include "CDActivitiesTable.h"
 #include "LeaderboardManager.h"
 #include "CharacterComponent.h"
+#include "Amf3.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+	using namespace GameMessages;
+	RegisterMsg<GetObjectReportInfo>(this, &ActivityComponent::OnGetObjectReportInfo);
 	/*
 	* This is precisely what the client does functionally
 	* Use the component id as the default activity id and load its data from the database
@@ -348,14 +351,13 @@ bool ActivityComponent::CheckCost(Entity* player) const {
 	return true;
 }
 
-bool ActivityComponent::TakeCost(Entity* player) const{
-	
+bool ActivityComponent::TakeCost(Entity* player) const {
+
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
 	if (CheckCost(player)) {
 		inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
 		return true;
-	}
-	else return false;
+	} else return false;
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
@@ -617,4 +619,92 @@ void ActivityInstance::SetScore(uint32_t score) {
 
 Entity* LobbyPlayer::GetEntity() const {
 	return Game::entityManager->GetEntity(entityID);
+}
+
+bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+
+	auto& activityInfo = reportInfo.info->PushDebug("Activity");
+
+	auto& instances = activityInfo.PushDebug("Instances: " + std::to_string(m_Instances.size()));
+	size_t i = 0;
+	for (const auto& activityInstance : m_Instances) {
+		if (!activityInstance) continue;
+		auto& instance = instances.PushDebug("Instance " + std::to_string(i++));
+		instance.PushDebug<AMFIntValue>("Score") = activityInstance->GetScore();
+		instance.PushDebug<AMFIntValue>("Next Zone Clone ID") = activityInstance->GetNextZoneCloneID();
+
+		{
+			auto& activityInfo = instance.PushDebug("Activity Info");
+			const auto& instanceActInfo = activityInstance->GetActivityInfo();
+			activityInfo.PushDebug<AMFIntValue>("ActivityID") = instanceActInfo.ActivityID;
+			activityInfo.PushDebug<AMFIntValue>("locStatus") = instanceActInfo.locStatus;
+			activityInfo.PushDebug<AMFIntValue>("instanceMapID") = instanceActInfo.instanceMapID;
+			activityInfo.PushDebug<AMFIntValue>("minTeams") = instanceActInfo.minTeams;
+			activityInfo.PushDebug<AMFIntValue>("maxTeams") = instanceActInfo.maxTeams;
+			activityInfo.PushDebug<AMFIntValue>("minTeamSize") = instanceActInfo.minTeamSize;
+			activityInfo.PushDebug<AMFIntValue>("maxTeamSize") = instanceActInfo.maxTeamSize;
+			activityInfo.PushDebug<AMFIntValue>("waitTime") = instanceActInfo.waitTime;
+			activityInfo.PushDebug<AMFIntValue>("startDelay") = instanceActInfo.startDelay;
+			activityInfo.PushDebug<AMFBoolValue>("requiresUniqueData") = instanceActInfo.requiresUniqueData;
+			activityInfo.PushDebug<AMFIntValue>("leaderboardType") = instanceActInfo.leaderboardType;
+			activityInfo.PushDebug<AMFBoolValue>("localize") = instanceActInfo.localize;
+			activityInfo.PushDebug<AMFIntValue>("optionalCostLOT") = instanceActInfo.optionalCostLOT;
+			activityInfo.PushDebug<AMFIntValue>("optionalCostCount") = instanceActInfo.optionalCostCount;
+			activityInfo.PushDebug<AMFBoolValue>("showUIRewards") = instanceActInfo.showUIRewards;
+			activityInfo.PushDebug<AMFIntValue>("CommunityActivityFlagID") = instanceActInfo.CommunityActivityFlagID;
+			activityInfo.PushDebug<AMFStringValue>("gate_version") = instanceActInfo.gate_version;
+			activityInfo.PushDebug<AMFBoolValue>("noTeamLootOnDeath") = instanceActInfo.noTeamLootOnDeath;
+			activityInfo.PushDebug<AMFDoubleValue>("optionalPercentage") = instanceActInfo.optionalPercentage;
+		}
+
+		auto& participants = instance.PushDebug("Participants");
+		for (const auto* participant : activityInstance->GetParticipants()) {
+			if (!participant) continue;
+			auto* character = participant->GetCharacter();
+			if (!character) continue;
+			participants.PushDebug<AMFStringValue>(std::to_string(participant->GetObjectID()) + ": " + character->GetName()) = "";
+		}
+	}
+
+	auto& queue = activityInfo.PushDebug("Queue");
+	i = 0;
+	for (const auto& lobbyQueue : m_Queue) {
+		auto& lobby = queue.PushDebug("Lobby " + std::to_string(i++));
+		lobby.PushDebug<AMFDoubleValue>("Timer") = lobbyQueue->timer;
+
+		auto& players = lobby.PushDebug("Players");
+		for (const auto* player : lobbyQueue->players) {
+			if (!player) continue;
+			auto* playerEntity = player->GetEntity();
+			if (!playerEntity) continue;
+			auto* character = playerEntity->GetCharacter();
+			if (!character) continue;
+
+			players.PushDebug<AMFStringValue>(std::to_string(playerEntity->GetObjectID()) + ": " + character->GetName()) = player->ready ? "Ready" : "Not Ready";
+		}
+	}
+
+	auto& activityPlayers = activityInfo.PushDebug("Activity Players");
+	for (const auto* activityPlayer : m_ActivityPlayers) {
+		if (!activityPlayer) continue;
+		auto* const activityPlayerEntity = Game::entityManager->GetEntity(activityPlayer->playerID);
+		if (!activityPlayerEntity) continue;
+		auto* character = activityPlayerEntity->GetCharacter();
+		if (!character) continue;
+
+		auto& playerData = activityPlayers.PushDebug(std::to_string(activityPlayer->playerID) + " " + character->GetName());
+
+		auto& scores = playerData.PushDebug("Scores");
+		for (size_t i = 0; i < 10; ++i) {
+			scores.PushDebug<AMFDoubleValue>(std::to_string(i)) = activityPlayer->values[i];
+		}
+	}
+	
+	auto& lootMatrices = activityInfo.PushDebug("Loot Matrices");
+	for (const auto& [activityRating, lootMatrixID] : m_ActivityLootMatrices) {
+		lootMatrices.PushDebug<AMFIntValue>("Loot Matrix " + std::to_string(activityRating)) = lootMatrixID;
+	}
+	activityInfo.PushDebug<AMFIntValue>("ActivityID") = m_ActivityID;
+	return true;
 }

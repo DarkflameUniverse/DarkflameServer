@@ -385,16 +385,19 @@ bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& 
 	info.PushDebug<AMFBoolValue>("Is Static") = m_Static;
 
 	auto& pickupRadii = info.PushDebug("Active Pickup Radius Scales");
+
+	size_t i = 0;
 	for (const auto& scale : m_ActivePickupRadiusScales) {
-		pickupRadii.PushDebug<AMFStringValue>(std::to_string(scale)) = "";
+		pickupRadii.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(scale)) = "";
 	}
 
 	info.PushDebug<AMFDoubleValue>("Largest Pickup Radius") = m_PickupRadius;
 	info.PushDebug<AMFBoolValue>("Is Teleporting") = m_IsTeleporting;
 
 	auto& activeSpeedBoosts = info.PushDebug("Active Speed Boosts");
+	i = 0;
 	for (const auto& boost : m_ActiveSpeedBoosts) {
-		activeSpeedBoosts.PushDebug<AMFStringValue>(std::to_string(boost)) = "";
+		activeSpeedBoosts.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(boost)) = "";
 	}
 
 	info.PushDebug<AMFDoubleValue>("Speed Boost") = m_SpeedBoost;
