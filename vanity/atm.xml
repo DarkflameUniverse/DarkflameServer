@@ -35,6 +35,8 @@
 			<location zone="1400" x="-696.957" y="-3.206" z="-452.441" rw="0.884105" rx="0.00" ry="0.467288" rz="0.00" />
 			<!--CP Sentinel Point Zeta-->
 			<location zone="1800" x="-222.634" y="92.373" z="568.392" rw="-0.435024" rx="0.00" ry="0.900419" rz="0.00" />
+			<!--CP Monastery-->
+			<location zone="1800" x="-74.633" y="98.449" z="-650.531" rw="0.705469" rx="0.00" ry="0.708741" rz="0.00" />
 			<!--NJ Monastery Courtyard-->
 			<location zone="2000" x="-63.487" y="208.270" z="379.195" rw="0.00" rx="0.00" ry="1" rz="0.00" />
 		</locations>
