@@ -187,7 +187,8 @@ Now that you are logged in, run the following commands.
 ```bash
 # Creates a user for this computer which uses a password and grant said user all privileges.
 # Change mydarkflameuser to a custom username and password to a custom password. 
-GRANT ALL ON *.* TO 'mydarkflameuser'@'localhost' IDENTIFIED BY 'password' WITH GRANT OPTION;
+CREATE USER 'mydarkflameuser'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL ON *.* TO 'mydarkflameuser'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 
 # Then create a database for Darkflame Universe to use.
