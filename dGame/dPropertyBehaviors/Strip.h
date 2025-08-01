@@ -42,6 +42,7 @@ public:
 	bool HasMinimumActions() const { return m_Actions.size() >= 2; }
 	
 	void OnChatMessageReceived(const std::string& sMessage);
+	void OnHit();
 private:
 	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };

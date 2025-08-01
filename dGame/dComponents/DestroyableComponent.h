@@ -469,6 +469,7 @@ public:
 	void DoHardcoreModeDrops(const LWOOBJID source);
 
 	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnSetFaction(GameMessages::GameMsg& msg);
 
 	static Implementation<bool, const Entity*> IsEnemyImplentation;
 	static Implementation<bool, const Entity*> IsFriendImplentation;

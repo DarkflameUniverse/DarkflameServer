@@ -863,5 +863,13 @@ namespace GameMessages {
 
 		NiPoint3 pos{};
 	};
+
+	struct SetFaction : public GameMsg {
+		SetFaction() : GameMsg(MessageType::Game::SET_FACTION) {}
+
+		int32_t factionID{};
+
+		bool bIgnoreChecks{ false };
+	};
 };
 #endif // GAMEMESSAGES_H

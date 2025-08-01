@@ -24,6 +24,7 @@ public:
 	void Update(float deltaTime, ModelComponent& modelComponent);
 
 	void OnChatMessageReceived(const std::string& sMessage);
+	void OnHit();
 private:
 
 	// The strips contained within this state.

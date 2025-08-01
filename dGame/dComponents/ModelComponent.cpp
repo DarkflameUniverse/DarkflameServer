@@ -15,14 +15,15 @@
 #include "DluAssert.h"
 
 ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
+	using namespace GameMessages;
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
 	m_IsPaused = false;
 	m_NumListeningInteract = 0;
 
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
-	RegisterMsg(MessageType::Game::REQUEST_USE, this, &ModelComponent::OnRequestUse);
-	RegisterMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS, this, &ModelComponent::OnResetModelToDefaults);
+	RegisterMsg<RequestUse>(this, &ModelComponent::OnRequestUse);
+	RegisterMsg<ResetModelToDefaults>(this, &ModelComponent::OnResetModelToDefaults);
 }
 
 bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
@@ -40,6 +41,14 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
 	m_NumActiveUnSmash = 0;
+
+	m_NumActiveAttack = 0;
+	GameMessages::SetFaction set{};
+	set.target = m_Parent->GetObjectID();
+	set.factionID = -1; // Default faction for smashables
+	set.bIgnoreChecks = true; // Remove the attack faction
+	set.Send();
+
 	m_Dirty = true;
 	Game::entityManager->SerializeEntity(GetParent());
 
@@ -296,4 +305,36 @@ void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
 
 void ModelComponent::OnChatMessageReceived(const std::string& sMessage) {
 	for (auto& behavior : m_Behaviors) behavior.OnChatMessageReceived(sMessage);
+}
+
+void ModelComponent::OnHit() {
+	for (auto& behavior : m_Behaviors) {
+		behavior.OnHit();
+	}
+}
+
+void ModelComponent::AddAttack() {
+	LOG_DEBUG("Adding attack %i", m_NumActiveAttack);
+	m_Dirty = true;
+	if (m_NumActiveAttack == 0) {
+		GameMessages::SetFaction set{};
+		set.target = m_Parent->GetObjectID();
+		set.factionID = 6; // Default faction for smashables
+		set.Send();
+	}
+	m_NumActiveAttack++;
+}
+
+void ModelComponent::RemoveAttack() {
+	LOG_DEBUG("Removing attack %i", m_NumActiveAttack);
+	DluAssert(m_NumActiveAttack > 0);
+	m_Dirty = true;
+	m_NumActiveAttack--;
+	if (m_NumActiveAttack == 0) {
+		GameMessages::SetFaction set{};
+		set.target = m_Parent->GetObjectID();
+		set.factionID = -1; // Default faction for smashables
+		set.bIgnoreChecks = true; // Remove the attack faction
+		set.Send();
+	}
 }
