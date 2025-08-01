@@ -30,6 +30,7 @@
 #include "CharacterComponent.h"
 #include "PossessableComponent.h"
 #include "PossessorComponent.h"
+#include "ModelComponent.h"
 #include "InventoryComponent.h"
 #include "dZoneManager.h"
 #include "WorldConfig.h"
@@ -82,6 +83,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
 	m_DamageCooldownTimer = 0.0f;
 
 	RegisterMsg<GetObjectReportInfo>(this, &DestroyableComponent::OnGetObjectReportInfo);
+	RegisterMsg<GameMessages::SetFaction>(this, &DestroyableComponent::OnSetFaction);
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -576,6 +578,14 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 	if (m_AttacksToBlock > 0) {
 		m_AttacksToBlock--;
 
+		return;
+	}
+
+	// Client does the same check, so we're doing it too
+	auto* const modelComponent = m_Parent->GetComponent<ModelComponent>();
+	if (modelComponent) {
+		modelComponent->OnHit();
+		// Don't actually deal the damage so the model doesn't die
 		return;
 	}
 
@@ -1087,5 +1097,13 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	destroyableInfo.PushDebug<AMFIntValue>("Death Behavior") = m_DeathBehavior;
 	destroyableInfo.PushDebug<AMFDoubleValue>("Damage Cooldown Timer") = m_DamageCooldownTimer;
 
+	return true;
+}
+
+bool DestroyableComponent::OnSetFaction(GameMessages::GameMsg& msg) {
+	auto& modifyFaction = static_cast<GameMessages::SetFaction&>(msg);
+	m_DirtyHealth = true;
+	Game::entityManager->SerializeEntity(m_Parent);
+	SetFaction(modifyFaction.factionID, modifyFaction.bIgnoreChecks);
 	return true;
 }

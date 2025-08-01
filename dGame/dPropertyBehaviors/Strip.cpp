@@ -118,6 +118,16 @@ void Strip::OnChatMessageReceived(const std::string& sMessage) {
 	}
 }
 
+void Strip::OnHit() {
+	if (m_PausedTime > 0.0f || !HasMinimumActions()) return;
+
+	const auto& nextAction = GetNextAction();
+	if (nextAction.GetType() == "OnAttack") {
+		IncrementAction();
+		m_WaitingForAction = false;
+	}
+}
+
 void Strip::IncrementAction() {
 	if (m_Actions.empty()) return;
 	m_NextActionIndex++;
@@ -259,6 +269,8 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 	if (prevActionType == "OnInteract") {
 		modelComponent.RemoveInteract();
 		Game::entityManager->SerializeEntity(modelComponent.GetParent());
+	} else if (prevActionType == "OnAttack") {
+		modelComponent.RemoveAttack();
 	} else if (prevActionType == "UnSmash") {
 		modelComponent.RemoveUnSmash();
 	}
@@ -336,13 +348,14 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	if (m_NextActionIndex == 0) {
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
-			Game::entityManager->SerializeEntity(entity);
-			m_WaitingForAction = true;
 
 		} else if (nextAction.GetType() == "OnChat") {
-			Game::entityManager->SerializeEntity(entity);
-			m_WaitingForAction = true;
+			// logic here if needed
+		} else if (nextAction.GetType() == "OnAttack") {
+			modelComponent.AddAttack();
 		}
+		Game::entityManager->SerializeEntity(entity);
+		m_WaitingForAction = true;
 	} else { // should be a normal block
 		ProcNormalAction(deltaTime, modelComponent);
 	}

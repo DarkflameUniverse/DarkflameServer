@@ -170,3 +170,7 @@ void State::Update(float deltaTime, ModelComponent& modelComponent) {
 void State::OnChatMessageReceived(const std::string& sMessage) {
 	for (auto& strip : m_Strips) strip.OnChatMessageReceived(sMessage);
 }
+
+void State::OnHit() {
+	for (auto& strip : m_Strips) strip.OnHit();
+}

@@ -184,3 +184,7 @@ void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
 void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage) {
 	for (auto& state : m_States | std::views::values) state.OnChatMessageReceived(sMessage);
 }
+
+void PropertyBehavior::OnHit() {
+	for (auto& state : m_States | std::views::values) state.OnHit();
+}

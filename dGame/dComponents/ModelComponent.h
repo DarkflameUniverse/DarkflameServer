@@ -146,11 +146,21 @@ public:
 
 	void OnChatMessageReceived(const std::string& sMessage);
 
+	void OnHit();
+
 	// Sets the speed of the model
 	void SetSpeed(const float newSpeed) { m_Speed = newSpeed; }
 
 	// Whether or not to restart at the end of the frame
 	void RestartAtEndOfFrame() { m_RestartAtEndOfFrame = true; }
+
+	// Increments the number of strips listening for an attack.
+	// If this is the first strip adding an attack, it will set the factions to the correct values.
+	void AddAttack();
+
+	// Decrements the number of strips listening for an attack.
+	// If this is the last strip removing an attack, it will reset the factions to the default of -1.
+	void RemoveAttack();
 private:
 
 	// Loads a behavior from the database.
@@ -167,6 +177,9 @@ private:
 
 	// The number of strips listening for a RequestUse GM to come in.
 	uint32_t m_NumListeningInteract{};
+
+	// The number of strips listening for an attack.
+	uint32_t m_NumActiveAttack{};
 
 	// Whether or not the model is paused and should reject all interactions regarding behaviors.
 	bool m_IsPaused{};
