@@ -87,7 +87,7 @@ dServer::dServer(
 	} else {
 		LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port);
 #ifdef DARKFLAME_PLATFORM_LINUX
-		if (mServerType == ServiceId::Auth) {
+		if (mServerType == ServiceType::AUTH) {
 			const auto cwd = BinaryPathFinder::GetBinaryDir();
 			LOG("Try running the following command before launching again:\n    sudo setcap 'cap_net_bind_service=+ep' \"%s/AuthServer\"", cwd.string().c_str());
 		}
