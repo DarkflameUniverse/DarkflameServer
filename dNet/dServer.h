@@ -9,14 +9,7 @@
 class Logger;
 class dConfig;
 enum class eServerDisconnectIdentifiers : uint32_t;
-
-enum class ServiceId : uint32_t {
-	General = 0,
-	Auth = 1,
-	Chat = 2,
-	World = 4,
-	Client = 5,
-};
+enum class ServiceType : uint16_t;
 
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;
@@ -36,7 +29,7 @@ public:
 		Logger* logger,
 		const std::string masterIP,
 		int masterPort,
-		ServiceId serverType,
+		ServiceType serverType,
 		dConfig* config,
 		Game::signal_t* shouldShutdown,
 		const std::string& masterPassword,
@@ -73,7 +66,7 @@ public:
 
 	NetworkIDManager* GetNetworkIDManager() { return mNetIDManager; }
 
-	ServiceId GetServerType() const { return mServerType; }
+	ServiceType GetServerType() const { return mServerType; }
 
 	[[nodiscard]]
 	std::chrono::steady_clock::duration GetUptime() const {
@@ -107,7 +100,7 @@ protected:
 	bool mIsInternal;
 	bool mIsOkay;
 	bool mMasterConnectionActive;
-	ServiceId mServerType;
+	ServiceType mServerType;
 
 	RakPeerInterface* mMasterPeer = nullptr;
 	SocketDescriptor mMasterSocketDescriptor;

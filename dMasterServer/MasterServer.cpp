@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
 	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
 	assert(res == 0);
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceId::General, Game::config, &Game::lastSignal, hash);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceType::MASTER, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
@@ -592,7 +592,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirPort = 0;
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
-			ServiceId theirServerType;
+			ServiceType theirServerType;
 			LUString theirIP;
 
 			inStream.Read(theirPort);
@@ -601,26 +601,26 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirServerType);
 			inStream.Read(theirIP);
 
-			if (theirServerType == ServiceId::World) {
-				if (!Game::im->IsPortInUse(theirPort)) {
+			switch (theirServerType) {
+				case ServiceType::WORLD:
+					if (!Game::im->IsPortInUse(theirPort)) {
 					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-					in->SetSysAddr(packet->systemAddress);
-					Game::im->AddInstance(in);
-				} else {
-					const auto& instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
-					if (instance) {
-						instance->SetSysAddr(packet->systemAddress);
+						in->SetSysAddr(packet->systemAddress);
+						Game::im->AddInstance(in);
+					} else {
+						const auto &instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
+						if (instance) {
+							instance->SetSysAddr(packet->systemAddress);
+						}
 					}
-				}
-			}
-
-			if (theirServerType == ServiceId::Chat) {
-				chatServerMasterPeerSysAddr = packet->systemAddress;
-			}
-
-			if (theirServerType == ServiceId::Auth) {
-				authServerMasterPeerSysAddr = packet->systemAddress;
+                    break;
+				case ServiceType::CHAT:
+					chatServerMasterPeerSysAddr = packet->systemAddress;
+					break;
+                case ServiceType::AUTH:
+                    authServerMasterPeerSysAddr = packet->systemAddress;
+                    break;
 			}
 
 			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);

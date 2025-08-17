@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
 		Game::logger,
 		masterIP,
 		masterPort,
-		ServiceId::World,
+		ServiceType::WORLD,
 		Game::config,
 		&Game::lastSignal,
 		masterPassword,

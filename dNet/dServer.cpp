@@ -50,7 +50,7 @@ dServer::dServer(
 	Logger* logger,
 	const std::string masterIP,
 	int masterPort,
-	ServiceId serverType,
+	ServiceType serverType,
 	dConfig* config,
 	Game::signal_t* lastSignal,
 	const std::string& masterPassword,
@@ -98,7 +98,7 @@ dServer::dServer(
 	mLogger->SetLogToConsole(prevLogSetting);
 
 	//Connect to master if we are not master:
-	if (serverType != ServiceId::General) {
+	if (serverType != ServiceType::MASTER) {
 		SetupForMasterConnection();
 		if (!ConnectToMaster()) {
 			LOG("Failed ConnectToMaster!");
@@ -106,7 +106,7 @@ dServer::dServer(
 	}
 
 	//Set up Replica if we're a world server:
-	if (serverType == ServiceId::World) {
+	if (serverType == ServiceType::WORLD) {
 		mNetIDManager = new NetworkIDManager();
 		mNetIDManager->SetIsNetworkIDAuthority(true);
 
@@ -257,7 +257,7 @@ void dServer::Shutdown() {
 		mReplicaManager = nullptr;
 	}
 
-	if (mServerType != ServiceId::General && mMasterPeer) {
+	if (mServerType != ServiceType::MASTER && mMasterPeer) {
 		mMasterPeer->Shutdown(1000);
 		RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
 	}
