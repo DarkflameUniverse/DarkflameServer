@@ -25,7 +25,7 @@
 #include "WorldConfig.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "User.h"
 #include "StringifiedEnum.h"
 

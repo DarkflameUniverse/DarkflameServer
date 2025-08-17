@@ -16,7 +16,7 @@
 #include "QuickBuildComponent.h"
 #include "eReplicaComponentType.h"
 #include "TeamManager.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 
 BehaviorSyncEntry::BehaviorSyncEntry() {
 }
@@ -212,7 +212,7 @@ void BehaviorContext::UpdatePlayerSyncs(float deltaTime) {
 			echo.sBitStream.assign(reinterpret_cast<char*>(bitStream.GetData()), bitStream.GetNumberOfBytesUsed());
 
 			RakNet::BitStream message;
-			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(message);
 
@@ -285,7 +285,7 @@ bool BehaviorContext::CalculateUpdate(const float deltaTime) {
 			// Write message
 			RakNet::BitStream message;
 
-			BitStreamUtils::WriteHeader(message, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
+			BitStreamUtils::WriteHeader(message, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
 			message.Write(this->originator);
 			echo.Serialize(message);
 

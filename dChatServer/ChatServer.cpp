@@ -13,7 +13,7 @@
 #include "Diagnostics.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "PlayerContainer.h"
 #include "ChatPacketHandler.h"
 #include "MessageType/Chat.h"
@@ -218,11 +218,11 @@ void HandlePacket(Packet* packet) {
 	CINSTREAM;
 	inStream.SetReadOffset(BYTES_TO_BITS(1));
 
-	eConnectionType connection;
+	ServiceType connection;
 	MessageType::Chat chatMessageID;
 
 	inStream.Read(connection);
-	if (connection != eConnectionType::CHAT) return;
+	if (connection != ServiceType::CHAT) return;
 	inStream.Read(chatMessageID);
 
 	// Our packing byte wasnt there? Probably a false packet

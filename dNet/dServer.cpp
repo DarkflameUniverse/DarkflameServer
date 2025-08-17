@@ -6,7 +6,7 @@
 
 #include "RakNetworkFactory.h"
 #include "MessageIdentifiers.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Server.h"
 #include "MessageType/Master.h"
 
@@ -151,7 +151,7 @@ Packet* dServer::ReceiveFromMaster() {
 			break;
 		}
 		case ID_USER_PACKET_ENUM: {
-			if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+			if (static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
 				switch (static_cast<MessageType::Master>(packet->data[3])) {
 				case MessageType::Master::REQUEST_ZONE_TRANSFER_RESPONSE: {
 					ZoneInstanceManager::Instance()->HandleRequestZoneTransferResponse(packet);
@@ -199,7 +199,7 @@ void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 
 void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
 	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, MessageType::Server::DISCONNECT_NOTIFY);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::COMMON, MessageType::Server::DISCONNECT_NOTIFY);
 	bitStream.Write(disconNotifyID);
 	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
 

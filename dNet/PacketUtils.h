@@ -5,7 +5,7 @@
 #include "BitStream.h"
 #include <string>
 
-enum class eConnectionType : uint16_t;
+enum class ServiceType : uint16_t;
 
 namespace PacketUtils {
 	void SavePacket(const std::string& filename, const char* data, size_t length);

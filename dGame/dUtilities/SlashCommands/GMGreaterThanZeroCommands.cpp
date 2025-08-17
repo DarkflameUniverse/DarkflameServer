@@ -197,7 +197,7 @@ namespace GMGreaterThanZeroCommands {
 
 			//Notify chat about it
 			CBITSTREAM;
-			BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_MUTE);
+			BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
 
 			bitStream.Write(characterId);
 			bitStream.Write(expire);

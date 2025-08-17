@@ -12,7 +12,7 @@
 #include "RakString.h"
 #include "dConfig.h"
 #include "eObjectBits.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Chat.h"
 #include "MessageType/Client.h"
 #include "MessageType/Game.h"
@@ -61,11 +61,11 @@ void ChatPacketHandler::HandleFriendlistRequest(Packet* packet) {
 
 	//Now, we need to send the friendlist to the server they came from:
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::GET_FRIENDS_LIST_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::GET_FRIENDS_LIST_RESPONSE);
 	bitStream.Write<uint8_t>(0);
 	bitStream.Write<uint16_t>(1); //Length of packet -- just writing one as it doesn't matter, client skips it.
 	bitStream.Write<uint16_t>(player.friends.size());
@@ -375,10 +375,10 @@ void ChatPacketHandler::HandleWho(Packet* packet) {
 	bool online = player;
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(request.requestor);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::WHO_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::WHO_RESPONSE);
 	bitStream.Write<uint8_t>(online);
 	bitStream.Write(player.zoneID.GetMapID());
 	bitStream.Write(player.zoneID.GetInstanceID());
@@ -398,10 +398,10 @@ void ChatPacketHandler::HandleShowAll(Packet* packet) {
 	if (!sender) return;
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(request.requestor);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::SHOW_ALL_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::SHOW_ALL_RESPONSE);
 	bitStream.Write<uint8_t>(!request.displayZoneData && !request.displayIndividualPlayers);
 	bitStream.Write(Game::playerContainer.GetPlayerCount());
 	bitStream.Write(Game::playerContainer.GetSimCount());
@@ -533,7 +533,7 @@ void ChatPacketHandler::OnAchievementNotify(RakNet::BitStream& bitstream, const 
 			LOG_DEBUG("Sending achievement notify to %s", notify.targetPlayerName.GetAsString().c_str());
 
 			RakNet::BitStream worldStream;
-			BitStreamUtils::WriteHeader(worldStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+			BitStreamUtils::WriteHeader(worldStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 			worldStream.Write(friendData.playerID);
 			notify.WriteHeader(worldStream);
 			notify.Serialize(worldStream);
@@ -544,10 +544,10 @@ void ChatPacketHandler::OnAchievementNotify(RakNet::BitStream& bitstream, const 
 
 void ChatPacketHandler::SendPrivateChatMessage(const PlayerData& sender, const PlayerData& receiver, const PlayerData& routeTo, const LUWString& message, const eChatChannel channel, const eChatMessageResponseCode responseCode) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(routeTo.playerID);
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::PRIVATE_CHAT_MESSAGE);
 	bitStream.Write(sender.playerID);
 	bitStream.Write(channel);
 	bitStream.Write<uint32_t>(0); // not used
@@ -579,11 +579,11 @@ void ChatPacketHandler::SendFriendUpdate(const PlayerData& friendData, const Pla
 		[bool] - is FTP*/
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(friendData.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::UPDATE_FRIEND_NOTIFY);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::UPDATE_FRIEND_NOTIFY);
 	bitStream.Write<uint8_t>(notifyType);
 
 	std::string playerName = playerData.playerName.c_str();
@@ -616,11 +616,11 @@ void ChatPacketHandler::SendFriendRequest(const PlayerData& receiver, const Play
 	}
 
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::ADD_FRIEND_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::ADD_FRIEND_REQUEST);
 	bitStream.Write(LUWString(sender.playerName));
 	bitStream.Write<uint8_t>(0); // This is a BFF flag however this is unused in live and does not have an implementation client side.
 
@@ -630,11 +630,11 @@ void ChatPacketHandler::SendFriendRequest(const PlayerData& receiver, const Play
 
 void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const PlayerData& sender, eAddFriendResponseType responseCode, uint8_t isBestFriendsAlready, uint8_t isBestFriendRequest) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	// Portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::ADD_FRIEND_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::ADD_FRIEND_RESPONSE);
 	bitStream.Write(responseCode);
 	// For all requests besides accepted, write a flag that says whether or not we are already best friends with the receiver.
 	bitStream.Write<uint8_t>(responseCode != eAddFriendResponseType::ACCEPTED ? isBestFriendsAlready : sender.worldServerSysAddr != UNASSIGNED_SYSTEM_ADDRESS);
@@ -653,11 +653,11 @@ void ChatPacketHandler::SendFriendResponse(const PlayerData& receiver, const Pla
 
 void ChatPacketHandler::SendRemoveFriend(const PlayerData& receiver, std::string& personToRemove, bool isSuccessful) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::REMOVE_FRIEND_RESPONSE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::REMOVE_FRIEND_RESPONSE);
 	bitStream.Write<uint8_t>(isSuccessful); //isOnline
 	bitStream.Write(LUWString(personToRemove));
 

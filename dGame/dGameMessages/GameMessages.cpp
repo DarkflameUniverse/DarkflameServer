@@ -40,7 +40,7 @@
 #include "eQuickBuildFailReason.h"
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "ePlayerFlag.h"
 
 #include <sstream>
@@ -2208,7 +2208,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity,
 
 	if (unknown) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
 		bitStream.Write<uint32_t>(0);
@@ -2460,7 +2460,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity*
 
 void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_LOAD_RESPONSE_ITEMID);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_LOAD_RESPONSE_ITEMID);
 	bitStream.Write<uint8_t>(success);
 	bitStream.Write<LWOOBJID>(oldItemId);
 	bitStream.Write<LWOOBJID>(newItemId);
@@ -2652,7 +2652,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		uint32_t sd0Size{};
 		for (const auto& chunk : newSd0) sd0Size += chunk.size();
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write(localId);
 		bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 		bitStream.Write<uint32_t>(1);

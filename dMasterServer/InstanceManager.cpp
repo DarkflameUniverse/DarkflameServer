@@ -9,7 +9,7 @@
 #include "CDZoneTableTable.h"
 #include "MasterPackets.h"
 #include "BitStreamUtils.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Master.h"
 
 #include "Start.h"
@@ -172,7 +172,7 @@ void InstanceManager::RequestAffirmation(const InstancePtr& instance, const Pend
 
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::AFFIRM_TRANSFER_REQUEST);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::AFFIRM_TRANSFER_REQUEST);
 
 	bitStream.Write(request.id);
 
@@ -343,7 +343,7 @@ bool Instance::GetShutdownComplete() const {
 void Instance::Shutdown() {
 	CBITSTREAM;
 
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN);
 
 	Game::server->Send(bitStream, this->m_SysAddr, false);
 
