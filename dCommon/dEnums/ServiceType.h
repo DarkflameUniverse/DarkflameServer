@@ -1,7 +1,7 @@
 #ifndef __SERVICETYPE__H__
 #define __SERVICETYPE__H__
 
-enum class ServiceType : uint16_t {
+enum class ServiceType : uint8_t {
 	COMMON = 0,
 	AUTH,
 	CHAT,

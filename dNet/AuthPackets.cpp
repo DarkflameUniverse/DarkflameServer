@@ -54,7 +54,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	ServiceType serviceType;
 	inStream.Read(serviceType);
 	if (serviceType != ServiceType::CLIENT) LOG("WARNING: Service is not a Client!");
-    inStream.IgnoreBytes(2);
+    inStream.IgnoreBytes(3);
 
 	uint32_t processID;
 	inStream.Read(processID);
@@ -80,6 +80,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 	bitStream.Write<uint32_t>(clientNetVersion);
 	bitStream.Write<uint32_t>(861228100);
 	bitStream.Write(serverType);
+    bitStream.Write<uint8_t>(0); // padding
     bitStream.Write<uint16_t>(0); // padding
 	bitStream.Write<uint64_t>(219818307120);
 

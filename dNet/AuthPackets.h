@@ -6,8 +6,8 @@
 #include "dNetCommon.h"
 #include "magic_enum.hpp"
 
-enum class ServiceType : uint16_t;
 enum class eLoginResponse : uint8_t;
+enum class ServiceType : uint8_t;
 class dServer;
 
 enum class eStamps : uint32_t {
