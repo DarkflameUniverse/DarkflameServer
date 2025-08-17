@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
 	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
 	assert(res == 0);
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceId::General, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
@@ -592,7 +592,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirPort = 0;
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
-			ServerType theirServerType;
+			ServiceId theirServerType;
 			LUString theirIP;
 
 			inStream.Read(theirPort);
@@ -601,7 +601,7 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirServerType);
 			inStream.Read(theirIP);
 
-			if (theirServerType == ServerType::World) {
+			if (theirServerType == ServiceId::World) {
 				if (!Game::im->IsPortInUse(theirPort)) {
 					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
@@ -615,11 +615,11 @@ void HandlePacket(Packet* packet) {
 				}
 			}
 
-			if (theirServerType == ServerType::Chat) {
+			if (theirServerType == ServiceId::Chat) {
 				chatServerMasterPeerSysAddr = packet->systemAddress;
 			}
 
-			if (theirServerType == ServerType::Auth) {
+			if (theirServerType == ServiceId::Auth) {
 				authServerMasterPeerSysAddr = packet->systemAddress;
 			}
 

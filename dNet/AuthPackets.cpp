@@ -69,7 +69,7 @@ void AuthPackets::HandleHandshake(dServer* server, Packet* packet) {
 	SendHandshake(server, packet->systemAddress, server->GetIP(), server->GetPort(), server->GetServerType());
 }
 
-void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType) {
+void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServiceId serverType) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, eConnectionType::SERVER, MessageType::Server::VERSION_CONFIRM);
 
@@ -78,10 +78,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 
 	bitStream.Write<uint32_t>(clientNetVersion);
 	bitStream.Write<uint32_t>(861228100);
-
-	if (serverType == ServerType::Auth) bitStream.Write(ServiceId::Auth);
-	else if (serverType == ServerType::World) bitStream.Write(ServiceId::World);
-	else bitStream.Write(ServiceId::General);
+	bitStream.Write(serverType);
 	bitStream.Write<uint64_t>(219818307120);
 
 	server->Send(bitStream, sysAddr, false);

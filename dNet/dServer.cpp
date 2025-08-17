@@ -50,7 +50,7 @@ dServer::dServer(
 	Logger* logger,
 	const std::string masterIP,
 	int masterPort,
-	ServerType serverType,
+	ServiceId serverType,
 	dConfig* config,
 	Game::signal_t* lastSignal,
 	const std::string& masterPassword,
@@ -87,7 +87,7 @@ dServer::dServer(
 	} else {
 		LOG("FAILED TO START SERVER ON IP/PORT: %s:%i", ip.c_str(), port);
 #ifdef DARKFLAME_PLATFORM_LINUX
-		if (mServerType == ServerType::Auth) {
+		if (mServerType == ServiceId::Auth) {
 			const auto cwd = BinaryPathFinder::GetBinaryDir();
 			LOG("Try running the following command before launching again:\n    sudo setcap 'cap_net_bind_service=+ep' \"%s/AuthServer\"", cwd.string().c_str());
 		}
@@ -98,7 +98,7 @@ dServer::dServer(
 	mLogger->SetLogToConsole(prevLogSetting);
 
 	//Connect to master if we are not master:
-	if (serverType != ServerType::Master) {
+	if (serverType != ServiceId::General) {
 		SetupForMasterConnection();
 		if (!ConnectToMaster()) {
 			LOG("Failed ConnectToMaster!");
@@ -106,7 +106,7 @@ dServer::dServer(
 	}
 
 	//Set up Replica if we're a world server:
-	if (serverType == ServerType::World) {
+	if (serverType == ServiceId::World) {
 		mNetIDManager = new NetworkIDManager();
 		mNetIDManager->SetIsNetworkIDAuthority(true);
 
@@ -257,7 +257,7 @@ void dServer::Shutdown() {
 		mReplicaManager = nullptr;
 	}
 
-	if (mServerType != ServerType::Master && mMasterPeer) {
+	if (mServerType != ServiceId::General && mMasterPeer) {
 		mMasterPeer->Shutdown(1000);
 		RakNetworkFactory::DestroyRakPeerInterface(mMasterPeer);
 	}
