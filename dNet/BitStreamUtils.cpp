@@ -7,7 +7,6 @@
 void LUBitStream::WriteHeader(RakNet::BitStream& bitStream) const {
 	bitStream.Write<MessageID>(ID_USER_PACKET_ENUM);
 	bitStream.Write(this->connectionType);
-    bitStream.Write<uint8_t>(0); // padding
 	bitStream.Write(this->internalPacketID);
 	bitStream.Write<uint8_t>(0); // padding
 }
@@ -17,7 +16,6 @@ bool LUBitStream::ReadHeader(RakNet::BitStream& bitStream) {
 	bitStream.Read(messageID);
 	if (messageID != ID_USER_PACKET_ENUM) return false;
 	VALIDATE_READ(bitStream.Read(this->connectionType));
-    bitStream.IgnoreBytes(1);
 	VALIDATE_READ(bitStream.Read(this->internalPacketID));
     bitStream.IgnoreBytes(1);
 	return true;

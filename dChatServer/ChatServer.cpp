@@ -220,10 +220,9 @@ void HandlePacket(Packet* packet) {
 
 	ServiceType connection;
 	inStream.Read(connection);
-    inStream.IgnoreBytes(1);
 	if (connection != ServiceType::CHAT) return;
 
-    MessageType::Chat chatMessageID;
+	MessageType::Chat chatMessageID;
 	inStream.Read(chatMessageID);
 
 	// Our packing byte wasnt there? Probably a false packet

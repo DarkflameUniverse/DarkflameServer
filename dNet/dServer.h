@@ -9,7 +9,7 @@
 class Logger;
 class dConfig;
 enum class eServerDisconnectIdentifiers : uint32_t;
-enum class ServiceType : uint8_t;
+enum class ServiceType : uint16_t;
 
 namespace Game {
 	using signal_t = volatile std::sig_atomic_t;

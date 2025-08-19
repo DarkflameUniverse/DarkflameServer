@@ -74,7 +74,6 @@ namespace BitStreamUtils {
 	void WriteHeader(RakNet::BitStream& bitStream, ServiceType connectionType, T internalPacketID) {
 		bitStream.Write<MessageID>(ID_USER_PACKET_ENUM);
 		bitStream.Write<ServiceType>(connectionType);
-        bitStream.Write<uint8_t>(0); // padding
 		bitStream.Write(static_cast<uint32_t>(internalPacketID));
 		bitStream.Write<uint8_t>(0);
 	}
