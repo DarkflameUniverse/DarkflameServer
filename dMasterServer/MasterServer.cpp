@@ -604,8 +604,7 @@ void HandlePacket(Packet* packet) {
 			switch (theirServerType) {
 			case ServiceType::WORLD:
 				if (!Game::im->IsPortInUse(theirPort)) {
-				auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
-
+					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
