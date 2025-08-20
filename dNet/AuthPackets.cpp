@@ -79,8 +79,7 @@ void AuthPackets::SendHandshake(dServer* server, const SystemAddress& sysAddr, c
 
 	bitStream.Write<uint32_t>(clientNetVersion);
 	bitStream.Write<uint32_t>(861228100);
-	bitStream.Write(serverType);
-    bitStream.Write<uint16_t>(0); // padding
+	bitStream.Write(static_cast<uint32_t>(serverType));
 	bitStream.Write<uint64_t>(219818307120);
 
 	server->Send(bitStream, sysAddr, false);
