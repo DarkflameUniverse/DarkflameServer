@@ -621,7 +621,7 @@ void HandlePacket(Packet* packet) {
                 authServerMasterPeerSysAddr = packet->systemAddress;
                 break;
 			default:
-				// We just ignore an unknown server type
+				// We just ignore any other server type
 				break;
 			}
 
