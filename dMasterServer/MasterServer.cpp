@@ -602,25 +602,28 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirIP);
 
 			switch (theirServerType) {
-				case ServiceType::WORLD:
-					if (!Game::im->IsPortInUse(theirPort)) {
-					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
+			case ServiceType::WORLD:
+				if (!Game::im->IsPortInUse(theirPort)) {
+				auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
 
-						in->SetSysAddr(packet->systemAddress);
-						Game::im->AddInstance(in);
-					} else {
-						const auto &instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
-						if (instance) {
-							instance->SetSysAddr(packet->systemAddress);
-						}
+					in->SetSysAddr(packet->systemAddress);
+					Game::im->AddInstance(in);
+				} else {
+					const auto &instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
+					if (instance) {
+						instance->SetSysAddr(packet->systemAddress);
 					}
-                    break;
-				case ServiceType::CHAT:
-					chatServerMasterPeerSysAddr = packet->systemAddress;
-					break;
-                case ServiceType::AUTH:
-                    authServerMasterPeerSysAddr = packet->systemAddress;
-                    break;
+				}
+                break;
+			case ServiceType::CHAT:
+				chatServerMasterPeerSysAddr = packet->systemAddress;
+				break;
+            case ServiceType::AUTH:
+                authServerMasterPeerSysAddr = packet->systemAddress;
+                break;
+			default:
+				// We just ignore an unknown server type
+				break;
 			}
 
 			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
