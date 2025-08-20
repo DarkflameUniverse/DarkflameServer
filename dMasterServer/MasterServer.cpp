@@ -609,7 +609,7 @@ void HandlePacket(Packet* packet) {
 					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
-					const auto &instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
+					const auto& instance = Game::im->FindInstanceWithPrivate(theirZoneID, static_cast<LWOINSTANCEID>(theirInstanceID));
 					if (instance) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
