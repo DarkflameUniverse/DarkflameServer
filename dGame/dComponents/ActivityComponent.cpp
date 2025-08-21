@@ -20,7 +20,7 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eMatchUpdate.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Chat.h"
 
 #include "CDCurrencyTableTable.h"
@@ -512,7 +512,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::CREATE_TEAM);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

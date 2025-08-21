@@ -109,7 +109,7 @@ namespace Mail {
 		Entity* player = nullptr;
 
 		MailLUBitStream() = default;
-		MailLUBitStream(eMessageID _messageID) : LUBitStream(eConnectionType::CLIENT, MessageType::Client::MAIL), messageID{_messageID} {};
+		MailLUBitStream(eMessageID _messageID) : LUBitStream(ServiceType::CLIENT, MessageType::Client::MAIL), messageID{_messageID} {};
 
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 		virtual bool Deserialize(RakNet::BitStream& bitStream) override;

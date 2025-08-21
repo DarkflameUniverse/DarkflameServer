@@ -507,7 +507,7 @@ namespace DEVGMCommands {
 	void ShutdownUniverse(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		//Tell the master server that we're going to be shutting down whole "universe":
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN_UNIVERSE);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN_UNIVERSE);
 		Game::server->SendToMaster(bitStream);
 		ChatPackets::SendSystemMessage(sysAddr, u"Sent universe shutdown notification to master.");
 

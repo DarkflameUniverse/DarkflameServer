@@ -17,8 +17,7 @@ bool LUBitStream::ReadHeader(RakNet::BitStream& bitStream) {
 	if (messageID != ID_USER_PACKET_ENUM) return false;
 	VALIDATE_READ(bitStream.Read(this->connectionType));
 	VALIDATE_READ(bitStream.Read(this->internalPacketID));
-	uint8_t padding;
-	VALIDATE_READ(bitStream.Read<uint8_t>(padding));
+    bitStream.IgnoreBytes(1);
 	return true;
 }
 

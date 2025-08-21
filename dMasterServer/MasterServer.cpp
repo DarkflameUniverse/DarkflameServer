@@ -23,7 +23,7 @@
 #include "dServer.h"
 #include "AssetManager.h"
 #include "BinaryPathFinder.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Master.h"
 
 //RakNet includes:
@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
 	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
 	assert(res == 0);
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServerType::Master, Game::config, &Game::lastSignal, hash);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceType::MASTER, Game::config, &Game::lastSignal, hash);
 
 	std::string master_server_ip = "localhost";
 	const auto masterServerIPString = Game::config->GetValue("master_ip");
@@ -530,7 +530,7 @@ void HandlePacket(Packet* packet) {
 
 	if (packet->length < 4) return;
 
-	if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::MASTER) {
+	if (static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
 		switch (static_cast<MessageType::Master>(packet->data[3])) {
 		case MessageType::Master::REQUEST_PERSISTENT_ID: {
 			LOG("A persistent ID req");
@@ -592,7 +592,7 @@ void HandlePacket(Packet* packet) {
 			uint32_t theirPort = 0;
 			uint32_t theirZoneID = 0;
 			uint32_t theirInstanceID = 0;
-			ServerType theirServerType;
+			ServiceType theirServerType;
 			LUString theirIP;
 
 			inStream.Read(theirPort);
@@ -601,10 +601,10 @@ void HandlePacket(Packet* packet) {
 			inStream.Read(theirServerType);
 			inStream.Read(theirIP);
 
-			if (theirServerType == ServerType::World) {
+			switch (theirServerType) {
+			case ServiceType::WORLD:
 				if (!Game::im->IsPortInUse(theirPort)) {
 					auto in = std::make_unique<Instance>(theirIP.string, theirPort, theirZoneID, theirInstanceID, 0, 12, 12);
-
 					in->SetSysAddr(packet->systemAddress);
 					Game::im->AddInstance(in);
 				} else {
@@ -613,14 +613,16 @@ void HandlePacket(Packet* packet) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
 				}
-			}
-
-			if (theirServerType == ServerType::Chat) {
+                break;
+			case ServiceType::CHAT:
 				chatServerMasterPeerSysAddr = packet->systemAddress;
-			}
-
-			if (theirServerType == ServerType::Auth) {
-				authServerMasterPeerSysAddr = packet->systemAddress;
+				break;
+            case ServiceType::AUTH:
+                authServerMasterPeerSysAddr = packet->systemAddress;
+                break;
+			default:
+				// We just ignore any other server type
+				break;
 			}
 
 			LOG("Received %s server info, instance: %i port: %i", StringifiedEnum::ToString(theirServerType).data(), theirInstanceID, theirPort);
@@ -640,7 +642,7 @@ void HandlePacket(Packet* packet) {
 					activeSessions.erase(it.first);
 
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
+					BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::NEW_SESSION_ALERT);
 					bitStream.Write(sessionKey);
 					bitStream.Write(username);
 					SEND_PACKET_BROADCAST;
@@ -662,7 +664,7 @@ void HandlePacket(Packet* packet) {
 			for (auto key : activeSessions) {
 				if (key.second == username.GetAsString()) {
 					CBITSTREAM;
-					BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
+					BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SESSION_KEY_RESPONSE);
 					bitStream.Write(key.first);
 					bitStream.Write(username);
 					Game::server->Send(bitStream, packet->systemAddress, false);
@@ -873,7 +875,7 @@ int ShutdownSequence(int32_t signal) {
 
 	{
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::SHUTDOWN);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::SHUTDOWN);
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}

@@ -6,8 +6,8 @@
 #include "dNetCommon.h"
 #include "magic_enum.hpp"
 
-enum class ServerType : uint32_t;
 enum class eLoginResponse : uint8_t;
+enum class ServiceType : uint16_t;
 class dServer;
 
 enum class eStamps : uint32_t {
@@ -93,7 +93,7 @@ enum class Language : uint32_t {
 
 namespace AuthPackets {
 	void HandleHandshake(dServer* server, Packet* packet);
-	void SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServerType serverType);
+	void SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServiceType serverType);
 
 	void HandleLoginRequest(dServer* server, Packet* packet);
 	void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps);

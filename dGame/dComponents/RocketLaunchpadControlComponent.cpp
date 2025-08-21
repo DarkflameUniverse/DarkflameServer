@@ -17,7 +17,7 @@
 #include "dServer.h"
 #include "BitStreamUtils.h"
 #include "eObjectWorldState.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Master.h"
 
 RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
@@ -137,7 +137,7 @@ LWOCLONEID RocketLaunchpadControlComponent::GetSelectedCloneId(LWOOBJID player) 
 
 void RocketLaunchpadControlComponent::TellMasterToPrepZone(int zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::MASTER, MessageType::Master::PREP_ZONE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::PREP_ZONE);
 	bitStream.Write(zoneID);
 	Game::server->SendToMaster(bitStream);
 }
