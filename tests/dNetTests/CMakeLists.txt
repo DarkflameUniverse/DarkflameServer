@@ -2,6 +2,7 @@ set(DNETTESTS_SOURCES
 	"TestCommon.cpp"
 	"AuthPacketTests.cpp"
 	"ChatPacketTests.cpp"
+	"ChatPacketHandlerTests.cpp"
 	"WorldPacketTests.cpp"
 	"MasterPacketTests.cpp"
 	"PacketEdgeCaseTests.cpp"
