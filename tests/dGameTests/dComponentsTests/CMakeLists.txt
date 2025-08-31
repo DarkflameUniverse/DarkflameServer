@@ -1,8 +1,10 @@
 set(DCOMPONENTS_TESTS
+	"AchievementVendorComponentTests.cpp"
 	"ActivityComponentTests.cpp"
 	"BaseCombatAIComponentTests.cpp"
 	"BouncerComponentTests.cpp"
 	"BuffComponentTests.cpp"
+	"CharacterComponentTests.cpp"
 	"CollectibleComponentTests.cpp"
 	"ControllablePhysicsComponentTests.cpp"
 	"DestroyableComponentTests.cpp"
@@ -15,10 +17,14 @@ set(DCOMPONENTS_TESTS
 	"ModelComponentTests.cpp"
 	"MovingPlatformComponentTests.cpp"
 	"PetComponentTests.cpp"
+	"QuickBuildComponentTests.cpp"
 	"RenderComponentTests.cpp"
 	"SavingTests.cpp"
+	"ScriptComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
+	"SkillComponentTests.cpp"
 	"SwitchComponentTests.cpp"
+	"VendorComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above
