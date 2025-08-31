@@ -11,6 +11,7 @@ set(DCOMPONENTS_TESTS
 	"QuickBuildComponentTests.cpp"
 	"VendorComponentTests.cpp"
 	"RenderComponentTests.cpp"
+	"ActivityComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above
