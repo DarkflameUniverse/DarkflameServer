@@ -12,6 +12,10 @@ namespace GameMessages {
 	struct GameMsg;
 }
 
+namespace MessageType {
+	enum class Game : uint16_t;
+}
+
 class Entity;
 
 /**
