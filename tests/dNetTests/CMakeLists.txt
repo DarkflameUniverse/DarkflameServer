@@ -5,6 +5,7 @@ set(DNETTESTS_SOURCES
 	"WorldPacketTests.cpp"
 	"MasterPacketTests.cpp"
 	"PacketEdgeCaseTests.cpp"
+	"MailBitStreamTests.cpp"
 )
 
 # Set our executable  
