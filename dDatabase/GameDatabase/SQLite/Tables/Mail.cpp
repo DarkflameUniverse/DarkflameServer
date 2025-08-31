@@ -70,6 +70,16 @@ uint32_t SQLiteDatabase::GetUnreadMailCount(const uint32_t characterId) {
 	return res.getIntField("number_unread");
 }
 
+uint32_t SQLiteDatabase::GetMailCount(const uint32_t characterId) {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) AS mail_count FROM mail WHERE receiver_id=?;", characterId);
+
+	if (res.eof()) {
+		return 0;
+	}
+
+	return res.getIntField("mail_count");
+}
+
 void SQLiteDatabase::MarkMailRead(const uint64_t mailId) {
 	ExecuteUpdate("UPDATE mail SET was_read=1 WHERE id=?;", mailId);
 }
@@ -81,3 +91,4 @@ void SQLiteDatabase::ClaimMailItem(const uint64_t mailId) {
 void SQLiteDatabase::DeleteMail(const uint64_t mailId) {
 	ExecuteDelete("DELETE FROM mail WHERE id=?;", mailId);
 }
+

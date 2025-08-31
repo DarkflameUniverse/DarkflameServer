@@ -24,6 +24,9 @@ public:
 	// Get the number of unread mail for the given character id.
 	virtual uint32_t GetUnreadMailCount(const uint32_t characterId) = 0;
 
+	// Get the number of mail for a given character id.
+	virtual uint32_t GetMailCount(const uint32_t characterId) = 0;
+
 	// Mark the given mail as read.
 	virtual void MarkMailRead(const uint64_t mailId) = 0;
 

@@ -71,6 +71,16 @@ uint32_t MySQLDatabase::GetUnreadMailCount(const uint32_t characterId) {
 	return res->getInt("number_unread");
 }
 
+uint32_t MySQLDatabase::GetMailCount(const uint32_t characterId) {
+	auto res = ExecuteSelect("SELECT COUNT(*) AS mail_count FROM mail WHERE receiver_id=?;", characterId);
+
+	if (!res->next()) {
+		return 0;
+	}
+
+	return res->getInt("mail_count");
+}
+
 void MySQLDatabase::MarkMailRead(const uint64_t mailId) {
 	ExecuteUpdate("UPDATE mail SET was_read=1 WHERE id=? LIMIT 1;", mailId);
 }

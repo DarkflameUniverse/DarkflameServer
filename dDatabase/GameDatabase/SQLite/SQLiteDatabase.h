@@ -87,6 +87,7 @@ public:
 	std::vector<MailInfo> GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) override;
 	std::optional<MailInfo> GetMail(const uint64_t mailId) override;
 	uint32_t GetUnreadMailCount(const uint32_t characterId) override;
+	uint32_t GetMailCount(const uint32_t characterId) override;
 	void MarkMailRead(const uint64_t mailId) override;
 	void DeleteMail(const uint64_t mailId) override;
 	void ClaimMailItem(const uint64_t mailId) override;

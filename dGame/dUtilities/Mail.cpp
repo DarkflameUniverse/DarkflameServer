@@ -81,56 +81,64 @@ namespace Mail {
 			} else if (GeneralUtils::CaseInsensitiveStringCompare(mailInfo.recipient, character->GetName()) || receiverID->id == character->GetID()) {
 				response.status = eSendResponse::CannotMailSelf;
 			} else {
-				uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
-				uint32_t stackSize = 0;
-				
-				auto inventoryComponent = player->GetComponent<InventoryComponent>();
-				Item* item = nullptr;
-
-				bool hasAttachment = mailInfo.itemID != 0 && mailInfo.itemCount > 0;
-
-				if (hasAttachment) {
-					item = inventoryComponent->FindItemById(mailInfo.itemID);
-					if (item) {
-						mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig().mailPercentAttachmentFee);
-						mailInfo.itemLOT = item->GetLot();
-					}
-				}
-
-				if (hasAttachment && !item) {
-					response.status = eSendResponse::AttachmentNotFound;
-				} else if (player->GetCharacter()->GetCoins() - mailCost < 0) {
-					response.status = eSendResponse::NotEnoughCoins;
+				// check if recipient mailbox is full
+				if (Database::Get()->GetMailCount(receiverID->id) >= 20) {
+					// There is no Mailbox full response, so we will do this instead
+					response.status = eSendResponse::UnknownError;
+					// send system chat message to player
+					ChatPackets::SendSystemMessage(player->GetSystemAddress(), u"Recipient's mailbox is full. Please try again later.");
 				} else {
-					bool removeSuccess = true;
-					// Remove coins and items from the sender
-					player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
-					if (inventoryComponent && hasAttachment && item) {
-						removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, INVALID, true);
-						auto* missionComponent = player->GetComponent<MissionComponent>();
-						if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+					uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
+					uint32_t stackSize = 0;
+					
+					auto inventoryComponent = player->GetComponent<InventoryComponent>();
+					Item* item = nullptr;
+
+					bool hasAttachment = mailInfo.itemID != 0 && mailInfo.itemCount > 0;
+
+					if (hasAttachment) {
+						item = inventoryComponent->FindItemById(mailInfo.itemID);
+						if (item) {
+							mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig().mailPercentAttachmentFee);
+							mailInfo.itemLOT = item->GetLot();
+						}
 					}
 
-					// we passed all the checks, now we can actully send the mail
-					if (removeSuccess) {
-						mailInfo.senderId = character->GetID();
-						mailInfo.senderUsername = character->GetName();
-						mailInfo.receiverId = receiverID->id;
-						mailInfo.itemSubkey = LWOOBJID_EMPTY;
-
-						//clear out the attachementID
-						mailInfo.itemID = 0;
-
-						Database::Get()->InsertNewMail(mailInfo);
-						response.status = eSendResponse::Success;
-						character->SaveXMLToDatabase(); 
-					} else {
+					if (hasAttachment && !item) {
 						response.status = eSendResponse::AttachmentNotFound;
+					} else if (player->GetCharacter()->GetCoins() - mailCost < 0) {
+						response.status = eSendResponse::NotEnoughCoins;
+					} else {
+						bool removeSuccess = true;
+						// Remove coins and items from the sender
+						player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
+						if (inventoryComponent && hasAttachment && item) {
+							removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, INVALID, true);
+							auto* missionComponent = player->GetComponent<MissionComponent>();
+							if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+						}
+
+						// we passed all the checks, now we can actully send the mail
+						if (removeSuccess) {
+							mailInfo.senderId = character->GetID();
+							mailInfo.senderUsername = character->GetName();
+							mailInfo.receiverId = receiverID->id;
+							mailInfo.itemSubkey = LWOOBJID_EMPTY;
+
+							//clear out the attachementID
+							mailInfo.itemID = 0;
+
+							Database::Get()->InsertNewMail(mailInfo);
+							response.status = eSendResponse::Success;
+							character->SaveXMLToDatabase(); 
+						} else {
+							response.status = eSendResponse::AttachmentNotFound;
+						}
 					}
 				}
+			} else {
+				response.status = eSendResponse::SenderAccountIsMuted;
 			}
-		} else {
-			response.status = eSendResponse::SenderAccountIsMuted;
 		}
 		LOG("Finished send with status %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
