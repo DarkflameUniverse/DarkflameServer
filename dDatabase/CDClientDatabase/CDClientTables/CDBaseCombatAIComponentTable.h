@@ -5,11 +5,22 @@
 
 struct CDBaseCombatAIComponent {
 	int32_t id;
-	float aggroRadius;
+	int32_t behaviorType;
+	float combatRoundLength;
+	int32_t combatRole;
+	float minRoundLength;
+	float maxRoundLength;
 	float tetherSpeed;
 	float pursuitSpeed;
+	float combatStartDelay;
 	float softTetherRadius;
 	float hardTetherRadius;
+	float spawnTimer;
+	int32_t tetherEffectID;
+	bool ignoreMediator;
+	float aggroRadius;
+	bool ignoreStatReset;
+	bool ignoreParent;
 };
 
 class CDBaseCombatAIComponentTable : public CDTable<CDBaseCombatAIComponentTable, std::vector<CDBaseCombatAIComponent>> {
