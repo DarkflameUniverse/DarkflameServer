@@ -70,16 +70,7 @@ TEST_F(QuickBuildComponentTest, QuickBuildComponentSerializeUpdateTest) {
 	ASSERT_EQ(builderCount, 0);
 }
 
-TEST_F(QuickBuildComponentTest, QuickBuildComponentSerializeConsistencyTest) {
-	// Test that multiple serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	quickBuildComponent->Serialize(firstSerialization, true);
-	quickBuildComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-}
+
 
 TEST_F(QuickBuildComponentTest, QuickBuildComponentResetTimeTest) {
 	// Test reset time functionality

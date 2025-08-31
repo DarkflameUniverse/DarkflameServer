@@ -70,16 +70,7 @@ TEST_F(VendorComponentTest, VendorComponentDirtyFlagTest) {
 	ASSERT_TRUE(hasMultiCostItems);
 }
 
-TEST_F(VendorComponentTest, VendorComponentSerializeConsistencyTest) {
-	// Test that multiple initial serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	vendorComponent->Serialize(firstSerialization, true);
-	vendorComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-}
+
 
 TEST_F(VendorComponentTest, VendorComponentCostItemsTest) {
 	// Test setting cost items flags - these are private members

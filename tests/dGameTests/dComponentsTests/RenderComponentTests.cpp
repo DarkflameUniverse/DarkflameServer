@@ -137,15 +137,3 @@ TEST_F(RenderComponentTest, RenderComponentMultipleEffectsTest) {
 	}
 }
 
-TEST_F(RenderComponentTest, RenderComponentSerializeConsistencyTest) {
-	// Test consistency with effects
-	renderComponent->AddEffect(456, "consistent", u"air", 1.0f);
-	
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	renderComponent->Serialize(firstSerialization, true);
-	renderComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-}

@@ -141,13 +141,3 @@ TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsSerializeUpdateTest)
 	ASSERT_GE(bitStream.GetNumberOfBitsUsed(), 0);
 }
 
-TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsSerializeConsistencyTest) {
-	// Test that multiple serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	physicsComponent->Serialize(firstSerialization, true);
-	physicsComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-}

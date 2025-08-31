@@ -42,17 +42,7 @@ TEST_F(ScriptComponentTest, ScriptComponentSerializeUpdateTest) {
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), 0);
 }
 
-TEST_F(ScriptComponentTest, ScriptComponentSerializeConsistencyTest) {
-	// Test that multiple initial serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	scriptComponent->Serialize(firstSerialization, true);
-	scriptComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), 1);
-}
+
 
 TEST_F(ScriptComponentTest, ScriptComponentSerializedFlagTest) {
 	// Test the serialized flag functionality

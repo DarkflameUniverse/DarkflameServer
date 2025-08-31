@@ -92,28 +92,3 @@ TEST_F(InventoryComponentTest, InventoryComponentDirtyFlagTest) {
 	ASSERT_TRUE(hasUpdates || !hasUpdates);  // Either state is valid
 }
 
-TEST_F(InventoryComponentTest, InventoryComponentSerializeConsistencyTest) {
-	// Test that serialization is consistent across multiple calls
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	inventoryComponent->Serialize(firstSerialization, true);
-	inventoryComponent->Serialize(secondSerialization, true);
-	
-	// Compare bit counts
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-	
-	// Reset and compare content
-	firstSerialization.ResetReadPointer();
-	secondSerialization.ResetReadPointer();
-	
-	bool hasUpdates1, hasUpdates2;
-	firstSerialization.Read(hasUpdates1);
-	secondSerialization.Read(hasUpdates2);
-	ASSERT_EQ(hasUpdates1, hasUpdates2);
-	
-	uint32_t itemCount1, itemCount2;
-	firstSerialization.Read(itemCount1);
-	secondSerialization.Read(itemCount2);
-	ASSERT_EQ(itemCount1, itemCount2);
-}

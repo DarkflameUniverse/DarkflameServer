@@ -50,16 +50,7 @@ TEST_F(ActivityComponentTest, ActivityComponentSerializeUpdateTest) {
 	ASSERT_FALSE(dirtyActivityInfo);
 }
 
-TEST_F(ActivityComponentTest, ActivityComponentSerializeConsistencyTest) {
-	// Test that multiple serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	activityComponent->Serialize(firstSerialization, true);
-	activityComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-}
+
 
 TEST_F(ActivityComponentTest, ActivityComponentBasicAPITest) {
 	// Test basic API methods

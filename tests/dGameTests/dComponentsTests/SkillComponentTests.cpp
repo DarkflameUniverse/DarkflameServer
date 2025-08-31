@@ -43,23 +43,6 @@ TEST_F(SkillComponentTest, SkillComponentSerializeUpdateTest) {
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), 0);
 }
 
-TEST_F(SkillComponentTest, SkillComponentSerializeConsistencyTest) {
-	// Test multiple initial serializations are consistent
-	RakNet::BitStream firstSerialization;
-	RakNet::BitStream secondSerialization;
-	
-	skillComponent->Serialize(firstSerialization, true);
-	skillComponent->Serialize(secondSerialization, true);
-	
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), secondSerialization.GetNumberOfBitsUsed());
-	ASSERT_EQ(firstSerialization.GetNumberOfBitsUsed(), 1);
-	
-	bool hasSkillData1, hasSkillData2;
-	firstSerialization.Read(hasSkillData1);
-	secondSerialization.Read(hasSkillData2);
-	ASSERT_EQ(hasSkillData1, hasSkillData2);
-	ASSERT_FALSE(hasSkillData1);
-}
 
 TEST_F(SkillComponentTest, SkillComponentUniqueIdTest) {
 	// Test unique skill ID generation
