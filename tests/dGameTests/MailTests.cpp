@@ -6,6 +6,7 @@
 #include "User.h"
 #include "Character.h"
 #include "dCommonVars.h"
+#include "BitStreamUtils.h"
 
 class MailTests : public GameDependenciesTest {
 protected:
@@ -45,11 +46,111 @@ TEST_F(MailTests, SendRequestMailInfoSerialization) {
 	// Verify the stream contains data
 	ASSERT_GT(mailInfoStream.GetNumberOfBytesUsed(), 0);
 	
-	// Verify first field (id) is correct
+	// Verify all fields are serialized correctly by reading them back
 	mailInfoStream.ResetReadPointer();
+	
+	// Read id (uint64_t)
 	uint64_t readId;
 	ASSERT_TRUE(mailInfoStream.Read(readId));
 	ASSERT_EQ(readId, 12345);
+	
+	// Read subject (LUWString, 50 chars)
+	LUWString readSubject(50);
+	ASSERT_TRUE(mailInfoStream.Read(readSubject));
+	ASSERT_EQ(readSubject.GetAsString(), "Test Subject");
+	
+	// Read body (LUWString, 400 chars)
+	LUWString readBody(400);
+	ASSERT_TRUE(mailInfoStream.Read(readBody));
+	ASSERT_EQ(readBody.GetAsString(), "Test mail body content");
+	
+	// Read sender (LUWString, 32 chars)
+	LUWString readSender(32);
+	ASSERT_TRUE(mailInfoStream.Read(readSender));
+	ASSERT_EQ(readSender.GetAsString(), "TestSender");
+	
+	// Read packing (uint32_t = 0)
+	uint32_t packing1;
+	ASSERT_TRUE(mailInfoStream.Read(packing1));
+	ASSERT_EQ(packing1, 0);
+	
+	// Read attachedCurrency (uint64_t = 0)
+	uint64_t attachedCurrency;
+	ASSERT_TRUE(mailInfoStream.Read(attachedCurrency));
+	ASSERT_EQ(attachedCurrency, 0);
+	
+	// Read itemID (LWOOBJID)
+	LWOOBJID readItemID;
+	ASSERT_TRUE(mailInfoStream.Read(readItemID));
+	ASSERT_EQ(readItemID, 555);
+	
+	// Read itemLOT (LOT)
+	LOT readItemLOT;
+	ASSERT_TRUE(mailInfoStream.Read(readItemLOT));
+	ASSERT_EQ(readItemLOT, 1234);
+	
+	// Read packing (uint32_t = 0)
+	uint32_t packing2;
+	ASSERT_TRUE(mailInfoStream.Read(packing2));
+	ASSERT_EQ(packing2, 0);
+	
+	// Read itemSubkey (LWOOBJID)
+	LWOOBJID readItemSubkey;
+	ASSERT_TRUE(mailInfoStream.Read(readItemSubkey));
+	ASSERT_EQ(readItemSubkey, 999);
+	
+	// Read itemCount (int16_t)
+	int16_t readItemCount;
+	ASSERT_TRUE(mailInfoStream.Read(readItemCount));
+	ASSERT_EQ(readItemCount, 10);
+	
+	// Read subject type (uint8_t = 0)
+	uint8_t subjectType;
+	ASSERT_TRUE(mailInfoStream.Read(subjectType));
+	ASSERT_EQ(subjectType, 0);
+	
+	// Read packing (uint8_t = 0)
+	uint8_t packing3;
+	ASSERT_TRUE(mailInfoStream.Read(packing3));
+	ASSERT_EQ(packing3, 0);
+	
+	// Read packing (uint32_t = 0)
+	uint32_t packing4;
+	ASSERT_TRUE(mailInfoStream.Read(packing4));
+	ASSERT_EQ(packing4, 0);
+	
+	// Read expiration date (uint64_t = timeSent)
+	uint64_t expirationDate;
+	ASSERT_TRUE(mailInfoStream.Read(expirationDate));
+	ASSERT_EQ(expirationDate, 1640995200);
+	
+	// Read send date (uint64_t = timeSent)
+	uint64_t sendDate;
+	ASSERT_TRUE(mailInfoStream.Read(sendDate));
+	ASSERT_EQ(sendDate, 1640995200);
+	
+	// Read wasRead (uint8_t)
+	uint8_t readWasRead;
+	ASSERT_TRUE(mailInfoStream.Read(readWasRead));
+	ASSERT_EQ(readWasRead, false);
+	
+	// Read isLocalized (uint8_t = 0)
+	uint8_t isLocalized;
+	ASSERT_TRUE(mailInfoStream.Read(isLocalized));
+	ASSERT_EQ(isLocalized, 0);
+	
+	// Read language code (uint16_t = 1033)
+	uint16_t readLanguageCode;
+	ASSERT_TRUE(mailInfoStream.Read(readLanguageCode));
+	ASSERT_EQ(readLanguageCode, 1033);
+	
+	// Read final packing (uint32_t = 0)
+	uint32_t finalPacking;
+	ASSERT_TRUE(mailInfoStream.Read(finalPacking));
+	ASSERT_EQ(finalPacking, 0);
+	
+	// Verify we've read all the data
+	ASSERT_EQ(mailInfoStream.GetNumberOfUnreadBits(), 0);
 }
 
 // Test SendResponse packet serialization
