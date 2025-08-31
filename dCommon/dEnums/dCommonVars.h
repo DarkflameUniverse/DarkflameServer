@@ -59,7 +59,7 @@ constexpr LWOINSTANCEID LWOINSTANCEID_INVALID = -1; //!< Invalid LWOINSTANCEID
 constexpr LWOMAPID LWOMAPID_INVALID = -1;       	//!< Invalid LWOMAPID
 constexpr uint64_t LWOZONEID_INVALID = 0;       	//!< Invalid LWOZONEID
 
-constexpr float PI = 3.14159f;
+constexpr float PI = 3.14159265358979323846264338327950288f;
 
 //============ STRUCTS ==============
 

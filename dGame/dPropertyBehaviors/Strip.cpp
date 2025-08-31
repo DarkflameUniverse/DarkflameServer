@@ -9,6 +9,7 @@
 #include "PropertyManagementComponent.h"
 #include "PlayerManager.h"
 #include "SimplePhysicsComponent.h"
+#include "dMath.h"
 
 #include "dChatFilter.h"
 
@@ -104,7 +105,7 @@ void Strip::HandleMsg(GameMessages::ResetModelToDefaults& msg) {
 	m_WaitingForAction = false;
 	m_PausedTime = 0.0f;
 	m_NextActionIndex = 0;
-	m_InActionMove = NiPoint3Constant::ZERO;
+	m_InActionTranslation = NiPoint3Constant::ZERO;
 	m_PreviousFramePosition = NiPoint3Constant::ZERO;
 }
 
@@ -159,39 +160,83 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto valueStr = nextAction.GetValueParameterString();
 	auto numberAsInt = static_cast<int32_t>(number);
 	auto nextActionType = GetNextAction().GetType();
+	LOG("~number: %f, nextActionType: %s", static_cast<float>(number), nextActionType.data());
 
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
 	if (nextActionType == "MoveRight" || nextActionType == "MoveLeft") {
+		m_IsRotating = false;
 		// X axis
 		bool isMoveLeft = nextActionType == "MoveLeft";
 		int negative = isMoveLeft ? -1 : 1;
 		// Default velocity is 3 units per second.
 		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_X * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.x = isMoveLeft ? -number : number;
+			m_InActionTranslation.x = isMoveLeft ? -number : number;
 		}
 	} else if (nextActionType == "FlyUp" || nextActionType == "FlyDown") {
+		m_IsRotating = false;
 		// Y axis
 		bool isFlyDown = nextActionType == "FlyDown";
 		int negative = isFlyDown ? -1 : 1;
 		// Default velocity is 3 units per second.
 		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Y * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.y = isFlyDown ? -number : number;
+			m_InActionTranslation.y = isFlyDown ? -number : number;
 		}
 
 	} else if (nextActionType == "MoveForward" || nextActionType == "MoveBackward") {
+		m_IsRotating = false;
 		// Z axis
 		bool isMoveBackward = nextActionType == "MoveBackward";
 		int negative = isMoveBackward ? -1 : 1;
 		// Default velocity is 3 units per second.
 		if (modelComponent.TrySetVelocity(NiPoint3Constant::UNIT_Z * negative)) {
 			m_PreviousFramePosition = entity.GetPosition();
-			m_InActionMove.z = isMoveBackward ? -number : number;
+			m_InActionTranslation.z = isMoveBackward ? -number : number;
 		}
 	}
 	/* END Move */
+
+	/* BEGIN Rotate */
+	else if (nextActionType == "Spin" || nextActionType == "SpinNegative") {
+		const float radians = Math::DegToRad(number);
+		bool isSpinNegative = nextActionType == "SpinNegative";
+		float negative = isSpinNegative ? -0.261799f : 0.261799f;
+
+		// Default angular velocity is 3 units per second.
+		if (modelComponent.TrySetAngularVelocity(NiPoint3Constant::UNIT_Y * negative)) {
+			m_IsRotating = true;
+			m_InActionTranslation.y = isSpinNegative ? -number : number;
+			m_PreviousFrameRotation = entity.GetRotation();
+			// d/vi = t
+			// radians/velocity = time
+			// only care about the time, direction is irrelevant here
+		}
+	} else if (nextActionType == "Tilt" || nextActionType == "TiltNegative") {
+		const float radians = Math::DegToRad(number);
+		bool isRotateLeft = nextActionType == "TiltNegative";
+		float negative = isRotateLeft ? -0.261799f : 0.261799f;
+
+		// Default angular velocity is 3 units per second.
+		if (modelComponent.TrySetAngularVelocity(NiPoint3Constant::UNIT_X * negative)) {
+			m_IsRotating = true;
+			m_InActionTranslation.x = isRotateLeft ? -number : number;
+			m_PreviousFrameRotation = entity.GetRotation();
+		}
+	} else if (nextActionType == "Roll" || nextActionType == "RollNegative") {
+		const float radians = Math::DegToRad(number);
+		bool isRotateDown = nextActionType == "RollNegative";
+		float negative = isRotateDown ? -0.261799f : 0.261799f;
+		
+		// Default angular velocity is 3 units per second.
+		if (modelComponent.TrySetAngularVelocity(NiPoint3Constant::UNIT_Z * negative)) {
+			m_IsRotating = true;
+			m_InActionTranslation.z = isRotateDown ? -number : number;
+			m_PreviousFrameRotation = entity.GetRotation();
+		}
+	}
+	/* END Rotate */
 
 	/* BEGIN Navigation */
 	else if (nextActionType == "SetSpeed") {
@@ -277,36 +322,37 @@ void Strip::RemoveStates(ModelComponent& modelComponent) const {
 }
 
 bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
+	if (m_IsRotating) return true;
+
 	auto& entity = *modelComponent.GetParent();
 	const auto& currentPos = entity.GetPosition();
 	const auto diff = currentPos - m_PreviousFramePosition;
-	const auto [moveX, moveY, moveZ] = m_InActionMove;
+	const auto [moveX, moveY, moveZ] = m_InActionTranslation;
 	m_PreviousFramePosition = currentPos;
-
 	// Only want to subtract from the move if one is being performed.
 	// Starts at true because we may not be doing a move at all.
 	// If one is being done, then one of the move_ variables will be non-zero
 	bool moveFinished = true;
 	NiPoint3 finalPositionAdjustment = NiPoint3Constant::ZERO;
 	if (moveX != 0.0f) {
-		m_InActionMove.x -= diff.x;
+		m_InActionTranslation.x -= diff.x;
 		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.x) != std::signbit(moveX);
-		finalPositionAdjustment.x = m_InActionMove.x;
+		moveFinished = std::signbit(m_InActionTranslation.x) != std::signbit(moveX);
+		finalPositionAdjustment.x = m_InActionTranslation.x;
 	} else if (moveY != 0.0f) {
-		m_InActionMove.y -= diff.y;
+		m_InActionTranslation.y -= diff.y;
 		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.y) != std::signbit(moveY);
-		finalPositionAdjustment.y = m_InActionMove.y;
+		moveFinished = std::signbit(m_InActionTranslation.y) != std::signbit(moveY);
+		finalPositionAdjustment.y = m_InActionTranslation.y;
 	} else if (moveZ != 0.0f) {
-		m_InActionMove.z -= diff.z;
+		m_InActionTranslation.z -= diff.z;
 		// If the sign bit is different between the two numbers, then we have finished our move.
-		moveFinished = std::signbit(m_InActionMove.z) != std::signbit(moveZ);
-		finalPositionAdjustment.z = m_InActionMove.z;
+		moveFinished = std::signbit(m_InActionTranslation.z) != std::signbit(moveZ);
+		finalPositionAdjustment.z = m_InActionTranslation.z;
 	}
 
 	// Once done, set the in action move & velocity to zero
-	if (moveFinished && m_InActionMove != NiPoint3Constant::ZERO) {
+	if (moveFinished && m_InActionTranslation != NiPoint3Constant::ZERO) {
 		auto entityVelocity = entity.GetVelocity();
 		// Zero out only the velocity that was acted on
 		if (moveX != 0.0f) entityVelocity.x = 0.0f;
@@ -316,10 +362,72 @@ bool Strip::CheckMovement(float deltaTime, ModelComponent& modelComponent) {
 
 		// Do the final adjustment so we will have moved exactly the requested units
 		entity.SetPosition(entity.GetPosition() + finalPositionAdjustment);
-		m_InActionMove = NiPoint3Constant::ZERO;
+		m_InActionTranslation = NiPoint3Constant::ZERO;
 	}
 
 	return moveFinished;
+}
+
+bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
+	if (!m_IsRotating) return true;
+	GameMessages::GetAngularVelocity getAngVel{};
+	getAngVel.target = modelComponent.GetParent()->GetObjectID();
+	getAngVel.Send();
+	const auto curRotation = modelComponent.GetParent()->GetRotation();
+	const auto diff = m_PreviousFrameRotation.Diff(curRotation).GetEulerAngles();
+	LOG("Diff: x=%f, y=%f, z=%f", std::abs(Math::RadToDeg(diff.x)), std::abs(Math::RadToDeg(diff.y)), std::abs(Math::RadToDeg(diff.z)));
+	LOG("Velocity: x=%f, y=%f, z=%f", Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime);
+	m_PreviousFrameRotation = curRotation;
+	auto angVel = diff;
+	angVel.x = std::abs(Math::RadToDeg(angVel.x));
+	angVel.y = std::abs(Math::RadToDeg(angVel.y));
+	angVel.z = std::abs(Math::RadToDeg(angVel.z));
+	const auto [rotateX, rotateY, rotateZ] = m_InActionTranslation;
+	bool rotateFinished = true;
+	NiPoint3 finalRotationAdjustment = NiPoint3Constant::ZERO;
+	if (rotateX != 0.0f) {
+		m_InActionTranslation.x -= angVel.x;
+		rotateFinished = std::signbit(m_InActionTranslation.x) != std::signbit(rotateX);
+		finalRotationAdjustment.x = Math::DegToRad(m_InActionTranslation.x);
+	} else if (rotateY != 0.0f) {
+		m_InActionTranslation.y -= angVel.y;
+		rotateFinished = std::signbit(m_InActionTranslation.y) != std::signbit(rotateY);
+		finalRotationAdjustment.y = Math::DegToRad(m_InActionTranslation.y);
+	} else if (rotateZ != 0.0f) {
+		m_InActionTranslation.z -= angVel.z;
+		rotateFinished = std::signbit(m_InActionTranslation.z) != std::signbit(rotateZ);
+		finalRotationAdjustment.z = Math::DegToRad(m_InActionTranslation.z);
+	}
+
+	if (rotateFinished && m_InActionTranslation != NiPoint3Constant::ZERO) {
+		LOG("Rotation finished, zeroing angVel");
+
+		angVel.x = Math::DegToRad(angVel.x);
+		angVel.y = Math::DegToRad(angVel.y);
+		angVel.z = Math::DegToRad(angVel.z);
+
+		if (rotateX != 0.0f) getAngVel.angVelocity.x = 0.0f;
+		else if (rotateY != 0.0f) getAngVel.angVelocity.y = 0.0f;
+		else if (rotateZ != 0.0f) getAngVel.angVelocity.z = 0.0f;
+
+		GameMessages::SetAngularVelocity setAngVel{};
+		setAngVel.target = modelComponent.GetParent()->GetObjectID();
+		setAngVel.angVelocity = getAngVel.angVelocity;
+		setAngVel.Send();
+
+		// Do the final adjustment so we will have rotated exactly the requested units
+		auto currentRot = modelComponent.GetParent()->GetRotation();
+		NiQuaternion finalAdjustment = NiQuaternion::FromEulerAngles(finalRotationAdjustment);
+		currentRot *= finalAdjustment;
+		currentRot.Normalize();
+		modelComponent.GetParent()->SetRotation(currentRot);
+
+		m_InActionTranslation = NiPoint3Constant::ZERO;
+		m_IsRotating = false;
+	}
+
+	LOG("angVel: x=%f, y=%f, z=%f", m_InActionTranslation.x, m_InActionTranslation.y, m_InActionTranslation.z);
+	return rotateFinished;
 }
 
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
@@ -327,8 +435,9 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	// Strips are also designed to have 2 actions or more to run.
 	if (!HasMinimumActions()) return;
 
-	// Return if this strip has an active movement action
+	// Return if this strip has an active movement or rotation action
 	if (!CheckMovement(deltaTime, modelComponent)) return;
+	if (!CheckRotation(deltaTime, modelComponent)) return;
 
 	// Don't run this strip if we're paused.
 	m_PausedTime -= deltaTime;
@@ -348,7 +457,6 @@ void Strip::Update(float deltaTime, ModelComponent& modelComponent) {
 	if (m_NextActionIndex == 0) {
 		if (nextAction.GetType() == "OnInteract") {
 			modelComponent.AddInteract();
-
 		} else if (nextAction.GetType() == "OnChat") {
 			// logic here if needed
 		} else if (nextAction.GetType() == "OnAttack") {

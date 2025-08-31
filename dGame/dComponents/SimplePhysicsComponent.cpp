@@ -16,7 +16,10 @@
 #include "Amf3.h"
 
 SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, int32_t componentID) : PhysicsComponent(parent, componentID) {
-	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &SimplePhysicsComponent::OnGetObjectReportInfo);
+	using namespace GameMessages;
+	RegisterMsg<GetObjectReportInfo>(this, &SimplePhysicsComponent::OnGetObjectReportInfo);
+	RegisterMsg<GameMessages::GetAngularVelocity>(this, &SimplePhysicsComponent::OnGetAngularVelocity);
+	RegisterMsg<GameMessages::SetAngularVelocity>(this, &SimplePhysicsComponent::OnSetAngularVelocity);
 
 	m_Position = m_Parent->GetDefaultPosition();
 	m_Rotation = m_Parent->GetDefaultRotation();
@@ -38,10 +41,20 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 }
 
 void SimplePhysicsComponent::Update(const float deltaTime) {
-	if (m_Velocity == NiPoint3Constant::ZERO) return;
-	m_Position += m_Velocity * deltaTime;
-	m_DirtyPosition = true;
-	Game::entityManager->SerializeEntity(m_Parent);
+	if (m_Velocity != NiPoint3Constant::ZERO) {
+		m_Position += m_Velocity * deltaTime;
+		m_DirtyPosition = true;
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
+
+	if (m_AngularVelocity != NiPoint3Constant::ZERO) {
+		m_Rotation.Normalize();
+		const auto vel = NiQuaternion::FromEulerAngles(m_AngularVelocity * deltaTime);
+		m_Rotation *= vel;
+		const auto euler = m_Rotation.GetEulerAngles();
+		m_DirtyPosition = true;
+		Game::entityManager->SerializeEntity(m_Parent);
+	}
 }
 
 void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -52,8 +65,12 @@ void SimplePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bool bIs
 
 	outBitStream.Write(m_DirtyVelocity || bIsInitialUpdate);
 	if (m_DirtyVelocity || bIsInitialUpdate) {
-		outBitStream.Write(m_Velocity);
-		outBitStream.Write(m_AngularVelocity);
+		outBitStream.Write(m_Velocity.x);
+		outBitStream.Write(m_Velocity.y);
+		outBitStream.Write(m_Velocity.z);
+		outBitStream.Write(m_AngularVelocity.x);
+		outBitStream.Write(m_AngularVelocity.y);
+		outBitStream.Write(m_AngularVelocity.z);
 
 		m_DirtyVelocity = false;
 	}
@@ -90,5 +107,20 @@ bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
 	info.PushDebug<AMFIntValue>("Physics Motion State") = m_PhysicsMotionState;
 	info.PushDebug<AMFStringValue>("Climbable Type") = StringifiedEnum::ToString(m_ClimbableType).data();
+	return true;
+}
+
+bool SimplePhysicsComponent::OnSetAngularVelocity(GameMessages::GameMsg& msg) {
+	auto& setAngVel = static_cast<GameMessages::SetAngularVelocity&>(msg);
+	m_DirtyVelocity |= setAngVel.bForceFlagDirty || (m_AngularVelocity != setAngVel.angVelocity);
+	m_AngularVelocity = setAngVel.angVelocity;
+	LOG("Velocity is now %f %f %f", m_AngularVelocity.x, m_AngularVelocity.y, m_AngularVelocity.z);
+	Game::entityManager->SerializeEntity(m_Parent);
+	return true;
+}
+
+bool SimplePhysicsComponent::OnGetAngularVelocity(GameMessages::GameMsg& msg) {
+	auto& getAngVel = static_cast<GameMessages::GetAngularVelocity&>(msg);
+	getAngVel.angVelocity = m_AngularVelocity;
 	return true;
 }

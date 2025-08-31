@@ -144,6 +144,11 @@ public:
 	// Force sets the velocity to a value.
 	void SetVelocity(const NiPoint3& velocity) const;
 
+	// Attempts to set the angular velocity of the model.
+	// If the axis currently has a velocity of zero, returns true.
+	// If the axis is currently controlled by a behavior, returns false.
+	bool TrySetAngularVelocity(const NiPoint3& angularVelocity) const;
+
 	void OnChatMessageReceived(const std::string& sMessage);
 
 	void OnHit();
@@ -161,6 +166,8 @@ public:
 	// Decrements the number of strips listening for an attack.
 	// If this is the last strip removing an attack, it will reset the factions to the default of -1.
 	void RemoveAttack();
+
+	float GetSpeed() const noexcept { return m_Speed; }
 private:
 
 	// Loads a behavior from the database.

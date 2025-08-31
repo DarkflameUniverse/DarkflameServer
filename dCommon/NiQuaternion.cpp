@@ -14,13 +14,14 @@ Vector3 NiQuaternion::GetEulerAngles() const {
 	angles.x = std::atan2(sinr_cosp, cosr_cosp);
 
 	// pitch (y-axis rotation)
-	const float sinp = 2 * (w * y - z * x);
+	const float t2 = 2 * (w * y - z * x);
+	angles.y = std::asin(std::clamp(t2, -1.0f, 1.0f)); // clamp to avoid NaN
 
-	if (std::abs(sinp) >= 1) {
-		angles.y = std::copysign(3.14 / 2, sinp); // use 90 degrees if out of range
-	} else {
-		angles.y = std::asin(sinp);
-	}
+	// if (std::abs(p) >= 1) {
+	// 	angles.y = std::copysign(3.14 / 2, p); // use 90 degrees if out of range
+	// } else {
+	// 	angles.y = std::asin(p);
+	// }
 
 	// yaw (z-axis rotation)
 	const float siny_cosp = 2 * (w * z + x * y);
@@ -28,6 +29,65 @@ Vector3 NiQuaternion::GetEulerAngles() const {
 	angles.z = std::atan2(siny_cosp, cosy_cosp);
 
 	return angles;
+}
+
+NiQuaternion NiQuaternion::operator*(const float scalar) const noexcept {
+	return NiQuaternion(this->w * scalar, this->x * scalar, this->y * scalar, this->z * scalar);
+}
+
+NiQuaternion& NiQuaternion::operator*=(const NiQuaternion& q) {
+	auto& [ow, ox, oy, oz] = q;
+	auto [cw, cx, cy, cz] = *this; // Current rotation copied because otherwise it screws up the math
+	this->w = cw * ow - cx * ox - cy * oy - cz * oz;
+	this->x = cw * ox + cx * ow + cy * oz - cz * oy;
+	this->y = cw * oy + cy * ow + cz * ox - cx * oz;
+	this->z = cw * oz + cz * ow + cx * oy - cy * ox;
+	return *this;
+}
+
+NiQuaternion NiQuaternion::operator* (const NiQuaternion& q) const {
+	auto& [ow, ox, oy, oz] = q;
+	return NiQuaternion
+	(
+		/* w */w * ow - x * ox - y * oy - z * oz,
+		/* x */w * ox + x * ow + y * oz - z * oy,
+		/* y */w * oy + y * ow + z * ox - x * oz,
+		/* z */w * oz + z * ow + x * oy - y * ox
+	);
+}
+
+NiQuaternion NiQuaternion::operator/(const float& q) const noexcept {
+	return NiQuaternion(this->w / q, this->x / q, this->y / q, this->z / q);
+}
+
+void NiQuaternion::Normalize() {
+	float length = Dot(*this);
+	float invLength = 1.0f / std::sqrt(length);
+	*this = *this * invLength;
+}
+
+float NiQuaternion::Dot(const NiQuaternion& q) const noexcept {
+	return (this->w * q.w) + (this->x * q.x) + (this->y * q.y) + (this->z * q.z);
+}
+
+void NiQuaternion::Inverse() noexcept {
+	NiQuaternion copy = *this;
+	copy.Conjugate();
+
+	const float inv = 1.0f / Dot(*this);
+	*this = copy / inv;
+}
+
+void NiQuaternion::Conjugate() noexcept {
+	x = -x;
+	y = -y;
+	z = -z;
+}
+
+NiQuaternion NiQuaternion::Diff(const NiQuaternion& q) const noexcept {
+	NiQuaternion inv = *this;
+	inv.Inverse();
+	return inv * q;
 }
 
 // MARK: Helper Functions

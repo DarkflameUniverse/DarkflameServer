@@ -18,6 +18,7 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	using namespace GameMessages;
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
+	LOG("%f %f %f %f", m_OriginalRotation.x, m_OriginalRotation.y, m_OriginalRotation.z, m_OriginalRotation.w);
 	m_IsPaused = false;
 	m_NumListeningInteract = 0;
 
@@ -37,6 +38,10 @@ bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	m_Parent->SetPosition(m_OriginalPosition);
 	m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
+	GameMessages::SetAngularVelocity setAngVel;
+	setAngVel.target = m_Parent->GetObjectID();
+	setAngVel.angVelocity = NiPoint3Constant::ZERO;
+	setAngVel.Send();
 
 	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
@@ -301,6 +306,38 @@ bool ModelComponent::TrySetVelocity(const NiPoint3& velocity) const {
 
 void ModelComponent::SetVelocity(const NiPoint3& velocity) const {
 	m_Parent->SetVelocity(velocity);
+}
+
+bool ModelComponent::TrySetAngularVelocity(const NiPoint3& angularVelocity) const {
+	GameMessages::GetAngularVelocity getAngVel{};
+	getAngVel.target = m_Parent->GetObjectID();
+	if (!getAngVel.Send()) {
+		LOG("Couldn't get angular velocity for %llu", m_Parent->GetObjectID());
+		return false;
+	}
+
+	GameMessages::SetAngularVelocity setAngVel{};
+	setAngVel.target = m_Parent->GetObjectID();
+	if (angularVelocity != NiPoint3Constant::ZERO) {
+		setAngVel.angVelocity = getAngVel.angVelocity;
+		const auto [x, y, z] = angularVelocity * m_Speed;
+		if (x != 0.0f) {
+			if (getAngVel.angVelocity.x != 0.0f) return false;
+			setAngVel.angVelocity.x = x;
+		} else if (y != 0.0f) {
+			if (getAngVel.angVelocity.y != 0.0f) return false;
+			setAngVel.angVelocity.y = y;
+		} else if (z != 0.0f) {
+			if (getAngVel.angVelocity.z != 0.0f) return false;
+			setAngVel.angVelocity.z = z;
+		}
+	} else {
+		setAngVel.angVelocity = angularVelocity;
+	}
+	LOG("Setting angular velocity to %f %f %f", setAngVel.angVelocity.x, setAngVel.angVelocity.y, setAngVel.angVelocity.z);
+	setAngVel.Send();
+
+	return true;
 }
 
 void ModelComponent::OnChatMessageReceived(const std::string& sMessage) {

@@ -33,6 +33,10 @@ public:
 	// Checks the movement logic for whether or not to proceed
 	// Returns true if the movement can continue, false if it needs to wait more.
 	bool CheckMovement(float deltaTime, ModelComponent& modelComponent);
+
+	// Checks the rotation logic for whether or not to proceed
+	// Returns true if the rotation can continue, false if it needs to wait more.
+	bool CheckRotation(float deltaTime, ModelComponent& modelComponent);
 	void Update(float deltaTime, ModelComponent& modelComponent);
 	void SpawnDrop(LOT dropLOT, Entity& entity);
 	void ProcNormalAction(float deltaTime, ModelComponent& modelComponent);
@@ -47,6 +51,9 @@ private:
 	// Indicates this Strip is waiting for an action to be taken upon it to progress to its actions
 	bool m_WaitingForAction{ false };
 
+	// True if this strip is currently rotating
+	bool m_IsRotating{ false };
+
 	// The amount of time this strip is paused for. Any interactions with this strip should be bounced if this is greater than 0.
 	// Actions that do not use time do not use this (ex. positions).
 	float m_PausedTime{ 0.0f };
@@ -60,12 +67,16 @@ private:
 	// The location of this strip on the UGBehaviorEditor UI
 	StripUiPosition m_Position;
 
-	// The current actions remaining distance to the target
+	// The current actions remaining translation to the target
 	// Only 1 of these vertexs' will be active at once for any given strip.
-	NiPoint3 m_InActionMove{};
+	NiPoint3 m_InActionTranslation{};
 
 	// The position of the parent model on the previous frame
 	NiPoint3 m_PreviousFramePosition{};
+
+	NiPoint3 m_RotationRemaining{};
+
+	NiQuaternion m_PreviousFrameRotation{};
 
 	NiPoint3 m_SavedVelocity{};
 };

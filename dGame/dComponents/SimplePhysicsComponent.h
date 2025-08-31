@@ -61,6 +61,9 @@ public:
 	 */
 	void SetAngularVelocity(const NiPoint3& value) { m_AngularVelocity = value; m_DirtyVelocity = true; }
 
+	bool OnSetAngularVelocity(GameMessages::GameMsg& msg);
+	bool OnGetAngularVelocity(GameMessages::GameMsg& msg);
+
 	/**
 	 * Returns the physics motion state
 	 * @return the physics motion state
