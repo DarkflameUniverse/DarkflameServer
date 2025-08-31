@@ -3,6 +3,11 @@ set(DCOMPONENTS_TESTS
 	"PetComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
 	"SavingTests.cpp"
+	"CharacterComponentTests.cpp"
+	"InventoryComponentTests.cpp"
+	"ControllablePhysicsComponentTests.cpp"
+	"SkillComponentTests.cpp"
+	"BuffComponentTests.cpp"
 )
 
 # Get the folder name and prepend it to the files above
