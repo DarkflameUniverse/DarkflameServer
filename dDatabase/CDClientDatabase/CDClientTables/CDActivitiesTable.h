@@ -28,6 +28,7 @@ struct CDActivities {
 class CDActivitiesTable : public CDTable<CDActivitiesTable, std::vector<CDActivities>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivities> Query(std::function<bool(CDActivities)> predicate);

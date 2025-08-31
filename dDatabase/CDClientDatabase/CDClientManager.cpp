@@ -155,4 +155,7 @@ void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
 
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
+	CDActivitiesTable::Instance().LoadValuesFromDefaults();
+	CDActivityRewardsTable::Instance().LoadValuesFromDefaults();
+	CDCurrencyTableTable::Instance().LoadValuesFromDefaults();
 }
