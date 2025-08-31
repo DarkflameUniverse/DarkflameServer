@@ -83,8 +83,7 @@ TEST_F(QuickBuildComponentTest, SerializeWithDestroyableComponent) {
 	Entity testEntity(15, info);
 	
 	// Add a destroyable component first
-	DestroyableComponent* destroyableComponent = new DestroyableComponent(&testEntity);
-	testEntity.AddComponent(eReplicaComponentType::DESTROYABLE, destroyableComponent);
+	DestroyableComponent* destroyableComponent = testEntity.AddComponent<DestroyableComponent>();
 	
 	QuickBuildComponent quickBuildComponent(&testEntity);
 	
