@@ -48,19 +48,16 @@ graph TB
     %% Client Connections
     Client1 -.->|1. Authentication| AuthServer
     Client1 -.->|2. Character/Zone Data| WorldServer1
-    Client1 -.->|3. Chat Messages| ChatServer
     
     Client2 -.->|Authentication| AuthServer  
     Client2 -.->|Character/Zone Data| WorldServer2
-    Client2 -.->|Chat Messages| ChatServer
 
     Client3 -.->|Authentication| AuthServer
     Client3 -.->|Character/Zone Data| WorldServer3
-    Client3 -.->|Chat Messages| ChatServer
 
     %% Server-to-Master Connections (All servers connect to master)
     AuthServer <-.->|SERVER_INFO<br/>SESSION_KEY<br/>PLAYER_ADDED/REMOVED| MasterServer
-    ChatServer <-.->|SERVER_INFO<br/>PLAYER_ADDED/REMOVED<br/>HEARTBEAT| MasterServer  
+    ChatServer <-.->|SERVER_INFO<br/>PLAYER_ADDED/REMOVED| MasterServer  
     WorldServer1 <-.->|ZONE_TRANSFER<br/>PERSISTENT_ID<br/>WORLD_READY<br/>SERVER_INFO| MasterServer
     WorldServer2 <-.->|ZONE_TRANSFER<br/>PERSISTENT_ID<br/>WORLD_READY<br/>SERVER_INFO| MasterServer
     WorldServer3 <-.->|ZONE_TRANSFER<br/>PERSISTENT_ID<br/>WORLD_READY<br/>SERVER_INFO| MasterServer
@@ -77,10 +74,10 @@ graph TB
     WorldServer3 <--> Database
     MasterServer <--> Database
 
-    %% Inter-World Server Communication (through Chat Server)
-    WorldServer1 <-.->|Player Messages<br/>Zone Chat<br/>Team Invites| ChatServer
-    WorldServer2 <-.->|Player Messages<br/>Zone Chat<br/>Team Invites| ChatServer
-    WorldServer3 <-.->|Player Messages<br/>Zone Chat<br/>Team Invites| ChatServer
+    %% Chat Server Communication (World Servers route chat, clients never connect directly)
+    WorldServer1 <-.->|Chat Messages<br/>Team Operations<br/>Social Features| ChatServer
+    WorldServer2 <-.->|Chat Messages<br/>Team Operations<br/>Social Features| ChatServer
+    WorldServer3 <-.->|Chat Messages<br/>Team Operations<br/>Social Features| ChatServer
 
     style MasterServer fill:#ff9999
     style AuthServer fill:#99ccff
@@ -165,7 +162,7 @@ graph LR
         subgraph "World Server Integration"
             C7[WORLD_ROUTE_PACKET<br/>↔ World Servers]
             C8[PLAYER_READY<br/>← World Servers]
-            C9[HEARTBEAT_REQUEST<br/>↔ World Servers]
+            C9[LOGIN_SESSION_NOTIFY<br/>← World Servers]
         end
         
         Chat -.-> C1
@@ -298,9 +295,9 @@ sequenceDiagram
     participant C2 as Client 2
 
     C1->>W1: Chat message
-    W1->>Ch: GENERAL_CHAT_MESSAGE
+    W1->>Ch: GENERAL_CHAT_MESSAGE  
     Ch->>Ch: Process & route message
-    Ch->>W2: WORLD_ROUTE_PACKET
+    Ch->>W2: WORLD_ROUTE_PACKET (to relevant world servers)
     W2->>C2: Display message
     Ch->>W1: Message confirmation
     W1->>C1: Message sent confirmation

@@ -19,23 +19,35 @@
     │         │        SERVER COMMUNICATION LAYER     │                   │                   │
     │         │                   │                   │                   │                   │
     │         ▼                   ▼                   ▼                   ▼                   │
-    │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
-    │  │AUTH SERVER │    │CHAT SERVER │    │WORLD SERVER │    │WORLD SERVER │              │
-    │  │             │    │             │    │             │    │             │              │
-    │  │Port: 1001   │    │Port: 1501   │    │Port: Dynamic│    │Port: Dynamic│              │
-    │  │             │    │             │    │             │    │             │              │
-    │  │• Login      │    │• Chat Msgs  │    │• Game Logic │    │• Game Logic │              │
-    │  │• Accounts   │    │• Teams      │    │• Entities   │    │• Entities   │              │
-    │  │• Sessions   │    │• Guilds     │    │• Physics    │    │• Physics    │              │
-    │  │• Keys       │    │• Friends    │    │• Zone Mgmt  │    │• Zone Mgmt  │              │
-    │  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘              │
-    │         │                   │                   │                   │                   │
-    │         └───────────────────┼───────────────────┼───────────────────┘                   │
-    │                             │                   │                                       │
-    │                             │                   │                                       │
-    │         ┌───────────────────┼───────────────────┼───────────────────┐                   │
-    │         │                   │                   │                   │                   │
-    │         ▼                   ▼                   ▼                   ▼                   │
+    │  ┌─────────────┐              ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    │
+    │  │AUTH SERVER │              │WORLD SERVER │    │WORLD SERVER │    │WORLD SERVER │    │
+    │  │             │              │             │    │             │    │             │    │
+    │  │Port: 1001   │              │Port: Dynamic│    │Port: Dynamic│    │Port: Dynamic│    │
+    │  │             │              │             │    │             │    │             │    │
+    │  │• Login      │              │• Game Logic │    │• Game Logic │    │• Game Logic │    │
+    │  │• Accounts   │              │• Entities   │    │• Entities   │    │• Entities   │    │
+    │  │• Sessions   │              │• Physics    │    │• Physics    │    │• Physics    │    │
+    │  │• Keys       │              │• Zone Mgmt  │    │• Zone Mgmt  │    │• Zone Mgmt  │    │
+    │  └─────────────┘              └─────────────┘    └─────────────┘    └─────────────┘    │
+    │         │                             │                   │                   │        │
+    │         │                             │                   │                   │        │
+    │         │                             │                   │                   │        │
+    │         │       ┌─────────────┐       │                   │                   │        │
+    │         │       │CHAT SERVER │←──────┼───────────────────┼───────────────────┘        │
+    │         │       │             │       │                   │                            │
+    │         │       │Port: 1501   │       │                   │                            │
+    │         │       │             │       │                   │                            │
+    │         │       │• Chat Msgs  │       │                   │                            │
+    │         │       │• Teams      │       │                   │                            │
+    │         │       │• Guilds     │       │                   │                            │
+    │         │       │• Friends    │       │                   │                            │
+    │         │       └─────────────┘       │                   │                            │
+    │         │                 │           │                   │                            │
+    │         └─────────────────┼───────────┼───────────────────┼────────────────────────────┤
+    │                           │           │                   │                            │
+    │         ┌─────────────────┼───────────┼───────────────────┼───────────────────┐        │
+    │         │                 │           │                   │                   │        │
+    │         ▼                 ▼           ▼                   ▼                   ▼        │
     │    ┌─────────────────────────────────────────────────────────────────────────────┐      │
     │    │                      MASTER SERVER (Port: 1500)                           │      │
     │    │                                                                            │      │
@@ -97,7 +109,7 @@
        World Server → Master Server → Target World Server → Client
 
     3. Chat Message Flow:
-       Client → World Server → Chat Server → Target World Server → Target Client
+       Client → World Server → Chat Server → Target World Server(s) → Target Client(s)
 
     4. Entity Updates Flow:
        World Server → EntityManager → ReplicaManager → All Clients in Zone

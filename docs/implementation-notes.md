@@ -22,6 +22,11 @@
 - **WorldServer.cpp**: Game world simulation and entity management
 - **PerformanceManager.cpp**: Monitors server performance metrics
 
+### Game Logic (`dGame/`)
+- **CheatDetection.cpp**: Anti-cheat system with database logging
+- **UserManager.cpp**: Player session and character management
+- **EntityManager.cpp**: Game entity lifecycle and updates
+
 ### Networking Layer (`dNet/`)
 - **dServer.cpp/h**: Base server class with master communication
 - **MasterPackets.cpp/h**: Master server protocol implementation
@@ -123,16 +128,16 @@ auto result = Database::Get()->Query(sql);
 - Chat Server handles all social features centrally
 
 ### Fault Tolerance
-- All servers maintain heartbeat with Master
-- Automatic reconnection on connection loss
+- All servers maintain connections with Master Server
+- Database connection monitoring and error handling
 - Player state persisted in database
 - Graceful degradation when servers unavailable
 
 ### Performance Optimizations
 - Entity serialization only to relevant players (ghosting)
 - Spatial partitioning for efficient updates
-- Message batching for network efficiency
 - Database query optimization with prepared statements
+- Network packet compression and optimization
 
 ## Security Features
 
@@ -144,7 +149,8 @@ auto result = Database::Get()->Query(sql);
 
 ### Game Security
 - Server-side validation of all game actions
-- Anti-cheat through server authority
+- Cheat detection system with database logging (`CheatDetection.cpp`)
+- Player cheat detection table tracks suspicious activities
 - Rate limiting on client requests
 - Database injection prevention
 
