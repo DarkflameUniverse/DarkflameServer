@@ -378,37 +378,63 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 	LOG("Diff: x=%f, y=%f, z=%f", std::abs(Math::RadToDeg(diff.x)), std::abs(Math::RadToDeg(diff.y)), std::abs(Math::RadToDeg(diff.z)));
 	LOG("Velocity: x=%f, y=%f, z=%f", Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime);
 	m_PreviousFrameRotation = curRotation;
-	auto angVel = diff;
-	angVel.x = std::abs(Math::RadToDeg(angVel.x));
-	angVel.y = std::abs(Math::RadToDeg(angVel.y));
-	angVel.z = std::abs(Math::RadToDeg(angVel.z));
+
+	// Convert frame delta (radians) to absolute degrees moved this frame per axis.
+	// Use the reported angular velocity (radians/sec) * deltaTime instead of extracting
+	// Euler angles from the quaternion difference. Extracting Euler angles from a
+	// combined-axis quaternion won't produce per-axis rotations when axes rotate
+	// simultaneously, which caused late stopping. Using angular velocity is consistent
+	// with how velocity is applied in SimplePhysicsComponent.
+	NiPoint3 angMovedDegrees = NiPoint3(std::abs(Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime),
+									   std::abs(Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime),
+									   std::abs(Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime));
+
 	const auto [rotateX, rotateY, rotateZ] = m_InActionTranslation;
-	bool rotateFinished = true;
+	bool rotateFinished = true; // assume finished until an axis proves otherwise
 	NiPoint3 finalRotationAdjustment = NiPoint3Constant::ZERO;
+
+	// Use a small epsilon to avoid missing the exact-zero case due to floating point
+	constexpr float EPS_DEG = 1e-3f;
+
+	// Handle each axis independently so we can rotate on multiple axes at once.
 	if (rotateX != 0.0f) {
-		m_InActionTranslation.x -= angVel.x;
-		rotateFinished = std::signbit(m_InActionTranslation.x) != std::signbit(rotateX);
-		finalRotationAdjustment.x = Math::DegToRad(m_InActionTranslation.x);
-	} else if (rotateY != 0.0f) {
-		m_InActionTranslation.y -= angVel.y;
-		rotateFinished = std::signbit(m_InActionTranslation.y) != std::signbit(rotateY);
-		finalRotationAdjustment.y = Math::DegToRad(m_InActionTranslation.y);
-	} else if (rotateZ != 0.0f) {
-		m_InActionTranslation.z -= angVel.z;
-		rotateFinished = std::signbit(m_InActionTranslation.z) != std::signbit(rotateZ);
-		finalRotationAdjustment.z = Math::DegToRad(m_InActionTranslation.z);
+		m_InActionTranslation.x -= angMovedDegrees.x;
+		// Finished if we crossed zero or are within epsilon
+		if (std::signbit(m_InActionTranslation.x) != std::signbit(rotateX) || std::abs(m_InActionTranslation.x) <= EPS_DEG) {
+			finalRotationAdjustment.x = Math::DegToRad(m_InActionTranslation.x);
+			m_InActionTranslation.x = 0.0f;
+		} else {
+			rotateFinished = false;
+		}
 	}
 
-	if (rotateFinished && m_InActionTranslation != NiPoint3Constant::ZERO) {
-		LOG("Rotation finished, zeroing angVel");
+	if (rotateY != 0.0f) {
+		m_InActionTranslation.y -= angMovedDegrees.y;
+		if (std::signbit(m_InActionTranslation.y) != std::signbit(rotateY) || std::abs(m_InActionTranslation.y) <= EPS_DEG) {
+			finalRotationAdjustment.y = Math::DegToRad(m_InActionTranslation.y);
+			m_InActionTranslation.y = 0.0f;
+		} else {
+			rotateFinished = false;
+		}
+	}
 
-		angVel.x = Math::DegToRad(angVel.x);
-		angVel.y = Math::DegToRad(angVel.y);
-		angVel.z = Math::DegToRad(angVel.z);
+	if (rotateZ != 0.0f) {
+		m_InActionTranslation.z -= angMovedDegrees.z;
+		if (std::signbit(m_InActionTranslation.z) != std::signbit(rotateZ) || std::abs(m_InActionTranslation.z) <= EPS_DEG) {
+			finalRotationAdjustment.z = Math::DegToRad(m_InActionTranslation.z);
+			m_InActionTranslation.z = 0.0f;
+		} else {
+			rotateFinished = false;
+		}
+	}
 
+	if (rotateFinished && (finalRotationAdjustment != NiPoint3Constant::ZERO)) {
+		LOG("Rotation finished, zeroing angVel for finished axes");
+
+		// Zero only the angular velocity channels that have just finished.
 		if (rotateX != 0.0f) getAngVel.angVelocity.x = 0.0f;
-		else if (rotateY != 0.0f) getAngVel.angVelocity.y = 0.0f;
-		else if (rotateZ != 0.0f) getAngVel.angVelocity.z = 0.0f;
+		if (rotateY != 0.0f) getAngVel.angVelocity.y = 0.0f;
+		if (rotateZ != 0.0f) getAngVel.angVelocity.z = 0.0f;
 
 		GameMessages::SetAngularVelocity setAngVel{};
 		setAngVel.target = modelComponent.GetParent()->GetObjectID();
@@ -422,8 +448,10 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 		currentRot.Normalize();
 		modelComponent.GetParent()->SetRotation(currentRot);
 
-		m_InActionTranslation = NiPoint3Constant::ZERO;
-		m_IsRotating = false;
+		// If all axes are zeroed out then stop rotating
+		if (m_InActionTranslation == NiPoint3Constant::ZERO) {
+			m_IsRotating = false;
+		}
 	}
 
 	LOG("angVel: x=%f, y=%f, z=%f", m_InActionTranslation.x, m_InActionTranslation.y, m_InActionTranslation.z);
