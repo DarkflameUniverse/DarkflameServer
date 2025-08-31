@@ -6,6 +6,12 @@ Darkflame Universe (DLU) is a server emulator for LEGO® Universe. Development s
 ### LEGO® Universe
 Developed by NetDevil and The LEGO Group, LEGO® Universe launched in October 2010 and ceased operation in January 2012.
 
+## Architecture Documentation
+For developers and those interested in understanding the server architecture:
+* [Server Architecture Diagram](docs/server-architecture-diagram.md) - Comprehensive visual diagrams of server components and communication flows
+* [Server Architecture ASCII](docs/server-architecture-ascii.md) - Text-based architecture diagrams  
+* [Implementation Notes](docs/implementation-notes.md) - Technical implementation details and code organization
+
 ## License
 Darkflame Universe is licensed under AGPLv3, please read [LICENSE](LICENSE). Some important points:
 * We are not liable for anything you do with the code
