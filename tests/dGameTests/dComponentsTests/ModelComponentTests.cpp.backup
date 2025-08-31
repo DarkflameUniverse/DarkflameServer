@@ -77,11 +77,11 @@ TEST_F(ModelTest, ModelComponentSerializeNonPetTest) {
 	EXPECT_EQ(originalPosition, NiPoint3(10.0f, 20.0f, 30.0f));
 	
 	NiQuaternion originalRotation;
-	bitStream.Read(originalRotation.w);
 	bitStream.Read(originalRotation.x);
 	bitStream.Read(originalRotation.y);
 	bitStream.Read(originalRotation.z);
-	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // w=4, x=1, y=2, z=3
+	bitStream.Read(originalRotation.w);
+	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // x=1, y=2, z=3, w=4
 	
 	bool hasBehaviorInfo;
 	bitStream.Read(hasBehaviorInfo);
@@ -131,11 +131,11 @@ TEST_F(ModelTest, ModelComponentSerializePetTest) {
 	EXPECT_EQ(originalPosition, NiPoint3(10.0f, 20.0f, 30.0f));
 	
 	NiQuaternion originalRotation;
-	bitStream.Read(originalRotation.w);
 	bitStream.Read(originalRotation.x);
 	bitStream.Read(originalRotation.y);
 	bitStream.Read(originalRotation.z);
-	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // w=4, x=1, y=2, z=3
+	bitStream.Read(originalRotation.w);
+	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // x=1, y=2, z=3, w=4
 	
 	bool hasBehaviorInfo;
 	bitStream.Read(hasBehaviorInfo);
@@ -198,11 +198,11 @@ TEST_F(ModelTest, ModelComponentSerializeInitialUpdateTest) {
 	EXPECT_EQ(originalPosition, NiPoint3(10.0f, 20.0f, 30.0f));
 	
 	NiQuaternion originalRotation;
-	bitStream.Read(originalRotation.w);
 	bitStream.Read(originalRotation.x);
 	bitStream.Read(originalRotation.y);
 	bitStream.Read(originalRotation.z);
-	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // w=4, x=1, y=2, z=3
+	bitStream.Read(originalRotation.w);
+	EXPECT_EQ(originalRotation, NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // x=1, y=2, z=3, w=4
 	
 	bool hasBehaviorInfo;
 	bitStream.Read(hasBehaviorInfo);
