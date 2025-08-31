@@ -209,6 +209,10 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 			m_IsRotating = true;
 			m_InActionTranslation.y = isSpinNegative ? -number : number;
 			m_PreviousFrameRotation = entity.GetRotation();
+			// compute the absolute rotation target quaternion
+			NiPoint3 deltaEuler = NiPoint3(0.0f, Math::DegToRad(m_InActionTranslation.y), 0.0f);
+			m_RotationTarget = m_PreviousFrameRotation;
+			m_RotationTarget *= NiQuaternion::FromEulerAngles(deltaEuler);
 			// d/vi = t
 			// radians/velocity = time
 			// only care about the time, direction is irrelevant here
@@ -223,6 +227,9 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 			m_IsRotating = true;
 			m_InActionTranslation.x = isRotateLeft ? -number : number;
 			m_PreviousFrameRotation = entity.GetRotation();
+			NiPoint3 deltaEuler = NiPoint3(Math::DegToRad(m_InActionTranslation.x), 0.0f, 0.0f);
+			m_RotationTarget = m_PreviousFrameRotation;
+			m_RotationTarget *= NiQuaternion::FromEulerAngles(deltaEuler);
 		}
 	} else if (nextActionType == "Roll" || nextActionType == "RollNegative") {
 		const float radians = Math::DegToRad(number);
@@ -234,6 +241,9 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 			m_IsRotating = true;
 			m_InActionTranslation.z = isRotateDown ? -number : number;
 			m_PreviousFrameRotation = entity.GetRotation();
+			NiPoint3 deltaEuler = NiPoint3(0.0f, 0.0f, Math::DegToRad(m_InActionTranslation.z));
+			m_RotationTarget = m_PreviousFrameRotation;
+			m_RotationTarget *= NiQuaternion::FromEulerAngles(deltaEuler);
 		}
 	}
 	/* END Rotate */
@@ -379,83 +389,37 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 	LOG("Velocity: x=%f, y=%f, z=%f", Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime);
 	m_PreviousFrameRotation = curRotation;
 
-	// Convert frame delta (radians) to absolute degrees moved this frame per axis.
-	// Use the reported angular velocity (radians/sec) * deltaTime instead of extracting
-	// Euler angles from the quaternion difference. Extracting Euler angles from a
-	// combined-axis quaternion won't produce per-axis rotations when axes rotate
-	// simultaneously, which caused late stopping. Using angular velocity is consistent
-	// with how velocity is applied in SimplePhysicsComponent.
-	NiPoint3 angMovedDegrees = NiPoint3(std::abs(Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime),
-									   std::abs(Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime),
-									   std::abs(Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime));
+	// Use quaternion remaining angle to decide completion. Compute the quaternion
+	// that rotates from the current rotation to the target rotation. If the
+	// rotation angle of that quaternion is below an epsilon, we're finished.
+	NiQuaternion remaining = modelComponent.GetParent()->GetRotation().Diff(m_RotationTarget);
+	float w = remaining.w;
+	if (w > 1.0f) w = 1.0f; // clamp
+	if (w < -1.0f) w = -1.0f;
+	// angle (radians) = 2 * acos(w)
+	float angleRemainingRad = 2.0f * acos(w);
+	float angleRemainingDeg = Math::RadToDeg(angleRemainingRad);
+	constexpr float EPS_DEG = 0.1f; // finish when less than 0.1 degree remains
 
-	const auto [rotateX, rotateY, rotateZ] = m_InActionTranslation;
-	bool rotateFinished = true; // assume finished until an axis proves otherwise
-	NiPoint3 finalRotationAdjustment = NiPoint3Constant::ZERO;
-
-	// Use a small epsilon to avoid missing the exact-zero case due to floating point
-	constexpr float EPS_DEG = 1e-3f;
-
-	// Handle each axis independently so we can rotate on multiple axes at once.
-	if (rotateX != 0.0f) {
-		m_InActionTranslation.x -= angMovedDegrees.x;
-		// Finished if we crossed zero or are within epsilon
-		if (std::signbit(m_InActionTranslation.x) != std::signbit(rotateX) || std::abs(m_InActionTranslation.x) <= EPS_DEG) {
-			finalRotationAdjustment.x = Math::DegToRad(m_InActionTranslation.x);
-			m_InActionTranslation.x = 0.0f;
-		} else {
-			rotateFinished = false;
-		}
-	}
-
-	if (rotateY != 0.0f) {
-		m_InActionTranslation.y -= angMovedDegrees.y;
-		if (std::signbit(m_InActionTranslation.y) != std::signbit(rotateY) || std::abs(m_InActionTranslation.y) <= EPS_DEG) {
-			finalRotationAdjustment.y = Math::DegToRad(m_InActionTranslation.y);
-			m_InActionTranslation.y = 0.0f;
-		} else {
-			rotateFinished = false;
-		}
-	}
-
-	if (rotateZ != 0.0f) {
-		m_InActionTranslation.z -= angMovedDegrees.z;
-		if (std::signbit(m_InActionTranslation.z) != std::signbit(rotateZ) || std::abs(m_InActionTranslation.z) <= EPS_DEG) {
-			finalRotationAdjustment.z = Math::DegToRad(m_InActionTranslation.z);
-			m_InActionTranslation.z = 0.0f;
-		} else {
-			rotateFinished = false;
-		}
-	}
-
-	if (rotateFinished && (finalRotationAdjustment != NiPoint3Constant::ZERO)) {
-		LOG("Rotation finished, zeroing angVel for finished axes");
-
-		// Zero only the angular velocity channels that have just finished.
-		if (rotateX != 0.0f) getAngVel.angVelocity.x = 0.0f;
-		if (rotateY != 0.0f) getAngVel.angVelocity.y = 0.0f;
-		if (rotateZ != 0.0f) getAngVel.angVelocity.z = 0.0f;
-
+	if (angleRemainingDeg <= EPS_DEG) {
+		LOG("Rotation finished by quaternion remaining angle (%f deg)", angleRemainingDeg);
+		// Zero angular velocity on axes that were part of this action (safe to zero all)
+		getAngVel.angVelocity = NiPoint3Constant::ZERO;
 		GameMessages::SetAngularVelocity setAngVel{};
 		setAngVel.target = modelComponent.GetParent()->GetObjectID();
 		setAngVel.angVelocity = getAngVel.angVelocity;
 		setAngVel.Send();
 
-		// Do the final adjustment so we will have rotated exactly the requested units
-		auto currentRot = modelComponent.GetParent()->GetRotation();
-		NiQuaternion finalAdjustment = NiQuaternion::FromEulerAngles(finalRotationAdjustment);
-		currentRot *= finalAdjustment;
-		currentRot.Normalize();
-		modelComponent.GetParent()->SetRotation(currentRot);
-
-		// If all axes are zeroed out then stop rotating
-		if (m_InActionTranslation == NiPoint3Constant::ZERO) {
-			m_IsRotating = false;
-		}
+		// Snap to exact target to avoid tiny residual error
+		modelComponent.GetParent()->SetRotation(m_RotationTarget);
+		m_InActionTranslation = NiPoint3Constant::ZERO;
+		m_IsRotating = false;
+		return true;
 	}
 
 	LOG("angVel: x=%f, y=%f, z=%f", m_InActionTranslation.x, m_InActionTranslation.y, m_InActionTranslation.z);
-	return rotateFinished;
+	// Not finished yet
+	return false;
 }
 
 void Strip::Update(float deltaTime, ModelComponent& modelComponent) {

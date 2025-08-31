@@ -78,6 +78,9 @@ private:
 
 	NiQuaternion m_PreviousFrameRotation{};
 
+	// The absolute target rotation for the current rotation action
+	NiQuaternion m_RotationTarget{};
+
 	NiPoint3 m_SavedVelocity{};
 };
 
