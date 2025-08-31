@@ -19,7 +19,7 @@ protected:
 		modelComponent = baseEntity->AddComponent<ModelComponent>();
 		// Initialize some values to be not default
 		modelComponent->SetPosition(NiPoint3(10.0f, 20.0f, 30.0f));
-		modelComponent->SetRotation(NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // For x=1, y=2, z=3, w=4
+		modelComponent->SetRotation(NiQuaternion(4.0f, 1.0f, 2.0f, 3.0f)); // w=4, x=1, y=2, z=3
 		modelComponent->AddInteract(); // Make it pickable
 	}
 
