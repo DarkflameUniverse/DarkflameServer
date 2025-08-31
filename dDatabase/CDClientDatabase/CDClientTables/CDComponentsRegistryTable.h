@@ -16,6 +16,5 @@ struct CDComponentsRegistry {
 class CDComponentsRegistryTable : public CDTable<CDComponentsRegistryTable, std::unordered_map<uint64_t, uint32_t>> {
 public:
 	void LoadValuesFromDatabase();
-	void LoadValuesFromDefaults();
 	int32_t GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue = 0);
 };

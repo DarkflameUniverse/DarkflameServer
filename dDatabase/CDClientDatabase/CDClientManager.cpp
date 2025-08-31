@@ -41,7 +41,6 @@
 #include "CDRailActivatorComponent.h"
 #include "CDRewardCodesTable.h"
 #include "CDPetComponentTable.h"
-#include "CDComponentsRegistryTable.h"
 
 #ifndef CDCLIENT_CACHE_ALL
 // Uncomment this to cache the full cdclient database into memory. This will make the server load faster, but will use more memory.
@@ -156,5 +155,4 @@ void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
 
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
-	CDComponentsRegistryTable::Instance().LoadValuesFromDefaults();
 }
