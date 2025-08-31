@@ -51,3 +51,13 @@ int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponent
 
 	return iter == entries.end() ? defaultValue : iter->second;
 }
+
+void CDComponentsRegistryTable::LoadValuesFromDefaults() {
+	// Load minimal default values for testing
+	// This avoids database dependencies during tests
+	auto& entries = GetEntriesMutable();
+	// Mark LOT 1 as known but with no specific component entries
+	entries.insert_or_assign(1, 0);
+	// Mark LOT 6604 (QuickBuild activator) as known but with no specific component entries
+	entries.insert_or_assign(6604, 0);
+}

@@ -33,7 +33,7 @@ protected:
 		info.rot = NiQuaternionConstant::IDENTITY;
 		info.scale = 1.0f;
 		info.spawner = nullptr;
-		info.lot = 999;
+		info.lot = 1; // Use LOT 1 to avoid database dependencies for InventoryComponent
 		Game::logger = new Logger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
