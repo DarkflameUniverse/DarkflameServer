@@ -1,6 +1,7 @@
 set(DDATABASE_CDCLIENTDATABASE_CDCLIENTTABLES_SOURCES "CDActivitiesTable.cpp"
 	"CDActivityRewardsTable.cpp"
 	"CDAnimationsTable.cpp"
+	"CDBaseCombatAIComponentTable.cpp"
 	"CDBehaviorParameterTable.cpp"
 	"CDBehaviorTemplateTable.cpp"
 	"CDBrickIDTableTable.cpp"

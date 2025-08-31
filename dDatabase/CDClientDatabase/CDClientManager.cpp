@@ -3,6 +3,7 @@
 #include "CDAnimationsTable.h"
 #include "CDBehaviorParameterTable.h"
 #include "CDBehaviorTemplateTable.h"
+#include "CDBaseCombatAIComponentTable.h"
 #include "CDClientDatabase.h"
 #include "CDComponentsRegistryTable.h"
 #include "CDCurrencyTableTable.h"
@@ -65,6 +66,7 @@
 DEFINE_TABLE_STORAGE(CDActivityRewardsTable);
 DEFINE_TABLE_STORAGE(CDActivitiesTable);
 DEFINE_TABLE_STORAGE(CDAnimationsTable);
+DEFINE_TABLE_STORAGE(CDBaseCombatAIComponentTable);
 DEFINE_TABLE_STORAGE(CDBehaviorParameterTable);
 DEFINE_TABLE_STORAGE(CDBehaviorTemplateTable);
 DEFINE_TABLE_STORAGE(CDBrickIDTableTable);
@@ -154,6 +156,7 @@ void CDClientManager::LoadValuesFromDatabase() {
 void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
 
+	CDBaseCombatAIComponentTable::Instance().LoadValuesFromDefaults();
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
 	CDActivitiesTable::Instance().LoadValuesFromDefaults();
 	CDActivityRewardsTable::Instance().LoadValuesFromDefaults();
