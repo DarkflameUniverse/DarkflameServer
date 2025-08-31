@@ -1,5 +1,6 @@
 set(DCOMPONENTS_TESTS
 	"ActivityComponentTests.cpp"
+	"BouncerComponentTests.cpp"
 	"DestroyableComponentTests.cpp"
 	"HavokVehiclePhysicsComponentTests.cpp"
 	"ModelComponentTests.cpp"
