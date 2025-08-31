@@ -36,6 +36,7 @@ struct CDZoneTable {
 namespace CDZoneTableTable {
 	using Table = std::map<uint32_t, CDZoneTable>;
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 
 	// Queries the table with a zoneID to find.
 	const CDZoneTable* Query(uint32_t zoneID);

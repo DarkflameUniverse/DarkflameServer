@@ -37,13 +37,14 @@ protected:
 		Game::logger = new Logger("./testing.log", true, true);
 		Game::server = new dServerMock();
 		Game::config = new dConfig("worldconfig.ini");
-		Game::entityManager = new EntityManager();
-		Game::zoneManager = new dZoneManager();
-		Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
-		Database::_setDatabase(new TestSQLDatabase()); // this new is managed by the Database
+	Game::entityManager = new EntityManager();
+	Game::zoneManager = new dZoneManager();
+	Database::_setDatabase(new TestSQLDatabase()); // this new is managed by the Database
 
-		// Create a CDClientManager instance and load from defaults
-		CDClientManager::LoadValuesFromDefaults();
+	// Create a CDClientManager instance and load from defaults before loading zone
+	CDClientManager::LoadValuesFromDefaults();
+
+	Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
 	}
 
 	void TearDownDependencies() {

@@ -82,6 +82,11 @@ private:
 	NiQuaternion m_RotationTarget{};
 
 	NiPoint3 m_SavedVelocity{};
+
+#ifdef UNIT_TEST
+	// Test-only accessors
+	friend struct StripTestAccessor;
+#endif
 };
 
 #endif  //!__STRIP__H__

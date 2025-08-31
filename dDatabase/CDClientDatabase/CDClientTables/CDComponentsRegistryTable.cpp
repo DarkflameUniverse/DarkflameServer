@@ -20,6 +20,13 @@ void CDComponentsRegistryTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
+void CDComponentsRegistryTable::LoadValuesFromDefaults() {
+	// Provide minimal mappings for tests: no components for default template IDs.
+	auto& entries = GetEntriesMutable();
+	// Ensure a default empty mapping for template id 0 (used in some tests)
+	entries.insert_or_assign(0, 0);
+}
+
 int32_t CDComponentsRegistryTable::GetByIDAndType(uint32_t id, eReplicaComponentType componentType, int32_t defaultValue) {
 	auto& entries = GetEntriesMutable();
 	auto exists = entries.find(id);

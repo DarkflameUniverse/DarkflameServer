@@ -153,6 +153,10 @@ void CDClientManager::LoadValuesFromDatabase() {
 
 void CDClientManager::LoadValuesFromDefaults() {
 	LOG("Loading default CDClient tables!");
-
+	// Only call table default loaders that actually exist. Tests don't need
+	// the full CDClient database; add additional table default loaders here
+	// if/when those tables implement LoadValuesFromDefaults().
 	CDPetComponentTable::Instance().LoadValuesFromDefaults();
+	CDComponentsRegistryTable::Instance().LoadValuesFromDefaults();
+	CDZoneTableTable::LoadValuesFromDefaults();
 }

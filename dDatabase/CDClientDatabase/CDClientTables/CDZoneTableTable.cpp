@@ -50,4 +50,19 @@ namespace CDZoneTableTable {
 
 		return nullptr;
 	}
+
+	void LoadValuesFromDefaults() {
+		// Provide a minimal default zone entry so zone-dependent startup paths don't crash during tests.
+		CDZoneTable defaultZone{};
+		defaultZone.zoneID = 1;
+		defaultZone.zoneName = "testzone";
+		defaultZone.zoneControlTemplate = 2365;
+		defaultZone.ghostdistance_min = 100.0f;
+		defaultZone.ghostdistance = 100.0f;
+		defaultZone.PlayerLoseCoinsOnDeath = false;
+		defaultZone.disableSaveLoc = false;
+		defaultZone.mountsAllowed = false;
+		defaultZone.petsAllowed = false;
+		entries[defaultZone.zoneID] = defaultZone;
+	}
 }

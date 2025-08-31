@@ -160,7 +160,6 @@ void Strip::ProcNormalAction(float deltaTime, ModelComponent& modelComponent) {
 	auto valueStr = nextAction.GetValueParameterString();
 	auto numberAsInt = static_cast<int32_t>(number);
 	auto nextActionType = GetNextAction().GetType();
-	LOG("~number: %f, nextActionType: %s", static_cast<float>(number), nextActionType.data());
 
 	// TODO replace with switch case and nextActionType with enum
 	/* BEGIN Move */
@@ -384,9 +383,16 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 	getAngVel.target = modelComponent.GetParent()->GetObjectID();
 	getAngVel.Send();
 	const auto curRotation = modelComponent.GetParent()->GetRotation();
-	const auto diff = m_PreviousFrameRotation.Diff(curRotation).GetEulerAngles();
-	LOG("Diff: x=%f, y=%f, z=%f", std::abs(Math::RadToDeg(diff.x)), std::abs(Math::RadToDeg(diff.y)), std::abs(Math::RadToDeg(diff.z)));
-	LOG("Velocity: x=%f, y=%f, z=%f", Math::RadToDeg(getAngVel.angVelocity.x) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.y) * deltaTime, Math::RadToDeg(getAngVel.angVelocity.z) * deltaTime);
+	// Compute the actual frame delta rotation using quaternions instead of
+	// extracting Euler angles (which is non-unique and can be incorrect when
+	// multiple axes rotate simultaneously).
+	NiQuaternion frameDelta = m_PreviousFrameRotation.Diff(curRotation);
+	float fw_frame = frameDelta.w;
+	if (fw_frame > 1.0f) fw_frame = 1.0f;
+	if (fw_frame < -1.0f) fw_frame = -1.0f;
+	// angle (radians) = 2 * acos(w)
+	float angleFrameRad = 2.0f * acos(fw_frame);
+	float angleFrameDeg = Math::RadToDeg(angleFrameRad);
 	m_PreviousFrameRotation = curRotation;
 
 	// Use quaternion remaining angle to decide completion. Compute the quaternion
@@ -399,7 +405,7 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 	// angle (radians) = 2 * acos(w)
 	float angleRemainingRad = 2.0f * acos(w);
 	float angleRemainingDeg = Math::RadToDeg(angleRemainingRad);
-	constexpr float EPS_DEG = 0.1f; // finish when less than 0.1 degree remains
+	constexpr float EPS_DEG = 0.2f; // finish when less than 0.2 degree remains (numeric residual tolerance)
 
 	if (angleRemainingDeg <= EPS_DEG) {
 		LOG("Rotation finished by quaternion remaining angle (%f deg)", angleRemainingDeg);
@@ -417,7 +423,7 @@ bool Strip::CheckRotation(float deltaTime, ModelComponent& modelComponent) {
 		return true;
 	}
 
-	LOG("angVel: x=%f, y=%f, z=%f", m_InActionTranslation.x, m_InActionTranslation.y, m_InActionTranslation.z);
+	// minimal logging retained elsewhere; per-frame verbose logs removed
 	// Not finished yet
 	return false;
 }
