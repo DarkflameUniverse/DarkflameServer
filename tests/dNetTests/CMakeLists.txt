@@ -1,5 +1,10 @@
 set(DNETTESTS_SOURCES
-	"PacketTests.cpp"
+	"TestCommon.cpp"
+	"AuthPacketTests.cpp"
+	"ChatPacketTests.cpp"
+	"WorldPacketTests.cpp"
+	"MasterPacketTests.cpp"
+	"PacketEdgeCaseTests.cpp"
 )
 
 # Set our executable  
