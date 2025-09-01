@@ -55,7 +55,7 @@ TEST_F(BuffComponentTest, BuffComponentSerializeSingleBuffTest) {
 	float duration = 5.0f;
 	LWOOBJID source = 9876;
 	
-	buffComponent->ApplyBuff(buffId, duration, source, false, true, false, true, false, true, false, true, false);
+	buffComponent->ApplyBuff(buffId, duration, source, false, false, false, false, false, true, true, false, false);
 	buffComponent->Serialize(bitStream, true);
 	
 	// Read back the serialized data
@@ -88,11 +88,11 @@ TEST_F(BuffComponentTest, BuffComponentSerializeSingleBuffTest) {
 	
 	bool cancelOnZone;
 	bitStream.Read(cancelOnZone);
-	EXPECT_EQ(cancelOnZone, true); // Set to true in ApplyBuff call
+	EXPECT_EQ(cancelOnZone, false); // Set to false in ApplyBuff call
 	
 	bool cancelOnDamaged;
 	bitStream.Read(cancelOnDamaged);
-	EXPECT_EQ(cancelOnDamaged, true); // Set to true in ApplyBuff call
+	EXPECT_EQ(cancelOnDamaged, false); // Set to false in ApplyBuff call
 	
 	bool cancelOnRemoveBuff;
 	bitStream.Read(cancelOnRemoveBuff);

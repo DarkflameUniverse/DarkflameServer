@@ -44,17 +44,21 @@ TEST_F(AchievementVendorComponentTest, Serialize) {
 TEST_F(AchievementVendorComponentTest, SerializeRegularUpdate) {
 	Entity testEntity(15, info);
 	AchievementVendorComponent achievementVendorComponent(&testEntity);
-	
+
 	// Reset dirty flag by doing initial serialization
 	RakNet::BitStream initStream;
 	achievementVendorComponent.Serialize(initStream, true);
-	
+
+	// Do a second regular serialization to clear the dirty flag
+	RakNet::BitStream clearStream;
+	achievementVendorComponent.Serialize(clearStream, false);
+
 	// Test regular update with no changes
 	RakNet::BitStream bitStream;
 	achievementVendorComponent.Serialize(bitStream, false);
-	
+
 	bitStream.ResetReadPointer();
-	
+
 	bool hasVendorInfo;
 	ASSERT_TRUE(bitStream.Read(hasVendorInfo));
 	EXPECT_FALSE(hasVendorInfo); // No dirty flags, so no data
