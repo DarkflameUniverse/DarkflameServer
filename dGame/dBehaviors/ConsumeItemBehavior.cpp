@@ -12,7 +12,7 @@ void ConsumeItemBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bi
 		auto inventoryComponent = caster->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
-		if (inventoryComponent->RemoveItem(this->m_ConsumeLOT, this->m_NumToConsume, eInventoryType::INVALID, false, true)){
+		if (inventoryComponent->RemoveItem(this->m_ConsumeLOT, this->m_NumToConsume, eInventoryType::ALL, false, true)){
 			action_to_cast = m_ActionConsumed;
 		}
 	}

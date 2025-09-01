@@ -180,7 +180,6 @@ void InventoryComponent::AddItem(
 	const int32_t sourceType,
 	const bool bound,
 	int32_t preferredSlot) {
-	LOG("AddItem %i %i %s %s", lot, count, StringifiedEnum::ToString(lootSourceType).data(), StringifiedEnum::ToString(inventoryType).data());
 	if (count == 0) {
 		LOG("Attempted to add 0 of item (%i) to the inventory!", lot);
 

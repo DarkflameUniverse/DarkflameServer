@@ -22,7 +22,7 @@ void NpcWispServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 		&& maelstromVacuum == nullptr) {
 		inventory->AddItem(maelstromVacuumLot, 1, eLootSourceType::NONE);
 	} else if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
-		inventory->RemoveItem(maelstromVacuumLot, 1);
+		inventory->RemoveItem(maelstromVacuumLot, 1, eInventoryType::ALL);
 	}
 
 	// Next up hide or show the samples based on the mission state

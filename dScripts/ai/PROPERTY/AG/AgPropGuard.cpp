@@ -24,7 +24,7 @@ void AgPropGuard::OnMissionDialogueOK(Entity* self, Entity* target, int missionI
 
 			if (id) {
 				inventoryComponent->UnEquipItem(id);
-				inventoryComponent->RemoveItem(id->GetLot(), id->GetCount());
+				inventoryComponent->RemoveItem(id->GetLot(), id->GetCount(), eInventoryType::ALL);
 			}
 		}
 	} else if (

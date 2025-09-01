@@ -4823,11 +4823,10 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream& inStream, Entity* 
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * sellScalar) * count;
-		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
+		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost || !inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost, eInventoryType::ALL)) {
 			GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
-		inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
@@ -5508,10 +5507,18 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 			modules += u"1:" + (modToStr);
 			if (k + 1 != count) modules += u"+";
 
+			bool hasItem = false;
 			if (temp->GetLotCount(mod) > 0) {
-				inv->RemoveItem(mod, 1, TEMP_MODELS);
+				hasItem = inv->RemoveItem(mod, 1, TEMP_MODELS);
 			} else {
-				inv->RemoveItem(mod, 1);
+				hasItem = inv->RemoveItem(mod, 1, eInventoryType::ALL);
+			}
+
+			if (!hasItem) {
+				LOG("Player (%llu) attempted to finish a modular build without having all the required parts.", character->GetObjectID());
+				GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
+				GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
+				return;
 			}
 
 			// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.

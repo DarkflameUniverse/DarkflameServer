@@ -39,7 +39,7 @@ void NjColeNPC::OnMissionDialogueOK(Entity* self, Entity* target, int missionID,
 		}
 
 		if (inventoryComponent->GetLotCount(14499) > 0) {
-			inventoryComponent->RemoveItem(14499, 1);
+			inventoryComponent->RemoveItem(14499, 1, eInventoryType::ALL);
 		} else {
 			return;
 		}

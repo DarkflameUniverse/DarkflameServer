@@ -289,11 +289,10 @@ bool Item::Consume() {
 
 	GameMessages::SendUseItemResult(inventory->GetComponent()->GetParent(), lot, success);
 
-	if (success) {
+	const auto myLot = this->lot;
+	if (success && inventory->GetComponent()->RemoveItem(lot, 1, eInventoryType::ALL)) {
 		// Save this because if this is the last item in the inventory
 		// we may delete ourself (lol)
-		const auto myLot = this->lot;
-		inventory->GetComponent()->RemoveItem(lot, 1);
 		auto* missionComponent = inventory->GetComponent()->GetParent()->GetComponent<MissionComponent>();
 		if (missionComponent) missionComponent->Progress(eMissionTaskType::GATHER, myLot, LWOOBJID_EMPTY, "", -1);
 	}

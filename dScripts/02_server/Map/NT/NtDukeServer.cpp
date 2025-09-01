@@ -34,7 +34,7 @@ void NtDukeServer::OnMissionDialogueOK(Entity* self, Entity* target, int mission
 		if ((state == eMissionState::AVAILABLE || state == eMissionState::ACTIVE) && lotCount < 1) {
 			inventoryComponent->AddItem(m_SwordLot, 1, eLootSourceType::NONE);
 		} else if (state == eMissionState::READY_TO_COMPLETE) {
-			inventoryComponent->RemoveItem(m_SwordLot, lotCount);
+			inventoryComponent->RemoveItem(m_SwordLot, lotCount, eInventoryType::ALL);
 		}
 	}
 	NtBcSubmitServer::OnMissionDialogueOK(self, target, missionID, missionState);

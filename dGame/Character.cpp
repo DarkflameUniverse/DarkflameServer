@@ -496,7 +496,7 @@ void Character::OnZoneLoad() {
 
 	// Remove all GM items
 	for (const auto lot : Inventory::GetAllGMItems()) {
-		inventoryComponent->RemoveItem(lot, inventoryComponent->GetLotCount(lot));
+		inventoryComponent->RemoveItem(lot, inventoryComponent->GetLotCount(lot), eInventoryType::ALL);
 	}
 }
 

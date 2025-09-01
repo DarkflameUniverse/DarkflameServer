@@ -14,7 +14,7 @@ void TokenConsoleServer::OnUse(Entity* self, Entity* user) {
 	//make sure the user has the required amount of infected bricks
 	if (inv && inv->GetLotCount(6194) >= bricksToTake) {
 		//yeet the bricks
-		inv->RemoveItem(6194, bricksToTake);
+		inv->RemoveItem(6194, bricksToTake, eInventoryType::ALL);
 
 		//play sound
 		if (self->HasVar(u"sound1")) {

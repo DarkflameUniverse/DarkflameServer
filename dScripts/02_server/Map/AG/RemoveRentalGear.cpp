@@ -31,7 +31,7 @@ void RemoveRentalGear::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 			auto* id = inv->FindItemByLot(item);
 			if (id) {
 				inv->UnEquipItem(id);
-				inv->RemoveItem(id->GetLot(), id->GetCount());
+				inv->RemoveItem(id->GetLot(), id->GetCount(), eInventoryType::ALL);
 			}
 		}
 

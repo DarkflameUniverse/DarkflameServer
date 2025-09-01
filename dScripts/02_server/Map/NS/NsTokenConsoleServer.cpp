@@ -34,7 +34,7 @@ void NsTokenConsoleServer::OnUse(Entity* self, Entity* user) {
 		return;
 	}
 
-	inventoryComponent->RemoveItem(6194, 25);
+	inventoryComponent->RemoveItem(6194, 25, eInventoryType::ALL);
 
 	const auto useSound = self->GetVar<std::string>(u"sound1");
 
