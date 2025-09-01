@@ -19,6 +19,7 @@ typedef std::vector<CDLootMatrix> LootMatrixEntries;
 class CDLootMatrixTable : public CDTable<CDLootMatrixTable, std::unordered_map<LootMatrixIndex, LootMatrixEntries>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 
 	// Gets a matrix by ID or inserts a blank one if none existed.
 	const LootMatrixEntries& GetMatrix(uint32_t matrixId);

@@ -161,4 +161,11 @@ void CDClientManager::LoadValuesFromDefaults() {
 	CDActivitiesTable::Instance().LoadValuesFromDefaults();
 	CDActivityRewardsTable::Instance().LoadValuesFromDefaults();
 	CDCurrencyTableTable::Instance().LoadValuesFromDefaults();
+	CDMissionsTable::Instance().LoadValuesFromDefaults();
+	CDComponentsRegistryTable::Instance().LoadValuesFromDefaults();
+	CDItemComponentTable::Instance().LoadValuesFromDefaults();
+	CDSkillBehaviorTable::Instance().LoadValuesFromDefaults();
+	CDVendorComponentTable::Instance().LoadValuesFromDefaults();
+	CDLootMatrixTable::Instance().LoadValuesFromDefaults();
+	CDLootTableTable::Instance().LoadValuesFromDefaults();
 }

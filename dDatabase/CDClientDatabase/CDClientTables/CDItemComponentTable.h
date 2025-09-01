@@ -52,6 +52,7 @@ struct CDItemComponent {
 class CDItemComponentTable : public CDTable<CDItemComponentTable, std::map<uint32_t, CDItemComponent>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	static std::map<LOT, uint32_t> ParseCraftingCurrencies(const CDItemComponent& itemComponent);
 
 	// Gets an entry by ID

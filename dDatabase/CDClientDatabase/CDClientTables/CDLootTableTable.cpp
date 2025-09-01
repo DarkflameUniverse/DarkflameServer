@@ -66,11 +66,31 @@ void CDLootTableTable::LoadValuesFromDatabase() {
 	}
 }
 
+void CDLootTableTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default loot table entry
+	CDLootTable defaultEntry{
+		.itemid = 1000,
+		.LootTableIndex = 1,
+		.MissionDrop = false,
+		.sortPriority = 1,
+	};
+	
+	entries[1].push_back(defaultEntry);
+}
+
 const LootTableEntries& CDLootTableTable::GetTable(const uint32_t tableId) {
 	auto& entries = GetEntriesMutable();
 	auto itr = entries.find(tableId);
 	if (itr != entries.end()) {
 		return itr->second;
+	}
+
+	// If database is not connected (e.g., in tests), return empty vector
+	if (!CDClientDatabase::isConnected) {
+		return entries[tableId]; // Creates empty vector
 	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM LootTable WHERE LootTableIndex = ?;");

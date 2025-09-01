@@ -14,6 +14,7 @@ struct CDVendorComponent {
 class CDVendorComponentTable : public CDTable<CDVendorComponentTable, std::vector<CDVendorComponent>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	// Queries the table with a custom "where" clause
 	std::vector<CDVendorComponent> Query(std::function<bool(CDVendorComponent)> predicate);
 };

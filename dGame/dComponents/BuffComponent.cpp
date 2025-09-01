@@ -435,6 +435,12 @@ const std::vector<BuffParameter>& BuffComponent::GetBuffParameters(int32_t buffI
 		return pair->second;
 	}
 
+	// If database is not connected (e.g., in tests), return empty parameters
+	if (!CDClientDatabase::isConnected) {
+		m_Cache.insert_or_assign(buffId, std::vector<BuffParameter>{});
+		return m_Cache.find(buffId)->second;
+	}
+
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM BuffParameters WHERE BuffID = ?;");
 	query.bind(1, static_cast<int>(buffId));
 
