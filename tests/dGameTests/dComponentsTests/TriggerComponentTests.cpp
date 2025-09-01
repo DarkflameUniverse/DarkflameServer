@@ -14,16 +14,15 @@ protected:
  */
 TEST_F(TriggerComponentTest, SerializeInitialUpdate) {
 	Entity testEntity(15, info);
-	TriggerComponent triggerComponent(&testEntity, "");  // Need triggerInfo parameter
+	TriggerComponent triggerComponent(&testEntity, "0:0");  // Valid triggerInfo format
 	
 	RakNet::BitStream bitStream;
 	triggerComponent.Serialize(bitStream, true);
 	
 	bitStream.ResetReadPointer();
 	
-	// TriggerComponent typically writes minimal data or no data
-	// Trigger logic is usually server-side only
-	EXPECT_EQ(bitStream.GetNumberOfBitsUsed(), 0); // Usually empty
+	// TriggerComponent doesn't override Serialize, so it writes nothing
+	EXPECT_EQ(bitStream.GetNumberOfBitsUsed(), 0);
 }
 
 /**
@@ -31,13 +30,13 @@ TEST_F(TriggerComponentTest, SerializeInitialUpdate) {
  */
 TEST_F(TriggerComponentTest, SerializeRegularUpdate) {
 	Entity testEntity(15, info);
-	TriggerComponent triggerComponent(&testEntity, "");  // Need triggerInfo parameter
+	TriggerComponent triggerComponent(&testEntity, "0:0");  // Valid triggerInfo format
 	
 	RakNet::BitStream bitStream;
 	triggerComponent.Serialize(bitStream, false);
 	
 	bitStream.ResetReadPointer();
 	
-	// Regular updates also typically write no data
+	// TriggerComponent doesn't override Serialize, so it writes nothing
 	EXPECT_EQ(bitStream.GetNumberOfBitsUsed(), 0);
 }

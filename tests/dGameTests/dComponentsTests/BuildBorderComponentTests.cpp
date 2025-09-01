@@ -21,10 +21,8 @@ TEST_F(BuildBorderComponentTest, SerializeInitialUpdate) {
 	
 	bitStream.ResetReadPointer();
 	
-	// BuildBorderComponent always writes true for initial update
-	bool hasBorderData;
-	ASSERT_TRUE(bitStream.Read(hasBorderData));
-	EXPECT_TRUE(hasBorderData);
+	// BuildBorderComponent doesn't override Serialize, so it writes nothing
+	EXPECT_EQ(bitStream.GetNumberOfBitsUsed(), 0);
 }
 
 /**

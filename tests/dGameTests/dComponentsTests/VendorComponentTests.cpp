@@ -43,11 +43,15 @@ TEST_F(VendorComponentTest, SerializeRegularUpdate) {
 	Entity testEntity(15, info);
 	VendorComponent vendorComponent(&testEntity);
 	
-	// Reset dirty flag by doing initial serialization
+	// Do initial serialization to populate data 
 	RakNet::BitStream initStream;
 	vendorComponent.Serialize(initStream, true);
 	
-	// Test regular update with no changes
+	// Do a regular update to clear dirty flag
+	RakNet::BitStream clearStream;
+	vendorComponent.Serialize(clearStream, false);
+	
+	// Now test regular update with no changes
 	RakNet::BitStream bitStream;
 	vendorComponent.Serialize(bitStream, false);
 	
@@ -55,7 +59,7 @@ TEST_F(VendorComponentTest, SerializeRegularUpdate) {
 	
 	bool hasVendorInfo;
 	ASSERT_TRUE(bitStream.Read(hasVendorInfo));
-	EXPECT_FALSE(hasVendorInfo); // No dirty flags, so no data
+	EXPECT_FALSE(hasVendorInfo); // No dirty flags after clearing, so no data
 }
 
 TEST_F(VendorComponentTest, SerializeWithDirtyVendor) {
