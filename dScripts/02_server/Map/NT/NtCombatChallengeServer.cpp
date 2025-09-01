@@ -51,7 +51,7 @@ void NtCombatChallengeServer::OnMessageBoxResponse(Entity* self, Entity* sender,
 		auto* inventoryComponent = sender->GetComponent<InventoryComponent>();
 
 		if (inventoryComponent != nullptr) {
-			inventoryComponent->RemoveItem(3039, 1);
+			inventoryComponent->RemoveItem(3039, 1, eInventoryType::ALL);
 		}
 
 		GameMessages::SendPlayNDAudioEmitter(self, sender->GetSystemAddress(), startSound);

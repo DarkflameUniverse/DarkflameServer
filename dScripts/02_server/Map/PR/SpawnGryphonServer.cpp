@@ -20,7 +20,7 @@ void SpawnGryphonServer::OnUse(Entity* self, Entity* user) {
 	// Little extra for handling the case of the egg being placed the first time
 	if (missionComponent != nullptr && inventoryComponent != nullptr
 		&& missionComponent->GetMissionState(1391) == eMissionState::ACTIVE) {
-		inventoryComponent->RemoveItem(12483, inventoryComponent->GetLotCount(12483));
+		inventoryComponent->RemoveItem(12483, inventoryComponent->GetLotCount(12483), eInventoryType::ALL);
 		GameMessages::SendTerminateInteraction(user->GetObjectID(), eTerminateType::FROM_INTERACTION, self->GetObjectID());
 		return;
 	}

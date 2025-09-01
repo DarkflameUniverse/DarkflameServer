@@ -14,7 +14,7 @@ void NPCAddRemoveItem::OnMissionDialogueOK(Entity* self, Entity* target, int mis
 					if (itemSetting.add && (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE)) {
 						inventory->AddItem(lot, 1, eLootSourceType::NONE);
 					} else if (itemSetting.remove && (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE)) {
-						inventory->RemoveItem(lot, 1);
+						inventory->RemoveItem(lot, 1, eInventoryType::ALL);
 					}
 				}
 			}

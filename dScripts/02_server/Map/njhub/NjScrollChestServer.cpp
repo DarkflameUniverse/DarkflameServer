@@ -9,7 +9,7 @@ void NjScrollChestServer::OnUse(Entity* self, Entity* user) {
 	if (playerInventory != nullptr && playerInventory->GetLotCount(keyLOT) == 1) {
 
 		// Check for the key and remove
-		playerInventory->RemoveItem(keyLOT, 1);
+		playerInventory->RemoveItem(keyLOT, 1, eInventoryType::ALL);
 
 		// Reward the player with the item set
 		playerInventory->AddItem(rewardItemLOT, 1, eLootSourceType::NONE);
