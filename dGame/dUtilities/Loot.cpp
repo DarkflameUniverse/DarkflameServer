@@ -129,6 +129,10 @@ std::unordered_map<LOT, int32_t> Loot::RollLootMatrix(Entity* player, uint32_t m
 		}
 	}
 
+	for (const auto& drop : drops) {
+		LOG("Player %llu has rolled %i of item %i from loot matrix %i", player->GetObjectID(), drop.second, drop.first, matrixIndex);
+	}
+
 	return drops;
 }
 

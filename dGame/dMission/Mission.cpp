@@ -483,7 +483,7 @@ void Mission::YieldRewards() {
 
 			// If a mission rewards zero of an item, make it reward 1.
 			auto count = pair.second > 0 ? pair.second : 1;
-
+			LOG("Player %llu is receiving %i of item %i from repeatable mission %i", entity->GetObjectID(), count, pair.first, info.id);
 			inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
 		}
 
@@ -511,7 +511,7 @@ void Mission::YieldRewards() {
 
 		// If a mission rewards zero of an item, make it reward 1.
 		auto count = pair.second > 0 ? pair.second : 1;
-
+		LOG("Player %llu is receiving %i of item %i from mission %i", entity->GetObjectID(), count, pair.first, info.id);
 		inventoryComponent->AddItem(pair.first, count, IsMission() ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT);
 	}
 
