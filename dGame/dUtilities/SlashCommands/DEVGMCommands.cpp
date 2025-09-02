@@ -1664,4 +1664,166 @@ namespace DEVGMCommands {
 		LOG("Despawned entity (%llu)", target->GetObjectID());
 		ChatPackets::SendSystemMessage(sysAddr, u"Despawned entity: " + GeneralUtils::to_u16string(target->GetObjectID()));
 	}
+
+	void Execute(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Usage: /execute <subcommand> ... run <command>");
+			ChatPackets::SendSystemMessage(sysAddr, u"Subcommands:");
+			ChatPackets::SendSystemMessage(sysAddr, u"  as <playername> - Execute as different player");
+			ChatPackets::SendSystemMessage(sysAddr, u"  at <playername> - Execute from player's position");
+			ChatPackets::SendSystemMessage(sysAddr, u"  positioned <x> <y> <z> - Execute from coordinates");
+			ChatPackets::SendSystemMessage(sysAddr, u"Examples:");
+			ChatPackets::SendSystemMessage(sysAddr, u"  /execute as Player1 run pos");
+			ChatPackets::SendSystemMessage(sysAddr, u"  /execute at Player2 positioned 100 200 300 run spawn 1234");
+			return;
+		}
+
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		
+		// Prevent execute command recursion by checking if this is already an execute command
+		for (const auto& arg : splitArgs) {
+			if (arg == "execute" || arg == "exec") {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error: Recursive execute commands are not allowed");
+				return;
+			}
+		}
+		
+		// Context variables for execution
+		Entity* execEntity = entity;  // Entity to execute as
+		NiPoint3 execPosition = entity->GetPosition();  // Position to execute from
+		bool positionOverridden = false;
+		std::string finalCommand;
+		
+		// Parse subcommands
+		size_t i = 0;
+		while (i < splitArgs.size()) {
+			const std::string& subcommand = splitArgs[i];
+			
+			if (subcommand == "as") {
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'as' requires a player name");
+					return;
+				}
+				
+				const std::string& targetName = splitArgs[i + 1];
+				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
+				if (!targetPlayer) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
+					return;
+				}
+				
+				execEntity = targetPlayer;
+				i += 2;
+				
+			} else if (subcommand == "at") {
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'at' requires a player name");
+					return;
+				}
+				
+				const std::string& targetName = splitArgs[i + 1];
+				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
+				if (!targetPlayer) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
+					return;
+				}
+				
+				execPosition = targetPlayer->GetPosition();
+				positionOverridden = true;
+				i += 2;
+				
+			} else if (subcommand == "positioned") {
+				if (i + 3 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'positioned' requires x, y, z coordinates");
+					return;
+				}
+				
+				try {
+					float x = std::stof(splitArgs[i + 1]);
+					float y = std::stof(splitArgs[i + 2]);
+					float z = std::stof(splitArgs[i + 3]);
+					
+					// Basic coordinate validation
+					if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) {
+						ChatPackets::SendSystemMessage(sysAddr, u"Error: Coordinates must be finite numbers");
+						return;
+					}
+					
+					execPosition = NiPoint3(x, y, z);
+					positionOverridden = true;
+				} catch (const std::exception&) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Invalid coordinates for 'positioned'. Use numeric values.");
+					return;
+				}
+				
+				i += 4;
+				
+			} else if (subcommand == "run") {
+				// Everything after "run" is the command to execute
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'run' requires a command");
+					return;
+				}
+				
+				// Reconstruct the command from remaining args
+				for (size_t j = i + 1; j < splitArgs.size(); ++j) {
+					if (!finalCommand.empty()) finalCommand += " ";
+					finalCommand += splitArgs[j];
+				}
+				break;
+				
+			} else {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error: Unknown subcommand '" + GeneralUtils::ASCIIToUTF16(subcommand) + u"'");
+				ChatPackets::SendSystemMessage(sysAddr, u"Valid subcommands: as, at, positioned, run");
+				return;
+			}
+		}
+		
+		if (finalCommand.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Error: No command specified to run. Use 'run <command>' at the end.");
+			return;
+		}
+		
+		// Validate that the command starts with a valid character
+		if (finalCommand.empty() || finalCommand[0] == '/') {
+			ChatPackets::SendSystemMessage(sysAddr, u"Error: Command should not start with '/'. Just specify the command name.");
+			return;
+		}
+		
+		// Store original position if we need to restore it
+		NiPoint3 originalPosition;
+		bool needToRestore = false;
+		
+		if (positionOverridden && execEntity == entity) {
+			// If we're executing as ourselves but from a different position,
+			// temporarily move the entity
+			originalPosition = entity->GetPosition();
+			needToRestore = true;
+			
+			// Set the position temporarily for the command execution
+			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllable) {
+				controllable->SetPosition(execPosition);
+			}
+		}
+		
+		// Provide feedback about what we're executing
+		std::string execAsName = execEntity->GetCharacter() ? execEntity->GetCharacter()->GetName() : "Unknown";
+		ChatPackets::SendSystemMessage(sysAddr, u"[Execute] Running as '" + GeneralUtils::ASCIIToUTF16(execAsName) + 
+										u"' from <" + GeneralUtils::to_u16string(execPosition.x) + u", " + 
+										GeneralUtils::to_u16string(execPosition.y) + u", " + 
+										GeneralUtils::to_u16string(execPosition.z) + u">: /" + 
+										GeneralUtils::ASCIIToUTF16(finalCommand));
+		
+		// Execute the command through the slash command handler
+		SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16("/" + finalCommand), execEntity, sysAddr);
+		
+		// Restore original position if needed
+		if (needToRestore) {
+			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllable) {
+				controllable->SetPosition(originalPosition);
+			}
+		}
+	}
 };
