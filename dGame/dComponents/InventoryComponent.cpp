@@ -1168,7 +1168,7 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlotByEquipLocation(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1203,7 +1203,7 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlotByEquipLocation(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1328,6 +1328,20 @@ BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
 	case eItemType::CONSUMABLE:
 		return BehaviorSlot::Consumable;
 	default:
+		return BehaviorSlot::Invalid;
+	}
+}
+
+BehaviorSlot InventoryComponent::FindBehaviorSlotByEquipLocation(const std::string& equipLocation) {
+	if (equipLocation == "special_r") {
+		return BehaviorSlot::Primary;
+	} else if (equipLocation == "hair") {
+		return BehaviorSlot::Head;
+	} else if (equipLocation == "special_l") {
+		return BehaviorSlot::Offhand;
+	} else if (equipLocation == "clavicle") {
+		return BehaviorSlot::Neck;
+	} else {
 		return BehaviorSlot::Invalid;
 	}
 }
