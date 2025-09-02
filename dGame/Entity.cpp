@@ -175,8 +175,11 @@ Entity::~Entity() {
 	CancelAllTimers();
 	CancelCallbackTimers();
 
-	for (const auto& component : m_Components | std::views::values) {
-		if (component) delete component;
+	for (auto& component : m_Components | std::views::values) {
+		if (component) {
+			delete component;
+			component = nullptr;
+		}
 	}
 
 	for (auto* const child : m_ChildEntities) {
