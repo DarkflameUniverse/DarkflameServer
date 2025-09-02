@@ -1671,10 +1671,11 @@ namespace DEVGMCommands {
 			ChatPackets::SendSystemMessage(sysAddr, u"Subcommands:");
 			ChatPackets::SendSystemMessage(sysAddr, u"  as <playername> - Execute as different player");
 			ChatPackets::SendSystemMessage(sysAddr, u"  at <playername> - Execute from player's position");
-			ChatPackets::SendSystemMessage(sysAddr, u"  positioned <x> <y> <z> - Execute from coordinates");
+			ChatPackets::SendSystemMessage(sysAddr, u"  positioned <x> <y> <z> - Execute from coordinates (absolute or relative with ~)");
 			ChatPackets::SendSystemMessage(sysAddr, u"Examples:");
 			ChatPackets::SendSystemMessage(sysAddr, u"  /execute as Player1 run pos");
 			ChatPackets::SendSystemMessage(sysAddr, u"  /execute at Player2 positioned 100 200 300 run spawn 1234");
+			ChatPackets::SendSystemMessage(sysAddr, u"  /execute positioned ~5 ~10 ~ run spawn 1234");
 			return;
 		}
 
@@ -1739,20 +1740,44 @@ namespace DEVGMCommands {
 				}
 				
 				try {
-					float x = std::stof(splitArgs[i + 1]);
-					float y = std::stof(splitArgs[i + 2]);
-					float z = std::stof(splitArgs[i + 3]);
+					// Parse coordinates with support for relative positioning (~)
+					auto parseCoordinate = [&](const std::string& coord, float currentValue) -> float {
+						if (coord.empty()) {
+							throw std::invalid_argument("Empty coordinate");
+						}
+						
+						if (coord[0] == '~') {
+							// Relative coordinate
+							if (coord.length() == 1) {
+								// Just "~" means current position (offset 0)
+								return currentValue;
+							} else {
+								// "~<offset>" means current position + offset
+								std::string offsetStr = coord.substr(1);
+								float offset = std::stof(offsetStr);
+								if (!std::isfinite(offset)) {
+									throw std::invalid_argument("Invalid offset");
+								}
+								return currentValue + offset;
+							}
+						} else {
+							// Absolute coordinate
+							float absolute = std::stof(coord);
+							if (!std::isfinite(absolute)) {
+								throw std::invalid_argument("Invalid absolute coordinate");
+							}
+							return absolute;
+						}
+					};
 					
-					// Basic coordinate validation
-					if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) {
-						ChatPackets::SendSystemMessage(sysAddr, u"Error: Coordinates must be finite numbers");
-						return;
-					}
+					float x = parseCoordinate(splitArgs[i + 1], execPosition.x);
+					float y = parseCoordinate(splitArgs[i + 2], execPosition.y);
+					float z = parseCoordinate(splitArgs[i + 3], execPosition.z);
 					
 					execPosition = NiPoint3(x, y, z);
 					positionOverridden = true;
 				} catch (const std::exception&) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Error: Invalid coordinates for 'positioned'. Use numeric values.");
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Invalid coordinates for 'positioned'. Use numeric values or relative coordinates with ~.");
 					return;
 				}
 				
