@@ -1315,23 +1315,6 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
-	switch (type) {
-	case eItemType::HAT:
-		return BehaviorSlot::Head;
-	case eItemType::NECK:
-		return BehaviorSlot::Neck;
-	case eItemType::LEFT_HAND:
-		return BehaviorSlot::Offhand;
-	case eItemType::RIGHT_HAND:
-		return BehaviorSlot::Primary;
-	case eItemType::CONSUMABLE:
-		return BehaviorSlot::Consumable;
-	default:
-		return BehaviorSlot::Invalid;
-	}
-}
-
 BehaviorSlot InventoryComponent::FindBehaviorSlotByEquipLocation(const std::string& equipLocation) {
 	if (equipLocation == "special_r") {
 		return BehaviorSlot::Primary;

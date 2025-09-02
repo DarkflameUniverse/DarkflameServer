@@ -362,13 +362,6 @@ public:
 	void RemoveDatabasePet(LWOOBJID id);
 
 	/**
-	 * Returns the current behavior slot active for the passed item type
-	 * @param type the item type to find the behavior slot for
-	 * @return the current behavior slot active for the passed item type
-	 */
-	static BehaviorSlot FindBehaviorSlot(eItemType type);
-
-	/**
 	 * Returns the behavior slot for the given equipment location
 	 * @param equipLocation the equipment location to find the behavior slot for
 	 * @return the behavior slot for the given equipment location
