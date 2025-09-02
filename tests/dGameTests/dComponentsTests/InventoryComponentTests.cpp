@@ -17,18 +17,18 @@ protected:
 };
 
 /**
- * Test that FindBehaviorSlotByEquipLocation correctly maps equipLocation strings to BehaviorSlot enum values
+ * Test that FindBehaviorSlot correctly maps equipLocation strings to BehaviorSlot enum values
  */
-TEST_F(InventoryComponentTest, FindBehaviorSlotByEquipLocationTest) {
+TEST_F(InventoryComponentTest, FindBehaviorSlotTest) {
 	// Test the mappings from the issue comments
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("special_r"), BehaviorSlot::Primary);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("hair"), BehaviorSlot::Head);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("special_l"), BehaviorSlot::Offhand);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("clavicle"), BehaviorSlot::Neck);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("special_r"), BehaviorSlot::Primary);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("hair"), BehaviorSlot::Head);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("special_l"), BehaviorSlot::Offhand);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("clavicle"), BehaviorSlot::Neck);
 	
 	// Test that unknown equipLocations return Invalid
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("unknown"), BehaviorSlot::Invalid);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation(""), BehaviorSlot::Invalid);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("root"), BehaviorSlot::Invalid);
-	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("leftHand"), BehaviorSlot::Invalid);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("unknown"), BehaviorSlot::Invalid);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(""), BehaviorSlot::Invalid);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("root"), BehaviorSlot::Invalid);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot("leftHand"), BehaviorSlot::Invalid);
 }

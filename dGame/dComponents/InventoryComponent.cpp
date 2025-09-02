@@ -1168,7 +1168,7 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlotByEquipLocation(info.equipLocation);
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1203,7 +1203,7 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlotByEquipLocation(info.equipLocation);
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1315,7 +1315,7 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlotByEquipLocation(const std::string& equipLocation) {
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation) {
 	if (equipLocation == "special_r") {
 		return BehaviorSlot::Primary;
 	} else if (equipLocation == "hair") {
