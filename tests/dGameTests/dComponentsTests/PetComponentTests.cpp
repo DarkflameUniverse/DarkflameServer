@@ -8,7 +8,7 @@
 #include "ePetAbilityType.h"
 #include "eStateChangeType.h"
 
-class PetTest : public GameDependenciesTest {
+class PetComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	PetComponent* petComponent;
@@ -31,7 +31,7 @@ protected:
 	}
 };
 
-TEST_F(PetTest, PlacementNewAddComponentTest) {
+TEST_F(PetComponentTest, PlacementNewAddComponentTest) {
 	// Test adding component
 	ASSERT_NE(petComponent, nullptr);
 	baseEntity->AddComponent<PetComponent>(1);
@@ -40,4 +40,75 @@ TEST_F(PetTest, PlacementNewAddComponentTest) {
 	// Test getting initial status
 	ASSERT_EQ(petComponent->GetParent()->GetObjectID(), 15);
 	ASSERT_EQ(petComponent->GetAbility(), ePetAbilityType::Invalid);
+}
+
+// Test untamed pet serialization (initial update)
+TEST_F(PetComponentTest, UntamedPetInitialSerialization) {
+	petComponent->Serialize(bitStream, true);
+	
+	// Read the serialized data manually
+	bool alwaysDirty;
+	uint32_t status;
+	ePetAbilityType ability;
+	bool interacting;
+	bool tamed;
+	bool tamedForInitial;
+	
+	bitStream.Read(alwaysDirty);
+	EXPECT_TRUE(alwaysDirty); // Always true
+	
+	bitStream.Read(status);
+	EXPECT_EQ(status, 67108866); // Default status should be 67108866 since that is the untamed state
+
+	bitStream.Read(ability);
+	EXPECT_EQ(ability, ePetAbilityType::Invalid); // Should be Invalid for untamed pets
+	
+	bitStream.Read(interacting);
+	EXPECT_FALSE(interacting); // No interaction by default
+	
+	bitStream.Read(tamed);
+	EXPECT_FALSE(tamed); // Pet is not tamed by default
+	
+	// For initial update, should write tamed flag again
+	bitStream.Read(tamedForInitial);
+	EXPECT_FALSE(tamedForInitial); // Should match tamed flag
+	
+	bitStream.Reset();
+}
+
+// Test pet with interaction serialization
+TEST_F(PetComponentTest, PetWithInteractionSerialization) {
+	// Set up a pet with interaction
+	LWOOBJID interactionID = 67890;
+	petComponent->SetInteraction(interactionID);
+	
+	petComponent->Serialize(bitStream, false);
+	
+	// Read the serialized data manually
+	bool alwaysDirty;
+	uint32_t status;
+	ePetAbilityType ability;
+	bool interacting;
+	LWOOBJID interaction;
+	bool tamed;
+	
+	bitStream.Read(alwaysDirty);
+	EXPECT_TRUE(alwaysDirty); // Always true
+	
+	bitStream.Read(status);
+	bitStream.Read(ability);
+	EXPECT_EQ(ability, ePetAbilityType::Invalid); // Should be Invalid for untamed pets
+	
+	bitStream.Read(interacting);
+	EXPECT_TRUE(interacting); // Should be true
+	
+	if (interacting) {
+		bitStream.Read(interaction);
+		EXPECT_EQ(interaction, interactionID);
+	}
+	
+	bitStream.Read(tamed);
+	EXPECT_FALSE(tamed); // Pet is not tamed by default
+	
+	bitStream.Reset();
 }

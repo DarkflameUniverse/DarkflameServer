@@ -13,6 +13,7 @@
 
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
+#include "CDBaseCombatAIComponentTable.h"
 #include "DestroyableComponent.h"
 
 #include <algorithm>
@@ -41,30 +42,19 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	m_ForcedTetherTime = 0.0f;
 
 	//Grab the aggro information from BaseCombatAI:
-	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, static_cast<int>(id));
+	auto* componentTable = CDClientManager::GetTable<CDBaseCombatAIComponentTable>();
+	auto componentEntries = componentTable->Query([id](CDBaseCombatAIComponent entry) {
+		return entry.id == static_cast<int32_t>(id);
+	});
 
-	auto componentResult = componentQuery.execQuery();
-
-	if (!componentResult.eof()) {
-		if (!componentResult.fieldIsNull("aggroRadius"))
-			m_AggroRadius = componentResult.getFloatField("aggroRadius");
-
-		if (!componentResult.fieldIsNull("tetherSpeed"))
-			m_TetherSpeed = componentResult.getFloatField("tetherSpeed");
-
-		if (!componentResult.fieldIsNull("pursuitSpeed"))
-			m_PursuitSpeed = componentResult.getFloatField("pursuitSpeed");
-
-		if (!componentResult.fieldIsNull("softTetherRadius"))
-			m_SoftTetherRadius = componentResult.getFloatField("softTetherRadius");
-
-		if (!componentResult.fieldIsNull("hardTetherRadius"))
-			m_HardTetherRadius = componentResult.getFloatField("hardTetherRadius");
+	if (!componentEntries.empty()) {
+		const auto& component = componentEntries[0];
+		m_AggroRadius = component.aggroRadius;
+		m_TetherSpeed = component.tetherSpeed;
+		m_PursuitSpeed = component.pursuitSpeed;
+		m_SoftTetherRadius = component.softTetherRadius;
+		m_HardTetherRadius = component.hardTetherRadius;
 	}
-
-	componentResult.finalize();
 
 	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
 	// radii if it is greater than the one in the database.
@@ -78,28 +68,31 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	/*
 	 * Find skills
 	 */
-	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
+	// Only execute skill query if database is connected
+	if (CDClientDatabase::isConnected) {
+		auto skillQuery = CDClientDatabase::CreatePreppedStmt(
+			"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
+		skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
 
-	auto result = skillQuery.execQuery();
+		auto result = skillQuery.execQuery();
 
-	while (!result.eof()) {
-		const auto skillId = static_cast<uint32_t>(result.getIntField("skillID"));
+		while (!result.eof()) {
+			const auto skillId = static_cast<uint32_t>(result.getIntField("skillID"));
 
-		const auto abilityCooldown = static_cast<float>(result.getFloatField("cooldown"));
+			const auto abilityCooldown = static_cast<float>(result.getFloatField("cooldown"));
 
-		const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
+			const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
 
-		auto* behavior = Behavior::CreateBehavior(behaviorId);
+			auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-		std::stringstream behaviorQuery;
+			std::stringstream behaviorQuery;
 
-		AiSkillEntry entry = { skillId, 0, abilityCooldown, behavior };
+			AiSkillEntry entry = { skillId, 0, abilityCooldown, behavior };
 
-		m_SkillEntries.push_back(entry);
+			m_SkillEntries.push_back(entry);
 
-		result.nextRow();
+			result.nextRow();
+		}
 	}
 
 	Stun(1.0f);

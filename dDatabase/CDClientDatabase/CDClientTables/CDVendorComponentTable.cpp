@@ -34,6 +34,22 @@ void CDVendorComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
+void CDVendorComponentTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default vendor component entry
+	CDVendorComponent defaultEntry{
+		.id = 1,
+		.buyScalar = 1.0f,
+		.sellScalar = 1.0f,
+		.refreshTimeSeconds = 0.0f,
+		.LootMatrixIndex = 0,
+	};
+	
+	entries.push_back(defaultEntry);
+}
+
 //! Queries the table with a custom "where" clause
 std::vector<CDVendorComponent> CDVendorComponentTable::Query(std::function<bool(CDVendorComponent)> predicate) {
 

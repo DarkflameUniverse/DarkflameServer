@@ -9,6 +9,7 @@
 #include "EntityManager.h"
 #include "dConfig.h"
 #include "dZoneManager.h"
+#include "../../dChatFilter/dChatFilter.h"
 #include "GameDatabase/TestSQL/TestSQLDatabase.h"
 #include "Database.h"
 #include <gtest/gtest.h>
@@ -40,6 +41,9 @@ protected:
 		Game::entityManager = new EntityManager();
 		Game::zoneManager = new dZoneManager();
 		Game::zoneManager->LoadZone(LWOZONEID(1, 0, 0));
+		// Initialize a chat filter for tests. Use dontGenerateDCF=true to avoid
+		// attempting to generate DCF files during unit tests.
+		Game::chatFilter = new dChatFilter("", true);
 		Database::_setDatabase(new TestSQLDatabase()); // this new is managed by the Database
 
 		// Create a CDClientManager instance and load from defaults
@@ -50,6 +54,8 @@ protected:
 		if (Game::server) delete Game::server;
 		if (Game::entityManager) delete Game::entityManager;
 		if (Game::zoneManager) delete Game::zoneManager;
+		if (Game::chatFilter) delete Game::chatFilter;
+		Game::chatFilter = nullptr;
 		if (Game::logger) {
 			Game::logger->Flush();
 			delete Game::logger;

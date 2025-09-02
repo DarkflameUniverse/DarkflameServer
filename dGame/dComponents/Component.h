@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Entity.h"
+
 namespace tinyxml2 {
 	class XMLDocument;
 }
@@ -12,7 +14,9 @@ namespace GameMessages {
 	struct GameMsg;
 }
 
-class Entity;
+namespace MessageType {
+	enum class Game : uint16_t;
+}
 
 /**
  * Component base class, provides methods for game loop updates, usage events and loading and saving to XML.

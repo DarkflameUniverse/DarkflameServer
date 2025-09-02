@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "eStateChangeType.h"
 
-class SimplePhysicsTest : public GameDependenciesTest {
+class SimplePhysicsComponentTest : public GameDependenciesTest {
 protected:
 	std::unique_ptr<Entity> baseEntity;
 	SimplePhysicsComponent* simplePhysicsComponent;
@@ -29,7 +29,7 @@ protected:
 	}
 };
 
-TEST_F(SimplePhysicsTest, SimplePhysicsSerializeTest) {
+TEST_F(SimplePhysicsComponentTest, SerializeTest) {
 	simplePhysicsComponent->Serialize(bitStream, false);
 	constexpr uint32_t sizeOfStream = 3 + BYTES_TO_BITS(3 * sizeof(NiPoint3)) + BYTES_TO_BITS(1 * sizeof(NiQuaternion)) + 1 * BYTES_TO_BITS(sizeof(uint32_t));
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), sizeOfStream);
@@ -76,7 +76,7 @@ TEST_F(SimplePhysicsTest, SimplePhysicsSerializeTest) {
 	ASSERT_EQ(rotation, NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));
 }
 
-TEST_F(SimplePhysicsTest, SimplePhysicsConstructionTest) {
+TEST_F(SimplePhysicsComponentTest, ConstructionTest) {
 	simplePhysicsComponent->Serialize(bitStream, true);
 	constexpr uint32_t sizeOfStream = 4 + BYTES_TO_BITS(1 * sizeof(int32_t)) + BYTES_TO_BITS(3 * sizeof(NiPoint3)) + BYTES_TO_BITS(1 * sizeof(NiQuaternion)) + 1 * BYTES_TO_BITS(sizeof(uint32_t));
 	ASSERT_EQ(bitStream.GetNumberOfBitsUsed(), sizeOfStream);
@@ -131,7 +131,7 @@ TEST_F(SimplePhysicsTest, SimplePhysicsConstructionTest) {
 	ASSERT_EQ(rotation, NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));
 }
 
-TEST_F(SimplePhysicsTest, SimplePhysicsGettersAndSettersTest) {
+TEST_F(SimplePhysicsComponentTest, GettersAndSettersTest) {
 	ASSERT_EQ(simplePhysicsComponent->GetClimabbleType(), eClimbableType::CLIMBABLE_TYPE_WALL);
 	ASSERT_EQ(simplePhysicsComponent->GetPosition(), NiPoint3(1.0f, 2.0f, 3.0f));
 	ASSERT_EQ(simplePhysicsComponent->GetRotation(), NiQuaternion(1.0f, 2.0f, 3.0f, 4.0f));

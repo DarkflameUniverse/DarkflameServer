@@ -21,6 +21,7 @@ private:
 
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	// Queries the table with a custom "where" clause
 	const LootTableEntries& GetTable(const uint32_t tableId);
 };

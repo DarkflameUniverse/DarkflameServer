@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "eStateChangeType.h"
 
-class DestroyableTest : public GameDependenciesTest {
+class DestroyableComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	DestroyableComponent* destroyableComponent;
@@ -36,7 +36,7 @@ protected:
 	}
 };
 
-TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
+TEST_F(DestroyableComponentTest, PlacementNewAddComponentTest) {
 	ASSERT_NE(destroyableComponent, nullptr);
 	ASSERT_EQ(destroyableComponent->GetArmor(), 7);
 	baseEntity->AddComponent<DestroyableComponent>();
@@ -47,7 +47,7 @@ TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
 /**
  * Test Construction of a DestroyableComponent
  */
-TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
+TEST_F(DestroyableComponentTest, SerializeConstructionTest) {
 	destroyableComponent->Serialize(bitStream, true);
 	// Assert that the full number of bits are present
 	ASSERT_EQ(bitStream.GetNumberOfUnreadBits(), 748);
@@ -172,7 +172,7 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeConstructionTest) {
 /**
  * Test serialization of a DestroyableComponent
  */
-TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
+TEST_F(DestroyableComponentTest, SerializeTest) {
 	bitStream.Reset();
 	// Initialize some values to be not default so we can test a full serialization
 	destroyableComponent->SetMaxHealth(1233.0f);
@@ -250,7 +250,7 @@ TEST_F(DestroyableTest, DestroyableComponentSerializeTest) {
 /**
  * Test the Damage method of DestroyableComponent
  */
-TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
+TEST_F(DestroyableComponentTest, DamageTest) {
 	// Do some actions
 	destroyableComponent->SetMaxHealth(100.0f);
 	destroyableComponent->SetHealth(100);
@@ -318,12 +318,12 @@ TEST_F(DestroyableTest, DestroyableComponentDamageTest) {
 	ASSERT_EQ(destroyableComponent->GetImagination(), 100);
 }
 
-TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
+TEST_F(DestroyableComponentTest, FactionTest) {
 	ASSERT_TRUE(destroyableComponent->HasFaction(-1));
 	ASSERT_TRUE(destroyableComponent->HasFaction(6));
 }
 
-TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
+TEST_F(DestroyableComponentTest, ValiditiyTest) {
 	auto* enemyEntity = new Entity(19, info);
 	enemyEntity->AddComponent<DestroyableComponent>()->AddFactionNoLookup(16);
 	destroyableComponent->AddEnemyFaction(16);
@@ -332,7 +332,7 @@ TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 	delete enemyEntity;
 }
 
-TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
+TEST_F(DestroyableComponentTest, ImmunityTest) {
 	// assert to show that they are empty
 	ASSERT_FALSE(destroyableComponent->GetImmuneToBasicAttack());
 	ASSERT_FALSE(destroyableComponent->GetImmuneToDamageOverTime());
@@ -539,7 +539,7 @@ TEST_F(DestroyableTest, DestroyableComponentImmunityTest) {
 /**
  * Test the Damage cooldown timer of DestroyableComponent
  */
-TEST_F(DestroyableTest, DestroyableComponentDamageCooldownTest) {
+TEST_F(DestroyableComponentTest, DamageCooldownTest) {
 	// Test the damage immune timer state (anything above 0.0f)
 	destroyableComponent->SetDamageCooldownTimer(1.0f);
 	EXPECT_FLOAT_EQ(destroyableComponent->GetDamageCooldownTimer(), 1.0f);

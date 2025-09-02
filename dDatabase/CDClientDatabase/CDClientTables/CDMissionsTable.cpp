@@ -83,6 +83,67 @@ void CDMissionsTable::LoadValuesFromDatabase() {
 	Default.id = -1;
 }
 
+void CDMissionsTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default mission entry
+	CDMissions defaultEntry{
+		.id = 1,
+		.defined_type = "Mission",
+		.defined_subtype = "",
+		.UISortOrder = 0,
+		.offer_objectID = -1,
+		.target_objectID = -1,
+		.reward_currency = 0,
+		.LegoScore = 0,
+		.reward_reputation = 0,
+		.isChoiceReward = false,
+		.reward_item1 = 0,
+		.reward_item1_count = 0,
+		.reward_item2 = 0,
+		.reward_item2_count = 0,
+		.reward_item3 = 0,
+		.reward_item3_count = 0,
+		.reward_item4 = 0,
+		.reward_item4_count = 0,
+		.reward_emote = -1,
+		.reward_emote2 = -1,
+		.reward_emote3 = -1,
+		.reward_emote4 = -1,
+		.reward_maximagination = -1,
+		.reward_maxhealth = -1,
+		.reward_maxinventory = -1,
+		.reward_maxmodel = -1,
+		.reward_maxwidget = -1,
+		.reward_maxwallet = -1,
+		.repeatable = false,
+		.reward_currency_repeatable = 0,
+		.reward_item1_repeatable = 0,
+		.reward_item1_repeat_count = 0,
+		.reward_item2_repeatable = 0,
+		.reward_item2_repeat_count = 0,
+		.reward_item3_repeatable = 0,
+		.reward_item3_repeat_count = 0,
+		.reward_item4_repeatable = 0,
+		.reward_item4_repeat_count = 0,
+		.time_limit = -1,
+		.isMission = true,
+		.missionIconID = -1,
+		.prereqMissionID = "",
+		.localize = false,
+		.inMOTD = false,
+		.cooldownTime = -1,
+		.isRandom = false,
+		.randomPool = "",
+		.UIPrereqID = -1,
+		.reward_bankinventory = -1,
+	};
+	
+	entries.push_back(defaultEntry);
+	Default.id = -1;
+}
+
 std::vector<CDMissions> CDMissionsTable::Query(std::function<bool(CDMissions)> predicate) {
 
 	std::vector<CDMissions> data = cpplinq::from(GetEntries())

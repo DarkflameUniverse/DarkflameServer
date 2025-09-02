@@ -50,6 +50,22 @@ void CDSkillBehaviorTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
+void CDSkillBehaviorTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default skill behavior entry
+	CDSkillBehavior defaultEntry{
+		.skillID = 1,
+		.behaviorID = 1,
+		.imaginationcost = 0,
+		.cooldowngroup = 0,
+		.cooldown = 0.0f,
+	};
+	
+	entries.insert(std::make_pair(defaultEntry.skillID, defaultEntry));
+}
+
 const CDSkillBehavior& CDSkillBehaviorTable::GetSkillByID(uint32_t skillID) {
 	auto& entries = GetEntries();
 	auto it = entries.find(skillID);

@@ -1,5 +1,16 @@
 #include "CDCurrencyTableTable.h"
 
+namespace {
+	// Default entries for fallback
+	CDCurrencyTable defaultEntry{
+		.currencyIndex = 1,
+		.npcminlevel = 1,
+		.minvalue = 1,
+		.maxvalue = 10,
+		.id = 1,
+	};
+}
+
 //! Constructor
 void CDCurrencyTableTable::LoadValuesFromDatabase() {
 
@@ -33,6 +44,12 @@ void CDCurrencyTableTable::LoadValuesFromDatabase() {
 	}
 
 	tableData.finalize();
+}
+
+void CDCurrencyTableTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	entries.push_back(defaultEntry);
 }
 
 std::vector<CDCurrencyTable> CDCurrencyTableTable::Query(std::function<bool(CDCurrencyTable)> predicate) {
