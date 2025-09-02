@@ -6,7 +6,7 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 
-class LUPExhibitTest : public GameDependenciesTest {
+class LUPExhibitComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	LUPExhibitComponent* lupExhibitComponent;
@@ -27,7 +27,7 @@ protected:
 /**
  * Test LUPExhibitComponent initial serialization
  */
-TEST_F(LUPExhibitTest, LUPExhibitComponentSerializeInitialUpdateTest) {
+TEST_F(LUPExhibitComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Component should be dirty by default
@@ -46,7 +46,7 @@ TEST_F(LUPExhibitTest, LUPExhibitComponentSerializeInitialUpdateTest) {
 /**
  * Test LUPExhibitComponent regular update when not dirty
  */
-TEST_F(LUPExhibitTest, LUPExhibitComponentSerializeNotDirtyTest) {
+TEST_F(LUPExhibitComponentTest, SerializeNotDirtyTest) {
 	bitStream.Reset();
 	
 	// First serialize to clear dirty flag
@@ -64,7 +64,7 @@ TEST_F(LUPExhibitTest, LUPExhibitComponentSerializeNotDirtyTest) {
 /**
  * Test LUPExhibitComponent cycling through exhibits
  */
-TEST_F(LUPExhibitTest, LUPExhibitComponentNextExhibitTest) {
+TEST_F(LUPExhibitComponentTest, NextExhibitTest) {
 	bitStream.Reset();
 	
 	// Get first exhibit
@@ -95,7 +95,7 @@ TEST_F(LUPExhibitTest, LUPExhibitComponentNextExhibitTest) {
 /**
  * Test LUPExhibitComponent cycling through all exhibits and wrapping around
  */
-TEST_F(LUPExhibitTest, LUPExhibitComponentCycleAllExhibitsTest) {
+TEST_F(LUPExhibitComponentTest, CycleAllExhibitsTest) {
 	bitStream.Reset();
 	
 	// Expected exhibit sequence: 11121, 11295, 11423, 11979, then back to 11121

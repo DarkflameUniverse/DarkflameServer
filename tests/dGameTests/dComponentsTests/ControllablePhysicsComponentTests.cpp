@@ -28,7 +28,7 @@ protected:
 /**
  * Test ControllablePhysicsComponent initial update serialization
  */
-TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeInitialUpdateTest) {
+TEST_F(ControllablePhysicsComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Test initial update serialization
@@ -47,7 +47,7 @@ TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeIn
 /**
  * Test ControllablePhysicsComponent jetpack mode serialization
  */
-TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeJetpackTest) {
+TEST_F(ControllablePhysicsComponentTest, SerializeJetpackTest) {
 	bitStream.Reset();
 	
 	// Set jetpack mode
@@ -64,7 +64,7 @@ TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeJe
 /**
  * Test ControllablePhysicsComponent regular update serialization
  */
-TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeRegularUpdateTest) {
+TEST_F(ControllablePhysicsComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Do an initial update to clear dirty flags
@@ -82,7 +82,7 @@ TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializeRe
 /**
  * Test ControllablePhysicsComponent position change serialization
  */
-TEST_F(ControllablePhysicsComponentTest, ControllablePhysicsComponentSerializePositionChangeTest) {
+TEST_F(ControllablePhysicsComponentTest, SerializePositionChangeTest) {
 	bitStream.Reset();
 	
 	// Change position to trigger dirty position flag

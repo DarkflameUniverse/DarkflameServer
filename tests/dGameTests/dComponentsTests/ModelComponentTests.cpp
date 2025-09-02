@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "PetComponent.h"
 
-class ModelTest : public GameDependenciesTest {
+class ModelComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	ModelComponent* modelComponent;
@@ -32,7 +32,7 @@ protected:
 /**
  * Test serialization of a ModelComponent for a non-pet entity
  */
-TEST_F(ModelTest, ModelComponentSerializeNonPetTest) {
+TEST_F(ModelComponentTest, SerializeNonPetTest) {
 	bitStream.Reset();
 	
 	// Now we test a serialization for correctness.
@@ -99,7 +99,7 @@ TEST_F(ModelTest, ModelComponentSerializeNonPetTest) {
 /**
  * Test serialization of a ModelComponent for a pet entity
  */
-TEST_F(ModelTest, ModelComponentSerializePetTest) {
+TEST_F(ModelComponentTest, SerializePetTest) {
 	bitStream.Reset();
 	
 	// Add a PetComponent to make this entity a pet
@@ -153,7 +153,7 @@ TEST_F(ModelTest, ModelComponentSerializePetTest) {
 /**
  * Test serialization of a ModelComponent during initial update
  */
-TEST_F(ModelTest, ModelComponentSerializeInitialUpdateTest) {
+TEST_F(ModelComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Now we test a serialization for correctness with initial update.
@@ -225,7 +225,7 @@ TEST_F(ModelTest, ModelComponentSerializeInitialUpdateTest) {
 /**
  * Test ModelComponent getters and setters
  */
-TEST_F(ModelTest, ModelComponentGettersSettersTest) {
+TEST_F(ModelComponentTest, GettersSettersTest) {
 	// Test position
 	NiPoint3 testPosition(100.0f, 200.0f, 300.0f);
 	modelComponent->SetPosition(testPosition);

@@ -28,7 +28,7 @@ protected:
 /**
  * Test SwitchComponent serialization with default inactive state
  */
-TEST_F(SwitchComponentTest, SwitchComponentSerializeInactiveTest) {
+TEST_F(SwitchComponentTest, SerializeInactiveTest) {
 	bitStream.Reset();
 	
 	// Test initial update with default inactive state
@@ -43,7 +43,7 @@ TEST_F(SwitchComponentTest, SwitchComponentSerializeInactiveTest) {
 /**
  * Test SwitchComponent serialization with active state
  */
-TEST_F(SwitchComponentTest, SwitchComponentSerializeActiveTest) {
+TEST_F(SwitchComponentTest, SerializeActiveTest) {
 	bitStream.Reset();
 	
 	// Set switch to active state
@@ -59,7 +59,7 @@ TEST_F(SwitchComponentTest, SwitchComponentSerializeActiveTest) {
 /**
  * Test SwitchComponent serialization state changes
  */
-TEST_F(SwitchComponentTest, SwitchComponentSerializeStateChangeTest) {
+TEST_F(SwitchComponentTest, SerializeStateChangeTest) {
 	bitStream.Reset();
 	
 	// Start inactive, then activate
@@ -91,7 +91,7 @@ TEST_F(SwitchComponentTest, SwitchComponentSerializeStateChangeTest) {
 /**
  * Test SwitchComponent serialization regular update behavior
  */
-TEST_F(SwitchComponentTest, SwitchComponentSerializeRegularUpdateTest) {
+TEST_F(SwitchComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Set to active state

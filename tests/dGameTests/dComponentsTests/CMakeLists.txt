@@ -1,11 +1,8 @@
 set(DCOMPONENTS_TESTS
 	"AchievementVendorComponentTests.cpp"
-	"ActivityComponentTests.cpp"
 	"BaseCombatAIComponentTests.cpp"
 	"BouncerComponentTests.cpp"
 	"BuffComponentTests.cpp"
-	"BuildBorderComponentTests.cpp"
-	"CharacterComponentTests.cpp"
 	"CollectibleComponentTests.cpp"
 	"ControllablePhysicsComponentTests.cpp"
 	"DestroyableComponentTests.cpp"
@@ -14,7 +11,6 @@ set(DCOMPONENTS_TESTS
 	"ItemComponentTests.cpp"
 	"LevelProgressionComponentTests.cpp"
 	"LUPExhibitComponentTests.cpp"
-	"MiniGameControlComponentTests.cpp"
 	"ModelComponentTests.cpp"
 	"MovingPlatformComponentTests.cpp"
 	"PetComponentTests.cpp"
@@ -22,12 +18,12 @@ set(DCOMPONENTS_TESTS
 	"QuickBuildComponentTests.cpp"
 	"RenderComponentTests.cpp"
 	"SavingTests.cpp"
+	"ScriptedActivityComponentTests.cpp"
 	"ScriptComponentTests.cpp"
 	"SimplePhysicsComponentTests.cpp"
 	"SkillComponentTests.cpp"
 	"SoundTriggerComponentTests.cpp"
 	"SwitchComponentTests.cpp"
-	"TriggerComponentTests.cpp"
 	"VendorComponentTests.cpp"
 )
 

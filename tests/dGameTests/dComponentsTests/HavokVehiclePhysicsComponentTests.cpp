@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "PositionUpdate.h"
 
-class HavokVehiclePhysicsTest : public GameDependenciesTest {
+class HavokVehiclePhysicsComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	HavokVehiclePhysicsComponent* havokVehiclePhysicsComponent;
@@ -43,7 +43,7 @@ protected:
 /**
  * Test serialization of HavokVehiclePhysicsComponent during initial update
  */
-TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeInitialUpdateTest) {
+TEST_F(HavokVehiclePhysicsComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Now we test a serialization for correctness with initial update.
@@ -163,7 +163,7 @@ TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeInitialUpda
 /**
  * Test serialization of HavokVehiclePhysicsComponent during regular update
  */
-TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeRegularUpdateTest) {
+TEST_F(HavokVehiclePhysicsComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Now we test a serialization for correctness with regular update.
@@ -278,7 +278,7 @@ TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeRegularUpda
 /**
  * Test serialization with zero velocities
  */
-TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeZeroVelocitiesTest) {
+TEST_F(HavokVehiclePhysicsComponentTest, SerializeZeroVelocitiesTest) {
 	bitStream.Reset();
 	
 	// Set velocities to zero
@@ -336,7 +336,7 @@ TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentSerializeZeroVelocit
 /**
  * Test HavokVehiclePhysicsComponent getters and setters
  */
-TEST_F(HavokVehiclePhysicsTest, HavokVehiclePhysicsComponentGettersSettersTest) {
+TEST_F(HavokVehiclePhysicsComponentTest, GettersSettersTest) {
 	// Test velocity
 	NiPoint3 testVelocity(100.0f, 200.0f, 300.0f);
 	havokVehiclePhysicsComponent->SetVelocity(testVelocity);

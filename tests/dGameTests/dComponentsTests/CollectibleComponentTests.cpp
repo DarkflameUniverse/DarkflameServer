@@ -6,7 +6,7 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 
-class CollectibleTest : public GameDependenciesTest {
+class CollectibleComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	CollectibleComponent* collectibleComponent;
@@ -27,7 +27,7 @@ protected:
 /**
  * Test basic CollectibleComponent serialization
  */
-TEST_F(CollectibleTest, CollectibleComponentSerializeBasicTest) {
+TEST_F(CollectibleComponentTest, SerializeBasicTest) {
 	bitStream.Reset();
 	
 	// Serialize the collectible component
@@ -45,7 +45,7 @@ TEST_F(CollectibleTest, CollectibleComponentSerializeBasicTest) {
 /**
  * Test CollectibleComponent serialization with construction flag true
  */
-TEST_F(CollectibleTest, CollectibleComponentSerializeConstructionTest) {
+TEST_F(CollectibleComponentTest, SerializeConstructionTest) {
 	bitStream.Reset();
 	
 	// Serialize with construction = true
@@ -60,7 +60,7 @@ TEST_F(CollectibleTest, CollectibleComponentSerializeConstructionTest) {
 /**
  * Test CollectibleComponent serialization with construction flag false
  */
-TEST_F(CollectibleTest, CollectibleComponentSerializeRegularUpdateTest) {
+TEST_F(CollectibleComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Serialize with construction = false
@@ -75,7 +75,7 @@ TEST_F(CollectibleTest, CollectibleComponentSerializeRegularUpdateTest) {
 /**
  * Test CollectibleComponent with different collectible IDs
  */
-TEST_F(CollectibleTest, CollectibleComponentDifferentIDsTest) {
+TEST_F(CollectibleComponentTest, DifferentIDsTest) {
 	// Create another entity with a different collectible ID
 	Entity* anotherEntity = new Entity(16, GameDependenciesTest::info);
 	CollectibleComponent* anotherCollectible = anotherEntity->AddComponent<CollectibleComponent>(456);

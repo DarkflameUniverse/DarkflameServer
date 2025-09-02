@@ -6,7 +6,7 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 
-class BaseCombatAITest : public GameDependenciesTest {
+class BaseCombatAIComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	BaseCombatAIComponent* combatAIComponent;
@@ -27,7 +27,7 @@ protected:
 /**
  * Test serialization of BaseCombatAIComponent in initial update with default spawn state
  */
-TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeInitialUpdateTest) {
+TEST_F(BaseCombatAIComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Component should be dirty by default and in spawn state
@@ -50,7 +50,7 @@ TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeInitialUpdateTest) {
 /**
  * Test serialization of BaseCombatAIComponent in regular update with clean state
  */
-TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeRegularUpdateTest) {
+TEST_F(BaseCombatAIComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// First serialize to clear dirty flag
@@ -68,7 +68,7 @@ TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeRegularUpdateTest) {
 /**
  * Test serialization when target changes during regular updates
  */
-TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeTargetChangeTest) {
+TEST_F(BaseCombatAIComponentTest, SerializeTargetChangeTest) {
 	bitStream.Reset();
 	
 	// Initial state is spawn, serialize once to clear dirty flag
@@ -97,7 +97,7 @@ TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeTargetChangeTest) {
 /**
  * Test serialization with target management and getters/setters
  */
-TEST_F(BaseCombatAITest, BaseCombatAIComponentSerializeWithTargetTest) {
+TEST_F(BaseCombatAIComponentTest, SerializeWithTargetTest) {
 	bitStream.Reset();
 	
 	// Set a target and change state manually

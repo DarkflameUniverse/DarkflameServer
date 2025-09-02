@@ -28,7 +28,7 @@ protected:
 /**
  * Test RenderComponent serialization with no effects
  */
-TEST_F(RenderComponentTest, RenderComponentSerializeNoEffectsTest) {
+TEST_F(RenderComponentTest, SerializeNoEffectsTest) {
 	bitStream.Reset();
 	
 	// Test initial update with no effects
@@ -43,7 +43,7 @@ TEST_F(RenderComponentTest, RenderComponentSerializeNoEffectsTest) {
 /**
  * Test RenderComponent serialization with single effect
  */
-TEST_F(RenderComponentTest, RenderComponentSerializeSingleEffectTest) {
+TEST_F(RenderComponentTest, SerializeSingleEffectTest) {
 	bitStream.Reset();
 	
 	// Add a single effect
@@ -109,7 +109,7 @@ TEST_F(RenderComponentTest, RenderComponentSerializeSingleEffectTest) {
 /**
  * Test RenderComponent serialization with multiple effects
  */
-TEST_F(RenderComponentTest, RenderComponentSerializeMultipleEffectsTest) {
+TEST_F(RenderComponentTest, SerializeMultipleEffectsTest) {
 	bitStream.Reset();
 	
 	// Add multiple effects
@@ -148,7 +148,7 @@ TEST_F(RenderComponentTest, RenderComponentSerializeMultipleEffectsTest) {
 /**
  * Test RenderComponent serialization with empty effect name
  */
-TEST_F(RenderComponentTest, RenderComponentSerializeEmptyEffectNameTest) {
+TEST_F(RenderComponentTest, SerializeEmptyEffectNameTest) {
 	bitStream.Reset();
 	
 	// Add an effect with empty name
@@ -172,7 +172,7 @@ TEST_F(RenderComponentTest, RenderComponentSerializeEmptyEffectNameTest) {
 /**
  * Test RenderComponent regular update serialization (should not serialize)
  */
-TEST_F(RenderComponentTest, RenderComponentSerializeRegularUpdateTest) {
+TEST_F(RenderComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Add an effect first

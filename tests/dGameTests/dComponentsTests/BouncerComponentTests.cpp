@@ -28,7 +28,7 @@ protected:
 /**
  * Test serialization of a BouncerComponent with pet enabled false
  */
-TEST_F(BouncerTest, BouncerComponentSerializePetDisabledTest) {
+TEST_F(BouncerTest, SerializePetDisabledTest) {
 	bitStream.Reset();
 	
 	// Default state should have pet disabled
@@ -49,7 +49,7 @@ TEST_F(BouncerTest, BouncerComponentSerializePetDisabledTest) {
 /**
  * Test serialization of a BouncerComponent with pet enabled true
  */
-TEST_F(BouncerTest, BouncerComponentSerializePetEnabledTest) {
+TEST_F(BouncerTest, SerializePetEnabledTest) {
 	bitStream.Reset();
 	
 	// Enable pet and set bouncer state
@@ -72,7 +72,7 @@ TEST_F(BouncerTest, BouncerComponentSerializePetEnabledTest) {
 /**
  * Test serialization of a BouncerComponent with pet enabled but bouncer disabled
  */
-TEST_F(BouncerTest, BouncerComponentSerializePetEnabledBouncerDisabledTest) {
+TEST_F(BouncerTest, SerializePetEnabledBouncerDisabledTest) {
 	bitStream.Reset();
 	
 	// Enable pet but disable bouncer
@@ -95,7 +95,7 @@ TEST_F(BouncerTest, BouncerComponentSerializePetEnabledBouncerDisabledTest) {
 /**
  * Test serialization during initial update
  */
-TEST_F(BouncerTest, BouncerComponentSerializeInitialUpdateTest) {
+TEST_F(BouncerTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Enable pet and set bouncer state

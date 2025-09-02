@@ -6,10 +6,10 @@
 #include "Entity.h"
 #include "eReplicaComponentType.h"
 
-class ActivityTest : public GameDependenciesTest {
+class ScriptedActivityComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
-	ScriptedActivityComponent* activityComponent;
+	ScriptedActivityComponent* scriptedActivityComponent;
 	CBITSTREAM
 	uint32_t flags = 0;
 	void SetUp() override {
@@ -17,7 +17,7 @@ protected:
 		baseEntity = new Entity(15, GameDependenciesTest::info);
 		// ScriptedActivityComponent is the concrete implementation of ActivityComponent
 		// that provides the ComponentType required for the Entity template system
-		activityComponent = baseEntity->AddComponent<ScriptedActivityComponent>(1);
+		scriptedActivityComponent = baseEntity->AddComponent<ScriptedActivityComponent>(1);
 	}
 
 	void TearDown() override {
@@ -29,12 +29,12 @@ protected:
 /**
  * Test serialization of an ActivityComponent with no players
  */
-TEST_F(ActivityTest, ActivityComponentSerializeNoPlayersTest) {
+TEST_F(ScriptedActivityComponentTest, SerializeNoPlayersTest) {
 	bitStream.Reset();
 	
 	// Component should be dirty by default
 	// Now we test a serialization for correctness.
-	activityComponent->Serialize(bitStream, false);
+	scriptedActivityComponent->Serialize(bitStream, false);
 	
 	// Read back the serialized data
 	bool isDirty;
@@ -49,7 +49,7 @@ TEST_F(ActivityTest, ActivityComponentSerializeNoPlayersTest) {
 /**
  * Test serialization of an ActivityComponent with players
  */
-TEST_F(ActivityTest, ActivityComponentSerializeWithPlayersTest) {
+TEST_F(ScriptedActivityComponentTest, SerializeWithPlayersTest) {
 	bitStream.Reset();
 	
 	// Add some test players
@@ -57,16 +57,16 @@ TEST_F(ActivityTest, ActivityComponentSerializeWithPlayersTest) {
 	LWOOBJID player2 = 200;
 	
 	// Force dirty state for testing by adding and setting values
-	activityComponent->SetActivityValue(player1, 0, 10.5f);  // Score
-	activityComponent->SetActivityValue(player1, 1, 25.0f);  // Time  
-	activityComponent->SetActivityValue(player1, 2, 3.0f);   // Some other metric
+	scriptedActivityComponent->SetActivityValue(player1, 0, 10.5f);  // Score
+	scriptedActivityComponent->SetActivityValue(player1, 1, 25.0f);  // Time  
+	scriptedActivityComponent->SetActivityValue(player1, 2, 3.0f);   // Some other metric
 	
-	activityComponent->SetActivityValue(player2, 0, 15.5f);  // Score
-	activityComponent->SetActivityValue(player2, 1, 20.0f);  // Time
-	activityComponent->SetActivityValue(player2, 2, 5.0f);   // Some other metric
+	scriptedActivityComponent->SetActivityValue(player2, 0, 15.5f);  // Score
+	scriptedActivityComponent->SetActivityValue(player2, 1, 20.0f);  // Time
+	scriptedActivityComponent->SetActivityValue(player2, 2, 5.0f);   // Some other metric
 	
 	// Now we test a serialization for correctness.
-	activityComponent->Serialize(bitStream, false);
+	scriptedActivityComponent->Serialize(bitStream, false);
 	
 	// Read back the serialized data
 	bool isDirty;
@@ -113,15 +113,15 @@ TEST_F(ActivityTest, ActivityComponentSerializeWithPlayersTest) {
 /**
  * Test serialization of an ActivityComponent during initial update
  */
-TEST_F(ActivityTest, ActivityComponentSerializeInitialUpdateTest) {
+TEST_F(ScriptedActivityComponentTest, SerializeInitialUpdateTest) {
 	bitStream.Reset();
 	
 	// Add a test player and set a value
 	LWOOBJID player1 = 100;
-	activityComponent->SetActivityValue(player1, 0, 10.5f);
+	scriptedActivityComponent->SetActivityValue(player1, 0, 10.5f);
 	
 	// Now we test a serialization for correctness with initial update.
-	activityComponent->Serialize(bitStream, true);
+	scriptedActivityComponent->Serialize(bitStream, true);
 	
 	// Read back the serialized data
 	bool isDirty;
@@ -149,19 +149,19 @@ TEST_F(ActivityTest, ActivityComponentSerializeInitialUpdateTest) {
 /**
  * Test serialization of an ActivityComponent when not dirty
  */
-TEST_F(ActivityTest, ActivityComponentSerializeNotDirtyTest) {
+TEST_F(ScriptedActivityComponentTest, SerializeNotDirtyTest) {
 	bitStream.Reset();
 	
 	// Add a test player 
 	LWOOBJID player1 = 100;
-	activityComponent->AddActivityPlayerData(player1);
+	scriptedActivityComponent->AddActivityPlayerData(player1);
 	
 	// Do a serialization to reset the dirty flag 
-	activityComponent->Serialize(bitStream, false);
+	scriptedActivityComponent->Serialize(bitStream, false);
 	bitStream.Reset(); // Reset bitstream for the actual test
 	
 	// Now serialize again - should not be dirty this time
-	activityComponent->Serialize(bitStream, false);
+	scriptedActivityComponent->Serialize(bitStream, false);
 	
 	// Read back the serialized data
 	bool isDirty;

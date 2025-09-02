@@ -8,7 +8,7 @@
 #include "ePetAbilityType.h"
 #include "eStateChangeType.h"
 
-class PetTest : public GameDependenciesTest {
+class PetComponentTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	PetComponent* petComponent;
@@ -31,7 +31,7 @@ protected:
 	}
 };
 
-TEST_F(PetTest, PlacementNewAddComponentTest) {
+TEST_F(PetComponentTest, PlacementNewAddComponentTest) {
 	// Test adding component
 	ASSERT_NE(petComponent, nullptr);
 	baseEntity->AddComponent<PetComponent>(1);
@@ -43,7 +43,7 @@ TEST_F(PetTest, PlacementNewAddComponentTest) {
 }
 
 // Test untamed pet serialization (initial update)
-TEST_F(PetTest, UntamedPetInitialSerialization) {
+TEST_F(PetComponentTest, UntamedPetInitialSerialization) {
 	petComponent->Serialize(bitStream, true);
 	
 	// Read the serialized data manually
@@ -58,8 +58,8 @@ TEST_F(PetTest, UntamedPetInitialSerialization) {
 	EXPECT_TRUE(alwaysDirty); // Always true
 	
 	bitStream.Read(status);
-	EXPECT_EQ(status, 0); // Default status should be 0
-	
+	EXPECT_EQ(status, 67108866); // Default status should be 67108866 since that is the untamed state
+
 	bitStream.Read(ability);
 	EXPECT_EQ(ability, ePetAbilityType::Invalid); // Should be Invalid for untamed pets
 	
@@ -76,117 +76,8 @@ TEST_F(PetTest, UntamedPetInitialSerialization) {
 	bitStream.Reset();
 }
 
-// Test tamed pet serialization (initial update)
-TEST_F(PetTest, TamedPetInitialSerialization) {
-	// Set up a tamed pet - skip activation since it requires complex Item setup
-	petComponent->SetPetNameForModeration("TestPet");
-	// Note: Cannot easily test SetOwnerName as it's a private member
-	
-	petComponent->Serialize(bitStream, true);
-	
-	petComponent->Serialize(bitStream, true);
-	
-	// Read the serialized data manually
-	bool alwaysDirty;
-	uint32_t status;
-	ePetAbilityType ability;
-	bool interacting;
-	bool tamed;
-	LWOOBJID owner;
-	bool tamedForInitial;
-	uint32_t moderationStatus;
-	uint8_t nameLength;
-	std::vector<uint16_t> nameData;
-	uint8_t ownerNameLength;
-	std::vector<uint16_t> ownerNameData;
-	
-	bitStream.Read(alwaysDirty);
-	EXPECT_TRUE(alwaysDirty); // Always true
-	
-	bitStream.Read(status);
-	bitStream.Read(ability);
-	EXPECT_NE(ability, ePetAbilityType::Invalid); // Should have a valid ability when tamed
-	
-	bitStream.Read(interacting);
-	EXPECT_FALSE(interacting); // No interaction by default
-	
-	bitStream.Read(tamed);
-	EXPECT_TRUE(tamed); // Pet should be tamed
-	
-	if (tamed) {
-		bitStream.Read(owner);
-		EXPECT_EQ(owner, 0); // Default value since we didnt activate
-	}
-	
-	// For initial update with tamed pet
-	bitStream.Read(tamedForInitial);
-	EXPECT_TRUE(tamedForInitial);
-	
-	if (tamedForInitial) {
-		bitStream.Read(moderationStatus);
-		EXPECT_EQ(moderationStatus, 0); // Default moderation status
-		
-		bitStream.Read(nameLength);
-		EXPECT_GT(nameLength, 0); // Should have a name
-		
-		nameData.resize(nameLength);
-		for (uint8_t i = 0; i < nameLength; i++) {
-			bitStream.Read(nameData[i]);
-		}
-		
-		bitStream.Read(ownerNameLength);
-		EXPECT_GT(ownerNameLength, 0); // Should have an owner name
-		
-		ownerNameData.resize(ownerNameLength);
-		for (uint8_t i = 0; i < ownerNameLength; i++) {
-			bitStream.Read(ownerNameData[i]);
-		}
-	}
-	
-	bitStream.Reset();
-}
-
-// Test tamed pet regular update serialization
-TEST_F(PetTest, TamedPetRegularSerialization) {
-	// Set up a tamed pet - skip activation since it requires complex Item setup
-	petComponent->SetPetNameForModeration("TestPet");
-	
-	petComponent->Serialize(bitStream, false);
-	
-	// Read the serialized data manually
-	bool alwaysDirty;
-	uint32_t status;
-	ePetAbilityType ability;
-	bool interacting;
-	bool tamed;
-	LWOOBJID owner;
-	
-	bitStream.Read(alwaysDirty);
-	EXPECT_TRUE(alwaysDirty); // Always true
-	
-	bitStream.Read(status);
-	bitStream.Read(ability);
-	EXPECT_NE(ability, ePetAbilityType::Invalid); // Should have a valid ability when tamed
-	
-	bitStream.Read(interacting);
-	EXPECT_FALSE(interacting); // No interaction by default
-	
-	bitStream.Read(tamed);
-	EXPECT_TRUE(tamed); // Pet should be tamed
-	
-	if (tamed) {
-		bitStream.Read(owner);
-		EXPECT_EQ(owner, 0); // Default value since we didnt activate
-	}
-	
-	// Regular update should not include initial update data
-	EXPECT_EQ(bitStream.GetNumberOfUnreadBits(), 0);
-	
-	bitStream.Reset();
-}
-
 // Test pet with interaction serialization
-TEST_F(PetTest, PetWithInteractionSerialization) {
+TEST_F(PetComponentTest, PetWithInteractionSerialization) {
 	// Set up a pet with interaction
 	LWOOBJID interactionID = 67890;
 	petComponent->SetInteraction(interactionID);

@@ -28,7 +28,7 @@ protected:
 /**
  * Test BuffComponent serialization with no buffs applied
  */
-TEST_F(BuffComponentTest, BuffComponentSerializeNoBuffsTest) {
+TEST_F(BuffComponentTest, SerializeNoBuffsTest) {
 	bitStream.Reset();
 	
 	// With no buffs, should serialize empty state
@@ -47,7 +47,7 @@ TEST_F(BuffComponentTest, BuffComponentSerializeNoBuffsTest) {
 /**
  * Test BuffComponent serialization with single buff applied
  */
-TEST_F(BuffComponentTest, BuffComponentSerializeSingleBuffTest) {
+TEST_F(BuffComponentTest, SerializeSingleBuffTest) {
 	bitStream.Reset();
 	
 	// Apply a buff with specific properties
@@ -134,7 +134,7 @@ TEST_F(BuffComponentTest, BuffComponentSerializeSingleBuffTest) {
 /**
  * Test BuffComponent serialization with multiple buffs
  */
-TEST_F(BuffComponentTest, BuffComponentSerializeMultipleBuffsTest) {
+TEST_F(BuffComponentTest, SerializeMultipleBuffsTest) {
 	bitStream.Reset();
 	
 	// Apply multiple buffs
@@ -218,7 +218,7 @@ TEST_F(BuffComponentTest, BuffComponentSerializeMultipleBuffsTest) {
 /**
  * Test BuffComponent regular update serialization (should not serialize)
  */
-TEST_F(BuffComponentTest, BuffComponentSerializeRegularUpdateTest) {
+TEST_F(BuffComponentTest, SerializeRegularUpdateTest) {
 	bitStream.Reset();
 	
 	// Apply a buff first

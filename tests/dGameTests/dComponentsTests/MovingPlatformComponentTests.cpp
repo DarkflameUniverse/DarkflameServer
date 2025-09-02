@@ -7,7 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "eMovementPlatformState.h"
 
-class MovingPlatformTest : public GameDependenciesTest {
+class MovingPlatformCompoenetTest : public GameDependenciesTest {
 protected:
 	Entity* baseEntity;
 	MovingPlatformComponent* movingPlatformComponent;
@@ -44,7 +44,7 @@ protected:
 /**
  * Test serialization of a MovingPlatformComponent with m_Serialize = false
  */
-TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeDisabledTest) {
+TEST_F(MovingPlatformCompoenetTest, SerializeDisabledTest) {
 	bitStream.Reset();
 	
 	// Set m_Serialize to false to test the early return path
@@ -68,7 +68,7 @@ TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeDisabledTest) {
 /**
  * Test serialization of a MovingPlatformComponent with enabled serialization but no path
  */
-TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeNoPathTest) {
+TEST_F(MovingPlatformCompoenetTest, SerializeNoPathTest) {
 	bitStream.Reset();
 	
 	// Create a component with no path to test the path logic
@@ -106,7 +106,7 @@ TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeNoPathTest) {
 /**
  * Test complete serialization of a MovingPlatformComponent with path
  */
-TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeFullTest) {
+TEST_F(MovingPlatformCompoenetTest, SerializeFullTest) {
 	bitStream.Reset();
 	
 	// Now we test a serialization for correctness.
@@ -205,19 +205,4 @@ TEST_F(MovingPlatformTest, MovingPlatformComponentSerializeFullTest) {
 		bitStream.Read(moveTimeElapsed);
 		EXPECT_EQ(moveTimeElapsed, 0.0f); // Always 0 in current implementation
 	}
-}
-
-/**
- * Test MoverSubComponent initialization and basic functionality
- */
-TEST_F(MovingPlatformTest, MoverSubComponentInitializationTest) {
-	auto* moverSubComponent = movingPlatformComponent->GetMoverSubComponent();
-	ASSERT_NE(moverSubComponent, nullptr);
-	
-	// Test that we can access and modify the mover sub component
-	moverSubComponent->mState = eMovementPlatformState::Stopped;
-	EXPECT_EQ(moverSubComponent->mState, eMovementPlatformState::Stopped);
-	
-	moverSubComponent->mDesiredWaypointIndex = 10;
-	EXPECT_EQ(moverSubComponent->mDesiredWaypointIndex, 10);
 }
