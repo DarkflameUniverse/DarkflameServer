@@ -3,6 +3,8 @@
 
 #include "InventoryComponent.h"
 #include "BehaviorSlot.h"
+#include "Entity.h"
+#include "eItemType.h"
 
 class InventoryComponentTest : public GameDependenciesTest {
 protected:
@@ -30,4 +32,16 @@ TEST_F(InventoryComponentTest, FindBehaviorSlotByEquipLocationTest) {
 	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation(""), BehaviorSlot::Invalid);
 	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("root"), BehaviorSlot::Invalid);
 	EXPECT_EQ(InventoryComponent::FindBehaviorSlotByEquipLocation("leftHand"), BehaviorSlot::Invalid);
+}
+
+/**
+ * Test that the original FindBehaviorSlot by itemType still works correctly
+ */
+TEST_F(InventoryComponentTest, FindBehaviorSlotByItemTypeTest) {
+	// Test that the original method still works for backward compatibility scenarios
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(eItemType::HAT), BehaviorSlot::Head);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(eItemType::NECK), BehaviorSlot::Neck);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(eItemType::LEFT_HAND), BehaviorSlot::Offhand);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(eItemType::RIGHT_HAND), BehaviorSlot::Primary);
+	EXPECT_EQ(InventoryComponent::FindBehaviorSlot(eItemType::CONSUMABLE), BehaviorSlot::Consumable);
 }
