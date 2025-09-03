@@ -559,23 +559,25 @@ namespace DEVGMCommands {
 		}
 	}
 
-	std::optional<float> ParseRelativeAxis(const float sourcePos, const std::string& toParse) {
-		if (toParse.empty()) return std::nullopt;
-
-		// relative offset from current position
-		if (toParse[0] == '~') {
-			if (toParse.size() == 1) return sourcePos;
-
-			if (toParse.size() < 3 || !(toParse[1] != '+' || toParse[1] != '-')) return std::nullopt;
-
-			const auto offset = GeneralUtils::TryParse<float>(toParse.substr(2));
-			if (!offset.has_value()) return std::nullopt;
-
-			bool isNegative = toParse[1] == '-';
-			return isNegative ? sourcePos - offset.value() : sourcePos + offset.value();
+	// Parse coordinates with support for relative positioning (~)
+	std::optional<float> ParseRelativeAxis(const float currentValue, const std::string& rawCoord) {
+		if (rawCoord.empty()) return std::nullopt;
+		std::string coord = rawCoord;
+		// Remove any '+' characters to simplify parsing, since they don't affect the value
+		coord.erase(std::remove(coord.begin(), coord.end(), '+'), coord.end());
+		if (coord[0] == '~') {
+			if (coord.length() == 1) {
+				return currentValue;
+			} else {
+				auto offsetOpt = GeneralUtils::TryParse<float>(coord.substr(1));
+				if (!offsetOpt) return std::nullopt;
+				return currentValue + offsetOpt.value();
+			}
+		} else {
+			auto absoluteOpt = GeneralUtils::TryParse<float>(coord);
+			if (!absoluteOpt) return std::nullopt;
+			return absoluteOpt.value();
 		}
-
-		return GeneralUtils::TryParse<float>(toParse);
 	}
 
 	void Teleport(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1663,5 +1665,164 @@ namespace DEVGMCommands {
 		target->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 		LOG("Despawned entity (%llu)", target->GetObjectID());
 		ChatPackets::SendSystemMessage(sysAddr, u"Despawned entity: " + GeneralUtils::to_u16string(target->GetObjectID()));
+	}
+
+	void Execute(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		if (args.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr,
+				u"Usage: /execute <subcommand> ... run <command>\n"
+				u"Subcommands:\n"
+				u"  as <playername> - Execute as different player\n"
+				u"  at <playername> - Execute from player's position\n"
+				u"  positioned <x> <y> <z> - Execute from coordinates (absolute or relative with ~)\n"
+				u"Examples:\n"
+				u"  /execute as Player1 run pos\n"
+				u"  /execute at Player2 positioned 100 200 300 run spawn 1234\n"
+				u"  /execute positioned ~5 ~10 ~ run spawn 1234"
+			);
+			return;
+		}
+
+		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
+		
+		// Prevent execute command recursion by checking if this is already an execute command
+		for (const auto& arg : splitArgs) {
+			if (arg == "execute" || arg == "exec") {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error: Recursive execute commands are not allowed");
+				return;
+			}
+		}
+		
+		// Context variables for execution
+		Entity* execEntity = entity;  // Entity to execute as
+		NiPoint3 execPosition = entity->GetPosition();  // Position to execute from
+		bool positionOverridden = false;
+		std::string finalCommand;
+		
+		// Parse subcommands
+		size_t i = 0;
+		while (i < splitArgs.size()) {
+			const std::string& subcommand = splitArgs[i];
+			
+			if (subcommand == "as") {
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'as' requires a player name");
+					return;
+				}
+				
+				const std::string& targetName = splitArgs[i + 1];
+				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
+				if (!targetPlayer) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
+					return;
+				}
+				
+				execEntity = targetPlayer;
+				i += 2;
+				
+			} else if (subcommand == "at") {
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'at' requires a player name");
+					return;
+				}
+				
+				const std::string& targetName = splitArgs[i + 1];
+				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
+				if (!targetPlayer) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
+					return;
+				}
+				
+				execPosition = targetPlayer->GetPosition();
+				positionOverridden = true;
+				i += 2;
+				
+			} else if (subcommand == "positioned") {
+				if (i + 3 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'positioned' requires x, y, z coordinates");
+					return;
+				}
+
+				auto xOpt = ParseRelativeAxis(execPosition.x, splitArgs[i + 1]);
+				auto yOpt = ParseRelativeAxis(execPosition.y, splitArgs[i + 2]);
+				auto zOpt = ParseRelativeAxis(execPosition.z, splitArgs[i + 3]);
+
+				if (!xOpt || !yOpt || !zOpt) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: Invalid coordinates for 'positioned'. Use numeric values or relative coordinates with ~.");
+					return;
+				}
+
+				execPosition = NiPoint3(xOpt.value(), yOpt.value(), zOpt.value());
+				positionOverridden = true;
+				
+				i += 4;
+				
+			} else if (subcommand == "run") {
+				// Everything after "run" is the command to execute
+				if (i + 1 >= splitArgs.size()) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'run' requires a command");
+					return;
+				}
+				
+				// Reconstruct the command from remaining args
+				for (size_t j = i + 1; j < splitArgs.size(); ++j) {
+					if (!finalCommand.empty()) finalCommand += " ";
+					finalCommand += splitArgs[j];
+				}
+				break;
+				
+			} else {
+				ChatPackets::SendSystemMessage(sysAddr, u"Error: Unknown subcommand '" + GeneralUtils::ASCIIToUTF16(subcommand) + u"'");
+				ChatPackets::SendSystemMessage(sysAddr, u"Valid subcommands: as, at, positioned, run");
+				return;
+			}
+		}
+		
+		if (finalCommand.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Error: No command specified to run. Use 'run <command>' at the end.");
+			return;
+		}
+		
+		// Validate that the command starts with a valid character
+		if (finalCommand.empty() || finalCommand[0] == '/') {
+			ChatPackets::SendSystemMessage(sysAddr, u"Error: Command should not start with '/'. Just specify the command name.");
+			return;
+		}
+		
+		// Store original position if we need to restore it
+		NiPoint3 originalPosition;
+		bool needToRestore = false;
+		
+		if (positionOverridden && execEntity == entity) {
+			// If we're executing as ourselves but from a different position,
+			// temporarily move the entity
+			originalPosition = entity->GetPosition();
+			needToRestore = true;
+			
+			// Set the position temporarily for the command execution
+			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllable) {
+				controllable->SetPosition(execPosition);
+			}
+		}
+		
+		// Provide feedback about what we're executing
+		std::string execAsName = execEntity->GetCharacter() ? execEntity->GetCharacter()->GetName() : "Unknown";
+		ChatPackets::SendSystemMessage(sysAddr, u"[Execute] Running as '" + GeneralUtils::ASCIIToUTF16(execAsName) + 
+										u"' from <" + GeneralUtils::to_u16string(execPosition.x) + u", " + 
+										GeneralUtils::to_u16string(execPosition.y) + u", " + 
+										GeneralUtils::to_u16string(execPosition.z) + u">: /" + 
+										GeneralUtils::ASCIIToUTF16(finalCommand));
+		
+		// Execute the command through the slash command handler
+		SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16("/" + finalCommand), execEntity, sysAddr);
+		
+		// Restore original position if needed
+		if (needToRestore) {
+			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
+			if (controllable) {
+				controllable->SetPosition(originalPosition);
+			}
+		}
 	}
 };
