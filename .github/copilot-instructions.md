@@ -132,11 +132,11 @@ git submodule status
 
 ### Important Notes
 - **Client files are NOT included** - this is only the server emulator
-- **Database can use SQLite or MariaDB** - MariaDB recommended for development
+- **Database can use SQLite or MariaDB** - SQLite recommended for development since it's lighter and doesn't require an external service
 - **Multi-server architecture** requires all 4 servers to run a complete setup
 - **Network ports**: Auth (1001), Chat (2005), Master (2000), World (3000+)
 - **Development uses Debug builds**, production uses Release builds
-- **GMT level 0** = normal player, **GMT level 8-9** = admin privileges
+- **GM level 0** = normal player, **GM level 8-9** = admin privileges
 
 ## Troubleshooting
 - **"Asset bundle not found"**: Expected without LEGO Universe client files
@@ -151,4 +151,4 @@ git submodule status
 - **All tests must pass** for CI to succeed
 - **Build artifacts** are automatically generated and uploaded
 
-**Remember: This is a complex game server requiring LEGO Universe client files for full functionality, but the server code can be built, tested, and partially validated without them.**
+**Remember: This is a complex game server requiring LEGO Universe client files for full functionality, but the server has the capability to mock everything that's needed to test without the client since cdclient can be mocked and the database can be mocked as well.**
