@@ -1168,16 +1168,18 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation, static_cast<eItemType>(info.itemType));
 
-	if (slot == BehaviorSlot::Invalid) {
-		return;
-	}
-
-	const auto index = m_Skills.find(slot);
+	if (slot == BehaviorSlot::Invalid) return;
 
 	const auto skill = FindSkill(lot);
+	if (skill == 0) return; // No skill to add
 
+	// Add this item to the contributors for this slot
+	m_SkillContributors[slot].insert(lot);
+	
+	// Set the skill for this slot (this will overwrite if there's already a skill,
+	// but that's fine since multiple items might provide the same skill)
 	SetSkill(slot, skill);
 }
 
@@ -1203,29 +1205,36 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation, static_cast<eItemType>(info.itemType));
+	if (slot == BehaviorSlot::Invalid) return;
 
-	if (slot == BehaviorSlot::Invalid) {
-		return;
+	// Find the contributors for this slot
+	auto contributorsIter = m_SkillContributors.find(slot);
+	if (contributorsIter == m_SkillContributors.end()) return;
+
+	// Remove this item from the contributors
+	contributorsIter->second.erase(lot);
+
+	// Only remove the skill if there are no more contributors
+	if (contributorsIter->second.empty()) {
+		// No more items contributing to this slot, remove the skill
+		const auto skillIter = m_Skills.find(slot);
+		if (skillIter != m_Skills.end()) {
+			const auto oldSkill = skillIter->second;
+			GameMessages::SendRemoveSkill(m_Parent, oldSkill);
+			m_Skills.erase(slot);
+		}
+		
+		// Clean up the empty contributors set
+		m_SkillContributors.erase(contributorsIter);
+		
+		// Restore default skill for Primary slot if needed
+		if (slot == BehaviorSlot::Primary) {
+			m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
+			GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
+		}
 	}
-
-	const auto index = m_Skills.find(slot);
-
-	if (index == m_Skills.end()) {
-		return;
-	}
-
-	const auto old = index->second;
-
-	GameMessages::SendRemoveSkill(m_Parent, old);
-
-	m_Skills.erase(slot);
-
-	if (slot == BehaviorSlot::Primary) {
-		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-
-		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
-	}
+	// If there are still contributors, keep the skill active
 }
 
 void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {
@@ -1315,19 +1324,18 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
-	switch (type) {
-	case eItemType::HAT:
-		return BehaviorSlot::Head;
-	case eItemType::NECK:
-		return BehaviorSlot::Neck;
-	case eItemType::LEFT_HAND:
-		return BehaviorSlot::Offhand;
-	case eItemType::RIGHT_HAND:
-		return BehaviorSlot::Primary;
-	case eItemType::CONSUMABLE:
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation, const eItemType itemType) {
+	if (itemType == eItemType::CONSUMABLE) {
 		return BehaviorSlot::Consumable;
-	default:
+	} else if (equipLocation == "special_r") {
+		return BehaviorSlot::Primary;
+	} else if (equipLocation == "hair") {
+		return BehaviorSlot::Head;
+	} else if (equipLocation == "special_l") {
+		return BehaviorSlot::Offhand;
+	} else if (equipLocation == "clavicle") {
+		return BehaviorSlot::Neck;
+	} else {
 		return BehaviorSlot::Invalid;
 	}
 }

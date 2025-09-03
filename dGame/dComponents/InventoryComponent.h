@@ -5,6 +5,7 @@
 
 #include <map>
 #include <stack>
+#include <set>
 
 
 #include "BehaviorSlot.h"
@@ -362,11 +363,12 @@ public:
 	void RemoveDatabasePet(LWOOBJID id);
 
 	/**
-	 * Returns the current behavior slot active for the passed item type
-	 * @param type the item type to find the behavior slot for
-	 * @return the current behavior slot active for the passed item type
+	 * Returns the behavior slot for the given equipment location
+	 * @param equipLocation the equipment location to find the behavior slot for
+	 * @param itemType the type of item to find the behavior slot for, to check for consumables
+	 * @return the behavior slot for the given equipment location
 	 */
-	static BehaviorSlot FindBehaviorSlot(eItemType type);
+	static BehaviorSlot FindBehaviorSlot(const std::string& equipLocation, const eItemType itemType);
 
 	/**
 	 * Checks if the inventory type is a temp inventory
@@ -424,6 +426,12 @@ private:
 	 * The skills that this entity currently has active
 	 */
 	std::map<BehaviorSlot, uint32_t> m_Skills;
+
+	/**
+	 * Tracks which items (by LOT) contribute skills to each behavior slot
+	 * Used to properly manage skills when multiple items provide the same skill to the same slot
+	 */
+	std::map<BehaviorSlot, std::set<LOT>> m_SkillContributors;
 
 	/**
 	 * The pets this entity has, mapped by object ID and pet info
