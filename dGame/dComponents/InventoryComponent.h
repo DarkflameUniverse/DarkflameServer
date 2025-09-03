@@ -364,9 +364,10 @@ public:
 	/**
 	 * Returns the behavior slot for the given equipment location
 	 * @param equipLocation the equipment location to find the behavior slot for
+	 * @param itemType the type of item to find the behavior slot for, to check for consumables
 	 * @return the behavior slot for the given equipment location
 	 */
-	static BehaviorSlot FindBehaviorSlot(const std::string& equipLocation);
+	static BehaviorSlot FindBehaviorSlot(const std::string& equipLocation, const eItemType itemType);
 
 	/**
 	 * Checks if the inventory type is a temp inventory

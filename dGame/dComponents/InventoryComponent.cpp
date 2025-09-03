@@ -1168,16 +1168,12 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(info.equipLocation);
+	const auto slot = FindBehaviorSlot(info.equipLocation, static_cast<eItemType>(info.itemType));
 
-	if (slot == BehaviorSlot::Invalid) {
-		return;
-	}
+	if (slot == BehaviorSlot::Invalid) return;
 
 	const auto index = m_Skills.find(slot);
-
 	const auto skill = FindSkill(lot);
-
 	SetSkill(slot, skill);
 }
 
@@ -1203,17 +1199,11 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(info.equipLocation);
-
-	if (slot == BehaviorSlot::Invalid) {
-		return;
-	}
+	const auto slot = FindBehaviorSlot(info.equipLocation, static_cast<eItemType>(info.itemType));
+	if (slot == BehaviorSlot::Invalid) return;
 
 	const auto index = m_Skills.find(slot);
-
-	if (index == m_Skills.end()) {
-		return;
-	}
+	if (index == m_Skills.end()) return;
 
 	const auto old = index->second;
 
@@ -1223,7 +1213,6 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-
 		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
 }
@@ -1315,8 +1304,10 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation) {
-	if (equipLocation == "special_r") {
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation, const eItemType itemType) {
+	if (itemType == eItemType::CONSUMABLE) {
+		return BehaviorSlot::Consumable;
+	} else if (equipLocation == "special_r") {
 		return BehaviorSlot::Primary;
 	} else if (equipLocation == "hair") {
 		return BehaviorSlot::Head;
