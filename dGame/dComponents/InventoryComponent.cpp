@@ -1172,8 +1172,14 @@ void InventoryComponent::AddItemSkills(const LOT lot) {
 
 	if (slot == BehaviorSlot::Invalid) return;
 
-	const auto index = m_Skills.find(slot);
 	const auto skill = FindSkill(lot);
+	if (skill == 0) return; // No skill to add
+
+	// Add this item to the contributors for this slot
+	m_SkillContributors[slot].insert(lot);
+	
+	// Set the skill for this slot (this will overwrite if there's already a skill,
+	// but that's fine since multiple items might provide the same skill)
 	SetSkill(slot, skill);
 }
 
@@ -1202,19 +1208,33 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto slot = FindBehaviorSlot(info.equipLocation, static_cast<eItemType>(info.itemType));
 	if (slot == BehaviorSlot::Invalid) return;
 
-	const auto index = m_Skills.find(slot);
-	if (index == m_Skills.end()) return;
+	// Find the contributors for this slot
+	auto contributorsIter = m_SkillContributors.find(slot);
+	if (contributorsIter == m_SkillContributors.end()) return;
 
-	const auto old = index->second;
+	// Remove this item from the contributors
+	contributorsIter->second.erase(lot);
 
-	GameMessages::SendRemoveSkill(m_Parent, old);
-
-	m_Skills.erase(slot);
-
-	if (slot == BehaviorSlot::Primary) {
-		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
+	// Only remove the skill if there are no more contributors
+	if (contributorsIter->second.empty()) {
+		// No more items contributing to this slot, remove the skill
+		const auto skillIter = m_Skills.find(slot);
+		if (skillIter != m_Skills.end()) {
+			const auto oldSkill = skillIter->second;
+			GameMessages::SendRemoveSkill(m_Parent, oldSkill);
+			m_Skills.erase(slot);
+		}
+		
+		// Clean up the empty contributors set
+		m_SkillContributors.erase(contributorsIter);
+		
+		// Restore default skill for Primary slot if needed
+		if (slot == BehaviorSlot::Primary) {
+			m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
+			GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
+		}
 	}
+	// If there are still contributors, keep the skill active
 }
 
 void InventoryComponent::TriggerPassiveAbility(PassiveAbilityTrigger trigger, Entity* target) {

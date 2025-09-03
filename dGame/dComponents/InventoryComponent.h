@@ -5,6 +5,7 @@
 
 #include <map>
 #include <stack>
+#include <set>
 
 
 #include "BehaviorSlot.h"
@@ -425,6 +426,12 @@ private:
 	 * The skills that this entity currently has active
 	 */
 	std::map<BehaviorSlot, uint32_t> m_Skills;
+
+	/**
+	 * Tracks which items (by LOT) contribute skills to each behavior slot
+	 * Used to properly manage skills when multiple items provide the same skill to the same slot
+	 */
+	std::map<BehaviorSlot, std::set<LOT>> m_SkillContributors;
 
 	/**
 	 * The pets this entity has, mapped by object ID and pet info
