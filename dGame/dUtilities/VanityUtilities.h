@@ -8,7 +8,7 @@
 struct VanityObjectLocation {
 	float m_Chance = 1.0f;
 	NiPoint3 m_Position;
-	NiQuaternion m_Rotation;
+	NiQuaternion m_Rotation = QuatUtils::IDENTITY;
 	float m_Scale = 1.0f;
 };
 

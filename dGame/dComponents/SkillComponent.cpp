@@ -316,7 +316,7 @@ SkillExecutionResult SkillComponent::CalculateBehavior(
 			start.originatorRot = originator->GetRotation();
 		}
 
-		if (rotationOverride != NiQuaternionConstant::IDENTITY) {
+		if (rotationOverride != QuatUtils::IDENTITY) {
 			start.originatorRot = rotationOverride;
 		}
 		//start.optionalTargetID = target;

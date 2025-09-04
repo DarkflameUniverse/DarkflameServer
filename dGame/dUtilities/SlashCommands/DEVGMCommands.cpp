@@ -649,7 +649,7 @@ namespace DEVGMCommands {
 				if (havokVehiclePhysicsComponent) {
 					havokVehiclePhysicsComponent->SetPosition(pos);
 					Game::entityManager->SerializeEntity(possassableEntity);
-				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, NiQuaternion(), sysAddr);
+				} else GameMessages::SendTeleport(possassableEntity->GetObjectID(), pos, QuatUtils::IDENTITY, sysAddr);
 			}
 		}
 	}
@@ -660,7 +660,7 @@ namespace DEVGMCommands {
 		const auto characters = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::CHARACTER);
 
 		for (auto* character : characters) {
-			GameMessages::SendTeleport(character->GetObjectID(), pos, NiQuaternion(), character->GetSystemAddress());
+			GameMessages::SendTeleport(character->GetObjectID(), pos, QuatUtils::IDENTITY, character->GetSystemAddress());
 		}
 	}
 
@@ -815,7 +815,7 @@ namespace DEVGMCommands {
 			// Set the position to the generated random position plus the player position.  This will
 			// spawn the entity in a circle around the player.  As you get further from the player, the angle chosen will get less accurate.
 			info.pos = playerPosition + NiPoint3(cos(randomAngle) * randomRadius, 0.0f, sin(randomAngle) * randomRadius);
-			info.rot = NiQuaternion();
+			info.rot = QuatUtils::IDENTITY;
 
 			auto newEntity = Game::entityManager->CreateEntity(info);
 			if (newEntity == nullptr) {

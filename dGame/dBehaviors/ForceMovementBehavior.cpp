@@ -48,7 +48,7 @@ void ForceMovementBehavior::Calculate(BehaviorContext* context, RakNet::BitStrea
 		if (controllablePhysicsComponent != nullptr) {
 
 			if (m_Forward == 1) {
-				controllablePhysicsComponent->SetVelocity(controllablePhysicsComponent->GetRotation().GetForwardVector() * 25);
+				controllablePhysicsComponent->SetVelocity(QuatUtils::Forward(controllablePhysicsComponent->GetRotation()) * 25);
 			}
 
 			Game::entityManager->SerializeEntity(casterEntity);

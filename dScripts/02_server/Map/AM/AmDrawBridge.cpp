@@ -93,7 +93,7 @@ void AmDrawBridge::MoveBridgeDown(Entity* self, Entity* bridge, bool down) {
 		return;
 	}
 
-	auto forwardVect = simplePhysicsComponent->GetRotation().GetForwardVector();
+	auto forwardVect = QuatUtils::Forward(simplePhysicsComponent->GetRotation());
 
 	auto degrees = down ? 90.0f : -90.0f;
 

@@ -13,7 +13,7 @@
 
 struct SpawnerNode {
 	NiPoint3 position = NiPoint3Constant::ZERO;
-	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
 	uint32_t nodeID = 0;
 	uint32_t nodeMax = 1;
 	std::vector<LWOOBJID> entities;

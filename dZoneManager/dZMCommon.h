@@ -11,7 +11,7 @@ struct SceneObject {
 	uint32_t nodeType;
 	uint32_t glomId;
 	NiPoint3 position;
-	NiQuaternion rotation;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
 	float scale = 1.0f;
 	//std::string settings;
 	uint32_t value3;

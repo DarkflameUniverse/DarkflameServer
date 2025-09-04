@@ -48,7 +48,7 @@ struct RacingPlayerInfo {
 	/**
 	 * Rotation that the player will respawn at if they smash their car
 	 */
-	NiQuaternion respawnRotation;
+	NiQuaternion respawnRotation = QuatUtils::IDENTITY;
 
 	/**
 	 * The index in the respawn point the player is now at

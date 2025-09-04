@@ -622,7 +622,7 @@ private:
 
 	NiPoint3 m_respawnPos;
 
-	NiQuaternion m_respawnRot;
+	NiQuaternion m_respawnRot = QuatUtils::IDENTITY;
 
 	std::map<LWOOBJID, Loot::Info> m_DroppedLoot;
 

@@ -45,7 +45,7 @@ protected:
 
 	NiPoint3 m_Position;
 
-	NiQuaternion m_Rotation;
+	NiQuaternion m_Rotation = QuatUtils::IDENTITY;
 
 	bool m_DirtyPosition;
 

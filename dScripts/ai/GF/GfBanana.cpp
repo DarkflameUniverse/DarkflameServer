@@ -10,8 +10,8 @@ void GfBanana::SpawnBanana(Entity* self) {
 	const auto rotation = self->GetRotation();
 
 	position.y += 12;
-	position.x -= rotation.GetRightVector().x * 5;
-	position.z -= rotation.GetRightVector().z * 5;
+	position.x -= QuatUtils::Right(rotation).x * 5;
+	position.z -= QuatUtils::Right(rotation).z * 5;
 
 	EntityInfo info{};
 
