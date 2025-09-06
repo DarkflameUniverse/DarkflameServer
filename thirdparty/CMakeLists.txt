@@ -47,6 +47,7 @@ if(UNIX AND NOT APPLE)
 		FetchContent_Declare(
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+			GIT_PROGRESS TRUE
 		)
 
 		FetchContent_MakeAvailable(backtrace)
