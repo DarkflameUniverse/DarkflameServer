@@ -20,6 +20,8 @@
 #include "Game.h"
 #include "Logger.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 enum eInventoryType : uint32_t;
 enum class eObjectBits : size_t;
 enum class eReplicaComponentType : uint32_t;
@@ -244,7 +246,7 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::string_view strX, const std::string_view strY, const std::string_view strZ) {
+	[[nodiscard]] std::optional<T> TryParse(const std::string_view strX, const std::string_view strY, const std::string_view strZ) {
 		const auto x = TryParse<float>(strX);
 		if (!x) return std::nullopt;
 
@@ -252,7 +254,7 @@ namespace GeneralUtils {
 		if (!y) return std::nullopt;
 
 		const auto z = TryParse<float>(strZ);
-		return z ? std::make_optional<NiPoint3>(x.value(), y.value(), z.value()) : std::nullopt;
+		return z ? std::make_optional<T>(x.value(), y.value(), z.value()) : std::nullopt;
 	}
 
 	/**
@@ -261,8 +263,8 @@ namespace GeneralUtils {
 	 * @returns An std::optional containing the desired NiPoint3 if it can be constructed from the string parameters
 	*/
 	template <typename T>
-	[[nodiscard]] std::optional<NiPoint3> TryParse(const std::span<const std::string> str) {
-		return (str.size() == 3) ? TryParse<NiPoint3>(str[0], str[1], str[2]) : std::nullopt;
+	[[nodiscard]] std::optional<T> TryParse(const std::span<const std::string> str) {
+		return (str.size() == 3) ? TryParse<T>(str[0], str[1], str[2]) : std::nullopt;
 	}
 
 	template <typename T>

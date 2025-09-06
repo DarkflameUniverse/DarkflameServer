@@ -18,7 +18,7 @@ void NtSentinelWalkwayServer::OnStartup(Entity* self) {
 		force = 115;
 	}
 
-	const auto forward = self->GetRotation().GetRightVector() * -1;
+	const auto forward = QuatUtils::Right(self->GetRotation()) * -1;
 
 	phantomPhysicsComponent->SetEffectType(ePhysicsEffectType::PUSH);
 	phantomPhysicsComponent->SetDirectionalMultiplier(force);

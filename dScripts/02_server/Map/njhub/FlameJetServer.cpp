@@ -27,7 +27,7 @@ void FlameJetServer::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	skillComponent->CalculateBehavior(726, 11723, target->GetObjectID(), true);
 
-	auto dir = target->GetRotation().GetForwardVector();
+	auto dir = QuatUtils::Forward(target->GetRotation());
 
 	dir.y = 25;
 	dir.x = -dir.x * 15;

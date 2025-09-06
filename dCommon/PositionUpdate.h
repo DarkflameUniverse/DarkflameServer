@@ -24,7 +24,7 @@ struct LocalSpaceInfo {
 
 struct PositionUpdate {
 	NiPoint3 position = NiPoint3Constant::ZERO;
-	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
 	bool onGround = false;
 	bool onRail = false;
 	NiPoint3 velocity = NiPoint3Constant::ZERO;

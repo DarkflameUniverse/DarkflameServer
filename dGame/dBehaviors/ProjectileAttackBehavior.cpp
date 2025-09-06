@@ -92,7 +92,7 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 	const auto time = distance / this->m_projectileSpeed;
 
-	const auto rotation = NiQuaternion::LookAtUnlocked(position, other->GetPosition());
+	const auto rotation = QuatUtils::LookAtUnlocked(position, other->GetPosition());
 
 	const auto targetPosition = other->GetPosition();
 
@@ -112,13 +112,13 @@ void ProjectileAttackBehavior::Calculate(BehaviorContext* context, RakNet::BitSt
 
 		bitStream.Write(id);
 
-		auto eulerAngles = rotation.GetEulerAngles();
+		auto eulerAngles = QuatUtils::Euler(rotation);
 
-		eulerAngles.y += angle * (3.14 / 180);
+		eulerAngles.y += angle * (glm::pi<float>() / 180.0f);
 
-		const auto angledRotation = NiQuaternion::FromEulerAngles(eulerAngles);
+		const auto angledRotation = QuatUtils::FromEuler(eulerAngles);
 
-		const auto direction = angledRotation.GetForwardVector();
+		const auto direction = QuatUtils::Forward(angledRotation);
 
 		const auto destination = position + direction * distance;
 

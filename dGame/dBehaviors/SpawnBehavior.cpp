@@ -36,7 +36,7 @@ void SpawnBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bitStrea
 	info.spawner = nullptr;
 	info.spawnerID = context->originator;
 	info.spawnerNodeID = 0;
-	info.pos = info.pos + (info.rot.GetForwardVector() * m_Distance);
+	info.pos = info.pos + (QuatUtils::Forward(info.rot) * m_Distance);
 
 	auto* entity = Game::entityManager->CreateEntity(
 		info,

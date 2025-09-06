@@ -68,7 +68,7 @@ private:
 	bool m_IsStatic;
 
 	NiPoint3 m_Position;
-	NiQuaternion m_Rotation;
+	NiQuaternion m_Rotation = QuatUtils::IDENTITY;
 	float m_Scale;
 
 	NiPoint3 m_Velocity;

@@ -168,7 +168,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	const auto originatorPosition = originator->GetPosition();
 
-	m_Parent->SetRotation(NiQuaternion::LookAt(petPosition, originatorPosition));
+	m_Parent->SetRotation(QuatUtils::LookAt(petPosition, originatorPosition));
 
 	float interactionDistance = m_Parent->GetVar<float>(u"interaction_distance");
 	if (interactionDistance <= 0) {
@@ -177,7 +177,7 @@ void PetComponent::OnUse(Entity* originator) {
 
 	auto position = originatorPosition;
 
-	NiPoint3 forward = NiQuaternion::LookAt(m_Parent->GetPosition(), originator->GetPosition()).GetForwardVector();
+	NiPoint3 forward = QuatUtils::Forward(QuatUtils::LookAt(m_Parent->GetPosition(), originator->GetPosition()));
 	forward.y = 0;
 
 	if (dpWorld::IsLoaded()) {
@@ -186,7 +186,7 @@ void PetComponent::OnUse(Entity* originator) {
 		NiPoint3 nearestPoint = dpWorld::GetNavMesh()->NearestPoint(attempt);
 
 		while (std::abs(nearestPoint.y - petPosition.y) > 4 && interactionDistance > 10) {
-			const NiPoint3 forward = m_Parent->GetRotation().GetForwardVector();
+			const NiPoint3 forward = QuatUtils::Forward(m_Parent->GetRotation());
 
 			attempt = originatorPosition + forward * interactionDistance;
 
@@ -200,7 +200,7 @@ void PetComponent::OnUse(Entity* originator) {
 		position = petPosition + forward * interactionDistance;
 	}
 
-	auto rotation = NiQuaternion::LookAt(position, petPosition);
+	auto rotation = QuatUtils::LookAt(position, petPosition);
 
 	GameMessages::SendNotifyPetTamingMinigame(
 		originator->GetObjectID(),
@@ -460,7 +460,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	EntityInfo info{};
 	info.lot = entry->puzzleModelLot;
 	info.pos = position;
-	info.rot = NiQuaternionConstant::IDENTITY;
+	info.rot = QuatUtils::IDENTITY;
 	info.spawnerID = tamer->GetObjectID();
 
 	auto* modelEntity = Game::entityManager->CreateEntity(info);
@@ -522,7 +522,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		ePetTamingNotifyType::NAMINGPET,
 		NiPoint3Constant::ZERO,
 		NiPoint3Constant::ZERO,
-		NiQuaternionConstant::IDENTITY,
+		QuatUtils::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -601,7 +601,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		ePetTamingNotifyType::SUCCESS,
 		NiPoint3Constant::ZERO,
 		NiPoint3Constant::ZERO,
-		NiQuaternionConstant::IDENTITY,
+		QuatUtils::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -645,7 +645,7 @@ void PetComponent::ClientExitTamingMinigame(bool voluntaryExit) {
 		ePetTamingNotifyType::QUIT,
 		NiPoint3Constant::ZERO,
 		NiPoint3Constant::ZERO,
-		NiQuaternionConstant::IDENTITY,
+		QuatUtils::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 
@@ -696,7 +696,7 @@ void PetComponent::ClientFailTamingMinigame() {
 		ePetTamingNotifyType::FAILED,
 		NiPoint3Constant::ZERO,
 		NiPoint3Constant::ZERO,
-		NiQuaternionConstant::IDENTITY,
+		QuatUtils::IDENTITY,
 		UNASSIGNED_SYSTEM_ADDRESS
 	);
 

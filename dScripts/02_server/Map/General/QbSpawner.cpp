@@ -45,13 +45,13 @@ void QbSpawner::OnTimerDone(Entity* self, std::string timerName) {
 		if (!gate) return;
 
 		auto oPos = gate->GetPosition();
-		auto oDir = gate->GetRotation().GetForwardVector();
+		auto oDir = QuatUtils::Forward(gate->GetRotation());
 		NiPoint3 newPos(
 			oPos.x + (oDir.x * spawnDist),
 			oPos.y,
 			oPos.z + (oDir.z * spawnDist)
 		);
-		auto newRot = NiQuaternion::LookAt(newPos, oPos);
+		auto newRot = QuatUtils::LookAt(newPos, oPos);
 
 		for (int i = 0; i < mobTable.size(); i++) {
 			int posOffset = -10;

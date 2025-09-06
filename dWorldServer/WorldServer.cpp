@@ -1048,7 +1048,7 @@ void HandlePacket(Packet* packet) {
 				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
 
 				if (respawnPoint != NiPoint3Constant::ZERO) {
-					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, NiQuaternionConstant::IDENTITY);
+					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, QuatUtils::IDENTITY);
 				}
 
 				Game::entityManager->ConstructAllEntities(packet->systemAddress);

@@ -66,7 +66,7 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 		const auto position = self->GetPosition();
 		const auto rotation = self->GetRotation();
 
-		const auto backwardVector = rotation.GetForwardVector() * -1;
+		const auto backwardVector = QuatUtils::Forward(rotation) * -1;
 		const auto objectPosition = NiPoint3(
 			position.GetX() - (backwardVector.GetX() * 8),
 			position.GetY(),

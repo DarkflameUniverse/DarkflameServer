@@ -129,7 +129,7 @@ void AmShieldGenerator::EnemyEnteredShield(Entity* self, Entity* intruder) {
 		return;
 	}
 
-	auto dir = intruder->GetRotation().GetForwardVector() * -1;
+	auto dir = QuatUtils::Forward(intruder->GetRotation()) * -1;
 	dir.y += 15;
 	dir.x *= 50;
 	dir.z *= 50;

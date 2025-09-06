@@ -767,7 +767,7 @@ void BaseCombatAIComponent::LookAt(const NiPoint3& point) {
 		return;
 	}
 
-	m_Parent->SetRotation(NiQuaternion::LookAt(m_Parent->GetPosition(), point));
+	m_Parent->SetRotation(QuatUtils::LookAt(m_Parent->GetPosition(), point));
 }
 
 void BaseCombatAIComponent::SetDisabled(bool value) {

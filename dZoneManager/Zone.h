@@ -71,7 +71,7 @@ struct RacingPathWaypoint {
 
 struct PathWaypoint {
 	NiPoint3 position;
-	NiQuaternion rotation; // not included in all, but it's more convenient here
+	NiQuaternion rotation = QuatUtils::IDENTITY; // not included in all, but it's more convenient here
 	MovingPlatformPathWaypoint movingPlatform;
 	CameraPathWaypoint camera;
 	RacingPathWaypoint racing;
@@ -237,7 +237,7 @@ private:
 	uint32_t m_CheckSum;
 	uint32_t m_WorldID; //should be equal to the MapID
 	NiPoint3 m_Spawnpoint;
-	NiQuaternion m_SpawnpointRotation;
+	NiQuaternion m_SpawnpointRotation = QuatUtils::IDENTITY;
 	uint32_t m_SceneCount;
 
 	std::string m_ZonePath; //Path to the .luz's folder

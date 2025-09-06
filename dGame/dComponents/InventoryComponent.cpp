@@ -1279,7 +1279,7 @@ void InventoryComponent::SpawnPet(Item* item) {
 	EntityInfo info{};
 	info.lot = item->GetLot();
 	info.pos = m_Parent->GetPosition();
-	info.rot = NiQuaternionConstant::IDENTITY;
+	info.rot = QuatUtils::IDENTITY;
 	info.spawnerID = m_Parent->GetObjectID();
 
 	auto* pet = Game::entityManager->CreateEntity(info);

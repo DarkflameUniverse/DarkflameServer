@@ -65,7 +65,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 	} else if (timerName == "PlayerAnimDone") {
 		GameMessages::SendStopFXEffect(player, true, "hook");
 
-		auto forward = self->GetRotation().GetForwardVector();
+		auto forward = QuatUtils::Forward(self->GetRotation());
 
 		const auto degrees = -25.0f;
 
@@ -81,7 +81,7 @@ void MastTeleport::OnTimerDone(Entity* self, std::string timerName) {
 
 		GameMessages::SendOrientToAngle(playerId, true, rads, player->GetSystemAddress());
 
-		GameMessages::SendTeleport(playerId, position, NiQuaternionConstant::IDENTITY, player->GetSystemAddress());
+		GameMessages::SendTeleport(playerId, position, QuatUtils::IDENTITY, player->GetSystemAddress());
 
 		GameMessages::SendSetStunned(playerId, eStateChangeType::POP, player->GetSystemAddress(),
 			LWOOBJID_EMPTY, true, true, true, true, true, true, true

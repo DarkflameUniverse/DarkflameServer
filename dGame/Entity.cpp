@@ -304,7 +304,7 @@ void Entity::Initialize() {
 			//If we came from another zone, put us in the starting loc
 			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
 				NiPoint3 pos;
-				NiQuaternion rot;
+				NiQuaternion rot = QuatUtils::IDENTITY;
 
 				const auto& targetSceneName = m_Character->GetTargetScene();
 				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
@@ -1882,7 +1882,7 @@ const NiQuaternion& Entity::GetRotation() const {
 		return rigidBodyPhantomPhysicsComponent->GetRotation();
 	}
 
-	return NiQuaternionConstant::IDENTITY;
+	return QuatUtils::IDENTITY;
 }
 
 void Entity::SetPosition(const NiPoint3& position) {
@@ -2178,7 +2178,7 @@ const NiPoint3& Entity::GetRespawnPosition() const {
 
 const NiQuaternion& Entity::GetRespawnRotation() const {
 	auto* characterComponent = GetComponent<CharacterComponent>();
-	return characterComponent ? characterComponent->GetRespawnRotation() : NiQuaternionConstant::IDENTITY;
+	return characterComponent ? characterComponent->GetRespawnRotation() : QuatUtils::IDENTITY;
 }
 
 void Entity::SetRespawnPos(const NiPoint3& position) const {

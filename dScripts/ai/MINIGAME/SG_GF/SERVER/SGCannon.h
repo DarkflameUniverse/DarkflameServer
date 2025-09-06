@@ -22,7 +22,7 @@ struct SGEnemy {
 
 struct SGConstants {
 	Vector3 playerStartPosition;
-	Quaternion playerStartRotation;
+	Quaternion playerStartRotation = QuatUtils::IDENTITY;
 	LOT cannonLot;
 	uint32_t impactSkillID;
 	LOT projectileLot;

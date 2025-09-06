@@ -88,7 +88,7 @@ void BossSpiderQueenEnemyServer::WithdrawSpider(Entity* self, const bool withdra
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"SetColGroup", 10, 0, 0, "", UNASSIGNED_SYSTEM_ADDRESS);
 
 		//First rotate for anim
-		NiQuaternion rot = NiQuaternionConstant::IDENTITY;
+		NiQuaternion rot = QuatUtils::IDENTITY;
 
 		controllable->SetStatic(false);
 
@@ -405,7 +405,7 @@ void BossSpiderQueenEnemyServer::OnTimerDone(Entity* self, const std::string tim
 		const auto withdrawn = self->GetBoolean(u"isWithdrawn");
 		if (!withdrawn) return;
 
-		NiQuaternion rot = NiQuaternionConstant::IDENTITY;
+		NiQuaternion rot = QuatUtils::IDENTITY;
 
 		//First rotate for anim
 		controllable->SetStatic(false);
@@ -600,12 +600,12 @@ void BossSpiderQueenEnemyServer::OnUpdate(Entity* self) {
 
 	if (!isWithdrawn) return;
 
-	if (controllable->GetRotation() == NiQuaternionConstant::IDENTITY) {
+	if (controllable->GetRotation() == QuatUtils::IDENTITY) {
 		return;
 	}
 
 	controllable->SetStatic(false);
-	controllable->SetRotation(NiQuaternionConstant::IDENTITY);
+	controllable->SetRotation(QuatUtils::IDENTITY);
 	controllable->SetStatic(true);
 
 	Game::entityManager->SerializeEntity(self);

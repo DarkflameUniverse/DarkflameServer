@@ -17,6 +17,8 @@
 #include "EntityManager.h"
 #include "MovementAIComponent.h"
 
+#include <glm/gtc/quaternion.hpp>
+
 TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo) : Component(parent) {
 	m_Parent = parent;
 	m_Trigger = nullptr;
@@ -240,10 +242,9 @@ void TriggerComponent::HandleMoveObject(Entity* targetEntity, std::vector<std::s
 void TriggerComponent::HandleRotateObject(Entity* targetEntity, std::vector<std::string> argArray) {
 	if (argArray.size() <= 2) return;
 
-	const NiPoint3 vector = GeneralUtils::TryParse<NiPoint3>(argArray).value_or(NiPoint3Constant::ZERO);
+	const auto vector = GeneralUtils::TryParse<glm::vec3>(argArray).value_or(glm::zero<glm::vec3>());
 
-	NiQuaternion rotation = NiQuaternion::FromEulerAngles(vector);
-	targetEntity->SetRotation(rotation);
+	targetEntity->SetRotation(glm::quat(vector));
 }
 
 void TriggerComponent::HandlePushObject(Entity* targetEntity, std::vector<std::string> argArray) {

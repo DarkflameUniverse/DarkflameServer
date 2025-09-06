@@ -125,7 +125,7 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		if (targetPos.y > reference.y && heightDifference > this->m_upperBound || targetPos.y < reference.y && heightDifference > this->m_lowerBound)
 			continue;
 
-		const auto forward = self->GetRotation().GetForwardVector();
+		const auto forward = QuatUtils::Forward(self->GetRotation());
 
 		// forward is a normalized vector of where the caster is facing.
 		// targetPos is the position of the target.

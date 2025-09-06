@@ -18,7 +18,6 @@ class AMFBaseValue;
 class AMFArrayValue;
 class Entity;
 class Item;
-class NiQuaternion;
 class User;
 class Leaderboard;
 class PropertySelectQueryProperty;
@@ -765,7 +764,7 @@ namespace GameMessages {
 		void Handle(Entity& entity, const SystemAddress& sysAddr) override;
 
 		NiPoint3 target{};
-		NiQuaternion rotation{};
+		NiQuaternion rotation = QuatUtils::IDENTITY;
 	};
 
 	struct ChildLoaded : public GameMsg {

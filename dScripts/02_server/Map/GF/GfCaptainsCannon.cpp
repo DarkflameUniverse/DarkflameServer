@@ -21,7 +21,7 @@ void GfCaptainsCannon::OnUse(Entity* self, Entity* user) {
 	);
 
 	auto position = self->GetPosition();
-	auto forward = self->GetRotation().GetForwardVector();
+	auto forward = QuatUtils::Forward(self->GetRotation());
 
 	position.x += forward.x * -3;
 	position.z += forward.z * -3;

@@ -36,7 +36,7 @@ void AgSpiderBossMessage::OnCollisionPhantom(Entity* self, Entity* target) {
 
 	auto box = GetBox(self);
 	// knockback the target
-	auto forward = self->GetRotation().GetForwardVector();
+	auto forward = QuatUtils::Forward(self->GetRotation());
 	box.boxTarget = target->GetObjectID();
 	GameMessages::SendPlayFXEffect(target->GetObjectID(), 1378, u"create", "pushBack");
 	RenderComponent::PlayAnimation(target, "knockback-recovery");

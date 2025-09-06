@@ -273,7 +273,7 @@ void NsConcertInstrument::RepositionPlayer(Entity* self, Entity* player) {
 	case Keyboard:
 		position.SetX(position.GetX() - 0.45f);
 		position.SetZ(position.GetZ() + 0.75f);
-		rotation = NiQuaternion::CreateFromAxisAngle(position, -0.8f); // Slight rotation to make the animation sensible
+		rotation = QuatUtils::AxisAngle(position, -0.8f); // Slight rotation to make the animation sensible
 		break;
 	case Drum:
 		position.SetZ(position.GetZ() - 0.5f);
