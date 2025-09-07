@@ -3,6 +3,8 @@
 #include "BehaviorContext.h"
 #include "EntityManager.h"
 
+#include <glm/gtc/quaternion.hpp>
+
 void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitStream, BehaviorBranchContext branch) {
 	Entity* sourceEntity;
 	if (this->m_orientCaster) sourceEntity = Game::entityManager->GetEntity(context->originator);
@@ -16,12 +18,12 @@ void ChangeOrientationBehavior::Calculate(BehaviorContext* context, RakNet::BitS
 		if (!destinationEntity) return;
 
 		sourceEntity->SetRotation(
-			NiQuaternion::LookAt(sourceEntity->GetPosition(), destinationEntity->GetPosition())
+			QuatUtils::LookAt(sourceEntity->GetPosition(), destinationEntity->GetPosition())
 		);
 	} else if (this->m_toAngle){
 		auto baseAngle = NiPoint3(0, 0, this->m_angle);
-		if (this->m_relative) baseAngle += sourceEntity->GetRotation().GetForwardVector();
-		sourceEntity->SetRotation(NiQuaternion::FromEulerAngles(baseAngle));
+		if (this->m_relative) baseAngle += QuatUtils::Forward(sourceEntity->GetRotation());
+		sourceEntity->SetRotation(glm::quat(glm::vec3(baseAngle.x, baseAngle.y, baseAngle.z)));
 	} else return;
 	Game::entityManager->SerializeEntity(sourceEntity);
 	return;

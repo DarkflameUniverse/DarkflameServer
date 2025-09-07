@@ -13,7 +13,7 @@ public:
 		}
 
 		NiPoint3 position;
-		NiQuaternion rotation;
+		NiQuaternion rotation = QuatUtils::IDENTITY;
 		LWOOBJID id{};
 		LOT lot{};
 		uint32_t ugcId{};

@@ -198,7 +198,7 @@ private:
 	/**
 	 * The rotation original of the model
 	 */
-	NiQuaternion m_OriginalRotation;
+	NiQuaternion m_OriginalRotation = QuatUtils::IDENTITY;
 
 	/**
 	 * The ID of the user that made the model

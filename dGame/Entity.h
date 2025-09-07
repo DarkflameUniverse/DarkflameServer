@@ -357,7 +357,7 @@ private:
 	std::vector<LDFBaseData*> m_NetworkSettings;
 
 	NiPoint3 m_DefaultPosition;
-	NiQuaternion m_DefaultRotation;
+	NiQuaternion m_DefaultRotation = QuatUtils::IDENTITY;
 	float m_Scale;
 
 	Spawner* m_Spawner;

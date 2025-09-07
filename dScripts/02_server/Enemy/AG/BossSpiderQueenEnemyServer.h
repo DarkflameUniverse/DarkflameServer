@@ -52,7 +52,7 @@ private:
 	ControllablePhysicsComponent* controllable = nullptr;
 	BaseCombatAIComponent* combat = nullptr;
 
-	NiQuaternion originRotation;
+	NiQuaternion originRotation = QuatUtils::IDENTITY;
 
 	int m_CurrentBossStage = 0;
 	int m_DeathCounter = 0;

@@ -17,7 +17,7 @@
 
 PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Component(parent) {
 	m_Position = NiPoint3Constant::ZERO;
-	m_Rotation = NiQuaternionConstant::IDENTITY;
+	m_Rotation = QuatUtils::IDENTITY;
 	m_DirtyPosition = false;
 
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
@@ -81,10 +81,10 @@ dpEntity* PhysicsComponent::CreatePhysicsEntity(eReplicaComponentType type) {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 12.5f, 20.0f); // Not sure what the real size is
 	} else if (info->physicsAsset == "env\\NG_NinjaGo\\env_ng_gen_gate_chamber_puzzle_ceiling_tile_falling_phantom.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 18.0f, 5.0f, 15.0f);
-		m_Position += m_Rotation.GetForwardVector() * 7.5f;
+		m_Position += QuatUtils::Forward(m_Rotation) * 7.5f;
 	} else if (info->physicsAsset == "env\\NG_NinjaGo\\ng_flamejet_brick_phantom.HKX") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 1.0f, 1.0f, 12.0f);
-		m_Position += m_Rotation.GetForwardVector() * 6.0f;
+		m_Position += QuatUtils::Forward(m_Rotation) * 6.0f;
 	} else if (info->physicsAsset == "env\\Ring_Trigger.hkx") {
 		toReturn = new dpEntity(m_Parent->GetObjectID(), 6.0f, 6.0f, 6.0f);
 	} else if (info->physicsAsset == "env\\vfx_propertyImaginationBall.hkx") {

@@ -48,7 +48,7 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 	RenderComponent::PlayAnimation(user, shockAnim);
 
-	const auto dir = self->GetRotation().GetRightVector();
+	const auto dir = QuatUtils::Right(self->GetRotation());
 
 	GameMessages::SendKnockback(user->GetObjectID(), self->GetObjectID(), self->GetObjectID(), 0, { dir.x * 15, 5, dir.z * 15 });
 

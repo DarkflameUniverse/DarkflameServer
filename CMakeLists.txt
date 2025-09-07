@@ -306,7 +306,7 @@ add_subdirectory(dServer)
 add_subdirectory(dWeb)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")
+set(COMMON_LIBRARIES glm::glm "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)

@@ -138,7 +138,7 @@ void Strip::Spawn(LOT lot, Entity& entity) {
 	EntityInfo info{};
 	info.lot = lot;
 	info.pos = entity.GetPosition();
-	info.rot = NiQuaternionConstant::IDENTITY;
+	info.rot = QuatUtils::IDENTITY;
 	info.spawnerID = entity.GetObjectID();
 	auto* const spawnedEntity = Game::entityManager->CreateEntity(info, nullptr, &entity);
 	spawnedEntity->AddToGroup("SpawnedPropertyEnemies");

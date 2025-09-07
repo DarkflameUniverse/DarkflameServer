@@ -654,7 +654,7 @@ private:
 	/**
 	 * The spawn rotation of this character when loading in
 	 */
-	NiQuaternion m_OriginalRotation;
+	NiQuaternion m_OriginalRotation = QuatUtils::IDENTITY;
 
 	/**
 	 * The respawn points of this character, per world

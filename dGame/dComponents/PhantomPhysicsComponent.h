@@ -175,5 +175,5 @@ private:
 	/**
 	 * If this is a respawn volume, the exact rotation an entity will respawn
 	 */
-	NiQuaternion m_RespawnRot;
+	NiQuaternion m_RespawnRot = QuatUtils::IDENTITY;
 };

@@ -389,7 +389,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	float fMoveTimeElapsed = 0.0f;
 	float fPercentBetweenPoints = 0.0f;
 	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
-	NiQuaternion qUnexpectedRotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion qUnexpectedRotation = QuatUtils::IDENTITY;
 
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
@@ -406,8 +406,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(ptUnexpectedLocation.y);
 	bitStream.Write(ptUnexpectedLocation.z);
 
-	bitStream.Write(qUnexpectedRotation != NiQuaternionConstant::IDENTITY);
-	if (qUnexpectedRotation != NiQuaternionConstant::IDENTITY) {
+	bitStream.Write(qUnexpectedRotation != QuatUtils::IDENTITY);
+	if (qUnexpectedRotation != QuatUtils::IDENTITY) {
 		bitStream.Write(qUnexpectedRotation.x);
 		bitStream.Write(qUnexpectedRotation.y);
 		bitStream.Write(qUnexpectedRotation.z);
@@ -1181,7 +1181,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
+	const bool bIsNotIdentity = rotation != QuatUtils::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
 
 	if (bIsNotIdentity) {
@@ -2129,8 +2129,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
-	bitStream.Write(rotation != NiQuaternionConstant::IDENTITY);
-	if (rotation != NiQuaternionConstant::IDENTITY) {
+	bitStream.Write(rotation != QuatUtils::IDENTITY);
+	if (rotation != QuatUtils::IDENTITY) {
 		bitStream.Write(response);
 	}
 
@@ -2395,13 +2395,13 @@ void GameMessages::HandlePlacePropertyModel(RakNet::BitStream& inStream, Entity*
 
 	inStream.Read(model);
 
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, NiQuaternionConstant::IDENTITY);
+	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, QuatUtils::IDENTITY);
 }
 
 void GameMessages::HandleUpdatePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID model;
 	NiPoint3 position;
-	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
 
 	inStream.Read(model);
 	inStream.Read(position);
@@ -3400,7 +3400,7 @@ void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId
 	bitStream.Write(petsDestPos);
 	bitStream.Write(telePos);
 
-	const bool hasDefault = teleRot != NiQuaternionConstant::IDENTITY;
+	const bool hasDefault = teleRot != QuatUtils::IDENTITY;
 	bitStream.Write(hasDefault);
 	if (hasDefault) bitStream.Write(teleRot);
 
