@@ -57,16 +57,16 @@ TEST_F(GameMessageTests, SendBlueprintLoadItemResponse) {
 	ASSERT_EQ(bitStream->GetNumberOfUnreadBits(), 200);
 	// First read in the packets' header
 	uint8_t rakNetPacketId{};
-	uint16_t remoteConnectionType{};
+	uint16_t remoteServiceType{};
 	uint32_t packetId{};
 	uint8_t always0{};
 
 	bitStream->Read(rakNetPacketId);
-	bitStream->Read(remoteConnectionType);
+	bitStream->Read(remoteServiceType);
 	bitStream->Read(packetId);
 	bitStream->Read(always0);
 	ASSERT_EQ(rakNetPacketId, 0x53);
-	ASSERT_EQ(remoteConnectionType, 0x05);
+	ASSERT_EQ(remoteServiceType, 0x5);
 	ASSERT_EQ(packetId, 0x17);
 	ASSERT_EQ(always0, 0x00);
 

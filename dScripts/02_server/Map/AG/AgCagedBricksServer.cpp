@@ -24,6 +24,6 @@ void AgCagedBricksServer::OnUse(Entity* self, Entity* user) {
 	auto inv = static_cast<InventoryComponent*>(user->GetComponent(eReplicaComponentType::INVENTORY));
 
 	if (inv) {
-		inv->RemoveItem(14553, 1);
+		inv->RemoveItem(14553, 1, eInventoryType::ALL);
 	}
 }

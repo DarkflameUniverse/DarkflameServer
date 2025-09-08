@@ -25,7 +25,7 @@
 #include "WorldConfig.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "User.h"
 #include "StringifiedEnum.h"
 
@@ -106,7 +106,7 @@ namespace Mail {
 					// Remove coins and items from the sender
 					player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
 					if (inventoryComponent && hasAttachment && item) {
-						removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, INVALID, true);
+						removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, ALL, true);
 						auto* missionComponent = player->GetComponent<MissionComponent>();
 						if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
 					}

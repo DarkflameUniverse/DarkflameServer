@@ -54,6 +54,7 @@ elseif (WIN32)
 		zlib
 		URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
 		URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
+		GIT_PROGRESS TRUE
 	)
 
 	# Disable warning about no project version.
@@ -74,5 +75,6 @@ else ()
 endif ()
 
 target_link_libraries(dCommon
+	PUBLIC glm::glm
 	PRIVATE ZLIB::ZLIB bcrypt tinyxml2
 	INTERFACE dDatabase)

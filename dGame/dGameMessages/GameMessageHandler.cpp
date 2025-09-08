@@ -32,7 +32,7 @@
 #include "EchoSyncSkill.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Game.h"
 #include "ePlayerFlag.h"
 #include "dConfig.h"
@@ -353,7 +353,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 		if (success) {
 			//Broadcast our startSkill:
 			RakNet::BitStream bitStreamLocal;
-			BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
+			BitStreamUtils::WriteHeader(bitStreamLocal, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
 			bitStreamLocal.Write(entity->GetObjectID());
 
 			EchoStartSkill echoStartSkill;
@@ -375,7 +375,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::SYNC_SKILL: {
 		RakNet::BitStream bitStreamLocal;
-		BitStreamUtils::WriteHeader(bitStreamLocal, eConnectionType::CLIENT, MessageType::Client::GAME_MSG);
+		BitStreamUtils::WriteHeader(bitStreamLocal, ServiceType::CLIENT, MessageType::Client::GAME_MSG);
 		bitStreamLocal.Write(entity->GetObjectID());
 
 		SyncSkill sync = SyncSkill(inStream); // inStream replaced &bitStream

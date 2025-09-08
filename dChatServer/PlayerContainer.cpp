@@ -8,7 +8,7 @@
 #include "GeneralUtils.h"
 #include "BitStreamUtils.h"
 #include "Database.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "ChatPackets.h"
 #include "dConfig.h"
 #include "MessageType/Chat.h"
@@ -147,7 +147,7 @@ void PlayerContainer::MuteUpdate(Packet* packet) {
 
 void PlayerContainer::BroadcastMuteUpdate(LWOOBJID player, time_t time) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::GM_MUTE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
 
 	bitStream.Write(player);
 	bitStream.Write(time);

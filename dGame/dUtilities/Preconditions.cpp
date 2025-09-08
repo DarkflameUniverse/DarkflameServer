@@ -130,9 +130,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::HasItem:
 		if (evaluateCosts) // As far as I know this is only used for quickbuilds, and removal shouldn't actually be handled here.
 		{
-			inventoryComponent->RemoveItem(value, count);
-
-			return true;
+			return inventoryComponent->RemoveItem(value, count, eInventoryType::ALL);
 		}
 
 		return inventoryComponent->GetLotCount(value) >= count;

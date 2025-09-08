@@ -64,12 +64,11 @@ void AchievementVendorComponent::Buy(Entity* buyer, LOT lot, uint32_t count) {
 	}
 
 	const uint32_t altCurrencyCost = itemComp.commendationCost * count;
-	if (inventoryComponent->GetLotCount(costLOT) < altCurrencyCost) {
+	if (inventoryComponent->GetLotCount(costLOT) < altCurrencyCost || !inventoryComponent->RemoveItem(costLOT, altCurrencyCost, eInventoryType::ALL)) {
 		GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_FAIL);
 		return;
 	}
 
-	inventoryComponent->RemoveItem(costLOT, altCurrencyCost);
 	inventoryComponent->AddItem(lot, count, eLootSourceType::VENDOR);
 	GameMessages::SendVendorTransactionResult(buyer, buyer->GetSystemAddress(), eVendorTransactionResult::PURCHASE_SUCCESS);
 

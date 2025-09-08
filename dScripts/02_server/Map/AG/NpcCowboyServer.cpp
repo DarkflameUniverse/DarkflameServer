@@ -22,7 +22,7 @@ void NpcCowboyServer::OnMissionDialogueOK(Entity* self, Entity* target, int miss
 			inventoryComponent->AddItem(14378, 1, eLootSourceType::NONE);
 		}
 	} else if (missionState == eMissionState::READY_TO_COMPLETE || missionState == eMissionState::COMPLETE_READY_TO_COMPLETE) {
-		inventoryComponent->RemoveItem(14378, 1);
+		inventoryComponent->RemoveItem(14378, 1, eInventoryType::ALL);
 	}
 
 	// Next up hide or show the samples based on the mission state

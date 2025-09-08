@@ -19,6 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debuggi
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(FETCHCONTENT_QUIET FALSE) # GLM takes a long time to clone, this will at least show _something_ while its downloading
 
 # Read variables from file
 FILE(READ "${CMAKE_SOURCE_DIR}/CMakeVariables.txt" variables)
@@ -306,7 +307,7 @@ add_subdirectory(dServer)
 add_subdirectory(dWeb)
 
 # Create a list of common libraries shared between all binaries
-set(COMMON_LIBRARIES "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")
+set(COMMON_LIBRARIES glm::glm "dCommon" "dDatabase" "dNet" "raknet" "magic_enum")
 
 # Add platform specific common libraries
 if(UNIX)

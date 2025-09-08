@@ -13,11 +13,11 @@
 // The only thing not auto-handled is instance activities force joining the team on the server.
 
 void WriteOutgoingReplyHeader(RakNet::BitStream& bitStream, const LWOOBJID& receivingPlayer, const MessageType::Client type) {
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receivingPlayer);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, type);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, type);
 }
 
 void ChatIgnoreList::GetIgnoreList(Packet* packet) {

@@ -4,7 +4,7 @@
 #include "GeneralUtils.h"
 #include "BitStream.h"
 #include "MessageIdentifiers.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include <string>
 #include <algorithm>
 
@@ -47,13 +47,13 @@ struct LUWString {
 };
 
 struct LUBitStream {
-	eConnectionType connectionType = eConnectionType::UNKNOWN;
+	ServiceType connectionType = ServiceType::UNKNOWN;
 	uint32_t internalPacketID = 0xFFFFFFFF;
 
 	LUBitStream() = default;
 
 	template <typename T> 
-	LUBitStream(eConnectionType connectionType, T internalPacketID) {
+	LUBitStream(ServiceType connectionType, T internalPacketID) {
 		this->connectionType = connectionType;
 		this->internalPacketID = static_cast<uint32_t>(internalPacketID);
 	}
@@ -71,9 +71,9 @@ struct LUBitStream {
 
 namespace BitStreamUtils {
 	template<typename T>
-	void WriteHeader(RakNet::BitStream& bitStream, eConnectionType connectionType, T internalPacketID) {
+	void WriteHeader(RakNet::BitStream& bitStream, ServiceType connectionType, T internalPacketID) {
 		bitStream.Write<MessageID>(ID_USER_PACKET_ENUM);
-		bitStream.Write<eConnectionType>(connectionType);
+		bitStream.Write<ServiceType>(connectionType);
 		bitStream.Write(static_cast<uint32_t>(internalPacketID));
 		bitStream.Write<uint8_t>(0);
 	}

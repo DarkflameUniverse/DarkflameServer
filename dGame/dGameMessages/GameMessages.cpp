@@ -40,7 +40,7 @@
 #include "eQuickBuildFailReason.h"
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "ePlayerFlag.h"
 
 #include <sstream>
@@ -389,7 +389,7 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	float fMoveTimeElapsed = 0.0f;
 	float fPercentBetweenPoints = 0.0f;
 	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
-	NiQuaternion qUnexpectedRotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion qUnexpectedRotation = QuatUtils::IDENTITY;
 
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);
@@ -406,8 +406,8 @@ void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAd
 	bitStream.Write(ptUnexpectedLocation.y);
 	bitStream.Write(ptUnexpectedLocation.z);
 
-	bitStream.Write(qUnexpectedRotation != NiQuaternionConstant::IDENTITY);
-	if (qUnexpectedRotation != NiQuaternionConstant::IDENTITY) {
+	bitStream.Write(qUnexpectedRotation != QuatUtils::IDENTITY);
+	if (qUnexpectedRotation != QuatUtils::IDENTITY) {
 		bitStream.Write(qUnexpectedRotation.x);
 		bitStream.Write(qUnexpectedRotation.y);
 		bitStream.Write(qUnexpectedRotation.z);
@@ -1181,7 +1181,7 @@ void GameMessages::SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPo
 	bitStream.Write(position.y);
 	bitStream.Write(position.z);
 
-	const bool bIsNotIdentity = rotation != NiQuaternionConstant::IDENTITY;
+	const bool bIsNotIdentity = rotation != QuatUtils::IDENTITY;
 	bitStream.Write(bIsNotIdentity);
 
 	if (bIsNotIdentity) {
@@ -2129,8 +2129,8 @@ void GameMessages::SendPlaceModelResponse(LWOOBJID objectId, const SystemAddress
 		bitStream.Write(response);
 	}
 
-	bitStream.Write(rotation != NiQuaternionConstant::IDENTITY);
-	if (rotation != NiQuaternionConstant::IDENTITY) {
+	bitStream.Write(rotation != QuatUtils::IDENTITY);
+	if (rotation != QuatUtils::IDENTITY) {
 		bitStream.Write(response);
 	}
 
@@ -2208,7 +2208,7 @@ void GameMessages::HandleUnUseModel(RakNet::BitStream& inStream, Entity* entity,
 
 	if (unknown) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
 		bitStream.Write(eBlueprintSaveResponseType::PlacementFailed); // Sending a non-zero error code here prevents the client from deleting its in progress build for some reason?
 		bitStream.Write<uint32_t>(0);
@@ -2395,13 +2395,13 @@ void GameMessages::HandlePlacePropertyModel(RakNet::BitStream& inStream, Entity*
 
 	inStream.Read(model);
 
-	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, NiQuaternionConstant::IDENTITY);
+	PropertyManagementComponent::Instance()->UpdateModelPosition(model, NiPoint3Constant::ZERO, QuatUtils::IDENTITY);
 }
 
 void GameMessages::HandleUpdatePropertyModel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	LWOOBJID model;
 	NiPoint3 position;
-	NiQuaternion rotation = NiQuaternionConstant::IDENTITY;
+	NiQuaternion rotation = QuatUtils::IDENTITY;
 
 	inStream.Read(model);
 	inStream.Read(position);
@@ -2460,7 +2460,7 @@ void GameMessages::HandleBBBLoadItemRequest(RakNet::BitStream& inStream, Entity*
 
 void GameMessages::SendBlueprintLoadItemResponse(const SystemAddress& sysAddr, bool success, LWOOBJID oldItemId, LWOOBJID newItemId) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_LOAD_RESPONSE_ITEMID);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_LOAD_RESPONSE_ITEMID);
 	bitStream.Write<uint8_t>(success);
 	bitStream.Write<LWOOBJID>(oldItemId);
 	bitStream.Write<LWOOBJID>(newItemId);
@@ -2652,7 +2652,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		uint32_t sd0Size{};
 		for (const auto& chunk : newSd0) sd0Size += chunk.size();
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
 		bitStream.Write(localId);
 		bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
 		bitStream.Write<uint32_t>(1);
@@ -3400,7 +3400,7 @@ void GameMessages::SendNotifyPetTamingMinigame(LWOOBJID objectId, LWOOBJID petId
 	bitStream.Write(petsDestPos);
 	bitStream.Write(telePos);
 
-	const bool hasDefault = teleRot != NiQuaternionConstant::IDENTITY;
+	const bool hasDefault = teleRot != QuatUtils::IDENTITY;
 	bitStream.Write(hasDefault);
 	if (hasDefault) bitStream.Write(teleRot);
 
@@ -4823,11 +4823,10 @@ void GameMessages::HandleBuybackFromVendor(RakNet::BitStream& inStream, Entity* 
 
 	if (Inventory::IsValidItem(itemComp.currencyLOT)) {
 		const uint32_t altCurrencyCost = std::floor(itemComp.altCurrencyCost * sellScalar) * count;
-		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost) {
+		if (inv->GetLotCount(itemComp.currencyLOT) < altCurrencyCost || !inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost, eInventoryType::ALL)) {
 			GameMessages::SendVendorTransactionResult(entity, sysAddr, eVendorTransactionResult::PURCHASE_FAIL);
 			return;
 		}
-		inv->RemoveItem(itemComp.currencyLOT, altCurrencyCost);
 	}
 
 	//inv->RemoveItem(count, -1, iObjID);
@@ -5508,10 +5507,18 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 			modules += u"1:" + (modToStr);
 			if (k + 1 != count) modules += u"+";
 
+			bool hasItem = false;
 			if (temp->GetLotCount(mod) > 0) {
-				inv->RemoveItem(mod, 1, TEMP_MODELS);
+				hasItem = inv->RemoveItem(mod, 1, TEMP_MODELS);
 			} else {
-				inv->RemoveItem(mod, 1);
+				hasItem = inv->RemoveItem(mod, 1, eInventoryType::ALL);
+			}
+
+			if (!hasItem) {
+				LOG("Player (%llu) attempted to finish a modular build without having all the required parts.", character->GetObjectID());
+				GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
+				GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
+				return;
 			}
 
 			// Doing this check for 1 singular mission that needs to know when you've swapped every part out during a car modular build.

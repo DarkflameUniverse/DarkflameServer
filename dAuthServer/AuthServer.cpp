@@ -20,7 +20,7 @@
 
 //Auth includes:
 #include "AuthPackets.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Server.h"
 #include "MessageType/Auth.h"
 
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
 	const auto externalIPString = Game::config->GetValue("external_ip");
 	if (!externalIPString.empty()) ourIP = externalIPString;
 
-	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServerType::Auth, Game::config, &Game::lastSignal, masterPassword);
+	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServiceType::AUTH, Game::config, &Game::lastSignal, masterPassword);
 
 	//Run it until server gets a kill message from Master:
 	auto t = std::chrono::high_resolution_clock::now();
@@ -167,11 +167,11 @@ void HandlePacket(Packet* packet) {
 	if (packet->length < 4) return;
 
 	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::SERVER) {
+		if (static_cast<ServiceType>(packet->data[1]) == ServiceType::COMMON) {
 			if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
 				AuthPackets::HandleHandshake(Game::server, packet);
 			}
-		} else if (static_cast<eConnectionType>(packet->data[1]) == eConnectionType::AUTH) {
+		} else if (static_cast<ServiceType>(packet->data[1]) == ServiceType::AUTH) {
 			if (static_cast<MessageType::Auth>(packet->data[3]) == MessageType::Auth::LOGIN_REQUEST) {
 				AuthPackets::HandleLoginRequest(Game::server, packet);
 			}

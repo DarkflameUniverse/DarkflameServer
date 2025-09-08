@@ -123,7 +123,7 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 
 	auto spawnPointEntities = Game::entityManager->GetEntitiesByLOT(4843);
 	auto startPosition = NiPoint3Constant::ZERO;
-	auto startRotation = NiQuaternionConstant::IDENTITY;
+	auto startRotation = QuatUtils::IDENTITY;
 	const std::string placementAsString = std::to_string(positionNumber);
 	for (auto entity : spawnPointEntities) {
 		if (!entity) continue;

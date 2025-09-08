@@ -46,23 +46,23 @@ void AmSkullkinTower::SpawnLegs(Entity* self, const std::string& loc) {
 	info.rot = newRot;
 
 	if (loc == "Right") {
-		const auto dir = rot.GetForwardVector();
+		const auto dir = QuatUtils::Forward(rot);
 		pos.x += dir.x * offset;
 		pos.z += dir.z * offset;
 		info.pos = pos;
 	} else if (loc == "Rear") {
-		const auto dir = rot.GetRightVector();
+		const auto dir = QuatUtils::Right(rot);
 		pos.x += dir.x * offset;
 		pos.z += dir.z * offset;
 		info.pos = pos;
 	} else if (loc == "Left") {
-		const auto dir = rot.GetForwardVector() * -1;
+		const auto dir = QuatUtils::Forward(rot) * -1;
 		pos.x += dir.x * offset;
 		pos.z += dir.z * offset;
 		info.pos = pos;
 	}
 
-	info.rot = NiQuaternion::LookAt(info.pos, self->GetPosition());
+	info.rot = QuatUtils::LookAt(info.pos, self->GetPosition());
 
 	auto* entity = Game::entityManager->CreateEntity(info, nullptr, self);
 

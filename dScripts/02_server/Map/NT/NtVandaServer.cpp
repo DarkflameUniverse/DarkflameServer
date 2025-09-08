@@ -8,7 +8,7 @@ void NtVandaServer::OnMissionDialogueOK(Entity* self, Entity* target, int missio
 	if (missionID == m_AlienPartMissionID && missionState == eMissionState::READY_TO_COMPLETE) {
 		auto* inventoryComponent = target->GetComponent<InventoryComponent>();
 		for (const auto& alienPartLot : m_AlienPartLots) {
-			inventoryComponent->RemoveItem(alienPartLot, 1);
+			inventoryComponent->RemoveItem(alienPartLot, 1, eInventoryType::ALL);
 		}
 	}
 	NtBcSubmitServer::OnMissionDialogueOK(self, target, missionID, missionState);

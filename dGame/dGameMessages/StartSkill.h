@@ -18,11 +18,11 @@ public:
 		iCastType = 0;
 		lastClickedPosit = NiPoint3Constant::ZERO;
 		optionalTargetID = LWOOBJID_EMPTY;
-		originatorRot = NiQuaternionConstant::IDENTITY;
+		originatorRot = QuatUtils::IDENTITY;
 		uiSkillHandle = 0;
 	}
 
-	StartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, LWOOBJID _consumableItemID = LWOOBJID_EMPTY, float _fCasterLatency = 0.0f, int32_t _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3Constant::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = NiQuaternionConstant::IDENTITY, uint32_t _uiSkillHandle = 0) {
+	StartSkill(LWOOBJID _optionalOriginatorID, std::string _sBitStream, TSkillID _skillID, bool _bUsedMouse = false, LWOOBJID _consumableItemID = LWOOBJID_EMPTY, float _fCasterLatency = 0.0f, int32_t _iCastType = 0, NiPoint3 _lastClickedPosit = NiPoint3Constant::ZERO, LWOOBJID _optionalTargetID = LWOOBJID_EMPTY, NiQuaternion _originatorRot = QuatUtils::IDENTITY, uint32_t _uiSkillHandle = 0) {
 		bUsedMouse = _bUsedMouse;
 		consumableItemID = _consumableItemID;
 		fCasterLatency = _fCasterLatency;
@@ -65,8 +65,8 @@ public:
 		stream.Write(optionalTargetID != LWOOBJID_EMPTY);
 		if (optionalTargetID != LWOOBJID_EMPTY) stream.Write(optionalTargetID);
 
-		stream.Write(originatorRot != NiQuaternionConstant::IDENTITY);
-		if (originatorRot != NiQuaternionConstant::IDENTITY) stream.Write(originatorRot);
+		stream.Write(originatorRot != QuatUtils::IDENTITY);
+		if (originatorRot != QuatUtils::IDENTITY) stream.Write(originatorRot);
 
 		uint32_t sBitStreamLength = sBitStream.length();
 		stream.Write(sBitStreamLength);
@@ -133,7 +133,7 @@ public:
 	NiPoint3 lastClickedPosit{};
 	LWOOBJID optionalOriginatorID{};
 	LWOOBJID optionalTargetID{};
-	NiQuaternion originatorRot{};
+	NiQuaternion originatorRot = QuatUtils::IDENTITY;
 	std::string sBitStream = "";
 	TSkillID skillID = 0;
 	uint32_t uiSkillHandle = 0;

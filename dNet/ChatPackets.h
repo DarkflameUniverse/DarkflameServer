@@ -34,7 +34,7 @@ namespace ChatPackets {
 		std::string title;
 		std::string message;
 
-		Announcement() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::GM_ANNOUNCE) {};
+		Announcement() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GM_ANNOUNCE) {};
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
@@ -43,7 +43,7 @@ namespace ChatPackets {
 		uint32_t missionEmailID{};
 		LWOOBJID earningPlayerID{};
 		LUWString earnerName{};
-		AchievementNotify() : LUBitStream(eConnectionType::CHAT, MessageType::Chat::ACHIEVEMENT_NOTIFY) {}
+		AchievementNotify() : LUBitStream(ServiceType::CHAT, MessageType::Chat::ACHIEVEMENT_NOTIFY) {}
 		void Serialize(RakNet::BitStream& bitstream) const override;
 		bool Deserialize(RakNet::BitStream& bitstream) override;
 	};
@@ -51,7 +51,7 @@ namespace ChatPackets {
 	struct TeamInviteInitialResponse : public LUBitStream {
 		bool inviteFailedToSend{};
 		LUWString playerName{};
-		TeamInviteInitialResponse() : LUBitStream(eConnectionType::CLIENT, MessageType::Client::TEAM_INVITE_INITIAL_RESPONSE) {}
+		TeamInviteInitialResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::TEAM_INVITE_INITIAL_RESPONSE) {}
 
 		void Serialize(RakNet::BitStream& bitstream) const override;
 		// No Deserialize needed on our end

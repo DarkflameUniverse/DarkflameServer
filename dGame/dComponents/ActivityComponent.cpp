@@ -20,7 +20,7 @@
 #include "Loot.h"
 #include "eMissionTaskType.h"
 #include "eMatchUpdate.h"
-#include "eConnectionType.h"
+#include "ServiceType.h"
 #include "MessageType/Chat.h"
 
 #include "CDCurrencyTableTable.h"
@@ -354,10 +354,7 @@ bool ActivityComponent::CheckCost(Entity* player) const {
 bool ActivityComponent::TakeCost(Entity* player) const {
 
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
-	if (CheckCost(player)) {
-		inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount);
-		return true;
-	} else return false;
+	return CheckCost(player) && inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount, eInventoryType::ALL);
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
@@ -512,7 +509,7 @@ void ActivityInstance::StartZone() {
 	// only make a team if we have more than one participant
 	if (participants.size() > 1) {
 		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::CREATE_TEAM);
+		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::CREATE_TEAM);
 
 		bitStream.Write(leader->GetObjectID());
 		bitStream.Write(m_Participants.size());

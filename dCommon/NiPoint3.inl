@@ -4,6 +4,7 @@
 #endif
 
 #include "NiQuaternion.h"
+#include <glm/ext/quaternion_float.hpp>
 
 // MARK: Getters / Setters
 

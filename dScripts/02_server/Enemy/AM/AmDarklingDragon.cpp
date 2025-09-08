@@ -76,7 +76,7 @@ void AmDarklingDragon::OnHitOrHealResult(Entity* self, Entity* attacker, int32_t
 			self->AddTimer("timeToStunLoop", 1.0f);
 
 			auto position = self->GetPosition();
-			auto forward = self->GetRotation().GetForwardVector();
+			auto forward = QuatUtils::Forward(self->GetRotation());
 			auto backwards = forward * -1;
 
 			forward.x *= 10;

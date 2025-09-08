@@ -40,13 +40,15 @@ add_subdirectory(magic_enum)
 # Create our third party library objects
 add_subdirectory(raknet)
 
+include(FetchContent)
+
 # Download Backtrace if configured
 if(UNIX AND NOT APPLE)
-	include(FetchContent)
 	if (${INCLUDE_BACKTRACE} AND ${COMPILE_BACKTRACE})
 		FetchContent_Declare(
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+			GIT_PROGRESS TRUE
 		)
 
 		FetchContent_MakeAvailable(backtrace)
@@ -63,6 +65,15 @@ if(UNIX AND NOT APPLE)
 		include_directories(${backtrace_SOURCE_DIR})
 	endif()
 endif()
+
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+	GIT_PROGRESS TRUE
+)
+
+FetchContent_MakeAvailable(glm)
 
 add_subdirectory(MD5)
 

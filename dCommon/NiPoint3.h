@@ -6,9 +6,13 @@
   \brief Defines a point in space in XYZ coordinates
  */
 
+
 class NiPoint3;
-class NiQuaternion;
 typedef NiPoint3 Vector3;       //!< The Vector3 class is technically the NiPoint3 class, but typedef'd for clarity in some cases
+
+#include <glm/ext/vector_float3.hpp>
+
+#include "NiQuaternion.h"
 
 //! A custom class the defines a point in space
 class NiPoint3 {
@@ -20,6 +24,12 @@ public:
 
 	//! Initializer
 	constexpr NiPoint3() = default;
+
+	constexpr NiPoint3(const glm::vec3& vec) noexcept
+		: x{ vec.x }
+		, y{ vec.y }
+		, z{ vec.z } {
+	}
 
 	//! Initializer
 	/*!

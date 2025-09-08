@@ -264,11 +264,11 @@ void TeamContainer::HandleTeamStatusRequest(Packet* packet) {
 
 void TeamContainer::SendTeamInvite(const PlayerData& receiver, const PlayerData& sender) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CLIENT, MessageType::Client::TEAM_INVITE);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::TEAM_INVITE);
 
 	bitStream.Write(LUWString(sender.playerName.c_str()));
 	bitStream.Write(sender.playerID);
@@ -279,7 +279,7 @@ void TeamContainer::SendTeamInvite(const PlayerData& receiver, const PlayerData&
 
 void TeamContainer::SendTeamInviteConfirm(const PlayerData& receiver, bool bLeaderIsFreeTrial, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, uint8_t ucResponseCode, std::u16string wsLeaderName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -306,7 +306,7 @@ void TeamContainer::SendTeamInviteConfirm(const PlayerData& receiver, bool bLead
 
 void TeamContainer::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64LeaderID, LWOZONEID i64LeaderZoneID, uint8_t ucLootFlag, uint8_t ucNumOfOtherPlayers, std::u16string wsLeaderName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -331,7 +331,7 @@ void TeamContainer::SendTeamStatus(const PlayerData& receiver, LWOOBJID i64Leade
 
 void TeamContainer::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64PlayerID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -348,7 +348,7 @@ void TeamContainer::SendTeamSetLeader(const PlayerData& receiver, LWOOBJID i64Pl
 
 void TeamContainer::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTrial, bool bLocal, bool bNoLootOnDeath, LWOOBJID i64PlayerID, std::u16string wsPlayerName, LWOZONEID zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -377,7 +377,7 @@ void TeamContainer::SendTeamAddPlayer(const PlayerData& receiver, bool bIsFreeTr
 
 void TeamContainer::SendTeamRemovePlayer(const PlayerData& receiver, bool bDisband, bool bIsKicked, bool bIsLeaving, bool bLocal, LWOOBJID i64LeaderID, LWOOBJID i64PlayerID, std::u16string wsPlayerName) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -403,7 +403,7 @@ void TeamContainer::SendTeamRemovePlayer(const PlayerData& receiver, bool bDisba
 
 void TeamContainer::SendTeamSetOffWorldFlag(const PlayerData& receiver, LWOOBJID i64PlayerID, LWOZONEID zoneID) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::WORLD_ROUTE_PACKET);
 	bitStream.Write(receiver.playerID);
 
 	//portion that will get routed:
@@ -652,7 +652,7 @@ void TeamContainer::TeamStatusUpdate(TeamData* team) {
 
 void TeamContainer::UpdateTeamsOnWorld(TeamData* team, bool deleteTeam) {
 	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, eConnectionType::CHAT, MessageType::Chat::TEAM_GET_STATUS);
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::TEAM_GET_STATUS);
 
 	bitStream.Write(team->teamID);
 	bitStream.Write(deleteTeam);
