@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
 
@@ -72,7 +73,8 @@ private:
 	bool m_LastChatMessageApproved = false;
 	int m_AmountOfTimesOutOfSync = 0;
 	const int m_MaxDesyncAllowed = 12;
-	time_t m_MuteExpire;
+	mutable time_t m_MuteExpire;
+	mutable std::chrono::steady_clock::time_point m_LastMuteCheck{};
 };
 
 #endif // USER_H
