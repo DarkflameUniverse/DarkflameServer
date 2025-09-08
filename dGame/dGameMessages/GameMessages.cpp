@@ -3237,12 +3237,13 @@ void GameMessages::SendServerTradeUpdate(LWOOBJID objectId, uint64_t coins, cons
 void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	// Check if the player has restricted trade access
 	auto* character = entity->GetCharacter();
+	const bool restrictTradeOnMute = GeneralUtils::TryParse<bool>(Game::config->GetValue("mute_restrict_trade")).value_or(true);
 
-	if (character->HasPermission(ePermissionMap::RestrictedTradeAccess)) {
+	if (character->HasPermission(ePermissionMap::RestrictedTradeAccess) || (restrictTradeOnMute && character->GetParentUser()->GetIsMuted())) {
 		// Send a message to the player
 		ChatPackets::SendSystemMessage(
 			sysAddr,
-			u"This character has restricted trade access."
+			u"Your character has restricted trade access."
 		);
 
 		return;
@@ -3258,7 +3259,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 	if (invitee != nullptr && invitee->IsPlayer()) {
 		character = invitee->GetCharacter();
 
-		if (character->HasPermission(ePermissionMap::RestrictedTradeAccess)) {
+		if (character->HasPermission(ePermissionMap::RestrictedTradeAccess) || (restrictTradeOnMute && character->GetParentUser()->GetIsMuted())) {
 			// Send a message to the player
 			ChatPackets::SendSystemMessage(
 				sysAddr,
