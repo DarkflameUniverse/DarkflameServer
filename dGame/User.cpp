@@ -32,7 +32,7 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	if (userInfo) {
 		m_AccountID = userInfo->id;
 		m_MaxGMLevel = userInfo->maxGmLevel;
-		m_MuteExpire = static_cast<time_t>(userInfo->muteExpire);
+		m_MuteExpire = userInfo->muteExpire;
 	}
 
 	//If we're loading a zone, we'll load the last used (aka current) character:
@@ -95,13 +95,13 @@ Character* User::GetLastUsedChar() {
 	}
 }
 
-bool User::GetIsMuted() const {
+bool User::GetIsMuted() {
 	using namespace std::chrono;
 	constexpr auto refreshInterval = seconds{ 60 };
 	const auto now = steady_clock::now();
 	if (now - m_LastMuteCheck >= refreshInterval) {
 		m_LastMuteCheck = now;
-		if (auto info = Database::Get()->GetAccountInfo(m_Username)) {
+		if (const auto info = Database::Get()->GetAccountInfo(m_Username)) {
 			const auto expire = static_cast<time_t>(info->muteExpire);
 			if (expire != m_MuteExpire) {
 				m_MuteExpire = expire;
