@@ -159,6 +159,7 @@ int main(int argc, char** argv) {
 	}
 
 	MigrationRunner::RunMigrations();
+	Database::Get()->Commit();
 	const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
 	std::filesystem::create_directories(resServerPath);
 	const bool cdServerExists = std::filesystem::exists(resServerPath / "CDServer.sqlite");
