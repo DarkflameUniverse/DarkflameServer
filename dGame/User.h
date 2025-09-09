@@ -73,7 +73,7 @@ private:
 	bool m_LastChatMessageApproved = false;
 	int m_AmountOfTimesOutOfSync = 0;
 	const int m_MaxDesyncAllowed = 12;
-	time_t m_MuteExpire;
+	uint64_t m_MuteExpire;
 	std::chrono::steady_clock::time_point m_LastMuteCheck{};
 };
 
