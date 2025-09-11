@@ -6,6 +6,47 @@
 #include "ClientPackets.h"
 #include "dCommonVars.h"
 #include "PositionUpdate.h"
+#include "StringifiedEnum.h"
+
+
+namespace ClientPackets {
+	void Stamp::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(type);
+		bitStream.Write(value);
+		bitStream.Write(timestamp);
+	};
+
+	void LoginResponse::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(responseCode);
+		bitStream.Write(events[0]);
+		bitStream.Write(events[1]);
+		bitStream.Write(events[2]);
+		bitStream.Write(events[3]);
+		bitStream.Write(events[4]);
+		bitStream.Write(events[5]);
+		bitStream.Write(events[6]);
+		bitStream.Write(events[7]);
+		bitStream.Write(version_major);
+		bitStream.Write(version_current);
+		bitStream.Write(version_minor);
+		bitStream.Write(userKey);
+		bitStream.Write(worldServerIP);
+		bitStream.Write(chatServerIP);
+		bitStream.Write(worldServerPort);
+		bitStream.Write(chatServerPort);
+		bitStream.Write(cdnKey);
+		bitStream.Write(cdnTicket);
+		bitStream.Write(language);
+		bitStream.Write(localization);
+		bitStream.Write(static_cast<uint8_t>(justUpgradedFromF2P));
+		bitStream.Write(static_cast<uint8_t>(isF2P));
+		bitStream.Write(membershipTimeLeft);
+		bitStream.Write<uint16_t>(errorMessage.length());
+		bitStream.Write(LUWString(errorMessage, static_cast<uint32_t>(errorMessage.length())));
+		bitStream.Write<uint32_t>((sizeof(Stamp) * stamps.size()) + sizeof(uint32_t));
+		for (const auto& stampData : stamps) stampData.Serialize(bitStream);
+	};
+}
 
 ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;

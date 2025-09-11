@@ -197,12 +197,7 @@ void dServer::SendToMaster(RakNet::BitStream& bitStream) {
 	mMasterPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, mMasterSystemAddress, false);
 }
 
-void dServer::Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::COMMON, MessageType::Server::DISCONNECT_NOTIFY);
-	bitStream.Write(disconNotifyID);
-	mPeer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE_ORDERED, 0, sysAddr, false);
-
+void dServer::Disconnect(const SystemAddress& sysAddr) {
 	mPeer->CloseConnection(sysAddr, true);
 }
 

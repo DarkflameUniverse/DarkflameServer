@@ -105,7 +105,6 @@ namespace Mail {
 
 	struct MailLUBitStream : public LUBitStream {
 		eMessageID messageID = eMessageID::UnknownError;
-		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 		Entity* player = nullptr;
 
 		MailLUBitStream() = default;

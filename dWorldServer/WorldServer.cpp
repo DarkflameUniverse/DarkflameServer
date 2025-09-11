@@ -40,6 +40,7 @@
 #include "dChatFilter.h"
 #include "ClientPackets.h"
 #include "CharacterComponent.h"
+#include "CommonPackets.h"
 
 #include "EntityManager.h"
 #include "EntityInfo.h"
@@ -62,7 +63,6 @@
 #include "eBlueprintSaveResponseType.h"
 #include "Amf3.h"
 #include "NiPoint3.h"
-#include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 #include "ServiceType.h"
 #include "MessageType/Server.h"
@@ -78,7 +78,6 @@
 #include "Server.h"
 #include "PositionUpdate.h"
 #include "PlayerManager.h"
-#include "eLoginResponse.h"
 #include "MissionComponent.h"
 #include "SlashCommandHandler.h"
 #include "InventoryComponent.h"
@@ -703,7 +702,10 @@ void HandleMasterPacket(Packet* packet) {
 		//Verify it:
 		if (userHash != it->second.hash) {
 			LOG("SOMEONE IS TRYING TO HACK? SESSION KEY MISMATCH: ours: %s != master: %s", userHash.c_str(), it->second.hash.c_str());
-			Game::server->Disconnect(it->second.sysAddr, eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
+			CommonPackets::DisconnectNotify notification;
+			notification.disconnectID = eServerDisconnectIdentifiers::INVALID_SESSION_KEY;
+			notification.Send(it->second.sysAddr);
+			Game::server->Disconnect(it->second.sysAddr);
 			return;
 		} else {
 			LOG("User %s authenticated with correct key.", username.GetAsString().c_str());
@@ -786,7 +788,10 @@ void HandleMasterPacket(Packet* packet) {
 		//Check the key:
 		if (sessionKey != std::atoi(user->GetSessionKey().c_str())) {
 			LOG("But the session key is invalid!", username.string.c_str());
-			Game::server->Disconnect(user->GetSystemAddress(), eServerDisconnectIdentifiers::INVALID_SESSION_KEY);
+			CommonPackets::DisconnectNotify notification;
+			notification.disconnectID = eServerDisconnectIdentifiers::INVALID_SESSION_KEY;
+			notification.Send(user->GetSystemAddress());
+			Game::server->Disconnect(user->GetSystemAddress());
 			return;
 		}
 		break;
@@ -855,13 +860,10 @@ void HandlePacket(Packet* packet) {
 	luBitStream.ReadHeader(inStream);
 
 	if (luBitStream.connectionType == ServiceType::COMMON) {
-		if (static_cast<MessageType::Server>(luBitStream.internalPacketID) == MessageType::Server::VERSION_CONFIRM) {
-			AuthPackets::HandleHandshake(Game::server, packet);
-		}
+		CommonPackets::Handle(inStream, packet->systemAddress);
 	}
 
 	if (luBitStream.connectionType != ServiceType::WORLD) return;
-
 	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
 	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
@@ -879,7 +881,10 @@ void HandlePacket(Packet* packet) {
 			auto accountInfo = Database::Get()->GetAccountInfo(username.GetAsString());
 			if (!accountInfo) {
 				LOG("Client's account does not exist in the database, aborting connection.");
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
+				CommonPackets::DisconnectNotify notification;
+				notification.disconnectID = eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND;
+				notification.Send(packet->systemAddress);
+				Game::server->Disconnect(packet->systemAddress);
 				return;
 			}
 
@@ -888,13 +893,13 @@ void HandlePacket(Packet* packet) {
 
 				if (accountInfo->maxGmLevel < eGameMasterLevel::DEVELOPER) {
 					LOG("Client's database checksum does not match the server's, aborting connection.");
-					std::vector<Stamp> stamps;
-
 					// Using the LoginResponse here since the UI is still in the login screen state
 					// and we have a way to send a message about the client mismatch.
-					AuthPackets::SendLoginResponse(
-						Game::server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH,
-						Game::config->GetValue("cdclient_mismatch_message"), "", 0, "", stamps);
+					ClientPackets::LoginResponse response;
+					response.sysAddr = packet->systemAddress;
+					response.responseCode = eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH;
+					response.errorMessage= Game::config->GetValue("cdclient_mismatch_message");
+					response.Send(packet->systemAddress);
 					return;
 				} else {
 					AMFArrayValue args;
@@ -1207,7 +1212,10 @@ void HandlePacket(Packet* packet) {
 				}
 			} else {
 				LOG("Couldn't find character to log in with for user %s (%i)!", user->GetUsername().c_str(), user->GetAccountID());
-				Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND);
+				CommonPackets::DisconnectNotify notification;
+				notification.disconnectID = eServerDisconnectIdentifiers::CHARACTER_NOT_FOUND;
+				notification.Send(packet->systemAddress);
+				Game::server->Disconnect(packet->systemAddress);
 			}
 		} else {
 			LOG("Couldn't get user for level load complete!");
@@ -1386,7 +1394,11 @@ void HandlePacket(Packet* packet) {
 		if (user) {
 			user->UserOutOfSync();
 		} else {
-			Game::server->Disconnect(packet->systemAddress, eServerDisconnectIdentifiers::KICK);
+			CommonPackets::DisconnectNotify notification;
+			notification.disconnectID = eServerDisconnectIdentifiers::KICK;
+			notification.Send(packet->systemAddress);
+			Game::server->Disconnect(packet->systemAddress);
+			
 		}
 		break;
 	}
@@ -1463,8 +1475,10 @@ void WorldShutdownProcess(uint32_t zoneId) {
 
 	while (Game::server->GetReplicaManager()->GetParticipantCount() > 0) {
 		const auto& player = Game::server->GetReplicaManager()->GetParticipantAtIndex(0);
-
-		Game::server->Disconnect(player, eServerDisconnectIdentifiers::SERVER_SHUTDOWN);
+		CommonPackets::DisconnectNotify notification;
+		notification.disconnectID = eServerDisconnectIdentifiers::SERVER_SHUTDOWN;
+		notification.Send(player);
+		Game::server->Disconnect(player);
 	}
 	SendShutdownMessageToMaster();
 }

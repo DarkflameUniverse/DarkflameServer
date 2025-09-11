@@ -49,6 +49,7 @@ struct LUWString {
 struct LUBitStream {
 	ServiceType connectionType = ServiceType::UNKNOWN;
 	uint32_t internalPacketID = 0xFFFFFFFF;
+	SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 
 	LUBitStream() = default;
 
@@ -61,6 +62,7 @@ struct LUBitStream {
 	void WriteHeader(RakNet::BitStream& bitStream) const;
 	bool ReadHeader(RakNet::BitStream& bitStream);
 	void Send(const SystemAddress& sysAddr) const;
+	void Send() const { Send(this->sysAddr); };
 	void Broadcast() const { Send(UNASSIGNED_SYSTEM_ADDRESS); };
 
 	virtual void Serialize(RakNet::BitStream& bitStream) const {}

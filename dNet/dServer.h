@@ -43,7 +43,7 @@ public:
 	virtual void Send(RakNet::BitStream& bitStream, const SystemAddress& sysAddr, bool broadcast);
 	void SendToMaster(RakNet::BitStream& bitStream);
 
-	void Disconnect(const SystemAddress& sysAddr, eServerDisconnectIdentifiers disconNotifyID);
+	void Disconnect(const SystemAddress& sysAddr);
 
 	bool IsConnected(const SystemAddress& sysAddr);
 	const std::string& GetIP() const { return mIP; }
