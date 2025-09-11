@@ -170,7 +170,6 @@ void HandlePacket(Packet* packet) {
 	CINSTREAM;
 	LUBitStream luBitStream;
 	if (!luBitStream.ReadHeader(inStream)) return;
-	LOG_DEBUG("got packet for service %i", luBitStream.connectionType);
 	
 	if (luBitStream.connectionType == ServiceType::COMMON) {
 		CommonPackets::Handle(inStream, packet->systemAddress);
