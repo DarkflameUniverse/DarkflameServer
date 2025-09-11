@@ -21,6 +21,7 @@ struct CDCurrencyTable {
 class CDCurrencyTableTable : public CDTable<CDCurrencyTableTable, std::vector<CDCurrencyTable>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	// Queries the table with a custom "where" clause
 	std::vector<CDCurrencyTable> Query(std::function<bool(CDCurrencyTable)> predicate);
 };

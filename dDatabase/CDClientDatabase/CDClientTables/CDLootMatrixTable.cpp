@@ -39,11 +39,33 @@ void CDLootMatrixTable::LoadValuesFromDatabase() {
 	}
 }
 
+void CDLootMatrixTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default loot matrix entry
+	CDLootMatrix defaultEntry{
+		.LootTableIndex = 1,
+		.RarityTableIndex = 1,
+		.percent = 1.0f,
+		.minToDrop = 1,
+		.maxToDrop = 1,
+		.flagID = 0,
+	};
+	
+	entries[0].push_back(defaultEntry);
+}
+
 const LootMatrixEntries& CDLootMatrixTable::GetMatrix(uint32_t matrixId) {
 	auto& entries = GetEntriesMutable();
 	auto itr = entries.find(matrixId);
 	if (itr != entries.end()) {
 		return itr->second;
+	}
+
+	// If database is not connected (e.g., in tests), return empty vector
+	if (!CDClientDatabase::isConnected) {
+		return entries[matrixId]; // Creates empty vector
 	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM LootMatrix where LootMatrixIndex = ?;");

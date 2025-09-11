@@ -238,6 +238,8 @@ include_directories(
 
 	"dWeb"
 
+	"dScripts"
+
 	"tests"
 	"tests/dCommonTests"
 	"tests/dGameTests"

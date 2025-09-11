@@ -1,5 +1,17 @@
 #include "CDActivityRewardsTable.h"
 
+namespace {
+	// Default entries for fallback
+	CDActivityRewards defaultEntry{
+		.objectTemplate = 1,
+		.ActivityRewardIndex = 1,
+		.activityRating = 1,
+		.LootMatrixIndex = 0,
+		.CurrencyIndex = 1,
+		.ChallengeRating = 1,
+		.description = "Default test activity reward",
+	};
+}
 
 void CDActivityRewardsTable::LoadValuesFromDatabase() {
 
@@ -35,6 +47,12 @@ void CDActivityRewardsTable::LoadValuesFromDatabase() {
 	}
 
 	tableData.finalize();
+}
+
+void CDActivityRewardsTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	entries.push_back(defaultEntry);
 }
 
 std::vector<CDActivityRewards> CDActivityRewardsTable::Query(std::function<bool(CDActivityRewards)> predicate) {

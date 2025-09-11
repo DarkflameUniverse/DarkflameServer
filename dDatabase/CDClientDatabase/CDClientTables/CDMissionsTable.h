@@ -63,6 +63,7 @@ struct CDMissions {
 class CDMissionsTable : public CDTable<CDMissionsTable, std::vector<CDMissions>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	// Queries the table with a custom "where" clause
 	std::vector<CDMissions> Query(std::function<bool(CDMissions)> predicate);
 

@@ -16,6 +16,7 @@ struct CDActivityRewards {
 class CDActivityRewardsTable : public CDTable<CDActivityRewardsTable, std::vector<CDActivityRewards>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 	// Queries the table with a custom "where" clause
 	std::vector<CDActivityRewards> Query(std::function<bool(CDActivityRewards)> predicate);
 };

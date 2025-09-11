@@ -1,5 +1,29 @@
 #include "CDActivitiesTable.h"
 
+namespace {
+	// Default entries for fallback
+	CDActivities defaultEntry{
+		.ActivityID = 1,
+		.locStatus = 0,
+		.instanceMapID = 0,
+		.minTeams = 1,
+		.maxTeams = 1,
+		.minTeamSize = 1,
+		.maxTeamSize = 1,
+		.waitTime = 0,
+		.startDelay = 0,
+		.requiresUniqueData = false,
+		.leaderboardType = 0,
+		.localize = false,
+		.optionalCostLOT = -1,
+		.optionalCostCount = -1,
+		.showUIRewards = false,
+		.CommunityActivityFlagID = 0,
+		.gate_version = "",
+		.noTeamLootOnDeath = false,
+		.optionalPercentage = 0.0f,
+	};
+}
 
 void CDActivitiesTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
@@ -46,6 +70,12 @@ void CDActivitiesTable::LoadValuesFromDatabase() {
 	}
 
 	tableData.finalize();
+}
+
+void CDActivitiesTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	entries.push_back(defaultEntry);
 }
 
 std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActivities)> predicate) {

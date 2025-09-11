@@ -28,6 +28,7 @@ struct CDSkillBehavior {
 class CDSkillBehaviorTable : public CDTable<CDSkillBehaviorTable, std::map<uint32_t, CDSkillBehavior>> {
 public:
 	void LoadValuesFromDatabase();
+	void LoadValuesFromDefaults();
 
 	// Gets an entry by skillID
 	const CDSkillBehavior& GetSkillByID(uint32_t skillID);

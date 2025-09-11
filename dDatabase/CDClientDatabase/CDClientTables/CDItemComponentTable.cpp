@@ -70,11 +70,67 @@ void CDItemComponentTable::LoadValuesFromDatabase() {
 	tableData.finalize();
 }
 
+void CDItemComponentTable::LoadValuesFromDefaults() {
+	auto& entries = GetEntriesMutable();
+	entries.clear();
+	
+	// Add default item component entry
+	CDItemComponent defaultEntry{
+		.id = 1,
+		.equipLocation = "",
+		.baseValue = 0,
+		.isKitPiece = false,
+		.rarity = 0,
+		.itemType = 0,
+		.itemInfo = 0,
+		.inLootTable = false,
+		.inVendor = false,
+		.isUnique = false,
+		.isBOP = false,
+		.isBOE = false,
+		.reqFlagID = 0,
+		.reqSpecialtyID = 0,
+		.reqSpecRank = 0,
+		.reqAchievementID = 0,
+		.stackSize = 1,
+		.color1 = 0,
+		.decal = 0,
+		.offsetGroupID = 0,
+		.buildTypes = 0,
+		.reqPrecondition = "",
+		.animationFlag = 0,
+		.equipEffects = 0,
+		.readyForQA = false,
+		.itemRating = 0,
+		.isTwoHanded = false,
+		.minNumRequired = 0,
+		.delResIndex = 0,
+		.currencyLOT = 0,
+		.altCurrencyCost = 0,
+		.subItems = "",
+		.noEquipAnimation = false,
+		.commendationLOT = 0,
+		.commendationCost = 0,
+		.currencyCosts = "",
+		.locStatus = 0,
+		.forgeType = 0,
+		.SellMultiplier = 1.0f,
+	};
+	
+	entries.insert(std::make_pair(defaultEntry.id, defaultEntry));
+}
+
 const CDItemComponent& CDItemComponentTable::GetItemComponentByID(uint32_t skillID) {
 	auto& entries = GetEntriesMutable();
 	const auto& it = entries.find(skillID);
 	if (it != entries.end()) {
 		return it->second;
+	}
+
+	// If database is not connected (e.g., in tests), return the default entry
+	if (!CDClientDatabase::isConnected) {
+		entries.insert(std::make_pair(skillID, Default));
+		return Default;
 	}
 
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT * FROM ItemComponent WHERE id = ?;");
