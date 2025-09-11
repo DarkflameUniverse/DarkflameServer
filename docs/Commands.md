@@ -116,6 +116,7 @@ These commands are primarily for development and testing. The usage of many of t
 |setrewardcode|`/setrewardcode <code>`|Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`|8|
 |barfight|`/barfight start`|Starts a barfight (turns everyones pvp on)|8|
 |despawn|`/despawn <objectID>`|Despawns the entity objectID IF it was spawned in through a slash command.|8|
+|execute|`/execute <subcommand> ... run <command>`|Execute commands with modified context (Minecraft-style). Subcommands: `as <playername>` (execute as different player), `at <playername>` (execute from player's position), `positioned <x> <y> <z>` (execute from coordinates - supports absolute coordinates like `100 200 300` or relative coordinates like `~5 ~10 ~` where `~` means current position). Example: `/execute as Player1 run pos`, `/execute positioned ~5 ~ ~-3 run spawn 1234`|8|
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
 |castskill|`/castskill <skill id>`|Casts the skill as the player|9|

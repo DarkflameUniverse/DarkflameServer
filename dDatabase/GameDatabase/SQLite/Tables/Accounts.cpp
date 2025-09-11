@@ -17,6 +17,7 @@ std::optional<IAccounts::Info> SQLiteDatabase::GetAccountInfo(const std::string_
 	toReturn.banned = result.getIntField("banned");
 	toReturn.locked = result.getIntField("locked");
 	toReturn.playKeyId = result.getIntField("play_key_id");
+	toReturn.muteExpire = static_cast<uint64_t>(result.getInt64Field("mute_expire"));
 
 	return toReturn;
 }
