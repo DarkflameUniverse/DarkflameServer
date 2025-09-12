@@ -55,6 +55,7 @@ elseif (WIN32)
 		URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.zip
 		URL_HASH MD5=9d6a627693163bbbf3f26403a3a0b0b1
 		GIT_PROGRESS TRUE
+		GIT_SHALLOW 1
 	)
 
 	# Disable warning about no project version.

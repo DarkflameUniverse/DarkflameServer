@@ -49,6 +49,7 @@ if(UNIX AND NOT APPLE)
 			backtrace
 			GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
 			GIT_PROGRESS TRUE
+			GIT_SHALLOW 1
 		)
 
 		FetchContent_MakeAvailable(backtrace)
@@ -71,6 +72,7 @@ FetchContent_Declare(
 	GIT_REPOSITORY	https://github.com/g-truc/glm.git
 	GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
 	GIT_PROGRESS TRUE
+	GIT_SHALLOW 1
 )
 
 FetchContent_MakeAvailable(glm)
