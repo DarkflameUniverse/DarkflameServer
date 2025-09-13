@@ -68,6 +68,7 @@ namespace CommonPackets {
 	}
 
 	void DisconnectNotify::Serialize(RakNet::BitStream& bitStream) const {
+		CommonLUBitStream::Serialize(bitStream);
 		bitStream.Write(disconnectID);
 	}
 

@@ -114,6 +114,7 @@ void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
 
 namespace ChatPackets {
 	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
+		ChatLUBitStream::Serialize(bitStream);
 		bitStream.Write<uint32_t>(title.size());
 		bitStream.Write(title);
 		bitStream.Write<uint32_t>(message.size());
@@ -122,6 +123,7 @@ namespace ChatPackets {
 }
 
 void ChatPackets::AchievementNotify::Serialize(RakNet::BitStream& bitstream) const {
+	ChatLUBitStream::Serialize(bitstream);
 	bitstream.Write<uint64_t>(0); // Packing
 	bitstream.Write<uint32_t>(0); // Packing
 	bitstream.Write<uint8_t>(0); // Packing
@@ -147,6 +149,7 @@ bool ChatPackets::AchievementNotify::Deserialize(RakNet::BitStream& bitstream) {
 }
 
 void ChatPackets::TeamInviteInitialResponse::Serialize(RakNet::BitStream& bitstream) const {
+	ClientLUBitStream::Serialize(bitstream);
 	bitstream.Write<uint8_t>(inviteFailedToSend);
 	bitstream.Write(playerName);
 }
