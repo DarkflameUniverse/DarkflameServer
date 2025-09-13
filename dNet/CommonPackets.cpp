@@ -22,7 +22,20 @@ namespace CommonPackets {
 		}}
 	};
 
+	// Struct Functions
+	void CommonLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool CommonLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));
+		return true;
+	}
+
 	void VersionConfirm::Serialize(RakNet::BitStream& bitStream) const {
+		CommonLUBitStream::Serialize(bitStream);
 		bitStream.Write<uint32_t>(netVersion);
 		bitStream.Write<uint32_t>(861228100);
 		bitStream.Write(static_cast<uint32_t>(serviceType));
@@ -59,28 +72,28 @@ namespace CommonPackets {
 	}
 
 	void GeneralNotify::Serialize(RakNet::BitStream& bitStream) const {
+		CommonLUBitStream::Serialize(bitStream);
 		bitStream.Write(notifyID);
 		bitStream.Write(notifyUser);
 	}
 }
 
 void CommonPackets::Handle(RakNet::BitStream& inStream, const SystemAddress& sysAddr) {
-	inStream.ResetReadPointer();
-	LUBitStream lubitstream;
-	if (!lubitstream.ReadHeader(inStream)) return;
+	CommonLUBitStream lubitstream;
+	if (!lubitstream.Deserialize(inStream)) return;
 
-	auto it = g_Handlers.find(static_cast<MessageType::Server>(lubitstream.internalPacketID));
+	auto it = g_Handlers.find(lubitstream.messageType);
 	if (it != g_Handlers.end()) {
 		auto request = it->second();
 		request->sysAddr = sysAddr;
 		if (!request->Deserialize(inStream)) {
-			LOG_DEBUG("Error Reading Common Packet: %s", StringifiedEnum::ToString(static_cast<MessageType::Server>(lubitstream.internalPacketID)).data());
+			LOG_DEBUG("Error Reading Common Packet: %s", StringifiedEnum::ToString(lubitstream.messageType).data());
 			return;
 		}
-		LOG_DEBUG("Received Common Packet: %s", StringifiedEnum::ToString(static_cast<MessageType::Server>(lubitstream.internalPacketID)).data());
+		LOG_DEBUG("Received Common Packet: %s", StringifiedEnum::ToString(lubitstream.messageType).data());
 		request->Handle();
 	} else {
-		LOG_DEBUG("Unhandled Common Packet with ID: %i", lubitstream.internalPacketID);
+		LOG_DEBUG("Unhandled Common Packet with ID: %i", lubitstream.messageType);
 	}
 }
 

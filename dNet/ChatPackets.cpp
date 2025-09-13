@@ -12,6 +12,20 @@
 #include "ServiceType.h"
 #include "MessageType/Chat.h"
 
+namespace ChatPackets {
+	// Struct Functions
+	void ChatLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool ChatLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));
+		return true;
+	}
+}
+
 void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) {
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::SHOW_ALL);
 	bitStream.Write(this->requestor);

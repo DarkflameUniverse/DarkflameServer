@@ -97,6 +97,18 @@ enum class Language : uint32_t {
 };
 
 namespace ClientPackets {
+
+	// Structs
+	struct ClientLUBitStream : public LUBitStream {
+		MessageType::Client messageType = MessageType::Client::LOGIN_RESPONSE;
+
+		ClientLUBitStream() : LUBitStream(ServiceType::CLIENT) {};
+		ClientLUBitStream(MessageType::Client _messageType) : LUBitStream(ServiceType::CLIENT), messageType{_messageType} {};
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
+
 	struct Stamp {
 		eStamps type;
 		uint32_t value;
@@ -111,7 +123,7 @@ namespace ClientPackets {
 		void Serialize(RakNet::BitStream& bitStream) const;
 	};
 
-	struct LoginResponse : public LUBitStream {
+	struct LoginResponse : public ClientLUBitStream {
 		eLoginResponse responseCode = eLoginResponse::GENERAL_FAILED;
 		std::vector<LUString> events;
 		uint16_t version_major = 0;
@@ -132,7 +144,7 @@ namespace ClientPackets {
 		std::string errorMessage;
 		std::vector<Stamp> stamps;
 
-		LoginResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::LOGIN_RESPONSE) {}
+		LoginResponse() : ClientLUBitStream(MessageType::Client::LOGIN_RESPONSE) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 

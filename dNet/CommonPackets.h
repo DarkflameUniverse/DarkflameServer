@@ -23,31 +23,42 @@ enum class eServerDisconnectIdentifiers : uint32_t {
 
 // Packet Struct Functions
 namespace CommonPackets {
+	// Structs
+	struct CommonLUBitStream : public LUBitStream {
+		MessageType::Server messageType = MessageType::Server::VERSION_CONFIRM;
 
-	struct VersionConfirm : public LUBitStream {
+		CommonLUBitStream() : LUBitStream(ServiceType::COMMON) {};
+		CommonLUBitStream(MessageType::Server _messageType) : LUBitStream(ServiceType::COMMON), messageType{_messageType} {};
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
+
+	struct VersionConfirm : public CommonLUBitStream {
 		uint32_t netVersion = 0;
 		ServiceType serviceType;
 		uint32_t processID = 0;
 		uint16_t port = 0;
 
-		VersionConfirm() : LUBitStream(ServiceType::COMMON, MessageType::Server::VERSION_CONFIRM) {}
+		VersionConfirm() : CommonLUBitStream(MessageType::Server::VERSION_CONFIRM) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
-	struct DisconnectNotify : public LUBitStream {
+	struct DisconnectNotify : public CommonLUBitStream {
 		eServerDisconnectIdentifiers disconnectID = eServerDisconnectIdentifiers::UNKNOWN_SERVER_ERROR;
 
-		DisconnectNotify() : LUBitStream(ServiceType::COMMON, MessageType::Server::DISCONNECT_NOTIFY) {}
+		DisconnectNotify() : CommonLUBitStream(MessageType::Server::DISCONNECT_NOTIFY) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct GeneralNotify : public LUBitStream {
+	struct GeneralNotify : public CommonLUBitStream {
 		uint32_t notifyID = 0; // only one known value: 0, which is Duplicate account login
 		bool notifyUser = true;
 
-		GeneralNotify() : LUBitStream(ServiceType::COMMON, MessageType::Server::GENERAL_NOTIFY) {}
+		GeneralNotify() : CommonLUBitStream(MessageType::Server::GENERAL_NOTIFY) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 	

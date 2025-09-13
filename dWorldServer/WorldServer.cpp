@@ -859,12 +859,15 @@ void HandlePacket(Packet* packet) {
 	LUBitStream luBitStream;
 	luBitStream.ReadHeader(inStream);
 
-	if (luBitStream.connectionType == ServiceType::COMMON) {
+	if (luBitStream.serviceType == ServiceType::COMMON) {
 		CommonPackets::Handle(inStream, packet->systemAddress);
 	}
 
-	if (luBitStream.connectionType != ServiceType::WORLD) return;
-	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
+	if (luBitStream.serviceType != ServiceType::WORLD) return;
+	WorldPackets::WorldLUBitStream worldLUBitStream;
+	worldLUBitStream.Deserialize(inStream);
+
+	switch (static_cast<MessageType::World>(worldLUBitStream.messageType)) {
 	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
 		LUWString username;
@@ -1238,7 +1241,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::MAIL: {
-		Mail::HandleMail(inStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		Mail::Handle(inStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
 		break;
 	}
 

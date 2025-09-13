@@ -165,15 +165,12 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
-	if (packet->length < 4) return;
-
 	CINSTREAM;
 	LUBitStream luBitStream;
-	if (!luBitStream.ReadHeader(inStream)) return;
-	
-	if (luBitStream.connectionType == ServiceType::COMMON) {
+	if (!luBitStream.ReadHeader(inStream) && luBitStream.rakNetID != ID_USER_PACKET_ENUM) return;
+	else if (luBitStream.serviceType == ServiceType::COMMON) {
 		CommonPackets::Handle(inStream, packet->systemAddress);
-	} else if (luBitStream.connectionType == ServiceType::AUTH) {
+	} else if (luBitStream.serviceType == ServiceType::AUTH) {
 		AuthPackets::Handle(inStream, packet->systemAddress);
 	}
 }

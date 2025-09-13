@@ -36,6 +36,18 @@ namespace AuthPackets {
 		}}
 	};
 
+	// Struct Functions
+	void AuthLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool AuthLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));
+		return true;
+	}
+
 	bool LoginRequest::Deserialize(RakNet::BitStream& bitStream) {
 		LUWString usernameLUString;
 		VALIDATE_READ(bitStream.Read(usernameLUString));
@@ -228,22 +240,21 @@ void AuthPackets::LoadClaimCodes() {
 
 // Non Stuct Functions
 void AuthPackets::Handle(RakNet::BitStream& inStream, const SystemAddress& sysAddr) {
-	inStream.ResetReadPointer();
-	LUBitStream lubitstream;
-	if (!lubitstream.ReadHeader(inStream)) return;
+	AuthLUBitStream authLUBitStream;
+	if (!authLUBitStream.Deserialize(inStream)) return;
 
-	auto it = g_Handlers.find(static_cast<MessageType::Auth>(lubitstream.internalPacketID));
+	auto it = g_Handlers.find(authLUBitStream.messageType);
 	if (it != g_Handlers.end()) {
 		auto request = it->second();
 		request->sysAddr = sysAddr;
 		if (!request->Deserialize(inStream)) {
-			LOG_DEBUG("Error Reading Auth Packet: %s", StringifiedEnum::ToString(static_cast<MessageType::Auth>(lubitstream.internalPacketID)).data());
+			LOG_DEBUG("Error Reading Auth Packet: %s", StringifiedEnum::ToString(authLUBitStream.messageType).data());
 			return;
 		}
-		LOG_DEBUG("Received Auth Packet: %s", StringifiedEnum::ToString(static_cast<MessageType::Auth>(lubitstream.internalPacketID)).data());
+		LOG_DEBUG("Received Auth Packet: %s", StringifiedEnum::ToString(authLUBitStream.messageType).data());
 		request->Handle();
 	} else {
-		LOG_DEBUG("Unhandled Auth Packet with ID: %i", lubitstream.internalPacketID);
+		LOG_DEBUG("Unhandled Auth Packet with ID: %i", authLUBitStream.messageType);
 	}
 }
 

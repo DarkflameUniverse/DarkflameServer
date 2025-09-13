@@ -16,7 +16,18 @@ namespace ClientPackets {
 		bitStream.Write(timestamp);
 	};
 
+	void ClientLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool ClientLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));		return true;
+	}
+
 	void LoginResponse::Serialize(RakNet::BitStream& bitStream) const {
+		ClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(responseCode);
 		bitStream.Write(events[0]);
 		bitStream.Write(events[1]);

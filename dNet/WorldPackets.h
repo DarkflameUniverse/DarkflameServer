@@ -4,6 +4,7 @@
 #include "dCommonVars.h"
 #include <vector>
 #include <string>
+#include "MessageType/World.h"
 
 class User;
 struct SystemAddress;
@@ -25,6 +26,16 @@ struct HTTPMonitorInfo {
 };
 
 namespace WorldPackets {
+	struct WorldLUBitStream : public LUBitStream {
+		MessageType::World messageType = MessageType::World::VALIDATION;
+
+		WorldLUBitStream() : LUBitStream(ServiceType::WORLD) {};
+		WorldLUBitStream(MessageType::World messageType) : LUBitStream(ServiceType::WORLD), messageType{messageType} {};
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
 	void SendLoadStaticZone(const SystemAddress& sysAddr, float x, float y, float z, uint32_t checksum, LWOZONEID zone);
 	void SendCharacterCreationResponse(const SystemAddress& sysAddr, eCharacterCreationResponse response);
 	void SendCharacterRenameResponse(const SystemAddress& sysAddr, eRenameResponse response);

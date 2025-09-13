@@ -34,7 +34,18 @@ struct magic_enum::customize::enum_range<LanguageCodeID> {
 
 namespace AuthPackets {
 
-	struct LoginRequest : public LUBitStream {
+	struct AuthLUBitStream : public LUBitStream {
+		MessageType::Auth messageType = MessageType::Auth::LOGIN_REQUEST;
+
+		AuthLUBitStream() : LUBitStream(ServiceType::AUTH) {};
+		AuthLUBitStream(MessageType::Auth _messageType) : LUBitStream(ServiceType::AUTH), messageType{_messageType} {};
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
+
+	struct LoginRequest : public AuthLUBitStream {
 		std::string username;
 		std::string password;
 		LanguageCodeID locale_id;
@@ -57,7 +68,7 @@ namespace AuthPackets {
 			} osVersionInfo;
 		} computerInfo;
 
-		LoginRequest() : LUBitStream(ServiceType::AUTH, MessageType::Auth::LOGIN_REQUEST) {}
+		LoginRequest() : AuthLUBitStream(MessageType::Auth::LOGIN_REQUEST) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
