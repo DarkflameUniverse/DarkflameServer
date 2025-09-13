@@ -20,6 +20,7 @@
 
 //Auth includes:
 #include "AuthPackets.h"
+#include "CommonPackets.h"
 #include "ServiceType.h"
 #include "MessageType/Server.h"
 #include "MessageType/Auth.h"
@@ -164,17 +165,12 @@ int main(int argc, char** argv) {
 }
 
 void HandlePacket(Packet* packet) {
-	if (packet->length < 4) return;
-
-	if (packet->data[0] == ID_USER_PACKET_ENUM) {
-		if (static_cast<ServiceType>(packet->data[1]) == ServiceType::COMMON) {
-			if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
-				AuthPackets::HandleHandshake(Game::server, packet);
-			}
-		} else if (static_cast<ServiceType>(packet->data[1]) == ServiceType::AUTH) {
-			if (static_cast<MessageType::Auth>(packet->data[3]) == MessageType::Auth::LOGIN_REQUEST) {
-				AuthPackets::HandleLoginRequest(Game::server, packet);
-			}
-		}
+	CINSTREAM;
+	LUBitStream luBitStream;
+	if (!luBitStream.ReadHeader(inStream) && luBitStream.rakNetID != ID_USER_PACKET_ENUM) return;
+	else if (luBitStream.serviceType == ServiceType::COMMON) {
+		CommonPackets::Handle(inStream, packet->systemAddress);
+	} else if (luBitStream.serviceType == ServiceType::AUTH) {
+		AuthPackets::Handle(inStream, packet->systemAddress);
 	}
 }

@@ -12,6 +12,7 @@ struct SystemAddress;
 #include "dCommonVars.h"
 #include "MessageType/Chat.h"
 #include "BitStreamUtils.h"
+#include "ClientPackets.h"
 
 struct ShowAllRequest{
 	LWOOBJID requestor = LWOOBJID_EMPTY;
@@ -30,28 +31,39 @@ struct FindPlayerRequest{
 
 namespace ChatPackets {
 
-	struct Announcement : public LUBitStream {
+	struct ChatLUBitStream : public LUBitStream {
+		MessageType::Chat messageType = MessageType::Chat::GENERAL_CHAT_MESSAGE;
+
+		ChatLUBitStream() : LUBitStream(ServiceType::CHAT) {};
+		ChatLUBitStream(MessageType::Chat _messageType) : LUBitStream(ServiceType::CHAT), messageType{_messageType} {};
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
+
+	struct Announcement : public ChatLUBitStream {
 		std::string title;
 		std::string message;
 
-		Announcement() : LUBitStream(ServiceType::CHAT, MessageType::Chat::GM_ANNOUNCE) {};
+		Announcement() : ChatLUBitStream(MessageType::Chat::GM_ANNOUNCE) {};
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct AchievementNotify : public LUBitStream {
+	struct AchievementNotify : public ChatLUBitStream {
 		LUWString targetPlayerName{};
 		uint32_t missionEmailID{};
 		LWOOBJID earningPlayerID{};
 		LUWString earnerName{};
-		AchievementNotify() : LUBitStream(ServiceType::CHAT, MessageType::Chat::ACHIEVEMENT_NOTIFY) {}
+		AchievementNotify() : ChatLUBitStream(MessageType::Chat::ACHIEVEMENT_NOTIFY) {}
 		void Serialize(RakNet::BitStream& bitstream) const override;
 		bool Deserialize(RakNet::BitStream& bitstream) override;
 	};
 
-	struct TeamInviteInitialResponse : public LUBitStream {
+	struct TeamInviteInitialResponse : public ClientPackets::ClientLUBitStream {
 		bool inviteFailedToSend{};
 		LUWString playerName{};
-		TeamInviteInitialResponse() : LUBitStream(ServiceType::CLIENT, MessageType::Client::TEAM_INVITE_INITIAL_RESPONSE) {}
+		TeamInviteInitialResponse() : ClientPackets::ClientLUBitStream(MessageType::Client::TEAM_INVITE_INITIAL_RESPONSE) {}
 
 		void Serialize(RakNet::BitStream& bitstream) const override;
 		// No Deserialize needed on our end

@@ -7,6 +7,8 @@
 #include "dCommonVars.h"
 #include "BitStreamUtils.h"
 #include "MailInfo.h"
+#include "MessageType/Client.h"
+#include "ClientPackets.h"
 
 class Entity;
 
@@ -103,112 +105,111 @@ namespace Mail {
 		UnknownError
 	};
 
-	struct MailLUBitStream : public LUBitStream {
+	struct MailClientLUBitStream : public ClientPackets::ClientLUBitStream {
 		eMessageID messageID = eMessageID::UnknownError;
-		SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 		Entity* player = nullptr;
 
-		MailLUBitStream() = default;
-		MailLUBitStream(eMessageID _messageID) : LUBitStream(ServiceType::CLIENT, MessageType::Client::MAIL), messageID{_messageID} {};
+		MailClientLUBitStream() = default;
+		MailClientLUBitStream(eMessageID _messageID) : ClientPackets::ClientLUBitStream(MessageType::Client::MAIL), messageID{_messageID} {};
 
 		virtual void Serialize(RakNet::BitStream& bitStream) const override;
 		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
 		virtual void Handle() override {};
 	};
 
-	struct SendRequest : public MailLUBitStream {
+	struct SendRequest : public MailClientLUBitStream {
 		MailInfo mailInfo;
 
-		SendRequest() : MailLUBitStream(eMessageID::SendRequest) {}
+		SendRequest() : MailClientLUBitStream(eMessageID::SendRequest) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
-	struct SendResponse :public MailLUBitStream {
+	struct SendResponse :public MailClientLUBitStream {
 		eSendResponse status = eSendResponse::UnknownError;
 
-		SendResponse() : MailLUBitStream(eMessageID::SendResponse) {}
+		SendResponse() : MailClientLUBitStream(eMessageID::SendResponse) {}
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct NotificationResponse : public MailLUBitStream {
+	struct NotificationResponse : public MailClientLUBitStream {
 		eNotificationResponse status = eNotificationResponse::UnknownError;
 		LWOOBJID auctionID = LWOOBJID_EMPTY;
 		uint32_t mailCount = 1;
-		NotificationResponse() : MailLUBitStream(eMessageID::NotificationResponse) {};
+		NotificationResponse() : MailClientLUBitStream(eMessageID::NotificationResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct DataRequest : public MailLUBitStream {
-		DataRequest() : MailLUBitStream(eMessageID::DataRequest) {}
+	struct DataRequest : public MailClientLUBitStream {
+		DataRequest() : MailClientLUBitStream(eMessageID::DataRequest) {}
 		bool Deserialize(RakNet::BitStream& bitStream) override { return true; };
 		void Handle() override;
 	};
 
-	struct DataResponse : public MailLUBitStream {
+	struct DataResponse : public MailClientLUBitStream {
 		uint32_t throttled = 0;
 		std::vector<MailInfo> playerMail;
 
-		DataResponse() : MailLUBitStream(eMessageID::DataResponse) {};
+		DataResponse() : MailClientLUBitStream(eMessageID::DataResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 
 	};
 
-	struct AttachmentCollectRequest : public MailLUBitStream {
+	struct AttachmentCollectRequest : public MailClientLUBitStream {
 		uint64_t mailID = 0;
 		LWOOBJID playerID = LWOOBJID_EMPTY;
 
-		AttachmentCollectRequest() : MailLUBitStream(eMessageID::AttachmentCollectRequest) {};
+		AttachmentCollectRequest() : MailClientLUBitStream(eMessageID::AttachmentCollectRequest) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
-	struct AttachmentCollectResponse : public MailLUBitStream {
+	struct AttachmentCollectResponse : public MailClientLUBitStream {
 		eAttachmentCollectResponse status = eAttachmentCollectResponse::UnknownError;
 		uint64_t mailID = 0;
-		AttachmentCollectResponse() : MailLUBitStream(eMessageID::AttachmentCollectResponse) {};
+		AttachmentCollectResponse() : MailClientLUBitStream(eMessageID::AttachmentCollectResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct DeleteRequest : public MailLUBitStream {
+	struct DeleteRequest : public MailClientLUBitStream {
 		uint64_t mailID = 0;
 		LWOOBJID playerID = LWOOBJID_EMPTY;
 
-		DeleteRequest() : MailLUBitStream(eMessageID::DeleteRequest) {};
+		DeleteRequest() : MailClientLUBitStream(eMessageID::DeleteRequest) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
-	struct DeleteResponse : public MailLUBitStream {
+	struct DeleteResponse : public MailClientLUBitStream {
 		eDeleteResponse status = eDeleteResponse::UnknownError;
 		uint64_t mailID = 0;
-		DeleteResponse() : MailLUBitStream(eMessageID::DeleteResponse) {};
+		DeleteResponse() : MailClientLUBitStream(eMessageID::DeleteResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct ReadRequest : public MailLUBitStream {
+	struct ReadRequest : public MailClientLUBitStream {
 		uint64_t mailID = 0;
 
-		ReadRequest() : MailLUBitStream(eMessageID::ReadRequest) {};
+		ReadRequest() : MailClientLUBitStream(eMessageID::ReadRequest) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override;
 		void Handle() override;
 	};
 
-	struct ReadResponse : public MailLUBitStream {
+	struct ReadResponse : public MailClientLUBitStream {
 		uint64_t mailID = 0;
 		eReadResponse status = eReadResponse::UnknownError;
 
-		ReadResponse() : MailLUBitStream(eMessageID::ReadResponse) {};
+		ReadResponse() : MailClientLUBitStream(eMessageID::ReadResponse) {};
 		void Serialize(RakNet::BitStream& bitStream) const override;
 	};
 
-	struct NotificationRequest : public MailLUBitStream {
-		NotificationRequest() : MailLUBitStream(eMessageID::NotificationRequest) {};
+	struct NotificationRequest : public MailClientLUBitStream {
+		NotificationRequest() : MailClientLUBitStream(eMessageID::NotificationRequest) {};
 		bool Deserialize(RakNet::BitStream& bitStream) override { return true; };
 		void Handle() override;
 	};
 
-	void HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
+	void Handle(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player);
 
 	void SendMail(
 		const Entity* recipient,

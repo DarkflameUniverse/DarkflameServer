@@ -34,7 +34,7 @@ namespace {
 }
 
 namespace Mail {
-	std::map<eMessageID, std::function<std::unique_ptr<MailLUBitStream>()>> g_Handlers = {
+	std::map<eMessageID, std::function<std::unique_ptr<MailClientLUBitStream>()>> g_Handlers = {
 		{eMessageID::SendRequest, []() {
 			return std::make_unique<SendRequest>();
 		}},
@@ -55,11 +55,11 @@ namespace Mail {
 		}},
 	};
 
-	void MailLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+	void MailClientLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
 		bitStream.Write(messageID);
 	}
 
-	bool MailLUBitStream::Deserialize(RakNet::BitStream& bitstream) {
+	bool MailClientLUBitStream::Deserialize(RakNet::BitStream& bitstream) {
 		VALIDATE_READ(bitstream.Read(messageID));
 		return true;
 	}
@@ -133,16 +133,16 @@ namespace Mail {
 			response.status = eSendResponse::SenderAccountIsMuted;
 		}
 		LOG("Finished send with status %s", StringifiedEnum::ToString(response.status).data());
-		response.Send(sysAddr);
+		response.Send();
 	}
 
 	void SendResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
 	}
 
 	void NotificationResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
 		bitStream.Write<uint64_t>(0); // unused
 		bitStream.Write<uint64_t>(0); // unused
@@ -158,12 +158,12 @@ namespace Mail {
 		auto playerMail = Database::Get()->GetMailForPlayer(character->GetID(), 20);
 		DataResponse response;
 		response.playerMail = playerMail;
-		response.Send(sysAddr);
+		response.Send();
 		LOG("DataRequest");
 	}
 
 	void DataResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(this->throttled);
 	
 		bitStream.Write<uint16_t>(this->playerMail.size());
@@ -199,11 +199,11 @@ namespace Mail {
 			}
 		}
 		LOG("AttachmentCollectResponse %s", StringifiedEnum::ToString(response.status).data());
-		response.Send(sysAddr);
+		response.Send();
 	}
 
 	void AttachmentCollectResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
 		bitStream.Write(mailID);
 	}
@@ -230,11 +230,11 @@ namespace Mail {
 			response.status = eDeleteResponse::NotFound;
 		}
 		LOG("DeleteRequest status %s", StringifiedEnum::ToString(response.status).data());
-		response.Send(sysAddr);
+		response.Send();
 	}
 
 	void DeleteResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
 		bitStream.Write(mailID);
 	}
@@ -256,11 +256,11 @@ namespace Mail {
 		}
 
 		LOG("ReadRequest %s", StringifiedEnum::ToString(response.status).data());
-		response.Send(sysAddr);
+		response.Send();
 	}
 
 	void ReadResponse::Serialize(RakNet::BitStream& bitStream) const {
-		MailLUBitStream::Serialize(bitStream);
+		MailClientLUBitStream::Serialize(bitStream);
 		bitStream.Write(status);
 		bitStream.Write(mailID);
 	}
@@ -275,13 +275,13 @@ namespace Mail {
 		}
 
 		LOG("NotificationRequest %s", StringifiedEnum::ToString(response.status).data());
-		response.Send(sysAddr);
+		response.Send();
 	}
 }
 
 // Non Stuct Functions
-void Mail::HandleMail(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player) {
-	MailLUBitStream data;
+void Mail::Handle(RakNet::BitStream& inStream, const SystemAddress& sysAddr, Entity* player) {
+	MailClientLUBitStream data;
 	if (!data.Deserialize(inStream)) {
 		LOG_DEBUG("Error Reading Mail header");
 		return;
@@ -368,5 +368,5 @@ void Mail::SendMail(const LWOOBJID sender, const std::string& senderName, LWOOBJ
 	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) return; // TODO: Echo to chat server
 	NotificationResponse response;
 	response.status = eNotificationResponse::NewMail;
-	response.Send(sysAddr);
+	response.Send();
 }

@@ -3,6 +3,7 @@
 // Classes
 #include "Character.h"
 #include "ChatPackets.h"
+#include "CommonPackets.h"
 #include "dServer.h"
 #include "PlayerManager.h"
 #include "User.h"
@@ -16,7 +17,6 @@
 
 // Enums
 #include "MessageType/Chat.h"
-#include "eServerDisconnectIdentifiers.h"
 #include "eObjectBits.h"
 
 namespace GMGreaterThanZeroCommands {
@@ -31,8 +31,10 @@ namespace GMGreaterThanZeroCommands {
 				ChatPackets::SendSystemMessage(sysAddr, u"Count not find player of name: " + username);
 				return;
 			}
-
-			Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::KICK);
+			CommonPackets::DisconnectNotify notification;
+			notification.disconnectID = eServerDisconnectIdentifiers::KICK;
+			notification.Send(player->GetSystemAddress());
+			Game::server->Disconnect(player->GetSystemAddress());
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Kicked: " + username);
 		} else {
@@ -69,7 +71,10 @@ namespace GMGreaterThanZeroCommands {
 			if (accountId != 0) Database::Get()->UpdateAccountBan(accountId, true);
 
 			if (player != nullptr) {
-				Game::server->Disconnect(player->GetSystemAddress(), eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED);
+				CommonPackets::DisconnectNotify notification;
+				notification.disconnectID = eServerDisconnectIdentifiers::FREE_TRIAL_EXPIRED;
+				notification.Send(player->GetSystemAddress());
+				Game::server->Disconnect(player->GetSystemAddress());
 			}
 
 			ChatPackets::SendSystemMessage(sysAddr, u"Banned: " + GeneralUtils::ASCIIToUTF16(splitArgs[0]));

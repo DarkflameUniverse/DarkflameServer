@@ -12,6 +12,20 @@
 #include "ServiceType.h"
 #include "MessageType/Chat.h"
 
+namespace ChatPackets {
+	// Struct Functions
+	void ChatLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool ChatLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));
+		return true;
+	}
+}
+
 void ShowAllRequest::Serialize(RakNet::BitStream& bitStream) {
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::SHOW_ALL);
 	bitStream.Write(this->requestor);
@@ -100,6 +114,7 @@ void ChatPackets::SendMessageFail(const SystemAddress& sysAddr) {
 
 namespace ChatPackets {
 	void Announcement::Serialize(RakNet::BitStream& bitStream) const {
+		ChatLUBitStream::Serialize(bitStream);
 		bitStream.Write<uint32_t>(title.size());
 		bitStream.Write(title);
 		bitStream.Write<uint32_t>(message.size());
@@ -108,6 +123,7 @@ namespace ChatPackets {
 }
 
 void ChatPackets::AchievementNotify::Serialize(RakNet::BitStream& bitstream) const {
+	ChatLUBitStream::Serialize(bitstream);
 	bitstream.Write<uint64_t>(0); // Packing
 	bitstream.Write<uint32_t>(0); // Packing
 	bitstream.Write<uint8_t>(0); // Packing
@@ -133,6 +149,7 @@ bool ChatPackets::AchievementNotify::Deserialize(RakNet::BitStream& bitstream) {
 }
 
 void ChatPackets::TeamInviteInitialResponse::Serialize(RakNet::BitStream& bitstream) const {
+	ClientLUBitStream::Serialize(bitstream);
 	bitstream.Write<uint8_t>(inviteFailedToSend);
 	bitstream.Write(playerName);
 }

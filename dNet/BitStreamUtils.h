@@ -47,20 +47,22 @@ struct LUWString {
 };
 
 struct LUBitStream {
-	ServiceType connectionType = ServiceType::UNKNOWN;
-	uint32_t internalPacketID = 0xFFFFFFFF;
+	// Common header data that is serialized
+	MessageID rakNetID = ID_USER_PACKET_ENUM;
+	ServiceType serviceType = ServiceType::UNKNOWN;
+
+	SystemAddress sysAddr = UNASSIGNED_SYSTEM_ADDRESS;
 
 	LUBitStream() = default;
 
-	template <typename T> 
-	LUBitStream(ServiceType connectionType, T internalPacketID) {
-		this->connectionType = connectionType;
-		this->internalPacketID = static_cast<uint32_t>(internalPacketID);
+	LUBitStream(ServiceType serviceType) {
+		this->serviceType = serviceType;
 	}
 
 	void WriteHeader(RakNet::BitStream& bitStream) const;
 	bool ReadHeader(RakNet::BitStream& bitStream);
 	void Send(const SystemAddress& sysAddr) const;
+	void Send() const { Send(this->sysAddr); };
 	void Broadcast() const { Send(UNASSIGNED_SYSTEM_ADDRESS); };
 
 	virtual void Serialize(RakNet::BitStream& bitStream) const {}

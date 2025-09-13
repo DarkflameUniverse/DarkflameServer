@@ -12,6 +12,20 @@
 
 #include <iostream>
 
+namespace WorldPackets {
+	// Struct Functions	
+	void WorldLUBitStream::Serialize(RakNet::BitStream& bitStream) const {
+		bitStream.Write(this->messageType);
+		bitStream.Write<uint8_t>(0); // padding
+	}
+	bool WorldLUBitStream::Deserialize(RakNet::BitStream& bitStream) {
+		VALIDATE_READ(bitStream.Read(this->messageType));
+		uint8_t padding = 0;
+		VALIDATE_READ(bitStream.Read(padding));
+		return true;
+	}
+}
+
 void HTTPMonitorInfo::Serialize(RakNet::BitStream& bitStream) const {
 	bitStream.Write(port);
 	bitStream.Write<uint8_t>(openWeb);

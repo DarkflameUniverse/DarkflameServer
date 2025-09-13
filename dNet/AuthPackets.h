@@ -5,66 +5,14 @@
 #include "dCommonVars.h"
 #include "dNetCommon.h"
 #include "magic_enum.hpp"
+#include "BitStream.h"
+#include "RakNetTypes.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Auth.h"
 
 enum class eLoginResponse : uint8_t;
 enum class ServiceType : uint16_t;
 class dServer;
-
-enum class eStamps : uint32_t {
-	PASSPORT_AUTH_START,
-	PASSPORT_AUTH_BYPASS,
-	PASSPORT_AUTH_ERROR,
-	PASSPORT_AUTH_DB_SELECT_START,
-	PASSPORT_AUTH_DB_SELECT_FINISH,
-	PASSPORT_AUTH_DB_INSERT_START,
-	PASSPORT_AUTH_DB_INSERT_FINISH,
-	PASSPORT_AUTH_LEGOINT_COMMUNICATION_START,
-	PASSPORT_AUTH_LEGOINT_RECEIVED,
-	PASSPORT_AUTH_LEGOINT_THREAD_SPAWN,
-	PASSPORT_AUTH_LEGOINT_WEBSERVICE_START,
-	PASSPORT_AUTH_LEGOINT_WEBSERVICE_FINISH,
-	PASSPORT_AUTH_LEGOINT_LEGOCLUB_START,
-	PASSPORT_AUTH_LEGOINT_LEGOCLUB_FINISH,
-	PASSPORT_AUTH_LEGOINT_THREAD_FINISH,
-	PASSPORT_AUTH_LEGOINT_REPLY,
-	PASSPORT_AUTH_LEGOINT_ERROR,
-	PASSPORT_AUTH_LEGOINT_COMMUNICATION_END,
-	PASSPORT_AUTH_LEGOINT_DISCONNECT,
-	PASSPORT_AUTH_WORLD_COMMUNICATION_START,
-	PASSPORT_AUTH_CLIENT_OS,
-	PASSPORT_AUTH_WORLD_PACKET_RECEIVED,
-	PASSPORT_AUTH_IM_COMMUNICATION_START,
-	PASSPORT_AUTH_IM_LOGIN_START,
-	PASSPORT_AUTH_IM_LOGIN_ALREADY_LOGGED_IN,
-	PASSPORT_AUTH_IM_OTHER_LOGIN_REMOVED,
-	PASSPORT_AUTH_IM_LOGIN_QUEUED,
-	PASSPORT_AUTH_IM_LOGIN_RESPONSE,
-	PASSPORT_AUTH_IM_COMMUNICATION_END,
-	PASSPORT_AUTH_WORLD_SESSION_CONFIRM_TO_AUTH,
-	PASSPORT_AUTH_WORLD_COMMUNICATION_FINISH,
-	PASSPORT_AUTH_WORLD_DISCONNECT,
-	NO_LEGO_INTERFACE,
-	DB_ERROR,
-	GM_REQUIRED,
-	NO_LEGO_WEBSERVICE_XML,
-	LEGO_WEBSERVICE_TIMEOUT,
-	LEGO_WEBSERVICE_ERROR,
-	NO_WORLD_SERVER
-};
-
-struct Stamp {
-	eStamps type;
-	uint32_t value;
-	uint64_t timestamp;
-
-	Stamp(eStamps type, uint32_t value, uint64_t timestamp = time(nullptr)){
-		this->type = type;
-		this->value = value;
-		this->timestamp = timestamp;
-	}
-
-	void Serialize(RakNet::BitStream& outBitStream);
-};
 
 enum class ClientOS : uint8_t {
 	UNKNOWN,
@@ -84,20 +32,50 @@ struct magic_enum::customize::enum_range<LanguageCodeID> {
 	static constexpr int max = 2057;
 };
 
-enum class Language : uint32_t {
-	en_US,
-	pl_US,
-	de_DE,
-	en_GB,
-};
-
 namespace AuthPackets {
-	void HandleHandshake(dServer* server, Packet* packet);
-	void SendHandshake(dServer* server, const SystemAddress& sysAddr, const std::string& nextServerIP, uint16_t nextServerPort, const ServiceType serverType);
 
-	void HandleLoginRequest(dServer* server, Packet* packet);
-	void SendLoginResponse(dServer* server, const SystemAddress& sysAddr, eLoginResponse responseCode, const std::string& errorMsg, const std::string& wServerIP, uint16_t wServerPort, std::string username, std::vector<Stamp>& stamps);
+	struct AuthLUBitStream : public LUBitStream {
+		MessageType::Auth messageType = MessageType::Auth::LOGIN_REQUEST;
+
+		AuthLUBitStream() : LUBitStream(ServiceType::AUTH) {};
+		AuthLUBitStream(MessageType::Auth _messageType) : LUBitStream(ServiceType::AUTH), messageType{_messageType} {};
+
+		virtual void Serialize(RakNet::BitStream& bitStream) const override;
+		virtual bool Deserialize(RakNet::BitStream& bitStream) override;
+		virtual void Handle() override {};
+	};
+
+	struct LoginRequest : public AuthLUBitStream {
+		std::string username;
+		std::string password;
+		LanguageCodeID locale_id;
+		ClientOS clientOS;
+		struct ComputerInfo {
+			std::string memoryStats;
+			std::string videoCard;
+			struct ProcessorInfo {
+				uint32_t count = 0;
+				uint32_t type = 0;
+				uint16_t level = 0;
+				uint16_t revision = 0;
+			} processorInfo;
+			struct OSVersionInfo {
+				uint32_t infoSize = 0;
+				uint32_t majorVersion = 0;
+				uint32_t minorVersion = 0;
+				uint32_t buildNumber = 0;
+				uint32_t platformID = 0;
+			} osVersionInfo;
+		} computerInfo;
+
+		LoginRequest() : AuthLUBitStream(MessageType::Auth::LOGIN_REQUEST) {}
+		bool Deserialize(RakNet::BitStream& bitStream) override;
+		void Handle() override;
+	};
+
+	// Non struct functions
 	void LoadClaimCodes();
+	void Handle(RakNet::BitStream& inStream, const SystemAddress& sysAddr);
 
 }
 
