@@ -10,6 +10,26 @@
 #include <functional>
 #include <sstream>
 
+namespace {
+	// The base LXFML xml file to use when creating new models.
+	std::string g_base = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<LXFML versionMajor="5" versionMinor="0">
+<Meta>
+    <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
+    <Brand name="LEGOUniverse"/>
+    <BrickSet version="457"/>
+</Meta>
+<Bricks>
+</Bricks>
+<RigidSystems>
+</RigidSystems>
+<GroupSystems>
+    <GroupSystem>
+    </GroupSystem>
+</GroupSystems>
+</LXFML>)";
+}
+
 Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition) {
 	Result toReturn;
 	tinyxml2::XMLDocument doc;
@@ -238,7 +258,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 	// Helper to create output document from sets of brick refs and rigidsystem pointers
 	auto makeOutput = [&](const std::unordered_set<std::string>& bricksToInclude, const std::vector<tinyxml2::XMLElement*>& rigidSystemsToInclude, const std::vector<tinyxml2::XMLElement*>& groupsToInclude = {}) {
 		tinyxml2::XMLDocument outDoc;
-		outDoc.Parse(Lxfml::base.c_str());
+		outDoc.Parse(g_base.c_str());
 		auto* outRoot = outDoc.FirstChildElement("LXFML");
 		auto* outBricks = outRoot->FirstChildElement("Bricks");
 		auto* outRigidSystems = outRoot->FirstChildElement("RigidSystems");
