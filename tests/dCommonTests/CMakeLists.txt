@@ -10,6 +10,7 @@ set(DCOMMONTEST_SOURCES
 	"TestLUString.cpp"
 	"TestLUWString.cpp"
 	"dCommonDependencies.cpp"
+	"lxfml_split_tests.cpp"
 )
 
 add_subdirectory(dEnumsTests)
