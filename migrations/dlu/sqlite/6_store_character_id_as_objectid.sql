@@ -10,7 +10,6 @@ UPDATE command_log SET character_id = character_id | 0x1000000000000000;
 UPDATE friends SET player_id = player_id | 0x1000000000000000, friend_id = friend_id | 0x1000000000000000;
 UPDATE ignore_list SET player_id = player_id | 0x1000000000000000, ignored_player_id = ignored_player_id | 0x1000000000000000;
 UPDATE leaderboard SET character_id = character_id | 0x1000000000000000;
-UPDATE pet_names SET owner_id = owner_id | 0x1000000000000000;
 UPDATE mail SET sender_id_1 = sender_id | 0x1000000000000000, receiver_id = receiver_id | 0x1000000000000000;
 UPDATE properties SET owner_id = owner_id | 0x1000000000000000;
 UPDATE ugc SET character_id = character_id | 0x1000000000000000;
