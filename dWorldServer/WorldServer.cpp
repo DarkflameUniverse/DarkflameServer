@@ -861,7 +861,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (luBitStream.connectionType != ServiceType::WORLD) return;
-
+	LOG_DEBUG("Got world packet %s", StringifiedEnum::ToString(static_cast<MessageType::World>(luBitStream.internalPacketID)).data());
 	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
 	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
@@ -983,7 +983,7 @@ void HandlePacket(Packet* packet) {
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
-
+		LOG("User is requesting to login with character %llu", playerID);
 		bool valid = CheatDetection::VerifyLwoobjidIsSender(
 			playerID,
 			packet->systemAddress,
@@ -991,18 +991,15 @@ void HandlePacket(Packet* packet) {
 			"Sending login request with a sending player that does not match their own. Player ID: %llu",
 			playerID
 		);
-
+		LOG("Login request for player %llu is %s", playerID, valid ? "valid" : "invalid");
 		if (!valid) return;
-
-		GeneralUtils::ClearBit(playerID, eObjectBits::CHARACTER);
-		GeneralUtils::ClearBit(playerID, eObjectBits::PERSISTENT);
 
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 
 		if (user) {
 			auto lastCharacter = user->GetLoggedInChar();
 			// This means we swapped characters and we need to remove the previous player from the container.
-			if (static_cast<uint32_t>(lastCharacter) != playerID) {
+			if (lastCharacter != playerID) {
 				CBITSTREAM;
 				BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 				bitStream.Write(lastCharacter);
@@ -1010,7 +1007,7 @@ void HandlePacket(Packet* packet) {
 			}
 		}
 
-		UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
+		UserManager::Instance()->LoginCharacter(packet->systemAddress, playerID);
 		break;
 	}
 

@@ -15,8 +15,8 @@ struct MailInfo {
 	std::string subject;
 	std::string body;
 	uint64_t id{};
-	uint32_t senderId{};
-	uint32_t receiverId{};
+	LWOOBJID senderId{};
+	LWOOBJID receiverId{};
 	uint64_t timeSent{};
 	bool wasRead{};
 	uint16_t languageCode{};

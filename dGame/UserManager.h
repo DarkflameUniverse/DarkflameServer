@@ -35,7 +35,7 @@ public:
 	void CreateCharacter(const SystemAddress& sysAddr, Packet* packet);
 	void DeleteCharacter(const SystemAddress& sysAddr, Packet* packet);
 	void RenameCharacter(const SystemAddress& sysAddr, Packet* packet);
-	void LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID);
+	void LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID);
 
 	void SaveAllActiveCharacters();
 

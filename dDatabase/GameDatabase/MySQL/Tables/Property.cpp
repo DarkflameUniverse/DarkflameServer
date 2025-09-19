@@ -119,7 +119,7 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 		if (!result) result = IProperty::PropertyEntranceResult();
 		auto& entry = result->entries.emplace_back();
 		entry.id = properties->getUInt64("id");
-		entry.ownerId = properties->getUInt64("owner_id");
+		entry.ownerId = properties->getInt64("owner_id");
 		entry.cloneId = properties->getUInt64("clone_id");
 		entry.name = properties->getString("name").c_str();
 		entry.description = properties->getString("description").c_str();
@@ -146,7 +146,7 @@ std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOMAPID map
 
 	IProperty::Info toReturn;
 	toReturn.id = propertyEntry->getUInt64("id");
-	toReturn.ownerId = propertyEntry->getUInt64("owner_id");
+	toReturn.ownerId = propertyEntry->getInt64("owner_id");
 	toReturn.cloneId = propertyEntry->getUInt64("clone_id");
 	toReturn.name = propertyEntry->getString("name").c_str();
 	toReturn.description = propertyEntry->getString("description").c_str();

@@ -25,7 +25,7 @@ public:
 		std::stringstream& sd0Data,
 		const uint32_t blueprintId,
 		const uint32_t accountId,
-		const uint32_t characterId) = 0;
+		const LWOOBJID characterId) = 0;
 
 	// Get the property models for the given property id.
 	virtual std::vector<IPropertyContents::Model> GetPropertyModels(const LWOOBJID& propertyId) = 0;

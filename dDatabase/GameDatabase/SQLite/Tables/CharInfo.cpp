@@ -20,7 +20,7 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(CppSQLite3Query stmt) {
 
 	ICharInfo::Info toReturn;
 
-	toReturn.id = stmt.getIntField("id");
+	toReturn.id = stmt.getInt64Field("id");
 	toReturn.name = stmt.getStringField("name");
 	toReturn.pendingName = stmt.getStringField("pending_name");
 	toReturn.needsRename = stmt.getIntField("needs_rename");
@@ -31,7 +31,7 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(CppSQLite3Query stmt) {
 	return toReturn;
 }
 
-std::optional<ICharInfo::Info> SQLiteDatabase::GetCharacterInfo(const uint32_t charId) {
+std::optional<ICharInfo::Info> SQLiteDatabase::GetCharacterInfo(const LWOOBJID charId) {
 	return CharInfoFromQueryResult(
 		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId).second
 	);
@@ -43,12 +43,12 @@ std::optional<ICharInfo::Info> SQLiteDatabase::GetCharacterInfo(const std::strin
 	);
 }
 
-std::vector<uint32_t> SQLiteDatabase::GetAccountCharacterIds(const uint32_t accountId) {
+std::vector<LWOOBJID> SQLiteDatabase::GetAccountCharacterIds(const LWOOBJID accountId) {
 	auto [_, result] = ExecuteSelect("SELECT id FROM charinfo WHERE account_id = ? ORDER BY last_login DESC LIMIT 4;", accountId);
 
-	std::vector<uint32_t> toReturn;
+	std::vector<LWOOBJID> toReturn;
 	while (!result.eof()) {
-		toReturn.push_back(result.getIntField("id"));
+		toReturn.push_back(result.getInt64Field("id"));
 		result.nextRow();
 	}
 
@@ -66,15 +66,15 @@ void SQLiteDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 		static_cast<uint32_t>(time(NULL)));
 }
 
-void SQLiteDatabase::SetCharacterName(const uint32_t characterId, const std::string_view name) {
+void SQLiteDatabase::SetCharacterName(const LWOOBJID characterId, const std::string_view name) {
 	ExecuteUpdate("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ?;", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
-void SQLiteDatabase::SetPendingCharacterName(const uint32_t characterId, const std::string_view name) {
+void SQLiteDatabase::SetPendingCharacterName(const LWOOBJID characterId, const std::string_view name) {
 	ExecuteUpdate("UPDATE charinfo SET pending_name = ?, needs_rename = 0, last_login = ? WHERE id = ?;", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
-void SQLiteDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
+void SQLiteDatabase::UpdateLastLoggedInCharacter(const LWOOBJID characterId) {
 	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ?;", static_cast<uint32_t>(time(NULL)), characterId);
 }
 

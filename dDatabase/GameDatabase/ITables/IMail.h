@@ -16,13 +16,13 @@ public:
 	virtual void InsertNewMail(const MailInfo& mail) = 0;
 
 	// Get the mail for the given character id.
-	virtual std::vector<MailInfo> GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) = 0;
+	virtual std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) = 0;
 
 	// Get the mail for the given mail id.
 	virtual std::optional<MailInfo> GetMail(const uint64_t mailId) = 0;
 
 	// Get the number of unread mail for the given character id.
-	virtual uint32_t GetUnreadMailCount(const uint32_t characterId) = 0;
+	virtual uint32_t GetUnreadMailCount(const LWOOBJID characterId) = 0;
 
 	// Mark the given mail as read.
 	virtual void MarkMailRead(const uint64_t mailId) = 0;
