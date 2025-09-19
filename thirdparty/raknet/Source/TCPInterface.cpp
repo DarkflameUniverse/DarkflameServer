@@ -211,8 +211,8 @@ SystemAddress TCPInterface::Connect(const char* host, unsigned short remotePort,
 		int errorCode = RakNet::RakThread::Create(ConnectionAttemptLoop, s);
 		if (errorCode!=0)
 		{
-			delete s;
 			failedConnectionAttempts.Push(s->systemAddress);
+			delete s;
 		}
 		return UNASSIGNED_SYSTEM_ADDRESS;
 	}	
