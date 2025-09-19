@@ -325,7 +325,9 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 
 	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
+	ObjectIDManager::RequestPersistentID([=, this](uint32_t persistentID) {
+		LWOOBJID objectID = persistentID;
+		GeneralUtils::SetBit(objectID, eObjectBits::CHARACTER);
 		if (Database::Get()->GetCharacterInfo(objectID)) {
 			LOG("Character object id unavailable, check object_id_tracker!");
 			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
@@ -409,9 +411,8 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID objectID;
 	inStream.Read(objectID);
-	uint32_t charID = static_cast<uint32_t>(objectID);
 
-	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
+	LOG("Received char delete req for ID: %llu", objectID);
 
 	bool hasCharacter = CheatDetection::VerifyLwoobjidIsSender(
 		objectID,
@@ -423,8 +424,8 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	if (!hasCharacter) {
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
-		LOG("Deleting character %i", charID);
-		Database::Get()->DeleteCharacter(charID);
+		LOG("Deleting character %llu", objectID);
+		Database::Get()->DeleteCharacter(objectID);
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
@@ -445,11 +446,8 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID objectID;
 	inStream.Read(objectID);
-	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
-	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
-	uint32_t charID = static_cast<uint32_t>(objectID);
-	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
+	LOG("Received char rename request for ID: %llu", objectID);
 
 	LUWString LUWStringName;
 	inStream.Read(LUWStringName);
@@ -466,7 +464,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		u->GetAccountID());
 
 	auto unusedItr = std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
-		if (c->GetID() == charID) {
+		if (c->GetID() == objectID) {
 			character = c;
 			return true;
 		}
@@ -483,12 +481,12 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 		if (!Database::Get()->GetCharacterInfo(newName)) {
 			if (IsNamePreapproved(newName)) {
-				Database::Get()->SetCharacterName(charID, newName);
+				Database::Get()->SetCharacterName(objectID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
-				Database::Get()->SetPendingCharacterName(charID, newName);
+				Database::Get()->SetPendingCharacterName(objectID, newName);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
@@ -502,7 +500,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 }
 
-void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID) {
+void UserManager::LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		LOG("Couldn't get user to log in character");

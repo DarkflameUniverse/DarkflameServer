@@ -19,7 +19,7 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(std::unique_ptr<sql::Resu
 
 	ICharInfo::Info toReturn;
 
-	toReturn.id = stmt->getUInt("id");
+	toReturn.id = stmt->getInt64("id");
 	toReturn.name = stmt->getString("name").c_str();
 	toReturn.pendingName = stmt->getString("pending_name").c_str();
 	toReturn.needsRename = stmt->getBoolean("needs_rename");
@@ -30,7 +30,7 @@ std::optional<ICharInfo::Info> CharInfoFromQueryResult(std::unique_ptr<sql::Resu
 	return toReturn;
 }
 
-std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const uint32_t charId) {
+std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const LWOOBJID charId) {
 	return CharInfoFromQueryResult(
 		ExecuteSelect("SELECT name, pending_name, needs_rename, prop_clone_id, permission_map, id, account_id FROM charinfo WHERE id = ? LIMIT 1;", charId)
 	);
@@ -42,13 +42,13 @@ std::optional<ICharInfo::Info> MySQLDatabase::GetCharacterInfo(const std::string
 	);
 }
 
-std::vector<uint32_t> MySQLDatabase::GetAccountCharacterIds(const uint32_t accountId) {
+std::vector<LWOOBJID> MySQLDatabase::GetAccountCharacterIds(const LWOOBJID accountId) {
 	auto result = ExecuteSelect("SELECT id FROM charinfo WHERE account_id = ? ORDER BY last_login DESC LIMIT 4;", accountId);
 
-	std::vector<uint32_t> toReturn;
+	std::vector<LWOOBJID> toReturn;
 	toReturn.reserve(result->rowsCount());
 	while (result->next()) {
-		toReturn.push_back(result->getUInt("id"));
+		toReturn.push_back(result->getInt64("id"));
 	}
 
 	return toReturn;
@@ -65,15 +65,15 @@ void MySQLDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 		static_cast<uint32_t>(time(NULL)));
 }
 
-void MySQLDatabase::SetCharacterName(const uint32_t characterId, const std::string_view name) {
+void MySQLDatabase::SetCharacterName(const LWOOBJID characterId, const std::string_view name) {
 	ExecuteUpdate("UPDATE charinfo SET name = ?, pending_name = '', needs_rename = 0, last_login = ? WHERE id = ? LIMIT 1;", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
-void MySQLDatabase::SetPendingCharacterName(const uint32_t characterId, const std::string_view name) {
+void MySQLDatabase::SetPendingCharacterName(const LWOOBJID characterId, const std::string_view name) {
 	ExecuteUpdate("UPDATE charinfo SET pending_name = ?, needs_rename = 0, last_login = ? WHERE id = ? LIMIT 1", name, static_cast<uint32_t>(time(NULL)), characterId);
 }
 
-void MySQLDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
+void MySQLDatabase::UpdateLastLoggedInCharacter(const LWOOBJID characterId) {
 	ExecuteUpdate("UPDATE charinfo SET last_login = ? WHERE id = ? LIMIT 1", static_cast<uint32_t>(time(NULL)), characterId);
 }
 

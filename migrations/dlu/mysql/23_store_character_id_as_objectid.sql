@@ -1,0 +1,22 @@
+START TRANSACTION;
+ALTER TABLE mail MODIFY COLUMN sender_id BIGINT NOT NULL;
+ALTER TABLE bug_reports MODIFY COLUMN reporter_id BIGINT;
+/* This is done to prevent all entries on the leaderboard from updating */
+ALTER TABLE leaderboard CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP();
+SET foreign_key_checks = 0;
+UPDATE activity_log SET character_id = character_id | 0x1000000000000000;
+UPDATE behaviors SET character_id = character_id | 0x1000000000000000;
+UPDATE bug_reports SET reporter_id = reporter_id | 0x1000000000000000;
+UPDATE charinfo SET id = id | 0x1000000000000000;
+UPDATE charxml SET id = id | 0x1000000000000000;
+UPDATE command_log SET character_id = character_id | 0x1000000000000000;
+UPDATE friends SET player_id = player_id | 0x1000000000000000, friend_id = friend_id | 0x1000000000000000;
+UPDATE ignore_list SET player_id = player_id | 0x1000000000000000, ignored_player_id = ignored_player_id | 0x1000000000000000;
+UPDATE leaderboard SET character_id = character_id | 0x1000000000000000;
+UPDATE mail SET sender_id = sender_id | 0x1000000000000000, receiver_id = receiver_id | 0x1000000000000000;
+UPDATE properties SET owner_id = owner_id | 0x1000000000000000;
+UPDATE ugc SET character_id = character_id | 0x1000000000000000;
+UPDATE ugc_modular_build SET character_id = character_id | 0x1000000000000000;
+SET foreign_key_checks = 1;
+ALTER TABLE leaderboard CHANGE last_played last_played TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+COMMIT;

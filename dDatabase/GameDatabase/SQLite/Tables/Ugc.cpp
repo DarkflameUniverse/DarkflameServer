@@ -49,7 +49,7 @@ void SQLiteDatabase::InsertNewUgcModel(
 	std::stringstream& sd0Data, // cant be const sad
 	const uint32_t blueprintId,
 	const uint32_t accountId,
-	const uint32_t characterId) {
+	const LWOOBJID characterId) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
 		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)",

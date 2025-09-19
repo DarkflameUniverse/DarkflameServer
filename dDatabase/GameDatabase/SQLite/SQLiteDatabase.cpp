@@ -67,7 +67,7 @@ void SQLiteDatabase::SetAutoCommit(bool value) {
 	}
 }
 
-void SQLiteDatabase::DeleteCharacter(const uint32_t characterId) {
+void SQLiteDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM charxml WHERE id=?;", characterId);
 	ExecuteDelete("DELETE FROM command_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM friends WHERE player_id=? OR friend_id=?;", characterId, characterId);

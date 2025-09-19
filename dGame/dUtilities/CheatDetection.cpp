@@ -76,8 +76,8 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 		auto* user = UserManager::Instance()->GetUser(sysAddr);
 		
 		if (user) {
-			LOG("User at system address (%s) (%s) (%llu) sent a packet as (%i) which is not an id they own.",
-				sysAddr.ToString(), user->GetLastUsedChar()->GetName().c_str(), user->GetLastUsedChar()->GetObjectID(), static_cast<int32_t>(id));
+			LOG("User at system address (%s) (%s) (%llu) sent a packet as (%llu) which is not an id they own.",
+				sysAddr.ToString(), user->GetLastUsedChar()->GetName().c_str(), user->GetLastUsedChar()->GetObjectID(), id);
 		// Can't know sending player. Just log system address for IP banning.
 		} else {
 			LOG("No user found for system address (%s).", sysAddr.ToString());
@@ -117,7 +117,7 @@ bool CheatDetection::VerifyLwoobjidIsSender(const LWOOBJID& id, const SystemAddr
 			return false;
 		}
 		invalidPacket = true;
-		const uint32_t characterId = static_cast<uint32_t>(id);
+		const auto characterId = id;
 		// Check to make sure the ID provided is one of the user's characters.
 		for (const auto& character : sendingUser->GetCharacters()) {
 			if (character && character->GetID() == characterId) {

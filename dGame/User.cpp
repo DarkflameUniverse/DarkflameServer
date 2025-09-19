@@ -39,11 +39,11 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	if (Game::server->GetZoneID() != 0) {
 		auto characterList = Database::Get()->GetAccountCharacterIds(m_AccountID);
 		if (!characterList.empty()) {
-			const uint32_t lastUsedCharacterId = characterList.front();
+			const auto lastUsedCharacterId = characterList.front();
 			Character* character = new Character(lastUsedCharacterId, this);
 			character->UpdateFromDatabase();
 			m_Characters.push_back(character);
-			LOG("Loaded %i as it is the last used char", lastUsedCharacterId);
+			LOG("Loaded %llu as it is the last used char", lastUsedCharacterId);
 		}
 	}
 }
