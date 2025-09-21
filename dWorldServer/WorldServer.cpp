@@ -1148,8 +1148,6 @@ void HandlePacket(Packet* packet) {
 
 						//Send message:
 						LWOOBJID blueprintID = bbbModel.id;
-						GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-						GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 						// Workaround for not having a UGC server to get model LXFML onto the client so it
 						// can generate the physics and nif for the object.

@@ -101,7 +101,6 @@ Item::Item(
 	LWOOBJID id = ObjectIDManager::GenerateRandomObjectID();
 
 	GeneralUtils::SetBit(id, eObjectBits::CHARACTER);
-	GeneralUtils::SetBit(id, eObjectBits::PERSISTENT);
 
 	const auto type = static_cast<eItemType>(info->itemType);
 

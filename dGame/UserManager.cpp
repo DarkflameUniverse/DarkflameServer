@@ -360,9 +360,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
 
 		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
 		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
 
 		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
 		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";

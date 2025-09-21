@@ -2587,12 +2587,10 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
 		LWOOBJID newIDL = newID;
 		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(newIDL, eObjectBits::PERSISTENT);
 
 		uint32_t blueprintIDSmall = ObjectIDManager::GenerateRandomObjectID();
 		LWOOBJID blueprintID = blueprintIDSmall;
 		GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 		//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
 		const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
