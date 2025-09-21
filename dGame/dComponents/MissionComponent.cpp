@@ -19,6 +19,7 @@
 #include "MissionPrerequisites.h"
 #include "AchievementCacheKey.h"
 #include "eMissionState.h"
+#include "StringifiedEnum.h"
 
  // MARK: Mission Component
 
@@ -136,6 +137,7 @@ void MissionComponent::RemoveMission(uint32_t missionId) {
 }
 
 void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
+	LOG("Progressing missions %s %i %llu %s %s", StringifiedEnum::ToString(type).data(), value, associate, targets.c_str(), ignoreAchievements ? "(ignoring achievements)" : "");
 	std::vector<uint32_t> acceptedAchievements;
 	if (count > 0 && !ignoreAchievements) {
 		acceptedAchievements = LookForAchievements(type, value, true, associate, targets, count);
