@@ -75,11 +75,13 @@ public:
 	const uint32_t GetHardcoreLoseUscoreOnDeathPercent() { return m_HardcoreLoseUscoreOnDeathPercent; };
 	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
+	const std::set<LOT>& GetHardcoreExcludedItemDrops() { return m_HardcoreExcludedItemDrops; };
 
 	// Messaging
 	bool SendMessage(GameMessages::GameMsg& msg) const;
 
 private:
+	void ReloadConfig();
 	void SerializeEntities();
 	void KillEntities();
 	void DeleteEntities();
@@ -112,6 +114,7 @@ private:
 	uint32_t m_HardcoreLoseUscoreOnDeathPercent;
 	bool m_HardcoreDropinventoryOnDeath;
 	uint32_t m_HardcoreUscoreEnemiesMultiplier;
+	std::set<LOT> m_HardcoreExcludedItemDrops;
 };
 
 #endif // ENTITYMANAGER_H
