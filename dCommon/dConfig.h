@@ -34,11 +34,11 @@ public:
 
 	// Adds a function to be called when the config is (re)loaded
 	void AddConfigHandler(std::function<void()> handler);
+	void LogSettings() const;
 
 private:
 	void ProcessLine(const std::string& line);
 
-private:
 	std::map<std::string, std::string> m_ConfigValues;
 	std::vector<std::function<void()>> m_ConfigHandlers;
 	std::string m_ConfigFilePath;
