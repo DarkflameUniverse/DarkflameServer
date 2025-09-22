@@ -47,6 +47,7 @@ void dConfig::LoadConfig() {
 void dConfig::ReloadConfig() {
 	this->m_ConfigValues.clear();
 	LoadConfig();
+	for (const auto& handler : m_ConfigHandlers) handler();
 	LogSettings();
 }
 
@@ -57,6 +58,10 @@ const std::string& dConfig::GetValue(std::string key) {
 		this->m_ConfigValues[key] = env_p;
 	}
 	return this->m_ConfigValues[key];
+}
+
+void dConfig::AddConfigHandler(std::function<void()> handler) {
+	m_ConfigHandlers.push_back(handler);
 }
 
 void dConfig::LogSettings() const {
