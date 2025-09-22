@@ -29,10 +29,12 @@ public:
 	 * Reloads the config file to reset values
 	 */
 	void ReloadConfig();
+
+	void LogSettings() const;
+
 private:
 	void ProcessLine(const std::string& line);
 
-private:
 	std::map<std::string, std::string> m_ConfigValues;
 	std::string m_ConfigFilePath;
 };
