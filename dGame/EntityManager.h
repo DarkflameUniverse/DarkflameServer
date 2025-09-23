@@ -76,6 +76,11 @@ public:
 	const bool GetHardcoreDropinventoryOnDeath() { return m_HardcoreDropinventoryOnDeath; };
 	const uint32_t GetHardcoreUscoreEnemiesMultiplier() { return m_HardcoreUscoreEnemiesMultiplier; };
 	const std::set<LOT>& GetHardcoreExcludedItemDrops() { return m_HardcoreExcludedItemDrops; };
+	const float& GetHardcoreUscoreReduction() const { return m_HardcoreUscoreReduction; };
+	bool GetHardcoreUscoreReduced() const { return m_HardcoreUscoreReduced; };
+	const std::set<LOT>& GetHardcoreUscoreReducedLots() const { return m_HardcoreUscoreReducedLots; };
+	const std::set<LOT>& GetHardcoreUscoreExcludedEnemies() const { return m_HardcoreUscoreExcludedEnemies; };
+	const std::set<LWOMAPID>& GetHardcoreDisabledWorlds() const { return m_HardcoreDisabledWorlds; };
 
 	// Messaging
 	bool SendMessage(GameMessages::GameMsg& msg) const;
@@ -115,6 +120,11 @@ private:
 	bool m_HardcoreDropinventoryOnDeath;
 	uint32_t m_HardcoreUscoreEnemiesMultiplier;
 	std::set<LOT> m_HardcoreExcludedItemDrops;
+	float m_HardcoreUscoreReduction{};
+	bool m_HardcoreUscoreReduced{};
+	std::set<LOT> m_HardcoreUscoreReducedLots{};
+	std::set<LOT> m_HardcoreUscoreExcludedEnemies{};
+	std::set<LWOMAPID> m_HardcoreDisabledWorlds{};
 };
 
 #endif // ENTITYMANAGER_H

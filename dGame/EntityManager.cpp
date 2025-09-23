@@ -52,23 +52,41 @@ std::vector<LOT> EntityManager::m_GhostingExcludedLOTs = {
 	4967
 };
 
+template<typename T>
+void ParseDelimSetting(std::set<T>& setting, const std::string_view settingName, const char delim = ',') {
+	const auto str = Game::config->GetValue(settingName.data());
+	setting.clear();
+	for (const auto& strVal : GeneralUtils::SplitString(str, delim)) {
+		const auto val = GeneralUtils::TryParse<T>(strVal);
+		if (val) {
+			setting.insert(val.value());
+		}
+	}
+}
+
 void EntityManager::ReloadConfig() {
 	auto hcmode = Game::config->GetValue("hardcore_mode");
 	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
 	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
-	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : GeneralUtils::TryParse<uint32_t>(hcUscorePercent).value_or(10);
 	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
-	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : GeneralUtils::TryParse<uint32_t>(hcUscoreMult).value_or(2);
 	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
 	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
-	auto hcExcludedItemDrops = Game::config->GetValue("hardcore_excluded_item_drops");
-	m_HardcoreExcludedItemDrops.clear();
-	for (const auto& strLot : GeneralUtils::SplitString(hcExcludedItemDrops, ',')) {
-		const auto lot = GeneralUtils::TryParse<LOT>(strLot);
-		if (lot) {
-			m_HardcoreExcludedItemDrops.insert(lot.value());
-		}
-	}
+	ParseDelimSetting<LOT>(m_HardcoreExcludedItemDrops, "hardcore_excluded_item_drops");
+
+	// We don't need to save the worlds, just need to check if this one is in the list
+	std::set<LWOMAPID> worlds;
+	ParseDelimSetting<LWOMAPID>(worlds, "hardcore_uscore_reduced_worlds");
+	m_HardcoreUscoreReduced = worlds.contains(Game::zoneManager->GetZoneID().GetMapID());
+
+	ParseDelimSetting<LOT>(m_HardcoreUscoreReducedLots, "hardcore_uscore_reduced_lots");
+	ParseDelimSetting<LOT>(m_HardcoreUscoreExcludedEnemies, "hardcore_uscore_excluded_enemies");
+	ParseDelimSetting<LWOMAPID>(m_HardcoreDisabledWorlds, "hardcore_disabled_worlds");
+
+	auto hcXpReduction = Game::config->GetValue("hardcore_uscore_reduction");
+	m_HardcoreUscoreReduction = hcXpReduction.empty() ? 1.0f : GeneralUtils::TryParse<float>(hcXpReduction).value_or(1.0f);
+	m_HardcoreMode = GetHardcoreDisabledWorlds().contains(Game::zoneManager->GetZoneID().GetMapID()) ? false : m_HardcoreMode;
 }
 
 void EntityManager::Initialize() {
