@@ -622,7 +622,6 @@ void PropertyManagementComponent::Load() {
 		if (databaseModel.lot == 14) {
 			LWOOBJID blueprintID = databaseModel.ugcId;
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 			settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
 			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));

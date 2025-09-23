@@ -482,7 +482,6 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
 
 	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
-	GeneralUtils::SetBit(petSubKey, eObjectBits::PERSISTENT);
 
 	m_DatabaseId = petSubKey;
 

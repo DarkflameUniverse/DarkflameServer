@@ -336,8 +336,11 @@ void Character::WriteToDatabase() {
 	tinyxml2::XMLPrinter printer(0, true, 0);
 	m_Doc.Print(&printer);
 
+	// Update the xml on the character for future use if needed
+	m_XMLData = printer.CStr();
+
 	//Finally, save to db:
-	Database::Get()->UpdateCharacterXml(m_ID, printer.CStr());
+	Database::Get()->UpdateCharacterXml(m_ID, m_XMLData);
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {

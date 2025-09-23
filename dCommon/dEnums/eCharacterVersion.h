@@ -18,7 +18,8 @@ enum class eCharacterVersion : uint32_t {
 	SPEED_BASE,
 	// Fixes nexus force explorer missions
 	NJ_JAYMISSIONS,
-	UP_TO_DATE, // will become NEXUS_FORCE_EXPLORER
+	NEXUS_FORCE_EXPLORER, // Fixes pet ids in player inventories
+	UP_TO_DATE, // will become PET_IDS
 };
 
 #endif  //!__ECHARACTERVERSION__H__
