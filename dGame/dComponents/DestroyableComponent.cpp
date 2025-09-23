@@ -667,11 +667,6 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	//check if hardcore mode is enabled
-	if (Game::entityManager->GetHardcoreMode()) {
-		DoHardcoreModeDrops(source);
-	}
-
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
@@ -699,6 +694,11 @@ void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) 
 }
 
 void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
+	//check if hardcore mode is enabled
+	if (Game::entityManager->GetHardcoreMode()) {
+		DoHardcoreModeDrops(source);
+	}
+
 	if (m_iHealth > 0) {
 		SetArmor(0);
 		SetHealth(0);
@@ -1026,13 +1026,19 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	//award the player some u-score:
 	auto* player = Game::entityManager->GetEntity(source);
 	if (player && player->IsPlayer()) {
+		const auto lot = m_Parent->GetLOT();
 		auto* playerStats = player->GetComponent<CharacterComponent>();
-		if (playerStats && GetMaxHealth() > 0) {
+		if (playerStats && GetMaxHealth() > 0 && !Game::entityManager->GetHardcoreUscoreExcludedEnemies().contains(lot)) {
 			//get the maximum health from this enemy:
 			auto maxHealth = GetMaxHealth();
+			const auto uscoreMultiplier = Game::entityManager->GetHardcoreUscoreEnemiesMultiplier();
+			const bool isUscoreReducedLot =
+			Game::entityManager->GetHardcoreUscoreReducedLots().contains(lot) ||
+			Game::entityManager->GetHardcoreUscoreReduced();
+			const auto uscoreReduction = isUscoreReducedLot ? Game::entityManager->GetHardcoreUscoreReduction() : 1.0f;
 
-			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier();
-			LOG("Rewarding player %llu with %i uscore for killing enemy %i", player->GetObjectID(), uscore, m_Parent->GetLOT());
+			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier() * uscoreReduction;
+			LOG("Rewarding player %llu with %i uscore for killing enemy %i", player->GetObjectID(), uscore, lot);
 			playerStats->SetUScore(playerStats->GetUScore() + uscore);
 			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
 
