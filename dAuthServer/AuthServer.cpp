@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("AuthServer");
 	if (!Game::logger) return EXIT_FAILURE;
+	Game::config->LogSettings();
 
 	LOG("Starting Auth server...");
 	LOG("Version: %s", PROJECT_VERSION);

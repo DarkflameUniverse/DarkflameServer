@@ -11,7 +11,7 @@ public:
 		std::string clientVersion;
 		std::string otherPlayer;
 		std::string selection;
-		uint32_t characterId{};
+		LWOOBJID characterId{};
 	};
 
 	// Add a new bug report to the database.

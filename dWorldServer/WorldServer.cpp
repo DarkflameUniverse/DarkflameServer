@@ -82,6 +82,7 @@
 #include "MissionComponent.h"
 #include "SlashCommandHandler.h"
 #include "InventoryComponent.h"
+#include "Item.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -159,6 +160,7 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(g_InstanceID));
 	if (!Game::logger) return EXIT_FAILURE;
+	Game::config->LogSettings();
 
 	LOG("Starting World server...");
 	LOG("Version: %s", Game::projectVersion.c_str());
@@ -861,7 +863,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	if (luBitStream.connectionType != ServiceType::WORLD) return;
-
+	LOG_DEBUG("Got world packet %s", StringifiedEnum::ToString(static_cast<MessageType::World>(luBitStream.internalPacketID)).data());
 	switch (static_cast<MessageType::World>(luBitStream.internalPacketID)) {
 	case MessageType::World::VALIDATION: {
 		CINSTREAM_SKIP_HEADER;
@@ -983,7 +985,7 @@ void HandlePacket(Packet* packet) {
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
-
+		LOG("User is requesting to login with character %llu", playerID);
 		bool valid = CheatDetection::VerifyLwoobjidIsSender(
 			playerID,
 			packet->systemAddress,
@@ -991,18 +993,15 @@ void HandlePacket(Packet* packet) {
 			"Sending login request with a sending player that does not match their own. Player ID: %llu",
 			playerID
 		);
-
+		LOG("Login request for player %llu is %s", playerID, valid ? "valid" : "invalid");
 		if (!valid) return;
-
-		GeneralUtils::ClearBit(playerID, eObjectBits::CHARACTER);
-		GeneralUtils::ClearBit(playerID, eObjectBits::PERSISTENT);
 
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 
 		if (user) {
 			auto lastCharacter = user->GetLoggedInChar();
 			// This means we swapped characters and we need to remove the previous player from the container.
-			if (static_cast<uint32_t>(lastCharacter) != playerID) {
+			if (lastCharacter != playerID) {
 				CBITSTREAM;
 				BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
 				bitStream.Write(lastCharacter);
@@ -1010,7 +1009,7 @@ void HandlePacket(Packet* packet) {
 			}
 		}
 
-		UserManager::Instance()->LoginCharacter(packet->systemAddress, static_cast<uint32_t>(playerID));
+		UserManager::Instance()->LoginCharacter(packet->systemAddress, playerID);
 		break;
 	}
 
@@ -1040,21 +1039,6 @@ void HandlePacket(Packet* packet) {
 				auto* characterComponent = player->GetComponent<CharacterComponent>();
 				if (!characterComponent) return;
 
-				WorldPackets::SendCreateCharacter(packet->systemAddress, player->GetComponent<CharacterComponent>()->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel(), c->GetPropertyCloneID());
-				WorldPackets::SendServerState(packet->systemAddress);
-
-				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
-
-				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
-
-				if (respawnPoint != NiPoint3Constant::ZERO) {
-					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, QuatUtils::IDENTITY);
-				}
-
-				Game::entityManager->ConstructAllEntities(packet->systemAddress);
-
-				characterComponent->RocketUnEquip(player);
-
 				// Do charxml fixes here
 				auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 				auto* const inventoryComponent = player->GetComponent<InventoryComponent>();
@@ -1062,6 +1046,7 @@ void HandlePacket(Packet* packet) {
 				if (!levelComponent || !missionComponent || !inventoryComponent) return;
 
 				auto version = levelComponent->GetCharacterVersion();
+				LOG("Updating character from version %s", StringifiedEnum::ToString(version).data());
 				switch (version) {
 				case eCharacterVersion::RELEASE:
 					// TODO: Implement, super low priority
@@ -1110,12 +1095,53 @@ void HandlePacket(Packet* packet) {
 					}
 
 					if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
+					levelComponent->SetCharacterVersion(eCharacterVersion::NEXUS_FORCE_EXPLORER);
+					[[fallthrough]];
+				}
+				case eCharacterVersion::NEXUS_FORCE_EXPLORER: {
+					LOG("Fixing pet IDs");
+
+					// First copy the original ids
+					const auto pets = inventoryComponent->GetPetsMut();
+
+					// Then clear the pets so we can re-add them with the updated IDs
+					auto& invPets = inventoryComponent->GetPetsMut();
+					invPets.clear();
+					for (auto& [id, databasePet] : pets) {
+						const auto originalID = id;
+						const auto newId = GeneralUtils::ClearBit(id, 32); // Persistent bit that didn't exist
+						LOG("New ID %llu", newId);
+						auto* item = inventoryComponent->FindItemBySubKey(originalID);
+						if (item) {
+							LOG("item subkey %llu", item->GetSubKey());
+							item->SetSubKey(newId);
+							invPets[newId] = databasePet;
+						}
+					}
 					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 					[[fallthrough]];
 				}
 				case eCharacterVersion::UP_TO_DATE:
 					break;
 				}
+
+				// Update the characters xml to ensure the update above is not only saved, but so the client picks up on the changes.
+				c->SaveXMLToDatabase();
+
+				WorldPackets::SendCreateCharacter(packet->systemAddress, characterComponent->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel(), c->GetPropertyCloneID());
+				WorldPackets::SendServerState(packet->systemAddress);
+
+				const auto respawnPoint = player->GetCharacter()->GetRespawnPoint(Game::zoneManager->GetZone()->GetWorldID());
+
+				Game::entityManager->ConstructEntity(player, UNASSIGNED_SYSTEM_ADDRESS);
+
+				if (respawnPoint != NiPoint3Constant::ZERO) {
+					GameMessages::SendPlayerReachedRespawnCheckpoint(player, respawnPoint, QuatUtils::IDENTITY);
+				}
+
+				Game::entityManager->ConstructAllEntities(packet->systemAddress);
+
+				characterComponent->RocketUnEquip(player);
 
 				player->GetCharacter()->SetTargetScene("");
 
@@ -1151,8 +1177,6 @@ void HandlePacket(Packet* packet) {
 
 						//Send message:
 						LWOOBJID blueprintID = bbbModel.id;
-						GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-						GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 						// Workaround for not having a UGC server to get model LXFML onto the client so it
 						// can generate the physics and nif for the object.

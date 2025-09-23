@@ -145,7 +145,7 @@ void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>
 	}
 }
 
-std::vector<ILeaderboard::Entry> FilterToNumResults(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer, const Leaderboard::InfoType infoType, const uint32_t numResults) {
+std::vector<ILeaderboard::Entry> FilterToNumResults(const std::vector<ILeaderboard::Entry>& leaderboard, const LWOOBJID relatedPlayer, const Leaderboard::InfoType infoType, const uint32_t numResults) {
 	std::vector<ILeaderboard::Entry> toReturn;
 
 	int32_t index = 0;
@@ -197,7 +197,7 @@ std::vector<ILeaderboard::Entry> FilterWeeklies(const std::vector<ILeaderboard::
 	return weeklyLeaderboard;
 }
 
-std::vector<ILeaderboard::Entry> FilterFriends(const std::vector<ILeaderboard::Entry>& leaderboard, const uint32_t relatedPlayer) {
+std::vector<ILeaderboard::Entry> FilterFriends(const std::vector<ILeaderboard::Entry>& leaderboard, const LWOOBJID relatedPlayer) {
 	// Filter the leaderboard to only include friends of the player
 	auto friendOfPlayer = Database::Get()->GetFriendsList(relatedPlayer);
 	std::vector<ILeaderboard::Entry> friendsLeaderboard;
@@ -217,7 +217,7 @@ std::vector<ILeaderboard::Entry> ProcessLeaderboard(
 	const std::vector<ILeaderboard::Entry>& leaderboard,
 	const bool weekly,
 	const Leaderboard::InfoType infoType,
-	const uint32_t relatedPlayer,
+	const LWOOBJID relatedPlayer,
 	const uint32_t numResults) {
 	std::vector<ILeaderboard::Entry> toReturn;
 

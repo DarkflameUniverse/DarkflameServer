@@ -23,7 +23,7 @@
 #include "ePlayerFlag.h"
 #include "CDPlayerFlagsTable.h"
 
-Character::Character(uint32_t id, User* parentUser) {
+Character::Character(LWOOBJID id, User* parentUser) {
 	//First load the name, etc:
 	m_ID = id;
 	m_ParentUser = parentUser;
@@ -50,6 +50,10 @@ void Character::UpdateInfoFromDatabase() {
 
 	//Load the xmlData now:
 	m_XMLData = Database::Get()->GetCharacterXml(m_ID);
+	if (m_XMLData.empty()) {
+		LOG("Character %s (%llu) has no xml data!", m_Name.c_str(), m_ID);
+		return;
+	}
 
 	m_ZoneID = 0; //TEMP! Set back to 0 when done. This is so we can see loading screen progress for testing.
 	m_ZoneInstanceID = 0; //These values don't really matter, these are only used on the char select screen and seem unused.
@@ -61,7 +65,6 @@ void Character::UpdateInfoFromDatabase() {
 	//Set our objectID:
 	m_ObjectID = m_ID;
 	GeneralUtils::SetBit(m_ObjectID, eObjectBits::CHARACTER);
-	GeneralUtils::SetBit(m_ObjectID, eObjectBits::PERSISTENT);
 
 	m_OurEntity = nullptr;
 	m_BuildMode = false;
@@ -75,7 +78,7 @@ void Character::DoQuickXMLDataParse() {
 	if (m_XMLData.size() == 0) return;
 
 	if (m_Doc.Parse(m_XMLData.c_str(), m_XMLData.size()) == 0) {
-		LOG("Loaded xmlData for character %s (%i)!", m_Name.c_str(), m_ID);
+		LOG("Loaded xmlData for character %s (%llu)!", m_Name.c_str(), m_ID);
 	} else {
 		LOG("Failed to load xmlData (%i) (%s) (%s)!", m_Doc.ErrorID(), m_Doc.ErrorIDToName(m_Doc.ErrorID()), m_Doc.ErrorStr());
 		//Server::rakServer->CloseConnection(m_ParentUser->GetSystemAddress(), true);
@@ -238,7 +241,7 @@ void Character::SetBuildMode(bool buildMode) {
 void Character::SaveXMLToDatabase() {
 	// Check that we can actually _save_ before saving
 	if (!m_OurEntity) {
-		LOG("%i:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
+		LOG("%llu:%s didn't have an entity set while saving! CHARACTER WILL NOT BE SAVED!", this->GetID(), this->GetName().c_str());
 		return;
 	}
 
@@ -308,7 +311,7 @@ void Character::SaveXMLToDatabase() {
 	//For metrics, log the time it took to save:
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed = end - start;
-	LOG("%i:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
+	LOG("%llu:%s Saved character to Database in: %fs", this->GetID(), this->GetName().c_str(), elapsed.count());
 }
 
 void Character::SetIsNewLogin() {
@@ -320,7 +323,7 @@ void Character::SetIsNewLogin() {
 	while (currentChild) {
 		auto* nextChild = currentChild->NextSiblingElement();
 		if (currentChild->Attribute("si")) {
-			LOG("Removed session flag (%s) from character %i:%s, saving character to database", currentChild->Attribute("si"), GetID(), GetName().c_str());
+			LOG("Removed session flag (%s) from character %llu:%s, saving character to database", currentChild->Attribute("si"), GetID(), GetName().c_str());
 			flags->DeleteChild(currentChild);
 			WriteToDatabase();
 		}
@@ -333,8 +336,11 @@ void Character::WriteToDatabase() {
 	tinyxml2::XMLPrinter printer(0, true, 0);
 	m_Doc.Print(&printer);
 
+	// Update the xml on the character for future use if needed
+	m_XMLData = printer.CStr();
+
 	//Finally, save to db:
-	Database::Get()->UpdateCharacterXml(m_ID, printer.CStr());
+	Database::Get()->UpdateCharacterXml(m_ID, m_XMLData);
 }
 
 void Character::SetPlayerFlag(const uint32_t flagId, const bool value) {

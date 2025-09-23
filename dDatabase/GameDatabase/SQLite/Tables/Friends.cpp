@@ -1,6 +1,6 @@
 #include "SQLiteDatabase.h"
 
-std::vector<FriendData> SQLiteDatabase::GetFriendsList(const uint32_t charId) {
+std::vector<FriendData> SQLiteDatabase::GetFriendsList(const LWOOBJID charId) {
 	auto [_, friendsList] = ExecuteSelect(
 		R"QUERY(
 			SELECT fr.requested_player AS player, best_friend AS bff, ci.name AS name FROM 
@@ -18,7 +18,7 @@ std::vector<FriendData> SQLiteDatabase::GetFriendsList(const uint32_t charId) {
 
 	while (!friendsList.eof()) {
 		FriendData fd;
-		fd.friendID = friendsList.getIntField("player");
+		fd.friendID = friendsList.getInt64Field("player");
 		fd.isBestFriend = friendsList.getIntField("bff") == 3; // 0 = friends, 1 = left_requested, 2 = right_requested, 3 = both_accepted - are now bffs
 		fd.friendName = friendsList.getStringField("name");
 
@@ -29,7 +29,7 @@ std::vector<FriendData> SQLiteDatabase::GetFriendsList(const uint32_t charId) {
 	return toReturn;
 }
 
-std::optional<IFriends::BestFriendStatus> SQLiteDatabase::GetBestFriendStatus(const uint32_t playerCharacterId, const uint32_t friendCharacterId) {
+std::optional<IFriends::BestFriendStatus> SQLiteDatabase::GetBestFriendStatus(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId) {
 	auto [_, result] = ExecuteSelect("SELECT * FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?) LIMIT 1;",
 		playerCharacterId,
 		friendCharacterId,
@@ -42,14 +42,14 @@ std::optional<IFriends::BestFriendStatus> SQLiteDatabase::GetBestFriendStatus(co
 	}
 
 	IFriends::BestFriendStatus toReturn;
-	toReturn.playerCharacterId = result.getIntField("player_id");
-	toReturn.friendCharacterId = result.getIntField("friend_id");
+	toReturn.playerCharacterId = result.getInt64Field("player_id");
+	toReturn.friendCharacterId = result.getInt64Field("friend_id");
 	toReturn.bestFriendStatus = result.getIntField("best_friend");
 
 	return toReturn;
 }
 
-void SQLiteDatabase::SetBestFriendStatus(const uint32_t playerCharacterId, const uint32_t friendCharacterId, const uint32_t bestFriendStatus) {
+void SQLiteDatabase::SetBestFriendStatus(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId, const uint32_t bestFriendStatus) {
 	ExecuteUpdate("UPDATE friends SET best_friend = ? WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?);",
 		bestFriendStatus,
 		playerCharacterId,
@@ -59,11 +59,11 @@ void SQLiteDatabase::SetBestFriendStatus(const uint32_t playerCharacterId, const
 	);
 }
 
-void SQLiteDatabase::AddFriend(const uint32_t playerCharacterId, const uint32_t friendCharacterId) {
+void SQLiteDatabase::AddFriend(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId) {
 	ExecuteInsert("INSERT OR IGNORE INTO friends (player_id, friend_id, best_friend) VALUES (?, ?, 0);", playerCharacterId, friendCharacterId);
 }
 
-void SQLiteDatabase::RemoveFriend(const uint32_t playerCharacterId, const uint32_t friendCharacterId) {
+void SQLiteDatabase::RemoveFriend(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId) {
 	ExecuteDelete("DELETE FROM friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?);",
 		playerCharacterId,
 		friendCharacterId,

@@ -241,6 +241,9 @@ public:
 	 * Sets the unique mission order ID of this mission
 	 */
 	void SetUniqueMissionOrderID(uint32_t value) { m_UniqueMissionID = value; };
+
+	const std::set<uint32_t>& GetTestedMissions() const;
+
 private:
 	/**
 	 * Progresses all the newly accepted tasks for this mission after it has been accepted to reflect the state of the

@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("ChatServer");
 	if (!Game::logger) return EXIT_FAILURE;
+	Game::config->LogSettings();
 
 	//Read our config:
 

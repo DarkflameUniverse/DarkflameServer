@@ -29,6 +29,11 @@
 #include "CDMissionEmailTable.h"
 #include "ChatPackets.h"
 #include "PlayerManager.h"
+#include "StringifiedEnum.h"
+
+namespace {
+	std::set<uint32_t> g_TestedMissions = {773, 774, 775, 776, 777}; // TODO Figure out why these missions are broken sometimes
+}
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 	m_MissionComponent = missionComponent;
@@ -563,12 +568,14 @@ void Mission::YieldRewards() {
 
 void Mission::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count) {
 	const auto isRemoval = count < 0;
-
+	const bool testedMission = GetTestedMissions().contains(GetMissionId());
+	if (testedMission) LOG("%i Removal: %s complete: %s achievement: %s", GetMissionId(), isRemoval ? "true" : "false", IsComplete() ? "true" : "false", IsAchievement() ? "true" : "false");
 	if (isRemoval && (IsComplete() || IsAchievement())) {
 		return;
 	}
 
 	for (auto* task : m_Tasks) {
+		if (testedMission) LOG("Complete: %s Type: %s TaskType: %s", task->IsComplete() ? "true" : "false", StringifiedEnum::ToString(type).data(), StringifiedEnum::ToString(task->GetType()).data());
 		if (task->IsComplete() && !isRemoval) {
 			continue;
 		}
@@ -617,4 +624,8 @@ Mission::~Mission() {
 	}
 
 	m_Tasks.clear();
+}
+
+const std::set<uint32_t>& Mission::GetTestedMissions() const {
+	return g_TestedMissions;
 }

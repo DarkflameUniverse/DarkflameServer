@@ -100,7 +100,7 @@ void MySQLDatabase::SetAutoCommit(bool value) {
 	con->setAutoCommit(value);
 }
 
-void MySQLDatabase::DeleteCharacter(const uint32_t characterId) {
+void MySQLDatabase::DeleteCharacter(const LWOOBJID characterId) {
 	ExecuteDelete("DELETE FROM charxml WHERE id=? LIMIT 1;", characterId);
 	ExecuteDelete("DELETE FROM command_log WHERE character_id=?;", characterId);
 	ExecuteDelete("DELETE FROM friends WHERE player_id=? OR friend_id=?;", characterId, characterId);

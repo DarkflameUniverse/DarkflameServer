@@ -14,7 +14,7 @@ enum class eActivityType : uint32_t {
 class IActivityLog {
 public:
 	// Update the activity log for the given account.
-	virtual void UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) = 0;
+	virtual void UpdateActivityLog(const LWOOBJID characterId, const eActivityType activityType, const LWOMAPID mapId) = 0;
 };
 
 #endif  //!__IACTIVITYLOG__H__

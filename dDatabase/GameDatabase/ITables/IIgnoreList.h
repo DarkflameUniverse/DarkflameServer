@@ -9,12 +9,12 @@ class IIgnoreList {
 public:
 	struct Info {
 		std::string name;
-		uint32_t id;
+		LWOOBJID id;
 	};
 
-	virtual std::vector<Info> GetIgnoreList(const uint32_t playerId) = 0;
-	virtual void AddIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) = 0;
-	virtual void RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) = 0;
+	virtual std::vector<Info> GetIgnoreList(const LWOOBJID playerId) = 0;
+	virtual void AddIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) = 0;
+	virtual void RemoveIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) = 0;
 };
 
 #endif  //!__IIGNORELIST__H__

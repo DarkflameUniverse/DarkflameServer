@@ -15,6 +15,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eReplicaComponentType.h"
+#include "StringifiedEnum.h"
 
 MissionTask::MissionTask(Mission* mission, CDMissionTasks* info, uint32_t mask) {
 	this->info = info;
@@ -99,6 +100,7 @@ Mission* MissionTask::GetMission() const {
 
 
 uint32_t MissionTask::GetTarget() const {
+	if (mission->GetTestedMissions().contains(mission->GetMissionId())) LOG("Target: %i", info->targetValue);
 	return info->target;
 }
 
@@ -158,6 +160,7 @@ bool MissionTask::InParameters(const uint32_t value) const {
 
 
 bool MissionTask::IsComplete() const {
+	if (mission->GetTestedMissions().contains(mission->GetMissionId())) LOG("uid: %i target: %i", info->uid, info->targetValue);
 	// Mission 668 has task uid 984 which is a bit mask.  Its completion value is 3.
 	if (info->uid == 984) {
 		return progress >= 3;
@@ -168,6 +171,7 @@ bool MissionTask::IsComplete() const {
 
 
 void MissionTask::Complete() {
+	if (mission->GetTestedMissions().contains(mission->GetMissionId())) LOG("target: %i", info->targetValue);
 	SetProgress(info->targetValue);
 }
 
@@ -180,6 +184,7 @@ void MissionTask::CheckCompletion() const {
 
 
 void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string& targets, int32_t count) {
+	if (mission->GetTestedMissions().contains(mission->GetMissionId())) LOG("Progressing mission %s %i", StringifiedEnum::ToString(GetType()).data(), value);
 	if (IsComplete() && count > 0) return;
 
 	const auto type = GetType();
@@ -229,7 +234,7 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		entity = Game::entityManager->GetEntity(associate);
 		if (entity == nullptr) {
 			if (associate != LWOOBJID_EMPTY) {
-				LOG("Failed to find associated entity (%llu)!", associate);
+				if (mission->GetTestedMissions().contains(mission->GetMissionId())) LOG("Failed to find associated entity (%llu)!", associate);
 			}
 			break;
 		}

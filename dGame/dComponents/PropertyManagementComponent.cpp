@@ -64,7 +64,6 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent) : Compo
 		this->propertyId = propertyInfo->id;
 		this->owner = propertyInfo->ownerId;
 		GeneralUtils::SetBit(this->owner, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(this->owner, eObjectBits::PERSISTENT);
 		this->clone_Id = propertyInfo->cloneId;
 		this->propertyName = propertyInfo->name;
 		this->propertyDescription = propertyInfo->description;
@@ -623,7 +622,6 @@ void PropertyManagementComponent::Load() {
 		if (databaseModel.lot == 14) {
 			LWOOBJID blueprintID = databaseModel.ugcId;
 			GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
-			GeneralUtils::SetBit(blueprintID, eObjectBits::PERSISTENT);
 
 			settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
 			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
