@@ -159,6 +159,7 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("WorldServer_" + std::to_string(zoneID) + "_" + std::to_string(g_InstanceID));
 	if (!Game::logger) return EXIT_FAILURE;
+	Game::config->LogSettings();
 
 	LOG("Starting World server...");
 	LOG("Version: %s", Game::projectVersion.c_str());

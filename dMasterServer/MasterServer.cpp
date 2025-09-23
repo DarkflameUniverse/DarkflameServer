@@ -99,6 +99,7 @@ int main(int argc, char** argv) {
 	//Create all the objects we need to run our service:
 	Server::SetupLogger("MasterServer");
 	if (!Game::logger) return EXIT_FAILURE;
+	Game::config->LogSettings();
 
 	auto folders = { "navmeshes", "migrations", "vanity" };
 
