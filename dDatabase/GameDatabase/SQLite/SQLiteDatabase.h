@@ -81,7 +81,7 @@ public:
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
 		std::stringstream& sd0Data,
-		const uint32_t blueprintId,
+		const uint64_t blueprintId,
 		const uint32_t accountId,
 		const LWOOBJID characterId) override;
 	std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) override;
