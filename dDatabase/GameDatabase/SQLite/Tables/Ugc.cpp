@@ -47,7 +47,7 @@ void SQLiteDatabase::RemoveUnreferencedUgcModels() {
 
 void SQLiteDatabase::InsertNewUgcModel(
 	std::stringstream& sd0Data, // cant be const sad
-	const uint32_t blueprintId,
+	const uint64_t blueprintId,
 	const uint32_t accountId,
 	const LWOOBJID characterId) {
 	const std::istream stream(sd0Data.rdbuf());
