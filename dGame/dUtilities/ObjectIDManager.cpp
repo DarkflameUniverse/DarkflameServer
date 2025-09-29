@@ -7,7 +7,6 @@
 #include "Game.h"
 #include "eObjectBits.h"
 
-// proxy items and dropped loot get SPAWNED + CLIENT flag and need to have the ChangeObjectWorldState message sent to them
 // should the spawners from vanity also have the CLIENT flag?
 
 namespace {

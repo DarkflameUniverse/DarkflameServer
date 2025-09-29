@@ -579,7 +579,7 @@ LWOOBJID Item::GenerateID() {
 		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
 	}
 
-	LOG("Parent %i lot %u Generated id %u:%llu", parent, GetLot(), static_cast<uint32_t>(id), id);
+	LOG("Parent %llu lot %u Generated id %u:%llu", parent, GetLot(), static_cast<uint32_t>(id), id);
 	const auto type = static_cast<eItemType>(info->itemType);
 
 	if (type == eItemType::MOUNT) {
