@@ -15,11 +15,10 @@ void SQLiteDatabase::InsertDefaultPersistentId() {
 IObjectIdTracker::Range SQLiteDatabase::GetPersistentIdRange() {
 	IObjectIdTracker::Range range;
 	auto prevCommit = GetAutoCommit();
-	SetAutoCommit(false);
+	SetAutoCommit(false); // This begins the transaction for us if one is not already in progress
 
 	// THIS MUST ABSOLUTELY NOT FAIL. These IDs are expected to be unique. As such a transactional select is used to safely get a range
 	// of IDs that will never be used again. A separate feature could track unused IDs and recycle them, but that is not implemented.
-	ExecuteCustomQuery("BEGIN TRANSACTION;");
 	// 200 seems like a good range to reserve at once. Only way this would be noticable is if a player
 	// added hundreds of items at once.
 	// Doing the update first ensures that all other connections are blocked from accessing this table until we commit.
@@ -34,6 +33,7 @@ IObjectIdTracker::Range SQLiteDatabase::GetPersistentIdRange() {
 	range.maxID = selectResult.getInt64Field("last_object_id");
 	range.minID = range.maxID - 199;
 
+	// We must commit here manually, this will unlock the database for all other servers
 	ExecuteCustomQuery("COMMIT;");
 	SetAutoCommit(prevCommit);
 	return range;

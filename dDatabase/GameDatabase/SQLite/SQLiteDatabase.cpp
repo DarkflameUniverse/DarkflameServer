@@ -61,9 +61,9 @@ bool SQLiteDatabase::GetAutoCommit() {
 
 void SQLiteDatabase::SetAutoCommit(bool value) {
 	if (value) {
-		if (GetAutoCommit()) con->compileStatement("BEGIN;").execDML();
-	} else {
 		if (!GetAutoCommit()) con->compileStatement("COMMIT;").execDML();
+	} else {
+		if (GetAutoCommit()) con->compileStatement("BEGIN;").execDML();
 	}
 }
 
