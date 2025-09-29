@@ -75,9 +75,9 @@ class TestSQLDatabase : public GameDatabase {
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
 	void InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) override;
 	void SetMasterInfo(const IServers::MasterInfo& info) override;
-	std::optional<uint32_t> GetCurrentPersistentId() override;
+	std::optional<uint64_t> GetCurrentPersistentId() override;
+	IObjectIdTracker::Range GetPersistentIdRange() override;
 	void InsertDefaultPersistentId() override;
-	void UpdatePersistentId(const uint32_t id) override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
@@ -105,7 +105,9 @@ class TestSQLDatabase : public GameDatabase {
 	uint32_t GetAccountCount() override { return 0; };
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
-	IPropertyContents::Model GetModel(const LWOOBJID modelID) override { return {}; }
+	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
+	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
+	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
 };
 
 #endif  //!TESTSQLDATABASE_H

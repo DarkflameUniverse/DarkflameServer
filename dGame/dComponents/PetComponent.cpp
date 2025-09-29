@@ -479,9 +479,19 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		return;
 	}
 
-	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
+	LWOOBJID petSubKey = ObjectIDManager::GetPersistentID();
+	const uint32_t maxTries = 100;
+	uint32_t tries = 0;
+	while (Database::Get()->GetPetNameInfo(petSubKey) && tries < maxTries) {
+		tries++;
+		LOG("Found a duplicate pet %llu, getting a new subKey", petSubKey);
+		petSubKey = ObjectIDManager::GetPersistentID();
+	}
 
-	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
+	if (tries >= maxTries) {
+		LOG("Failed to get a unique pet subKey after %i tries, aborting pet creation for player %i", maxTries, tamer->GetCharacter() ? tamer->GetCharacter()->GetID() : -1);
+		return;
+	}
 
 	m_DatabaseId = petSubKey;
 

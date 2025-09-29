@@ -64,26 +64,27 @@ void MySQLDatabase::RemoveModel(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE id = ?;", modelId);
 }
 
-IPropertyContents::Model MySQLDatabase::GetModel(const LWOOBJID modelID) {
+std::optional<IPropertyContents::Model> MySQLDatabase::GetModel(const LWOOBJID modelID) {
 	auto result = ExecuteSelect("SELECT * FROM properties_contents WHERE id = ?", modelID);
 
-	IPropertyContents::Model model{};
+	std::optional<IPropertyContents::Model> model = std::nullopt;
 	while (result->next()) {
-		model.id = result->getUInt64("id");
-		model.lot = static_cast<LOT>(result->getUInt("lot"));
-		model.position.x = result->getFloat("x");
-		model.position.y = result->getFloat("y");
-		model.position.z = result->getFloat("z");
-		model.rotation.w = result->getFloat("rw");
-		model.rotation.x = result->getFloat("rx");
-		model.rotation.y = result->getFloat("ry");
-		model.rotation.z = result->getFloat("rz");
-		model.ugcId = result->getUInt64("ugc_id");
-		model.behaviors[0] = result->getUInt64("behavior_1");
-		model.behaviors[1] = result->getUInt64("behavior_2");
-		model.behaviors[2] = result->getUInt64("behavior_3");
-		model.behaviors[3] = result->getUInt64("behavior_4");
-		model.behaviors[4] = result->getUInt64("behavior_5");
+		model = IPropertyContents::Model{};
+		model->id = result->getUInt64("id");
+		model->lot = static_cast<LOT>(result->getUInt("lot"));
+		model->position.x = result->getFloat("x");
+		model->position.y = result->getFloat("y");
+		model->position.z = result->getFloat("z");
+		model->rotation.w = result->getFloat("rw");
+		model->rotation.x = result->getFloat("rx");
+		model->rotation.y = result->getFloat("ry");
+		model->rotation.z = result->getFloat("rz");
+		model->ugcId = result->getUInt64("ugc_id");
+		model->behaviors[0] = result->getUInt64("behavior_1");
+		model->behaviors[1] = result->getUInt64("behavior_2");
+		model->behaviors[2] = result->getUInt64("behavior_3");
+		model->behaviors[3] = result->getUInt64("behavior_4");
+		model->behaviors[4] = result->getUInt64("behavior_5");
 	}
 
 	return model;

@@ -228,6 +228,8 @@ public:
 
 	void LoadConfigXml(const tinyxml2::XMLElement& i);
 
+	LWOOBJID GenerateID();
+
 private:
 	/**
 	 * The object ID of this item

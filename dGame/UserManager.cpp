@@ -30,6 +30,7 @@
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 #include "CharacterComponent.h"
+#include "eCharacterVersion.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -324,79 +325,77 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		LOG("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
 	}
 
-	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t persistentID) {
-		LWOOBJID objectID = persistentID;
-		GeneralUtils::SetBit(objectID, eObjectBits::CHARACTER);
-		if (Database::Get()->GetCharacterInfo(objectID)) {
-			LOG("Character object id unavailable, check object_id_tracker!");
-			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
-			return;
-		}
+	//Now that the name is ok, we can get a persistent ObjectID:
+	LWOOBJID objectID = ObjectIDManager::GetPersistentID();
+	const uint32_t maxRetries = 100;
+	uint32_t tries = 0;
+	while (Database::Get()->GetCharacterInfo(objectID) && tries < maxRetries) {
+		tries++;
+		LOG("Found a duplicate character %llu, getting a new objectID", objectID);
+		objectID = ObjectIDManager::GetPersistentID();
+	}
 
-		std::stringstream xml;
-		xml << "<obj v=\"1\">";
+	if (tries >= maxRetries) {
+		LOG("Failed to get a unique objectID for new character after %i tries, aborting char creation for account %i", maxRetries, u->GetAccountID());
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
+		return;
+	}
 
-		xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
-		xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
-		xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
+	std::stringstream xml;
+	xml << "<obj v=\"1\">";
 
-		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
-		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
-		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\">";
-		xml << "<vl><l id=\"1000\" cid=\"0\"/></vl>";
+	xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
+	xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
+	xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
 
-		xml << "</char>";
+	xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
+	xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
+	xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\">";
+	xml << "<vl><l id=\"1000\" cid=\"0\"/></vl>";
 
-		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
+	xml << "</char>";
 
-		xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
+	xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
 
-		LWOOBJID lwoidforshirt = ObjectIDManager::GenerateRandomObjectID();
-		LWOOBJID lwoidforpants;
+	xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
 
-		do {
-			lwoidforpants = ObjectIDManager::GenerateRandomObjectID();
-		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
+	LWOOBJID lwoidforshirt = ObjectIDManager::GetPersistentID();
+	LWOOBJID lwoidforpants = ObjectIDManager::GetPersistentID();
 
-		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
+	xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+	xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
-		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
-		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
+	xml << "</in></items></inv><lvl l=\"1\" cv=\"" << GeneralUtils::ToUnderlying(eCharacterVersion::UP_TO_DATE) << "\" sb=\"500\"/><flag></flag></obj>";
 
-		xml << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
+	//Check to see if our name was pre-approved:
+	bool nameOk = IsNamePreapproved(name);
+	if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-		//Check to see if our name was pre-approved:
-		bool nameOk = IsNamePreapproved(name);
-		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+	// If predefined name is invalid, change it to be their object id
+	// that way more than one player can create characters if the predefined name files are not provided
+	auto assignedPredefinedName = predefinedName;
+	if (assignedPredefinedName == "INVALID") {
+		std::stringstream nameObjID;
+		nameObjID << "minifig" << objectID;
+		assignedPredefinedName = nameObjID.str();
+	}
 
-		// If predefined name is invalid, change it to be their object id
-		// that way more than one player can create characters if the predefined name files are not provided
-		auto assignedPredefinedName = predefinedName;
-		if (assignedPredefinedName == "INVALID") {
-			std::stringstream nameObjID;
-			nameObjID << "minifig" << objectID;
-			assignedPredefinedName = nameObjID.str();
-		}
+	std::string_view nameToAssign = !name.empty() && nameOk ? name : assignedPredefinedName;
+	std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-		std::string_view nameToAssign = !name.empty() && nameOk ? name : assignedPredefinedName;
-		std::string pendingName = !name.empty() && !nameOk ? name : "";
+	ICharInfo::Info info;
+	info.name = nameToAssign;
+	info.pendingName = pendingName;
+	info.id = objectID;
+	info.accountId = u->GetAccountID();
 
-		ICharInfo::Info info;
-		info.name = nameToAssign;
-		info.pendingName = pendingName;
-		info.id = objectID;
-		info.accountId = u->GetAccountID();
+	Database::Get()->InsertNewCharacter(info);
 
-		Database::Get()->InsertNewCharacter(info);
+	//Now finally insert our character xml:
+	Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-		//Now finally insert our character xml:
-		Database::Get()->InsertCharacterXml(objectID, xml.str());
-
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-		UserManager::RequestCharacterList(sysAddr);
-		});
+	WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+	UserManager::RequestCharacterList(sysAddr);
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {

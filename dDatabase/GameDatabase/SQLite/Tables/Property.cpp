@@ -1,6 +1,23 @@
 #include "SQLiteDatabase.h"
 #include "ePropertySortType.h"
 
+IProperty::Info ReadPropertyInfo(CppSQLite3Query& propertyEntry) {
+	IProperty::Info toReturn;
+	toReturn.id = propertyEntry.getInt64Field("id");
+	toReturn.ownerId = propertyEntry.getInt64Field("owner_id");
+	toReturn.cloneId = propertyEntry.getInt64Field("clone_id");
+	toReturn.name = propertyEntry.getStringField("name");
+	toReturn.description = propertyEntry.getStringField("description");
+	toReturn.privacyOption = propertyEntry.getIntField("privacy_option");
+	toReturn.rejectionReason = propertyEntry.getStringField("rejection_reason");
+	toReturn.lastUpdatedTime = propertyEntry.getIntField("last_updated");
+	toReturn.claimedTime = propertyEntry.getIntField("time_claimed");
+	toReturn.reputation = propertyEntry.getIntField("reputation");
+	toReturn.modApproved = propertyEntry.getIntField("mod_approved");
+	toReturn.performanceCost = propertyEntry.getFloatField("performance_cost");
+	return toReturn;
+}
+
 std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(const IProperty::PropertyLookup& params) {
 	std::optional<IProperty::PropertyEntranceResult> result;
 	std::string query;
@@ -118,19 +135,7 @@ std::optional<IProperty::PropertyEntranceResult> SQLiteDatabase::GetProperties(c
 	auto& [_, properties] = propertiesRes;
 	if (!properties.eof() && !result.has_value()) result = IProperty::PropertyEntranceResult();
 	while (!properties.eof()) {
-		auto& entry = result->entries.emplace_back();
-		entry.id = properties.getInt64Field("id");
-		entry.ownerId = properties.getInt64Field("owner_id");
-		entry.cloneId = properties.getInt64Field("clone_id");
-		entry.name = properties.getStringField("name");
-		entry.description = properties.getStringField("description");
-		entry.privacyOption = properties.getIntField("privacy_option");
-		entry.rejectionReason = properties.getStringField("rejection_reason");
-		entry.lastUpdatedTime = properties.getIntField("last_updated");
-		entry.claimedTime = properties.getIntField("time_claimed");
-		entry.reputation = properties.getIntField("reputation");
-		entry.modApproved = properties.getIntField("mod_approved");
-		entry.performanceCost = properties.getFloatField("performance_cost");
+		result->entries.push_back(ReadPropertyInfo(properties));
 		properties.nextRow();
 	}
 
@@ -146,21 +151,7 @@ std::optional<IProperty::Info> SQLiteDatabase::GetPropertyInfo(const LWOMAPID ma
 		return std::nullopt;
 	}
 
-	IProperty::Info toReturn;
-	toReturn.id = propertyEntry.getInt64Field("id");
-	toReturn.ownerId = propertyEntry.getInt64Field("owner_id");
-	toReturn.cloneId = propertyEntry.getInt64Field("clone_id");
-	toReturn.name = propertyEntry.getStringField("name");
-	toReturn.description = propertyEntry.getStringField("description");
-	toReturn.privacyOption = propertyEntry.getIntField("privacy_option");
-	toReturn.rejectionReason = propertyEntry.getStringField("rejection_reason");
-	toReturn.lastUpdatedTime = propertyEntry.getIntField("last_updated");
-	toReturn.claimedTime = propertyEntry.getIntField("time_claimed");
-	toReturn.reputation = propertyEntry.getIntField("reputation");
-	toReturn.modApproved = propertyEntry.getIntField("mod_approved");
-	toReturn.performanceCost = propertyEntry.getFloatField("performance_cost");
-
-	return toReturn;
+	return ReadPropertyInfo(propertyEntry);
 }
 
 void SQLiteDatabase::UpdatePropertyModerationInfo(const IProperty::Info& info) {
@@ -196,4 +187,16 @@ void SQLiteDatabase::InsertNewProperty(const IProperty::Info& info, const uint32
 		info.description,
 		zoneId.GetMapID()
 	);
+}
+
+std::optional<IProperty::Info> SQLiteDatabase::GetPropertyInfo(const LWOOBJID id) {
+	auto [_, propertyEntry] = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties WHERE id = ?;", id);
+	
+	if (propertyEntry.eof()) {
+		return std::nullopt;
+	}
+
+	return ReadPropertyInfo(propertyEntry);
 }

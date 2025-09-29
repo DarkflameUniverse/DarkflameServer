@@ -5,36 +5,25 @@
 #include <vector>
 #include <stdint.h>
 
-/*!
-  \file ObjectIDManager.h
-  \brief A manager for handling object ID generation
+/**
+ *  There are 2 types of IDs:
+ *  Persistent IDs - These are used for anything that needs to be persist between worlds.
+ *  Ephemeral IDs - These are used for any objects that only need to be unique for this world session.
  */
 
-//! The Object ID Manager
 namespace ObjectIDManager {
-	//! Requests a persistent ID
-	/*!
-	  \param callback The callback function
+
+	/**
+	 * @brief Returns a Persistent ID with the CHARACTER bit set.
+	 * 
+	 * @return uint64_t A unique persistent ID with the CHARACTER bit set.
 	 */
-	void RequestPersistentID(const std::function<void(uint32_t)> callback);
+	uint64_t GetPersistentID();
 
-
-	//! Handles a persistent ID response
-	/*!
-	  \param requestID The request ID
-	  \param persistentID The persistent ID
-	 */
-	void HandleRequestPersistentIDResponse(const uint64_t requestID, const uint32_t persistentID);
-
-	//! Generates an object ID server-sided
-	/*!
-	  \return A generated object ID
+	/**
+	 * @brief Generates an ephemeral object ID for non-persistent objects.
+	 * 
+	 * @return uint32_t 
 	 */
 	uint32_t GenerateObjectID();
-
-	//! Generates a random object ID server-sided
-	/*!
-	 \return A generated object ID
-	 */
-	uint32_t GenerateRandomObjectID();
 };

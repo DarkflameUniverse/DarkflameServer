@@ -35,7 +35,6 @@
 #include "Game.h"
 #include "InstanceManager.h"
 #include "MasterPackets.h"
-#include "PersistentIDManager.h"
 #include "FdbToSqlite.h"
 #include "BitStreamUtils.h"
 #include "Start.h"
@@ -360,7 +359,6 @@ int main(int argc, char** argv) {
 	Database::Get()->SetMasterInfo(info);
 
 	//Create additional objects here:
-	PersistentIDManager::Initialize();
 	Game::im = new InstanceManager(Game::server->GetIP());
 
 	//Get CDClient initial information
@@ -534,17 +532,6 @@ void HandlePacket(Packet* packet) {
 
 	if (static_cast<ServiceType>(packet->data[1]) == ServiceType::MASTER) {
 		switch (static_cast<MessageType::Master>(packet->data[3])) {
-		case MessageType::Master::REQUEST_PERSISTENT_ID: {
-			LOG("A persistent ID req");
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
-			uint64_t requestID = 0;
-			inStream.Read(requestID);
-
-			uint32_t objID = PersistentIDManager::GeneratePersistentID();
-			MasterPackets::SendPersistentIDResponse(Game::server, packet->systemAddress, requestID, objID);
-			break;
-		}
 
 		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
 			LOG("Received zone transfer req");
@@ -881,9 +868,6 @@ int ShutdownSequence(int32_t signal) {
 		Game::server->Send(bitStream, UNASSIGNED_SYSTEM_ADDRESS, true);
 		LOG("Triggered master shutdown");
 	}
-
-	PersistentIDManager::SaveToDatabase();
-	LOG("Saved ObjectIDTracker to DB");
 
 	// A server might not be finished spinning up yet, remove all of those here.
 	for (const auto& instance : Game::im->GetInstances()) {
