@@ -1786,3 +1786,9 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 		groupElement = groupElement->NextSiblingElement("grp");
 	}
 }
+
+void InventoryComponent::RegenerateItemIDs() {
+	for (auto* const inventory : m_Inventories | std::views::values) {
+		inventory->RegenerateItemIDs();
+	}
+}

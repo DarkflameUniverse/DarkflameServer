@@ -29,5 +29,7 @@ public:
 
 	// Inserts a new UGC model into the database.
 	virtual void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) = 0;
+
+	virtual std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) = 0;
 };
 #endif  //!__IUGC__H__

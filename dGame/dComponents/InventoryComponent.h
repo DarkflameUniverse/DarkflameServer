@@ -407,6 +407,9 @@ public:
 
 	void FixInvisibleItems();
 
+	// Used to migrate a character version, no need to call outside of that context
+	void RegenerateItemIDs();
+
 	~InventoryComponent() override;
 
 private:

@@ -45,6 +45,6 @@ public:
 	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
 
 	// Gets a model by ID
-	virtual Model GetModel(const LWOOBJID modelID) = 0;
+	virtual std::optional<Model> GetModel(const LWOOBJID modelID) = 0;
 };
 #endif  //!__IPROPERTIESCONTENTS__H__
