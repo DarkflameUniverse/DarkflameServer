@@ -23,7 +23,7 @@ public:
 	// Inserts a new UGC model into the database.
 	virtual void InsertNewUgcModel(
 		std::stringstream& sd0Data,
-		const uint32_t blueprintId,
+		const uint64_t blueprintId,
 		const uint32_t accountId,
 		const LWOOBJID characterId) = 0;
 
@@ -45,6 +45,6 @@ public:
 	virtual void RemoveModel(const LWOOBJID& modelId) = 0;
 
 	// Gets a model by ID
-	virtual Model GetModel(const LWOOBJID modelID) = 0;
+	virtual std::optional<Model> GetModel(const LWOOBJID modelID) = 0;
 };
 #endif  //!__IPROPERTIESCONTENTS__H__

@@ -8,7 +8,6 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
-#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"

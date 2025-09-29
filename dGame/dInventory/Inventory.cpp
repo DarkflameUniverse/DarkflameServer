@@ -5,8 +5,11 @@
 #include "InventoryComponent.h"
 #include "eItemType.h"
 #include "eReplicaComponentType.h"
+#include "ObjectIDManager.h"
+#include "eObjectBits.h"
 
 #include "CDComponentsRegistryTable.h"
+#include <ranges>
 
 std::vector<LOT> Inventory::m_GameMasterRestrictedItems = {
 		1727, // GM Only - JetPack
@@ -316,4 +319,17 @@ Inventory::~Inventory() {
 	}
 
 	items.clear();
+}
+
+void Inventory::RegenerateItemIDs() {
+	std::map<LWOOBJID, Item*> newItems{};
+	for (auto* const item : items | std::views::values) {
+		const auto oldID = item->GetId();
+		const auto newID = item->GenerateID();
+		LOG("Updating item ID from %llu to %llu", oldID, newID);
+		newItems.insert_or_assign(newID, item);
+	}
+
+	// We don't want to delete the item pointers, we're just moving from map to map
+	items = newItems;
 }

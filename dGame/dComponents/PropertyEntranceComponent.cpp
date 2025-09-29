@@ -135,7 +135,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 		const auto owner = propertyEntry.ownerId;
 		const auto otherCharacter = Database::Get()->GetCharacterInfo(owner);
 		if (!otherCharacter.has_value()) {
-			LOG("Failed to find property owner name for %u!", owner);
+			LOG("Failed to find property owner name for %llu!", owner);
 			continue;
 		}
 		auto& entry = entries.emplace_back();

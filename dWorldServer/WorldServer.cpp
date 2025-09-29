@@ -35,7 +35,6 @@
 #include "CDClientManager.h"
 #include "CDClientDatabase.h"
 #include "GeneralUtils.h"
-#include "ObjectIDManager.h"
 #include "ZoneInstanceManager.h"
 #include "dChatFilter.h"
 #include "ClientPackets.h"
@@ -676,15 +675,6 @@ void HandleMasterPacket(Packet* packet) {
 	if (packet->length < 2) return;
 	if (static_cast<ServiceType>(packet->data[1]) != ServiceType::MASTER || packet->length < 4) return;
 	switch (static_cast<MessageType::Master>(packet->data[3])) {
-	case MessageType::Master::REQUEST_PERSISTENT_ID_RESPONSE: {
-		CINSTREAM_SKIP_HEADER;
-		uint64_t requestID;
-		inStream.Read(requestID);
-		uint32_t objectID;
-		inStream.Read(objectID);
-		ObjectIDManager::HandleRequestPersistentIDResponse(requestID, objectID);
-		break;
-	}
 
 	case MessageType::Master::SESSION_KEY_RESPONSE: {
 		//Read our session key and to which user it belongs:
@@ -1047,82 +1037,90 @@ void HandlePacket(Packet* packet) {
 
 				auto version = levelComponent->GetCharacterVersion();
 				LOG("Updating character from version %s", StringifiedEnum::ToString(version).data());
-				switch (version) {
-				case eCharacterVersion::RELEASE:
-					// TODO: Implement, super low priority
-					[[fallthrough]];
-				case eCharacterVersion::LIVE:
-					LOG("Updating Character Flags");
-					c->SetRetroactiveFlags();
-					levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
-					[[fallthrough]];
-				case eCharacterVersion::PLAYER_FACTION_FLAGS:
-					LOG("Updating Vault Size");
-					player->RetroactiveVaultSize();
-					levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
-					[[fallthrough]];
-				case eCharacterVersion::VAULT_SIZE:
-					LOG("Updaing Speedbase");
-					levelComponent->SetRetroactiveBaseSpeed();
-					levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
-					[[fallthrough]];
-				case eCharacterVersion::SPEED_BASE: {
-					LOG("Removing lots from NJ Jay missions bugged at foss");
-					// https://explorer.lu/missions/1789
-					const auto* mission = missionComponent->GetMission(1789);
-					if (mission && mission->IsComplete()) {
-						inventoryComponent->RemoveItem(14474, 1, eInventoryType::ITEMS);
-						inventoryComponent->RemoveItem(14474, 1, eInventoryType::VAULT_ITEMS);
-					}
-					// https://explorer.lu/missions/1927
-					mission = missionComponent->GetMission(1927);
-					if (mission && mission->IsComplete()) {
-						inventoryComponent->RemoveItem(14493, 1, eInventoryType::ITEMS);
-						inventoryComponent->RemoveItem(14493, 1, eInventoryType::VAULT_ITEMS);
-					}
-					levelComponent->SetCharacterVersion(eCharacterVersion::NJ_JAYMISSIONS);
-					[[fallthrough]];
-				}
-				case eCharacterVersion::NJ_JAYMISSIONS: {
-					LOG("Fixing Nexus Force Explorer missions");
-					auto missions = { 502 /* Pet Cove */, 593/* Nimbus Station */, 938/* Avant Gardens */, 284/* Gnarled Forest */, 754/* Forbidden Valley */ };
-					bool complete = true;
-					for (auto missionID : missions) {
-						auto* mission = missionComponent->GetMission(missionID);
-						if (!mission || !mission->IsComplete()) {
-							complete = false;
+				if (version < eCharacterVersion::UP_TO_DATE) {
+					switch (version) {
+					case eCharacterVersion::RELEASE:
+						// TODO: Implement, super low priority
+						[[fallthrough]];
+					case eCharacterVersion::LIVE:
+						LOG("Updating Character Flags");
+						c->SetRetroactiveFlags();
+						levelComponent->SetCharacterVersion(eCharacterVersion::PLAYER_FACTION_FLAGS);
+						[[fallthrough]];
+					case eCharacterVersion::PLAYER_FACTION_FLAGS:
+						LOG("Updating Vault Size");
+						player->RetroactiveVaultSize();
+						levelComponent->SetCharacterVersion(eCharacterVersion::VAULT_SIZE);
+						[[fallthrough]];
+					case eCharacterVersion::VAULT_SIZE:
+						LOG("Updaing Speedbase");
+						levelComponent->SetRetroactiveBaseSpeed();
+						levelComponent->SetCharacterVersion(eCharacterVersion::SPEED_BASE);
+						[[fallthrough]];
+					case eCharacterVersion::SPEED_BASE: {
+						LOG("Removing lots from NJ Jay missions bugged at foss");
+						// https://explorer.lu/missions/1789
+						const auto* mission = missionComponent->GetMission(1789);
+						if (mission && mission->IsComplete()) {
+							inventoryComponent->RemoveItem(14474, 1, eInventoryType::ITEMS);
+							inventoryComponent->RemoveItem(14474, 1, eInventoryType::VAULT_ITEMS);
 						}
-					}
-
-					if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
-					levelComponent->SetCharacterVersion(eCharacterVersion::NEXUS_FORCE_EXPLORER);
-					[[fallthrough]];
-				}
-				case eCharacterVersion::NEXUS_FORCE_EXPLORER: {
-					LOG("Fixing pet IDs");
-
-					// First copy the original ids
-					const auto pets = inventoryComponent->GetPetsMut();
-
-					// Then clear the pets so we can re-add them with the updated IDs
-					auto& invPets = inventoryComponent->GetPetsMut();
-					invPets.clear();
-					for (auto& [id, databasePet] : pets) {
-						const auto originalID = id;
-						const auto newId = GeneralUtils::ClearBit(id, 32); // Persistent bit that didn't exist
-						LOG("New ID %llu", newId);
-						auto* item = inventoryComponent->FindItemBySubKey(originalID);
-						if (item) {
-							LOG("item subkey %llu", item->GetSubKey());
-							item->SetSubKey(newId);
-							invPets[newId] = databasePet;
+						// https://explorer.lu/missions/1927
+						mission = missionComponent->GetMission(1927);
+						if (mission && mission->IsComplete()) {
+							inventoryComponent->RemoveItem(14493, 1, eInventoryType::ITEMS);
+							inventoryComponent->RemoveItem(14493, 1, eInventoryType::VAULT_ITEMS);
 						}
+						levelComponent->SetCharacterVersion(eCharacterVersion::NJ_JAYMISSIONS);
+						[[fallthrough]];
 					}
-					levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
-					[[fallthrough]];
-				}
-				case eCharacterVersion::UP_TO_DATE:
-					break;
+					case eCharacterVersion::NJ_JAYMISSIONS: {
+						LOG("Fixing Nexus Force Explorer missions");
+						auto missions = { 502 /* Pet Cove */, 593/* Nimbus Station */, 938/* Avant Gardens */, 284/* Gnarled Forest */, 754/* Forbidden Valley */ };
+						bool complete = true;
+						for (auto missionID : missions) {
+							auto* mission = missionComponent->GetMission(missionID);
+							if (!mission || !mission->IsComplete()) {
+								complete = false;
+							}
+						}
+
+						if (complete) missionComponent->CompleteMission(937 /* Nexus Force explorer */);
+						levelComponent->SetCharacterVersion(eCharacterVersion::NEXUS_FORCE_EXPLORER);
+						[[fallthrough]];
+					}
+					case eCharacterVersion::NEXUS_FORCE_EXPLORER: {
+						LOG("Fixing pet IDs");
+
+						// First copy the original ids
+						const auto pets = inventoryComponent->GetPetsMut();
+
+						// Then clear the pets so we can re-add them with the updated IDs
+						auto& invPets = inventoryComponent->GetPetsMut();
+						invPets.clear();
+						for (auto& [id, databasePet] : pets) {
+							const auto originalID = id;
+							const auto newId = GeneralUtils::ClearBit(id, 32); // Persistent bit that didn't exist
+							LOG("New ID %llu", newId);
+							auto* item = inventoryComponent->FindItemBySubKey(originalID);
+							if (item) {
+								LOG("item subkey %llu", item->GetSubKey());
+								item->SetSubKey(newId);
+								invPets[newId] = databasePet;
+							}
+						}
+						levelComponent->SetCharacterVersion(eCharacterVersion::PET_IDS);
+						[[fallthrough]];
+					}
+					case eCharacterVersion::PET_IDS: {
+						LOG("Regenerating item ids");
+						inventoryComponent->RegenerateItemIDs();
+						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
+						[[fallthrough]];
+					}
+					case eCharacterVersion::UP_TO_DATE:
+						break;
+					}
 				}
 
 				// Update the characters xml to ensure the update above is not only saved, but so the client picks up on the changes.

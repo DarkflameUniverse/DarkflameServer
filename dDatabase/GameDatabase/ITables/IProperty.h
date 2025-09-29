@@ -40,6 +40,9 @@ public:
 	};
 
 	// Get the property info for the given property id.
+	virtual std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) = 0;
+
+	// Get the property info for the given property id.
 	virtual std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) = 0;
 
 	// Get the properties for the given property lookup params.

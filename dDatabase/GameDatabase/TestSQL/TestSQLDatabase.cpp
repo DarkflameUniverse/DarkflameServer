@@ -192,7 +192,7 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
-void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const LWOOBJID characterId) {
+void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint64_t blueprintId, const uint32_t accountId, const LWOOBJID characterId) {
 
 }
 
@@ -244,15 +244,11 @@ void TestSQLDatabase::SetMasterInfo(const IServers::MasterInfo& info) {
 
 }
 
-std::optional<uint32_t> TestSQLDatabase::GetCurrentPersistentId() {
+std::optional<uint64_t> TestSQLDatabase::GetCurrentPersistentId() {
 	return {};
 }
 
 void TestSQLDatabase::InsertDefaultPersistentId() {
-
-}
-
-void TestSQLDatabase::UpdatePersistentId(const uint32_t id) {
 
 }
 
@@ -304,3 +300,6 @@ void TestSQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGame
 
 }
 
+IObjectIdTracker::Range TestSQLDatabase::GetPersistentIdRange() {
+	return {};
+}

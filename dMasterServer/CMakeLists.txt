@@ -1,6 +1,5 @@
 set(DMASTERSERVER_SOURCES
 	"InstanceManager.cpp"
-	"PersistentIDManager.cpp"
 	"Start.cpp"
 )
 

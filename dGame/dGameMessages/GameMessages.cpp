@@ -2555,7 +2555,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	uint32_t sd0Size;
 	inStream.Read(sd0Size);
-	std::shared_ptr<char[]> sd0Data(new char[sd0Size]);
+	std::unique_ptr<char[]> sd0Data(new char[sd0Size]);
 
 	if (sd0Data == nullptr) return;
 
@@ -2579,116 +2579,121 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	//Now, the cave of dragons:
 
-	//We runs this in async because the http library here is blocking, meaning it'll halt the thread.
-	//But we don't want the server to go unresponsive, because then the client would disconnect.
-
 	//We need to get a new ID for our model first:
-	ObjectIDManager::RequestPersistentID([=](uint32_t newID) {
-		if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
-		LWOOBJID newIDL = newID;
-		GeneralUtils::SetBit(newIDL, eObjectBits::CHARACTER);
+	if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
+	const uint32_t maxRetries = 100;
+	uint32_t retries = 0;
+	bool blueprintIDExists = true;
+	bool modelExists = true;
 
-		uint32_t blueprintIDSmall = ObjectIDManager::GenerateRandomObjectID();
-		LWOOBJID blueprintID = blueprintIDSmall;
-		GeneralUtils::SetBit(blueprintID, eObjectBits::CHARACTER);
+	// Legacy logic to check for old random IDs (regenerating these is not really feasible)
+	// Probably good to have this anyway in case someone messes with the last_object_id or it gets reset somehow
+	LWOOBJID newIDL = LWOOBJID_EMPTY;
+	LWOOBJID blueprintID = LWOOBJID_EMPTY;
+	do {
+		if (newIDL != LWOOBJID_EMPTY) LOG("Generating blueprintID for UGC model, collision with existing model ID: %llu", blueprintID);
+		newIDL = ObjectIDManager::GetPersistentID();
+		blueprintID = ObjectIDManager::GetPersistentID();
+		++retries;
+		blueprintIDExists = Database::Get()->GetUgcModel(blueprintID).has_value();
+		modelExists = Database::Get()->GetModel(newIDL).has_value();
+	} while ((blueprintIDExists || modelExists) && retries < maxRetries);
 
-		//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
-		const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
+	//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
+	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
 
-		const auto zoneId = worldId.GetMapID();
-		const auto cloneId = worldId.GetCloneID();
+	const auto zoneId = worldId.GetMapID();
+	const auto cloneId = worldId.GetCloneID();
 
-		auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
-		LWOOBJID propertyId = LWOOBJID_EMPTY;
-		if (propertyInfo) propertyId = propertyInfo->id;
+	auto propertyInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
+	LWOOBJID propertyId = LWOOBJID_EMPTY;
+	if (propertyInfo) propertyId = propertyInfo->id;
 
-		// Save the binary data to the Sd0 buffer
-		std::string str(sd0Data.get(), sd0Size);
-		std::istringstream sd0DataStream(str);
-		Sd0 sd0(sd0DataStream);
+	// Save the binary data to the Sd0 buffer
+	std::string str(sd0Data.get(), sd0Size);
+	std::istringstream sd0DataStream(str);
+	Sd0 sd0(sd0DataStream);
 
-		// Uncompress the data and normalize the position
-		const auto asStr = sd0.GetAsStringUncompressed();
-		const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
+	// Uncompress the data and normalize the position
+	const auto asStr = sd0.GetAsStringUncompressed();
+	const auto [newLxfml, newCenter] = Lxfml::NormalizePosition(asStr);
 
-		// Recompress the data and save to the database
-		sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
-		auto sd0AsStream = sd0.GetAsStream();
-		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintIDSmall, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
+	// Recompress the data and save to the database
+	sd0.FromData(reinterpret_cast<const uint8_t*>(newLxfml.data()), newLxfml.size());
+	auto sd0AsStream = sd0.GetAsStream();
+	Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintID, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
-		//Insert into the db as a BBB model:
-		IPropertyContents::Model model;
-		model.id = newIDL;
-		model.ugcId = blueprintIDSmall;
-		model.position = newCenter;
-		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
-		model.lot = 14;
-		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
+	//Insert into the db as a BBB model:
+	IPropertyContents::Model model;
+	model.id = newIDL;
+	model.ugcId = blueprintID;
+	model.position = newCenter;
+	model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+	model.lot = 14;
+	Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
 
-		/*
-			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
-			(or you uncomment the lxfml decomp stuff above)
-		*/
+	/*
+		Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
+		(or you uncomment the lxfml decomp stuff above)
+	*/
 
-		////Send off to UGC for processing, if enabled:
-		//if (Game::config->GetValue("ugc_remote") == "1") {
-		//	std::string ugcIP = Game::config->GetValue("ugc_ip");
-		//	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
+	// //Send off to UGC for processing, if enabled:
+	// if (Game::config->GetValue("ugc_remote") == "1") {
+	// 	std::string ugcIP = Game::config->GetValue("ugc_ip");
+	// 	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
 
-		//	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
+	// 	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
 
-		//	//Send out a request:
-		//	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
-		//	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
+	// 	//Send out a request:
+	// 	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
+	// 	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
 
-		//	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
-		//	//the nif, hkx and checksum files are ready to be downloaded from cache.
-		//}
+	// 	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
+	// 	//the nif, hkx and checksum files are ready to be downloaded from cache.
+	// }
 
-		//Tell the client their model is saved: (this causes us to actually pop out of our current state):
-		const auto& newSd0 = sd0.GetAsVector();
-		uint32_t sd0Size{};
-		for (const auto& chunk : newSd0) sd0Size += chunk.size();
-		CBITSTREAM;
-		BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
-		bitStream.Write(localId);
-		bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
-		bitStream.Write<uint32_t>(1);
-		bitStream.Write(blueprintID);
+	//Tell the client their model is saved: (this causes us to actually pop out of our current state):
+	const auto& newSd0 = sd0.GetAsVector();
+	uint32_t newSd0Size{};
+	for (const auto& chunk : newSd0) newSd0Size += chunk.size();
+	CBITSTREAM;
+	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+	bitStream.Write(localId);
+	bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+	bitStream.Write<uint32_t>(1);
+	bitStream.Write(blueprintID);
 
-		bitStream.Write(sd0Size);
+	bitStream.Write(newSd0Size);
 
-		for (const auto& chunk : newSd0) bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
+	for (const auto& chunk : newSd0) bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
 
-		SEND_PACKET;
+	SEND_PACKET;
 
-		//Now we have to construct this object:
+	//Now we have to construct this object:
 
-		EntityInfo info;
-		info.lot = 14;
-		info.pos = newCenter;
-		info.rot = {};
-		info.spawner = nullptr;
-		info.spawnerID = entity->GetObjectID();
-		info.spawnerNodeID = 0;
+	EntityInfo info;
+	info.lot = 14;
+	info.pos = newCenter;
+	info.rot = {};
+	info.spawner = nullptr;
+	info.spawnerID = entity->GetObjectID();
+	info.spawnerNodeID = 0;
 
-		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
-		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-		info.settings.push_back(new LDFData<int>(u"modelType", 2));
-		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", newIDL));
+	info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
+	info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+	info.settings.push_back(new LDFData<int>(u"modelType", 2));
+	info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+	info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", newIDL));
 
-		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-		if (newEntity) {
-			Game::entityManager->ConstructEntity(newEntity);
+	Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+	if (newEntity) {
+		Game::entityManager->ConstructEntity(newEntity);
 
-			//Make sure the propMgmt doesn't delete our model after the server dies
-			//Trying to do this after the entity is constructed. Shouldn't really change anything but
-			//there was an issue with builds not appearing since it was placed above ConstructEntity.
-			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
-		}
-
-		});
+		//Make sure the propMgmt doesn't delete our model after the server dies
+		//Trying to do this after the entity is constructed. Shouldn't really change anything but
+		//there was an issue with builds not appearing since it was placed above ConstructEntity.
+		PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), newIDL);
+	}
 }
 
 void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -5527,55 +5532,52 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 			}
 		}
 
-		ObjectIDManager::RequestPersistentID([=](uint32_t newId) {
-			LOG("Build finished");
-			GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
-			GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
+		LOG("Build finished");
+		GameMessages::SendFinishArrangingWithItem(character, entity->GetObjectID()); // kick them from modular build
+		GameMessages::SendModularBuildEnd(character); // i dont know if this does anything but DLUv2 did it
 
-			//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
-			//Game::entityManager->SerializeEntity(entity);
+		//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
+		//Game::entityManager->SerializeEntity(entity);
 
-			const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
+		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
 
-			std::vector<LDFBaseData*> config;
-			config.push_back(moduleAssembly);
+		std::vector<LDFBaseData*> config;
+		config.push_back(moduleAssembly);
 
-			LWOOBJID newIdBig = newId;
-			GeneralUtils::SetBit(newIdBig, eObjectBits::CHARACTER);
+		LWOOBJID newID = ObjectIDManager::GetPersistentID();
 
-			if (count == 3) {
-				inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
-			} else if (count == 7) {
-				inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newIdBig);
+		if (count == 3) {
+			inv->AddItem(6416, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newID);
+		} else if (count == 7) {
+			inv->AddItem(8092, 1, eLootSourceType::QUICKBUILD, eInventoryType::MODELS, config, LWOOBJID_EMPTY, true, false, newID);
+		}
+
+		auto* pCharacter = character->GetCharacter();
+		Database::Get()->InsertUgcBuild(GeneralUtils::UTF16ToWTF8(modules), newID, pCharacter ? std::optional(character->GetCharacter()->GetID()) : std::nullopt);
+
+		auto* missionComponent = character->GetComponent<MissionComponent>();
+
+		if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
+			if (missionComponent != nullptr) {
+				missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
+				if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, static_cast<LWOOBJID>(eRacingTaskParam::MODULAR_BUILDING));
 			}
+		}
 
-			auto* pCharacter = character->GetCharacter();
-			Database::Get()->InsertUgcBuild(GeneralUtils::UTF16ToWTF8(modules), newIdBig, pCharacter ? std::optional(character->GetCharacter()->GetID()) : std::nullopt);
+		ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
 
-			auto* missionComponent = character->GetComponent<MissionComponent>();
+		entity->GetScript()->OnModularBuildExit(entity, character, count >= 3, modList);
 
-			if (entity->GetLOT() != 9980 || Game::server->GetZoneID() != 1200) {
-				if (missionComponent != nullptr) {
-					missionComponent->Progress(eMissionTaskType::SCRIPT, entity->GetLOT(), entity->GetObjectID());
-					if (count >= 7 && everyPieceSwapped) missionComponent->Progress(eMissionTaskType::RACING, LWOOBJID_EMPTY, static_cast<LWOOBJID>(eRacingTaskParam::MODULAR_BUILDING));
-				}
-			}
+		// Move remaining temp models back to models
+		std::vector<Item*> items;
 
-			ScriptComponent* script = static_cast<ScriptComponent*>(entity->GetComponent(eReplicaComponentType::SCRIPT));
+		for (const auto& pair : temp->GetItems()) {
+			items.push_back(pair.second);
+		}
 
-			entity->GetScript()->OnModularBuildExit(entity, character, count >= 3, modList);
-
-			// Move remaining temp models back to models
-			std::vector<Item*> items;
-
-			for (const auto& pair : temp->GetItems()) {
-				items.push_back(pair.second);
-			}
-
-			for (auto* item : items) {
-				inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
-			}
-			});
+		for (auto* item : items) {
+			inv->MoveItemToInventory(item, eInventoryType::MODELS, item->GetCount(), false);
+		}
 	}
 }
 
