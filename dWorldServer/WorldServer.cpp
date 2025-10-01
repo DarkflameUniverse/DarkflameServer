@@ -1126,6 +1126,13 @@ void HandlePacket(Packet* packet) {
 				// Update the characters xml to ensure the update above is not only saved, but so the client picks up on the changes.
 				c->SaveXMLToDatabase();
 
+				// Fix the destroyable component
+				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
+
+				if (destroyableComponent != nullptr) {
+					destroyableComponent->FixStats();
+				}
+
 				WorldPackets::SendCreateCharacter(packet->systemAddress, characterComponent->GetReputation(), player->GetObjectID(), c->GetXMLData(), username, c->GetGMLevel(), c->GetPropertyCloneID());
 				WorldPackets::SendServerState(packet->systemAddress);
 
@@ -1142,13 +1149,6 @@ void HandlePacket(Packet* packet) {
 				characterComponent->RocketUnEquip(player);
 
 				player->GetCharacter()->SetTargetScene("");
-
-				// Fix the destroyable component
-				auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
-
-				if (destroyableComponent != nullptr) {
-					destroyableComponent->FixStats();
-				}
 
 				//Tell the player to generate BBB models, if any:
 				if (g_CloneID != 0) {
