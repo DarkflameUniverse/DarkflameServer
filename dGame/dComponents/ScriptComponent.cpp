@@ -5,16 +5,18 @@
 
 #include "Entity.h"
 #include "ScriptComponent.h"
+#include "GameMessages.h"
+#include "Amf3.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
+ScriptComponent::ScriptComponent(Entity* parent, const std::string& scriptName, bool serialized, bool client) : Component(parent) {
+	using namespace GameMessages;
+
 	m_Serialized = serialized;
 	m_Client = client;
+	m_ScriptName = scriptName;
 
 	SetScript(scriptName);
-}
-
-ScriptComponent::~ScriptComponent() {
-
+	RegisterMsg<GetObjectReportInfo>(this, &ScriptComponent::OnGetObjectReportInfo);
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -49,4 +51,17 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 	// Scripts are managed by the CppScripts class and are effecitvely singletons
 	// and they may also be used by other script components so DON'T delete them.
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
+}
+
+bool ScriptComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& infoMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+
+	auto& scriptInfo = infoMsg.info->PushDebug("Script");
+	scriptInfo.PushDebug<AMFStringValue>("Script Name") = m_ScriptName.empty() ? "None" : m_ScriptName;
+	auto& networkSettings = scriptInfo.PushDebug("Network Settings");
+	for (const auto* const setting : m_Parent->GetNetworkSettings()) {
+		networkSettings.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
+	}
+
+	return true;
 }

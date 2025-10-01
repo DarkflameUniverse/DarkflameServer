@@ -21,8 +21,7 @@ class ScriptComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SCRIPT;
 
-	ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client = false);
-	~ScriptComponent() override;
+	ScriptComponent(Entity* parent, const std::string& scriptName, bool serialized, bool client = false);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
@@ -43,6 +42,8 @@ public:
 	 * @param scriptName the name of the script to find
 	 */
 	void SetScript(const std::string& scriptName);
+	
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 
 private:
 
@@ -60,6 +61,8 @@ private:
 	 * Whether or not this script is a client script
 	 */
 	bool m_Client;
+
+	std::string m_ScriptName;
 };
 
 #endif // SCRIPTCOMPONENT_H
