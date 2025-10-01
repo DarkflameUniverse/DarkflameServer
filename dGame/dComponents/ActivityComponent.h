@@ -353,7 +353,7 @@ private:
 	/**
 	 * The database information for this activity
 	 */
-	CDActivities m_ActivityInfo;
+	CDActivities m_ActivityInfo{};
 
 	/**
 	 * All the active instances of this activity
