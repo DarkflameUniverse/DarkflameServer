@@ -9,7 +9,7 @@
 #include "UserManager.h"
 #include "CDMissionsTable.h"
 
-AchievementVendorComponent::AchievementVendorComponent(Entity* parent) : VendorComponent(parent) {
+AchievementVendorComponent::AchievementVendorComponent(Entity* parent, const int32_t componentID) : VendorComponent(parent, componentID) {
 	RefreshInventory(true);
 };
 

@@ -273,7 +273,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
-		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		auto* movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
 			simplePhysicsComponent->SetPhysicsMotionState(4);

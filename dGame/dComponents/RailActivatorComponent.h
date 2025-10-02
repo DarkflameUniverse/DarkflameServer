@@ -12,7 +12,7 @@
  */
 class RailActivatorComponent final : public Component {
 public:
-	explicit RailActivatorComponent(Entity* parent, int32_t componentID);
+	explicit RailActivatorComponent(Entity* parent, const int32_t componentID);
 	~RailActivatorComponent() override;
 
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RAIL_ACTIVATOR;
@@ -37,12 +37,6 @@ public:
 	 */
 	void OnCancelRailMovement(Entity* originator);
 private:
-
-	/**
-	 * The ID of this component in the components database
-	 */
-	int32_t m_ComponentID;
-
 	/**
 	 * The entities that are currently traversing the rail
 	 */

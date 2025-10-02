@@ -28,7 +28,7 @@
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
 
-BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) : Component(parent) {
+BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
 	m_State = AiState::spawn;
@@ -43,7 +43,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
 		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
-	componentQuery.bind(1, static_cast<int>(id));
+	componentQuery.bind(1, static_cast<int>(componentID));
 
 	auto componentResult = componentQuery.execQuery();
 
@@ -111,12 +111,12 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const uint32_t id) 
 	int32_t collisionGroup = (COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_ENEMY);
 
 	CDComponentsRegistryTable* componentRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-	auto componentID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
+	const auto controllablePhysicsID = componentRegistryTable->GetByIDAndType(parent->GetLOT(), eReplicaComponentType::CONTROLLABLE_PHYSICS);
 
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable != nullptr) {
-		auto* info = physicsComponentTable->GetByID(componentID);
+		auto* info = physicsComponentTable->GetByID(controllablePhysicsID);
 		if (info != nullptr) {
 			collisionGroup = info->bStatic ? COLLISION_GROUP_NEUTRAL : info->collisionGroup;
 		}

@@ -16,14 +16,9 @@ class PossessableComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::POSSESSABLE;
 
-	PossessableComponent(Entity* parentEntity, uint32_t componentId);
+	PossessableComponent(Entity* parentEntity, const int32_t componentID);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
-
-	/**
-	 * @brief mounts the Entity
-	 */
-	void Mount();
 
 	/**
 	 * @brief dismounts the Entity

@@ -49,7 +49,7 @@ class BaseCombatAIComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BASE_COMBAT_AI;
 
-	BaseCombatAIComponent(Entity* parentEntity, uint32_t id);
+	BaseCombatAIComponent(Entity* parentEntity, int32_t componentID);
 	~BaseCombatAIComponent() override;
 
 	void Update(float deltaTime) override;

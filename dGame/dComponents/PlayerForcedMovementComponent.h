@@ -16,7 +16,7 @@ public:
 	 * Constructor for this component
 	 * @param parent parent that contains this component
 	 */
-	PlayerForcedMovementComponent(Entity* parent);
+	PlayerForcedMovementComponent(Entity* parent, const int32_t componentID);
 	~PlayerForcedMovementComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

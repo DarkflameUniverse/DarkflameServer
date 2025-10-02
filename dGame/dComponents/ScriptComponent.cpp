@@ -6,7 +6,7 @@
 #include "Entity.h"
 #include "ScriptComponent.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, std::string scriptName, bool serialized, bool client) : Component(parent) {
+ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, std::string scriptName, bool serialized, bool client) : Component(parent, componentID) {
 	m_Serialized = serialized;
 	m_Client = client;
 

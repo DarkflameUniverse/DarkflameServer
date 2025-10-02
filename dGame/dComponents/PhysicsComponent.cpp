@@ -15,7 +15,7 @@
 #include "EntityInfo.h"
 #include "Amf3.h"
 
-PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Component(parent) {
+PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Position = NiPoint3Constant::ZERO;
 	m_Rotation = QuatUtils::IDENTITY;
 	m_DirtyPosition = false;
@@ -23,7 +23,7 @@ PhysicsComponent::PhysicsComponent(Entity* parent, int32_t componentId) : Compon
 	CDPhysicsComponentTable* physicsComponentTable = CDClientManager::GetTable<CDPhysicsComponentTable>();
 
 	if (physicsComponentTable) {
-		auto* info = physicsComponentTable->GetByID(componentId);
+		auto* info = physicsComponentTable->GetByID(componentID);
 		if (info) {
 			m_CollisionGroup = info->collisionGroup;
 		}

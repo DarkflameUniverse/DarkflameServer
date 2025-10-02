@@ -9,7 +9,7 @@
 #include "BitStream.h"
 #include "eTriggerEventType.h"
 
-BouncerComponent::BouncerComponent(Entity* parent) : Component(parent) {
+BouncerComponent::BouncerComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;

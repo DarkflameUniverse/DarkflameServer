@@ -67,7 +67,7 @@ public:
 	static constexpr uint32_t MaximumGroupCount = 50;
 
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
-	InventoryComponent(Entity* parent);
+	InventoryComponent(Entity* parent, const int32_t componentID);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

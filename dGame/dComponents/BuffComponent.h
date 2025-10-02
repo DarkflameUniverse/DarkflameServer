@@ -51,7 +51,7 @@ class BuffComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BUFF;
 
-	explicit BuffComponent(Entity* parent);
+	explicit BuffComponent(Entity* parent, const int32_t componentID);
 
 	~BuffComponent();
 

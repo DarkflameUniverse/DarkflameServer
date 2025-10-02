@@ -2,7 +2,7 @@
 #include "EntityManager.h"
 #include "ScriptedActivityComponent.h"
 
-ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent, int32_t activityID) : ActivityComponent(parent, activityID) {
+ShootingGalleryComponent::ShootingGalleryComponent(Entity* parent, const int32_t componentID) : ActivityComponent(parent, componentID) {
 }
 
 void ShootingGalleryComponent::SetStaticParams(const StaticShootingGalleryParams& params) {
