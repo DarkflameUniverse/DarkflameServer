@@ -7,6 +7,8 @@
 #include "CDClientManager.h"
 #include "CDObjectSkillsTable.h"
 #include "RenderComponent.h"
+#include "TeamManager.h"
+#include "ProximityMonitorComponent.h"
 
 //TODO: this has to be updated so that you only get killed if you're in a certain radius.
 //And so that all entities in a certain radius are killed, not just the attacker.
@@ -17,22 +19,40 @@ void ExplodingAsset::OnStartup(Entity* self) {
 	self->SetProximityRadius(10.0f, "crateHitters");
 }
 
+void ExplodingAsset::ProgressPlayerMissions(Entity& self, Entity& player) {
+	const auto missionID = self.GetVar<int32_t>(u"missionID");
+	auto achievementIDs = self.GetVarAsString(u"achieveID");
+	auto* const missionComponent = player.GetComponent<MissionComponent>();
+	if (missionComponent) {
+		if (missionID != 0) {
+			missionComponent->ForceProgressValue(missionID,
+				static_cast<uint32_t>(eMissionTaskType::SCRIPT),
+				self.GetLOT(), false);
+		}
+
+		if (!achievementIDs.empty()) {
+			for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
+				const auto achievementIDInt = GeneralUtils::TryParse<int32_t>(achievementID);
+				if (!achievementIDInt) continue;
+				missionComponent->ForceProgressValue(achievementIDInt.value(),
+					static_cast<uint32_t>(eMissionTaskType::SCRIPT),
+					self.GetLOT());
+			}
+		}
+	}
+}
+
 void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
-	std::vector<Entity*> entities;
-	entities.push_back(attacker);
+	const auto* const proximityComponent = self->GetComponent<ProximityMonitorComponent>();
+	if (!proximityComponent) return;
 
 	if (!self->GetBoolean(u"bIsHit")) {
-		for (Entity* en : entities) {
-			if (en->GetObjectID() == attacker->GetObjectID()) {
-				if (Vector3::DistanceSquared(en->GetPosition(), self->GetPosition()) > 10 * 10) continue;
+		for (const auto objID : proximityComponent->GetProximityObjects("crateHitters")) {
+			auto* const entity = Game::entityManager->GetEntity(objID);
+			if (!entity) continue;
 
-				auto* destroyable = en->GetComponent<DestroyableComponent>();
-				if (destroyable == nullptr) {
-					continue;
-				}
-
-				destroyable->Smash(attacker->GetObjectID());
-			}
+			auto* const destroyable = entity->GetComponent<DestroyableComponent>();
+			if (destroyable) destroyable->Smash(attacker->GetObjectID());
 		}
 	}
 
@@ -48,26 +68,17 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 		// Technically supposed to get first skill in the skill component but only 1 object in the live game used this.
 		skillComponent->CalculateBehavior(147, 4721, LWOOBJID_EMPTY, true);
 	}
-
-	const auto missionID = self->GetVar<int32_t>(u"missionID");
-	auto achievementIDs = self->GetVar<std::u16string>(u"achieveID");
-
+	const auto* const team = TeamManager::Instance()->GetTeam(attacker->GetObjectID());
 	// Progress all scripted missions related to this asset
-	auto* missionComponent = attacker->GetComponent<MissionComponent>();
-	if (missionComponent != nullptr) {
-		if (missionID != 0) {
-			missionComponent->ForceProgressValue(missionID,
-				static_cast<uint32_t>(eMissionTaskType::SCRIPT),
-				self->GetLOT(), false);
-		}
-
-		if (!achievementIDs.empty()) {
-			for (const auto& achievementID : GeneralUtils::SplitString(achievementIDs, u'_')) {
-				missionComponent->ForceProgressValue(std::stoi(GeneralUtils::UTF16ToWTF8(achievementID)),
-					static_cast<uint32_t>(eMissionTaskType::SCRIPT),
-					self->GetLOT());
+	if (team) {
+		for (const auto& member : team->members) {
+			auto* const memberEntity = Game::entityManager->GetEntity(member);
+			if (memberEntity) {
+				ProgressPlayerMissions(*self, *memberEntity);
 			}
 		}
+	} else {
+		ProgressPlayerMissions(*self, *attacker);
 	}
 }
 
