@@ -63,7 +63,7 @@ class RenderComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RENDER;
 
-	RenderComponent(Entity* const parentEntity, const int32_t componentId = -1);
+	RenderComponent(Entity* const parentEntity, const int32_t componentID);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void Update(float deltaTime) override;

@@ -39,19 +39,13 @@ bool OfferedMission::GetAcceptsMission() const {
 
 //------------------------ MissionOfferComponent below ------------------------
 
-MissionOfferComponent::MissionOfferComponent(Entity* parent, const LOT parentLot) : Component(parent) {
-	auto* compRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
-
-	auto value = compRegistryTable->GetByIDAndType(parentLot, eReplicaComponentType::MISSION_OFFER, -1);
-
-	if (value != -1) {
-		const uint32_t componentId = value;
-
+MissionOfferComponent::MissionOfferComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	if (componentID != -1) {
 		// Now lookup the missions in the MissionNPCComponent table
 		auto* missionNpcComponentTable = CDClientManager::GetTable<CDMissionNPCComponentTable>();
 
-		auto missions = missionNpcComponentTable->Query([=](const CDMissionNPCComponent& entry) {
-			return entry.id == static_cast<unsigned>(componentId);
+		auto missions = missionNpcComponentTable->Query([componentID](const CDMissionNPCComponent& entry) {
+			return entry.id == static_cast<unsigned>(componentID);
 			});
 
 		for (auto& mission : missions) {

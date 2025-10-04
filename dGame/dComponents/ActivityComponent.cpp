@@ -30,7 +30,7 @@
 #include "CharacterComponent.h"
 #include "Amf3.h"
 
-ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	RegisterMsg<GetObjectReportInfo>(this, &ActivityComponent::OnGetObjectReportInfo);
 	/*
@@ -39,8 +39,8 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
 	*/
 
-	m_ActivityID = activityID;
-	LoadActivityData(activityID);
+	m_ActivityID = componentID;
+	LoadActivityData(componentID);
 	if (m_Parent->HasVar(u"activityID")) {
 		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);

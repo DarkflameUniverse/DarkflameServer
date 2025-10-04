@@ -12,5 +12,5 @@ void AgStromlingProperty::OnStartup(Entity* self) {
 		4
 	};
 
-	self->AddComponent<MovementAIComponent>(movementInfo);
+	self->AddComponent<MovementAIComponent>(-1, movementInfo);
 }

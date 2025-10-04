@@ -18,7 +18,7 @@ class PetComponent final : public Component
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PET;
 
-	explicit PetComponent(Entity* parentEntity, uint32_t componentId);
+	explicit PetComponent(Entity* parentEntity, const int32_t componentID);
 	~PetComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
@@ -249,11 +249,6 @@ private:
 	 * Cache of all the pets that are currently being tamed, indexed by tamer
 	 */
 	static std::unordered_map<LWOOBJID, LWOOBJID> currentActivities;
-
-	/**
-	 * The ID of the component in the pet component table
-	 */
-	uint32_t m_ComponentId;
 
 	/**
 	 * The ID of the model that was built to complete the taming minigame for this pet

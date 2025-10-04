@@ -19,7 +19,7 @@ class Entity;
  */
 class Component {
 public:
-	Component(Entity* parent) : m_Parent{ parent } {}
+	Component(Entity* parent, const int32_t componentID) : m_Parent{ parent }, m_ComponentID{componentID} {}
 	virtual ~Component() = default;
 
 	/**
@@ -27,6 +27,8 @@ public:
 	 * @return the owner of this component
 	 */
 	Entity* GetParent() const { return m_Parent; }
+
+	[[nodiscard]] int32_t GetComponentID() const noexcept { return m_ComponentID; }
 
 	/**
 	 * Updates the component in the game loop
@@ -70,4 +72,11 @@ protected:
 	 * The entity that owns this component
 	 */
 	Entity* m_Parent;
+
+	// The component ID, this should never be changed after initialization
+	// This is used in various different ways
+	// 1. To identify which entry this component is in its corresponding table
+	// 2. To mark that an Entity should have the component with no database entry (it will be 0 in this case)
+	// 3. The component exists implicitly due to design (CollectibleComponent always has a DestructibleComponent accompanying it). In this case the ID will be -1.
+	const int32_t m_ComponentID;
 };

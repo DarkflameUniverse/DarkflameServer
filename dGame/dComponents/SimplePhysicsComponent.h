@@ -30,7 +30,7 @@ class SimplePhysicsComponent : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SIMPLE_PHYSICS;
 
-	SimplePhysicsComponent(Entity* parent, int32_t componentID);
+	SimplePhysicsComponent(Entity* parent, const int32_t componentID);
 	~SimplePhysicsComponent() override;
 
 	void Update(const float deltaTime) override;

@@ -6,7 +6,7 @@
 
 std::vector<SwitchComponent*> SwitchComponent::petSwitches;
 
-SwitchComponent::SwitchComponent(Entity* parent) : Component(parent) {
+SwitchComponent::SwitchComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Active = false;
 
 	m_ResetTime = m_Parent->GetVarAs<int32_t>(u"switch_reset_time");

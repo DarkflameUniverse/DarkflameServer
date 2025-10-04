@@ -26,7 +26,7 @@
 std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent::m_AchievementCache = {};
 
 //! Initializer
-MissionComponent::MissionComponent(Entity* parent) : Component(parent) {
+MissionComponent::MissionComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 }
 

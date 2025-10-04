@@ -19,7 +19,7 @@ class dpEntity;
 
 class PhysicsComponent : public Component {
 public:
-	PhysicsComponent(Entity* parent, int32_t componentId);
+	PhysicsComponent(Entity* parent, const int32_t componentID);
 	virtual ~PhysicsComponent() = default;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

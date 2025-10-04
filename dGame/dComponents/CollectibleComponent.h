@@ -7,7 +7,7 @@
 class CollectibleComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::COLLECTIBLE;
-	CollectibleComponent(Entity* parentEntity, int32_t collectibleId) : Component(parentEntity), m_CollectibleId(collectibleId) {}
+	CollectibleComponent(Entity* parentEntity, const int32_t componentID, const int32_t collectibleId) : Component(parentEntity, componentID), m_CollectibleId(collectibleId) {}
 
 	int16_t GetCollectibleId() const { return m_CollectibleId; }
 	void Serialize(RakNet::BitStream& outBitStream, bool isConstruction) override;
