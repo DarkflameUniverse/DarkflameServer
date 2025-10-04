@@ -25,7 +25,7 @@
 #include "MessageType/Game.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
+CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
 	m_Character = character;
 
 	m_IsRacing = false;
