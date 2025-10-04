@@ -786,7 +786,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		}
 	} else {
 		//Check if this zone allows coin drops
-		if (Game::zoneManager->GetPlayerLoseCoinOnDeath()) {
+		if (Game::zoneManager->GetPlayerLoseCoinOnDeath() && !Game::entityManager->GetHardcoreMode()) {
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
 			const uint64_t minCoinsToLose = Game::zoneManager->GetWorldConfig().coinsLostOnDeathMin;
@@ -1012,13 +1012,23 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 		//get character:
 		auto* chars = m_Parent->GetCharacter();
 		if (chars) {
-			auto coins = chars->GetCoins();
+			auto oldCoins = chars->GetCoins();
+			// Floor this so there arent coins generated from rounding
+			auto coins = static_cast<uint64_t>(oldCoins * Game::entityManager->GetHardcoreCoinKeep());
+			auto coinsToDrop = oldCoins - coins;
+			LOG("Player had %llu coins, will lose %i coins to have %i", oldCoins, coinsToDrop, coins);
 
 			//lose all coins:
-			chars->SetCoins(0, eLootSourceType::NONE);
+			chars->SetCoins(coins, eLootSourceType::NONE);
 
 			//drop all coins:
-			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, m_Parent->GetPosition());
+			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
+			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
+				LOG("Dropping 100,000, %i left", coins);
+				GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, MAX_TO_DROP_PER_GM, m_Parent->GetPosition());
+				coinsToDrop -= MAX_TO_DROP_PER_GM;
+			}
+			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coinsToDrop, m_Parent->GetPosition());
 		}
 		return;
 	}

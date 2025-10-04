@@ -81,6 +81,7 @@ public:
 	const std::set<LOT>& GetHardcoreUscoreReducedLots() const { return m_HardcoreUscoreReducedLots; };
 	const std::set<LOT>& GetHardcoreUscoreExcludedEnemies() const { return m_HardcoreUscoreExcludedEnemies; };
 	const std::set<LWOMAPID>& GetHardcoreDisabledWorlds() const { return m_HardcoreDisabledWorlds; };
+	float GetHardcoreCoinKeep() const { return m_HardcoreCoinKeep; }
 
 	// Messaging
 	bool SendMessage(GameMessages::GameMsg& msg) const;
@@ -125,6 +126,7 @@ private:
 	std::set<LOT> m_HardcoreUscoreReducedLots{};
 	std::set<LOT> m_HardcoreUscoreExcludedEnemies{};
 	std::set<LWOMAPID> m_HardcoreDisabledWorlds{};
+	float m_HardcoreCoinKeep{};
 };
 
 #endif // ENTITYMANAGER_H
