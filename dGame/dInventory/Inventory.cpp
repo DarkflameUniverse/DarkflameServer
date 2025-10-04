@@ -324,7 +324,8 @@ Inventory::~Inventory() {
 void Inventory::RegenerateItemIDs() {
 	std::map<LWOOBJID, Item*> newItems{};
 	for (auto* const item : items | std::views::values) {
-		const bool equipped = item->GetParent() == LWOOBJID_EMPTY && item->IsEquipped();
+		if (item->GetParent() != LWOOBJID_EMPTY) continue; // temp items dont need new ids
+		const bool equipped = item->IsEquipped();
 		if (equipped) item->UnEquip();
 		const auto oldID = item->GetId();
 		const auto newID = item->GenerateID();
