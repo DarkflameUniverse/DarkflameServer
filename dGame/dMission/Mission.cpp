@@ -32,7 +32,7 @@
 #include "StringifiedEnum.h"
 
 namespace {
-	std::set<uint32_t> g_TestedMissions = {773, 774, 775, 776, 777}; // TODO Figure out why these missions are broken sometimes
+	std::set<uint32_t> g_TestedMissions = { 773, 774, 775, 776, 777 }; // TODO Figure out why these missions are broken sometimes
 }
 
 Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
@@ -87,6 +87,7 @@ void Mission::LoadFromXmlDone(const tinyxml2::XMLElement& element) {
 }
 
 void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
+	const auto* const character = GetCharacter();
 	// Start custom XML
 	if (element.Attribute("state") != nullptr) {
 		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
@@ -126,6 +127,12 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 			}
 
 			curTask->SetUnique(uniques);
+		} else if (type == eMissionTaskType::PLAYER_FLAG) {
+			int32_t progress = 0; // Update the progress to not include session flags which are unset between logins
+			for (const auto flag : curTask->GetAllTargets()) {
+				if (character->GetPlayerFlag(flag)) progress++;
+			}
+			curTask->SetProgress(progress, false);
 		}
 
 		index++;
@@ -453,7 +460,7 @@ void Mission::YieldRewards() {
 	if (info.LegoScore > 0) {
 		eLootSourceType lootSource = info.isMission ? eLootSourceType::MISSION : eLootSourceType::ACHIEVEMENT;
 		if (levelComponent->GetLevel() >= Game::zoneManager->GetWorldConfig().levelCap) {
-			// Since the character is at the level cap we reward them with coins instead of UScore.
+			// If player is at the level cap and doesnt want to keep earning UScore at max level we convert it here.
 			coinsToSend += info.LegoScore * Game::zoneManager->GetWorldConfig().levelCapCurrencyConversion;
 		} else {
 			characterComponent->SetUScore(characterComponent->GetUScore() + info.LegoScore);
