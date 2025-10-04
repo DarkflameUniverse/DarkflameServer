@@ -19,7 +19,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-TriggerComponent::TriggerComponent(Entity* parent, const std::string triggerInfo) : Component(parent) {
+TriggerComponent::TriggerComponent(Entity* parent, const int32_t componentID, const std::string triggerInfo) : Component(parent, componentID) {
 	m_Parent = parent;
 	m_Trigger = nullptr;
 

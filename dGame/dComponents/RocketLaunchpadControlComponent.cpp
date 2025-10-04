@@ -20,10 +20,10 @@
 #include "ServiceType.h"
 #include "MessageType/Master.h"
 
-RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, int rocketId) : Component(parent) {
+RocketLaunchpadControlComponent::RocketLaunchpadControlComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	auto query = CDClientDatabase::CreatePreppedStmt(
 		"SELECT targetZone, defaultZoneID, targetScene, altLandingPrecondition, altLandingSpawnPointName FROM RocketLaunchpadControlComponent WHERE id = ?;");
-	query.bind(1, rocketId);
+	query.bind(1, componentID);
 
 	auto result = query.execQuery();
 

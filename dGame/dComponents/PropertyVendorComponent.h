@@ -10,7 +10,7 @@
 class PropertyVendorComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PROPERTY_VENDOR;
-	explicit PropertyVendorComponent(Entity* parent);
+	explicit PropertyVendorComponent(Entity* parent, const int32_t componentID);
 
 	/**
 	 * Handles a use event from some entity, if the property is cleared this allows the entity to claim it

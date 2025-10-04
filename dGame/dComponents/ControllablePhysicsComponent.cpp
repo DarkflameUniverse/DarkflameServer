@@ -17,7 +17,7 @@
 #include "StringifiedEnum.h"
 #include "Amf3.h"
 
-ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, int32_t componentId) : PhysicsComponent(entity, componentId) {
+ControllablePhysicsComponent::ControllablePhysicsComponent(Entity* entity, const int32_t componentID) : PhysicsComponent(entity, componentID) {
 	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &ControllablePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Velocity = {};

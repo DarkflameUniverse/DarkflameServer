@@ -16,7 +16,7 @@ public:
 	 * Constructor for this component, builds the m_LUPWorlds vector
 	 * @param parent parent that contains this component
 	 */
-	MultiZoneEntranceComponent(Entity* parent);
+	MultiZoneEntranceComponent(Entity* parent, const int32_t componentID);
 	~MultiZoneEntranceComponent() override;
 
 	/**

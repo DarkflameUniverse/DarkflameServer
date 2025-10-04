@@ -1,6 +1,6 @@
 #include "PlayerForcedMovementComponent.h"
 
-PlayerForcedMovementComponent::PlayerForcedMovementComponent(Entity* parent) : Component(parent) {
+PlayerForcedMovementComponent::PlayerForcedMovementComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Parent = parent;
 }
 

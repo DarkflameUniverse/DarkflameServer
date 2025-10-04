@@ -18,7 +18,7 @@ class SwitchComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
-	SwitchComponent(Entity* parent);
+	SwitchComponent(Entity* parent, const int32_t componentID);
 	~SwitchComponent() override;
 
 	void Update(float deltaTime) override;

@@ -2,7 +2,7 @@
 #include "EntityManager.h"
 #include "Amf3.h"
 
-HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Velocity = NiPoint3Constant::ZERO;

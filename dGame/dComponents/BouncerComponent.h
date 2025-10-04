@@ -14,7 +14,7 @@ class BouncerComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::BOUNCER;
 
-	BouncerComponent(Entity* parentEntity);
+	BouncerComponent(Entity* parentEntity, const int32_t componentID);
 	~BouncerComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

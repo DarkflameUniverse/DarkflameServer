@@ -44,7 +44,7 @@
 Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
 
-DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
+DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;

@@ -63,7 +63,7 @@ class MissionOfferComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MISSION_OFFER;
 
-	MissionOfferComponent(Entity* parent, LOT parentLot);
+	MissionOfferComponent(Entity* parent, const int32_t componentID);
 
 	/**
 	 * Handles the OnUse event triggered by some entity, determines which missions to show based on what they may

@@ -17,7 +17,7 @@
 #include "ePropertySortType.h"
 #include "User.h"
 
-PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, uint32_t componentID) : Component(parent) {
+PropertyEntranceComponent::PropertyEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	this->propertyQueries = {};
 
 	auto table = CDClientManager::GetTable<CDPropertyEntranceComponentTable>();

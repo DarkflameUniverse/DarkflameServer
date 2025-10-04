@@ -63,7 +63,7 @@ class SkillComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SKILL;
 
-	explicit SkillComponent(Entity* parent);
+	explicit SkillComponent(Entity* parent, const int32_t componentID);
 	~SkillComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

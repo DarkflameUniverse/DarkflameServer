@@ -10,7 +10,7 @@ class NiPoint3;
 class GhostComponent final : public Component {
 public:
 	static inline const eReplicaComponentType ComponentType = eReplicaComponentType::GHOST;
-	GhostComponent(Entity* parent);
+	GhostComponent(Entity* parent, const int32_t componentID);
 	~GhostComponent() override;
 
 	void SetGhostOverride(bool value) { m_GhostOverride = value; };

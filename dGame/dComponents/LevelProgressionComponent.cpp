@@ -6,7 +6,7 @@
 
 #include "CDRewardsTable.h"
 
-LevelProgressionComponent::LevelProgressionComponent(Entity* parent) : Component(parent) {
+LevelProgressionComponent::LevelProgressionComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Parent = parent;
 	m_Level = 1;
 	m_SpeedBase = 500.0f;

@@ -15,7 +15,7 @@
 #include "StringifiedEnum.h"
 #include "Amf3.h"
 
-SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, int32_t componentID) : PhysicsComponent(parent, componentID) {
+SimplePhysicsComponent::SimplePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &SimplePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Position = m_Parent->GetDefaultPosition();

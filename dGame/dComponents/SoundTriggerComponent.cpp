@@ -25,7 +25,7 @@ void MixerProgram::Serialize(RakNet::BitStream& outBitStream){
 	outBitStream.Write(name.c_str(), name.size());
 	outBitStream.Write(result);
 }
-SoundTriggerComponent::SoundTriggerComponent(Entity* parent) : Component(parent) {
+SoundTriggerComponent::SoundTriggerComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 
 	const auto musicCueName = parent->GetVar<std::string>(u"NDAudioMusicCue_Name");
 	if (!musicCueName.empty()) {

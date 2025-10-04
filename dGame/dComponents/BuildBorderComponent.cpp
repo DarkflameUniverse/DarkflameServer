@@ -9,7 +9,7 @@
 #include "Item.h"
 #include "PropertyManagementComponent.h"
 
-BuildBorderComponent::BuildBorderComponent(Entity* parent) : Component(parent) {
+BuildBorderComponent::BuildBorderComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 }
 
 BuildBorderComponent::~BuildBorderComponent() {

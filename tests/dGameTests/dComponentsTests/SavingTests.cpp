@@ -32,7 +32,7 @@ protected:
 		character->_doQuickXMLDataParse();
 		character->LoadXmlRespawnCheckpoints();
 
-		entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS)->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
+		entity->AddComponent<CharacterComponent>(-1, character.get(), UNASSIGNED_SYSTEM_ADDRESS)->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 	}
 
 	void TearDown() override {
@@ -61,7 +61,7 @@ TEST_F(SavingTest, CharacterComponentTest) {
 	// Reload the component and character from the now updated xml data
 	const auto prevTotalTime = characterComponent->GetTotalTimePlayed();
 	character->_doQuickXMLDataParse();
-	entity->AddComponent<CharacterComponent>(character.get(), UNASSIGNED_SYSTEM_ADDRESS);
+	entity->AddComponent<CharacterComponent>(-1, character.get(), UNASSIGNED_SYSTEM_ADDRESS);
 	characterComponent->LoadFromXml(entity->GetCharacter()->GetXMLDoc());
 
 	// Check that the buff component is the same as before which means resaving data and loading it back in didn't change anything

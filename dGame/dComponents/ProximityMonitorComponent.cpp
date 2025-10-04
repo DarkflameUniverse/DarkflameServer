@@ -7,7 +7,7 @@
 
 const std::unordered_set<LWOOBJID> ProximityMonitorComponent::m_EmptyObjectSet = {};
 
-ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, int radiusSmall, int radiusLarge) : Component(parent) {
+ProximityMonitorComponent::ProximityMonitorComponent(Entity* parent, const int32_t componentID, int radiusSmall, int radiusLarge) : Component(parent, componentID) {
 	if (radiusSmall != -1 && radiusLarge != -1) {
 		SetProximityRadius(radiusSmall, "rocketSmall");
 		SetProximityRadius(radiusLarge, "rocketLarge");

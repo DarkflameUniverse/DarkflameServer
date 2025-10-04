@@ -8,9 +8,8 @@
 #include "GameMessages.h"
 #include "Amf3.h"
 
-ScriptComponent::ScriptComponent(Entity* parent, const std::string& scriptName, bool serialized, bool client) : Component(parent) {
+ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client) : Component(parent, componentID) {
 	using namespace GameMessages;
-
 	m_Serialized = serialized;
 	m_Client = client;
 	m_ScriptName = scriptName;
