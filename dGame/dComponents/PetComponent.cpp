@@ -569,17 +569,16 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int>(m_ModerationStatus) });
 				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
 				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
-				return;
+			} else {
+				m_ModerationStatus = 1; // Pending
+				m_Name = "";
+
+				//Save our pet's new name to the db:
+				SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+
+				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
+				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
 			}
-
-			m_ModerationStatus = 1; // Pending
-			m_Name = "";
-
-			//Save our pet's new name to the db:
-			SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
-
-			GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-			GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
 		}
 
 		return;
