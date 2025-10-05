@@ -485,10 +485,10 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		if (autoRejectNames) {
 			// Create a random preapproved name (fallback to default if none available)
 			if (!m_FirstNames.empty() && !m_MiddleNames.empty() && !m_LastNames.empty()) {
-				size_t firstIdx = static_cast<size_t>(time(NULL)) % m_FirstNames.size();
-				size_t middleInx = static_cast<size_t>(time(NULL)) % m_MiddleNames.size();
-				size_t lastInx = static_cast<size_t>(time(NULL)) % m_LastNames.size();
-				newName = m_FirstNames[firstIdx] + m_MiddleNames[middleInx] + m_LastNames[lastInx];
+				std::string firstName = GeneralUtils::GetRandomElement(m_FirstNames);
+				std::string middleName = GeneralUtils::GetRandomElement(m_MiddleNames);
+				std::string lastName = GeneralUtils::GetRandomElement(m_LastNames);
+				newName = firstName + middleName + lastName;
 			} else {
 				newName = "character" + std::to_string(objectID);
 			}
