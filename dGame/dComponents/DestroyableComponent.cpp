@@ -1024,7 +1024,7 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 			//drop all coins:
 			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
 			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
-				LOG("Dropping 100,000, %i left", coins);
+				LOG("Dropping 100,000, %llu left", coinsToDrop);
 				GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, MAX_TO_DROP_PER_GM, m_Parent->GetPosition());
 				coinsToDrop -= MAX_TO_DROP_PER_GM;
 			}
