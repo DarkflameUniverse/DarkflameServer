@@ -74,8 +74,10 @@ namespace Mail {
 	void SendRequest::Handle() {
 		SendResponse response;
 		auto* character = player->GetCharacter();
-		const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail();
-		if (character && !(character->HasPermission(ePermissionMap::RestrictedMailAccess) || (restrictMailOnMute && character->GetParentUser()->GetIsMuted()))) {
+		const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail() && character->GetParentUser()->GetIsMuted();
+		const bool restrictedMailAccess = character->HasPermission(ePermissionMap::RestrictedMailAccess);
+
+		if (character && !(restrictedMailAccess || restrictMailOnMute)) {
 			mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
 			auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);
 
