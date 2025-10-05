@@ -606,7 +606,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		m_Name = "";
 		std::string forcedName = "Pet";
 
-		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int>(m_ModerationStatus) });
+		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
 		LOG("AccountID: %i is muted, forcing use of predefined pet name", tamer->GetCharacter()->GetParentUser()->GetAccountID());
 	} else {
 		m_ModerationStatus = 1; // Pending
