@@ -566,7 +566,7 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 			if (autoRejectNames && owner && owner->GetCharacter() && owner->GetCharacter()->GetParentUser()->GetIsMuted()) {
 				m_ModerationStatus = 2; // Approved
 				std::string forcedName = "Pet";
-				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int>(m_ModerationStatus) });
+				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
 				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
 				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
 			} else {
