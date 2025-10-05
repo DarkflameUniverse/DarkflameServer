@@ -87,6 +87,8 @@ void EntityManager::ReloadConfig() {
 	auto hcXpReduction = Game::config->GetValue("hardcore_uscore_reduction");
 	m_HardcoreUscoreReduction = hcXpReduction.empty() ? 1.0f : GeneralUtils::TryParse<float>(hcXpReduction).value_or(1.0f);
 	m_HardcoreMode = GetHardcoreDisabledWorlds().contains(Game::zoneManager->GetZoneID().GetMapID()) ? false : m_HardcoreMode;
+	auto hcCoinKeep = Game::config->GetValue("hardcore_coin_keep");
+	m_HardcoreCoinKeep = hcCoinKeep.empty() ? false : GeneralUtils::TryParse<float>(hcCoinKeep).value_or(0.0f);
 }
 
 void EntityManager::Initialize() {
