@@ -555,7 +555,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 }
 
 void PetComponent::RequestSetPetName(std::u16string name) {
-	const bool autoRejectNames = GeneralUtils::TryParse<bool>(Game::config->GetValue("mute_auto_reject_names")).value_or(true);
+	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1";
 
 	if (m_Tamer == LWOOBJID_EMPTY) {
 		if (m_Owner != LWOOBJID_EMPTY) {

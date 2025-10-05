@@ -302,10 +302,10 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	inStream.Read(eyes);
 	inStream.Read(mouth);
 
-	auto name = LUWStringName.GetAsString();
-	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
+	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1" && u->GetIsMuted();
 
-	const bool autoRejectNames = GeneralUtils::TryParse<bool>(Game::config->GetValue("mute_auto_reject_names")).value_or(true) && u->GetIsMuted();
+	const auto name = autoRejectNames ? "":LUWStringName.GetAsString();
+	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
 	LOT pantsLOT = FindCharPantsID(pantsColor);
@@ -322,10 +322,8 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
-	// If auto reject names is on, and the user is muted, force use of predefined name
 	if (autoRejectNames) {
 		LOG("AccountID: %i is muted, forcing use of predefined name", u->GetAccountID());
-		name = "";
 	}
 
 	if (name.empty()) {
@@ -461,7 +459,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
-	const bool autoRejectNames = GeneralUtils::TryParse<bool>(Game::config->GetValue("mute_auto_reject_names")).value_or(true) && u->GetIsMuted();
+	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1" && u->GetIsMuted();
 
 	//Check if this user has this character:
 	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(
