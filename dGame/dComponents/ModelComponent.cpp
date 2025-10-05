@@ -14,7 +14,7 @@
 #include "Database.h"
 #include "DluAssert.h"
 
-ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
+ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();

@@ -13,7 +13,7 @@
 #include "EntityInfo.h"
 #include "Amf3.h"
 
-RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+RigidbodyPhantomPhysicsComponent::RigidbodyPhantomPhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &RigidbodyPhantomPhysicsComponent::OnGetObjectReportInfo);
 
 	m_Position = m_Parent->GetDefaultPosition();

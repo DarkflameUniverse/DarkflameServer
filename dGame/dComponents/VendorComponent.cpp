@@ -14,7 +14,7 @@
 #include "UserManager.h"
 #include "CheatDetection.h"
 
-VendorComponent::VendorComponent(Entity* parent) : Component(parent) {
+VendorComponent::VendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_HasStandardCostItems = false;
 	m_HasMultiCostItems = false;
 	SetupConstants();

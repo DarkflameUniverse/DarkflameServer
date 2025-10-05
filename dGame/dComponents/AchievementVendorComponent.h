@@ -11,7 +11,7 @@ class Entity;
 class AchievementVendorComponent final : public VendorComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ACHIEVEMENT_VENDOR;
-	AchievementVendorComponent(Entity* parent);
+	AchievementVendorComponent(Entity* parent, const int32_t componentID);
 	
 	void RefreshInventory(bool isCreation = false) override;
 	bool SellsItem(Entity* buyer, const LOT lot);

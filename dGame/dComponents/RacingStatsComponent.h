@@ -8,7 +8,7 @@ class RacingStatsComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::RACING_STATS;
 
-	RacingStatsComponent(Entity* parent) : Component(parent) {}
+	RacingStatsComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {}
 };
 
 #endif  //!__RACINGSTATSCOMPONENT__H__

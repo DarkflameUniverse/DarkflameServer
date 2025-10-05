@@ -17,7 +17,7 @@ void WanderingVendor::OnProximityUpdate(Entity* self, Entity* entering, std::str
 		self->CancelTimer("startWalking");
 	} else if (status == "LEAVE") {
 		auto* proximityMonitorComponent = self->GetComponent<ProximityMonitorComponent>();
-		if (!proximityMonitorComponent) self->AddComponent<ProximityMonitorComponent>();
+		if (!proximityMonitorComponent) self->AddComponent<ProximityMonitorComponent>(-1);
 
 		const auto proxObjs = proximityMonitorComponent->GetProximityObjects("playermonitor");
 		bool foundPlayer = false;

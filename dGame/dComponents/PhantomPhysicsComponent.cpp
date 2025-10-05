@@ -28,7 +28,7 @@
 #include "dpShapeBox.h"
 #include "dpShapeSphere.h"
 
-PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, int32_t componentId) : PhysicsComponent(parent, componentId) {
+PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
 	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &PhantomPhysicsComponent::OnGetObjectReportInfo);
 
 	m_Position = m_Parent->GetDefaultPosition();

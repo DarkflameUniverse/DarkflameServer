@@ -8,7 +8,6 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
-#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"
@@ -274,7 +273,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
-		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		auto* movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
 			simplePhysicsComponent->SetPhysicsMotionState(4);

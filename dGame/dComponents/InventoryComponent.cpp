@@ -42,7 +42,7 @@
 
 #include <ranges>
 
-InventoryComponent::InventoryComponent(Entity* parent) : Component(parent) {
+InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -626,7 +626,8 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 	for (const auto& pair : this->m_Inventories) {
 		auto* inventory = pair.second;
 
-		if (inventory->GetType() == VENDOR_BUYBACK || inventory->GetType() == eInventoryType::MODELS_IN_BBB) {
+		static const auto EXCLUDED_INVENTORIES = {VENDOR_BUYBACK, MODELS_IN_BBB, ITEM_SETS};
+		if (std::ranges::find(EXCLUDED_INVENTORIES, inventory->GetType()) != EXCLUDED_INVENTORIES.end()) {
 			continue;
 		}
 
@@ -1784,5 +1785,11 @@ void InventoryComponent::LoadGroupXml(const tinyxml2::XMLElement& groups) {
 		}
 
 		groupElement = groupElement->NextSiblingElement("grp");
+	}
+}
+
+void InventoryComponent::RegenerateItemIDs() {
+	for (auto* const inventory : m_Inventories | std::views::values) {
+		inventory->RegenerateItemIDs();
 	}
 }

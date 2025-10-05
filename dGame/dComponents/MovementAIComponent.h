@@ -62,7 +62,7 @@ class MovementAIComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MOVEMENT_AI;
 
-	MovementAIComponent(Entity* parentEntity, MovementAIInfo info);
+	MovementAIComponent(Entity* parentEntity, const int32_t componentID, MovementAIInfo info);
 
 	void SetPath(const std::string pathName);
 

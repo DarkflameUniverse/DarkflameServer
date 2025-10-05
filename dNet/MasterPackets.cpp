@@ -8,23 +8,6 @@
 
 #include <string>
 
-void MasterPackets::SendPersistentIDRequest(dServer* server, uint64_t requestID) {
-	CBITSTREAM;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_PERSISTENT_ID);
-	bitStream.Write(requestID);
-	server->SendToMaster(bitStream);
-}
-
-void MasterPackets::SendPersistentIDResponse(dServer* server, const SystemAddress& sysAddr, uint64_t requestID, uint32_t objID) {
-	RakNet::BitStream bitStream;
-	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_PERSISTENT_ID_RESPONSE);
-
-	bitStream.Write(requestID);
-	bitStream.Write(objID);
-
-	server->Send(bitStream, sysAddr, false);
-}
-
 void MasterPackets::SendZoneTransferRequest(dServer* server, uint64_t requestID, bool mythranShift, uint32_t zoneID, uint32_t cloneID) {
 	RakNet::BitStream bitStream;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::MASTER, MessageType::Master::REQUEST_ZONE_TRANSFER);

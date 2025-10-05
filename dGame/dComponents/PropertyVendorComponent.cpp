@@ -10,7 +10,7 @@
 #include "PropertyManagementComponent.h"
 #include "UserManager.h"
 
-PropertyVendorComponent::PropertyVendorComponent(Entity* parent) : Component(parent) {
+PropertyVendorComponent::PropertyVendorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 }
 
 void PropertyVendorComponent::OnUse(Entity* originator) {

@@ -3,7 +3,7 @@
 #include "InventoryComponent.h"
 #include "CharacterComponent.h"
 
-MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent) : Component(parent) {
+MultiZoneEntranceComponent::MultiZoneEntranceComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Parent = parent;
 	std::string zoneString = GeneralUtils::UTF16ToWTF8(m_Parent->GetVar<std::u16string>(u"MultiZoneIDs"));
 	std::stringstream ss(zoneString);

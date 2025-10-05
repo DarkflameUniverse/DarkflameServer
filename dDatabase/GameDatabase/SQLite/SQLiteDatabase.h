@@ -96,9 +96,9 @@ public:
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
 	void InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) override;
 	void SetMasterInfo(const IServers::MasterInfo& info) override;
-	std::optional<uint32_t> GetCurrentPersistentId() override;
+	std::optional<uint64_t> GetCurrentPersistentId() override;
+	IObjectIdTracker::Range GetPersistentIdRange() override;
 	void InsertDefaultPersistentId() override;
-	void UpdatePersistentId(const uint32_t id) override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
@@ -125,7 +125,9 @@ public:
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	uint32_t GetAccountCount() override;
 	bool IsNameInUse(const std::string_view name) override;
-	IPropertyContents::Model GetModel(const LWOOBJID modelID) override;
+	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
+	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;
+	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override;
 private:
 	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 

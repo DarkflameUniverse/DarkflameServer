@@ -55,7 +55,7 @@ void MoverSubComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIniti
 
 //------------- MovingPlatformComponent below --------------
 
-MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const std::string& pathName) : Component(parent) {
+MovingPlatformComponent::MovingPlatformComponent(Entity* parent, const int32_t componentID, const std::string& pathName) : Component(parent, componentID) {
 	m_MoverSubComponentType = eMoverSubComponentType::mover;
 	m_MoverSubComponent = new MoverSubComponent(m_Parent->GetDefaultPosition());
 	m_PathName = GeneralUtils::ASCIIToUTF16(pathName);

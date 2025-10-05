@@ -45,9 +45,8 @@ std::unordered_map<LWOOBJID, LWOOBJID> PetComponent::activePets{};
  * while the faction ones could be checked using their respective missions.
  */
 
-PetComponent::PetComponent(Entity* parentEntity, uint32_t componentId) : Component{ parentEntity } {
-	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentId); // TODO: Make reference when safe
-	m_ComponentId = componentId;
+PetComponent::PetComponent(Entity* parentEntity, const int32_t componentID) : Component{ parentEntity, componentID } {
+	m_PetInfo = CDClientManager::GetTable<CDPetComponentTable>()->GetByID(componentID); // TODO: Make reference when safe
 
 	m_Interaction = LWOOBJID_EMPTY;
 	m_Owner = LWOOBJID_EMPTY;
@@ -481,9 +480,19 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 		return;
 	}
 
-	LWOOBJID petSubKey = ObjectIDManager::GenerateRandomObjectID();
+	LWOOBJID petSubKey = ObjectIDManager::GetPersistentID();
+	const uint32_t maxTries = 100;
+	uint32_t tries = 0;
+	while (Database::Get()->GetPetNameInfo(petSubKey) && tries < maxTries) {
+		tries++;
+		LOG("Found a duplicate pet %llu, getting a new subKey", petSubKey);
+		petSubKey = ObjectIDManager::GetPersistentID();
+	}
 
-	GeneralUtils::SetBit(petSubKey, eObjectBits::CHARACTER);
+	if (tries >= maxTries) {
+		LOG("Failed to get a unique pet subKey after %i tries, aborting pet creation for player %i", maxTries, tamer->GetCharacter() ? tamer->GetCharacter()->GetID() : -1);
+		return;
+	}
 
 	m_DatabaseId = petSubKey;
 
@@ -529,7 +538,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 
 	// Triggers the catch a pet missions
 	constexpr auto PET_FLAG_BASE = 800;
-	tamer->GetCharacter()->SetPlayerFlag(PET_FLAG_BASE + m_ComponentId, true);
+	tamer->GetCharacter()->SetPlayerFlag(PET_FLAG_BASE + m_ComponentID, true);
 
 	auto* missionComponent = tamer->GetComponent<MissionComponent>();
 

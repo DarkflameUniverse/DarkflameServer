@@ -27,7 +27,7 @@ class ModelComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MODEL;
 
-	ModelComponent(Entity* parent);
+	ModelComponent(Entity* parent, const int32_t componentID);
 
 	void LoadBehaviors();
 	void Update(float deltaTime) override;

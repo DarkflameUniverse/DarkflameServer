@@ -7,7 +7,7 @@
 #include "eControlScheme.h"
 #include "eStateChangeType.h"
 
-PossessorComponent::PossessorComponent(Entity* parent) : Component(parent) {
+PossessorComponent::PossessorComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Possessable = LWOOBJID_EMPTY;
 }
 

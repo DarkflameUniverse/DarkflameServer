@@ -14,7 +14,7 @@ class ModuleAssemblyComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MODULE_ASSEMBLY;
 
-	ModuleAssemblyComponent(Entity* parent);
+	ModuleAssemblyComponent(Entity* parent, const int32_t componentID);
 	~ModuleAssemblyComponent() override;
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

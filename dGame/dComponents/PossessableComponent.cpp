@@ -4,7 +4,7 @@
 #include "Inventory.h"
 #include "Item.h"
 
-PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId) : Component(parent) {
+PossessableComponent::PossessableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_Possessor = LWOOBJID_EMPTY;
 	CDItemComponent item = Inventory::FindItemComponent(m_Parent->GetLOT());
 	m_AnimationFlag = static_cast<eAnimationFlags>(item.animationFlag);
@@ -12,7 +12,7 @@ PossessableComponent::PossessableComponent(Entity* parent, uint32_t componentId)
 	// Get the possession Type from the CDClient
 	auto query = CDClientDatabase::CreatePreppedStmt("SELECT possessionType, depossessOnHit FROM PossessableComponent WHERE id = ?;");
 
-	query.bind(1, static_cast<int>(componentId));
+	query.bind(1, static_cast<int>(componentID));
 
 	auto result = query.execQuery();
 

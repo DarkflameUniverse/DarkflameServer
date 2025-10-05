@@ -28,10 +28,12 @@ CREATE TABLE `properties_contents_2` (
   `behavior_4` BIGINT DEFAULT 0,
   `behavior_5` BIGINT DEFAULT 0
 );
+SET foreign_key_checks = 0;
 INSERT INTO `ugc_2` SELECT `id`|0x1000000000000000,`account_id`,`character_id`,`is_optimized`,`lxfml`,`bake_ao`,`filename` FROM `ugc`;
 INSERT INTO `properties_contents_2` SELECT `id`,`property_id`,`ugc_id`|0x1000000000000000,`lot`,`x`,`y`,`z`,`rx`,`ry`,`rz`,`rw`,`model_name`,`model_description`,`behavior_1`,`behavior_2`,`behavior_3`,`behavior_4`,`behavior_5` FROM `properties_contents`;
 DROP TABLE `properties_contents`;
 DROP TABLE `ugc`;
 RENAME TABLE `properties_contents_2` TO `properties_contents`;
 RENAME TABLE `ugc_2` TO `ugc`;
+SET foreign_key_checks = 1;
 COMMIT;
