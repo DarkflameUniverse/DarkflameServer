@@ -49,7 +49,7 @@ void ExplodingAsset::OnHit(Entity* self, Entity* attacker) {
 	if (!self->GetBoolean(u"bIsHit")) {
 		for (const auto objID : proximityComponent->GetProximityObjects("crateHitters")) {
 			auto* const entity = Game::entityManager->GetEntity(objID);
-			if (!entity) continue;
+			if (!entity || !entity->IsPlayer()) continue;
 
 			auto* const destroyable = entity->GetComponent<DestroyableComponent>();
 			if (destroyable) destroyable->Smash(attacker->GetObjectID());
