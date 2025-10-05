@@ -244,17 +244,6 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 	std::unordered_set<std::string> usedBrickRefs;
 	std::unordered_set<tinyxml2::XMLElement*> usedRigidSystems;
 
-	auto splitListAttr = [](const char* attr) {
-		std::vector<std::string> out;
-		if (!attr) return out;
-		std::stringstream ss(attr);
-		std::string token;
-		while (std::getline(ss, token, ',')) {
-			if (!token.empty()) out.push_back(token);
-		}
-		return out;
-	};
-
 	// Helper to create output document from sets of brick refs and rigidsystem pointers
 	auto makeOutput = [&](const std::unordered_set<std::string>& bricksToInclude, const std::vector<tinyxml2::XMLElement*>& rigidSystemsToInclude, const std::vector<tinyxml2::XMLElement*>& groupsToInclude = {}) {
 		tinyxml2::XMLDocument outDoc;
@@ -307,7 +296,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 			if (!g) return;
 			const char* partAttr = g->Attribute("partRefs");
 			if (partAttr) {
-				for (auto& tok : splitListAttr(partAttr)) partRefs.insert(tok);
+				for (auto& tok : GeneralUtils::SplitString(partAttr, ',')) partRefs.insert(tok);
 			}
 			for (auto* child = g->FirstChildElement("Group"); child; child = child->NextSiblingElement("Group")) collectParts(child);
 		};
@@ -345,7 +334,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 				for (auto* rigid = rs->FirstChildElement("Rigid"); rigid; rigid = rigid->NextSiblingElement("Rigid")) {
 					const char* battr = rigid->Attribute("boneRefs");
 					if (!battr) continue;
-					for (auto& tok : splitListAttr(battr)) {
+					for (auto& tok : GeneralUtils::SplitString(battr, ',')) {
 						rsBoneRefs.push_back(tok);
 						if (boneRefsIncluded.find(tok) != boneRefsIncluded.end()) intersects = true;
 					}
@@ -366,7 +355,6 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 						}
 					}
 				}
-				// also include bricks for any newly discovered parts
 			}
 		}
 
@@ -387,7 +375,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		for (auto* rigid = rs->FirstChildElement("Rigid"); rigid; rigid = rigid->NextSiblingElement("Rigid")) {
 			const char* battr = rigid->Attribute("boneRefs");
 			if (!battr) continue;
-			for (auto& tok : splitListAttr(battr)) {
+			for (auto& tok : GeneralUtils::SplitString(battr, ',')) {
 				auto bpIt = boneRefToPartRef.find(tok);
 				if (bpIt != boneRefToPartRef.end()) {
 					auto partRef = bpIt->second;

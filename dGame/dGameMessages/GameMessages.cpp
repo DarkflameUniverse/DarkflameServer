@@ -2640,7 +2640,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		model.id = newID;
 		model.ugcId = blueprintID;
 		model.position = splitLxfmls[i].center;
-		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		model.rotation = QuatUtils::IDENTITY;
 		model.lot = 14;
 		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
 
@@ -2681,7 +2681,7 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		EntityInfo info;
 		info.lot = 14;
 		info.pos = splitLxfmls[i].center;
-		info.rot = {};
+		info.rot = QuatUtils::IDENTITY;
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;

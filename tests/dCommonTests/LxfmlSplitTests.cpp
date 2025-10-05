@@ -21,7 +21,10 @@ TEST(LxfmlSplitTests, SplitUsesAllBricksAndNoDuplicates) {
     // Read the sample test.lxfml included in tests. Resolve path relative to this source file.
     std::filesystem::path srcDir = std::filesystem::path(__FILE__).parent_path();
     std::filesystem::path filePath = srcDir / "test.lxfml";
-    std::string data = ReadFile(filePath.string());
+	std::ifstream in(filePath, std::ios::in | std::ios::binary);
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    std::string data = ss.str();
     ASSERT_FALSE(data.empty()) << "Failed to read " << filePath.string();
     
 
