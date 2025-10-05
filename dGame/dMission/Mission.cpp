@@ -270,6 +270,12 @@ bool Mission::IsReadyToComplete() const {
 	return m_State == eMissionState::READY_TO_COMPLETE || m_State == eMissionState::COMPLETE_READY_TO_COMPLETE;
 }
 
+bool Mission::IsFailed() const {
+	const auto underlying = GeneralUtils::ToUnderlying(m_State);
+	const auto target = GeneralUtils::ToUnderlying(eMissionState::FAILED);
+	return (underlying & target) != 0;
+}
+
 void Mission::MakeReadyToComplete() {
 	SetMissionState(m_Completions == 0 ? eMissionState::READY_TO_COMPLETE : eMissionState::COMPLETE_READY_TO_COMPLETE);
 }

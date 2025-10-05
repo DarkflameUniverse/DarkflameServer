@@ -6414,6 +6414,7 @@ namespace GameMessages {
 	void RequestServerObjectInfo::Handle(Entity& entity, const SystemAddress& sysAddr) {
 		auto* handlingEntity = Game::entityManager->GetEntity(targetForReport);
 		if (handlingEntity) handlingEntity->HandleMsg(*this);
+		else LOG("Failed to find target %llu", targetForReport);
 	}
 
 	bool RequestUse::Deserialize(RakNet::BitStream& stream) {

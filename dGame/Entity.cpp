@@ -2247,6 +2247,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	response.Insert("objectID", std::to_string(m_ObjectID));
 	response.Insert("serverInfo", true);
 	GameMessages::GetObjectReportInfo info{};
+	info.bVerbose = requestInfo.bVerbose;
 	info.info = response.InsertArray("data");
 	auto& objectInfo = info.info->PushDebug("Object Details");
 	auto* table = CDClientManager::GetTable<CDObjectsTable>();
@@ -2260,14 +2261,14 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
 	for (const auto [id, component] : m_Components) {
-		componentDetails.PushDebug<AMFStringValue>(StringifiedEnum::ToString(id)) = "";
+		componentDetails.PushDebug(StringifiedEnum::ToString(id));
 	}
 
 	auto& configData = objectInfo.PushDebug("Config Data");
 	for (const auto config : m_Settings) {
 		configData.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(config->GetKey())) = config->GetValueAsString();
-
 	}
+
 	HandleMsg(info);
 
 	auto* client = Game::entityManager->GetEntity(requestInfo.clientId);

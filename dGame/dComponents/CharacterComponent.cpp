@@ -70,7 +70,7 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	for (const auto zoneID : m_VisitedLevels) {
 		std::stringstream sstream;
 		sstream << "MapID: " << zoneID.GetMapID() << " CloneID: " << zoneID.GetCloneID();
-		vl.PushDebug<AMFStringValue>(sstream.str()) = "";
+		vl.PushDebug(sstream.str());
 	}
 
 	// visited locations
@@ -95,7 +95,7 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 				const int32_t flagId = base + i;
 				std::stringstream stream;
 				stream << "Flag: " << flagId;
-				allFlags.PushDebug<AMFStringValue>(stream.str()) = "";
+				allFlags.PushDebug(stream.str());
 			}
 			flagChunkCopy >>= 1;
 		}
