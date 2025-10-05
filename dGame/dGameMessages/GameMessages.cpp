@@ -2578,10 +2578,6 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	//We need to get a new ID for our model first:
 	if (!entity || !entity->GetCharacter() || !entity->GetCharacter()->GetParentUser()) return;
-	const uint32_t maxRetries = 100;
-	uint32_t retries = 0;
-	bool blueprintIDExists = true;
-	bool modelExists = true;
 
 	//We need to get the propertyID: (stolen from Wincent's propertyManagementComp)
 	const auto& worldId = Game::zoneManager->GetZone()->GetZoneID();
@@ -2598,9 +2594,10 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 	std::istringstream sd0DataStream(str);
 	Sd0 sd0(sd0DataStream);
 
-	// Uncompress the data and normalize the position
+	// Uncompress the data, split, and nornmalize the model
 	const auto asStr = sd0.GetAsStringUncompressed();
 	auto splitLxfmls = Lxfml::Split(asStr);
+	LOG_DEBUG("Split into %zu models", splitLxfmls.size());
 
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
@@ -2609,57 +2606,99 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 	bitStream.Write<uint32_t>(splitLxfmls.size());
 
 	std::vector<LWOOBJID> blueprintIDs;
+	std::vector<LWOOBJID> modelIDs;
 
 	for (size_t i = 0; i < splitLxfmls.size(); ++i) {
 		// Legacy logic to check for old random IDs (regenerating these is not really feasible)
 		// Probably good to have this anyway in case someone messes with the last_object_id or it gets reset somehow
-		LWOOBJID newIDL = LWOOBJID_EMPTY;
+		const uint32_t maxRetries = 100;
+		uint32_t retries = 0;
+		bool blueprintIDExists = true;
+		bool modelExists = true;
+
+		LWOOBJID newID = LWOOBJID_EMPTY;
 		LWOOBJID blueprintID = LWOOBJID_EMPTY;
 		do {
-			if (newIDL != LWOOBJID_EMPTY) LOG("Generating blueprintID for UGC model, collision with existing model ID: %llu", blueprintID);
-			newIDL = ObjectIDManager::GetPersistentID();
+			if (newID != LWOOBJID_EMPTY) LOG("Generating blueprintID for UGC model, collision with existing model ID: %llu", blueprintID);
+			newID = ObjectIDManager::GetPersistentID();
 			blueprintID = ObjectIDManager::GetPersistentID();
 			++retries;
 			blueprintIDExists = Database::Get()->GetUgcModel(blueprintID).has_value();
-			modelExists = Database::Get()->GetModel(newIDL).has_value();
+			modelExists = Database::Get()->GetModel(newID).has_value();
 		} while ((blueprintIDExists || modelExists) && retries < maxRetries);
 
 		blueprintIDs.push_back(blueprintID);
+		modelIDs.push_back(newID);
 
-		// Save each part to the database
+		// Save each model to the database
 		sd0.FromData(reinterpret_cast<const uint8_t*>(splitLxfmls[i].lxfml.data()), splitLxfmls[i].lxfml.size());
 		auto sd0AsStream = sd0.GetAsStream();
 		Database::Get()->InsertNewUgcModel(sd0AsStream, blueprintID, entity->GetCharacter()->GetParentUser()->GetAccountID(), entity->GetCharacter()->GetID());
 
+		// Insert the new property model
+		IPropertyContents::Model model;
+		model.id = newID;
+		model.ugcId = blueprintID;
+		model.position = splitLxfmls[i].center;
+		model.rotation = NiQuaternion(0.0f, 0.0f, 0.0f, 0.0f);
+		model.lot = 14;
+		Database::Get()->InsertNewPropertyModel(propertyId, model, "Objects_14_name");
+
+		/*
+			Commented out until UGC server would be updated to use a sd0 file instead of lxfml stream.
+			(or you uncomment the lxfml decomp stuff above)
+		*/
+
+		// Send off to UGC for processing, if enabled:
+		// if (Game::config->GetValue("ugc_remote") == "1") {
+		// 	std::string ugcIP = Game::config->GetValue("ugc_ip");
+		// 	int ugcPort = std::stoi(Game::config->GetValue("ugc_port"));
+
+		// 	httplib::Client cli(ugcIP, ugcPort); //connect to UGC HTTP server using our config above ^
+
+		// 	//Send out a request:
+		// 	std::string request = "/3dservices/UGCC150/150" + std::to_string(blueprintID) + ".lxfml";
+		// 	cli.Put(request.c_str(), lxfml.c_str(), "text/lxfml");
+
+		// 	//When the "put" above returns, it means that the UGC HTTP server is done processing our model &
+		// 	//the nif, hkx and checksum files are ready to be downloaded from cache.
+		// }
+
 		// Write the ID and data to the response packet
 		bitStream.Write(blueprintID);
-		uint32_t partSize = static_cast<uint32_t>(splitLxfmls[i].lxfml.size());
-		bitStream.Write(partSize);
-		bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(splitLxfmls[i].lxfml.data()), partSize);
+
+		const auto& newSd0 = sd0.GetAsVector();
+		uint32_t newSd0Size{};
+		for (const auto& chunk : newSd0) newSd0Size += chunk.size();
+		bitStream.Write(newSd0Size);
+		for (const auto& chunk : newSd0) bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(chunk.data()), chunk.size());
 	}
 
 	SEND_PACKET;
 
-	// Create entities for each part
+	// Create entities for each model
 	for (size_t i = 0; i < splitLxfmls.size(); ++i) {
-	EntityInfo info;
-	info.lot = 14;
+		EntityInfo info;
+		info.lot = 14;
 		info.pos = splitLxfmls[i].center;
-	info.rot = {};
-	info.spawner = nullptr;
-	info.spawnerID = entity->GetObjectID();
-	info.spawnerNodeID = 0;
+		info.rot = {};
+		info.spawner = nullptr;
+		info.spawnerID = entity->GetObjectID();
+		info.spawnerNodeID = 0;
 
 		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintIDs[i]));
-	info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-	info.settings.push_back(new LDFData<int>(u"modelType", 2));
-	info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", blueprintIDs[i]));
+		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+		info.settings.push_back(new LDFData<int>(u"modelType", 2));
+		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
+		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", modelIDs[i]));
+		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+		if (newEntity) {
+			Game::entityManager->ConstructEntity(newEntity);
 
-	Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-	if (newEntity) {
-		Game::entityManager->ConstructEntity(newEntity);
-			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), blueprintIDs[i]);
+			//Make sure the propMgmt doesn't delete our model after the server dies
+			//Trying to do this after the entity is constructed. Shouldn't really change anything but
+			//there was an issue with builds not appearing since it was placed above ConstructEntity.
+			PropertyManagementComponent::Instance()->AddModel(newEntity->GetObjectID(), modelIDs[i]);
 		}
 	}
 }
