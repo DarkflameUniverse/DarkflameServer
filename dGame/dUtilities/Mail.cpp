@@ -29,6 +29,7 @@
 #include "ServiceType.h"
 #include "User.h"
 #include "StringifiedEnum.h"
+#include "UserManager.h"
 
 namespace {
 	const std::string DefaultSender = "%[MAIL_SYSTEM_NOTIFICATION]";
@@ -73,7 +74,7 @@ namespace Mail {
 	void SendRequest::Handle() {
 		SendResponse response;
 		auto* character = player->GetCharacter();
-		const bool restrictMailOnMute = GeneralUtils::TryParse<bool>(Game::config->GetValue("mute_restrict_mail")).value_or(true);
+		const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail();
 		if (character && !(character->HasPermission(ePermissionMap::RestrictedMailAccess) || (restrictMailOnMute && character->GetParentUser()->GetIsMuted()))) {
 			mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
 			auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);

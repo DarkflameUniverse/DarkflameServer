@@ -93,6 +93,23 @@ void UserManager::Initialize() {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
 	}
+
+	// Initialize cached config values and register a handler to update them on config reload
+	// This avoids repeated lookups into dConfig at runtime.
+	if (Game::config) {
+		m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+		m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+		m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+
+		Game::config->AddConfigHandler([this]() {
+			this->m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+			this->m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+			this->m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+		});
+	}
+	else {
+		LOG("Warning: dConfig not initialized before UserManager. Cached config values will not be available.");
+	}
 }
 
 UserManager::~UserManager() {
@@ -302,9 +319,9 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	inStream.Read(eyes);
 	inStream.Read(mouth);
 
-	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1" && u->GetIsMuted();
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
 
-	const auto name = autoRejectNames ? "":LUWStringName.GetAsString();
+	const auto name = autoRejectNames ? "" : LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
@@ -459,7 +476,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
-	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1" && u->GetIsMuted();
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
 
 	//Check if this user has this character:
 	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(

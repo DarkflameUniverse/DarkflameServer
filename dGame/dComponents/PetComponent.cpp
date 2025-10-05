@@ -14,6 +14,7 @@
 #include "SwitchComponent.h"
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
+#include "UserManager.h"
 #include "PetDigServer.h"
 #include "ObjectIDManager.h"
 #include "eUnequippableActiveType.h"
@@ -555,7 +556,7 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 }
 
 void PetComponent::RequestSetPetName(std::u16string name) {
-	const bool autoRejectNames = Game::config->GetValue("mute_auto_reject_names") == "1";
+	const bool autoRejectNames = UserManager::Instance()->GetMuteAutoRejectNames();
 
 	if (m_Tamer == LWOOBJID_EMPTY) {
 		if (m_Owner != LWOOBJID_EMPTY) {
