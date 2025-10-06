@@ -9,6 +9,7 @@
 #include "GeneralUtils.h"
 #include "Database.h"
 #include "Game.h"
+#include "dConfig.h"
 #include "dServer.h"
 #include "Entity.h"
 #include "Character.h"
@@ -28,6 +29,7 @@
 #include "ServiceType.h"
 #include "User.h"
 #include "StringifiedEnum.h"
+#include "UserManager.h"
 
 namespace {
 	const std::string DefaultSender = "%[MAIL_SYSTEM_NOTIFICATION]";
@@ -72,7 +74,10 @@ namespace Mail {
 	void SendRequest::Handle() {
 		SendResponse response;
 		auto* character = player->GetCharacter();
-		if (character && !(character->HasPermission(ePermissionMap::RestrictedMailAccess) || character->GetParentUser()->GetIsMuted())) {
+		const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail() && character->GetParentUser()->GetIsMuted();
+		const bool restrictedMailAccess = character->HasPermission(ePermissionMap::RestrictedMailAccess);
+
+		if (character && !(restrictedMailAccess || restrictMailOnMute)) {
 			mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
 			auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);
 
@@ -83,7 +88,7 @@ namespace Mail {
 			} else {
 				uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
 				uint32_t stackSize = 0;
-				
+
 				auto inventoryComponent = player->GetComponent<InventoryComponent>();
 				Item* item = nullptr;
 
@@ -123,7 +128,7 @@ namespace Mail {
 
 						Database::Get()->InsertNewMail(mailInfo);
 						response.status = eSendResponse::Success;
-						character->SaveXMLToDatabase(); 
+						character->SaveXMLToDatabase();
 					} else {
 						response.status = eSendResponse::AttachmentNotFound;
 					}
@@ -165,7 +170,7 @@ namespace Mail {
 	void DataResponse::Serialize(RakNet::BitStream& bitStream) const {
 		MailLUBitStream::Serialize(bitStream);
 		bitStream.Write(this->throttled);
-	
+
 		bitStream.Write<uint16_t>(this->playerMail.size());
 		bitStream.Write<uint16_t>(0); // packing
 		for (const auto& mail : this->playerMail) {

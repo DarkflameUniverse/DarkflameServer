@@ -10,9 +10,11 @@
 #include "InventoryComponent.h"
 #include "Item.h"
 #include "MissionComponent.h"
+#include "User.h"
 #include "SwitchComponent.h"
 #include "DestroyableComponent.h"
 #include "dpWorld.h"
+#include "UserManager.h"
 #include "PetDigServer.h"
 #include "ObjectIDManager.h"
 #include "eUnequippableActiveType.h"
@@ -21,6 +23,7 @@
 #include "eUseItemResponse.h"
 #include "ePlayerFlag.h"
 
+#include "GeneralUtils.h"
 #include "Game.h"
 #include "dConfig.h"
 #include "dChatFilter.h"
@@ -553,18 +556,29 @@ void PetComponent::NotifyTamingBuildSuccess(NiPoint3 position) {
 }
 
 void PetComponent::RequestSetPetName(std::u16string name) {
+	const bool autoRejectNames = UserManager::Instance()->GetMuteAutoRejectNames();
+
 	if (m_Tamer == LWOOBJID_EMPTY) {
 		if (m_Owner != LWOOBJID_EMPTY) {
 			auto* owner = GetOwner();
 
-			m_ModerationStatus = 1; // Pending
-			m_Name = "";
+			// If auto reject names is on, and the user is muted, force use of predefined name
+			if (autoRejectNames && owner && owner->GetCharacter() && owner->GetCharacter()->GetParentUser()->GetIsMuted()) {
+				m_ModerationStatus = 2; // Approved
+				std::string forcedName = "Pet";
+				Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
+				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
+				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+			} else {
+				m_ModerationStatus = 1; // Pending
+				m_Name = "";
 
-			//Save our pet's new name to the db:
-			SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+				//Save our pet's new name to the db:
+				SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
 
-			GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
-			GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+				GameMessages::SendSetPetName(m_Owner, GeneralUtils::UTF8ToUTF16(m_Name), m_DatabaseId, owner->GetSystemAddress());
+				GameMessages::SendSetPetNameModerated(m_Owner, m_DatabaseId, m_ModerationStatus, owner->GetSystemAddress());
+			}
 		}
 
 		return;
@@ -586,11 +600,21 @@ void PetComponent::RequestSetPetName(std::u16string name) {
 		return;
 	}
 
-	m_ModerationStatus = 1; // Pending
-	m_Name = "";
+	// If auto reject names is on, and the user is muted, force use of predefined name ELSE proceed with normal name check
+	if (autoRejectNames && tamer->GetCharacter() && tamer->GetCharacter()->GetParentUser()->GetIsMuted()) {
+		m_ModerationStatus = 2; // Approved
+		m_Name = "";
+		std::string forcedName = "Pet";
 
-	//Save our pet's new name to the db:
-	SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+		Database::Get()->SetPetNameModerationStatus(m_DatabaseId, IPetNames::Info{ forcedName, static_cast<int32_t>(m_ModerationStatus) });
+		LOG("AccountID: %i is muted, forcing use of predefined pet name", tamer->GetCharacter()->GetParentUser()->GetAccountID());
+	} else {
+		m_ModerationStatus = 1; // Pending
+		m_Name = "";
+
+		//Save our pet's new name to the db:
+		SetPetNameForModeration(GeneralUtils::UTF16ToWTF8(name));
+	}
 
 	Game::entityManager->SerializeEntity(m_Parent);
 

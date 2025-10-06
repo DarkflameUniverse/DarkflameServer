@@ -30,6 +30,7 @@
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 #include "CharacterComponent.h"
+#include "dConfig.h"
 #include "eCharacterVersion.h"
 
 UserManager* UserManager::m_Address = nullptr;
@@ -91,6 +92,23 @@ void UserManager::Initialize() {
 	while (std::getline(chatListStream, line, '\n')) {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
+	}
+
+	// Initialize cached config values and register a handler to update them on config reload
+	// This avoids repeated lookups into dConfig at runtime.
+	if (Game::config) {
+		m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+		m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+		m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+
+		Game::config->AddConfigHandler([this]() {
+			this->m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+			this->m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+			this->m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+		});
+	}
+	else {
+		LOG("Warning: dConfig not initialized before UserManager. Cached config values will not be available.");
 	}
 }
 
@@ -301,7 +319,9 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	inStream.Read(eyes);
 	inStream.Read(mouth);
 
-	const auto name = LUWStringName.GetAsString();
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
+
+	const auto name = autoRejectNames ? "" : LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
@@ -317,6 +337,10 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		LOG("AccountID: %i chose unavailable predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::PREDEFINED_NAME_IN_USE);
 		return;
+	}
+
+	if (autoRejectNames) {
+		LOG("AccountID: %i is muted, forcing use of predefined name", u->GetAccountID());
 	}
 
 	if (name.empty()) {
@@ -369,6 +393,7 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	//Check to see if our name was pre-approved:
 	bool nameOk = IsNamePreapproved(name);
+
 	if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
 	// If predefined name is invalid, change it to be their object id
@@ -448,9 +473,10 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 
 	LUWString LUWStringName;
 	inStream.Read(LUWStringName);
-	const auto newName = LUWStringName.GetAsString();
+	auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
 
 	//Check if this user has this character:
 	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(
@@ -471,13 +497,30 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	if (!ownsCharacter || !character) {
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	} else if (ownsCharacter && character) {
+		if (autoRejectNames) {
+			// Create a random preapproved name (fallback to default if none available)
+			if (!m_FirstNames.empty() && !m_MiddleNames.empty() && !m_LastNames.empty()) {
+				std::string firstName = GeneralUtils::GetRandomElement(m_FirstNames);
+				std::string middleName = GeneralUtils::GetRandomElement(m_MiddleNames);
+				std::string lastName = GeneralUtils::GetRandomElement(m_LastNames);
+				newName = firstName + middleName + lastName;
+			} else {
+				newName = "character" + std::to_string(objectID);
+			}
+		}
+
 		if (newName == character->GetName()) {
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
 		}
 
 		if (!Database::Get()->GetCharacterInfo(newName)) {
-			if (IsNamePreapproved(newName)) {
+			if (autoRejectNames) {
+				Database::Get()->SetCharacterName(objectID, newName);
+				LOG("Character %s auto-renamed to preapproved name %s due to mute", character->GetName().c_str(), newName.c_str());
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
+				UserManager::RequestCharacterList(sysAddr);
+			} else if (IsNamePreapproved(newName)) {
 				Database::Get()->SetCharacterName(objectID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
