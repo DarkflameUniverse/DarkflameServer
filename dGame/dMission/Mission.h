@@ -244,6 +244,8 @@ public:
 
 	const std::set<uint32_t>& GetTestedMissions() const;
 
+	bool IsFailed() const;
+
 private:
 	/**
 	 * Progresses all the newly accepted tasks for this mission after it has been accepted to reflect the state of the

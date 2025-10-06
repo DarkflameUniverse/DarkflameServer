@@ -171,6 +171,7 @@ public:
 
 	void ResetMission(const int32_t missionId);
 private:
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 	/**
 	 * All the missions owned by this entity, mapped by mission ID
 	 */

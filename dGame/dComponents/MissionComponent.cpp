@@ -27,7 +27,10 @@ std::unordered_map<AchievementCacheKey, std::vector<uint32_t>> MissionComponent:
 
 //! Initializer
 MissionComponent::MissionComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	using namespace GameMessages;
 	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
+
+	RegisterMsg<GetObjectReportInfo>(this, &MissionComponent::OnGetObjectReportInfo);
 }
 
 //! Destructor
@@ -621,4 +624,112 @@ void MissionComponent::ResetMission(const int32_t missionId) {
 
 	m_Missions.erase(missionId);
 	GameMessages::SendResetMissions(m_Parent, m_Parent->GetSystemAddress(), missionId);
+}
+
+void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V, bool verbose) {
+	for (const auto& [id, mission] : missions) {
+		std::stringstream ss;
+		if (!mission) {
+			ss << "Mission ID: " << id;
+			V.PushDebug(ss.str());
+		} else if (!verbose) {
+			ss << "%[Missions_" << id << "_name]" << ", Mission ID";
+			V.PushDebug<AMFIntValue>(ss.str()) = id;
+		} else {
+			ss << "%[Missions_" << id << "_name]" << ", Mission ID: " << id;
+			auto& missionV = V.PushDebug(ss.str());
+			auto& missionInformation = missionV.PushDebug("Mission Information");
+
+			if (mission->IsComplete()) {
+				missionInformation.PushDebug<AMFStringValue>("Time mission last completed") = std::to_string(mission->GetTimestamp());
+				missionInformation.PushDebug<AMFIntValue>("Number of times completed") = mission->GetCompletions();
+			}
+			// Expensive to network this especially when its read from the client anyways
+			// missionInformation.PushDebug("Description").PushDebug("None");
+			// missionInformation.PushDebug("Text").PushDebug("None");
+
+			auto& statusInfo = missionInformation.PushDebug("Mission statuses for local player");
+			if (mission->IsAvalible()) statusInfo.PushDebug("Available");
+			if (mission->IsActive()) statusInfo.PushDebug("Active");
+			if (mission->IsReadyToComplete()) statusInfo.PushDebug("Ready To Complete");
+			if (mission->IsComplete()) statusInfo.PushDebug("Completed");
+			if (mission->IsFailed()) statusInfo.PushDebug("Failed");
+			const auto& clientInfo = mission->GetClientInfo();
+
+			statusInfo.PushDebug<AMFBoolValue>("Is an achievement mission") = mission->IsAchievement();
+			statusInfo.PushDebug<AMFBoolValue>("Is an timed mission") = clientInfo.time_limit > 0;
+			auto& taskInfo = statusInfo.PushDebug("Task Info");
+			taskInfo.PushDebug<AMFIntValue>("Number of tasks in this mission") = mission->GetTasks().size();
+			int32_t i = 0;
+			for (const auto* task : mission->GetTasks()) {
+				auto& thisTask = taskInfo.PushDebug("Task " + std::to_string(i));
+				// Expensive to network this especially when its read from the client anyways
+				// thisTask.PushDebug("Description").PushDebug("%[MissionTasks_" + taskUidStr + "_description]");
+				thisTask.PushDebug<AMFIntValue>("Number done") = std::min(task->GetProgress(), static_cast<uint32_t>(task->GetClientInfo().targetValue));
+				thisTask.PushDebug<AMFIntValue>("Number total needed") = task->GetClientInfo().targetValue;
+				thisTask.PushDebug<AMFIntValue>("Task Type") = task->GetClientInfo().taskType;
+				i++;
+			}
+
+
+			// auto& chatText = missionInformation.PushDebug("Chat Text for Mission States");
+			// Expensive to network this especially when its read from the client anyways
+			// chatText.PushDebug("Available Text").PushDebug("%[MissionText_" + idStr + "_chat_state_1]");
+			// chatText.PushDebug("Active Text").PushDebug("%[MissionText_" + idStr + "_chat_state_2]");
+			// chatText.PushDebug("Ready-to-Complete Text").PushDebug("%[MissionText_" + idStr + "_chat_state_3]");
+			// chatText.PushDebug("Complete Text").PushDebug("%[MissionText_" + idStr + "_chat_state_4]");
+
+			if (clientInfo.time_limit > 0) {
+				missionInformation.PushDebug<AMFIntValue>("Time Limit") = clientInfo.time_limit;
+				missionInformation.PushDebug<AMFDoubleValue>("Time Remaining") = 0;
+			}
+
+			if (clientInfo.offer_objectID != -1) {
+				missionInformation.PushDebug<AMFIntValue>("Offer Object LOT") = clientInfo.offer_objectID;
+			}
+
+			if (clientInfo.target_objectID != -1) {
+				missionInformation.PushDebug<AMFIntValue>("Complete Object LOT") = clientInfo.target_objectID;
+			}
+
+			if (!clientInfo.prereqMissionID.empty()) {
+				missionInformation.PushDebug<AMFStringValue>("Requirement Mission IDs") = clientInfo.prereqMissionID;
+			}
+
+			missionInformation.PushDebug<AMFBoolValue>("Is Repeatable") = clientInfo.repeatable;
+			const bool hasNoOfferer = clientInfo.offer_objectID == -1 || clientInfo.offer_objectID == 0;
+			const bool hasNoCompleter = clientInfo.target_objectID == -1 || clientInfo.target_objectID == 0;
+			missionInformation.PushDebug<AMFBoolValue>("Is Achievement") = hasNoOfferer && hasNoCompleter;
+		}
+	}
+}
+
+bool MissionComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& missionInfo = reportMsg.info->PushDebug("Mission (Laggy)");
+	missionInfo.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	// Sort the missions so they are easier to parse and present to the end user
+	std::map<uint32_t, Mission*> achievements;
+	std::map<uint32_t, Mission*> missions;
+	std::map<uint32_t, Mission*> doneMissions;
+	for (const auto [id, mission] : m_Missions) {
+		if (!mission) continue;
+		else if (mission->IsComplete()) doneMissions[id] = mission;
+		else if (mission->IsAchievement()) achievements[id] = mission;
+		else if (mission->IsMission()) missions[id] = mission;
+	}
+
+	// None of these should be empty, but if they are dont print the field
+	if (!achievements.empty() || !missions.empty()) {
+		auto& incompleteMissions = missionInfo.PushDebug("Incomplete Missions");
+		PushMissions(achievements, incompleteMissions, reportMsg.bVerbose);
+		PushMissions(missions, incompleteMissions, reportMsg.bVerbose);
+	}
+
+	if (!doneMissions.empty()) {
+		auto& completeMissions = missionInfo.PushDebug("Completed Missions");
+		PushMissions(doneMissions, completeMissions, reportMsg.bVerbose);
+	}
+
+	return true;
 }
