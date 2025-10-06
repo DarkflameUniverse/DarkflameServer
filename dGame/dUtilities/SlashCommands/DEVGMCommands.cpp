@@ -1475,50 +1475,55 @@ namespace DEVGMCommands {
 		if (splitArgs.empty()) return;
 
 		Entity* closest = nullptr;
+		float closestDistance = 0.0f;
 
 		std::u16string ldf;
 
 		bool isLDF = false;
 
-		auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
-		if (!component) {
-			component = eReplicaComponentType::INVALID;
+		closest = PlayerManager::GetPlayer(splitArgs[0]);
+		if (!closest) {
+			auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
+			if (!component) {
+				component = eReplicaComponentType::INVALID;
 
-			ldf = GeneralUtils::UTF8ToUTF16(splitArgs[0]);
+				ldf = GeneralUtils::UTF8ToUTF16(splitArgs[0]);
 
-			isLDF = true;
-		}
-
-		auto reference = entity->GetPosition();
-
-		auto closestDistance = 0.0f;
-
-		const auto candidates = Game::entityManager->GetEntitiesByComponent(component.value());
-
-		for (auto* candidate : candidates) {
-			if (candidate->GetLOT() == 1 || candidate->GetLOT() == 8092) {
-				continue;
+				isLDF = true;
 			}
 
-			if (isLDF && !candidate->HasVar(ldf)) {
-				continue;
+			auto reference = entity->GetPosition();
+
+
+			const auto candidates = Game::entityManager->GetEntitiesByComponent(component.value());
+
+			for (auto* candidate : candidates) {
+				if (candidate->GetLOT() == 1 || candidate->GetLOT() == 8092) {
+					continue;
+				}
+
+				if (isLDF && !candidate->HasVar(ldf)) {
+					continue;
+				}
+
+				if (!closest) {
+					closest = candidate;
+
+					closestDistance = NiPoint3::Distance(candidate->GetPosition(), reference);
+
+					continue;
+				}
+
+				const auto distance = NiPoint3::Distance(candidate->GetPosition(), reference);
+
+				if (distance < closestDistance) {
+					closest = candidate;
+
+					closestDistance = distance;
+				}
 			}
-
-			if (!closest) {
-				closest = candidate;
-
-				closestDistance = NiPoint3::Distance(candidate->GetPosition(), reference);
-
-				continue;
-			}
-
-			const auto distance = NiPoint3::Distance(candidate->GetPosition(), reference);
-
-			if (distance < closestDistance) {
-				closest = candidate;
-
-				closestDistance = distance;
-			}
+		} else {
+			closestDistance = NiPoint3::Distance(entity->GetPosition(), closest->GetPosition());
 		}
 
 		if (!closest) return;
@@ -1684,7 +1689,7 @@ namespace DEVGMCommands {
 		}
 
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
-		
+
 		// Prevent execute command recursion by checking if this is already an execute command
 		for (const auto& arg : splitArgs) {
 			if (arg == "execute" || arg == "exec") {
@@ -1692,51 +1697,51 @@ namespace DEVGMCommands {
 				return;
 			}
 		}
-		
+
 		// Context variables for execution
 		Entity* execEntity = entity;  // Entity to execute as
 		NiPoint3 execPosition = entity->GetPosition();  // Position to execute from
 		bool positionOverridden = false;
 		std::string finalCommand;
-		
+
 		// Parse subcommands
 		size_t i = 0;
 		while (i < splitArgs.size()) {
 			const std::string& subcommand = splitArgs[i];
-			
+
 			if (subcommand == "as") {
 				if (i + 1 >= splitArgs.size()) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'as' requires a player name");
 					return;
 				}
-				
+
 				const std::string& targetName = splitArgs[i + 1];
 				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
 				if (!targetPlayer) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
 					return;
 				}
-				
+
 				execEntity = targetPlayer;
 				i += 2;
-				
+
 			} else if (subcommand == "at") {
 				if (i + 1 >= splitArgs.size()) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'at' requires a player name");
 					return;
 				}
-				
+
 				const std::string& targetName = splitArgs[i + 1];
 				auto* targetPlayer = PlayerManager::GetPlayer(targetName);
 				if (!targetPlayer) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: Player '" + GeneralUtils::ASCIIToUTF16(targetName) + u"' not found");
 					return;
 				}
-				
+
 				execPosition = targetPlayer->GetPosition();
 				positionOverridden = true;
 				i += 2;
-				
+
 			} else if (subcommand == "positioned") {
 				if (i + 3 >= splitArgs.size()) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'positioned' requires x, y, z coordinates");
@@ -1754,69 +1759,69 @@ namespace DEVGMCommands {
 
 				execPosition = NiPoint3(xOpt.value(), yOpt.value(), zOpt.value());
 				positionOverridden = true;
-				
+
 				i += 4;
-				
+
 			} else if (subcommand == "run") {
 				// Everything after "run" is the command to execute
 				if (i + 1 >= splitArgs.size()) {
 					ChatPackets::SendSystemMessage(sysAddr, u"Error: 'run' requires a command");
 					return;
 				}
-				
+
 				// Reconstruct the command from remaining args
 				for (size_t j = i + 1; j < splitArgs.size(); ++j) {
 					if (!finalCommand.empty()) finalCommand += " ";
 					finalCommand += splitArgs[j];
 				}
 				break;
-				
+
 			} else {
 				ChatPackets::SendSystemMessage(sysAddr, u"Error: Unknown subcommand '" + GeneralUtils::ASCIIToUTF16(subcommand) + u"'");
 				ChatPackets::SendSystemMessage(sysAddr, u"Valid subcommands: as, at, positioned, run");
 				return;
 			}
 		}
-		
+
 		if (finalCommand.empty()) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Error: No command specified to run. Use 'run <command>' at the end.");
 			return;
 		}
-		
+
 		// Validate that the command starts with a valid character
 		if (finalCommand.empty() || finalCommand[0] == '/') {
 			ChatPackets::SendSystemMessage(sysAddr, u"Error: Command should not start with '/'. Just specify the command name.");
 			return;
 		}
-		
+
 		// Store original position if we need to restore it
 		NiPoint3 originalPosition;
 		bool needToRestore = false;
-		
+
 		if (positionOverridden && execEntity == entity) {
 			// If we're executing as ourselves but from a different position,
 			// temporarily move the entity
 			originalPosition = entity->GetPosition();
 			needToRestore = true;
-			
+
 			// Set the position temporarily for the command execution
 			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
 			if (controllable) {
 				controllable->SetPosition(execPosition);
 			}
 		}
-		
+
 		// Provide feedback about what we're executing
 		std::string execAsName = execEntity->GetCharacter() ? execEntity->GetCharacter()->GetName() : "Unknown";
-		ChatPackets::SendSystemMessage(sysAddr, u"[Execute] Running as '" + GeneralUtils::ASCIIToUTF16(execAsName) + 
-										u"' from <" + GeneralUtils::to_u16string(execPosition.x) + u", " + 
-										GeneralUtils::to_u16string(execPosition.y) + u", " + 
-										GeneralUtils::to_u16string(execPosition.z) + u">: /" + 
-										GeneralUtils::ASCIIToUTF16(finalCommand));
-		
+		ChatPackets::SendSystemMessage(sysAddr, u"[Execute] Running as '" + GeneralUtils::ASCIIToUTF16(execAsName) +
+			u"' from <" + GeneralUtils::to_u16string(execPosition.x) + u", " +
+			GeneralUtils::to_u16string(execPosition.y) + u", " +
+			GeneralUtils::to_u16string(execPosition.z) + u">: /" +
+			GeneralUtils::ASCIIToUTF16(finalCommand));
+
 		// Execute the command through the slash command handler
 		SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16("/" + finalCommand), execEntity, sysAddr);
-		
+
 		// Restore original position if needed
 		if (needToRestore) {
 			auto* controllable = entity->GetComponent<ControllablePhysicsComponent>();
