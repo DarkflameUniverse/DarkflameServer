@@ -640,6 +640,10 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 			auto& missionV = V.PushDebug(ss.str());
 			auto& missionInformation = missionV.PushDebug("Mission Information");
 
+			if (mission->IsComplete()) {
+				missionInformation.PushDebug<AMFStringValue>("Time mission last completed") = std::to_string(mission->GetTimestamp());
+				missionInformation.PushDebug<AMFIntValue>("Number of times completed") = mission->GetCompletions();
+			}
 			// Expensive to network this especially when its read from the client anyways
 			// missionInformation.PushDebug("Description").PushDebug("None");
 			// missionInformation.PushDebug("Text").PushDebug("None");
@@ -658,7 +662,7 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 			taskInfo.PushDebug<AMFIntValue>("Number of tasks in this mission") = mission->GetTasks().size();
 			int32_t i = 0;
 			for (const auto* task : mission->GetTasks()) {
-				auto& thisTask = taskInfo.PushDebug(std::to_string(i));
+				auto& thisTask = taskInfo.PushDebug("Task " + std::to_string(i));
 				// Expensive to network this especially when its read from the client anyways
 				// thisTask.PushDebug("Description").PushDebug("%[MissionTasks_" + taskUidStr + "_description]");
 				thisTask.PushDebug<AMFIntValue>("Number done") = std::min(task->GetProgress(), static_cast<uint32_t>(task->GetClientInfo().targetValue));
@@ -681,11 +685,13 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 			}
 
 			if (clientInfo.offer_objectID != -1) {
-				missionInformation.PushDebug<AMFIntValue>("Offer Object LOT") = clientInfo.offer_objectID;
+				const auto offerLOTStr = "%[Objects_" + std::to_string(clientInfo.offer_objectID) + "_name]";
+				missionInformation.PushDebug<AMFStringValue>("Offer Object LOT") = offerLOTStr;
 			}
 
 			if (clientInfo.target_objectID != -1) {
-				missionInformation.PushDebug<AMFIntValue>("Complete Object LOT") = clientInfo.target_objectID;
+				const auto completeLOTStr = "%[Objects_" + std::to_string(clientInfo.target_objectID) + "_name]";
+				missionInformation.PushDebug<AMFStringValue>("Complete Object LOT") = completeLOTStr;
 			}
 
 			if (!clientInfo.prereqMissionID.empty()) {
