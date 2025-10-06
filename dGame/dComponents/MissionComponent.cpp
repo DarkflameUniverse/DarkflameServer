@@ -672,7 +672,7 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 			}
 
 
-			auto& chatText = missionInformation.PushDebug("Chat Text for Mission States");
+			// auto& chatText = missionInformation.PushDebug("Chat Text for Mission States");
 			// Expensive to network this especially when its read from the client anyways
 			// chatText.PushDebug("Available Text").PushDebug("%[MissionText_" + idStr + "_chat_state_1]");
 			// chatText.PushDebug("Active Text").PushDebug("%[MissionText_" + idStr + "_chat_state_2]");
@@ -685,13 +685,11 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 			}
 
 			if (clientInfo.offer_objectID != -1) {
-				const auto offerLOTStr = "%[Objects_" + std::to_string(clientInfo.offer_objectID) + "_name]";
-				missionInformation.PushDebug<AMFStringValue>("Offer Object LOT") = offerLOTStr;
+				missionInformation.PushDebug<AMFIntValue>("Offer Object LOT") = clientInfo.offer_objectID;
 			}
 
 			if (clientInfo.target_objectID != -1) {
-				const auto completeLOTStr = "%[Objects_" + std::to_string(clientInfo.target_objectID) + "_name]";
-				missionInformation.PushDebug<AMFStringValue>("Complete Object LOT") = completeLOTStr;
+				missionInformation.PushDebug<AMFIntValue>("Complete Object LOT") = clientInfo.target_objectID;
 			}
 
 			if (!clientInfo.prereqMissionID.empty()) {
@@ -708,7 +706,7 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 
 bool MissionComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-	auto& missionInfo = reportMsg.info->PushDebug("Mission");
+	auto& missionInfo = reportMsg.info->PushDebug("Mission (Laggy)");
 	missionInfo.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 	// Sort the missions so they are easier to parse and present to the end user
 	std::map<uint32_t, Mission*> achievements;
