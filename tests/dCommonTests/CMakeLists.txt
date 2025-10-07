@@ -36,10 +36,10 @@ target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 add_custom_command(TARGET dCommonTests POST_BUILD
     # Copy AMF test files
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_BINARY_DIR}/AMFBitStreamTest.bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/TestBitStreams/AMFBitStreamTest.bin"
         "$<TARGET_FILE_DIR:dCommonTests>/AMFBitStreamTest.bin"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_BINARY_DIR}/AMFBitStreamUnimplementedTest.bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/TestBitStreams/AMFBitStreamUnimplementedTest.bin"
         "$<TARGET_FILE_DIR:dCommonTests>/AMFBitStreamUnimplementedTest.bin"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/test.lxfml"
