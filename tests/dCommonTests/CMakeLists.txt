@@ -30,13 +30,17 @@ endif()
 # Link needed libraries
 target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 
-# Copy test files to testing directory
-add_subdirectory(TestBitStreams)
-file(COPY ${TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# Copy LXFML test files to the build directory where the executable runs from
+# Copy test files to the build directory where the executable runs from
 # Use a custom command to ensure files are copied when the target is built
 add_custom_command(TARGET dCommonTests POST_BUILD
+    # Copy AMF test files
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_BINARY_DIR}/AMFBitStreamTest.bin"
+        "$<TARGET_FILE_DIR:dCommonTests>/AMFBitStreamTest.bin"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_BINARY_DIR}/AMFBitStreamUnimplementedTest.bin"
+        "$<TARGET_FILE_DIR:dCommonTests>/AMFBitStreamUnimplementedTest.bin"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/test.lxfml"
         "$<TARGET_FILE_DIR:dCommonTests>/test.lxfml"
@@ -64,8 +68,8 @@ add_custom_command(TARGET dCommonTests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/deeply_nested.lxfml"
         "$<TARGET_FILE_DIR:dCommonTests>/deeply_nested.lxfml"
-    COMMENT "Copying LXFML test files to executable directory"
+    COMMENT "Copying test files to executable directory"
 )
 
-# Discover the tests and set working directory to where the executable and test files are
-gtest_discover_tests(dCommonTests WORKING_DIRECTORY "$<TARGET_FILE_DIR:dCommonTests>")
+# Discover the tests
+gtest_discover_tests(dCommonTests)
