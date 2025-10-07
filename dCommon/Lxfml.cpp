@@ -38,11 +38,9 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 		return toReturn;
 	}
 	
-	// Ensure null-terminated string for tinyxml2::Parse
-	std::string nullTerminatedData(data);
-	
 	tinyxml2::XMLDocument doc;
-	const auto err = doc.Parse(nullTerminatedData.c_str());
+	// Use length-based parsing to avoid expensive string copy
+	const auto err = doc.Parse(data.data(), data.size());
 	if (err != tinyxml2::XML_SUCCESS) {
 		return toReturn;
 	}
@@ -170,8 +168,9 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 }
 
 // Deep-clone an XMLElement (attributes, text, and child elements) into a target document
-static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, tinyxml2::XMLDocument& dstDoc) {
-	if (!src) return nullptr;
+// with maximum depth protection to prevent infinite loops
+static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, tinyxml2::XMLDocument& dstDoc, int maxDepth = 100) {
+	if (!src || maxDepth <= 0) return nullptr;
 	auto* dst = dstDoc.NewElement(src->Name());
 
 	// copy attributes
@@ -182,7 +181,9 @@ static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, t
 	// copy children (elements and text)
 	for (const tinyxml2::XMLNode* child = src->FirstChild(); child; child = child->NextSibling()) {
 		if (const tinyxml2::XMLElement* childElem = child->ToElement()) {
-			dst->InsertEndChild(CloneElementDeep(childElem, dstDoc));
+			// Recursively clone child elements with decremented depth
+			auto* clonedChild = CloneElementDeep(childElem, dstDoc, maxDepth - 1);
+			if (clonedChild) dst->InsertEndChild(clonedChild);
 		} else if (const tinyxml2::XMLText* txt = child->ToText()) {
 			auto* n = dstDoc.NewText(txt->Value());
 			dst->InsertEndChild(n);
@@ -208,12 +209,9 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		return results;
 	}
 	
-	// Ensure null-terminated string for tinyxml2::Parse
-	// string_view::data() may not be null-terminated, causing undefined behavior
-	std::string nullTerminatedData(data);
-	
 	tinyxml2::XMLDocument doc;
-	const auto err = doc.Parse(nullTerminatedData.c_str());
+	// Use length-based parsing to avoid expensive string copy
+	const auto err = doc.Parse(data.data(), data.size());
 	if (err != tinyxml2::XML_SUCCESS) {
 		return results;
 	}

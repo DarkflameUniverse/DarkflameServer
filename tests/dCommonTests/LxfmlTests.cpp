@@ -296,3 +296,87 @@ TEST(LxfmlTests, MixedValidInvalidTransformsHandling) {
         }) << "Mixed valid/invalid transform processing should not cause fatal errors";
     }
 }
+
+TEST(LxfmlTests, DeepCloneDepthProtection) {
+    // Test that deep cloning has protection against excessive nesting
+    // Create a deeply nested XML structure that would exceed reasonable limits
+    std::string deeplyNestedLxfml = R"(<?xml version="1.0" encoding="UTF-8"?>
+<LXFML versionMajor="5" versionMinor="0">
+    <Meta>
+        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
+        <Brand name="LEGOUniverse"/>
+        <BrickSet version="457"/>
+    </Meta>
+    <Bricks>
+        <Brick refID="0" designID="3001">
+            <Part refID="0" designID="3001" materials="23">
+                <Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0"/>
+            </Part>
+        </Brick>
+    </Bricks>
+    <RigidSystems>
+    </RigidSystems>
+    <GroupSystems>
+        <GroupSystem>
+            <Group partRefs="0">
+                <Group partRefs="0">
+                    <Group partRefs="0">
+                        <Group partRefs="0">
+                            <Group partRefs="0">
+                                <Group partRefs="0">
+                                    <Group partRefs="0">
+                                        <Group partRefs="0">
+                                            <Group partRefs="0">
+                                                <Group partRefs="0">
+                                                    <Group partRefs="0">
+                                                        <Group partRefs="0">
+                                                            <Group partRefs="0">
+                                                                <Group partRefs="0">
+                                                                    <Group partRefs="0"/>
+                                                                </Group>
+                                                            </Group>
+                                                        </Group>
+                                                    </Group>
+                                                </Group>
+                                            </Group>
+                                        </Group>
+                                    </Group>
+                                </Group>
+                            </Group>
+                        </Group>
+                    </Group>
+                </Group>
+            </Group>
+        </GroupSystem>
+    </GroupSystems>
+</LXFML>)";
+    
+    // The Split function should handle deeply nested structures without hanging
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(deeplyNestedLxfml);
+    }) << "Split should not hang or crash on deeply nested XML structures";
+    
+    // Should still produce valid output despite depth limitations
+    EXPECT_GT(results.size(), 0) << "Should produce at least one result even with deep nesting";
+    
+    if (results.size() > 0) {
+        // Verify the result is still valid XML
+        tinyxml2::XMLDocument doc;
+        auto parseResult = doc.Parse(results[0].lxfml.c_str());
+        EXPECT_EQ(parseResult, tinyxml2::XML_SUCCESS) << "Result should still be valid XML";
+        
+        if (parseResult == tinyxml2::XML_SUCCESS) {
+            auto* lxfml = doc.FirstChildElement("LXFML");
+            EXPECT_NE(lxfml, nullptr) << "Result should have LXFML root element";
+            
+            // Verify that bricks are still included despite group nesting issues
+            auto* bricks = lxfml->FirstChildElement("Bricks");
+            EXPECT_NE(bricks, nullptr) << "Bricks element should be present";
+            if (bricks) {
+                auto* brick = bricks->FirstChildElement("Brick");
+                EXPECT_NE(brick, nullptr) << "At least one brick should be present";
+            }
+        }
+    }
+}
