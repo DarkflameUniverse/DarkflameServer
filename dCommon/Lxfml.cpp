@@ -32,10 +32,18 @@ namespace {
 
 Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoint3& curPosition) {
 	Result toReturn;
+	
+	// Handle empty or invalid input
+	if (data.empty()) {
+		return toReturn;
+	}
+	
+	// Ensure null-terminated string for tinyxml2::Parse
+	std::string nullTerminatedData(data);
+	
 	tinyxml2::XMLDocument doc;
-	const auto err = doc.Parse(data.data());
+	const auto err = doc.Parse(nullTerminatedData.c_str());
 	if (err != tinyxml2::XML_SUCCESS) {
-		LOG("Failed to parse xml %s.", StringifiedEnum::ToString(err).data());
 		return toReturn;
 	}
 
@@ -44,7 +52,6 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 
 	auto lxfml = reader["LXFML"];
 	if (!lxfml) {
-		LOG("Failed to find LXFML element.");
 		return toReturn;
 	}
 
@@ -73,16 +80,19 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 		// Calculate the lowest and highest points on the entire model
 		for (const auto& transformation : transformations | std::views::values) {
 			auto split = GeneralUtils::SplitString(transformation, ',');
-			if (split.size() < 12) {
-				LOG("Not enough in the split?");
-				continue;
-			}
-
-			auto x = GeneralUtils::TryParse<float>(split[9]).value();
-			auto y = GeneralUtils::TryParse<float>(split[10]).value();
-			auto z = GeneralUtils::TryParse<float>(split[11]).value();
-			if (x < lowest.x) lowest.x = x;
-			if (y < lowest.y) lowest.y = y;
+		if (split.size() < 12) continue;
+	
+		auto xOpt = GeneralUtils::TryParse<float>(split[9]);
+		auto yOpt = GeneralUtils::TryParse<float>(split[10]);
+		auto zOpt = GeneralUtils::TryParse<float>(split[11]);
+			
+		if (!xOpt.has_value() || !yOpt.has_value() || !zOpt.has_value()) continue;
+		
+		auto x = xOpt.value();
+		auto y = yOpt.value();
+		auto z = zOpt.value();
+		if (x < lowest.x) lowest.x = x;
+		if (y < lowest.y) lowest.y = y;
 			if (z < lowest.z) lowest.z = z;
 
 			if (highest.x < x) highest.x = x;
@@ -111,13 +121,19 @@ Lxfml::Result Lxfml::NormalizePosition(const std::string_view data, const NiPoin
 	for (auto& transformation : transformations | std::views::values) {
 		auto split = GeneralUtils::SplitString(transformation, ',');
 		if (split.size() < 12) {
-			LOG("Not enough in the split?");
 			continue;
 		}
 
-		auto x = GeneralUtils::TryParse<float>(split[9]).value() - newRootPos.x + curPosition.x;
-		auto y = GeneralUtils::TryParse<float>(split[10]).value() - newRootPos.y + curPosition.y;
-		auto z = GeneralUtils::TryParse<float>(split[11]).value() - newRootPos.z + curPosition.z;
+		auto xOpt = GeneralUtils::TryParse<float>(split[9]);
+		auto yOpt = GeneralUtils::TryParse<float>(split[10]);
+		auto zOpt = GeneralUtils::TryParse<float>(split[11]);
+		
+		if (!xOpt.has_value() || !yOpt.has_value() || !zOpt.has_value()) {
+			continue;
+		}		
+		auto x = xOpt.value() - newRootPos.x + curPosition.x;
+		auto y = yOpt.value() - newRootPos.y + curPosition.y;
+		auto z = zOpt.value() - newRootPos.z + curPosition.z;
 		std::stringstream stream;
 		for (int i = 0; i < 9; i++) {
 			stream << split[i];
@@ -181,16 +197,29 @@ static tinyxml2::XMLElement* CloneElementDeep(const tinyxml2::XMLElement* src, t
 
 std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoint3& curPosition) {
 	std::vector<Result> results;
+	
+	// Handle empty or invalid input
+	if (data.empty()) {
+		return results;
+	}
+	
+	// Prevent processing extremely large inputs that could cause hangs
+	if (data.size() > 10000000) { // 10MB limit
+		return results;
+	}
+	
+	// Ensure null-terminated string for tinyxml2::Parse
+	// string_view::data() may not be null-terminated, causing undefined behavior
+	std::string nullTerminatedData(data);
+	
 	tinyxml2::XMLDocument doc;
-	const auto err = doc.Parse(data.data());
+	const auto err = doc.Parse(nullTerminatedData.c_str());
 	if (err != tinyxml2::XML_SUCCESS) {
-		LOG("Failed to parse xml %s.", StringifiedEnum::ToString(err).data());
 		return results;
 	}
 
 	auto* lxfml = doc.FirstChildElement("LXFML");
 	if (!lxfml) {
-		LOG("Failed to find LXFML element.");
 		return results;
 	}
 
@@ -284,7 +313,13 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		tinyxml2::XMLPrinter printer;
 		outDoc.Print(&printer);
 		// Normalize position and compute center using existing helper
-		auto normalized = NormalizePosition(printer.CStr(), curPosition);
+		std::string xmlString = printer.CStr();
+		if (xmlString.size() > 5000000) { // 5MB limit for normalization
+			Result emptyResult;
+			emptyResult.lxfml = xmlString;
+			return emptyResult;
+		}
+		auto normalized = NormalizePosition(xmlString, curPosition);
 		return normalized;
 	};
 
@@ -324,8 +359,11 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		// Iteratively include any RigidSystems that reference any boneRefsIncluded
 		bool changed = true;
 		std::vector<tinyxml2::XMLElement*> rigidSystemsToInclude;
-		while (changed) {
+		int maxIterations = 1000; // Safety limit to prevent infinite loops
+		int iteration = 0;
+		while (changed && iteration < maxIterations) {
 			changed = false;
+			iteration++;
 			for (auto* rs : rigidSystems) {
 				if (usedRigidSystems.find(rs) != usedRigidSystems.end()) continue;
 				// parse boneRefs of this rigid system (from its <Rigid> children)
@@ -357,7 +395,12 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 				}
 			}
 		}
-
+		
+		if (iteration >= maxIterations) {
+			// Iteration limit reached, stop processing to prevent infinite loops
+			// The file is likely malformed, so just skip further processing
+			return results;
+		}		
 		// include bricks from bricksIncluded into used set
 		for (const auto& b : bricksIncluded) usedBrickRefs.insert(b);
 
