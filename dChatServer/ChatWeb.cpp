@@ -26,12 +26,14 @@ void HandleHTTPPlayersRequest(HTTPReply& reply, std::string body) {
 	const json data = Game::playerContainer;
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Players Online\"}" : data.dump();
+	reply.contentType = ContentType::JSON;
 }
 
 void HandleHTTPTeamsRequest(HTTPReply& reply, std::string body) {
 	const json data = TeamContainer::GetTeamContainer();
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
+	reply.contentType = ContentType::JSON;
 }
 
 void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
@@ -39,6 +41,7 @@ void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
 	if (!data) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
 		reply.message = "{\"error\":\"Invalid JSON\"}";
+		reply.contentType = ContentType::JSON;
 		return;
 	}
 
@@ -47,6 +50,7 @@ void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
 	if (!check.empty()) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
 		reply.message = check;
+		reply.contentType = ContentType::JSON;
 	} else {
 
 		ChatPackets::Announcement announcement;
@@ -56,6 +60,7 @@ void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
 
 		reply.status = eHTTPStatusCode::OK;
 		reply.message = "{\"status\":\"Announcement Sent\"}";
+		reply.contentType = ContentType::JSON;
 	}
 }
 

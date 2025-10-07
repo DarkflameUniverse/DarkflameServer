@@ -20,10 +20,36 @@ enum class eHTTPMethod;
 // Forward declaration for mongoose manager
 typedef struct mg_mgr mg_mgr;
 
+namespace ContentType {
+	const std::string JSON = "Content-Type: application/json\r\n";
+	const std::string HTML = "Content-Type: text/html\r\n";
+	const std::string PLAIN = "Content-Type: text/plain\r\n";
+	const std::string CSS = "Content-Type: text/css\r\n";
+	const std::string JAVASCRIPT = "Content-Type: application/javascript\r\n";
+	const std::string ICO = "Content-Type: image/x-icon\r\n";
+	const std::string PNG = "Content-Type: image/png\r\n";
+	const std::string SVG = "Content-Type: image/svg+xml\r\n";
+	const std::string JPG = "Content-Type: image/jpeg\r\n";
+	const std::string GIF = "Content-Type: image/gif\r\n";
+	const std::string WEBP = "Content-Type: image/webp\r\n";
+	const std::string MP4 = "Content-Type: video/mp4\r\n";
+	const std::string OGG = "Content-Type: audio/ogg\r\n";
+	const std::string MP3 = "Content-Type: audio/mpeg\r\n";
+	const std::string BINARY = "Content-Type: application/octet-stream\r\n";
+	const std::string FORM = "Content-Type: application/x-www-form-urlencoded\r\n";
+	const std::string MULTIPART = "Content-Type: multipart/form-data\r\n";
+	const std::string ZIP = "Content-Type: application/zip\r\n";
+	const std::string PDF = "Content-Type: application/pdf\r\n";
+	const std::string XML = "Content-Type: application/xml\r\n";
+	const std::string CSV = "Content-Type: text/csv\r\n";
+	const std::string YAML = "Content-Type: application/x-yaml\r\n";
+}
+
 // For passing HTTP messages between functions
 struct HTTPReply {
 	eHTTPStatusCode status = eHTTPStatusCode::NOT_FOUND;
 	std::string message = "{\"error\":\"Not Found\"}";
+	std::string contentType = ContentType::JSON;
 };
 
 // HTTP route structure

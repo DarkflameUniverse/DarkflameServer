@@ -13,7 +13,6 @@ namespace Game {
 }
 
 namespace {
-	const char* jsonContentType = "Content-Type: application/json\r\n";
 	const std::string wsSubscribed = "{\"status\":\"subscribed\"}";
 	const std::string wsUnsubscribed = "{\"status\":\"unsubscribed\"}";
 	std::map<std::pair<eHTTPMethod, std::string>, HTTPRoute> g_HTTPRoutes;
@@ -73,7 +72,7 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		reply.status = eHTTPStatusCode::UNAUTHORIZED;
 		reply.message = "{\"error\":\"Unauthorized\"}";
 	}
-	mg_http_reply(connection, static_cast<int>(reply.status), jsonContentType, reply.message.c_str());
+	mg_http_reply(connection, static_cast<int>(reply.status), reply.contentType.c_str(), reply.message.c_str());
 }
 
 
