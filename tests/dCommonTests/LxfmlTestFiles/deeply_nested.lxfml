@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LXFML versionMajor="5" versionMinor="0">
+    <Meta>
+        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
+        <Brand name="LEGOUniverse"/>
+        <BrickSet version="457"/>
+    </Meta>
+    <Bricks>
+        <Brick refID="0" designID="3001">
+            <Part refID="0" designID="3001" materials="23">
+                <Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0"/>
+            </Part>
+        </Brick>
+    </Bricks>
+    <RigidSystems>
+    </RigidSystems>
+    <GroupSystems>
+        <GroupSystem>
+            <Group partRefs="0">
+                <Group partRefs="0">
+                    <Group partRefs="0">
+                        <Group partRefs="0">
+                            <Group partRefs="0">
+                                <Group partRefs="0">
+                                    <Group partRefs="0">
+                                        <Group partRefs="0">
+                                            <Group partRefs="0">
+                                                <Group partRefs="0">
+                                                    <Group partRefs="0">
+                                                        <Group partRefs="0">
+                                                            <Group partRefs="0">
+                                                                <Group partRefs="0">
+                                                                    <Group partRefs="0"/>
+                                                                </Group>
+                                                            </Group>
+                                                        </Group>
+                                                    </Group>
+                                                </Group>
+                                            </Group>
+                                        </Group>
+                                    </Group>
+                                </Group>
+                            </Group>
+                        </Group>
+                    </Group>
+                </Group>
+            </Group>
+        </GroupSystem>
+    </GroupSystems>
+</LXFML>

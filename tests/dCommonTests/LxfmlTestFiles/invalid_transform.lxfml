@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<LXFML versionMajor="5" versionMinor="0">
+    <Meta>
+        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
+        <Brand name="LEGOUniverse"/>
+        <BrickSet version="457"/>
+    </Meta>
+    <Bricks>
+        <Brick refID="0" designID="74340">
+            <Part refID="0" designID="3679" materials="23">
+                <Bone refID="0" transformation="invalid,matrix,with,text,values,here,not,numbers,at,all,fails,parse"/>
+            </Part>
+        </Brick>
+        <Brick refID="1" designID="41533">
+            <Part refID="1" designID="41533" materials="23">
+                <Bone refID="1" transformation="1,2,3"/>
+            </Part>
+        </Brick>
+    </Bricks>
+</LXFML>

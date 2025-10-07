@@ -34,5 +34,38 @@ target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 add_subdirectory(TestBitStreams)
 file(COPY ${TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# Discover the tests
-gtest_discover_tests(dCommonTests)
+# Copy LXFML test files to the build directory where the executable runs from
+# Use a custom command to ensure files are copied when the target is built
+add_custom_command(TARGET dCommonTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/test.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/test.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/invalid_transform.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/invalid_transform.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/empty_transform.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/empty_transform.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/too_few_values.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/too_few_values.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/non_numeric_transform.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/non_numeric_transform.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/mixed_invalid_transform.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/mixed_invalid_transform.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/no_bricks.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/no_bricks.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/mixed_valid_invalid.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/mixed_valid_invalid.lxfml"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/LxfmlTestFiles/deeply_nested.lxfml"
+        "$<TARGET_FILE_DIR:dCommonTests>/deeply_nested.lxfml"
+    COMMENT "Copying LXFML test files to executable directory"
+)
+
+# Discover the tests and set working directory to where the executable and test files are
+gtest_discover_tests(dCommonTests WORKING_DIRECTORY "$<TARGET_FILE_DIR:dCommonTests>")

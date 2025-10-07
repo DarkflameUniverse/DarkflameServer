@@ -11,38 +11,23 @@
 
 using namespace TinyXmlUtils;
 
-static std::string ReadFile(const std::string& path) {
-    std::ifstream in(path, std::ios::in | std::ios::binary);
+static std::string ReadFile(const std::string& filename) {
+    std::ifstream in(filename, std::ios::in | std::ios::binary);
+    if (!in.is_open()) {
+        return "";
+    }
     std::ostringstream ss;
     ss << in.rdbuf();
     return ss.str();
 }
 
 TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
-    // Read the sample test.lxfml included in tests. Resolve path relative to this source file.
-    std::filesystem::path srcDir = std::filesystem::path(__FILE__).parent_path();
-    std::filesystem::path filePath = srcDir / "LxfmlTestFiles" / "test.lxfml";
-	std::ifstream in(filePath, std::ios::in | std::ios::binary);
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    std::string data = ss.str();
-    ASSERT_FALSE(data.empty()) << "Failed to read " << filePath.string();
-    
+    // Read the test.lxfml file copied to build directory by CMake
+    std::string data = ReadFile("test.lxfml");
+    ASSERT_FALSE(data.empty()) << "Failed to read test.lxfml from build directory";
 
     auto results = Lxfml::Split(data);
     ASSERT_GT(results.size(), 0);
-
-    // Write split outputs to disk for manual inspection
-    std::filesystem::path outDir = srcDir / "LxfmlTestFiles" / "lxfml_splits";
-    std::error_code ec;
-    std::filesystem::create_directories(outDir, ec);
-    for (size_t i = 0; i < results.size(); ++i) {
-        auto outPath = outDir / ("split_" + std::to_string(i) + ".lxfml");
-        std::ofstream ofs(outPath, std::ios::out | std::ios::binary);
-        ASSERT_TRUE(ofs) << "Failed to open output file: " << outPath.string();
-        ofs << results[i].lxfml;
-        ofs.close();
-    }
 
     // parse original to count bricks
     tinyxml2::XMLDocument doc;
@@ -152,26 +137,8 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 
 TEST(LxfmlTests, InvalidLxfmlHandling) {
     // Test LXFML with invalid transformation matrices
-    std::string invalidTransformData = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<LXFML versionMajor="5" versionMinor="0">
-    <Meta>
-        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
-        <Brand name="LEGOUniverse"/>
-        <BrickSet version="457"/>
-    </Meta>
-    <Bricks>
-        <Brick refID="0" designID="74340">
-            <Part refID="0" designID="3679" materials="23">
-                <Bone refID="0" transformation="invalid,matrix,with,text,values,here,not,numbers,at,all,fails,parse"/>
-            </Part>
-        </Brick>
-        <Brick refID="1" designID="41533">
-            <Part refID="1" designID="41533" materials="23">
-                <Bone refID="1" transformation="1,2,3"/>
-            </Part>
-        </Brick>
-    </Bricks>
-</LXFML>)";
+    std::string invalidTransformData = ReadFile("invalid_transform.lxfml");
+    ASSERT_FALSE(invalidTransformData.empty()) << "Failed to read invalid_transform.lxfml from build directory";
     
     // The Split function should handle invalid transformation matrices gracefully
     std::vector<Lxfml::Result> results;
@@ -195,82 +162,80 @@ TEST(LxfmlTests, EmptyLxfmlHandling) {
     EXPECT_EQ(results.size(), 0) << "Empty input should return empty results";
 }
 
-TEST(LxfmlTests, InvalidTransformHandling) {
-    // Test with various types of invalid transformation matrices
-    std::vector<std::string> invalidTransformTests = {
-        // LXFML with empty transformation
-        R"(<?xml version="1.0"?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks><Brick refID="0" designID="74340"><Part refID="0" designID="3679"><Bone refID="0" transformation=""/></Part></Brick></Bricks></LXFML>)",
-        
-        // LXFML with too few transformation values (needs 12, has 6)
-        R"(<?xml version="1.0"?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks><Brick refID="0" designID="74340"><Part refID="0" designID="3679"><Bone refID="0" transformation="1,0,0,0,1,0"/></Part></Brick></Bricks></LXFML>)",
-        
-        // LXFML with non-numeric transformation values
-        R"(<?xml version="1.0"?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks><Brick refID="0" designID="74340"><Part refID="0" designID="3679"><Bone refID="0" transformation="a,b,c,d,e,f,g,h,i,j,k,l"/></Part></Brick></Bricks></LXFML>)",
-        
-        // LXFML with mixed valid/invalid transformation values
-        R"(<?xml version="1.0"?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta><Bricks><Brick refID="0" designID="74340"><Part refID="0" designID="3679"><Bone refID="0" transformation="1,0,invalid,0,1,0,0,0,1,10,20,30"/></Part></Brick></Bricks></LXFML>)",
-        
-        // LXFML with no Bricks section (should return empty gracefully)
-        R"(<?xml version="1.0"?><LXFML versionMajor="5" versionMinor="0"><Meta></Meta></LXFML>)"
-    };
+TEST(LxfmlTests, EmptyTransformHandling) {
+    // Test LXFML with empty transformation matrix
+    std::string testData = ReadFile("empty_transform.lxfml");
+    ASSERT_FALSE(testData.empty()) << "Failed to read empty_transform.lxfml from build directory";
     
-    for (size_t i = 0; i < invalidTransformTests.size(); ++i) {
-        std::vector<Lxfml::Result> results;
-        EXPECT_NO_FATAL_FAILURE({
-            results = Lxfml::Split(invalidTransformTests[i]);
-        }) << "Split should not crash on invalid transform test case " << i;
-        
-        // The function should handle invalid transforms gracefully
-        // May return empty results or skip invalid bricks
-    }
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(testData);
+    }) << "Split should not crash on empty transformation matrix";
+    
+    // The function should handle empty transforms gracefully
+    // May return empty results or skip invalid bricks
+}
+
+TEST(LxfmlTests, TooFewValuesTransformHandling) {
+    // Test LXFML with too few transformation values (needs 12, has fewer)
+    std::string testData = ReadFile("too_few_values.lxfml");
+    ASSERT_FALSE(testData.empty()) << "Failed to read too_few_values.lxfml from build directory";
+    
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(testData);
+    }) << "Split should not crash on transformation matrix with too few values";
+    
+    // The function should handle incomplete transforms gracefully
+    // May return empty results or skip invalid bricks
+}
+
+TEST(LxfmlTests, NonNumericTransformHandling) {
+    // Test LXFML with non-numeric transformation values
+    std::string testData = ReadFile("non_numeric_transform.lxfml");
+    ASSERT_FALSE(testData.empty()) << "Failed to read non_numeric_transform.lxfml from build directory";
+    
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(testData);
+    }) << "Split should not crash on non-numeric transformation values";
+    
+    // The function should handle non-numeric transforms gracefully
+    // May return empty results or skip invalid bricks
+}
+
+TEST(LxfmlTests, MixedInvalidTransformHandling) {
+    // Test LXFML with mixed valid/invalid transformation values within a matrix
+    std::string testData = ReadFile("mixed_invalid_transform.lxfml");
+    ASSERT_FALSE(testData.empty()) << "Failed to read mixed_invalid_transform.lxfml from build directory";
+    
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(testData);
+    }) << "Split should not crash on mixed valid/invalid transformation values";
+    
+    // The function should handle mixed valid/invalid transforms gracefully
+    // May return empty results or skip invalid bricks
+}
+
+TEST(LxfmlTests, NoBricksHandling) {
+    // Test LXFML with no Bricks section (should return empty gracefully)
+    std::string testData = ReadFile("no_bricks.lxfml");
+    ASSERT_FALSE(testData.empty()) << "Failed to read no_bricks.lxfml from build directory";
+    
+    std::vector<Lxfml::Result> results;
+    EXPECT_NO_FATAL_FAILURE({
+        results = Lxfml::Split(testData);
+    }) << "Split should not crash on LXFML with no Bricks section";
+    
+    // Should return empty results gracefully when no bricks are present
+    EXPECT_EQ(results.size(), 0) << "LXFML with no bricks should return empty results";
 }
 
 TEST(LxfmlTests, MixedValidInvalidTransformsHandling) {
     // Test LXFML with mix of valid and invalid transformation data
-    std::string mixedValidData = R"(<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<LXFML versionMajor="5" versionMinor="0">
-    <Meta>
-        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
-        <Brand name="LEGOUniverse"/>
-        <BrickSet version="457"/>
-    </Meta>
-    <Bricks>
-        <Brick refID="0" designID="74340">
-            <Part refID="0" designID="3679" materials="23">
-                <Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0"/>
-            </Part>
-        </Brick>
-        <Brick refID="1" designID="41533">
-            <Part refID="1" designID="41533" materials="23">
-                <Bone refID="1" transformation="invalid,transform,here,bad,values,foo,bar,baz,qux,0,0,0"/>
-            </Part>
-        </Brick>
-        <Brick refID="2" designID="74340">
-            <Part refID="2" designID="3679" materials="23">
-                <Bone refID="2" transformation="1,0,0,0,1,0,0,0,1,10,20,30"/>
-            </Part>
-        </Brick>
-        <Brick refID="3" designID="41533">
-            <Part refID="3" designID="41533" materials="23">
-                <Bone refID="3" transformation="1,2,3"/>
-            </Part>
-        </Brick>
-    </Bricks>
-    <RigidSystems>
-        <RigidSystem>
-            <Rigid boneRefs="0,2"/>
-        </RigidSystem>
-        <RigidSystem>
-            <Rigid boneRefs="1,3"/>
-        </RigidSystem>
-    </RigidSystems>
-    <GroupSystems>
-        <GroupSystem>
-            <Group partRefs="0,2"/>
-            <Group partRefs="1,3"/>
-        </GroupSystem>
-    </GroupSystems>
-</LXFML>)";
+    std::string mixedValidData = ReadFile("mixed_valid_invalid.lxfml");
+    ASSERT_FALSE(mixedValidData.empty()) << "Failed to read mixed_valid_invalid.lxfml from build directory";
     
     // The Split function should handle mixed valid/invalid transforms gracefully
     std::vector<Lxfml::Result> results;
@@ -299,57 +264,8 @@ TEST(LxfmlTests, MixedValidInvalidTransformsHandling) {
 
 TEST(LxfmlTests, DeepCloneDepthProtection) {
     // Test that deep cloning has protection against excessive nesting
-    // Create a deeply nested XML structure that would exceed reasonable limits
-    std::string deeplyNestedLxfml = R"(<?xml version="1.0" encoding="UTF-8"?>
-<LXFML versionMajor="5" versionMinor="0">
-    <Meta>
-        <Application name="LEGO Universe" versionMajor="0" versionMinor="0"/>
-        <Brand name="LEGOUniverse"/>
-        <BrickSet version="457"/>
-    </Meta>
-    <Bricks>
-        <Brick refID="0" designID="3001">
-            <Part refID="0" designID="3001" materials="23">
-                <Bone refID="0" transformation="1,0,0,0,1,0,0,0,1,0,0,0"/>
-            </Part>
-        </Brick>
-    </Bricks>
-    <RigidSystems>
-    </RigidSystems>
-    <GroupSystems>
-        <GroupSystem>
-            <Group partRefs="0">
-                <Group partRefs="0">
-                    <Group partRefs="0">
-                        <Group partRefs="0">
-                            <Group partRefs="0">
-                                <Group partRefs="0">
-                                    <Group partRefs="0">
-                                        <Group partRefs="0">
-                                            <Group partRefs="0">
-                                                <Group partRefs="0">
-                                                    <Group partRefs="0">
-                                                        <Group partRefs="0">
-                                                            <Group partRefs="0">
-                                                                <Group partRefs="0">
-                                                                    <Group partRefs="0"/>
-                                                                </Group>
-                                                            </Group>
-                                                        </Group>
-                                                    </Group>
-                                                </Group>
-                                            </Group>
-                                        </Group>
-                                    </Group>
-                                </Group>
-                            </Group>
-                        </Group>
-                    </Group>
-                </Group>
-            </Group>
-        </GroupSystem>
-    </GroupSystems>
-</LXFML>)";
+    std::string deeplyNestedLxfml = ReadFile("deeply_nested.lxfml");
+    ASSERT_FALSE(deeplyNestedLxfml.empty()) << "Failed to read deeply_nested.lxfml from build directory";
     
     // The Split function should handle deeply nested structures without hanging
     std::vector<Lxfml::Result> results;
