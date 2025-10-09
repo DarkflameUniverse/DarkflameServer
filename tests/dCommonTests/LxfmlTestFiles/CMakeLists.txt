@@ -4,8 +4,8 @@ set(LXFMLTESTFILES
     "invalid_transform.lxfml"
     "mixed_invalid_transform.lxfml"
     "mixed_valid_invalid.lxfml"
-    "no_brick.lxfml"
-    "non_number_transform.lxfml"
+	"non_numeric_transform.lxfml"
+    "no_bricks.lxfml"
     "test.lxfml"
     "too_few_values.lxfml"
 )
