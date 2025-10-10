@@ -978,6 +978,7 @@ void GameMessages::SendResurrect(Entity* entity) {
 		auto* destroyableComponent = entity->GetComponent<DestroyableComponent>();
 
 		if (destroyableComponent != nullptr && entity->GetLOT() == 1) {
+			destroyableComponent->SetIsDead(false);
 			auto* levelComponent = entity->GetComponent<LevelProgressionComponent>();
 			if (levelComponent) {
 				int32_t healthToRestore = levelComponent->GetLevel() >= 45 ? 8 : 4;
