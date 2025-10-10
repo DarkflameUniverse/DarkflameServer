@@ -694,6 +694,8 @@ void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) 
 }
 
 void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
+	if (m_IsDead) return;
+
 	//check if hardcore mode is enabled
 	if (Game::entityManager->GetHardcoreMode()) {
 		DoHardcoreModeDrops(source);
@@ -706,6 +708,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
+	m_IsDead = true;
 	m_KillerID = source;
 
 	auto* owner = Game::entityManager->GetEntity(source);
