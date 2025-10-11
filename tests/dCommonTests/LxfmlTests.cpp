@@ -21,7 +21,7 @@ static std::string ReadFile(const std::string& filename) {
 	return ss.str();
 }
 
-std::string serializeElement(tinyxml2::XMLElement* elem) {
+std::string SerializeElement(tinyxml2::XMLElement* elem) {
 	tinyxml2::XMLPrinter p;
 	elem->Accept(&p);
 	return std::string(p.CStr());
@@ -45,7 +45,7 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 	std::unordered_set<std::string> originalRigidSet;
 	if (auto* rsParent = doc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
 		for (auto* rs = rsParent->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
-			originalRigidSet.insert(serializeElement(rs));
+			originalRigidSet.insert(SerializeElement(rs));
 		}
 	}
 
@@ -55,7 +55,7 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 			for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
 				// collect this group and nested groups
 				std::function<void(tinyxml2::XMLElement*)> collectGroups = [&](tinyxml2::XMLElement* grp) {
-					originalGroupSet.insert(serializeElement(grp));
+					originalGroupSet.insert(SerializeElement(grp));
 					for (auto* child = grp->FirstChildElement("Group"); child; child = child->NextSiblingElement("Group")) collectGroups(child);
 				};
 				collectGroups(g);
@@ -84,7 +84,7 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 		// collect rigid systems in this output
 		if (auto* rsParent = outDoc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
 			for (auto* rs = rsParent->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
-				auto s = serializeElement(rs);
+				auto s = SerializeElement(rs);
 				// no duplicate allowed across outputs
 				ASSERT_EQ(usedRigidSet.find(s), usedRigidSet.end()) << "Duplicate RigidSystem across splits";
 				usedRigidSet.insert(s);
@@ -95,7 +95,7 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 			for (auto* gs = gsParent->FirstChildElement("GroupSystem"); gs; gs = gs->NextSiblingElement("GroupSystem")) {
 				for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
 					std::function<void(tinyxml2::XMLElement*)> collectGroupsOut = [&](tinyxml2::XMLElement* grp) {
-						auto s = serializeElement(grp);
+						auto s = SerializeElement(grp);
 						ASSERT_EQ(usedGroupSet.find(s), usedGroupSet.end()) << "Duplicate Group across splits";
 						usedGroupSet.insert(s);
 						for (auto* child = grp->FirstChildElement("Group"); child; child = child->NextSiblingElement("Group")) collectGroupsOut(child);
