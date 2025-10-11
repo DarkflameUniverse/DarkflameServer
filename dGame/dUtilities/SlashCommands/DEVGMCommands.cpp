@@ -52,7 +52,7 @@
 #include "eInventoryType.h"
 #include "ePlayerFlag.h"
 #include "StringifiedEnum.h"
-
+#include "BinaryPathFinder.h"
 
 namespace DEVGMCommands {
 	void SetGMLevel(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -368,6 +368,20 @@ namespace DEVGMCommands {
 		}
 	}
 
+	void HandleMacro(Entity& entity, const SystemAddress& sysAddr, std::istream& inStream) {
+		if (inStream.good()) {
+			std::string line;
+			while (std::getline(inStream, line)) {
+				// Do this in two separate calls to catch both \n and \r\n
+				line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
+				line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+				SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16(line), &entity, sysAddr);
+			}
+		} else {
+			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
+		}
+	}
+
 	void RunMacro(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
@@ -376,24 +390,16 @@ namespace DEVGMCommands {
 		if (splitArgs[0].find("/") != std::string::npos) return;
 		if (splitArgs[0].find("\\") != std::string::npos) return;
 
-		auto infile = Game::assetManager->GetFile(("macros/" + splitArgs[0] + ".scm").c_str());
-
-		if (!infile) {
+		const auto resServerPath = BinaryPathFinder::GetBinaryDir() / "resServer";
+		auto infile = Game::assetManager->GetFile("macros/" + splitArgs[0] + ".scm");
+		auto resServerInFile = std::ifstream(resServerPath / "macros" / (splitArgs[0] + ".scm"));
+		if (!infile.good() && !resServerInFile.good()) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 			return;
 		}
 
-		if (infile.good()) {
-			std::string line;
-			while (std::getline(infile, line)) {
-				// Do this in two separate calls to catch both \n and \r\n
-				line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
-				line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-				SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16(line), entity, sysAddr);
-			}
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
-		}
+		HandleMacro(*entity, sysAddr, infile);
+		HandleMacro(*entity, sysAddr, resServerInFile);
 	}
 
 	void AddMission(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
