@@ -34,6 +34,7 @@ public:
 
 	bool OnRequestUse(GameMessages::GameMsg& msg);
 	bool OnResetModelToDefaults(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 
