@@ -89,6 +89,7 @@ elseif(MSVC)
 	add_compile_options("/wd4267" "/utf-8" "/volatile:iso" "/Zc:inline")
 elseif(WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	add_compile_definitions(NOMINMAX)
 endif()
 
 # Our output dir
@@ -253,6 +254,7 @@ include_directories(
 	"thirdparty/MD5"
 	"thirdparty/nlohmann"
 	"thirdparty/mongoose"
+	"thirdparty/inja"
 )
 
 # Add system specfic includes for Apple, Windows and Other Unix OS' (including Linux)

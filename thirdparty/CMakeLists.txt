@@ -77,16 +77,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
-FetchContent_Declare(
-	inja
-	GIT_REPOSITORY	https://github.com/pantor/inja.git
-	GIT_TAG 	b2276440be8334aeba9cd5d628c2731d0f6a5809 #refs/tags/v3.4.0
-	GIT_PROGRESS TRUE
-	GIT_SHALLOW 1
-)
-
-FetchContent_MakeAvailable(inja)
-
 add_subdirectory(MD5)
 
 add_subdirectory(mongoose)

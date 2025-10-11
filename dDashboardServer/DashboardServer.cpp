@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
 	std::signal(SIGINT, Game::OnSignal);
 	std::signal(SIGTERM, Game::OnSignal);
-
+	
 	Game::config = new dConfig("dashboardconfig.ini");
 
 	//Create all the objects we need to run our service:
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
 
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
-		//Check if we're still connected to master:
+		// Check if we're still connected to master:
 		if (!Game::server->GetIsConnectedToMaster()) {
 			framesSinceMasterDisconnect++;
 

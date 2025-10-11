@@ -147,3 +147,39 @@ uint32_t StartWorldServer(LWOMAPID mapID, uint16_t port, LWOINSTANCEID lastInsta
 	LOG("WorldServer PID is %d", world_pid);
 	return world_pid;
 }
+
+uint32_t StartDashboardServer() {
+	if (Game::ShouldShutdown()) {
+		LOG("Currently shutting down.  dashboard will not be restarted.");
+		return 0;
+	}
+	auto dashboard_path = BinaryPathFinder::GetBinaryDir() / "DashboardServer";
+#ifdef _WIN32
+	dashboard_path.replace_extension(".exe");
+    auto dashboard_startup = startup;
+    auto dashboard_info = PROCESS_INFORMATION{};
+	if (!CreateProcessW(dashboard_path.wstring().data(), dashboard_path.wstring().data(),
+						nullptr, nullptr, false, 0, nullptr, nullptr,
+						&dashboard_startup, &dashboard_info))
+	{
+		LOG("Failed to launch DashboardServer");
+		return 0;
+	}
+
+	// get pid and close unused handles
+	auto dashboard_pid = dashboard_info.dwProcessId;
+    CloseHandle(dashboard_info.hProcess);
+	CloseHandle(dashboard_info.hThread);
+#else // *nix systems
+	const auto dashboard_pid = fork();
+	if (dashboard_pid < 0) {
+		LOG("Failed to launch DashboardServer");
+		return 0;
+	} else if (dashboard_pid == 0) {
+		// We are the child process
+		execl(dashboard_path.string().c_str(), dashboard_path.string().c_str(), nullptr);
+	}
+#endif
+	LOG("DashboardServer PID is %d", dashboard_pid);
+	return dashboard_pid;
+}
