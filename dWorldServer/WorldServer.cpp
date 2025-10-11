@@ -1166,32 +1166,36 @@ void HandlePacket(Packet* packet) {
 						LOG("Couldn't find property ID for zone %i, clone %i", zoneId, cloneId);
 						goto noBBB;
 					}
-					for (auto& bbbModel : Database::Get()->GetUgcModels(propertyId)) {
+
+					// Workaround for not having a UGC server to get model LXFML onto the client so it
+					// can generate the physics and nif for the object.
+
+					auto bbbModels = Database::Get()->GetUgcModels(propertyId);
+					if (bbbModels.empty()) {
+						LOG("No BBB models found for property %llu", propertyId);
+						goto noBBB;
+					}
+
+					CBITSTREAM;
+					BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
+					bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
+					bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
+					bitStream.Write<uint32_t>(bbbModels.size());
+					for (auto& bbbModel : bbbModels) {
 						LOG("Getting lxfml ugcID: %llu", bbbModel.id);
 
 						bbbModel.lxfmlData.seekg(0, std::ios::end);
 						size_t lxfmlSize = bbbModel.lxfmlData.tellg();
 						bbbModel.lxfmlData.seekg(0);
 
-						//Send message:
+						// write data
 						LWOOBJID blueprintID = bbbModel.id;
-
-						// Workaround for not having a UGC server to get model LXFML onto the client so it
-						// can generate the physics and nif for the object.
-						CBITSTREAM;
-						BitStreamUtils::WriteHeader(bitStream, ServiceType::CLIENT, MessageType::Client::BLUEPRINT_SAVE_RESPONSE);
-						bitStream.Write<LWOOBJID>(LWOOBJID_EMPTY); //always zero so that a check on the client passes
-						bitStream.Write(eBlueprintSaveResponseType::EverythingWorked);
-						bitStream.Write<uint32_t>(1);
 						bitStream.Write(blueprintID);
-
 						bitStream.Write<uint32_t>(lxfmlSize);
-
 						bitStream.WriteAlignedBytes(reinterpret_cast<const unsigned char*>(bbbModel.lxfmlData.str().c_str()), lxfmlSize);
-
-						SystemAddress sysAddr = packet->systemAddress;
-						SEND_PACKET;
 					}
+					SystemAddress sysAddr = packet->systemAddress;
+					SEND_PACKET;
 				}
 
 			noBBB:

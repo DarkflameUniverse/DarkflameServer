@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<LXFML versionMajor="5" versionMinor="0">
+    <Meta></Meta>
+    <Bricks>
+        <Brick refID="0" designID="74340">
+            <Part refID="0" designID="3679">
+                <Bone refID="0" transformation="1,0,invalid,0,1,0,0,0,1,10,20,30"/>
+            </Part>
+        </Brick>
+    </Bricks>
+</LXFML>
