@@ -39,10 +39,13 @@
 #include "CDObjectSkillsTable.h"
 #include "CDSkillBehaviorTable.h"
 #include "StringifiedEnum.h"
+#include "Amf3.h"
 
 #include <ranges>
 
 InventoryComponent::InventoryComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	using namespace GameMessages;
+	RegisterMsg<GetObjectReportInfo>(this, &InventoryComponent::OnGetObjectReportInfo);
 	this->m_Dirty = true;
 	this->m_Equipped = {};
 	this->m_Pushed = {};
@@ -626,7 +629,7 @@ void InventoryComponent::UpdateXml(tinyxml2::XMLDocument& document) {
 	for (const auto& pair : this->m_Inventories) {
 		auto* inventory = pair.second;
 
-		static const auto EXCLUDED_INVENTORIES = {VENDOR_BUYBACK, MODELS_IN_BBB, ITEM_SETS};
+		static const auto EXCLUDED_INVENTORIES = { VENDOR_BUYBACK, MODELS_IN_BBB, ITEM_SETS };
 		if (std::ranges::find(EXCLUDED_INVENTORIES, inventory->GetType()) != EXCLUDED_INVENTORIES.end()) {
 			continue;
 		}
@@ -1792,4 +1795,100 @@ void InventoryComponent::RegenerateItemIDs() {
 	for (auto* const inventory : m_Inventories | std::views::values) {
 		inventory->RegenerateItemIDs();
 	}
+}
+
+std::string DebugInvToString(const eInventoryType inv, bool verbose) {
+	switch (inv) {
+	case ITEMS:
+		return "Backpack";
+	case VAULT_ITEMS:
+		return "Bank";
+	case BRICKS:
+		return verbose ? "Bricks" : "Bricks (contents only shown in high-detail report)";
+	case MODELS_IN_BBB:
+		return "Models in BBB";
+	case TEMP_ITEMS:
+		return "Temp Equip";
+	case MODELS:
+		return verbose ? "Model" : "Model (contents only shown in high-detail report)";
+	case TEMP_MODELS:
+		return "Module";
+	case BEHAVIORS:
+		return "B3 Behavior";
+	case PROPERTY_DEEDS:
+		return "Property";
+	case BRICKS_IN_BBB:
+		return "Brick In BBB";
+	case VENDOR:
+		return "Vendor";
+	case VENDOR_BUYBACK:
+		return "BuyBack";
+	case QUEST:
+		return "Quest";
+	case DONATION:
+		return "Donation";
+	case VAULT_MODELS:
+		return "Bank Model";
+	case ITEM_SETS:
+		return "Bank Behavior";
+	case INVALID:
+		return "Invalid";
+	case ALL:
+		return "All";
+	}
+
+	return "";
+}
+
+bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& report = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& cmpt = report.info->PushDebug("Inventory");
+	cmpt.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	uint32_t numItems = 0;
+	for (auto* inventory : m_Inventories | std::views::values) numItems += inventory->GetItems().size();
+	cmpt.PushDebug<AMFIntValue>("Inventory Item Count") = numItems;
+
+	auto& itemsInBags = cmpt.PushDebug("Items in bags");
+	for (const auto& [id, inventoryMut] : m_Inventories) {
+		if (!inventoryMut) continue;
+		const auto* const inventory = inventoryMut;
+		auto& curInv = itemsInBags.PushDebug(DebugInvToString(id, report.bVerbose) + " - " + std::to_string(id));
+		for (uint32_t i = 0; i < inventory->GetSize(); i++) {
+			const auto* const item = inventory->FindItemBySlot(i);
+			if (!item) continue;
+
+			std::stringstream ss;
+			ss << "%[Objects_" << item->GetLot() << "_name] Slot " << item->GetSlot();
+			auto& slot = curInv.PushDebug(ss.str());
+			slot.PushDebug<AMFStringValue>("Object ID") = std::to_string(item->GetId());
+			slot.PushDebug<AMFIntValue>("LOT") = item->GetLot();
+			if (item->GetSubKey() != LWOOBJID_EMPTY) slot.PushDebug<AMFStringValue>("Subkey") = std::to_string(item->GetSubKey());
+			slot.PushDebug<AMFIntValue>("Count") = item->GetCount();
+			slot.PushDebug<AMFIntValue>("Slot") = item->GetSlot();
+			slot.PushDebug<AMFBoolValue>("Bind on pickup") = item->GetInfo().isBOP;
+			slot.PushDebug<AMFBoolValue>("Bind on equip") = item->GetInfo().isBOE;
+			slot.PushDebug<AMFBoolValue>("Is currently bound") = item->GetBound();
+			auto& extra = slot.PushDebug("Extra Info");
+			for (const auto* const setting : item->GetConfig()) {
+				if (setting) extra.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
+			}
+		}
+	}
+
+	auto& equipped = cmpt.PushDebug("Equipped Items");
+	for (const auto& [location, info] : GetEquippedItems()) {
+		std::stringstream ss;
+		ss << "%[Objects_" << info.lot << "_name]";
+		auto& equipSlot = equipped.PushDebug(ss.str());
+		equipSlot.PushDebug<AMFStringValue>("Location") = location;
+		equipSlot.PushDebug<AMFStringValue>("Object ID") = std::to_string(info.id);
+		equipSlot.PushDebug<AMFIntValue>("Slot") = info.slot;
+		equipSlot.PushDebug<AMFIntValue>("Count") = info.count;
+		auto& extra = equipSlot.PushDebug("Extra Info");
+		for (const auto* const setting : info.config) {
+			if (setting) extra.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
+		}
+	}
+
+	return true;
 }

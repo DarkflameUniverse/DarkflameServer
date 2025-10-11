@@ -410,6 +410,8 @@ public:
 	// Used to migrate a character version, no need to call outside of that context
 	void RegenerateItemIDs();
 
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 	~InventoryComponent() override;
 
 private:
