@@ -31,6 +31,8 @@ MissionComponent::MissionComponent(Entity* parent, const int32_t componentID) : 
 	m_LastUsedMissionOrderUID = Game::zoneManager->GetUniqueMissionIdStartingValue();
 
 	RegisterMsg<GetObjectReportInfo>(this, &MissionComponent::OnGetObjectReportInfo);
+	RegisterMsg<GameMessages::GetMissionState>(this, &MissionComponent::OnGetMissionState);
+	RegisterMsg<GameMessages::MissionNeedsLot>(this, &MissionComponent::OnMissionNeedsLot);
 }
 
 //! Destructor
@@ -732,4 +734,16 @@ bool MissionComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	}
 
 	return true;
+}
+
+bool MissionComponent::OnGetMissionState(GameMessages::GameMsg& msg) {
+	auto misState = static_cast<GameMessages::GetMissionState&>(msg);
+	misState.missionState = GetMissionState(misState.missionID);
+
+	return true;
+}
+
+bool MissionComponent::OnMissionNeedsLot(GameMessages::GameMsg& msg) {
+	const auto& needMsg = static_cast<GameMessages::MissionNeedsLot&>(msg);
+	return RequiresItem(needMsg.item);
 }
