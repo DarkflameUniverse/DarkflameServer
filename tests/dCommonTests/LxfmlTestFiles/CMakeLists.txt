@@ -8,6 +8,8 @@ set(LXFMLTESTFILES
     "no_bricks.lxfml"
     "test.lxfml"
     "too_few_values.lxfml"
+    "group_issue.lxfml"
+    "complex_grouping.lxfml"
 )
 
 # Get the folder name and prepend it to the files above

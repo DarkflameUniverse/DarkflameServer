@@ -271,6 +271,9 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 	std::unordered_set<std::string> usedBrickRefs;
 	std::unordered_set<tinyxml2::XMLElement*> usedRigidSystems;
 
+	// Track used groups to avoid processing them twice
+	std::unordered_set<tinyxml2::XMLElement*> usedGroups;
+
 	// Helper to create output document from sets of brick refs and rigidsystem pointers
 	auto makeOutput = [&](const std::unordered_set<std::string>& bricksToInclude, const std::vector<tinyxml2::XMLElement*>& rigidSystemsToInclude, const std::vector<tinyxml2::XMLElement*>& groupsToInclude = {}) {
 		tinyxml2::XMLDocument outDoc;
@@ -323,19 +326,27 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 
 	// 1) Process groups (each top-level Group becomes one output; nested groups are included)
 	for (auto* groupRoot : groupRoots) {
-		// collect all partRefs in this group's subtree
-		std::unordered_set<std::string> partRefs;
-		std::function<void(const tinyxml2::XMLElement*)> collectParts = [&](const tinyxml2::XMLElement* g) {
+		// Skip if this group was already processed as part of another group
+		if (usedGroups.find(groupRoot) != usedGroups.end()) continue;
+
+		// Helper to collect all partRefs in a group's subtree
+		std::function<void(const tinyxml2::XMLElement*, std::unordered_set<std::string>&)> collectParts = [&](const tinyxml2::XMLElement* g, std::unordered_set<std::string>& partRefs) {
 			if (!g) return;
 			const char* partAttr = g->Attribute("partRefs");
 			if (partAttr) {
 				for (auto& tok : GeneralUtils::SplitString(partAttr, ',')) partRefs.insert(tok);
 			}
-			for (auto* child = g->FirstChildElement("Group"); child; child = child->NextSiblingElement("Group")) collectParts(child);
+			for (auto* child = g->FirstChildElement("Group"); child; child = child->NextSiblingElement("Group")) collectParts(child, partRefs);
 		};
-		collectParts(groupRoot);
 
-		// Build initial sets of bricks and boneRefs
+		// Collect all groups that need to be merged into this output
+		std::vector<tinyxml2::XMLElement*> groupsToInclude{ groupRoot };
+		usedGroups.insert(groupRoot);
+
+		// Build initial sets of bricks and boneRefs from the starting group
+		std::unordered_set<std::string> partRefs;
+		collectParts(groupRoot, partRefs);
+
 		std::unordered_set<std::string> bricksIncluded;
 		std::unordered_set<std::string> boneRefsIncluded;
 		for (const auto& pref : partRefs) {
@@ -355,6 +366,7 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		}
 
 		// Iteratively include any RigidSystems that reference any boneRefsIncluded
+		// and check if those rigid systems' bricks span other groups
 		bool changed = true;
 		std::vector<tinyxml2::XMLElement*> rigidSystemsToInclude;
 		int maxIterations = 1000; // Safety limit to prevent infinite loops
@@ -362,6 +374,8 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		while (changed && iteration < maxIterations) {
 			changed = false;
 			iteration++;
+
+			// First, expand rigid systems based on current boneRefsIncluded
 			for (auto* rs : rigidSystems) {
 				if (usedRigidSystems.find(rs) != usedRigidSystems.end()) continue;
 				// parse boneRefs of this rigid system (from its <Rigid> children)
@@ -392,6 +406,53 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 					}
 				}
 			}
+
+			// Second, check if the newly included bricks span any other groups
+			// If so, merge those groups into the current output
+			for (auto* otherGroup : groupRoots) {
+				if (usedGroups.find(otherGroup) != usedGroups.end()) continue;
+
+				// Collect partRefs from this other group
+				std::unordered_set<std::string> otherPartRefs;
+				collectParts(otherGroup, otherPartRefs);
+
+				// Check if any of these partRefs correspond to bricks we've already included
+				bool spansOtherGroup = false;
+				for (const auto& pref : otherPartRefs) {
+					auto pit = partRefToBrick.find(pref);
+					if (pit != partRefToBrick.end()) {
+						const char* bref = pit->second->Attribute("refID");
+						if (bref && bricksIncluded.find(std::string(bref)) != bricksIncluded.end()) {
+							spansOtherGroup = true;
+							break;
+						}
+					}
+				}
+
+				if (spansOtherGroup) {
+					// Merge this group into the current output
+					usedGroups.insert(otherGroup);
+					groupsToInclude.push_back(otherGroup);
+					changed = true;
+
+					// Add all partRefs, boneRefs, and bricks from this group
+					for (const auto& pref : otherPartRefs) {
+						auto pit = partRefToBrick.find(pref);
+						if (pit != partRefToBrick.end()) {
+							const char* bref = pit->second->Attribute("refID");
+							if (bref) bricksIncluded.insert(std::string(bref));
+						}
+						auto partIt = partRefToPart.find(pref);
+						if (partIt != partRefToPart.end()) {
+							auto* bone = partIt->second->FirstChildElement("Bone");
+							if (bone) {
+								const char* bref = bone->Attribute("refID");
+								if (bref) boneRefsIncluded.insert(std::string(bref));
+							}
+						}
+					}
+				}
+			}
 		}
 		
 		if (iteration >= maxIterations) {
@@ -402,10 +463,9 @@ std::vector<Lxfml::Result> Lxfml::Split(const std::string_view data, const NiPoi
 		// include bricks from bricksIncluded into used set
 		for (const auto& b : bricksIncluded) usedBrickRefs.insert(b);
 
-		// make output doc and push result (include this group's XML)
-		std::vector<tinyxml2::XMLElement*> groupsVec{ groupRoot };
-		auto normalized = makeOutput(bricksIncluded, rigidSystemsToInclude, groupsVec);
-			results.push_back(normalized);
+		// make output doc and push result (include all merged groups' XML)
+		auto normalized = makeOutput(bricksIncluded, rigidSystemsToInclude, groupsToInclude);
+		results.push_back(normalized);
 	}
 
 	// 2) Process remaining RigidSystems (each becomes its own file)
