@@ -1668,7 +1668,7 @@ void Entity::AddLootItem(const Loot::Info& info) const {
 
 	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
-
+	LOG("Player %llu has been allowed to pickup %i with id %llu", m_ObjectID, info.lot, info.id);
 	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot[info.id] = info;
 }
@@ -2337,6 +2337,14 @@ bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
 		auto* const characterComponent = GetComponent<CharacterComponent>();
 		if (!characterComponent) return false;
 		auto& droppedLoot = characterComponent->GetDroppedLoot();
+		const auto it = droppedLoot.find(pickupItemMsg.lootID);
+		if (it != droppedLoot.end()) {
+			CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
+			const CDObjects& object = objectsTable->GetByID(it->second.lot);
+			if (object.id != 0 && object.type == "Powerup") {
+				return false; // Let powerups be duplicated
+			}
+		}
 		droppedLoot.erase(pickupItemMsg.lootID);
 	}
 
