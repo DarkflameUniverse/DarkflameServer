@@ -1836,4 +1836,219 @@ namespace DEVGMCommands {
 			}
 		}
 	}
+
+	void GetScene(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto position = entity->GetPosition();
+		
+		// Get the scene ID from the zone manager
+		const auto sceneID = Game::zoneManager->GetSceneIDFromPosition(position);
+		
+		if (sceneID == LWOSCENEID_INVALID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
+			return;
+		}
+		
+		// Get the scene reference from the zone to get the name
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+		
+		// Build the feedback message
+		std::ostringstream feedback;
+		feedback << "Scene ID: " << sceneID.GetSceneID();
+		feedback << " (Layer: " << sceneID.GetLayerID() << ")";
+		
+		// Get the scene name
+		const auto* sceneRef = zone->GetScene(sceneID);
+		if (sceneRef && !sceneRef->name.empty()) {
+			feedback << " - Name: " << sceneRef->name;
+		}
+		
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
+
+	void GetAdjacentScenes(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		const auto position = entity->GetPosition();
+		
+		// Get the scene ID from the zone manager
+		const auto sceneID = Game::zoneManager->GetSceneIDFromPosition(position);
+		
+		if (sceneID == LWOSCENEID_INVALID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
+			return;
+		}
+		
+		// Get the zone reference
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+		
+		// Get current scene info
+		const auto* currentScene = zone->GetScene(sceneID);
+		std::string currentSceneName = currentScene && !currentScene->name.empty() ? currentScene->name : "Unknown";
+		
+		// Get adjacent scenes
+		const auto adjacentSceneIDs = Game::zoneManager->GetAdjacentScenes(sceneID);
+		
+		if (adjacentSceneIDs.empty()) {
+			std::ostringstream feedback;
+			feedback << "Current Scene: " << sceneID.GetSceneID() << " (" << currentSceneName << ")";
+			feedback << " - No adjacent scenes found.";
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			return;
+		}
+		
+		// Build the feedback message with current scene
+		std::ostringstream feedback;
+		feedback << "Current Scene: " << sceneID.GetSceneID() << " (" << currentSceneName << ")";
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		
+		// List all adjacent scenes
+		feedback.str("");
+		feedback << "Adjacent Scenes (" << adjacentSceneIDs.size() << "):";
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		
+		for (const auto& adjSceneID : adjacentSceneIDs) {
+			feedback.str("");
+			feedback << "  - Scene ID: " << adjSceneID.GetSceneID();
+			feedback << " (Layer: " << adjSceneID.GetLayerID() << ")";
+			
+			// Get the scene name if available
+			const auto* sceneRef = zone->GetScene(adjSceneID);
+			if (sceneRef && !sceneRef->name.empty()) {
+				feedback << " - " << sceneRef->name;
+			}
+			
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+		}
+	}
+
+	void SpawnScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		// Hardcoded to use LOT 33
+		const uint32_t lot = 33;
+
+		// Get player's current position and scene
+		const auto position = entity->GetPosition();
+		const auto currentSceneID = Game::zoneManager->GetSceneIDFromPosition(position);
+		if (currentSceneID == LWOSCENEID_INVALID) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No scene found at current position.");
+			return;
+		}
+
+		// Get the zone
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+
+		// Get the pre-generated terrain mesh
+		const auto& terrainMesh = zone->GetTerrainMesh();
+		if (terrainMesh.vertices.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain mesh data.");
+			return;
+		}
+
+		// Spawn at ALL vertices in the current scene without any filtering or spacing
+		uint32_t spawnedCount = 0;
+		
+		for (const auto& vertex : terrainMesh.vertices) {
+			// Check if this vertex belongs to the current scene
+			if (LWOSCENEID(vertex.sceneID) == currentSceneID) {
+				// Use the vertex position
+				NiPoint3 spawnPos = vertex.position;
+				
+				EntityInfo info;
+				info.lot = lot + currentSceneID.GetSceneID(); // to differentiate scenes
+				info.pos = spawnPos;
+				info.rot = QuatUtils::IDENTITY;
+				info.spawner = nullptr;
+				info.spawnerID = entity->GetObjectID();
+				info.spawnerNodeID = 0;
+				info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+
+				Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+				if (newEntity != nullptr) {
+					Game::entityManager->ConstructEntity(newEntity);
+					spawnedCount++;
+				}
+			}
+		}
+
+		if (spawnedCount == 0) {
+			std::ostringstream feedback;
+			feedback << "No spawn points found in current scene (ID: " << currentSceneID.GetSceneID() << ").";
+			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+			return;
+		}
+
+		// Send feedback
+		const auto* sceneRef = zone->GetScene(currentSceneID);
+		const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
+		std::ostringstream feedback;
+		feedback << "Spawned LOT " << lot + currentSceneID.GetSceneID() << " at " << spawnedCount << " points in scene " 
+				 << currentSceneID.GetSceneID() << " (" << sceneName << ").";
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
+
+	void SpawnAllScenePoints(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		// Hardcoded to use LOT 33
+		const uint32_t lot = 33;
+
+		// Get the zone
+		const auto* zone = Game::zoneManager->GetZone();
+		if (!zone) {
+			ChatPackets::SendSystemMessage(sysAddr, u"No zone loaded.");
+			return;
+		}
+
+		// Get the pre-generated terrain mesh
+		const auto& terrainMesh = zone->GetTerrainMesh();
+		if (terrainMesh.vertices.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain mesh data.");
+			return;
+		}
+
+		// Spawn at ALL vertices without any filtering or spacing restrictions for maximum accuracy
+		uint32_t spawnedCount = 0;
+		std::map<uint8_t, uint32_t> sceneSpawnCounts; // Track spawns per scene
+		
+		for (const auto& vertex : terrainMesh.vertices) {
+			// Skip invalid scenes (scene ID 0 typically means no scene)
+			if (vertex.sceneID == 0) continue;			
+			EntityInfo info;
+			info.lot = lot + vertex.sceneID; // to show different scenes
+			info.pos = vertex.position;
+			info.rot = QuatUtils::IDENTITY;
+			info.spawner = nullptr;
+			info.spawnerID = entity->GetObjectID();
+			info.spawnerNodeID = 0;
+			info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+
+			Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+			if (newEntity != nullptr) {
+				Game::entityManager->ConstructEntity(newEntity);
+				spawnedCount++;
+				sceneSpawnCounts[vertex.sceneID]++;
+			}
+		}
+
+		// Send detailed feedback
+		std::ostringstream feedback;
+		feedback << "Spawned LOT "  << spawnedCount << " total points across " 
+				 << sceneSpawnCounts.size() << " scenes:\n";
+		
+		for (const auto& [sceneID, count] : sceneSpawnCounts) {
+			const auto* sceneRef = zone->GetScene(LWOSCENEID(sceneID));
+			const std::string sceneName = sceneRef ? sceneRef->name : "Unknown";
+			feedback << "  Scene " << static_cast<int>(sceneID) << ", LOT: " << (lot + sceneID) << " (" << sceneName << "): " << count << " points\n";
+		}
+		
+		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(feedback.str()));
+	}
 };
+

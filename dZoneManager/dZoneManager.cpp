@@ -11,6 +11,7 @@
 #include "WorldConfig.h"
 #include "CDZoneTableTable.h"
 #include <chrono>
+#include <cmath>
 #include "eObjectBits.h"
 #include "CDZoneTableTable.h"
 #include "AssetManager.h"
@@ -61,6 +62,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	m_ZoneControlObject = zoneControl;
 
 	m_pZone->Initalize();
+
+	// Build the scene graph after zone is loaded
+	BuildSceneGraph();
 
 	endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
@@ -297,4 +301,110 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
 
 	LOG_DEBUG("Loaded WorldConfig into memory");
+}
+
+LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const {
+	if (!m_pZone) return LWOSCENEID_INVALID;
+
+	const auto& terrainMesh = m_pZone->GetTerrainMesh();
+	
+	// If mesh is empty, no scene data available
+	if (terrainMesh.vertices.empty() || terrainMesh.triangles.empty()) {
+		return LWOSCENEID_INVALID;
+	}
+
+	// Find the triangle containing this position (ignoring Y coordinate for scene lookup)
+	// We iterate through all triangles and find the one that contains the point in 2D (XZ plane)
+	for (size_t i = 0; i < terrainMesh.triangles.size(); i += 3) {
+		const auto& v0 = terrainMesh.vertices[terrainMesh.triangles[i]];
+		const auto& v1 = terrainMesh.vertices[terrainMesh.triangles[i + 1]];
+		const auto& v2 = terrainMesh.vertices[terrainMesh.triangles[i + 2]];
+
+		// Check if position is inside this triangle using 2D (XZ) coordinates
+		// Using barycentric coordinates / cross product method
+		const float x = position.x;
+		const float z = position.z;
+
+		const float x0 = v0.position.x;
+		const float z0 = v0.position.z;
+		const float x1 = v1.position.x;
+		const float z1 = v1.position.z;
+		const float x2 = v2.position.x;
+		const float z2 = v2.position.z;
+
+		// Calculate barycentric coordinates
+		const float denom = (z1 - z2) * (x0 - x2) + (x2 - x1) * (z0 - z2);
+		if (std::abs(denom) < 0.0001f) continue; // Degenerate triangle
+
+		const float a = ((z1 - z2) * (x - x2) + (x2 - x1) * (z - z2)) / denom;
+		const float b = ((z2 - z0) * (x - x2) + (x0 - x2) * (z - z2)) / denom;
+		const float c = 1.0f - a - b;
+
+		// Point is inside triangle if all barycentric coordinates are non-negative
+		if (a >= 0.0f && b >= 0.0f && c >= 0.0f) {
+			// Return the scene ID from the first vertex (all vertices in a triangle should have the same scene ID)
+			return LWOSCENEID(v0.sceneID);
+		}
+	}
+
+	// Position not found in any triangle
+	return LWOSCENEID_INVALID;
+}
+
+void dZoneManager::BuildSceneGraph() {
+	if (!m_pZone) return;
+
+	// Clear any existing adjacency list
+	m_SceneAdjacencyList.clear();
+
+	// Initialize adjacency list with all scenes
+	const auto& scenes = m_pZone->GetScenes();
+	for (const auto& [sceneID, sceneRef] : scenes) {
+		// Ensure every scene has an entry, even if it has no transitions
+		if (m_SceneAdjacencyList.find(sceneID) == m_SceneAdjacencyList.end()) {
+			m_SceneAdjacencyList[sceneID] = std::vector<LWOSCENEID>();
+		}
+	}
+
+	// Build adjacency list from scene transitions
+	const auto& transitions = m_pZone->GetSceneTransitions();
+	for (const auto& transition : transitions) {
+		// Each transition has multiple points, each pointing to a scene
+		// We need to determine which scenes this transition connects
+		
+		// Group transition points by their scene IDs to find unique connections
+		std::set<LWOSCENEID> connectedScenes;
+		for (const auto& point : transition.points) {
+			if (point.sceneID != LWOSCENEID_INVALID) {
+				connectedScenes.insert(point.sceneID);
+			}
+		}
+
+		// Create bidirectional edges between all scenes in this transition
+		// (transitions typically connect two scenes, but can be more complex)
+		std::vector<LWOSCENEID> sceneList(connectedScenes.begin(), connectedScenes.end());
+		
+		for (size_t i = 0; i < sceneList.size(); ++i) {
+			for (size_t j = 0; j < sceneList.size(); ++j) {
+				if (i != j) {
+					LWOSCENEID fromScene = sceneList[i];
+					LWOSCENEID toScene = sceneList[j];
+					
+					// Add edge if it doesn't already exist
+					auto& adjacentScenes = m_SceneAdjacencyList[fromScene];
+					if (std::find(adjacentScenes.begin(), adjacentScenes.end(), toScene) == adjacentScenes.end()) {
+						adjacentScenes.push_back(toScene);
+					}
+				}
+			}
+		}
+	}
+}
+
+std::vector<LWOSCENEID> dZoneManager::GetAdjacentScenes(LWOSCENEID sceneID) const {
+	auto it = m_SceneAdjacencyList.find(sceneID);
+	if (it != m_SceneAdjacencyList.end()) {
+		return it->second;
+	}
+	return std::vector<LWOSCENEID>();
 }

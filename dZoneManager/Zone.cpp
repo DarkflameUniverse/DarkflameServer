@@ -20,6 +20,7 @@
 #include "eTriggerEventType.h"
 #include "eWaypointCommandType.h"
 #include "dNavMesh.h"
+#include "Raw.h"
 
 Zone::Zone(const LWOZONEID zoneID) :
 	m_ZoneID(zoneID) {
@@ -83,6 +84,23 @@ void Zone::LoadZoneIntoMemory() {
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneRawPath, BinaryIO::ReadType::String);
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneName, BinaryIO::ReadType::String);
 		BinaryIO::ReadString<uint8_t>(file, m_ZoneDesc, BinaryIO::ReadType::String);
+
+		auto zoneFolderPath = m_ZoneFilePath.substr(0, m_ZoneFilePath.rfind('/') + 1);
+		if (!Game::assetManager->HasFile(zoneFolderPath + m_ZoneRawPath)) {
+			LOG("Failed to find %s", (zoneFolderPath + m_ZoneRawPath).c_str());
+			throw std::runtime_error("Aborting Zone loading due to no Zone Raw File.");
+		}
+
+		auto rawFile = Game::assetManager->GetFile(zoneFolderPath + m_ZoneRawPath);
+		if (!Raw::ReadRaw(rawFile, m_Raw)) {
+			LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
+			throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+		}
+
+		// Generate terrain mesh for fast scene lookups
+		Raw::GenerateTerrainMesh(m_Raw, m_TerrainMesh);
+		LOG("Generated terrain mesh with %llu vertices and %llu triangles", 
+			m_TerrainMesh.vertices.size(), m_TerrainMesh.triangles.size() / 3);
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
 			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);
@@ -482,4 +500,10 @@ void Zone::LoadPath(std::istream& file) {
 		path.pathWaypoints.push_back(waypoint);
 	}
 	m_Paths.push_back(path);
+}
+
+const SceneRef* Zone::GetScene(LWOSCENEID sceneID) const {
+	auto it = m_Scenes.find(sceneID);
+	if (it != m_Scenes.end()) return &it->second;
+	return nullptr;
 }

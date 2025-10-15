@@ -1,5 +1,6 @@
 set(DZONEMANAGER_SOURCES "dZoneManager.cpp"
 	"Level.cpp"
+	"Raw.cpp"
 	"Spawner.cpp"
 	"Zone.cpp")
 
