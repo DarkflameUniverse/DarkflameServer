@@ -202,51 +202,50 @@ TEST(LxfmlTests, SplitComplexGroupingFile) {
 	
 	// The complex grouping file should produce exactly ONE split
 	// because all groups share bricks through rigid systems
-	EXPECT_EQ(results.size(), 1) << "Complex grouping file should produce exactly 1 split (all groups merged)";
-	
-	if (results.size() == 1) {
-		std::cout << "✓ Correctly produced 1 merged split" << std::endl;
-		
-		// Verify the split contains all the expected elements
-		tinyxml2::XMLDocument doc;
-		ASSERT_EQ(doc.Parse(results[0].lxfml.c_str()), tinyxml2::XML_SUCCESS);
-		
-		auto* lxfml = doc.FirstChildElement("LXFML");
-		ASSERT_NE(lxfml, nullptr);
-		
-		// Count bricks
-		int brickCount = 0;
-		if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
-			for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
-				brickCount++;
-			}
-		}
-		std::cout << "Contains " << brickCount << " bricks" << std::endl;
-		
-		// Count rigid systems
-		int rigidCount = 0;
-		if (auto* rigidSystems = lxfml->FirstChildElement("RigidSystems")) {
-			for (auto* rs = rigidSystems->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
-				rigidCount++;
-			}
-		}
-		std::cout << "Contains " << rigidCount << " rigid systems" << std::endl;
-		EXPECT_GT(rigidCount, 0) << "Should contain rigid systems";
-		
-		// Count groups
-		int groupCount = 0;
-		if (auto* groupSystems = lxfml->FirstChildElement("GroupSystems")) {
-			for (auto* gs = groupSystems->FirstChildElement("GroupSystem"); gs; gs = gs->NextSiblingElement("GroupSystem")) {
-				for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
-					groupCount++;
-				}
-			}
-		}
-		std::cout << "Contains " << groupCount << " groups" << std::endl;
-		EXPECT_GT(groupCount, 1) << "Should contain multiple groups (all merged into one split)";
-	} else {
-		std::cout << "✗ Produced " << results.size() << " splits instead of 1" << std::endl;
+	if (results.size() != 1) {
+		FAIL() << "Complex grouping file produced " << results.size() 
+		       << " splits instead of 1 (all groups should be merged)";
 	}
+	
+	std::cout << "✓ Correctly produced 1 merged split" << std::endl;
+	
+	// Verify the split contains all the expected elements
+	tinyxml2::XMLDocument doc;
+	ASSERT_EQ(doc.Parse(results[0].lxfml.c_str()), tinyxml2::XML_SUCCESS);
+	
+	auto* lxfml = doc.FirstChildElement("LXFML");
+	ASSERT_NE(lxfml, nullptr);
+	
+	// Count bricks
+	int brickCount = 0;
+	if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
+		for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
+			brickCount++;
+		}
+	}
+	std::cout << "Contains " << brickCount << " bricks" << std::endl;
+	
+	// Count rigid systems
+	int rigidCount = 0;
+	if (auto* rigidSystems = lxfml->FirstChildElement("RigidSystems")) {
+		for (auto* rs = rigidSystems->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
+			rigidCount++;
+		}
+	}
+	std::cout << "Contains " << rigidCount << " rigid systems" << std::endl;
+	EXPECT_GT(rigidCount, 0) << "Should contain rigid systems";
+	
+	// Count groups
+	int groupCount = 0;
+	if (auto* groupSystems = lxfml->FirstChildElement("GroupSystems")) {
+		for (auto* gs = groupSystems->FirstChildElement("GroupSystem"); gs; gs = gs->NextSiblingElement("GroupSystem")) {
+			for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
+				groupCount++;
+			}
+		}
+	}
+	std::cout << "Contains " << groupCount << " groups" << std::endl;
+	EXPECT_GT(groupCount, 1) << "Should contain multiple groups (all merged into one split)";
 }
 
 // Tests for invalid input handling - now working with the improved Split function
