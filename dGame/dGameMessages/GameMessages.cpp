@@ -2551,6 +2551,14 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	// Uncompress the data, split, and nornmalize the model
 	const auto asStr = sd0.GetAsStringUncompressed();
+
+	if (Game::config->GetValue("save_lxfmls") == "1") {
+		// save using localId to avoid conflicts
+		std::ofstream outFile("debug_lxfml_uncompressed_" + std::to_string(localId) + ".lxfml");
+		outFile << asStr;
+		outFile.close();
+	}
+
 	auto splitLxfmls = Lxfml::Split(asStr);
 	LOG_DEBUG("Split into %zu models", splitLxfmls.size());
 

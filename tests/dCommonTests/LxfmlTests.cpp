@@ -27,20 +27,25 @@ std::string SerializeElement(tinyxml2::XMLElement* elem) {
 	return std::string(p.CStr());
 };
 
-TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
-	// Read the test.lxfml file copied to build directory by CMake
-	std::string data = ReadFile("test.lxfml");
-	ASSERT_FALSE(data.empty()) << "Failed to read test.lxfml from build directory";
+// Helper function to test splitting functionality
+static void TestSplitUsesAllBricksAndNoDuplicatesHelper(const std::string& filename) {
+	// Read the LXFML file
+	std::string data = ReadFile(filename);
+	ASSERT_FALSE(data.empty()) << "Failed to read " << filename << " from build directory";
 
+	std::cout << "\n=== Testing LXFML splitting for: " << filename << " ===" << std::endl;
+	
 	auto results = Lxfml::Split(data);
-	ASSERT_GT(results.size(), 0);
+	ASSERT_GT(results.size(), 0) << "Split results should not be empty for " << filename;
+	
+	std::cout << "Split produced " << results.size() << " output(s)" << std::endl;
 
 	// parse original to count bricks
 	tinyxml2::XMLDocument doc;
-	ASSERT_EQ(doc.Parse(data.c_str()), tinyxml2::XML_SUCCESS);
+	ASSERT_EQ(doc.Parse(data.c_str()), tinyxml2::XML_SUCCESS) << "Failed to parse " << filename;
 	DocumentReader reader(doc);
 	auto lxfml = reader["LXFML"];
-	ASSERT_TRUE(lxfml);
+	ASSERT_TRUE(lxfml) << "No LXFML element found in " << filename;
 
 	std::unordered_set<std::string> originalRigidSet;
 	if (auto* rsParent = doc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
@@ -75,7 +80,20 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 	// Track used rigid systems and groups (serialized strings)
 	std::unordered_set<std::string> usedRigidSet;
 	std::unordered_set<std::string> usedGroupSet;
+	
+	std::cout << "Original file contains " << originalBricks.size() << " bricks: ";
+	for (const auto& brick : originalBricks) {
+		std::cout << brick << " ";
+	}
+	std::cout << std::endl;
+	
+	int splitIndex = 0;
+	std::filesystem::path baseFilename = std::filesystem::path(filename).stem();
+
 	for (const auto& res : results) {
+		splitIndex++;
+		std::cout << "\n--- Split " << splitIndex << " ---" << std::endl;
+		
 		tinyxml2::XMLDocument outDoc;
 		ASSERT_EQ(outDoc.Parse(res.lxfml.c_str()), tinyxml2::XML_SUCCESS);
 		DocumentReader outReader(outDoc);
@@ -104,32 +122,130 @@ TEST(LxfmlTests, SplitUsesAllBricksAndNoDuplicates) {
 				}
 			}
 		}
+		
+		// Collect and display bricks in this split
+		std::vector<std::string> splitBricks;
 		for (const auto& brick : outLxfml["Bricks"]) {
 			const auto* ref = brick.Attribute("refID");
 			if (ref) {
 				// no duplicate allowed
 				ASSERT_EQ(usedBricks.find(ref), usedBricks.end()) << "Duplicate brick ref across splits: " << ref;
 				usedBricks.insert(ref);
+				splitBricks.push_back(ref);
 			}
 		}
+		
+		std::cout << "Contains " << splitBricks.size() << " bricks: ";
+		for (const auto& brick : splitBricks) {
+			std::cout << brick << " ";
+		}
+		std::cout << std::endl;
+		
+		// Count rigid systems and groups
+		int rigidCount = 0;
+		if (auto* rsParent = outDoc.FirstChildElement("LXFML")->FirstChildElement("RigidSystems")) {
+			for (auto* rs = rsParent->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
+				rigidCount++;
+			}
+		}
+		
+		int groupCount = 0;
+		if (auto* gsParent = outDoc.FirstChildElement("LXFML")->FirstChildElement("GroupSystems")) {
+			for (auto* gs = gsParent->FirstChildElement("GroupSystem"); gs; gs = gs->NextSiblingElement("GroupSystem")) {
+				for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
+					groupCount++;
+				}
+			}
+		}
+		
+		std::cout << "Contains " << rigidCount << " rigid systems and " << groupCount << " groups" << std::endl;
 	}
 
 	// Every original brick must be used in one of the outputs
 	for (const auto& bref : originalBricks) {
-		ASSERT_NE(usedBricks.find(bref), usedBricks.end()) << "Brick not used in splits: " << bref;
+		ASSERT_NE(usedBricks.find(bref), usedBricks.end()) << "Brick not used in splits: " << bref << " in " << filename;
 	}
 
 	// And usedBricks should not contain anything outside original
 	for (const auto& ub : usedBricks) {
-		ASSERT_NE(originalBricks.find(ub), originalBricks.end()) << "Split produced unknown brick: " << ub;
+		ASSERT_NE(originalBricks.find(ub), originalBricks.end()) << "Split produced unknown brick: " << ub << " in " << filename;
 	}
 
 	// Ensure all original rigid systems and groups were used exactly once
-	ASSERT_EQ(originalRigidSet.size(), usedRigidSet.size()) << "RigidSystem count mismatch";
-	for (const auto& s : originalRigidSet) ASSERT_NE(usedRigidSet.find(s), usedRigidSet.end()) << "RigidSystem missing in splits";
+	ASSERT_EQ(originalRigidSet.size(), usedRigidSet.size()) << "RigidSystem count mismatch in " << filename;
+	for (const auto& s : originalRigidSet) ASSERT_NE(usedRigidSet.find(s), usedRigidSet.end()) << "RigidSystem missing in splits in " << filename;
 
-	ASSERT_EQ(originalGroupSet.size(), usedGroupSet.size()) << "Group count mismatch";
-	for (const auto& s : originalGroupSet) ASSERT_NE(usedGroupSet.find(s), usedGroupSet.end()) << "Group missing in splits";
+	ASSERT_EQ(originalGroupSet.size(), usedGroupSet.size()) << "Group count mismatch in " << filename;
+	for (const auto& s : originalGroupSet) ASSERT_NE(usedGroupSet.find(s), usedGroupSet.end()) << "Group missing in splits in " << filename;
+}
+
+TEST(LxfmlTests, SplitGroupIssueFile) {
+	// Specific test for the group issue file
+	TestSplitUsesAllBricksAndNoDuplicatesHelper("group_issue.lxfml");
+}
+
+TEST(LxfmlTests, SplitTestFile) {
+	// Specific test for the larger test file
+	TestSplitUsesAllBricksAndNoDuplicatesHelper("test.lxfml");
+}
+
+TEST(LxfmlTests, SplitComplexGroupingFile) {
+	// Test for the complex grouping file - should produce only one split
+	// because all groups are connected via rigid systems
+	std::string data = ReadFile("complex_grouping.lxfml");
+	ASSERT_FALSE(data.empty()) << "Failed to read complex_grouping.lxfml from build directory";
+	
+	std::cout << "\n=== Testing complex grouping file ===" << std::endl;
+	
+	auto results = Lxfml::Split(data);
+	ASSERT_GT(results.size(), 0) << "Split results should not be empty";
+	
+	// The complex grouping file should produce exactly ONE split
+	// because all groups share bricks through rigid systems
+	if (results.size() != 1) {
+		FAIL() << "Complex grouping file produced " << results.size() 
+		       << " splits instead of 1 (all groups should be merged)";
+	}
+	
+	std::cout << "✓ Correctly produced 1 merged split" << std::endl;
+	
+	// Verify the split contains all the expected elements
+	tinyxml2::XMLDocument doc;
+	ASSERT_EQ(doc.Parse(results[0].lxfml.c_str()), tinyxml2::XML_SUCCESS);
+	
+	auto* lxfml = doc.FirstChildElement("LXFML");
+	ASSERT_NE(lxfml, nullptr);
+	
+	// Count bricks
+	int brickCount = 0;
+	if (auto* bricks = lxfml->FirstChildElement("Bricks")) {
+		for (auto* brick = bricks->FirstChildElement("Brick"); brick; brick = brick->NextSiblingElement("Brick")) {
+			brickCount++;
+		}
+	}
+	std::cout << "Contains " << brickCount << " bricks" << std::endl;
+	
+	// Count rigid systems
+	int rigidCount = 0;
+	if (auto* rigidSystems = lxfml->FirstChildElement("RigidSystems")) {
+		for (auto* rs = rigidSystems->FirstChildElement("RigidSystem"); rs; rs = rs->NextSiblingElement("RigidSystem")) {
+			rigidCount++;
+		}
+	}
+	std::cout << "Contains " << rigidCount << " rigid systems" << std::endl;
+	EXPECT_GT(rigidCount, 0) << "Should contain rigid systems";
+	
+	// Count groups
+	int groupCount = 0;
+	if (auto* groupSystems = lxfml->FirstChildElement("GroupSystems")) {
+		for (auto* gs = groupSystems->FirstChildElement("GroupSystem"); gs; gs = gs->NextSiblingElement("GroupSystem")) {
+			for (auto* g = gs->FirstChildElement("Group"); g; g = g->NextSiblingElement("Group")) {
+				groupCount++;
+			}
+		}
+	}
+	std::cout << "Contains " << groupCount << " groups" << std::endl;
+	EXPECT_GT(groupCount, 1) << "Should contain multiple groups (all merged into one split)";
 }
 
 // Tests for invalid input handling - now working with the improved Split function
