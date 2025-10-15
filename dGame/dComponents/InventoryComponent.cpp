@@ -443,7 +443,7 @@ Item* InventoryComponent::FindItemBySubKey(LWOOBJID id, eInventoryType inventory
 	}
 }
 
-bool InventoryComponent::HasSpaceForLoot(const std::unordered_map<LOT, int32_t>& loot) {
+bool InventoryComponent::HasSpaceForLoot(const Loot::Return& loot) {
 	std::unordered_map<eInventoryType, int32_t> spaceOffset{};
 
 	uint32_t slotsNeeded = 0;

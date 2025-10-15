@@ -48,6 +48,7 @@ namespace {
 		{ REQUEST_USE, []() { return std::make_unique<RequestUse>(); }},
 		{ REQUEST_SERVER_OBJECT_INFO, []() { return std::make_unique<RequestServerObjectInfo>(); } },
 		{ SHOOTING_GALLERY_FIRE, []() { return std::make_unique<ShootingGalleryFire>(); } },
+		{ PICKUP_ITEM, []() { return std::make_unique<PickupItem>(); } },
 	};
 };
 
@@ -278,11 +279,6 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 	case MessageType::Game::PICKUP_CURRENCY: {
 		GameMessages::HandlePickupCurrency(inStream, entity);
-		break;
-	}
-
-	case MessageType::Game::PICKUP_ITEM: {
-		GameMessages::HandlePickupItem(inStream, entity);
 		break;
 	}
 

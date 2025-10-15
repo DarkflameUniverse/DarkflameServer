@@ -9,6 +9,16 @@ Team::Team() {
 	lootOption = Game::config->GetValue("default_team_loot") == "0" ? 0 : 1;
 }
 
+LWOOBJID Team::GetNextLootOwner() {
+	lootRound++;
+
+	if (lootRound >= members.size()) {
+		lootRound = 0;
+	}
+
+	return members[lootRound];
+}
+
 TeamManager::TeamManager() {
 }
 

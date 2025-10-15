@@ -341,12 +341,6 @@ public:
 	 */
 	void SetInstanceMapID(uint32_t mapID) { m_ActivityInfo.instanceMapID = mapID; };
 
-	/**
-	 * Returns the LMI that this activity points to for a team size
-	 * @param teamSize the team size to get the LMI for
-	 * @return the LMI that this activity points to for a team size
-	 */
-	uint32_t GetLootMatrixForTeamSize(uint32_t teamSize) { return m_ActivityLootMatrices[teamSize]; }
 private:
 
 	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
@@ -369,11 +363,6 @@ private:
 	 * All the activity score for the players in this activity
 	 */
 	std::vector<ActivityPlayer*> m_ActivityPlayers;
-
-	/**
-	 * LMIs for team sizes
-	 */
-	std::unordered_map<uint32_t, uint32_t> m_ActivityLootMatrices;
 
 	/**
 	 * The activity id

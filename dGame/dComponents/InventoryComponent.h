@@ -22,6 +22,7 @@
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
+#include "Loot.h"
 
 class Entity;
 class ItemSet;
@@ -200,7 +201,7 @@ public:
 	 * @param loot a map of items to add and how many to add
 	 * @return whether the entity has enough space for all the items
 	 */
-	bool HasSpaceForLoot(const std::unordered_map<LOT, int32_t>& loot);
+	bool HasSpaceForLoot(const Loot::Return& loot);
 
 	/**
 	 * Equips an item in the specified slot

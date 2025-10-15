@@ -10,8 +10,21 @@ void AgPicnicBlanket::OnUse(Entity* self, Entity* user) {
 		return;
 	self->SetVar<bool>(u"active", true);
 
-	auto lootTable = std::unordered_map<LOT, int32_t>{ {935, 3} };
-	Loot::DropLoot(user, self->GetObjectID(), lootTable, 0, 0);
+	GameMessages::GetPosition posMsg{};
+	posMsg.target = self->GetObjectID();
+	posMsg.Send();
+
+	for (int32_t i = 0; i < 3; i++) {
+		GameMessages::DropClientLoot lootMsg{};
+		lootMsg.target = user->GetObjectID();
+		lootMsg.ownerID = user->GetObjectID();
+		lootMsg.sourceID = self->GetObjectID();
+		lootMsg.item = 935;
+		lootMsg.count = 1;
+		lootMsg.spawnPos = posMsg.pos;
+		lootMsg.currency = 0;
+		Loot::DropItem(*user, lootMsg, true);
+	}
 
 	self->AddCallbackTimer(5.0f, [self]() {
 		self->SetVar<bool>(u"active", false);

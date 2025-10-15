@@ -15,11 +15,6 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity* self, std::string message) {
 
 		const auto itemLOT = self->GetVar<LOT>(u"lootLOT");
 
-		// Build drop table
-		std::unordered_map<LOT, int32_t> drops;
-
-		drops.emplace(itemLOT, 1);
-
 		// Spawn the required number of powerups
 		auto* owner = Game::entityManager->GetEntity(self->GetSpawnerID());
 		if (owner != nullptr) {
@@ -28,8 +23,19 @@ void ScriptedPowerupSpawner::OnTimerDone(Entity* self, std::string message) {
 				if (renderComponent != nullptr) {
 					renderComponent->PlayEffect(0, u"cast", "N_cast");
 				}
+				GameMessages::GetPosition posMsg{};
+				posMsg.target = self->GetObjectID();
+				posMsg.Send();
 
-				Loot::DropLoot(owner, self->GetObjectID(), drops, 0, 0);
+				GameMessages::DropClientLoot lootMsg{};
+				lootMsg.target = owner->GetObjectID();
+				lootMsg.ownerID = owner->GetObjectID();
+				lootMsg.sourceID = self->GetObjectID();
+				lootMsg.spawnPos = posMsg.pos;
+				lootMsg.item = itemLOT;
+				lootMsg.count = 1;
+				lootMsg.currency = 0;
+				Loot::DropItem(*owner, lootMsg, true, true);
 			}
 
 			// Increment the current cycle
