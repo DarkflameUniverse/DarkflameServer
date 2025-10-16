@@ -4,6 +4,9 @@
 #include "DestroyableComponent.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dConfig.h"
+
+#include "GeneralUtils.h"
 
 void GfBanana::SpawnBanana(Entity* self) {
 	auto position = self->GetPosition();
@@ -44,7 +47,36 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 
 	const auto bananaId = self->GetVar<LWOOBJID>(u"banana");
 
-	if (bananaId == LWOOBJID_EMPTY) return;
+	if (bananaId == LWOOBJID_EMPTY) {
+		if (GeneralUtils::GenerateRandomNumber<short>(1, 100) == 100 && self->GetVar<LWOOBJID>(u"apeId") == LWOOBJID_EMPTY && Game::config->GetValue("angry_apes") == "1") {
+			// ape appears if you hurt the trees feeling while it has no banana
+
+			// play fx effect
+			GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake-bridge", self->GetObjectID(), 100.0f);
+
+			auto position = self->GetPosition(); 
+			auto rotation = QuatUtils::LookAt(self->GetPosition(), position);
+
+			EntityInfo info {};
+
+			info.pos = position;
+			info.rot = rotation;
+			info.lot = m_GorillaLOT;
+			info.spawner = nullptr;
+			info.spawnerID = self->GetObjectID();
+			info.spawnerNodeID = 0;
+
+			auto* entity = Game::entityManager->CreateEntity(info);
+
+			Game::entityManager->ConstructEntity(entity, UNASSIGNED_SYSTEM_ADDRESS);
+
+			self->SetVar<LWOOBJID>(u"apeId", entity->GetObjectID());
+
+			self->AddTimer("apeTimer", 10);
+		}
+		
+		return;
+	}
 
 	auto* bananaEntity = Game::entityManager->GetEntity(bananaId);
 
@@ -56,33 +88,12 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 		return;
 	}
 
-	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3Constant::UNIT_Y * 8);
+	auto bananaFloor = (bananaEntity->GetPosition() - NiPoint3Constant::UNIT_Y * 8);
+	bananaEntity->SetPosition(bananaFloor);
 
 	auto* bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
-
 	bananaDestroyable->SetHealth(0);
-
 	bananaDestroyable->Smash(attacker->GetObjectID());
-
-	/*
-	auto position = self->GetPosition();
-	const auto rotation = self->GetRotation();
-
-	position.y += 12;
-	position.x -= rotation.GetRightVector().x * 5;
-	position.z -= rotation.GetRightVector().z * 5;
-
-	EntityInfo info {};
-
-	info.pos = position;
-	info.rot = rotation;
-	info.lot = 6718;
-	info.spawnerID = self->GetObjectID();
-
-	auto* entity = Game::entityManager->CreateEntity(info);
-
-	Game::entityManager->ConstructEntity(entity, UNASSIGNED_SYSTEM_ADDRESS);
-	*/
 
 	Game::entityManager->SerializeEntity(self);
 }
@@ -90,5 +101,16 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 void GfBanana::OnTimerDone(Entity* self, std::string timerName) {
 	if (timerName == "bananaTimer") {
 		SpawnBanana(self);
+	} else if (timerName == "apeTimer") {
+		if (self->GetVar<LWOOBJID>(u"apeId") == LWOOBJID_EMPTY) return;
+
+		auto entity = Game::entityManager->GetEntity(self->GetVar<LWOOBJID>(u"apeId"));
+
+		if (entity) {
+			GameMessages::SendPlayEmbeddedEffectOnAllClientsNearObject(self, u"camshake-bridge", self->GetObjectID(), 100.0f);
+			entity->GetComponent<DestroyableComponent>()->Smash(self->GetObjectID(), eKillType::SILENT); // to destroy the anchor too
+			Game::entityManager->DestroyEntity(entity);
+		}
+		self->SetVar(u"apeId", LWOOBJID_EMPTY);
 	}
 }
