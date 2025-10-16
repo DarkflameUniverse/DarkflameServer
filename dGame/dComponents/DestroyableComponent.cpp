@@ -773,7 +773,15 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				Loot::DropLoot(m_Parent, m_Parent->GetObjectID(), -1, coinsToLose, coinsToLose);
+				GameMessages::DropClientLoot lootMsg{};
+				lootMsg.target = m_Parent->GetObjectID();
+				lootMsg.ownerID = m_Parent->GetObjectID();
+				lootMsg.currency = coinsToLose;
+				lootMsg.spawnPos = m_Parent->GetPosition();
+				lootMsg.sourceID = source;
+				lootMsg.item = LOT_NULL;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
