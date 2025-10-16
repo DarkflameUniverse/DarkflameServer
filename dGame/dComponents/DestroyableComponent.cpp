@@ -1048,7 +1048,7 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	destroyableInfo.PushDebug<AMFIntValue>("DestructibleComponent DB Table Template ID") = m_ComponentID;
 
 	if (m_CurrencyIndex == -1) {
-		destroyableInfo.PushDebug<AMFIntValue>("Has Loot Currency") = false;
+		destroyableInfo.PushDebug<AMFBoolValue>("Has Loot Currency") = false;
 	} else {
 		destroyableInfo.PushDebug<AMFIntValue>("Loot Currency ID") = m_CurrencyIndex;
 		auto& detailedCoinInfo = destroyableInfo.PushDebug("Coin Info");
@@ -1122,7 +1122,6 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	destroyableInfo.PushDebug<AMFStringValue>("Enemy Factions") = factionsStream.str();
 
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashable") = m_IsSmashable;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashed") = m_IsSmashed;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Module Assembly") = m_IsModuleAssembly;
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
