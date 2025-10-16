@@ -47,7 +47,7 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 	const auto bananaId = self->GetVar<LWOOBJID>(u"banana");
 
 	if (bananaId == LWOOBJID_EMPTY) {
-		if (GeneralUtils::GenerateRandomNumber<short>(1, 100) == 100 && self->GetVar<LWOOBJID>(u"apeId") == LWOOBJID_EMPTY) {
+		if (GeneralUtils::GenerateRandomNumber<short>(1, 100) == 100 && self->GetVar<LWOOBJID>(u"apeId") == LWOOBJID_EMPTY && Game::config->GetValue("angry_apes") == "1") {
 			// ape appears if you hurt the trees feeling while it has no banana
 
 			// play fx effect
