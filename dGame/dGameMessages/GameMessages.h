@@ -794,6 +794,7 @@ namespace GameMessages {
 		AMFArrayValue* info{};
 		AMFArrayValue* subCategory{};
 		bool bVerbose{};
+		LWOOBJID clientID{};
 
 		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, eGameMasterLevel::DEVELOPER) {}
 	};
