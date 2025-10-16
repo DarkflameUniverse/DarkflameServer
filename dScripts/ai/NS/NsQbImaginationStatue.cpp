@@ -1,6 +1,7 @@
 #include "NsQbImaginationStatue.h"
 #include "EntityManager.h"
 #include "GameMessages.h"
+#include "Loot.h"
 
 void NsQbImaginationStatue::OnStartup(Entity* self) {
 
@@ -35,6 +36,12 @@ void NsQbImaginationStatue::SpawnLoot(Entity* self) {
 
 	if (player == nullptr) return;
 
-	GameMessages::SendDropClientLoot(player, self->GetObjectID(), 935, 0);
-	GameMessages::SendDropClientLoot(player, self->GetObjectID(), 935, 0);
+	GameMessages::DropClientLoot lootMsg{};
+	lootMsg.target = player->GetObjectID();
+	lootMsg.ownerID = player->GetObjectID();
+	lootMsg.sourceID = self->GetObjectID();
+	lootMsg.item = 935;
+	lootMsg.count = 1;
+	Loot::DropItem(*player, lootMsg);
+	Loot::DropItem(*player, lootMsg);
 }

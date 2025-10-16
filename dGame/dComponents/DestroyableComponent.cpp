@@ -982,7 +982,14 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 						for (const auto item : itemMap | std::views::values) {
 							// Don't drop excluded items or null ones
 							if (!item || Game::entityManager->GetHardcoreExcludedItemDrops().contains(item->GetLot())) continue;
-							GameMessages::SendDropClientLoot(m_Parent, source, item->GetLot(), 0, m_Parent->GetPosition(), item->GetCount());
+							GameMessages::DropClientLoot lootMsg{};
+							lootMsg.target = m_Parent->GetObjectID();
+							lootMsg.ownerID = m_Parent->GetObjectID();
+							lootMsg.sourceID = m_Parent->GetObjectID();
+							lootMsg.item = item->GetLot();
+							lootMsg.count = 1;
+							lootMsg.spawnPos = m_Parent->GetPosition();
+							for (int i = 0; i < item->GetCount(); i++) Loot::DropItem(*m_Parent, lootMsg);
 							item->SetCount(0, false, false);
 						}
 						Game::entityManager->SerializeEntity(m_Parent);
@@ -1005,12 +1012,24 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 			//drop all coins:
 			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
+			GameMessages::DropClientLoot lootMsg{};
+			lootMsg.target = m_Parent->GetObjectID();
+			lootMsg.ownerID = m_Parent->GetObjectID();
+			lootMsg.spawnPos = m_Parent->GetPosition();
+			lootMsg.sourceID = source;
+			lootMsg.item = LOT_NULL;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
 			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
 				LOG("Dropping 100,000, %llu left", coinsToDrop);
-				GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, MAX_TO_DROP_PER_GM, m_Parent->GetPosition());
-				coinsToDrop -= MAX_TO_DROP_PER_GM;
+				lootMsg.currency = 100'000;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
+				coinsToDrop -= 100'000;
 			}
-			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coinsToDrop, m_Parent->GetPosition());
+			lootMsg.currency = coinsToDrop;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
 		}
 		return;
 	}
