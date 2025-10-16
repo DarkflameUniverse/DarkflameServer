@@ -4,6 +4,7 @@
 #include "DestroyableComponent.h"
 #include "EntityInfo.h"
 #include "EntityManager.h"
+#include "dConfig.h"
 
 #include "GeneralUtils.h"
 
