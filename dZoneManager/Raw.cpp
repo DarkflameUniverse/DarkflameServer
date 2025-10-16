@@ -100,7 +100,7 @@ namespace Raw {
 				return false;
 			}
 
-			// ColorMap (size varies by version)
+			// ColorMap
 			if (version >= 32) {
 				BinaryIO::BinaryRead(stream, chunk.colorMapResolution);
 			} else {
@@ -114,8 +114,7 @@ namespace Raw {
 			if (stream.fail()) {
 				return false;
 			}
-
-			// LightMap DDS
+			// LightMap/diffusemap.dds
 			uint32_t lightMapSize;
 			BinaryIO::BinaryRead(stream, lightMapSize);
 
@@ -126,7 +125,7 @@ namespace Raw {
 				return false;
 			}
 
-			// TextureMap (size varies by version)
+			// TextureMap
 			if (version >= 32) {
 				BinaryIO::BinaryRead(stream, chunk.textureMapResolution);
 			} else {
