@@ -306,7 +306,7 @@ void dZoneManager::LoadWorldConfig() {
 LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const {
 	if (!m_pZone) return LWOSCENEID_INVALID;
 
-	const auto& terrainMesh = m_pZone->GetTerrainMesh();
+	const auto& raw = m_pZone->GetZoneRaw();
 	
 	// If no chunks, no scene data available
 	if (raw.chunks.empty()) {
