@@ -1951,35 +1951,65 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		// Get the pre-generated terrain mesh
-		const auto& terrainMesh = zone->GetTerrainMesh();
-		if (terrainMesh.vertices.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain mesh data.");
+		// Get the Raw terrain data
+		const auto& raw = zone->GetZoneRaw();
+		if (raw.chunks.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain data.");
 			return;
 		}
 
-		// Spawn at ALL vertices in the current scene without any filtering or spacing
+		// Spawn at all sceneMap points in the current scene
 		uint32_t spawnedCount = 0;
 		
-		for (const auto& vertex : terrainMesh.vertices) {
-			// Check if this vertex belongs to the current scene
-			if (LWOSCENEID(vertex.sceneID) == currentSceneID) {
-				// Use the vertex position
-				NiPoint3 spawnPos = vertex.position;
-				
-				EntityInfo info;
-				info.lot = lot + currentSceneID.GetSceneID(); // to differentiate scenes
-				info.pos = spawnPos;
-				info.rot = QuatUtils::IDENTITY;
-				info.spawner = nullptr;
-				info.spawnerID = entity->GetObjectID();
-				info.spawnerNodeID = 0;
-				info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		for (const auto& chunk : raw.chunks) {
+			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()) continue;
 
-				Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-				if (newEntity != nullptr) {
-					Game::entityManager->ConstructEntity(newEntity);
-					spawnedCount++;
+			// Iterate through the heightmap (same as GenerateTerrainMesh)
+			for (uint32_t i = 0; i < chunk.width; ++i) {
+				for (uint32_t j = 0; j < chunk.height; ++j) {
+					// Get height at this position
+					const uint32_t heightIndex = chunk.width * i + j;
+					if (heightIndex >= chunk.heightMap.size()) continue;
+					
+					const float y = chunk.heightMap[heightIndex];
+
+					// Map heightmap position to scene map position (same as GenerateTerrainMesh)
+					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					
+					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
+					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
+					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
+
+					uint8_t sceneID = 0;
+					if (sceneIndex < chunk.sceneMap.size()) {
+						sceneID = chunk.sceneMap[sceneIndex];
+					}
+					
+					// Check if this point belongs to the current scene
+					if (sceneID == currentSceneID.GetSceneID()) {
+						// Calculate world position (same as GenerateTerrainMesh)
+						const float worldX = (static_cast<float>(i) + (chunk.offsetWorldX / chunk.scaleFactor)) * chunk.scaleFactor;
+						const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+						const float worldZ = (static_cast<float>(j) + (chunk.offsetWorldZ / chunk.scaleFactor)) * chunk.scaleFactor;
+						
+						NiPoint3 spawnPos(worldX, worldY, worldZ);
+						
+						EntityInfo info;
+						info.lot = lot + currentSceneID.GetSceneID(); // to differentiate scenes
+						info.pos = spawnPos;
+						info.rot = QuatUtils::IDENTITY;
+						info.spawner = nullptr;
+						info.spawnerID = entity->GetObjectID();
+						info.spawnerNodeID = 0;
+						info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+
+						Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+						if (newEntity != nullptr) {
+							Game::entityManager->ConstructEntity(newEntity);
+							spawnedCount++;
+						}
+					}
 				}
 			}
 		}
@@ -2011,34 +2041,68 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		// Get the pre-generated terrain mesh
-		const auto& terrainMesh = zone->GetTerrainMesh();
-		if (terrainMesh.vertices.empty()) {
-			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain mesh data.");
+		// Get the Raw terrain data
+		const auto& raw = zone->GetZoneRaw();
+		if (raw.chunks.empty()) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Zone does not have valid terrain data.");
 			return;
 		}
 
-		// Spawn at ALL vertices without any filtering or spacing restrictions for maximum accuracy
+		// Spawn at all sceneMap points across all scenes
 		uint32_t spawnedCount = 0;
 		std::map<uint8_t, uint32_t> sceneSpawnCounts; // Track spawns per scene
 		
-		for (const auto& vertex : terrainMesh.vertices) {
-			// Skip invalid scenes (scene ID 0 typically means no scene)
-			if (vertex.sceneID == 0) continue;			
-			EntityInfo info;
-			info.lot = lot + vertex.sceneID; // to show different scenes
-			info.pos = vertex.position;
-			info.rot = QuatUtils::IDENTITY;
-			info.spawner = nullptr;
-			info.spawnerID = entity->GetObjectID();
-			info.spawnerNodeID = 0;
-			info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		for (const auto& chunk : raw.chunks) {
+			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()) continue;
 
-			Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-			if (newEntity != nullptr) {
-				Game::entityManager->ConstructEntity(newEntity);
-				spawnedCount++;
-				sceneSpawnCounts[vertex.sceneID]++;
+			// Iterate through the heightmap (same as GenerateTerrainMesh)
+			for (uint32_t i = 0; i < chunk.width; ++i) {
+				for (uint32_t j = 0; j < chunk.height; ++j) {
+					// Get height at this position
+					const uint32_t heightIndex = chunk.width * i + j;
+					if (heightIndex >= chunk.heightMap.size()) continue;
+					
+					const float y = chunk.heightMap[heightIndex];
+
+					// Map heightmap position to scene map position (same as GenerateTerrainMesh)
+					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					
+					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
+					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
+					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
+
+					uint8_t sceneID = 0;
+					if (sceneIndex < chunk.sceneMap.size()) {
+						sceneID = chunk.sceneMap[sceneIndex];
+					}
+					
+					// Skip invalid scenes (scene ID 0 typically means no scene)
+					if (sceneID == 0) continue;
+					
+					// Calculate world position (same as GenerateTerrainMesh)
+					const float worldX = (static_cast<float>(i) + (chunk.offsetWorldX / chunk.scaleFactor)) * chunk.scaleFactor;
+					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+					const float worldZ = (static_cast<float>(j) + (chunk.offsetWorldZ / chunk.scaleFactor)) * chunk.scaleFactor;
+					
+					NiPoint3 spawnPos(worldX, worldY, worldZ);
+					
+					EntityInfo info;
+					info.lot = lot + sceneID; // to show different scenes
+					info.pos = spawnPos;
+					info.rot = QuatUtils::IDENTITY;
+					info.spawner = nullptr;
+					info.spawnerID = entity->GetObjectID();
+					info.spawnerNodeID = 0;
+					info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+
+					Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+					if (newEntity != nullptr) {
+						Game::entityManager->ConstructEntity(newEntity);
+						spawnedCount++;
+						sceneSpawnCounts[sceneID]++;
+					}
+				}
 			}
 		}
 

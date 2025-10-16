@@ -308,46 +308,49 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 
 	const auto& terrainMesh = m_pZone->GetTerrainMesh();
 	
-	// If mesh is empty, no scene data available
-	if (terrainMesh.vertices.empty() || terrainMesh.triangles.empty()) {
+	// If no chunks, no scene data available
+	if (raw.chunks.empty()) {
 		return LWOSCENEID_INVALID;
 	}
 
-	// Find the triangle containing this position (ignoring Y coordinate for scene lookup)
-	// We iterate through all triangles and find the one that contains the point in 2D (XZ plane)
-	for (size_t i = 0; i < terrainMesh.triangles.size(); i += 3) {
-		const auto& v0 = terrainMesh.vertices[terrainMesh.triangles[i]];
-		const auto& v1 = terrainMesh.vertices[terrainMesh.triangles[i + 1]];
-		const auto& v2 = terrainMesh.vertices[terrainMesh.triangles[i + 2]];
+	// Find the chunk containing this position
+	// Reverse the world position calculation from GenerateTerrainMesh
+	for (const auto& chunk : raw.chunks) {
+		if (chunk.sceneMap.empty()) continue;
 
-		// Check if position is inside this triangle using 2D (XZ) coordinates
-		// Using barycentric coordinates / cross product method
-		const float x = position.x;
-		const float z = position.z;
+		// Reverse: worldX = (i + offsetWorldX/scaleFactor) * scaleFactor
+		// Therefore: i = worldX/scaleFactor - offsetWorldX/scaleFactor
+		const float heightI = position.x / chunk.scaleFactor - (chunk.offsetWorldX / chunk.scaleFactor);
+		const float heightJ = position.z / chunk.scaleFactor - (chunk.offsetWorldZ / chunk.scaleFactor);
 
-		const float x0 = v0.position.x;
-		const float z0 = v0.position.z;
-		const float x1 = v1.position.x;
-		const float z1 = v1.position.z;
-		const float x2 = v2.position.x;
-		const float z2 = v2.position.z;
+		// Check if position is within this chunk's heightmap bounds
+		if (heightI >= 0.0f && heightI < chunk.width &&
+			heightJ >= 0.0f && heightJ < chunk.height) {
+			
+			// Map heightmap position to scene map position (same as GenerateTerrainMesh)
+			const float sceneMapI = (heightI / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
+			const float sceneMapJ = (heightJ / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
+			
+			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
+			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
 
-		// Calculate barycentric coordinates
-		const float denom = (z1 - z2) * (x0 - x2) + (x2 - x1) * (z0 - z2);
-		if (std::abs(denom) < 0.0001f) continue; // Degenerate triangle
+			// Scene map uses the same indexing pattern as heightmap: row * width + col
+			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
 
-		const float a = ((z1 - z2) * (x - x2) + (x2 - x1) * (z - z2)) / denom;
-		const float b = ((z2 - z0) * (x - x2) + (x0 - x2) * (z - z2)) / denom;
-		const float c = 1.0f - a - b;
+			// Bounds check
+			if (sceneIndex >= chunk.sceneMap.size()) {
+				return LWOSCENEID_INVALID;
+			}
 
-		// Point is inside triangle if all barycentric coordinates are non-negative
-		if (a >= 0.0f && b >= 0.0f && c >= 0.0f) {
-			// Return the scene ID from the first vertex (all vertices in a triangle should have the same scene ID)
-			return LWOSCENEID(v0.sceneID);
+			// Get scene ID from sceneMap
+			const uint8_t sceneID = chunk.sceneMap[sceneIndex];
+			
+			// Return the scene ID
+			return LWOSCENEID(sceneID, 0);
 		}
 	}
 
-	// Position not found in any triangle
+	// Position not found in any chunk
 	return LWOSCENEID_INVALID;
 }
 
