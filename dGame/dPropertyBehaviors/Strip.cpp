@@ -13,6 +13,7 @@
 #include "dChatFilter.h"
 
 #include "DluAssert.h"
+#include "Loot.h"
 
 template <>
 void Strip::HandleMsg(AddStripMessage& msg) {
@@ -148,7 +149,14 @@ void Strip::Spawn(LOT lot, Entity& entity) {
 // Spawns a specific drop for all
 void Strip::SpawnDrop(LOT dropLOT, Entity& entity) {
 	for (auto* const player : PlayerManager::GetAllPlayers()) {
-		GameMessages::SendDropClientLoot(player, entity.GetObjectID(), dropLOT, 0, entity.GetPosition());
+		GameMessages::DropClientLoot lootMsg{};
+		lootMsg.target = player->GetObjectID();
+		lootMsg.ownerID = player->GetObjectID();
+		lootMsg.sourceID = entity.GetObjectID();
+		lootMsg.item = dropLOT;
+		lootMsg.count = 1;
+		lootMsg.spawnPos = entity.GetPosition();
+		Loot::DropItem(*player, lootMsg);
 	}
 }
 

@@ -1067,44 +1067,6 @@ void GameMessages::SendSetNetworkScriptVar(Entity* entity, const SystemAddress& 
 	SEND_PACKET;
 }
 
-void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos, int count) {
-	if (Game::config->GetValue("disable_drops") == "1" || !entity) {
-		return;
-	}
-
-	bool bUsePosition = false;
-	NiPoint3 finalPosition;
-	LWOOBJID lootID = LWOOBJID_EMPTY;
-	LWOOBJID owner = entity->GetObjectID();
-
-	if (item != LOT_NULL && item != 0) {
-		lootID = ObjectIDManager::GenerateObjectID();
-
-		Loot::Info info;
-		info.id = lootID;
-		info.count = count;
-		info.lot = item;
-		entity->AddLootItem(info);
-	}
-
-	if (item == LOT_NULL && currency != 0) {
-		entity->RegisterCoinDrop(currency);
-	}
-
-	if (spawnPos != NiPoint3Constant::ZERO) {
-		bUsePosition = true;
-
-		//Calculate where the loot will go:
-		uint16_t degree = GeneralUtils::GenerateRandomNumber<uint16_t>(0, 360);
-
-		double rad = degree * 3.14 / 180;
-		double sin_v = sin(rad) * 4.2;
-		double cos_v = cos(rad) * 4.2;
-
-		finalPosition = NiPoint3(static_cast<float>(spawnPos.GetX() + sin_v), spawnPos.GetY(), static_cast<float>(spawnPos.GetZ() + cos_v));
-	}
-}
-
 void GameMessages::SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme) {
 	CBITSTREAM;
 	CMSGHEADER;

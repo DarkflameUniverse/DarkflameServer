@@ -282,7 +282,14 @@ void InventoryComponent::AddItem(
 
 			case 1:
 				for (size_t i = 0; i < size; i++) {
-					GameMessages::SendDropClientLoot(this->m_Parent, this->m_Parent->GetObjectID(), lot, 0, this->m_Parent->GetPosition(), 1);
+					GameMessages::DropClientLoot lootMsg{};
+					lootMsg.target = m_Parent->GetObjectID();
+					lootMsg.ownerID = m_Parent->GetObjectID();
+					lootMsg.sourceID = m_Parent->GetObjectID();
+					lootMsg.item = lot;
+					lootMsg.count = 1;
+					lootMsg.spawnPos = m_Parent->GetPosition();
+					Loot::DropItem(*m_Parent, lootMsg);
 				}
 
 				break;
