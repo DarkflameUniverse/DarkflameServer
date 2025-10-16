@@ -55,36 +55,20 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 
 		return;
 	}
+	bananaEntity->Smash(LWOOBJID_EMPTY, eKillType::SILENT);
 
-	bananaEntity->SetPosition(bananaEntity->GetPosition() - NiPoint3Constant::UNIT_Y * 8);
-
-	auto* bananaDestroyable = bananaEntity->GetComponent<DestroyableComponent>();
-
-	bananaDestroyable->SetHealth(0);
-
-	bananaDestroyable->Smash(attacker->GetObjectID());
-
-	/*
-	auto position = self->GetPosition();
 	const auto rotation = self->GetRotation();
-
-	position.y += 12;
-	position.x -= rotation.GetRightVector().x * 5;
-	position.z -= rotation.GetRightVector().z * 5;
-
-	EntityInfo info {};
-
-	info.pos = position;
-	info.rot = rotation;
+	EntityInfo info{};
 	info.lot = 6718;
+	info.pos = self->GetPosition();
+	info.pos.y += 12;
+	info.pos.x -= QuatUtils::Right(rotation).x * 5;
+	info.pos.z -= QuatUtils::Right(rotation).z * 5;
+	info.rot = rotation;
 	info.spawnerID = self->GetObjectID();
-
-	auto* entity = Game::entityManager->CreateEntity(info);
-
-	Game::entityManager->ConstructEntity(entity, UNASSIGNED_SYSTEM_ADDRESS);
-	*/
-
-	Game::entityManager->SerializeEntity(self);
+	info.settings = { new LDFData<uint32_t>(u"motionType", 5) };
+	auto* const newEn = Game::entityManager->CreateEntity(info, nullptr, self);
+	Game::entityManager->ConstructEntity(newEn);
 }
 
 void GfBanana::OnTimerDone(Entity* self, std::string timerName) {
