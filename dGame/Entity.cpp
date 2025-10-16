@@ -84,6 +84,8 @@
 #include "GhostComponent.h"
 #include "AchievementVendorComponent.h"
 #include "VanityUtilities.h"
+#include "ObjectIDManager.h"
+#include "ePlayerFlag.h"
 
 // Table includes
 #include "CDComponentsRegistryTable.h"
@@ -192,7 +194,10 @@ Entity::~Entity() {
 }
 
 void Entity::Initialize() {
-	RegisterMsg(MessageType::Game::REQUEST_SERVER_OBJECT_INFO, this, &Entity::MsgRequestServerObjectInfo);
+	RegisterMsg<GameMessages::RequestServerObjectInfo>(this, &Entity::MsgRequestServerObjectInfo);
+	RegisterMsg<GameMessages::DropClientLoot>(this, &Entity::MsgDropClientLoot);
+	RegisterMsg<GameMessages::GetFactionTokenType>(this, &Entity::MsgGetFactionTokenType);
+	RegisterMsg<GameMessages::PickupItem>(this, &Entity::MsgPickupItem);
 	/**
 	 * Setup trigger
 	 */
@@ -287,7 +292,7 @@ void Entity::Initialize() {
 		AddComponent<LUPExhibitComponent>(lupExhibitID);
 	}
 
-	const auto racingControlID =compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL);
+	const auto racingControlID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::RACING_CONTROL);
 	if (racingControlID > 0) {
 		AddComponent<RacingControlComponent>(racingControlID);
 	}
@@ -1663,7 +1668,7 @@ void Entity::AddLootItem(const Loot::Info& info) const {
 
 	auto* const characterComponent = GetComponent<CharacterComponent>();
 	if (!characterComponent) return;
-
+	LOG("Player %llu has been allowed to pickup %i with id %llu", m_ObjectID, info.lot, info.id);
 	auto& droppedLoot = characterComponent->GetDroppedLoot();
 	droppedLoot[info.id] = info;
 }
@@ -2273,5 +2278,75 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 
 	auto* client = Game::entityManager->GetEntity(requestInfo.clientId);
 	if (client) GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, client->GetSystemAddress());
+	return true;
+}
+
+bool Entity::MsgDropClientLoot(GameMessages::GameMsg& msg) {
+	auto& dropLootMsg = static_cast<GameMessages::DropClientLoot&>(msg);
+
+	if (dropLootMsg.item != LOT_NULL && dropLootMsg.item != 0) {
+		Loot::Info info{
+			.id = dropLootMsg.lootID,
+			.lot = dropLootMsg.item,
+			.count = dropLootMsg.count,
+		};
+		AddLootItem(info);
+	}
+
+	if (dropLootMsg.item == LOT_NULL && dropLootMsg.currency != 0) {
+		RegisterCoinDrop(dropLootMsg.currency);
+	}
+
+	return true;
+}
+
+bool Entity::MsgGetFlag(GameMessages::GameMsg& msg) {
+	auto& flagMsg = static_cast<GameMessages::GetFlag&>(msg);
+	if (m_Character) flagMsg.flag = m_Character->GetPlayerFlag(flagMsg.flagID);
+	return true;
+}
+bool Entity::MsgGetFactionTokenType(GameMessages::GameMsg& msg) {
+	auto& tokenMsg = static_cast<GameMessages::GetFactionTokenType&>(msg);
+	GameMessages::GetFlag getFlagMsg{};
+
+	getFlagMsg.flagID = ePlayerFlag::ASSEMBLY_FACTION;
+	MsgGetFlag(getFlagMsg);
+	if (getFlagMsg.flag) tokenMsg.tokenType = 8318;
+
+	getFlagMsg.flagID = ePlayerFlag::SENTINEL_FACTION;
+	MsgGetFlag(getFlagMsg);
+	if (getFlagMsg.flag) tokenMsg.tokenType = 8319;
+
+	getFlagMsg.flagID = ePlayerFlag::PARADOX_FACTION;
+	MsgGetFlag(getFlagMsg);
+	if (getFlagMsg.flag) tokenMsg.tokenType = 8320;
+
+	getFlagMsg.flagID = ePlayerFlag::VENTURE_FACTION;
+	MsgGetFlag(getFlagMsg);
+	if (getFlagMsg.flag) tokenMsg.tokenType = 8321;
+
+	LOG("Returning token type %i", tokenMsg.tokenType);
+	return tokenMsg.tokenType != LOT_NULL;
+}
+
+bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
+	auto& pickupItemMsg = static_cast<GameMessages::PickupItem&>(msg);
+	if (GetObjectID() == pickupItemMsg.lootOwnerID) {
+		PickupItem(pickupItemMsg.lootID);
+	} else {
+		auto* const characterComponent = GetComponent<CharacterComponent>();
+		if (!characterComponent) return false;
+		auto& droppedLoot = characterComponent->GetDroppedLoot();
+		const auto it = droppedLoot.find(pickupItemMsg.lootID);
+		if (it != droppedLoot.end()) {
+			CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
+			const CDObjects& object = objectsTable->GetByID(it->second.lot);
+			if (object.id != 0 && object.type == "Powerup") {
+				return false; // Let powerups be duplicated
+			}
+		}
+		droppedLoot.erase(pickupItemMsg.lootID);
+	}
+
 	return true;
 }

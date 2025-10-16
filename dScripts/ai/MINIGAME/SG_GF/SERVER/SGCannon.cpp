@@ -415,9 +415,7 @@ void SGCannon::SpawnNewModel(Entity* self) {
 			}
 
 			if (lootMatrix != 0) {
-				std::unordered_map<LOT, int32_t> toDrop = {};
-				toDrop = Loot::RollLootMatrix(player, lootMatrix);
-
+				const auto toDrop = Loot::RollLootMatrix(player, lootMatrix);
 				for (const auto [lot, count] : toDrop) {
 					GameMessages::SetModelToBuild modelToBuild{};
 					modelToBuild.modelLot = lot;
