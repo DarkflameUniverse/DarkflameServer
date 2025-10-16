@@ -11,4 +11,7 @@ public:
 	void OnHit(Entity* self, Entity* attacker) override;
 
 	void OnTimerDone(Entity* self, std::string timerName) override;
+
+private:
+	LOT m_GorillaLOT = 13524;
 };
