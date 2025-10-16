@@ -1103,52 +1103,6 @@ void GameMessages::SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, 
 
 		finalPosition = NiPoint3(static_cast<float>(spawnPos.GetX() + sin_v), spawnPos.GetY(), static_cast<float>(spawnPos.GetZ() + cos_v));
 	}
-
-	//Write data to packet & send:
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(entity->GetObjectID());
-	bitStream.Write(MessageType::Game::DROP_CLIENT_LOOT);
-
-	bitStream.Write(bUsePosition);
-
-	bitStream.Write(finalPosition != NiPoint3Constant::ZERO);
-	if (finalPosition != NiPoint3Constant::ZERO) bitStream.Write(finalPosition);
-
-	bitStream.Write(currency);
-	bitStream.Write(item);
-	bitStream.Write(lootID);
-	bitStream.Write(owner);
-	bitStream.Write(sourceID);
-
-	bitStream.Write(spawnPos != NiPoint3Constant::ZERO);
-	if (spawnPos != NiPoint3Constant::ZERO) bitStream.Write(spawnPos);
-
-	auto* team = TeamManager::Instance()->GetTeam(owner);
-
-	// Currency and powerups should not sync
-	if (team != nullptr && currency == 0) {
-		CDObjectsTable* objectsTable = CDClientManager::GetTable<CDObjectsTable>();
-
-		const CDObjects& object = objectsTable->GetByID(item);
-
-		if (object.type != "Powerup") {
-			for (const auto memberId : team->members) {
-				auto* member = Game::entityManager->GetEntity(memberId);
-
-				if (member == nullptr) continue;
-
-				SystemAddress sysAddr = member->GetSystemAddress();
-				SEND_PACKET;
-			}
-
-			return;
-		}
-	}
-
-	SystemAddress sysAddr = entity->GetSystemAddress();
-	SEND_PACKET;
 }
 
 void GameMessages::SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme) {
@@ -2597,6 +2551,14 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	// Uncompress the data, split, and nornmalize the model
 	const auto asStr = sd0.GetAsStringUncompressed();
+
+	if (Game::config->GetValue("save_lxfmls") == "1") {
+		// save using localId to avoid conflicts
+		std::ofstream outFile("debug_lxfml_uncompressed_" + std::to_string(localId) + ".lxfml");
+		outFile << asStr;
+		outFile.close();
+	}
+
 	auto splitLxfmls = Lxfml::Split(asStr);
 	LOG_DEBUG("Split into %zu models", splitLxfmls.size());
 
@@ -5725,27 +5687,6 @@ void GameMessages::HandleModularBuildMoveAndEquip(RakNet::BitStream& inStream, E
 	inv->MoveItemToInventory(item, eInventoryType::MODELS, 1, false, true);
 }
 
-void GameMessages::HandlePickupItem(RakNet::BitStream& inStream, Entity* entity) {
-	LWOOBJID lootObjectID;
-	LWOOBJID playerID;
-	inStream.Read(lootObjectID);
-	inStream.Read(playerID);
-
-	entity->PickupItem(lootObjectID);
-
-	auto* team = TeamManager::Instance()->GetTeam(entity->GetObjectID());
-
-	if (team != nullptr) {
-		for (const auto memberId : team->members) {
-			auto* member = Game::entityManager->GetEntity(memberId);
-
-			if (member == nullptr || memberId == playerID) continue;
-
-			SendTeamPickupItem(lootObjectID, lootObjectID, playerID, member->GetSystemAddress());
-		}
-	}
-}
-
 void GameMessages::HandleResurrect(RakNet::BitStream& inStream, Entity* entity) {
 	bool immediate = inStream.ReadBit();
 
@@ -6329,6 +6270,11 @@ namespace GameMessages {
 		return Game::entityManager->SendMessage(*this);
 	}
 
+	bool GameMsg::Send(const LWOOBJID _target) {
+		target = _target;
+		return Send();
+	}
+
 	void GameMsg::Send(const SystemAddress& sysAddr) const {
 		CBITSTREAM;
 		CMSGHEADER;
@@ -6495,5 +6441,50 @@ namespace GameMessages {
 	void EmotePlayed::Serialize(RakNet::BitStream& stream) const {
 		stream.Write(emoteID);
 		stream.Write(targetID);
+	}
+
+	void DropClientLoot::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(bUsePosition);
+
+		stream.Write(finalPosition != NiPoint3Constant::ZERO);
+		if (finalPosition != NiPoint3Constant::ZERO) stream.Write(finalPosition);
+
+		stream.Write(currency);
+		stream.Write(item);
+		stream.Write(lootID);
+		stream.Write(ownerID);
+		stream.Write(sourceID);
+
+		stream.Write(spawnPos != NiPoint3Constant::ZERO);
+		if (spawnPos != NiPoint3Constant::ZERO) stream.Write(spawnPos);
+	}
+
+	bool PickupItem::Deserialize(RakNet::BitStream& stream) {
+		if (!stream.Read(lootID)) return false;
+		if (!stream.Read(lootOwnerID)) return false;
+		return true;
+	}
+
+	void PickupItem::Handle(Entity& entity, const SystemAddress& sysAddr) {
+		auto* team = TeamManager::Instance()->GetTeam(entity.GetObjectID());
+		LOG("Has team %i picking up %llu:%llu", team != nullptr, lootID, lootOwnerID);
+		if (team) {
+			for (const auto memberId : team->members) {
+				this->Send(memberId);
+				TeamPickupItem teamPickupMsg{};
+				teamPickupMsg.target = lootID;
+				teamPickupMsg.lootID = lootID;
+				teamPickupMsg.lootOwnerID = lootOwnerID;
+				const auto* const memberEntity = Game::entityManager->GetEntity(memberId);
+				if (memberEntity) teamPickupMsg.Send(memberEntity->GetSystemAddress());
+			}
+		} else {
+			entity.PickupItem(lootID);
+		}
+	}
+
+	void TeamPickupItem::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(lootID);	
+		stream.Write(lootOwnerID);	
 	}
 }

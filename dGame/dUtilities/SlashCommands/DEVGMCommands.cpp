@@ -1314,7 +1314,7 @@ namespace DEVGMCommands {
 
 		for (uint32_t i = 0; i < loops; i++) {
 			while (true) {
-				auto lootRoll = Loot::RollLootMatrix(lootMatrixIndex.value());
+				const auto lootRoll = Loot::RollLootMatrix(nullptr, lootMatrixIndex.value());
 				totalRuns += 1;
 				bool doBreak = false;
 				for (const auto& kv : lootRoll) {
@@ -1479,15 +1479,20 @@ namespace DEVGMCommands {
 	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
+		const auto idParsed = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
 
+		// First try to get the object by its ID if provided.
+		// Second try to get the object by player name.
+		// Lastly assume we were passed a component or LDF and try to find the closest entity with that component or LDF.
 		Entity* closest = nullptr;
+		if (idParsed) closest = Game::entityManager->GetEntity(idParsed.value());
 		float closestDistance = 0.0f;
 
 		std::u16string ldf;
 
 		bool isLDF = false;
 
-		closest = PlayerManager::GetPlayer(splitArgs[0]);
+		if (!closest) closest = PlayerManager::GetPlayer(splitArgs[0]);
 		if (!closest) {
 			auto component = GeneralUtils::TryParse<eReplicaComponentType>(splitArgs[0]);
 			if (!component) {

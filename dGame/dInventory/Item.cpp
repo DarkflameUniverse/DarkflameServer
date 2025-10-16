@@ -343,9 +343,9 @@ void Item::UseNonEquip(Item* item) {
 				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParent())) {
 					auto* entityParent = playerInventoryComponent->GetParent();
 					// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
-					std::unordered_map<LOT, int32_t> rolledLoot{};
+					Loot::Return rolledLoot{};
 					for (auto& pack : packages) {
-						auto thisPackage = Loot::RollLootMatrix(entityParent, pack.LootMatrixIndex);
+						const auto thisPackage = Loot::RollLootMatrix(entityParent, pack.LootMatrixIndex);
 						for (auto& loot : thisPackage) {
 							// If we already rolled this lot, add it to the existing one, otherwise create a new entry.
 							auto existingLoot = rolledLoot.find(loot.first);
@@ -356,6 +356,7 @@ void Item::UseNonEquip(Item* item) {
 							}
 						}
 					}
+
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
 						Loot::GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
