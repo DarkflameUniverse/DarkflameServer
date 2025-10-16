@@ -8,6 +8,7 @@
 #include "GeneralUtils.h"
 #include "BinaryIO.h"
 #include "LUTriggers.h"
+#include "dConfig.h"
 
 #include "AssetManager.h"
 #include "CDClientManager.h"
@@ -101,6 +102,14 @@ void Zone::LoadZoneIntoMemory() {
 		Raw::GenerateTerrainMesh(m_Raw, m_TerrainMesh);
 		LOG("Generated terrain mesh with %llu vertices and %llu triangles", 
 			m_TerrainMesh.vertices.size(), m_TerrainMesh.triangles.size() / 3);
+
+		// Optionally export terrain mesh to OBJ for debugging/visualization
+		if (Game::config->GetValue("export_terrain_to_obj") == "1") {
+			std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
+			if (Raw::WriteTerrainMeshToOBJ(m_TerrainMesh, objFileName)) {
+				LOG("Exported terrain mesh to %s", objFileName.c_str());
+			}
+		}
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
 			BinaryIO::BinaryRead(file, m_NumberOfSceneTransitionsLoaded);

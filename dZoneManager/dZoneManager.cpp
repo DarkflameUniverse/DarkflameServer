@@ -399,6 +399,23 @@ void dZoneManager::BuildSceneGraph() {
 			}
 		}
 	}
+	
+	// Scene 0 (global scene) is always loaded and adjacent to all other scenes
+	LWOSCENEID globalScene = LWOSCENEID(m_ZoneID.GetMapID(), 0);
+	for (auto& [sceneID, adjacentScenes] : m_SceneAdjacencyList) {
+		if (sceneID != globalScene) {
+			// Add global scene to this scene's adjacency list if not already present
+			if (std::find(adjacentScenes.begin(), adjacentScenes.end(), globalScene) == adjacentScenes.end()) {
+				adjacentScenes.push_back(globalScene);
+			}
+			
+			// Add this scene to global scene's adjacency list if not already present
+			auto& globalAdjacent = m_SceneAdjacencyList[globalScene];
+			if (std::find(globalAdjacent.begin(), globalAdjacent.end(), sceneID) == globalAdjacent.end()) {
+				globalAdjacent.push_back(sceneID);
+			}
+		}
+	}
 }
 
 std::vector<LWOSCENEID> dZoneManager::GetAdjacentScenes(LWOSCENEID sceneID) const {

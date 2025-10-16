@@ -333,8 +333,7 @@ namespace Raw {
 				uint8_t sceneID = 0;
 				if (sceneIndex < chunk.sceneMap.size()) {
 					sceneID = chunk.sceneMap[sceneIndex];
-				}					
-				outMesh.vertices.emplace_back(worldPos, sceneID);
+				}					outMesh.vertices.emplace_back(worldPos, sceneID);
 
 					// Generate triangles (same pattern as dTerrain)
 					if (i > 0 && j > 0) {

@@ -7,7 +7,9 @@
 #include <vector>
 #include <string>
 #include <istream>
+#include <map>
 #include "NiPoint3.h"
+#include "dCommonVars.h"
 
 namespace Raw {
 
@@ -137,6 +139,17 @@ bool ReadRaw(std::istream& stream, Raw& outRaw);
  * @param outMesh Output terrain mesh with vertices and scene IDs
  */
 void GenerateTerrainMesh(const Raw& raw, TerrainMesh& outMesh);
+
+/**
+ * @brief Write terrain mesh to OBJ file for debugging/visualization
+ * Merged from dTerrain's WriteFinalMeshToOBJ functionality
+ * Vertices are colored based on their scene ID using a hash function
+ * 
+ * @param mesh The terrain mesh to export
+ * @param path Output path for the OBJ file
+ * @return true if successfully written, false otherwise
+ */
+bool WriteTerrainMeshToOBJ(const TerrainMesh& mesh, const std::string& path);
 
 } // namespace Raw
 
