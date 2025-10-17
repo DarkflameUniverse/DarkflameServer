@@ -233,7 +233,7 @@ uint32_t Zone::CalculateChecksum() const {
 void Zone::LoadLevelsIntoMemory() {
 	for (auto& [sceneID, scene] : m_Scenes) {
 		if (scene.level) continue;
-		scene.level = std::make_unique<Level>(this, sceneID, m_ZonePath + scene.filename);
+		scene.level = std::make_unique<Level>(this, m_ZonePath + scene.filename);
 
 		if (scene.level->m_ChunkHeaders.empty()) continue;
 
