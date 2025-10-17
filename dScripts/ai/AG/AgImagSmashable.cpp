@@ -5,6 +5,7 @@
 #include "EntityInfo.h"
 #include "DestroyableComponent.h"
 #include "eReplicaComponentType.h"
+#include "Loot.h"
 
 void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 	bool maxImagGreaterThanZero = false;
@@ -18,7 +19,14 @@ void AgImagSmashable::OnDie(Entity* self, Entity* killer) {
 		if (maxImagGreaterThanZero) {
 			int amount = GeneralUtils::GenerateRandomNumber<int>(0, 3);
 			for (int i = 0; i < amount; ++i) {
-				GameMessages::SendDropClientLoot(killer, self->GetObjectID(), 935, 0, self->GetPosition());
+				GameMessages::DropClientLoot lootMsg{};
+				lootMsg.target = killer->GetObjectID();
+				lootMsg.ownerID = killer->GetObjectID();
+				lootMsg.sourceID = self->GetObjectID();
+				lootMsg.item = 935;
+				lootMsg.count = 1;
+				lootMsg.spawnPos = self->GetPosition();
+				Loot::DropItem(*killer, lootMsg);
 			}
 		}
 	}

@@ -7,6 +7,7 @@
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
 #include "eTerminateType.h"
+#include "Loot.h"
 
 void GfTikiTorch::OnStartup(Entity* self) {
 	LightTorch(self);
@@ -22,7 +23,14 @@ void GfTikiTorch::OnUse(Entity* self, Entity* killer) {
 	self->SetI64(u"userID", killer->GetObjectID());
 
 	for (int i = 0; i < m_numspawn; i++) {
-		GameMessages::SendDropClientLoot(killer, self->GetObjectID(), 935, 0, self->GetPosition());
+		GameMessages::DropClientLoot lootMsg{};
+		lootMsg.target = killer->GetObjectID();
+		lootMsg.ownerID = killer->GetObjectID();
+		lootMsg.sourceID = self->GetObjectID();
+		lootMsg.item = 935;
+		lootMsg.count = 1;
+		lootMsg.spawnPos = self->GetPosition();
+		Loot::DropItem(*killer, lootMsg);
 	}
 
 	self->AddTimer("InteractionCooldown", 4);

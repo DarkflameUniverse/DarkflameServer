@@ -153,7 +153,6 @@ namespace GameMessages {
 	void SendStop2DAmbientSound(Entity* entity, bool force, std::string audioGUID, bool result = false);
 	void SendPlay2DAmbientSound(Entity* entity, std::string audioGUID, bool result = false);
 	void SendSetNetworkScriptVar(Entity* entity, const SystemAddress& sysAddr, std::string data);
-	void SendDropClientLoot(Entity* entity, const LWOOBJID& sourceID, LOT item, int currency, NiPoint3 spawnPos = NiPoint3Constant::ZERO, int count = 1);
 
 	void SendSetPlayerControlScheme(Entity* entity, eControlScheme controlScheme);
 	void SendPlayerReachedRespawnCheckpoint(Entity* entity, const NiPoint3& position, const NiQuaternion& rotation);
@@ -794,6 +793,7 @@ namespace GameMessages {
 		AMFArrayValue* info{};
 		AMFArrayValue* subCategory{};
 		bool bVerbose{};
+		LWOOBJID clientID{};
 
 		GetObjectReportInfo() : GameMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, eGameMasterLevel::DEVELOPER) {}
 	};

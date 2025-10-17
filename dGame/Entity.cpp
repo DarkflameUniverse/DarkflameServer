@@ -424,6 +424,7 @@ void Entity::Initialize() {
 					comp->SetIsSmashable(destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
+					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
 					Loot::CacheMatrix(destCompData[0].LootMatrixIndex);
 
 					// Now get currency information
@@ -2252,6 +2253,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::GameMsg& msg) {
 	response.Insert("objectID", std::to_string(m_ObjectID));
 	response.Insert("serverInfo", true);
 	GameMessages::GetObjectReportInfo info{};
+	info.clientID = requestInfo.clientId;
 	info.bVerbose = requestInfo.bVerbose;
 	info.info = response.InsertArray("data");
 	auto& objectInfo = info.info->PushDebug("Object Details");

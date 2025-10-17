@@ -3,6 +3,9 @@
 #include "Logger.h"
 #include "Game.h"
 #include "dConfig.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
+#include "CDRarityTableTable.h"
 
 #include "Amf3.h"
 #include "AmfSerialize.h"
@@ -773,7 +776,15 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				Loot::DropLoot(m_Parent, m_Parent->GetObjectID(), -1, coinsToLose, coinsToLose);
+				GameMessages::DropClientLoot lootMsg{};
+				lootMsg.target = m_Parent->GetObjectID();
+				lootMsg.ownerID = m_Parent->GetObjectID();
+				lootMsg.currency = coinsToLose;
+				lootMsg.spawnPos = m_Parent->GetPosition();
+				lootMsg.sourceID = source;
+				lootMsg.item = LOT_NULL;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
@@ -974,7 +985,14 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 						for (const auto item : itemMap | std::views::values) {
 							// Don't drop excluded items or null ones
 							if (!item || Game::entityManager->GetHardcoreExcludedItemDrops().contains(item->GetLot())) continue;
-							GameMessages::SendDropClientLoot(m_Parent, source, item->GetLot(), 0, m_Parent->GetPosition(), item->GetCount());
+							GameMessages::DropClientLoot lootMsg{};
+							lootMsg.target = m_Parent->GetObjectID();
+							lootMsg.ownerID = m_Parent->GetObjectID();
+							lootMsg.sourceID = m_Parent->GetObjectID();
+							lootMsg.item = item->GetLot();
+							lootMsg.count = 1;
+							lootMsg.spawnPos = m_Parent->GetPosition();
+							for (int i = 0; i < item->GetCount(); i++) Loot::DropItem(*m_Parent, lootMsg);
 							item->SetCount(0, false, false);
 						}
 						Game::entityManager->SerializeEntity(m_Parent);
@@ -997,12 +1015,24 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 			//drop all coins:
 			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
+			GameMessages::DropClientLoot lootMsg{};
+			lootMsg.target = m_Parent->GetObjectID();
+			lootMsg.ownerID = m_Parent->GetObjectID();
+			lootMsg.spawnPos = m_Parent->GetPosition();
+			lootMsg.sourceID = source;
+			lootMsg.item = LOT_NULL;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
 			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
 				LOG("Dropping 100,000, %llu left", coinsToDrop);
-				GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, MAX_TO_DROP_PER_GM, m_Parent->GetPosition());
-				coinsToDrop -= MAX_TO_DROP_PER_GM;
+				lootMsg.currency = 100'000;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
+				coinsToDrop -= 100'000;
 			}
-			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coinsToDrop, m_Parent->GetPosition());
+			lootMsg.currency = coinsToDrop;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
 		}
 		return;
 	}
@@ -1033,38 +1063,89 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-
 	auto& destroyableInfo = reportInfo.info->PushDebug("Destroyable");
-	destroyableInfo.PushDebug<AMFIntValue>("Health") = m_iHealth;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Health") = m_fMaxHealth;
-	destroyableInfo.PushDebug<AMFIntValue>("Armor") = m_iArmor;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Armor") = m_fMaxArmor;
-	destroyableInfo.PushDebug<AMFIntValue>("Imagination") = m_iImagination;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Imagination") = m_fMaxImagination;
-	destroyableInfo.PushDebug<AMFIntValue>("Damage To Absorb") = m_DamageToAbsorb;
+	destroyableInfo.PushDebug<AMFIntValue>("DestructibleComponent DB Table Template ID") = m_ComponentID;
+
+	if (m_CurrencyIndex == -1) {
+		destroyableInfo.PushDebug<AMFBoolValue>("Has Loot Currency") = false;
+	} else {
+		destroyableInfo.PushDebug<AMFIntValue>("Loot Currency ID") = m_CurrencyIndex;
+		auto& detailedCoinInfo = destroyableInfo.PushDebug("Coin Info");
+		detailedCoinInfo.PushDebug<AMFIntValue>("Min Coins") = m_MinCoins;
+		detailedCoinInfo.PushDebug<AMFIntValue>("Max Coins") = m_MaxCoins;
+	}
+
+	if (m_LootMatrixID == -1 || m_LootMatrixID == 0) {
+		destroyableInfo.PushDebug<AMFBoolValue>("Has Loot Matrix") = false;
+	} else {
+		auto& lootInfo = destroyableInfo.PushDebug("Loot Info");
+		lootInfo.PushDebug<AMFIntValue>("Loot Matrix ID") = m_LootMatrixID;
+		auto* const componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+		auto* const itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+		auto* const lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+		auto* const lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+		auto* const rarityTableTable = CDClientManager::GetTable<CDRarityTableTable>();
+
+		const auto& matrix = lootMatrixTable->GetMatrix(m_LootMatrixID);
+
+		for (const auto& entry : matrix) {
+			auto& thisEntry = lootInfo.PushDebug("Loot table Index - " + std::to_string(entry.LootTableIndex));
+			thisEntry.PushDebug<AMFDoubleValue>("Percent chance to drop") = entry.percent * 100.0f;
+			thisEntry.PushDebug<AMFDoubleValue>("Minimum amount to drop") = entry.minToDrop;
+			thisEntry.PushDebug<AMFDoubleValue>("Maximum amount to drop") = entry.maxToDrop;
+			const auto& lootTable = lootTableTable->GetTable(entry.LootTableIndex);
+			const auto& rarityTable = rarityTableTable->GetRarityTable(entry.RarityTableIndex);
+
+			auto& thisRarity = thisEntry.PushDebug("Rarity");
+			for (const auto& rarity : rarityTable) {
+				thisRarity.PushDebug<AMFDoubleValue>("Rarity " + std::to_string(rarity.rarity)) = rarity.randmax;
+			}
+
+			auto& thisItems = thisEntry.PushDebug("Drop(s) Info");
+			for (const auto& loot : lootTable) {
+				uint32_t itemComponentId = componentsRegistryTable->GetByIDAndType(loot.itemid, eReplicaComponentType::ITEM);
+				uint32_t rarity = itemComponentTable->GetItemComponentByID(itemComponentId).rarity;
+				auto title = "%[Objects_" + std::to_string(loot.itemid) + "_name] " + std::to_string(loot.itemid);
+				if (loot.MissionDrop) title += " - Mission Drop";
+				thisItems.PushDebug(title);
+			}
+		}
+	}
+
+	auto* const entity = Game::entityManager->GetEntity(reportInfo.clientID);
+	destroyableInfo.PushDebug<AMFBoolValue>("Is on your team") = entity ? IsFriend(entity) : false;
+	auto& stats = destroyableInfo.PushDebug("Statistics");
+	stats.PushDebug<AMFIntValue>("Health") = m_iHealth;
+	stats.PushDebug<AMFDoubleValue>("Maximum Health") = m_fMaxHealth;
+	stats.PushDebug<AMFIntValue>("Armor") = m_iArmor;
+	stats.PushDebug<AMFDoubleValue>("Maximum Armor") = m_fMaxArmor;
+	stats.PushDebug<AMFIntValue>("Imagination") = m_iImagination;
+	stats.PushDebug<AMFDoubleValue>("Maximum Imagination") = m_fMaxImagination;
+	stats.PushDebug<AMFIntValue>("Damage Absorption Points") = m_DamageToAbsorb;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is GM Immune") = m_IsGMImmune;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Shielded") = m_IsShielded;
 	destroyableInfo.PushDebug<AMFIntValue>("Attacks To Block") = m_AttacksToBlock;
 	destroyableInfo.PushDebug<AMFIntValue>("Damage Reduction") = m_DamageReduction;
-	auto& factions = destroyableInfo.PushDebug("Factions");
-	size_t i = 0;
+	std::stringstream factionsStream;
 	for (const auto factionID : m_FactionIDs) {
-		factions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(factionID)) = "";
+		factionsStream << factionID << " ";
 	}
-	auto& enemyFactions = destroyableInfo.PushDebug("Enemy Factions");
-	i = 0;
+
+	destroyableInfo.PushDebug<AMFStringValue>("Factions") = factionsStream.str();
+
+	factionsStream.str("");
 	for (const auto enemyFactionID : m_EnemyFactionIDs) {
-		enemyFactions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(enemyFactionID)) = "";
+		factionsStream << enemyFactionID << " ";
 	}
+
+	destroyableInfo.PushDebug<AMFStringValue>("Enemy Factions") = factionsStream.str();
+
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashable") = m_IsSmashable;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashed") = m_IsSmashed;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Module Assembly") = m_IsModuleAssembly;
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
 	destroyableInfo.PushDebug<AMFBoolValue>("Has Threats") = m_HasThreats;
-	destroyableInfo.PushDebug<AMFIntValue>("Loot Matrix ID") = m_LootMatrixID;
-	destroyableInfo.PushDebug<AMFIntValue>("Min Coins") = m_MinCoins;
-	destroyableInfo.PushDebug<AMFIntValue>("Max Coins") = m_MaxCoins;
+
 	destroyableInfo.PushDebug<AMFStringValue>("Killer ID") = std::to_string(m_KillerID);
 
 	// "Scripts"; idk what to do about scripts yet
@@ -1079,7 +1160,25 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	immuneCounts.PushDebug<AMFIntValue>("Quickbuild Interrupt") = m_ImmuneToQuickbuildInterruptCount;
 	immuneCounts.PushDebug<AMFIntValue>("Pull To Point") = m_ImmuneToPullToPointCount;
 
-	destroyableInfo.PushDebug<AMFIntValue>("Death Behavior") = m_DeathBehavior;
+	auto& deathInfo = destroyableInfo.PushDebug("Death Info");
+	deathInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;
+	switch (m_DeathBehavior) {
+	case 0:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Fade";
+		break;
+	case 1:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Stay";
+		break;
+	case 2:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Immediate";
+		break;
+	case -1:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Invulnerable";
+		break;
+	default:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Other";
+		break;
+	}
 	destroyableInfo.PushDebug<AMFDoubleValue>("Damage Cooldown Timer") = m_DamageCooldownTimer;
 
 	return true;

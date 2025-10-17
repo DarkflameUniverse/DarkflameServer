@@ -370,6 +370,8 @@ public:
 	 */
 	uint32_t GetLootMatrixID() const { return m_LootMatrixID; }
 
+	void SetCurrencyIndex(int32_t currencyIndex) { m_CurrencyIndex = currencyIndex; }
+
 	/**
 	 * Returns the ID of the entity that killed this entity, if any
 	 * @return the ID of the entity that killed this entity, if any
@@ -586,6 +588,9 @@ private:
 	 * The loot matrix that will be used to drop items when the entity is smashed
 	 */
 	uint32_t m_LootMatrixID;
+
+	// The currency index to determine how much loot to drop
+	int32_t m_CurrencyIndex{ -1 };
 
 	/**
 	 * The min amount of coins that will drop when this entity is smashed
