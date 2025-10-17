@@ -53,6 +53,30 @@ public:
 	uint32_t GetUniqueMissionIdStartingValue();
 	bool CheckIfAccessibleZone(LWOMAPID zoneID);
 
+	/**
+	 * @brief Get the scene ID at a given position. Scenes do not care about height (Y coordinate).
+	 * 
+	 * @param position The position to query
+	 * @return The scene ID at that position, or LWOSCENEID_INVALID if not found
+	 */
+	LWOSCENEID GetSceneIDFromPosition(const NiPoint3& position) const;
+
+	/**
+	 * @brief Get the adjacency list for the scene graph.
+	 * The adjacency list maps each scene ID to a list of scene IDs it can transition to.
+	 * 
+	 * @return A reference to the scene adjacency list
+	 */
+	const std::map<LWOSCENEID, std::vector<LWOSCENEID>>& GetSceneAdjacencyList() const { return m_SceneAdjacencyList; }
+
+	/**
+	 * @brief Get all scenes adjacent to (connected to) a given scene.
+	 * 
+	 * @param sceneID The scene ID to query
+	 * @return A vector of scene IDs that are directly connected to this scene, or empty vector if scene not found
+	 */
+	std::vector<LWOSCENEID> GetAdjacentScenes(LWOSCENEID sceneID) const;
+
 	// The world config should not be modified by a caller.
 	const WorldConfig& GetWorldConfig() {
 		if (!m_WorldConfig) LoadWorldConfig();
@@ -60,6 +84,10 @@ public:
 	};
 
 private:
+	/**
+	 * Builds the scene graph adjacency list from scene transitions
+	 */
+	void BuildSceneGraph();
 	/**
 	 * The starting unique mission ID.
 	 */
@@ -75,4 +103,9 @@ private:
 	std::optional<WorldConfig> m_WorldConfig = std::nullopt;
 
 	Entity* m_ZoneControlObject = nullptr;
+
+	/**
+	 * Scene graph adjacency list: maps each scene ID to a list of scenes it can transition to
+	 */
+	std::map<LWOSCENEID, std::vector<LWOSCENEID>> m_SceneAdjacencyList;
 };
