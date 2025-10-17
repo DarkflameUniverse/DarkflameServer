@@ -68,8 +68,8 @@ struct Chunk {
 	uint32_t id;
 	uint32_t width;
 	uint32_t height;
-	float offsetWorldX;
-	float offsetWorldZ;
+	float offsetX;
+	float offsetZ;
 	uint32_t shaderId;
 	
 	// Texture IDs (4 textures per chunk)
@@ -119,6 +119,12 @@ struct Raw {
 	uint32_t numChunksWidth = 0;
 	uint32_t numChunksHeight = 0;
 	std::vector<Chunk> chunks;
+	
+	// Calculated bounds of the entire terrain
+	float minBoundsX = 0.0f;
+	float minBoundsZ = 0.0f;
+	float maxBoundsX = 0.0f;
+	float maxBoundsZ = 0.0f;
 };
 
 /**

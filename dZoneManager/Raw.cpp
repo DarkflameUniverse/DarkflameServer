@@ -4,6 +4,7 @@
 #include "SceneColor.h"
 #include <fstream>
 #include <algorithm>
+#include <limits>
 
 namespace Raw {
 
@@ -51,22 +52,20 @@ namespace Raw {
 	 */
 	static bool ReadChunk(std::istream& stream, Chunk& chunk, uint16_t version) {
 		try {
-			// Read basic chunk info
-			BinaryIO::BinaryRead(stream, chunk.id);
-			if (stream.fail()) {
-				return false;
-			}
+		// Read basic chunk info
+		BinaryIO::BinaryRead(stream, chunk.id);
+		if (stream.fail()) {
+			return false;
+		}
 
-			BinaryIO::BinaryRead(stream, chunk.width);
-			BinaryIO::BinaryRead(stream, chunk.height);
-			BinaryIO::BinaryRead(stream, chunk.offsetWorldX);
-			BinaryIO::BinaryRead(stream, chunk.offsetWorldZ);
+	BinaryIO::BinaryRead(stream, chunk.width);
+	BinaryIO::BinaryRead(stream, chunk.height);
+	BinaryIO::BinaryRead(stream, chunk.offsetX);
+	BinaryIO::BinaryRead(stream, chunk.offsetZ);
 
-			if (stream.fail()) {
-				return false;
-			}
-
-			// For version < 32, shader ID comes before texture IDs
+	if (stream.fail()) {
+			return false;
+		}			// For version < 32, shader ID comes before texture IDs
 			if (version < 32) {
 				BinaryIO::BinaryRead(stream, chunk.shaderId);
 			}
@@ -264,9 +263,30 @@ namespace Raw {
 						return false;
 					}
 				}
+				
+				// Calculate terrain bounds from all chunks
+			if (!outRaw.chunks.empty()) {
+				outRaw.minBoundsX = std::numeric_limits<float>::max();
+				outRaw.minBoundsZ = std::numeric_limits<float>::max();
+				outRaw.maxBoundsX = std::numeric_limits<float>::lowest();
+				outRaw.maxBoundsZ = std::numeric_limits<float>::lowest();
+				
+		for (const auto& chunk : outRaw.chunks) {
+			// Calculate chunk bounds
+			const float chunkMinX = chunk.offsetX;
+			const float chunkMinZ = chunk.offsetZ;
+			const float chunkMaxX = chunkMinX + (chunk.width * chunk.scaleFactor);
+			const float chunkMaxZ = chunkMinZ + (chunk.height * chunk.scaleFactor);
+				
+				// Update overall bounds
+				outRaw.minBoundsX = std::min(outRaw.minBoundsX, chunkMinX);
+				outRaw.minBoundsZ = std::min(outRaw.minBoundsZ, chunkMinZ);
+				outRaw.maxBoundsX = std::max(outRaw.maxBoundsX, chunkMaxX);
+				outRaw.maxBoundsZ = std::max(outRaw.maxBoundsZ, chunkMaxZ);
+			}				LOG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]", 
+					outRaw.minBoundsX, outRaw.maxBoundsX, outRaw.minBoundsZ, outRaw.maxBoundsZ);
 			}
-
-			return true;
+		}			return true;
 		} catch (const std::exception&) {
 			return false;
 		}
@@ -302,40 +322,32 @@ namespace Raw {
 					const uint32_t heightIndex = chunk.width * i + j;
 					if (heightIndex >= chunk.heightMap.size()) continue;
 					
-					const float y = chunk.heightMap[heightIndex];
+				const float y = chunk.heightMap[heightIndex];
 
-					// Calculate world position
-					// Based on RawFile::GenerateFinalMeshFromChunks in dTerrain:
-					// tempVert.SetX(tempVert.GetX() + (chunk->m_X / chunk->m_HeightMap->m_ScaleFactor));
-					// tempVert.SetY(tempVert.GetY() / chunk->m_HeightMap->m_ScaleFactor);
-					// tempVert.SetZ(tempVert.GetZ() + (chunk->m_Z / chunk->m_HeightMap->m_ScaleFactor));
-					// tempVert *= chunk->m_HeightMap->m_ScaleFactor;
-					
-					float worldX = (static_cast<float>(i) + (chunk.offsetWorldX / chunk.scaleFactor)) * chunk.scaleFactor;
-					float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
-					float worldZ = (static_cast<float>(j) + (chunk.offsetWorldZ / chunk.scaleFactor)) * chunk.scaleFactor;
+				// Calculate world position				
+				const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
+				const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+				const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
 
-					NiPoint3 worldPos(worldX, worldY, worldZ);
+				const NiPoint3 worldPos(worldX, worldY, worldZ);
 
-				// Get scene ID at this position
-				// Map heightmap position to scene map position
-				// The scene map is colorMapResolution x colorMapResolution
-				// We need to map from heightmap coordinates (i, j) to scene map coordinates
-				const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-				const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-				
-				const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-				const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-				// Scene map uses the same indexing pattern as heightmap: row * width + col
-				const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
+			// Get scene ID at this position
+			// Map heightmap position to scene map position
+			// The scene map is colorMapResolution x colorMapResolution
+			// We need to map from heightmap coordinates (i, j) to scene map coordinates
+			const float sceneMapI = ((i) / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
+			const float sceneMapJ = ((j) / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
+			
+			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
+			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
+			// Scene map uses the same indexing pattern as heightmap: row * width + col
+			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
 
-				uint8_t sceneID = 0;
-				if (sceneIndex < chunk.sceneMap.size()) {
-					sceneID = chunk.sceneMap[sceneIndex];
-				}					
-				outMesh.vertices.emplace_back(worldPos, sceneID);
-
-					// Generate triangles (same pattern as dTerrain)
+			uint8_t sceneID = 0;
+			if (sceneIndex < chunk.sceneMap.size()) {
+				sceneID = chunk.sceneMap[sceneIndex];
+			}					
+			outMesh.vertices.emplace_back(worldPos, sceneID);
 					if (i > 0 && j > 0) {
 						const uint32_t currentVert = vertexOffset + chunk.width * i + j;
 						const uint32_t leftVert = currentVert - 1;

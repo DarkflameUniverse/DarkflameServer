@@ -313,23 +313,27 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 		return LWOSCENEID_INVALID;
 	}
 
+	// Convert 3D position to 2D (XZ plane) and clamp to terrain bounds
+	float posX = std::clamp(position.x, raw.minBoundsX, raw.maxBoundsX);
+	float posZ = std::clamp(position.z, raw.minBoundsZ, raw.maxBoundsZ);
+
 	// Find the chunk containing this position
 	// Reverse the world position calculation from GenerateTerrainMesh
 	for (const auto& chunk : raw.chunks) {
 		if (chunk.sceneMap.empty()) continue;
 
-		// Reverse: worldX = (i + offsetWorldX/scaleFactor) * scaleFactor
-		// Therefore: i = worldX/scaleFactor - offsetWorldX/scaleFactor
-		const float heightI = position.x / chunk.scaleFactor - (chunk.offsetWorldX / chunk.scaleFactor);
-		const float heightJ = position.z / chunk.scaleFactor - (chunk.offsetWorldZ / chunk.scaleFactor);
+		// Reverse: worldX = (i + offsetX/scaleFactor) * scaleFactor
+		// Therefore: i = worldX/scaleFactor - offsetX/scaleFactor
+		const float heightI = posX / chunk.scaleFactor - (chunk.offsetX / chunk.scaleFactor);
+		const float heightJ = posZ / chunk.scaleFactor - (chunk.offsetZ / chunk.scaleFactor);
 
 		// Check if position is within this chunk's heightmap bounds
-		if (heightI >= 0.0f && heightI < chunk.width &&
-			heightJ >= 0.0f && heightJ < chunk.height) {
+		if (heightI >= 0.0f && heightI < static_cast<float>(chunk.width) &&
+			heightJ >= 0.0f && heightJ < static_cast<float>(chunk.height)) {
 			
 			// Map heightmap position to scene map position (same as GenerateTerrainMesh)
-			const float sceneMapI = (heightI / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
-			const float sceneMapJ = (heightJ / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
+			const float sceneMapI = (heightI / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+			const float sceneMapJ = (heightJ / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
 			
 			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
 			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);

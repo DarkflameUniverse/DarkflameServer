@@ -1974,8 +1974,8 @@ namespace DEVGMCommands {
 					const float y = chunk.heightMap[heightIndex];
 
 					// Map heightmap position to scene map position (same as GenerateTerrainMesh)
-					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					const float sceneMapI = ((i) / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
+					const float sceneMapJ = ((j) / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
 					
 					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
 					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
@@ -1987,15 +1987,13 @@ namespace DEVGMCommands {
 					}
 					
 					// Check if this point belongs to the current scene
-					if (sceneID == currentSceneID.GetSceneID()) {
-						// Calculate world position (same as GenerateTerrainMesh)
-						const float worldX = (static_cast<float>(i) + (chunk.offsetWorldX / chunk.scaleFactor)) * chunk.scaleFactor;
-						const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
-						const float worldZ = (static_cast<float>(j) + (chunk.offsetWorldZ / chunk.scaleFactor)) * chunk.scaleFactor;
-						
-						NiPoint3 spawnPos(worldX, worldY, worldZ);
-						
-						EntityInfo info;
+				if (sceneID == currentSceneID.GetSceneID()) {
+					// Calculate world position (same as GenerateTerrainMesh)
+					const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
+					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+					const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
+					
+					NiPoint3 spawnPos(worldX, worldY, worldZ);						EntityInfo info;
 						info.lot = lot + currentSceneID.GetSceneID(); // to differentiate scenes
 						info.pos = spawnPos;
 						info.rot = QuatUtils::IDENTITY;
@@ -2065,8 +2063,8 @@ namespace DEVGMCommands {
 					const float y = chunk.heightMap[heightIndex];
 
 					// Map heightmap position to scene map position (same as GenerateTerrainMesh)
-					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					const float sceneMapI = ((i) / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
+					const float sceneMapJ = ((j) / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
 					
 					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
 					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
@@ -2080,14 +2078,12 @@ namespace DEVGMCommands {
 					// Skip invalid scenes (scene ID 0 typically means no scene)
 					if (sceneID == 0) continue;
 					
-					// Calculate world position (same as GenerateTerrainMesh)
-					const float worldX = (static_cast<float>(i) + (chunk.offsetWorldX / chunk.scaleFactor)) * chunk.scaleFactor;
-					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
-					const float worldZ = (static_cast<float>(j) + (chunk.offsetWorldZ / chunk.scaleFactor)) * chunk.scaleFactor;
-					
-					NiPoint3 spawnPos(worldX, worldY, worldZ);
-					
-					EntityInfo info;
+				// Calculate world position (same as GenerateTerrainMesh)
+				const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
+				const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+				const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
+				
+				NiPoint3 spawnPos(worldX, worldY, worldZ);					EntityInfo info;
 					info.lot = lot + sceneID; // to show different scenes
 					info.pos = spawnPos;
 					info.rot = QuatUtils::IDENTITY;
