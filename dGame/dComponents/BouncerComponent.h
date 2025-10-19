@@ -51,6 +51,8 @@ public:
 	 */
 	void LookupPetSwitch();
 
+	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 private:
 	/**
 	 * Whether this bouncer needs to be activated by a pet
@@ -66,6 +68,36 @@ private:
 	 * Whether the pet switch for this bouncer has been located
 	 */
 	bool m_PetSwitchLoaded;
+
+	// The bouncer destination
+	NiPoint3 m_Destination;
+
+	// The speed at which the player is bounced
+	float m_Speed{};
+
+	// Whether to use a high arc for the bounce trajectory
+	bool m_UsesHighArc{};
+
+	// Lock controls when bouncing
+	bool m_LockControls{};
+	
+	// Ignore collision when bouncing
+	bool m_IgnoreCollision{};
+
+	// Stick the landing afterwards or let the player slide
+	bool m_StickLanding{};
+	
+	// Whether or not there is a group name
+	bool m_UsesGroupName{};
+
+	// The group name for targets
+	std::string m_GroupName{};
+
+	// The number of targets to activate the bouncer
+	int32_t m_MinNumTargets{};
+
+	// The cinematic path to play during the bounce
+	std::string m_CinematicPath{};
 };
 
 #endif // BOUNCERCOMPONENT_H

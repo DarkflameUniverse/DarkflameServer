@@ -39,6 +39,8 @@ public:
 
 	void GhostEntity(const LWOOBJID id);
 
+	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 private:
 	NiPoint3 m_GhostReferencePoint;
 

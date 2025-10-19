@@ -374,6 +374,21 @@ public:
 		return value->Insert<AmfType>("value", std::make_unique<AmfType>());
 	}
 
+	AMFArrayValue& PushDebug(const NiPoint3& point) {
+		PushDebug<AMFDoubleValue>("X") = point.x;
+		PushDebug<AMFDoubleValue>("Y") = point.y;
+		PushDebug<AMFDoubleValue>("Z") = point.z;
+		return *this;
+	}
+
+	AMFArrayValue& PushDebug(const NiQuaternion& rot) {
+		PushDebug<AMFDoubleValue>("W") = rot.w;
+		PushDebug<AMFDoubleValue>("X") = rot.x;
+		PushDebug<AMFDoubleValue>("Y") = rot.y;
+		PushDebug<AMFDoubleValue>("Z") = rot.z;
+		return *this;
+	}
+
 private:
 	/**
 	 * The associative portion.  These values are key'd with strings to an AMFValue.
