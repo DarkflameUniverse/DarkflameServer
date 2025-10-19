@@ -1,9 +1,14 @@
 #include "GhostComponent.h"
 
+#include "Amf3.h"
+#include "GameMessages.h"
+
 GhostComponent::GhostComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_GhostReferencePoint = NiPoint3Constant::ZERO;
 	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
+
+	RegisterMsg<GameMessages::GetObjectReportInfo>(this, &GhostComponent::MsgGetObjectReportInfo);
 }
 
 GhostComponent::~GhostComponent() {
@@ -54,4 +59,13 @@ bool GhostComponent::IsObserved(LWOOBJID id) {
 
 void GhostComponent::GhostEntity(LWOOBJID id) {
 	m_ObservedEntities.erase(id);
+}
+
+bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& cmptType = reportMsg.info->PushDebug("Ghost");
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	cmptType.PushDebug<AMFBoolValue>("Is GM Invis") = false;
+
+	return true;
 }

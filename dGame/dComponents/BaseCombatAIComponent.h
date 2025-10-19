@@ -234,6 +234,8 @@ public:
 	// Ignore a threat for a certain amount of time
 	void IgnoreThreat(const LWOOBJID target, const float time);
 
+	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
+
 private:
 	/**
 	 * Returns the current target or the target that currently is the largest threat to this entity

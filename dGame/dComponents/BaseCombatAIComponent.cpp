@@ -27,8 +27,13 @@
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
+#include "Amf3.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	{
+		using namespace GameMessages;
+		RegisterMsg<GetObjectReportInfo>(this, &BaseCombatAIComponent::MsgGetObjectReportInfo);
+	}
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
 	m_State = AiState::spawn;
@@ -838,4 +843,74 @@ void BaseCombatAIComponent::IgnoreThreat(const LWOOBJID threat, const float valu
 	m_RemovedThreatList[threat] = value;
 	SetThreat(threat, 0.0f);
 	m_Target = LWOOBJID_EMPTY;
+}
+
+bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	using enum AiState;
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& cmptType = reportMsg.info->PushDebug("Base Combat AI");
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	auto& targetInfo = cmptType.PushDebug("Current Target Info");
+	targetInfo.PushDebug<AMFStringValue>("Current Target ID") = std::to_string(m_Target);
+	// if (m_Target != LWOOBJID_EMPTY) {
+		// LWOGameMessages::ObjGetName nameMsg(m_CurrentTarget);
+		// SEND_GAMEOBJ_MSG(nameMsg);
+		// if (!nameMsg.msg.name.empty()) targetInfo.PushDebug("Name") = nameMsg.msg.name;
+	// }
+
+	auto& roundInfo = cmptType.PushDebug("Round Info");
+	// roundInfo.PushDebug<AMFDoubleValue>("Combat Round Time") = m_CombatRoundLength;
+	// roundInfo.PushDebug<AMFDoubleValue>("Minimum Time") = m_MinRoundLength;
+	// roundInfo.PushDebug<AMFDoubleValue>("Maximum Time") = m_MaxRoundLength;
+	// roundInfo.PushDebug<AMFDoubleValue>("Selected Time") = m_SelectedTime;
+	// roundInfo.PushDebug<AMFDoubleValue>("Combat Start Delay") = m_CombatStartDelay;
+	std::string curState;
+	switch (m_State) {
+		case idle: curState = "Idling"; break;
+		case aggro: curState = "Aggroed"; break;
+		case tether: curState = "Returning to Tether"; break;
+		case spawn: curState = "Spawn"; break;
+		case dead: curState = "Dead"; break;
+		default: curState = "Unknown or Undefined"; break;
+	}
+	cmptType.PushDebug<AMFStringValue>("Current Combat State") = curState;
+
+	//switch (m_CombatBehaviorType) {
+	//	case 0: curState = "Passive"; break;
+	//	case 1: curState = "Aggressive"; break;
+	//	case 2: curState = "Passive (Turret)"; break;
+	//	case 3: curState = "Aggressive (Turret)"; break;
+	//	default: curState = "Unknown or Undefined"; break;
+	//}
+	//cmptType.PushDebug("Current Combat Behavior State") = curState;
+
+	//switch (m_CombatRole) {
+	//	case 0: curState = "Melee"; break;
+	//	case 1: curState = "Ranged"; break;
+	//	case 2: curState = "Support"; break;
+	//	default: curState = "Unknown or Undefined"; break;
+	//}
+	//cmptType.PushDebug("Current Combat Role") = curState;
+
+	auto& tetherPoint = cmptType.PushDebug("Tether Point");
+	tetherPoint.PushDebug<AMFDoubleValue>("X") = m_StartPosition.x;
+	tetherPoint.PushDebug<AMFDoubleValue>("Y") = m_StartPosition.y;
+	tetherPoint.PushDebug<AMFDoubleValue>("Z") = m_StartPosition.z;
+	cmptType.PushDebug<AMFDoubleValue>("Hard Tether Radius") = m_HardTetherRadius;
+	cmptType.PushDebug<AMFDoubleValue>("Soft Tether Radius") = m_SoftTetherRadius;
+	cmptType.PushDebug<AMFDoubleValue>("Aggro Radius") = m_AggroRadius;
+	cmptType.PushDebug<AMFDoubleValue>("Tether Speed") = m_TetherSpeed;
+	cmptType.PushDebug<AMFDoubleValue>("Aggro Speed") = m_TetherSpeed;
+	// cmptType.PushDebug<AMFDoubleValue>("Specified Min Range") = m_SpecificMinRange;
+	// cmptType.PushDebug<AMFDoubleValue>("Specified Max Range") = m_SpecificMaxRange;
+	auto& threats = cmptType.PushDebug("Target Threats");
+	for (const auto& [id, threat] : m_ThreatEntries) {
+		threats.PushDebug<AMFDoubleValue>(std::to_string(id)) = threat;
+	}
+
+	auto& ignoredThreats = cmptType.PushDebug("Temp Ignored Threats");
+	for (const auto& [id, threat] : m_ThreatEntries) {
+		ignoredThreats.PushDebug<AMFDoubleValue>(std::to_string(id) + " - Time") = threat;
+	}
+	return true;
 }

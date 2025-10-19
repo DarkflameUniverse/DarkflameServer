@@ -1122,8 +1122,8 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	stats.PushDebug<AMFIntValue>("Imagination") = m_iImagination;
 	stats.PushDebug<AMFDoubleValue>("Maximum Imagination") = m_fMaxImagination;
 	stats.PushDebug<AMFIntValue>("Damage Absorption Points") = m_DamageToAbsorb;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is GM Immune") = m_IsGMImmune;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Shielded") = m_IsShielded;
+	stats.PushDebug<AMFBoolValue>("Is GM Immune") = m_IsGMImmune;
+	stats.PushDebug<AMFBoolValue>("Is Shielded") = m_IsShielded;
 	destroyableInfo.PushDebug<AMFIntValue>("Attacks To Block") = m_AttacksToBlock;
 	destroyableInfo.PushDebug<AMFIntValue>("Damage Reduction") = m_DamageReduction;
 	std::stringstream factionsStream;
@@ -1140,7 +1140,7 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 
 	destroyableInfo.PushDebug<AMFStringValue>("Enemy Factions") = factionsStream.str();
 
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashable") = m_IsSmashable;
+	destroyableInfo.PushDebug<AMFBoolValue>("Is A Smashable") = m_IsSmashable;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashed") = m_IsSmashed;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Module Assembly") = m_IsModuleAssembly;
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
