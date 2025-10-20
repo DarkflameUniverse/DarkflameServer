@@ -9,6 +9,7 @@ namespace tinyxml2 {
 
 class AMFArrayValue;
 class ModelComponent;
+struct UpdateResult;
 
 class State {
 public:
@@ -21,7 +22,7 @@ public:
 	void Serialize(tinyxml2::XMLElement& state) const;
 	void Deserialize(const tinyxml2::XMLElement& state);
 
-	void Update(float deltaTime, ModelComponent& modelComponent);
+	void Update(float deltaTime, ModelComponent& modelComponent, UpdateResult& updateResult);
 
 	void OnChatMessageReceived(const std::string& sMessage);
 	void OnHit();
