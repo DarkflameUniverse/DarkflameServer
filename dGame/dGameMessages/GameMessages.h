@@ -848,6 +848,11 @@ namespace GameMessages {
 
 	struct ResetModelToDefaults : public GameMsg {
 		ResetModelToDefaults() : GameMsg(MessageType::Game::RESET_MODEL_TO_DEFAULTS) {}
+
+		bool bResetPos{ true };
+		bool bResetRot{ true };
+		bool bUnSmash{ true };
+		bool bResetBehaviors{ true };
 	};
 
 	struct EmotePlayed : public GameMsg {

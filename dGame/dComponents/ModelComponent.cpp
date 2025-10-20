@@ -29,19 +29,22 @@ ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Comp
 
 bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
 	auto& reset = static_cast<GameMessages::ResetModelToDefaults&>(msg);
-	for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
-	GameMessages::UnSmash unsmash;
-	unsmash.target = GetParent()->GetObjectID();
-	unsmash.duration = 0.0f;
-	unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	if (reset.bResetBehaviors) for (auto& behavior : m_Behaviors) behavior.HandleMsg(reset);
 
-	m_Parent->SetPosition(m_OriginalPosition);
-	m_Parent->SetRotation(m_OriginalRotation);
+	if (reset.bUnSmash) {
+		GameMessages::UnSmash unsmash;
+		unsmash.target = GetParent()->GetObjectID();
+		unsmash.duration = 0.0f;
+		unsmash.Send(UNASSIGNED_SYSTEM_ADDRESS);
+		m_NumActiveUnSmash = 0;
+	}
+
+	if (reset.bResetPos) m_Parent->SetPosition(m_OriginalPosition);
+	if (reset.bResetRot) m_Parent->SetRotation(m_OriginalRotation);
 	m_Parent->SetVelocity(NiPoint3Constant::ZERO);
 
 	m_Speed = 3.0f;
 	m_NumListeningInteract = 0;
-	m_NumActiveUnSmash = 0;
 
 	m_NumActiveAttack = 0;
 	GameMessages::SetFaction set{};
