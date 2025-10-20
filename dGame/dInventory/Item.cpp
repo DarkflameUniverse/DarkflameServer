@@ -98,22 +98,12 @@ Item::Item(
 	this->preconditions = new PreconditionExpression(this->info->reqPrecondition);
 	this->subKey = subKey;
 
-	LWOOBJID id = ObjectIDManager::GenerateRandomObjectID();
-
-	GeneralUtils::SetBit(id, eObjectBits::CHARACTER);
-	GeneralUtils::SetBit(id, eObjectBits::PERSISTENT);
-
-	const auto type = static_cast<eItemType>(info->itemType);
-
-	if (type == eItemType::MOUNT) {
-		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
-	}
-
-	this->id = id;
+	auto* const inventoryComponent = inventory->GetComponent();
+	GenerateID();
 
 	inventory->AddManagedItem(this);
 
-	auto* entity = inventory->GetComponent()->GetParent();
+	auto* entity = inventoryComponent->GetParent();
 	GameMessages::SendAddItemToInventoryClientSync(entity, entity->GetSystemAddress(), this, id, showFlyingLoot, static_cast<int>(this->count), subKey, lootSourceType);
 
 	if (isModMoveAndEquip) {
@@ -121,7 +111,7 @@ Item::Item(
 
 		LOG("Move and equipped (%i) from (%i)", this->lot, this->inventory->GetType());
 
-		Game::entityManager->SerializeEntity(inventory->GetComponent()->GetParent());
+		Game::entityManager->SerializeEntity(inventoryComponent->GetParent());
 	}
 }
 
@@ -353,9 +343,9 @@ void Item::UseNonEquip(Item* item) {
 				if (this->GetPreconditionExpression()->Check(playerInventoryComponent->GetParent())) {
 					auto* entityParent = playerInventoryComponent->GetParent();
 					// Roll the loot for all the packages then see if it all fits.  If it fits, give it to the player, otherwise don't.
-					std::unordered_map<LOT, int32_t> rolledLoot{};
+					Loot::Return rolledLoot{};
 					for (auto& pack : packages) {
-						auto thisPackage = Loot::RollLootMatrix(entityParent, pack.LootMatrixIndex);
+						const auto thisPackage = Loot::RollLootMatrix(entityParent, pack.LootMatrixIndex);
 						for (auto& loot : thisPackage) {
 							// If we already rolled this lot, add it to the existing one, otherwise create a new entry.
 							auto existingLoot = rolledLoot.find(loot.first);
@@ -366,6 +356,7 @@ void Item::UseNonEquip(Item* item) {
 							}
 						}
 					}
+
 					if (playerInventoryComponent->HasSpaceForLoot(rolledLoot)) {
 						Loot::GiveLoot(playerInventoryComponent->GetParent(), rolledLoot, eLootSourceType::CONSUMPTION);
 						item->SetCount(item->GetCount() - 1);
@@ -573,4 +564,29 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 		const auto value = pair.first + "=" + data;
 		config.push_back(LDFBaseData::DataFromString(value));
 	}
+}
+
+LWOOBJID Item::GenerateID() {
+	auto* const inventoryComponent = inventory->GetComponent();
+	const bool isPlayer = inventoryComponent->GetParent()->IsPlayer();
+	LWOOBJID id{};
+
+	// Only players and non-proxy items get persistent IDs (since they are the only ones that will persist between worlds)
+	if (isPlayer && parent == LWOOBJID_EMPTY) {
+		id = ObjectIDManager::GetPersistentID();
+	} else {
+		id = ObjectIDManager::GenerateObjectID();
+		GeneralUtils::SetBit(id, eObjectBits::SPAWNED);
+		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
+	}
+
+	LOG("Parent %llu lot %u Generated id %u:%llu", parent, GetLot(), static_cast<uint32_t>(id), id);
+	const auto type = static_cast<eItemType>(info->itemType);
+
+	if (type == eItemType::MOUNT) {
+		GeneralUtils::SetBit(id, eObjectBits::CLIENT);
+	}
+
+	this->id = id;
+	return id;
 }

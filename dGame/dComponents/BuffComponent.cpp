@@ -26,7 +26,7 @@ namespace {
 	};
 }
 
-BuffComponent::BuffComponent(Entity* parent) : Component(parent) {
+BuffComponent::BuffComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 }
 
 BuffComponent::~BuffComponent() {

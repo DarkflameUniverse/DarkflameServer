@@ -64,27 +64,28 @@ void SQLiteDatabase::RemoveModel(const LWOOBJID& modelId) {
 	ExecuteDelete("DELETE FROM properties_contents WHERE id = ?;", modelId);
 }
 
-IPropertyContents::Model SQLiteDatabase::GetModel(const LWOOBJID modelID) {
+std::optional<IPropertyContents::Model> SQLiteDatabase::GetModel(const LWOOBJID modelID) {
 	auto [_, result] = ExecuteSelect("SELECT * FROM properties_contents WHERE id = ?", modelID);
 
-	IPropertyContents::Model model{};
+	std::optional<IPropertyContents::Model> model = std::nullopt;
 	if (!result.eof()) {
 		do {
-			model.id = result.getInt64Field("id");
-			model.lot = static_cast<LOT>(result.getIntField("lot"));
-			model.position.x = result.getFloatField("x");
-			model.position.y = result.getFloatField("y");
-			model.position.z = result.getFloatField("z");
-			model.rotation.w = result.getFloatField("rw");
-			model.rotation.x = result.getFloatField("rx");
-			model.rotation.y = result.getFloatField("ry");
-			model.rotation.z = result.getFloatField("rz");
-			model.ugcId = result.getInt64Field("ugc_id");
-			model.behaviors[0] = result.getInt64Field("behavior_1");
-			model.behaviors[1] = result.getInt64Field("behavior_2");
-			model.behaviors[2] = result.getInt64Field("behavior_3");
-			model.behaviors[3] = result.getInt64Field("behavior_4");
-			model.behaviors[4] = result.getInt64Field("behavior_5");
+			model = IPropertyContents::Model{};
+			model->id = result.getInt64Field("id");
+			model->lot = static_cast<LOT>(result.getIntField("lot"));
+			model->position.x = result.getFloatField("x");
+			model->position.y = result.getFloatField("y");
+			model->position.z = result.getFloatField("z");
+			model->rotation.w = result.getFloatField("rw");
+			model->rotation.x = result.getFloatField("rx");
+			model->rotation.y = result.getFloatField("ry");
+			model->rotation.z = result.getFloatField("rz");
+			model->ugcId = result.getInt64Field("ugc_id");
+			model->behaviors[0] = result.getInt64Field("behavior_1");
+			model->behaviors[1] = result.getInt64Field("behavior_2");
+			model->behaviors[2] = result.getInt64Field("behavior_3");
+			model->behaviors[3] = result.getInt64Field("behavior_4");
+			model->behaviors[4] = result.getInt64Field("behavior_5");
 		} while (result.nextRow());
 	}
 

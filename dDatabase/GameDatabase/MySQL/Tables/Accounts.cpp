@@ -3,7 +3,7 @@
 #include "eGameMasterLevel.h"
 
 std::optional<IAccounts::Info> MySQLDatabase::GetAccountInfo(const std::string_view username) {
-	auto result = ExecuteSelect("SELECT id, password, banned, locked, play_key_id, gm_level FROM accounts WHERE name = ? LIMIT 1;", username);
+	auto result = ExecuteSelect("SELECT id, password, banned, locked, play_key_id, gm_level, mute_expire FROM accounts WHERE name = ? LIMIT 1;", username);
 
 	if (!result->next()) {
 		return std::nullopt;
@@ -16,6 +16,7 @@ std::optional<IAccounts::Info> MySQLDatabase::GetAccountInfo(const std::string_v
 	toReturn.banned = result->getBoolean("banned");
 	toReturn.locked = result->getBoolean("locked");
 	toReturn.playKeyId = result->getUInt("play_key_id");
+	toReturn.muteExpire = result->getUInt64("mute_expire");
 
 	return toReturn;
 }

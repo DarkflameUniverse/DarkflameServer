@@ -7,6 +7,10 @@
 #include "dZoneManager.h"
 #include "eServerDisconnectIdentifiers.h"
 #include "eGameMasterLevel.h"
+#include "BitStreamUtils.h"
+#include "MessageType/Chat.h"
+#include <chrono>
+#include <ctime>
 
 User::User(const SystemAddress& sysAddr, const std::string& username, const std::string& sessionKey) {
 	m_AccountID = 0;
@@ -28,18 +32,18 @@ User::User(const SystemAddress& sysAddr, const std::string& username, const std:
 	if (userInfo) {
 		m_AccountID = userInfo->id;
 		m_MaxGMLevel = userInfo->maxGmLevel;
-		m_MuteExpire = 0; //res->getUInt64(3);
+		m_MuteExpire = userInfo->muteExpire;
 	}
 
 	//If we're loading a zone, we'll load the last used (aka current) character:
 	if (Game::server->GetZoneID() != 0) {
 		auto characterList = Database::Get()->GetAccountCharacterIds(m_AccountID);
 		if (!characterList.empty()) {
-			const uint32_t lastUsedCharacterId = characterList.front();
+			const auto lastUsedCharacterId = characterList.front();
 			Character* character = new Character(lastUsedCharacterId, this);
 			character->UpdateFromDatabase();
 			m_Characters.push_back(character);
-			LOG("Loaded %i as it is the last used char", lastUsedCharacterId);
+			LOG("Loaded %llu as it is the last used char", lastUsedCharacterId);
 		}
 	}
 }
@@ -91,8 +95,28 @@ Character* User::GetLastUsedChar() {
 	}
 }
 
-bool User::GetIsMuted() const {
-	return m_MuteExpire == 1 || m_MuteExpire > time(NULL);
+bool User::GetIsMuted() {
+	using namespace std::chrono;
+	constexpr auto refreshInterval = seconds{ 60 };
+	const auto now = steady_clock::now();
+	if (now - m_LastMuteCheck >= refreshInterval) {
+		m_LastMuteCheck = now;
+		if (const auto info = Database::Get()->GetAccountInfo(m_Username)) {
+			const auto expire = static_cast<time_t>(info->muteExpire);
+			if (expire != m_MuteExpire) {
+				m_MuteExpire = expire;
+
+				if (Game::chatServer && m_LoggedInCharID != 0) {
+					RakNet::BitStream bitStream;
+					BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GM_MUTE);
+					bitStream.Write(m_LoggedInCharID);
+					bitStream.Write(m_MuteExpire);
+					Game::chatServer->Send(&bitStream, SYSTEM_PRIORITY, RELIABLE, 0, Game::chatSysAddr, false);
+				}
+			}
+		}
+	}
+	return m_MuteExpire == 1 || m_MuteExpire > std::time(nullptr);
 }
 
 time_t User::GetMuteExpire() const {

@@ -20,7 +20,7 @@ std::vector<ILeaderboard::Entry> ProcessQuery(CppSQLite3Query& rows) {
 	while (!rows.eof()) {
 		auto& entry = entries.emplace_back();
 
-		entry.charId = rows.getIntField("character_id");
+		entry.charId = rows.getInt64Field("character_id");
 		entry.lastPlayedTimestamp = rows.getIntField("lp_unix");
 		entry.primaryScore = rows.getFloatField("primaryScore");
 		entry.secondaryScore = rows.getFloatField("secondaryScore");
@@ -58,17 +58,17 @@ std::vector<ILeaderboard::Entry> SQLiteDatabase::GetNsLeaderboard(const uint32_t
 	return ProcessQuery(result);
 }
 
-void SQLiteDatabase::SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) {
+void SQLiteDatabase::SaveScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) {
 	ExecuteInsert("INSERT INTO leaderboard (primaryScore, secondaryScore, tertiaryScore, character_id, game_id, last_played) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP) ;",
 		score.primaryScore, score.secondaryScore, score.tertiaryScore, playerId, gameId);
 }
 
-void SQLiteDatabase::UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) {
+void SQLiteDatabase::UpdateScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) {
 	ExecuteInsert("UPDATE leaderboard SET primaryScore = ?, secondaryScore = ?, tertiaryScore = ?, timesPlayed = timesPlayed + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;",
 		score.primaryScore, score.secondaryScore, score.tertiaryScore, playerId, gameId);
 }
 
-std::optional<ILeaderboard::Score> SQLiteDatabase::GetPlayerScore(const uint32_t playerId, const uint32_t gameId) {
+std::optional<ILeaderboard::Score> SQLiteDatabase::GetPlayerScore(const LWOOBJID playerId, const uint32_t gameId) {
 	std::optional<ILeaderboard::Score> toReturn = std::nullopt;
 	auto [_, res] = ExecuteSelect("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 	if (!res.eof()) {
@@ -82,10 +82,10 @@ std::optional<ILeaderboard::Score> SQLiteDatabase::GetPlayerScore(const uint32_t
 	return toReturn;
 }
 
-void SQLiteDatabase::IncrementNumWins(const uint32_t playerId, const uint32_t gameId) {
+void SQLiteDatabase::IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET numWins = numWins + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }
 
-void SQLiteDatabase::IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) {
+void SQLiteDatabase::IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET timesPlayed = timesPlayed + 1, last_played = CURRENT_TIMESTAMP WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }

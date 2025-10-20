@@ -19,7 +19,7 @@ void MySQLDatabase::InsertNewMail(const MailInfo& mail) {
 		mail.itemCount);
 }
 
-std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
+std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) {
 	auto res = ExecuteSelect(
 		"SELECT id, subject, body, sender_name, attachment_id, attachment_lot, attachment_subkey, attachment_count, was_read, time_sent"
 		" FROM mail WHERE receiver_id=? limit ?;",
@@ -61,7 +61,7 @@ std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
 	return toReturn;
 }
 
-uint32_t MySQLDatabase::GetUnreadMailCount(const uint32_t characterId) {
+uint32_t MySQLDatabase::GetUnreadMailCount(const LWOOBJID characterId) {
 	auto res = ExecuteSelect("SELECT COUNT(*) AS number_unread FROM mail WHERE receiver_id=? AND was_read=0;", characterId);
 
 	if (!res->next()) {

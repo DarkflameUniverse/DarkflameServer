@@ -14,7 +14,7 @@
 #include "Database.h"
 #include "DluAssert.h"
 
-ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
+ModelComponent::ModelComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	m_OriginalPosition = m_Parent->GetDefaultPosition();
 	m_OriginalRotation = m_Parent->GetDefaultRotation();
@@ -25,6 +25,7 @@ ModelComponent::ModelComponent(Entity* parent) : Component(parent) {
 	m_userModelID = m_Parent->GetVarAs<LWOOBJID>(u"userModelID");
 	RegisterMsg<RequestUse>(this, &ModelComponent::OnRequestUse);
 	RegisterMsg<ResetModelToDefaults>(this, &ModelComponent::OnResetModelToDefaults);
+	RegisterMsg<GetObjectReportInfo>(this, &ModelComponent::OnGetObjectReportInfo);
 }
 
 bool ModelComponent::OnResetModelToDefaults(GameMessages::GameMsg& msg) {
@@ -374,4 +375,20 @@ void ModelComponent::RemoveAttack() {
 		set.bIgnoreChecks = true; // Remove the attack faction
 		set.Send();
 	}
+}
+
+bool ModelComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	if (!reportMsg.info) return false;
+	auto& cmptInfo = reportMsg.info->PushDebug("Model Behaviors (Mutable)");
+	cmptInfo.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+
+	cmptInfo.PushDebug<AMFStringValue>("Name") = "Objects_" + std::to_string(m_Parent->GetLOT()) + "_name";
+	cmptInfo.PushDebug<AMFBoolValue>("Has Unique Name") = false;
+	cmptInfo.PushDebug<AMFStringValue>("UGID (from item)") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("UGID") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("Description") = "";
+	cmptInfo.PushDebug<AMFIntValue>("Behavior Count") = m_Behaviors.size();
+
+	return true;
 }

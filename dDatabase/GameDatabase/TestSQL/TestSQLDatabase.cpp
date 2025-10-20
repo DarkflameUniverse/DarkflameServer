@@ -32,27 +32,27 @@ std::vector<std::string> TestSQLDatabase::GetApprovedCharacterNames() {
 	return {};
 }
 
-std::vector<FriendData> TestSQLDatabase::GetFriendsList(uint32_t charID) {
+std::vector<FriendData> TestSQLDatabase::GetFriendsList(LWOOBJID charID) {
 	return {};
 }
 
-std::optional<IFriends::BestFriendStatus> TestSQLDatabase::GetBestFriendStatus(const uint32_t playerCharacterId, const uint32_t friendCharacterId) {
+std::optional<IFriends::BestFriendStatus> TestSQLDatabase::GetBestFriendStatus(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId) {
 	return {};
 }
 
-void TestSQLDatabase::SetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId, const uint32_t bestFriendStatus) {
+void TestSQLDatabase::SetBestFriendStatus(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId, const uint32_t bestFriendStatus) {
 
 }
 
-void TestSQLDatabase::AddFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) {
+void TestSQLDatabase::AddFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) {
 
 }
 
-void TestSQLDatabase::RemoveFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) {
+void TestSQLDatabase::RemoveFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) {
 
 }
 
-void TestSQLDatabase::UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) {
+void TestSQLDatabase::UpdateActivityLog(const LWOOBJID characterId, const eActivityType activityType, const LWOMAPID mapId) {
 
 }
 
@@ -80,7 +80,7 @@ void TestSQLDatabase::InsertMigration(const std::string_view str) {
 
 }
 
-std::optional<ICharInfo::Info> TestSQLDatabase::GetCharacterInfo(const uint32_t charId) {
+std::optional<ICharInfo::Info> TestSQLDatabase::GetCharacterInfo(const LWOOBJID charId) {
 	return {};
 }
 
@@ -88,11 +88,11 @@ std::optional<ICharInfo::Info> TestSQLDatabase::GetCharacterInfo(const std::stri
 	return {};
 }
 
-std::string TestSQLDatabase::GetCharacterXml(const uint32_t accountId) {
+std::string TestSQLDatabase::GetCharacterXml(const LWOOBJID accountId) {
 	return {};
 }
 
-void TestSQLDatabase::UpdateCharacterXml(const uint32_t characterId, const std::string_view lxfml) {
+void TestSQLDatabase::UpdateCharacterXml(const LWOOBJID characterId, const std::string_view lxfml) {
 
 }
 
@@ -104,27 +104,27 @@ void TestSQLDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 
 }
 
-void TestSQLDatabase::InsertCharacterXml(const uint32_t accountId, const std::string_view lxfml) {
+void TestSQLDatabase::InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) {
 
 }
 
-std::vector<uint32_t> TestSQLDatabase::GetAccountCharacterIds(uint32_t accountId) {
+std::vector<LWOOBJID> TestSQLDatabase::GetAccountCharacterIds(LWOOBJID accountId) {
 	return {};
 }
 
-void TestSQLDatabase::DeleteCharacter(const uint32_t characterId) {
+void TestSQLDatabase::DeleteCharacter(const LWOOBJID characterId) {
 
 }
 
-void TestSQLDatabase::SetCharacterName(const uint32_t characterId, const std::string_view name) {
+void TestSQLDatabase::SetCharacterName(const LWOOBJID characterId, const std::string_view name) {
 
 }
 
-void TestSQLDatabase::SetPendingCharacterName(const uint32_t characterId, const std::string_view name) {
+void TestSQLDatabase::SetPendingCharacterName(const LWOOBJID characterId, const std::string_view name) {
 
 }
 
-void TestSQLDatabase::UpdateLastLoggedInCharacter(const uint32_t characterId) {
+void TestSQLDatabase::UpdateLastLoggedInCharacter(const LWOOBJID characterId) {
 
 }
 
@@ -192,11 +192,11 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
-void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint32_t blueprintId, const uint32_t accountId, const uint32_t characterId) {
+void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint64_t blueprintId, const uint32_t accountId, const LWOOBJID characterId) {
 
 }
 
-std::vector<MailInfo> TestSQLDatabase::GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) {
+std::vector<MailInfo> TestSQLDatabase::GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) {
 	return {};
 }
 
@@ -204,7 +204,7 @@ std::optional<MailInfo> TestSQLDatabase::GetMail(const uint64_t mailId) {
 	return {};
 }
 
-uint32_t TestSQLDatabase::GetUnreadMailCount(const uint32_t characterId) {
+uint32_t TestSQLDatabase::GetUnreadMailCount(const LWOOBJID characterId) {
 	return {};
 }
 
@@ -220,7 +220,7 @@ void TestSQLDatabase::ClaimMailItem(const uint64_t mailId) {
 
 }
 
-void TestSQLDatabase::InsertSlashCommandUsage(const uint32_t characterId, const std::string_view command) {
+void TestSQLDatabase::InsertSlashCommandUsage(const LWOOBJID characterId, const std::string_view command) {
 
 }
 
@@ -244,15 +244,11 @@ void TestSQLDatabase::SetMasterInfo(const IServers::MasterInfo& info) {
 
 }
 
-std::optional<uint32_t> TestSQLDatabase::GetCurrentPersistentId() {
+std::optional<uint64_t> TestSQLDatabase::GetCurrentPersistentId() {
 	return {};
 }
 
 void TestSQLDatabase::InsertDefaultPersistentId() {
-
-}
-
-void TestSQLDatabase::UpdatePersistentId(const uint32_t id) {
 
 }
 
@@ -268,15 +264,15 @@ std::vector<IUgc::Model> TestSQLDatabase::GetUgcModels(const LWOOBJID& propertyI
 	return {};
 }
 
-void TestSQLDatabase::AddIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) {
+void TestSQLDatabase::AddIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) {
 
 }
 
-void TestSQLDatabase::RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) {
+void TestSQLDatabase::RemoveIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) {
 
 }
 
-std::vector<IIgnoreList::Info> TestSQLDatabase::GetIgnoreList(const uint32_t playerId) {
+std::vector<IIgnoreList::Info> TestSQLDatabase::GetIgnoreList(const LWOOBJID playerId) {
 	return {};
 }
 
@@ -304,3 +300,6 @@ void TestSQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGame
 
 }
 
+IObjectIdTracker::Range TestSQLDatabase::GetPersistentIdRange() {
+	return {};
+}

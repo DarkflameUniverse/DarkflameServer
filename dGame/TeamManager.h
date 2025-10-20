@@ -4,6 +4,8 @@
 
 struct Team {
 	Team();
+
+	LWOOBJID GetNextLootOwner();
 	LWOOBJID teamID = LWOOBJID_EMPTY;
 	char lootOption = 0;
 	std::vector<LWOOBJID> members{};

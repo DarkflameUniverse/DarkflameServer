@@ -158,6 +158,8 @@ public:
 	 */
 	void DeleteAllItems();
 
+	void RegenerateItemIDs();
+
 	~Inventory();
 
 private:

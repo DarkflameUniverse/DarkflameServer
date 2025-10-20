@@ -14,7 +14,7 @@ public:
 	struct Info {
 		std::string name;
 		std::string pendingName;
-		uint32_t id{};
+		LWOOBJID id{};
 		uint32_t accountId{};
 		bool needsRename{};
 		LWOCLONEID cloneId{};
@@ -25,25 +25,25 @@ public:
 	virtual std::vector<std::string> GetApprovedCharacterNames() = 0;
 
 	// Get the character info for the given character id.
-	virtual std::optional<ICharInfo::Info> GetCharacterInfo(const uint32_t charId) = 0;
+	virtual std::optional<ICharInfo::Info> GetCharacterInfo(const LWOOBJID charId) = 0;
 
 	// Get the character info for the given character name.
 	virtual std::optional<ICharInfo::Info> GetCharacterInfo(const std::string_view name) = 0;
 	
 	// Get the character ids for the given account.
-	virtual std::vector<uint32_t> GetAccountCharacterIds(const uint32_t accountId) = 0;
+	virtual std::vector<LWOOBJID> GetAccountCharacterIds(const LWOOBJID accountId) = 0;
 
 	// Insert a new character into the database.
 	virtual void InsertNewCharacter(const ICharInfo::Info info) = 0;
 
 	// Set the name of the given character.
-	virtual void SetCharacterName(const uint32_t characterId, const std::string_view name) = 0;
+	virtual void SetCharacterName(const LWOOBJID characterId, const std::string_view name) = 0;
 
 	// Set the pending name of the given character.
-	virtual void SetPendingCharacterName(const uint32_t characterId, const std::string_view name) = 0;
+	virtual void SetPendingCharacterName(const LWOOBJID characterId, const std::string_view name) = 0;
 
 	// Updates the given character ids last login to be right now.
-	virtual void UpdateLastLoggedInCharacter(const uint32_t characterId) = 0;
+	virtual void UpdateLastLoggedInCharacter(const LWOOBJID characterId) = 0;
 
 	virtual bool IsNameInUse(const std::string_view name) = 0;
 };

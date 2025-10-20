@@ -10,6 +10,7 @@ set(DCOMMONTEST_SOURCES
 	"TestLUString.cpp"
 	"TestLUWString.cpp"
 	"dCommonDependencies.cpp"
+	"LxfmlTests.cpp"
 )
 
 add_subdirectory(dEnumsTests)
@@ -32,6 +33,8 @@ target_link_libraries(dCommonTests ${COMMON_LIBRARIES} GTest::gtest_main)
 # Copy test files to testing directory
 add_subdirectory(TestBitStreams)
 file(COPY ${TESTBITSTREAMS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_subdirectory(LxfmlTestFiles)
+file(COPY ${LXFMLTESTFILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Discover the tests
 gtest_discover_tests(dCommonTests)

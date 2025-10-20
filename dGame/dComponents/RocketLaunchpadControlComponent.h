@@ -20,7 +20,7 @@ class RocketLaunchpadControlComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::ROCKET_LAUNCH;
 
-	RocketLaunchpadControlComponent(Entity* parent, int rocketId);
+	RocketLaunchpadControlComponent(Entity* parent, const int32_t componentID);
 	~RocketLaunchpadControlComponent() override;
 
 	/**

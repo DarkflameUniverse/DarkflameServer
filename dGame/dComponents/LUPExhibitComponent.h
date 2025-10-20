@@ -16,7 +16,7 @@ class LUPExhibitComponent final : public Component
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::LUP_EXHIBIT;
 
-	LUPExhibitComponent(Entity* parent) : Component(parent) {};
+	LUPExhibitComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {};
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 	void NextLUPExhibit();

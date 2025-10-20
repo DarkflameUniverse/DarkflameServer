@@ -28,7 +28,7 @@ class MissionComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::MISSION;
 
-	explicit MissionComponent(Entity* parent);
+	explicit MissionComponent(Entity* parent, const int32_t componentID);
 	~MissionComponent() override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate, unsigned int& flags);
 	void LoadFromXml(const tinyxml2::XMLDocument& doc) override;
@@ -171,6 +171,9 @@ public:
 
 	void ResetMission(const int32_t missionId);
 private:
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetMissionState(GameMessages::GameMsg& msg);
+	bool OnMissionNeedsLot(GameMessages::GameMsg& msg);
 	/**
 	 * All the missions owned by this entity, mapped by mission ID
 	 */

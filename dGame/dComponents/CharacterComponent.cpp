@@ -25,7 +25,7 @@
 #include "MessageType/Game.h"
 #include <ctime>
 
-CharacterComponent::CharacterComponent(Entity* parent, Character* character, const SystemAddress& systemAddress) : Component(parent) {
+CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
 	m_Character = character;
 
 	m_IsRacing = false;
@@ -70,7 +70,7 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	for (const auto zoneID : m_VisitedLevels) {
 		std::stringstream sstream;
 		sstream << "MapID: " << zoneID.GetMapID() << " CloneID: " << zoneID.GetCloneID();
-		vl.PushDebug<AMFStringValue>(sstream.str()) = "";
+		vl.PushDebug(sstream.str());
 	}
 
 	// visited locations
@@ -83,6 +83,30 @@ bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	cmptType.PushDebug<AMFDoubleValue>("Reputation") = m_Reputation;
 	cmptType.PushDebug<AMFIntValue>("Current Activity Type") = GeneralUtils::ToUnderlying(m_CurrentActivity);
 	cmptType.PushDebug<AMFDoubleValue>("Property Clone ID") = m_Character->GetPropertyCloneID();
+
+	auto& flagCmptType = reportInfo.info->PushDebug("Player Flag");
+	auto& allFlags = flagCmptType.PushDebug("All flags");
+
+	for (const auto& [id, flagChunk] : m_Character->GetPlayerFlags()) {
+		const auto base = id * 64;
+		auto flagChunkCopy = flagChunk;
+		for (int i = 0; i < 64; i++) {
+			if (static_cast<bool>(flagChunkCopy & 1)) {
+				const int32_t flagId = base + i;
+				std::stringstream stream;
+				stream << "Flag: " << flagId;
+				allFlags.PushDebug(stream.str());
+			}
+			flagChunkCopy >>= 1;
+		}
+	}
+
+	auto& sessionFlags = flagCmptType.PushDebug("Session Only Flags");
+	for (const auto flagId : m_Character->GetSessionFlags()) {
+		std::stringstream stream;
+		stream << "Flag: " << flagId;
+		sessionFlags.PushDebug(stream.str());
+	}
 
 	return true;
 }
@@ -859,7 +883,7 @@ void CharacterComponent::SendToZone(LWOMAPID zoneId, LWOCLONEID cloneId) const {
 			character->SetZoneID(zoneID);
 			character->SetZoneInstance(zoneInstance);
 			character->SetZoneClone(zoneClone);
-			
+
 			characterComponent->SetLastRocketConfig(u"");
 			characterComponent->AddVisitedLevel(LWOZONEID(zoneID, LWOINSTANCEID_INVALID, zoneClone));
 

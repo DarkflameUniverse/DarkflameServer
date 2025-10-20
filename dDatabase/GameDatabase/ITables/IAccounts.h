@@ -14,6 +14,7 @@ public:
 		std::string bcryptPassword;
 		uint32_t id{};
 		uint32_t playKeyId{};
+		uint64_t muteExpire{};
 		bool banned{};
 		bool locked{};
 		eGameMasterLevel maxGmLevel{};

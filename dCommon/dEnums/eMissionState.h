@@ -50,7 +50,10 @@ enum class eMissionState : int {
 	/**
 	* The mission has been completed before and has now been completed again. Used for daily missions.
 	*/
-	COMPLETE_READY_TO_COMPLETE = 12
+	COMPLETE_READY_TO_COMPLETE = 12,
+
+	// The mission is failed (don't know where this is used)
+	FAILED = 16,
 };
 
 #endif  //!__MISSIONSTATE__H__

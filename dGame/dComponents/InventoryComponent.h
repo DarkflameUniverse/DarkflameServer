@@ -22,6 +22,7 @@
 #include "eInventoryType.h"
 #include "eReplicaComponentType.h"
 #include "eLootSourceType.h"
+#include "Loot.h"
 
 class Entity;
 class ItemSet;
@@ -67,7 +68,7 @@ public:
 	static constexpr uint32_t MaximumGroupCount = 50;
 
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::INVENTORY;
-	InventoryComponent(Entity* parent);
+	InventoryComponent(Entity* parent, const int32_t componentID);
 
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
@@ -200,7 +201,7 @@ public:
 	 * @param loot a map of items to add and how many to add
 	 * @return whether the entity has enough space for all the items
 	 */
-	bool HasSpaceForLoot(const std::unordered_map<LOT, int32_t>& loot);
+	bool HasSpaceForLoot(const Loot::Return& loot);
 
 	/**
 	 * Equips an item in the specified slot
@@ -402,9 +403,15 @@ public:
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
 	void UpdateGroup(const GroupUpdate& groupUpdate);
-	void RemoveGroup(const std::string& groupId);
+
+	std::unordered_map<LWOOBJID, DatabasePet>& GetPetsMut() { return m_Pets; };
 
 	void FixInvisibleItems();
+
+	// Used to migrate a character version, no need to call outside of that context
+	void RegenerateItemIDs();
+
+	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 
 	~InventoryComponent() override;
 

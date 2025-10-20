@@ -13,7 +13,7 @@ public:
 		std::string description;
 		std::string rejectionReason;
 		LWOOBJID id{};
-		uint32_t ownerId{};
+		LWOOBJID ownerId{};
 		LWOCLONEID cloneId{};
 		int32_t privacyOption{};
 		uint32_t modApproved{};
@@ -27,7 +27,7 @@ public:
 		uint32_t mapId{};
 		std::string searchString;
 		ePropertySortType sortChoice{};
-		uint32_t playerId{};
+		LWOOBJID playerId{};
 		uint32_t numResults{};
 		uint32_t startIndex{};
 		uint32_t playerSort{};
@@ -38,6 +38,9 @@ public:
 		// The entries that match the query. This should only contain up to 12 entries.
 		std::vector<IProperty::Info> entries;
 	};
+
+	// Get the property info for the given property id.
+	virtual std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) = 0;
 
 	// Get the property info for the given property id.
 	virtual std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) = 0;

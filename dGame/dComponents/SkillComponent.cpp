@@ -489,7 +489,7 @@ void SkillComponent::HandleUnCast(const uint32_t behaviorId, const LWOOBJID targ
 	behavior->UnCast(&context, { target });
 }
 
-SkillComponent::SkillComponent(Entity* parent) : Component(parent) {
+SkillComponent::SkillComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	this->m_skillUid = 0;
 }
 

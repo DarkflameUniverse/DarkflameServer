@@ -23,7 +23,7 @@ enum class eLootSourceType : uint32_t;
  */
 class Character {
 public:
-	Character(uint32_t id, User* parentUser);
+	Character(LWOOBJID id, User* parentUser);
 	~Character();
 
 	/**
@@ -53,7 +53,7 @@ public:
 	 * Gets the database ID of the character
 	 * @return the database ID of the character
 	 */
-	uint32_t GetID() const { return m_ID; }
+	LWOOBJID GetID() const { return m_ID; }
 
 	/**
 	 * Gets the (custom) name of the character
@@ -467,9 +467,9 @@ public:
 private:
 	void UpdateInfoFromDatabase();
 	/**
-	 * The ID of this character. First 32 bits of the ObjectID.
+	 * The ID of this character.
 	 */
-	uint32_t m_ID{};
+	LWOOBJID m_ID{};
 
 	/**
 	 * The 64-bit unique ID used in the game.
@@ -682,6 +682,9 @@ private:
 	 * NOTE: quick as there's no DB lookups
 	 */
 	void DoQuickXMLDataParse();
+public:
+	const decltype(m_PlayerFlags)& GetPlayerFlags() const { return m_PlayerFlags; }
+	const decltype(m_SessionFlags)& GetSessionFlags() const { return m_SessionFlags; }
 };
 
 #endif // CHARACTER_H

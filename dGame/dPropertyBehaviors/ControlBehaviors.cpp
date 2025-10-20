@@ -35,25 +35,21 @@
 void ControlBehaviors::RequestUpdatedID(ControlBehaviorContext& context) {
 	BehaviorMessageBase msgBase{ context.arguments };
 	const auto oldBehaviorID = msgBase.GetBehaviorId();
-	ObjectIDManager::RequestPersistentID(
-		[context, oldBehaviorID](uint32_t persistentId) {
-			if (!context) {
-				LOG("Model to update behavior ID for is null. Cannot update ID.");
-				return;
-			}
-			LWOOBJID persistentIdBig = persistentId;
-			GeneralUtils::SetBit(persistentIdBig, eObjectBits::CHARACTER);
-			// This updates the behavior ID of the behavior should this be a new behavior
-			AMFArrayValue args;
+	if (!context) {
+		LOG("Model to update behavior ID for is null. Cannot update ID.");
+		return;
+	}
+	LWOOBJID persistentIdBig = ObjectIDManager::GetPersistentID();
+	// This updates the behavior ID of the behavior should this be a new behavior
+	AMFArrayValue args;
 
-			args.Insert("behaviorID", std::to_string(persistentIdBig));
-			args.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
+	args.Insert("behaviorID", std::to_string(persistentIdBig));
+	args.Insert("objectID", std::to_string(context.modelComponent->GetParent()->GetObjectID()));
 
-			GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorID", args);
-			context.modelComponent->UpdatePendingBehaviorId(persistentIdBig, oldBehaviorID);
+	GameMessages::SendUIMessageServerToSingleClient(context.modelOwner, context.modelOwner->GetSystemAddress(), "UpdateBehaviorID", args);
+	context.modelComponent->UpdatePendingBehaviorId(persistentIdBig, oldBehaviorID);
 
-			ControlBehaviors::Instance().SendBehaviorListToClient(context);
-		});
+	ControlBehaviors::Instance().SendBehaviorListToClient(context);
 }
 
 void ControlBehaviors::SendBehaviorListToClient(const ControlBehaviorContext& context) {

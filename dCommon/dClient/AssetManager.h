@@ -81,6 +81,9 @@ public:
 	[[nodiscard]]
 	AssetStream GetFile(const char* name) const;
 
+	[[nodiscard]]
+	AssetStream GetFile(const std::string& name) const { return GetFile(name.c_str()); };
+
 private:
 	void LoadPackIndex();
 

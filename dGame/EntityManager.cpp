@@ -52,6 +52,45 @@ std::vector<LOT> EntityManager::m_GhostingExcludedLOTs = {
 	4967
 };
 
+template<typename T>
+void ParseDelimSetting(std::set<T>& setting, const std::string_view settingName, const char delim = ',') {
+	const auto str = Game::config->GetValue(settingName.data());
+	setting.clear();
+	for (const auto& strVal : GeneralUtils::SplitString(str, delim)) {
+		const auto val = GeneralUtils::TryParse<T>(strVal);
+		if (val) {
+			setting.insert(val.value());
+		}
+	}
+}
+
+void EntityManager::ReloadConfig() {
+	auto hcmode = Game::config->GetValue("hardcore_mode");
+	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
+	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
+	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : GeneralUtils::TryParse<uint32_t>(hcUscorePercent).value_or(10);
+	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
+	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : GeneralUtils::TryParse<uint32_t>(hcUscoreMult).value_or(2);
+	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
+	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
+	ParseDelimSetting<LOT>(m_HardcoreExcludedItemDrops, "hardcore_excluded_item_drops");
+
+	// We don't need to save the worlds, just need to check if this one is in the list
+	std::set<LWOMAPID> worlds;
+	ParseDelimSetting<LWOMAPID>(worlds, "hardcore_uscore_reduced_worlds");
+	m_HardcoreUscoreReduced = worlds.contains(Game::zoneManager->GetZoneID().GetMapID());
+
+	ParseDelimSetting<LOT>(m_HardcoreUscoreReducedLots, "hardcore_uscore_reduced_lots");
+	ParseDelimSetting<LOT>(m_HardcoreUscoreExcludedEnemies, "hardcore_uscore_excluded_enemies");
+	ParseDelimSetting<LWOMAPID>(m_HardcoreDisabledWorlds, "hardcore_disabled_worlds");
+
+	auto hcXpReduction = Game::config->GetValue("hardcore_uscore_reduction");
+	m_HardcoreUscoreReduction = hcXpReduction.empty() ? 1.0f : GeneralUtils::TryParse<float>(hcXpReduction).value_or(1.0f);
+	m_HardcoreMode = GetHardcoreDisabledWorlds().contains(Game::zoneManager->GetZoneID().GetMapID()) ? false : m_HardcoreMode;
+	auto hcCoinKeep = Game::config->GetValue("hardcore_coin_keep");
+	m_HardcoreCoinKeep = hcCoinKeep.empty() ? false : GeneralUtils::TryParse<float>(hcCoinKeep).value_or(0.0f);
+}
+
 void EntityManager::Initialize() {
 	// Check if this zone has ghosting enabled
 	m_GhostingEnabled = std::find(
@@ -61,15 +100,8 @@ void EntityManager::Initialize() {
 	) == m_GhostingExcludedZones.end();
 
 	// grab hardcore mode settings and load them with sane defaults
-	auto hcmode = Game::config->GetValue("hardcore_mode");
-	m_HardcoreMode = hcmode.empty() ? false : (hcmode == "1");
-	auto hcUscorePercent = Game::config->GetValue("hardcore_lose_uscore_on_death_percent");
-	m_HardcoreLoseUscoreOnDeathPercent = hcUscorePercent.empty() ? 10 : std::stoi(hcUscorePercent);
-	auto hcUscoreMult = Game::config->GetValue("hardcore_uscore_enemies_multiplier");
-	m_HardcoreUscoreEnemiesMultiplier = hcUscoreMult.empty() ? 2 : std::stoi(hcUscoreMult);
-	auto hcDropInv = Game::config->GetValue("hardcore_dropinventory_on_death");
-	m_HardcoreDropinventoryOnDeath = hcDropInv.empty() ? false : (hcDropInv == "1");
-
+	Game::config->AddConfigHandler([]() {Game::entityManager->ReloadConfig();});
+	Game::entityManager->ReloadConfig();
 	// If cloneID is not zero, then hardcore mode is disabled
 	// aka minigames and props
 	if (Game::zoneManager->GetZoneID().GetCloneID() != 0) m_HardcoreMode = false;

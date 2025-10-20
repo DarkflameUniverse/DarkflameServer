@@ -1,5 +1,17 @@
 #include "MySQLDatabase.h"
 
+IUgc::Model ReadModel(UniqueResultSet& result) {
+	IUgc::Model model;
+
+	// blob is owned by the query, so we need to do a deep copy :/
+	std::unique_ptr<std::istream> blob(result->getBlob("lxfml"));
+	model.lxfmlData << blob->rdbuf();
+	model.id = result->getUInt64("ugcID");
+	model.modelID = result->getUInt64("modelID");
+
+	return model;
+}
+
 std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId) {
 	auto result = ExecuteSelect(
 		"SELECT lxfml, u.id as ugcID, pc.id as modelID FROM ugc AS u JOIN properties_contents AS pc ON u.id = pc.ugc_id WHERE lot = 14 AND property_id = ? AND pc.ugc_id IS NOT NULL;",
@@ -8,14 +20,7 @@ std::vector<IUgc::Model> MySQLDatabase::GetUgcModels(const LWOOBJID& propertyId)
 	std::vector<IUgc::Model> toReturn;
 
 	while (result->next()) {
-		IUgc::Model model;
-
-		// blob is owned by the query, so we need to do a deep copy :/
-		std::unique_ptr<std::istream> blob(result->getBlob("lxfml"));
-		model.lxfmlData << blob->rdbuf();
-		model.id = result->getUInt64("ugcID");
-		model.modelID = result->getUInt64("modelID");
-		toReturn.push_back(std::move(model));
+		toReturn.push_back(ReadModel(result));
 	}
 
 	return toReturn;
@@ -27,14 +32,7 @@ std::vector<IUgc::Model> MySQLDatabase::GetAllUgcModels() {
 	std::vector<IUgc::Model> models;
 	models.reserve(result->rowsCount());
 	while (result->next()) {
-		IUgc::Model model;
-		model.id = result->getInt64("ugcID");
-		model.modelID = result->getUInt64("modelID");
-
-		// blob is owned by the query, so we need to do a deep copy :/
-		std::unique_ptr<std::istream> blob(result->getBlob("lxfml"));
-		model.lxfmlData << blob->rdbuf();
-		models.push_back(std::move(model));
+		models.push_back(ReadModel(result));
 	}
 
 	return models;
@@ -45,10 +43,10 @@ void MySQLDatabase::RemoveUnreferencedUgcModels() {
 }
 
 void MySQLDatabase::InsertNewUgcModel(
-	std:: stringstream& sd0Data, // cant be const sad
-	const uint32_t blueprintId,
+	std::stringstream& sd0Data, // cant be const sad
+	const uint64_t blueprintId,
 	const uint32_t accountId,
-	const uint32_t characterId) {
+	const LWOOBJID characterId) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
 		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)",
@@ -70,4 +68,15 @@ void MySQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 void MySQLDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 	const std::istream stream(lxfml.rdbuf());
 	ExecuteUpdate("UPDATE ugc SET lxfml = ? WHERE id = ?;", &stream, modelId);
+}
+
+std::optional<IUgc::Model> MySQLDatabase::GetUgcModel(const LWOOBJID ugcId) {
+	auto result = ExecuteSelect("SELECT u.id AS ugcID, lxfml, pc.id AS modelID FROM ugc AS u JOIN properties_contents AS pc ON pc.ugc_id = u.id WHERE u.id = ?", ugcId);
+
+	std::optional<IUgc::Model> toReturn = std::nullopt;
+	if (result->next()) {
+		toReturn = ReadModel(result);
+	}
+
+	return toReturn;
 }

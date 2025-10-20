@@ -80,7 +80,7 @@ These commands are primarily for development and testing. The usage of many of t
 |getnavmeshheight|`/getnavmeshheight`|Displays the navmesh height at your current position.|8|
 |giveuscore|`/giveuscore <uscore>`|Gives uscore.|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id.|8|
-|inspect|`/inspect <component> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
+|inspect|`/inspect <component or ldf variable or player name> (-m <waypoint> \| -a <animation> \| -s \| -p \| -f (faction) \| -t)`|Finds the closest entity with the given component or LDF variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See [Detailed `/inspect` Usage](#detailed-inspect-usage) below.|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one.|8|
 |locrow|`/locrow`|Prints the your current position and rotation information to the console.|8|
 |lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query.  Query can be multiple words delimited by spaces.|8|
@@ -116,6 +116,7 @@ These commands are primarily for development and testing. The usage of many of t
 |setrewardcode|`/setrewardcode <code>`|Sets the rewardcode for the account you are logged into if it's a valid rewardcode, See cdclient table `RewardCodes`|8|
 |barfight|`/barfight start`|Starts a barfight (turns everyones pvp on)|8|
 |despawn|`/despawn <objectID>`|Despawns the entity objectID IF it was spawned in through a slash command.|8|
+|execute|`/execute <subcommand> ... run <command>`|Execute commands with modified context (Minecraft-style). Subcommands: `as <playername>` (execute as different player), `at <playername>` (execute from player's position), `positioned <x> <y> <z>` (execute from coordinates - supports absolute coordinates like `100 200 300` or relative coordinates like `~5 ~10 ~` where `~` means current position). Example: `/execute as Player1 run pos`, `/execute positioned ~5 ~ ~-3 run spawn 1234`|8|
 |crash|`/crash`|Crashes the server.|9|
 |rollloot|`/rollloot <loot matrix index> <item id> <amount>`|Given a `loot matrix index`, look for `item id` in that matrix `amount` times and print to the chat box statistics of rolling that loot matrix.|9|
 |castskill|`/castskill <skill id>`|Casts the skill as the player|9|

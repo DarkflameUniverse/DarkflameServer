@@ -21,7 +21,7 @@ std::vector<ILeaderboard::Entry> ProcessQuery(UniqueResultSet& rows) {
 	while (rows->next()) {
 		auto& entry = entries.emplace_back();
 
-		entry.charId = rows->getUInt("character_id");
+		entry.charId = rows->getUInt64("character_id");
 		entry.lastPlayedTimestamp = rows->getUInt("lp_unix");
 		entry.primaryScore = rows->getFloat("primaryScore");
 		entry.secondaryScore = rows->getFloat("secondaryScore");
@@ -58,21 +58,21 @@ std::vector<ILeaderboard::Entry> MySQLDatabase::GetNsLeaderboard(const uint32_t 
 	return ProcessQuery(leaderboard);
 }
 
-void MySQLDatabase::SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) {
+void MySQLDatabase::SaveScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) {
 	ExecuteInsert("INSERT leaderboard SET primaryScore = ?, secondaryScore = ?, tertiaryScore = ?, character_id = ?, game_id = ?;",
 		score.primaryScore, score.secondaryScore, score.tertiaryScore, playerId, gameId);
 }
 
-void MySQLDatabase::UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) {
+void MySQLDatabase::UpdateScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) {
 	ExecuteInsert("UPDATE leaderboard SET primaryScore = ?, secondaryScore = ?, tertiaryScore = ?, timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;",
 		score.primaryScore, score.secondaryScore, score.tertiaryScore, playerId, gameId);
 }
 
-void MySQLDatabase::IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) {
+void MySQLDatabase::IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET timesPlayed = timesPlayed + 1 WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }
 
-std::optional<ILeaderboard::Score> MySQLDatabase::GetPlayerScore(const uint32_t playerId, const uint32_t gameId) {
+std::optional<ILeaderboard::Score> MySQLDatabase::GetPlayerScore(const LWOOBJID playerId, const uint32_t gameId) {
 	std::optional<ILeaderboard::Score> toReturn = std::nullopt;
 	auto res = ExecuteSelect("SELECT * FROM leaderboard WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 	if (res->next()) {
@@ -86,6 +86,6 @@ std::optional<ILeaderboard::Score> MySQLDatabase::GetPlayerScore(const uint32_t 
 	return toReturn;
 }
 
-void MySQLDatabase::IncrementNumWins(const uint32_t playerId, const uint32_t gameId) {
+void MySQLDatabase::IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) {
 	ExecuteUpdate("UPDATE leaderboard SET numWins = numWins + 1 WHERE character_id = ? AND game_id = ?;", playerId, gameId);
 }

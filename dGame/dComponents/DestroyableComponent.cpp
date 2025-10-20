@@ -3,6 +3,9 @@
 #include "Logger.h"
 #include "Game.h"
 #include "dConfig.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
+#include "CDRarityTableTable.h"
 
 #include "Amf3.h"
 #include "AmfSerialize.h"
@@ -37,13 +40,14 @@
 #include "eMissionTaskType.h"
 #include "eStateChangeType.h"
 #include "eGameActivity.h"
+#include <ranges>
 
 #include "CDComponentsRegistryTable.h"
 
 Implementation<bool, const Entity*> DestroyableComponent::IsEnemyImplentation;
 Implementation<bool, const Entity*> DestroyableComponent::IsFriendImplentation;
 
-DestroyableComponent::DestroyableComponent(Entity* parent) : Component(parent) {
+DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	m_iArmor = 0;
 	m_fMaxArmor = 0.0f;
@@ -666,11 +670,6 @@ void DestroyableComponent::Damage(uint32_t damage, const LWOOBJID source, uint32
 		return;
 	}
 
-	//check if hardcore mode is enabled
-	if (Game::entityManager->GetHardcoreMode()) {
-		DoHardcoreModeDrops(source);
-	}
-
 	Smash(source, eKillType::VIOLENT, u"", skillID);
 }
 
@@ -698,6 +697,13 @@ void DestroyableComponent::NotifySubscribers(Entity* attacker, uint32_t damage) 
 }
 
 void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType, const std::u16string& deathType, uint32_t skillID) {
+	if (m_IsDead) return;
+
+	//check if hardcore mode is enabled
+	if (Game::entityManager->GetHardcoreMode()) {
+		DoHardcoreModeDrops(source);
+	}
+
 	if (m_iHealth > 0) {
 		SetArmor(0);
 		SetHealth(0);
@@ -705,6 +711,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
 
+	m_IsDead = true;
 	m_KillerID = source;
 
 	auto* owner = Game::entityManager->GetEntity(source);
@@ -752,40 +759,11 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 	//NANI?!
 	if (!isPlayer) {
 		if (owner != nullptr) {
-			auto* team = TeamManager::Instance()->GetTeam(owner->GetObjectID());
-
-			if (team != nullptr && m_Parent->GetComponent<BaseCombatAIComponent>() != nullptr) {
-				LWOOBJID specificOwner = LWOOBJID_EMPTY;
-				auto* scriptedActivityComponent = m_Parent->GetComponent<ScriptedActivityComponent>();
-				uint32_t teamSize = team->members.size();
-				uint32_t lootMatrixId = GetLootMatrixID();
-
-				if (scriptedActivityComponent) {
-					lootMatrixId = scriptedActivityComponent->GetLootMatrixForTeamSize(teamSize);
-				}
-
-				if (team->lootOption == 0) { // Round robin
-					specificOwner = TeamManager::Instance()->GetNextLootOwner(team);
-
-					auto* member = Game::entityManager->GetEntity(specificOwner);
-
-					if (member) Loot::DropLoot(member, m_Parent->GetObjectID(), lootMatrixId, GetMinCoins(), GetMaxCoins());
-				} else {
-					for (const auto memberId : team->members) { // Free for all
-						auto* member = Game::entityManager->GetEntity(memberId);
-
-						if (member == nullptr) continue;
-
-						Loot::DropLoot(member, m_Parent->GetObjectID(), lootMatrixId, GetMinCoins(), GetMaxCoins());
-					}
-				}
-			} else { // drop loot for non team user
-				Loot::DropLoot(owner, m_Parent->GetObjectID(), GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
-			}
+			Loot::DropLoot(owner, m_Parent->GetObjectID(), GetLootMatrixID(), GetMinCoins(), GetMaxCoins());
 		}
 	} else {
 		//Check if this zone allows coin drops
-		if (Game::zoneManager->GetPlayerLoseCoinOnDeath()) {
+		if (Game::zoneManager->GetPlayerLoseCoinOnDeath() && !Game::entityManager->GetHardcoreMode()) {
 			auto* character = m_Parent->GetCharacter();
 			uint64_t coinsTotal = character->GetCoins();
 			const uint64_t minCoinsToLose = Game::zoneManager->GetWorldConfig().coinsLostOnDeathMin;
@@ -798,7 +776,15 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 				coinsTotal -= coinsToLose;
 
-				Loot::DropLoot(m_Parent, m_Parent->GetObjectID(), -1, coinsToLose, coinsToLose);
+				GameMessages::DropClientLoot lootMsg{};
+				lootMsg.target = m_Parent->GetObjectID();
+				lootMsg.ownerID = m_Parent->GetObjectID();
+				lootMsg.currency = coinsToLose;
+				lootMsg.spawnPos = m_Parent->GetPosition();
+				lootMsg.sourceID = source;
+				lootMsg.item = LOT_NULL;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
 				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
 			}
 		}
@@ -981,7 +967,8 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 		auto* character = m_Parent->GetComponent<CharacterComponent>();
 		auto uscore = character->GetUScore();
 
-		auto uscoreToLose = uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100);
+		auto uscoreToLose = static_cast<uint64_t>(uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100.0f));
+		LOG("Player %llu has lost %llu uscore!", m_Parent->GetObjectID(), uscoreToLose);
 		character->SetUScore(uscore - uscoreToLose);
 
 		GameMessages::SendModifyLEGOScore(m_Parent, m_Parent->GetSystemAddress(), -uscoreToLose, eLootSourceType::MISSION);
@@ -995,13 +982,18 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 				if (items) {
 					auto itemMap = items->GetItems();
 					if (!itemMap.empty()) {
-						for (const auto& item : itemMap) {
-							//drop the item:
-							if (!item.second) continue;
-							// don't drop the thinkng cap
-							if (item.second->GetLot() == 6086) continue;
-							GameMessages::SendDropClientLoot(m_Parent, source, item.second->GetLot(), 0, m_Parent->GetPosition(), item.second->GetCount());
-							item.second->SetCount(0, false, false);
+						for (const auto item : itemMap | std::views::values) {
+							// Don't drop excluded items or null ones
+							if (!item || Game::entityManager->GetHardcoreExcludedItemDrops().contains(item->GetLot())) continue;
+							GameMessages::DropClientLoot lootMsg{};
+							lootMsg.target = m_Parent->GetObjectID();
+							lootMsg.ownerID = m_Parent->GetObjectID();
+							lootMsg.sourceID = m_Parent->GetObjectID();
+							lootMsg.item = item->GetLot();
+							lootMsg.count = 1;
+							lootMsg.spawnPos = m_Parent->GetPosition();
+							for (int i = 0; i < item->GetCount(); i++) Loot::DropItem(*m_Parent, lootMsg);
+							item->SetCount(0, false, false);
 						}
 						Game::entityManager->SerializeEntity(m_Parent);
 					}
@@ -1012,32 +1004,55 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 		//get character:
 		auto* chars = m_Parent->GetCharacter();
 		if (chars) {
-			auto coins = chars->GetCoins();
+			auto oldCoins = chars->GetCoins();
+			// Floor this so there arent coins generated from rounding
+			auto coins = static_cast<uint64_t>(oldCoins * Game::entityManager->GetHardcoreCoinKeep());
+			auto coinsToDrop = oldCoins - coins;
+			LOG("Player had %llu coins, will lose %i coins to have %i", oldCoins, coinsToDrop, coins);
 
 			//lose all coins:
-			chars->SetCoins(0, eLootSourceType::NONE);
+			chars->SetCoins(coins, eLootSourceType::NONE);
 
 			//drop all coins:
-			GameMessages::SendDropClientLoot(m_Parent, source, LOT_NULL, coins, m_Parent->GetPosition());
+			constexpr auto MAX_TO_DROP_PER_GM = 100'000;
+			GameMessages::DropClientLoot lootMsg{};
+			lootMsg.target = m_Parent->GetObjectID();
+			lootMsg.ownerID = m_Parent->GetObjectID();
+			lootMsg.spawnPos = m_Parent->GetPosition();
+			lootMsg.sourceID = source;
+			lootMsg.item = LOT_NULL;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
+			while (coinsToDrop > MAX_TO_DROP_PER_GM) {
+				LOG("Dropping 100,000, %llu left", coinsToDrop);
+				lootMsg.currency = 100'000;
+				lootMsg.Send();
+				lootMsg.Send(m_Parent->GetSystemAddress());
+				coinsToDrop -= 100'000;
+			}
+			lootMsg.currency = coinsToDrop;
+			lootMsg.Send();
+			lootMsg.Send(m_Parent->GetSystemAddress());
 		}
-
-		// Reload the player since we can't normally reduce uscore from the server and we want the UI to update
-		// do this last so we don't get killed.... again
-		Game::entityManager->DestructEntity(m_Parent);
-		Game::entityManager->ConstructEntity(m_Parent);
 		return;
 	}
 
 	//award the player some u-score:
 	auto* player = Game::entityManager->GetEntity(source);
 	if (player && player->IsPlayer()) {
+		const auto lot = m_Parent->GetLOT();
 		auto* playerStats = player->GetComponent<CharacterComponent>();
-		if (playerStats) {
+		if (playerStats && GetMaxHealth() > 0 && !Game::entityManager->GetHardcoreUscoreExcludedEnemies().contains(lot)) {
 			//get the maximum health from this enemy:
 			auto maxHealth = GetMaxHealth();
+			const auto uscoreMultiplier = Game::entityManager->GetHardcoreUscoreEnemiesMultiplier();
+			const bool isUscoreReducedLot =
+				Game::entityManager->GetHardcoreUscoreReducedLots().contains(lot) ||
+				Game::entityManager->GetHardcoreUscoreReduced();
+			const auto uscoreReduction = isUscoreReducedLot ? Game::entityManager->GetHardcoreUscoreReduction() : 1.0f;
 
-			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier();
-
+			int uscore = maxHealth * Game::entityManager->GetHardcoreUscoreEnemiesMultiplier() * uscoreReduction;
+			LOG("Rewarding player %llu with %i uscore for killing enemy %i", player->GetObjectID(), uscore, lot);
 			playerStats->SetUScore(playerStats->GetUScore() + uscore);
 			GameMessages::SendModifyLEGOScore(player, player->GetSystemAddress(), uscore, eLootSourceType::MISSION);
 
@@ -1048,38 +1063,89 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 
 bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-
 	auto& destroyableInfo = reportInfo.info->PushDebug("Destroyable");
-	destroyableInfo.PushDebug<AMFIntValue>("Health") = m_iHealth;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Health") = m_fMaxHealth;
-	destroyableInfo.PushDebug<AMFIntValue>("Armor") = m_iArmor;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Armor") = m_fMaxArmor;
-	destroyableInfo.PushDebug<AMFIntValue>("Imagination") = m_iImagination;
-	destroyableInfo.PushDebug<AMFDoubleValue>("Max Imagination") = m_fMaxImagination;
-	destroyableInfo.PushDebug<AMFIntValue>("Damage To Absorb") = m_DamageToAbsorb;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is GM Immune") = m_IsGMImmune;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Shielded") = m_IsShielded;
+	destroyableInfo.PushDebug<AMFIntValue>("DestructibleComponent DB Table Template ID") = m_ComponentID;
+
+	if (m_CurrencyIndex == -1) {
+		destroyableInfo.PushDebug<AMFBoolValue>("Has Loot Currency") = false;
+	} else {
+		destroyableInfo.PushDebug<AMFIntValue>("Loot Currency ID") = m_CurrencyIndex;
+		auto& detailedCoinInfo = destroyableInfo.PushDebug("Coin Info");
+		detailedCoinInfo.PushDebug<AMFIntValue>("Min Coins") = m_MinCoins;
+		detailedCoinInfo.PushDebug<AMFIntValue>("Max Coins") = m_MaxCoins;
+	}
+
+	if (m_LootMatrixID == -1 || m_LootMatrixID == 0) {
+		destroyableInfo.PushDebug<AMFBoolValue>("Has Loot Matrix") = false;
+	} else {
+		auto& lootInfo = destroyableInfo.PushDebug("Loot Info");
+		lootInfo.PushDebug<AMFIntValue>("Loot Matrix ID") = m_LootMatrixID;
+		auto* const componentsRegistryTable = CDClientManager::GetTable<CDComponentsRegistryTable>();
+		auto* const itemComponentTable = CDClientManager::GetTable<CDItemComponentTable>();
+		auto* const lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+		auto* const lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+		auto* const rarityTableTable = CDClientManager::GetTable<CDRarityTableTable>();
+
+		const auto& matrix = lootMatrixTable->GetMatrix(m_LootMatrixID);
+
+		for (const auto& entry : matrix) {
+			auto& thisEntry = lootInfo.PushDebug("Loot table Index - " + std::to_string(entry.LootTableIndex));
+			thisEntry.PushDebug<AMFDoubleValue>("Percent chance to drop") = entry.percent * 100.0f;
+			thisEntry.PushDebug<AMFDoubleValue>("Minimum amount to drop") = entry.minToDrop;
+			thisEntry.PushDebug<AMFDoubleValue>("Maximum amount to drop") = entry.maxToDrop;
+			const auto& lootTable = lootTableTable->GetTable(entry.LootTableIndex);
+			const auto& rarityTable = rarityTableTable->GetRarityTable(entry.RarityTableIndex);
+
+			auto& thisRarity = thisEntry.PushDebug("Rarity");
+			for (const auto& rarity : rarityTable) {
+				thisRarity.PushDebug<AMFDoubleValue>("Rarity " + std::to_string(rarity.rarity)) = rarity.randmax;
+			}
+
+			auto& thisItems = thisEntry.PushDebug("Drop(s) Info");
+			for (const auto& loot : lootTable) {
+				uint32_t itemComponentId = componentsRegistryTable->GetByIDAndType(loot.itemid, eReplicaComponentType::ITEM);
+				uint32_t rarity = itemComponentTable->GetItemComponentByID(itemComponentId).rarity;
+				auto title = "%[Objects_" + std::to_string(loot.itemid) + "_name] " + std::to_string(loot.itemid);
+				if (loot.MissionDrop) title += " - Mission Drop";
+				thisItems.PushDebug(title);
+			}
+		}
+	}
+
+	auto* const entity = Game::entityManager->GetEntity(reportInfo.clientID);
+	destroyableInfo.PushDebug<AMFBoolValue>("Is on your team") = entity ? IsFriend(entity) : false;
+	auto& stats = destroyableInfo.PushDebug("Statistics");
+	stats.PushDebug<AMFIntValue>("Health") = m_iHealth;
+	stats.PushDebug<AMFDoubleValue>("Maximum Health") = m_fMaxHealth;
+	stats.PushDebug<AMFIntValue>("Armor") = m_iArmor;
+	stats.PushDebug<AMFDoubleValue>("Maximum Armor") = m_fMaxArmor;
+	stats.PushDebug<AMFIntValue>("Imagination") = m_iImagination;
+	stats.PushDebug<AMFDoubleValue>("Maximum Imagination") = m_fMaxImagination;
+	stats.PushDebug<AMFIntValue>("Damage Absorption Points") = m_DamageToAbsorb;
+	stats.PushDebug<AMFBoolValue>("Is GM Immune") = m_IsGMImmune;
+	stats.PushDebug<AMFBoolValue>("Is Shielded") = m_IsShielded;
 	destroyableInfo.PushDebug<AMFIntValue>("Attacks To Block") = m_AttacksToBlock;
 	destroyableInfo.PushDebug<AMFIntValue>("Damage Reduction") = m_DamageReduction;
-	auto& factions = destroyableInfo.PushDebug("Factions");
-	size_t i = 0;
+	std::stringstream factionsStream;
 	for (const auto factionID : m_FactionIDs) {
-		factions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(factionID)) = "";
+		factionsStream << factionID << " ";
 	}
-	auto& enemyFactions = destroyableInfo.PushDebug("Enemy Factions");
-	i = 0;
+
+	destroyableInfo.PushDebug<AMFStringValue>("Factions") = factionsStream.str();
+
+	factionsStream.str("");
 	for (const auto enemyFactionID : m_EnemyFactionIDs) {
-		enemyFactions.PushDebug<AMFStringValue>(std::to_string(i++) + " " + std::to_string(enemyFactionID)) = "";
+		factionsStream << enemyFactionID << " ";
 	}
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashable") = m_IsSmashable;
-	destroyableInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;
+
+	destroyableInfo.PushDebug<AMFStringValue>("Enemy Factions") = factionsStream.str();
+
+	destroyableInfo.PushDebug<AMFBoolValue>("Is A Smashable") = m_IsSmashable;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Smashed") = m_IsSmashed;
 	destroyableInfo.PushDebug<AMFBoolValue>("Is Module Assembly") = m_IsModuleAssembly;
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
 	destroyableInfo.PushDebug<AMFBoolValue>("Has Threats") = m_HasThreats;
-	destroyableInfo.PushDebug<AMFIntValue>("Loot Matrix ID") = m_LootMatrixID;
-	destroyableInfo.PushDebug<AMFIntValue>("Min Coins") = m_MinCoins;
-	destroyableInfo.PushDebug<AMFIntValue>("Max Coins") = m_MaxCoins;
+
 	destroyableInfo.PushDebug<AMFStringValue>("Killer ID") = std::to_string(m_KillerID);
 
 	// "Scripts"; idk what to do about scripts yet
@@ -1094,7 +1160,25 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	immuneCounts.PushDebug<AMFIntValue>("Quickbuild Interrupt") = m_ImmuneToQuickbuildInterruptCount;
 	immuneCounts.PushDebug<AMFIntValue>("Pull To Point") = m_ImmuneToPullToPointCount;
 
-	destroyableInfo.PushDebug<AMFIntValue>("Death Behavior") = m_DeathBehavior;
+	auto& deathInfo = destroyableInfo.PushDebug("Death Info");
+	deathInfo.PushDebug<AMFBoolValue>("Is Dead") = m_IsDead;
+	switch (m_DeathBehavior) {
+	case 0:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Fade";
+		break;
+	case 1:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Stay";
+		break;
+	case 2:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Immediate";
+		break;
+	case -1:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Invulnerable";
+		break;
+	default:
+		deathInfo.PushDebug<AMFStringValue>("Death Behavior") = "Other";
+		break;
+	}
 	destroyableInfo.PushDebug<AMFDoubleValue>("Damage Cooldown Timer") = m_DamageCooldownTimer;
 
 	return true;

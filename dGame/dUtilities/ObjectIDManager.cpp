@@ -5,47 +5,37 @@
 #include "Database.h"
 #include "Logger.h"
 #include "Game.h"
+#include "eObjectBits.h"
 
- //! The persistent ID request
-struct PersistentIDRequest {
-	PersistentIDRequest(const uint64_t& requestID, const std::function<void(uint32_t)>& callback) : requestID(requestID), callback(callback) {}
-	uint64_t requestID;
-
-	std::function<void(uint32_t)> callback;
-};
+// should the spawners from vanity also have the CLIENT flag?
 
 namespace {
-	std::vector<PersistentIDRequest> Requests; //!< All outstanding persistent ID requests
-	uint64_t CurrentRequestID = 0;                  //!< The current request ID
-	uint32_t CurrentObjectID = uint32_t(1152921508165007067);                   //!< The current object ID
-	std::uniform_int_distribution<int> Uni(10000000, INT32_MAX);
+	// Start the range in a way that it when first called it will fetch some new persistent IDs
+	std::optional<IObjectIdTracker::Range> CurrentRange = std::nullopt;
+	uint32_t CurrentObjectID = uint32_t(1152921508165007067); // The current object ID (this should really start at the highest current ID in the world, then increment from there)
 };
 
-//! Requests a persistent ID
-void ObjectIDManager::RequestPersistentID(const std::function<void(uint32_t)> callback) {
-	const auto& request = Requests.emplace_back(++CurrentRequestID, callback);
+uint64_t ObjectIDManager::GetPersistentID() {
+	if (!CurrentRange.has_value() || CurrentRange->minID > CurrentRange->maxID) {
+		CurrentRange = Database::Get()->GetPersistentIdRange();
+		// We're getting close to being out of IDs in this range, log a warning
+		const auto WARNING_RANGE = 70368744100000ULL;
+		if (CurrentRange->minID >= 70368744100000ULL) {
+			LOG("WARNING: Your server is running low on persistent IDs, please consider an ID squash in the near future.");
+		}
 
-	MasterPackets::SendPersistentIDRequest(Game::server, request.requestID);
+		LOG("Reserved object ID range: %llu - %llu", CurrentRange->minID, CurrentRange->maxID);
+	}
+
+	const auto usedID = CurrentRange->minID++;
+	auto toReturn = usedID;
+	// Any IDs gotten from persistent IDs use the CHARACTER bit
+	GeneralUtils::SetBit(toReturn, eObjectBits::CHARACTER);
+	LOG("Using ID: %llu:%llu", toReturn, usedID);
+	return toReturn;
 }
 
-//! Handles a persistent ID response
-void ObjectIDManager::HandleRequestPersistentIDResponse(const uint64_t requestID, const uint32_t persistentID) {
-	auto it = std::find_if(Requests.begin(), Requests.end(), [requestID](const PersistentIDRequest& request) {
-		return request.requestID == requestID;
-	});
-
-	if (it == Requests.end()) return;
-
-	it->callback(persistentID);
-	Requests.erase(it);
-}
-
-//! Handles cases where we have to get a unique object ID synchronously
-uint32_t ObjectIDManager::GenerateRandomObjectID() {
-	return Uni(Game::randomEngine);
-}
-
-//! Generates an object ID server-sided (used for regular entities like smashables)
+// Generates an object ID server-sided (used for regular entities like smashables)
 uint32_t ObjectIDManager::GenerateObjectID() {
 	return ++CurrentObjectID;
 }

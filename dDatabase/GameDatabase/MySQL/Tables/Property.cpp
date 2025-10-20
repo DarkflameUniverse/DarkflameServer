@@ -1,6 +1,23 @@
 #include "MySQLDatabase.h"
 #include "ePropertySortType.h"
 
+IProperty::Info ReadPropertyInfo(UniqueResultSet& result) {
+	IProperty::Info info;
+	info.id = result->getUInt64("id");
+	info.ownerId = result->getInt64("owner_id");
+	info.cloneId = result->getUInt64("clone_id");
+	info.name = result->getString("name").c_str();
+	info.description = result->getString("description").c_str();
+	info.privacyOption = result->getInt("privacy_option");
+	info.rejectionReason = result->getString("rejection_reason").c_str();
+	info.lastUpdatedTime = result->getUInt("last_updated");
+	info.claimedTime = result->getUInt("time_claimed");
+	info.reputation = result->getUInt("reputation");
+	info.modApproved = result->getUInt("mod_approved");
+	info.performanceCost = result->getFloat("performance_cost");
+	return info;
+}
+
 std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(const IProperty::PropertyLookup& params) {
 	std::optional<IProperty::PropertyEntranceResult> result;
 	std::string query;
@@ -117,19 +134,7 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 
 	while (properties->next()) {
 		if (!result) result = IProperty::PropertyEntranceResult();
-		auto& entry = result->entries.emplace_back();
-		entry.id = properties->getUInt64("id");
-		entry.ownerId = properties->getUInt64("owner_id");
-		entry.cloneId = properties->getUInt64("clone_id");
-		entry.name = properties->getString("name").c_str();
-		entry.description = properties->getString("description").c_str();
-		entry.privacyOption = properties->getInt("privacy_option");
-		entry.rejectionReason = properties->getString("rejection_reason").c_str();
-		entry.lastUpdatedTime = properties->getUInt("last_updated");
-		entry.claimedTime = properties->getUInt("time_claimed");
-		entry.reputation = properties->getUInt("reputation");
-		entry.modApproved = properties->getUInt("mod_approved");
-		entry.performanceCost = properties->getFloat("performance_cost");
+		result->entries.push_back(ReadPropertyInfo(properties));
 	}
 
 	return result;
@@ -144,21 +149,7 @@ std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOMAPID map
 		return std::nullopt;
 	}
 
-	IProperty::Info toReturn;
-	toReturn.id = propertyEntry->getUInt64("id");
-	toReturn.ownerId = propertyEntry->getUInt64("owner_id");
-	toReturn.cloneId = propertyEntry->getUInt64("clone_id");
-	toReturn.name = propertyEntry->getString("name").c_str();
-	toReturn.description = propertyEntry->getString("description").c_str();
-	toReturn.privacyOption = propertyEntry->getInt("privacy_option");
-	toReturn.rejectionReason = propertyEntry->getString("rejection_reason").c_str();
-	toReturn.lastUpdatedTime = propertyEntry->getUInt("last_updated");
-	toReturn.claimedTime = propertyEntry->getUInt("time_claimed");
-	toReturn.reputation = propertyEntry->getUInt("reputation");
-	toReturn.modApproved = propertyEntry->getUInt("mod_approved");
-	toReturn.performanceCost = propertyEntry->getFloat("performance_cost");
-
-	return toReturn;
+	return ReadPropertyInfo(propertyEntry);
 }
 
 void MySQLDatabase::UpdatePropertyModerationInfo(const IProperty::Info& info) {
@@ -194,4 +185,16 @@ void MySQLDatabase::InsertNewProperty(const IProperty::Info& info, const uint32_
 		info.description,
 		zoneId.GetMapID()
 	);
+}
+
+std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOOBJID id) {
+	auto propertyEntry = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties WHERE id = ?;", id);
+
+	if (!propertyEntry->next()) {
+		return std::nullopt;
+	}
+
+	return ReadPropertyInfo(propertyEntry);
 }

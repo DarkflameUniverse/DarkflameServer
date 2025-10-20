@@ -141,7 +141,6 @@ namespace GMGreaterThanZeroCommands {
 					characterId = characterInfo->id;
 
 					GeneralUtils::SetBit(characterId, eObjectBits::CHARACTER);
-					GeneralUtils::SetBit(characterId, eObjectBits::PERSISTENT);
 				}
 
 				if (accountId == 0) {

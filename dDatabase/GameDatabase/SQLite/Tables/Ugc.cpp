@@ -1,5 +1,17 @@
 #include "SQLiteDatabase.h"
 
+IUgc::Model ReadModel(CppSQLite3Query& result) {
+	IUgc::Model model;
+
+	int blobSize{};
+	const auto* blob = result.getBlobField("lxfml", blobSize);
+	model.lxfmlData << std::string(reinterpret_cast<const char*>(blob), blobSize);
+	model.id = result.getInt64Field("ugcID");
+	model.modelID = result.getInt64Field("modelID");
+
+	return model;
+}
+
 std::vector<IUgc::Model> SQLiteDatabase::GetUgcModels(const LWOOBJID& propertyId) {
 	auto [_, result] = ExecuteSelect(
 		"SELECT lxfml, u.id AS ugcID, pc.id AS modelID FROM ugc AS u JOIN properties_contents AS pc ON u.id = pc.ugc_id WHERE lot = 14 AND property_id = ? AND pc.ugc_id IS NOT NULL;",
@@ -8,14 +20,7 @@ std::vector<IUgc::Model> SQLiteDatabase::GetUgcModels(const LWOOBJID& propertyId
 	std::vector<IUgc::Model> toReturn;
 
 	while (!result.eof()) {
-		IUgc::Model model;
-
-		int blobSize{};
-		const auto* blob = result.getBlobField("lxfml", blobSize);
-		model.lxfmlData << std::string(reinterpret_cast<const char*>(blob), blobSize);
-		model.id = result.getInt64Field("ugcID");
-		model.modelID = result.getInt64Field("modelID");
-		toReturn.push_back(std::move(model));
+		toReturn.push_back(ReadModel(result));
 		result.nextRow();
 	}
 
@@ -27,14 +32,7 @@ std::vector<IUgc::Model> SQLiteDatabase::GetAllUgcModels() {
 
 	std::vector<IUgc::Model> models;
 	while (!result.eof()) {
-		IUgc::Model model;
-		model.id = result.getInt64Field("ugcID");
-		model.modelID = result.getInt64Field("modelID");
-
-		int blobSize{};
-		const auto* blob = result.getBlobField("lxfml", blobSize);
-		model.lxfmlData << std::string(reinterpret_cast<const char*>(blob), blobSize);
-		models.push_back(std::move(model));
+		models.push_back(ReadModel(result));
 		result.nextRow();
 	}
 
@@ -47,9 +45,9 @@ void SQLiteDatabase::RemoveUnreferencedUgcModels() {
 
 void SQLiteDatabase::InsertNewUgcModel(
 	std::stringstream& sd0Data, // cant be const sad
-	const uint32_t blueprintId,
+	const uint64_t blueprintId,
 	const uint32_t accountId,
-	const uint32_t characterId) {
+	const LWOOBJID characterId) {
 	const std::istream stream(sd0Data.rdbuf());
 	ExecuteInsert(
 		"INSERT INTO `ugc`(`id`, `account_id`, `character_id`, `is_optimized`, `lxfml`, `bake_ao`, `filename`) VALUES (?,?,?,?,?,?,?)",
@@ -71,4 +69,15 @@ void SQLiteDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 void SQLiteDatabase::UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) {
 	const std::istream stream(lxfml.rdbuf());
 	ExecuteUpdate("UPDATE ugc SET lxfml = ? WHERE id = ?;", &stream, modelId);
+}
+
+std::optional<IUgc::Model> SQLiteDatabase::GetUgcModel(const LWOOBJID ugcId) {
+	auto [_, result] = ExecuteSelect("SELECT u.id AS ugcID, pc.id AS modelID, lxfml FROM ugc AS u JOIN properties_contents AS pc ON pc.id = u.id WHERE u.id = ?;", ugcId);
+
+	std::optional<IUgc::Model> toReturn = std::nullopt;
+	if (!result.eof()) {
+		toReturn = ReadModel(result);
+	}
+
+	return toReturn;
 }

@@ -8,7 +8,6 @@
 #include "CharacterComponent.h"
 #include "SimplePhysicsComponent.h"
 #include "MovementAIComponent.h"
-#include "ObjectIDManager.h"
 #include "MissionComponent.h"
 #include "Loot.h"
 #include "InventoryComponent.h"
@@ -274,7 +273,7 @@ void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 
 		auto* enemy = Game::entityManager->CreateEntity(info, nullptr, self);
 
-		auto* movementAI = enemy->AddComponent<MovementAIComponent>(MovementAIInfo{});
+		auto* movementAI = enemy->AddComponent<MovementAIComponent>(-1, MovementAIInfo{});
 		auto* simplePhysicsComponent = enemy->GetComponent<SimplePhysicsComponent>();
 		if (simplePhysicsComponent) {
 			simplePhysicsComponent->SetPhysicsMotionState(4);
@@ -416,9 +415,7 @@ void SGCannon::SpawnNewModel(Entity* self) {
 			}
 
 			if (lootMatrix != 0) {
-				std::unordered_map<LOT, int32_t> toDrop = {};
-				toDrop = Loot::RollLootMatrix(player, lootMatrix);
-
+				const auto toDrop = Loot::RollLootMatrix(player, lootMatrix);
 				for (const auto [lot, count] : toDrop) {
 					GameMessages::SetModelToBuild modelToBuild{};
 					modelToBuild.modelLot = lot;

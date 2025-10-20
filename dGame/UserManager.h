@@ -35,11 +35,16 @@ public:
 	void CreateCharacter(const SystemAddress& sysAddr, Packet* packet);
 	void DeleteCharacter(const SystemAddress& sysAddr, Packet* packet);
 	void RenameCharacter(const SystemAddress& sysAddr, Packet* packet);
-	void LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID);
+	void LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID);
 
 	void SaveAllActiveCharacters();
 
 	size_t GetUserCount() const { return m_Users.size(); }
+
+	// Access cached config values
+	bool GetMuteAutoRejectNames() const { return m_MuteAutoRejectNames; }
+	bool GetMuteRestrictTrade() const { return m_MuteRestrictTrade; }
+	bool GetMuteRestrictMail() const { return m_MuteRestrictMail; }
 
 private:
 	static UserManager* m_Address; //Singleton
@@ -50,6 +55,11 @@ private:
 	std::vector<std::string> m_MiddleNames;
 	std::vector<std::string> m_LastNames;
 	std::vector<std::string> m_PreapprovedNames;
+
+	// Cached config values that can change on config reload
+	bool m_MuteAutoRejectNames = false;
+	bool m_MuteRestrictTrade = false;
+	bool m_MuteRestrictMail = false;
 };
 
 #endif // USERMANAGER_H

@@ -4,6 +4,7 @@
 #include "GameMessages.h"
 #include "SkillComponent.h"
 #include "TeamManager.h"
+#include "Loot.h"
 
 void AgSurvivalBuffStation::OnQuickBuildComplete(Entity* self, Entity* target) {
 	auto destroyableComponent = self->GetComponent<DestroyableComponent>();
@@ -55,7 +56,14 @@ void AgSurvivalBuffStation::OnTimerDone(Entity* self, std::string timerName) {
 	for (auto memberID : team) {
 		auto member = Game::entityManager->GetEntity(memberID);
 		if (member != nullptr && !member->GetIsDead()) {
-			GameMessages::SendDropClientLoot(member, self->GetObjectID(), powerupToDrop, 0, self->GetPosition());
+			GameMessages::DropClientLoot lootMsg{};
+			lootMsg.target = member->GetObjectID();
+			lootMsg.ownerID = member->GetObjectID();
+			lootMsg.sourceID = self->GetObjectID();
+			lootMsg.item = powerupToDrop;
+			lootMsg.count = 1;
+			lootMsg.spawnPos = self->GetPosition();
+			Loot::DropItem(*member, lootMsg, true, true);
 		}
 	}
 }

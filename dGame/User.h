@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 #include "RakNetTypes.h"
 #include "dCommonVars.h"
 
@@ -46,7 +47,7 @@ public:
 	const std::unordered_map<std::string, bool>& GetIsBestFriendMap() { return m_IsBestFriendMap; }
 	void UpdateBestFriendValue(const std::string_view playerName, const bool newValue);
 
-	bool GetIsMuted() const;
+	bool GetIsMuted();
 
 	time_t GetMuteExpire() const;
 	void SetMuteExpire(time_t value);
@@ -72,7 +73,8 @@ private:
 	bool m_LastChatMessageApproved = false;
 	int m_AmountOfTimesOutOfSync = 0;
 	const int m_MaxDesyncAllowed = 12;
-	time_t m_MuteExpire;
+	uint64_t m_MuteExpire;
+	std::chrono::steady_clock::time_point m_LastMuteCheck{};
 };
 
 #endif // USER_H

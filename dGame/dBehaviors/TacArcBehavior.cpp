@@ -114,7 +114,6 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 	context->FilterTargets(validTargets, this->m_ignoreFactionList, this->m_includeFactionList, this->m_targetSelf, this->m_targetEnemy, this->m_targetFriend, this->m_targetTeam);
 
 	for (auto validTarget : validTargets) {
-		if (targets.size() >= this->m_maxTargets) break;
 		if (std::find(targets.begin(), targets.end(), validTarget) != targets.end()) continue;
 		if (validTarget->GetIsDead()) continue;
 
@@ -147,13 +146,28 @@ void TacArcBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 		}
 	}
 
-	std::sort(targets.begin(), targets.end(), [reference](Entity* a, Entity* b) {
+	std::sort(targets.begin(), targets.end(), [this, reference, combatAi](Entity* a, Entity* b) {
 		const auto aDistance = Vector3::DistanceSquared(reference, a->GetPosition());
 		const auto bDistance = Vector3::DistanceSquared(reference, b->GetPosition());
 
-		return aDistance > bDistance;
+		return aDistance < bDistance;
 		});
 
+
+	if (m_useAttackPriority) {
+		// this should be using the attack priority column on the destroyable component
+		// We want targets with no threat level to remain the same order as above
+		// std::stable_sort(targets.begin(), targets.end(), [combatAi](Entity* a, Entity* b) {
+		// 	const auto aThreat = combatAi->GetThreat(a->GetObjectID());
+		// 	const auto bThreat = combatAi->GetThreat(b->GetObjectID());
+
+		// 	If enabled for this behavior, prioritize threat over distance
+		// 	return aThreat > bThreat;
+		// 	});
+	}
+
+	// After we've sorted and found our closest targets, size the vector down in case there are too many
+	if (m_maxTargets > 0 && targets.size() > m_maxTargets) targets.resize(m_maxTargets);
 	const auto hit = !targets.empty();
 	bitStream.Write(hit);
 

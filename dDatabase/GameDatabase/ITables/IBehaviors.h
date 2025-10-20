@@ -9,7 +9,7 @@ class IBehaviors {
 public:
 	struct Info {
 		LWOOBJID behaviorId{};
-		uint32_t characterId{};
+		LWOOBJID characterId{};
 		std::string behaviorInfo;
 	};
 

@@ -26,7 +26,7 @@ class DestroyableComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::DESTROYABLE;
 
-	DestroyableComponent(Entity* parentEntity);
+	DestroyableComponent(Entity* parentEntity, const int32_t componentID);
 	~DestroyableComponent() override;
 
 	void Update(float deltaTime) override;
@@ -370,6 +370,8 @@ public:
 	 */
 	uint32_t GetLootMatrixID() const { return m_LootMatrixID; }
 
+	void SetCurrencyIndex(int32_t currencyIndex) { m_CurrencyIndex = currencyIndex; }
+
 	/**
 	 * Returns the ID of the entity that killed this entity, if any
 	 * @return the ID of the entity that killed this entity, if any
@@ -470,6 +472,8 @@ public:
 
 	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 	bool OnSetFaction(GameMessages::GameMsg& msg);
+
+	void SetIsDead(const bool value) { m_IsDead = value; }
 
 	static Implementation<bool, const Entity*> IsEnemyImplentation;
 	static Implementation<bool, const Entity*> IsFriendImplentation;
@@ -584,6 +588,9 @@ private:
 	 * The loot matrix that will be used to drop items when the entity is smashed
 	 */
 	uint32_t m_LootMatrixID;
+
+	// The currency index to determine how much loot to drop
+	int32_t m_CurrencyIndex{ -1 };
 
 	/**
 	 * The min amount of coins that will drop when this entity is smashed

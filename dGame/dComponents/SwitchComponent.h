@@ -18,7 +18,7 @@ class SwitchComponent final : public Component {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::SWITCH;
 
-	SwitchComponent(Entity* parent);
+	SwitchComponent(Entity* parent, const int32_t componentID);
 	~SwitchComponent() override;
 
 	void Update(float deltaTime) override;
@@ -66,6 +66,10 @@ public:
 	 * @return the closest switch from a given position
 	 */
 	static SwitchComponent* GetClosestSwitch(NiPoint3 position);
+
+	const std::vector<int32_t>& GetFactionsToRespondTo() const {
+		return m_FactionsToRespondTo;
+	}
 
 private:
 	/**

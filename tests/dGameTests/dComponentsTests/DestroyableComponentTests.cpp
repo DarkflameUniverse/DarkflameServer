@@ -16,7 +16,7 @@ protected:
 	void SetUp() override {
 		SetUpDependencies();
 		baseEntity = new Entity(15, GameDependenciesTest::info);
-		destroyableComponent = baseEntity->AddComponent<DestroyableComponent>();
+		destroyableComponent = baseEntity->AddComponent<DestroyableComponent>(-1);
 		// Initialize some values to be not default
 		destroyableComponent->SetMaxHealth(12345.0f);
 		destroyableComponent->SetHealth(23);
@@ -39,7 +39,7 @@ protected:
 TEST_F(DestroyableTest, PlacementNewAddComponentTest) {
 	ASSERT_NE(destroyableComponent, nullptr);
 	ASSERT_EQ(destroyableComponent->GetArmor(), 7);
-	baseEntity->AddComponent<DestroyableComponent>();
+	baseEntity->AddComponent<DestroyableComponent>(-1);
 	ASSERT_NE(baseEntity->GetComponent<DestroyableComponent>(), nullptr);
 	ASSERT_EQ(destroyableComponent->GetArmor(), 0);
 }
@@ -325,7 +325,7 @@ TEST_F(DestroyableTest, DestroyableComponentFactionTest) {
 
 TEST_F(DestroyableTest, DestroyableComponentValiditiyTest) {
 	auto* enemyEntity = new Entity(19, info);
-	enemyEntity->AddComponent<DestroyableComponent>()->AddFactionNoLookup(16);
+	enemyEntity->AddComponent<DestroyableComponent>(-1)->AddFactionNoLookup(16);
 	destroyableComponent->AddEnemyFaction(16);
 	EXPECT_TRUE(destroyableComponent->IsEnemy(enemyEntity));
 	EXPECT_FALSE(destroyableComponent->IsFriend(enemyEntity));

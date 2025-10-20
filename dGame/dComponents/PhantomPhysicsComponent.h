@@ -28,7 +28,7 @@ class PhantomPhysicsComponent final : public PhysicsComponent {
 public:
 	static constexpr eReplicaComponentType ComponentType = eReplicaComponentType::PHANTOM_PHYSICS;
 
-	PhantomPhysicsComponent(Entity* parent, int32_t componentId);
+	PhantomPhysicsComponent(Entity* parent, const int32_t componentID);
 	~PhantomPhysicsComponent() override;
 	void Update(float deltaTime) override;
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;

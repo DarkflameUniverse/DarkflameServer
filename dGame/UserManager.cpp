@@ -30,6 +30,8 @@
 #include "BitStreamUtils.h"
 #include "CheatDetection.h"
 #include "CharacterComponent.h"
+#include "dConfig.h"
+#include "eCharacterVersion.h"
 
 UserManager* UserManager::m_Address = nullptr;
 
@@ -90,6 +92,23 @@ void UserManager::Initialize() {
 	while (std::getline(chatListStream, line, '\n')) {
 		StripCR(line);
 		m_PreapprovedNames.push_back(line);
+	}
+
+	// Initialize cached config values and register a handler to update them on config reload
+	// This avoids repeated lookups into dConfig at runtime.
+	if (Game::config) {
+		m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+		m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+		m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+
+		Game::config->AddConfigHandler([this]() {
+			this->m_MuteAutoRejectNames = (Game::config->GetValue("mute_auto_reject_names") == "1");
+			this->m_MuteRestrictTrade = (Game::config->GetValue("mute_restrict_trade") == "1");
+			this->m_MuteRestrictMail = (Game::config->GetValue("mute_restrict_mail") == "1");
+		});
+	}
+	else {
+		LOG("Warning: dConfig not initialized before UserManager. Cached config values will not be available.");
 	}
 }
 
@@ -300,7 +319,9 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	inStream.Read(eyes);
 	inStream.Read(mouth);
 
-	const auto name = LUWStringName.GetAsString();
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
+
+	const auto name = autoRejectNames ? "" : LUWStringName.GetAsString();
 	std::string predefinedName = GetPredefinedName(firstNameIndex, middleNameIndex, lastNameIndex);
 
 	LOT shirtLOT = FindCharShirtID(shirtColor, shirtStyle);
@@ -318,85 +339,88 @@ void UserManager::CreateCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		return;
 	}
 
+	if (autoRejectNames) {
+		LOG("AccountID: %i is muted, forcing use of predefined name", u->GetAccountID());
+	}
+
 	if (name.empty()) {
 		LOG("AccountID: %i is creating a character with predefined name: %s", u->GetAccountID(), predefinedName.c_str());
 	} else {
 		LOG("AccountID: %i is creating a character with name: %s (temporary: %s)", u->GetAccountID(), name.c_str(), predefinedName.c_str());
 	}
 
-	//Now that the name is ok, we can get an objectID from Master:
-	ObjectIDManager::RequestPersistentID([=, this](uint32_t objectID) {
-		if (Database::Get()->GetCharacterInfo(objectID)) {
-			LOG("Character object id unavailable, check object_id_tracker!");
-			WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
-			return;
-		}
+	//Now that the name is ok, we can get a persistent ObjectID:
+	LWOOBJID objectID = ObjectIDManager::GetPersistentID();
+	const uint32_t maxRetries = 100;
+	uint32_t tries = 0;
+	while (Database::Get()->GetCharacterInfo(objectID) && tries < maxRetries) {
+		tries++;
+		LOG("Found a duplicate character %llu, getting a new objectID", objectID);
+		objectID = ObjectIDManager::GetPersistentID();
+	}
 
-		std::stringstream xml;
-		xml << "<obj v=\"1\">";
+	if (tries >= maxRetries) {
+		LOG("Failed to get a unique objectID for new character after %i tries, aborting char creation for account %i", maxRetries, u->GetAccountID());
+		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::OBJECT_ID_UNAVAILABLE);
+		return;
+	}
 
-		xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
-		xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
-		xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
+	std::stringstream xml;
+	xml << "<obj v=\"1\">";
 
-		xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
-		xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
-		xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\">";
-		xml << "<vl><l id=\"1000\" cid=\"0\"/></vl>";
+	xml << "<mf hc=\"" << hairColor << "\" hs=\"" << hairStyle << "\" hd=\"0\" t=\"" << shirtColor << "\" l=\"" << pantsColor;
+	xml << "\" hdc=\"0\" cd=\"" << shirtStyle << "\" lh=\"" << lh << "\" rh=\"" << rh << "\" es=\"" << eyebrows << "\" ";
+	xml << "ess=\"" << eyes << "\" ms=\"" << mouth << "\"/>";
 
-		xml << "</char>";
+	xml << "<char acct=\"" << u->GetAccountID() << "\" cc=\"0\" gm=\"0\" ft=\"0\" llog=\"" << time(NULL) << "\" ";
+	xml << "ls=\"0\" lzx=\"-626.5847\" lzy=\"613.3515\" lzz=\"-28.6374\" lzrx=\"0.0\" lzry=\"0.7015\" lzrz=\"0.0\" lzrw=\"0.7126\" ";
+	xml << "stt=\"0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;\">";
+	xml << "<vl><l id=\"1000\" cid=\"0\"/></vl>";
 
-		xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
+	xml << "</char>";
 
-		xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
+	xml << "<dest hm=\"4\" hc=\"4\" im=\"0\" ic=\"0\" am=\"0\" ac=\"0\" d=\"0\"/>";
 
-		LWOOBJID lwoidforshirt = ObjectIDManager::GenerateRandomObjectID();
-		LWOOBJID lwoidforpants;
+	xml << "<inv><bag><b t=\"0\" m=\"20\"/><b t=\"1\" m=\"40\"/><b t=\"2\" m=\"240\"/><b t=\"3\" m=\"240\"/><b t=\"14\" m=\"40\"/></bag><items><in t=\"0\">";
 
-		do {
-			lwoidforpants = ObjectIDManager::GenerateRandomObjectID();
-		} while (lwoidforpants == lwoidforshirt); //Make sure we don't have the same ID for both shirt and pants
+	LWOOBJID lwoidforshirt = ObjectIDManager::GetPersistentID();
+	LWOOBJID lwoidforpants = ObjectIDManager::GetPersistentID();
 
-		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(lwoidforshirt, eObjectBits::PERSISTENT);
-		GeneralUtils::SetBit(lwoidforpants, eObjectBits::CHARACTER);
-		GeneralUtils::SetBit(lwoidforpants, eObjectBits::PERSISTENT);
+	xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
+	xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
 
-		xml << "<i l=\"" << shirtLOT << "\" id=\"" << lwoidforshirt << "\" s=\"0\" c=\"1\" eq=\"1\" b=\"1\"/>";
-		xml << "<i l=\"" << pantsLOT << "\" id=\"" << lwoidforpants << "\" s=\"1\" c=\"1\" eq=\"1\" b=\"1\"/>";
+	xml << "</in></items></inv><lvl l=\"1\" cv=\"" << GeneralUtils::ToUnderlying(eCharacterVersion::UP_TO_DATE) << "\" sb=\"500\"/><flag></flag></obj>";
 
-		xml << "</in></items></inv><lvl l=\"1\" cv=\"1\" sb=\"500\"/><flag></flag></obj>";
+	//Check to see if our name was pre-approved:
+	bool nameOk = IsNamePreapproved(name);
 
-		//Check to see if our name was pre-approved:
-		bool nameOk = IsNamePreapproved(name);
-		if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
+	if (!nameOk && u->GetMaxGMLevel() > eGameMasterLevel::FORUM_MODERATOR) nameOk = true;
 
-		// If predefined name is invalid, change it to be their object id
-		// that way more than one player can create characters if the predefined name files are not provided
-		auto assignedPredefinedName = predefinedName;
-		if (assignedPredefinedName == "INVALID") {
-			std::stringstream nameObjID;
-			nameObjID << "minifig" << objectID;
-			assignedPredefinedName = nameObjID.str();
-		}
+	// If predefined name is invalid, change it to be their object id
+	// that way more than one player can create characters if the predefined name files are not provided
+	auto assignedPredefinedName = predefinedName;
+	if (assignedPredefinedName == "INVALID") {
+		std::stringstream nameObjID;
+		nameObjID << "minifig" << objectID;
+		assignedPredefinedName = nameObjID.str();
+	}
 
-		std::string_view nameToAssign = !name.empty() && nameOk ? name : assignedPredefinedName;
-		std::string pendingName = !name.empty() && !nameOk ? name : "";
+	std::string_view nameToAssign = !name.empty() && nameOk ? name : assignedPredefinedName;
+	std::string pendingName = !name.empty() && !nameOk ? name : "";
 
-		ICharInfo::Info info;
-		info.name = nameToAssign;
-		info.pendingName = pendingName;
-		info.id = objectID;
-		info.accountId = u->GetAccountID();
+	ICharInfo::Info info;
+	info.name = nameToAssign;
+	info.pendingName = pendingName;
+	info.id = objectID;
+	info.accountId = u->GetAccountID();
 
-		Database::Get()->InsertNewCharacter(info);
+	Database::Get()->InsertNewCharacter(info);
 
-		//Now finally insert our character xml:
-		Database::Get()->InsertCharacterXml(objectID, xml.str());
+	//Now finally insert our character xml:
+	Database::Get()->InsertCharacterXml(objectID, xml.str());
 
-		WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
-		UserManager::RequestCharacterList(sysAddr);
-		});
+	WorldPackets::SendCharacterCreationResponse(sysAddr, eCharacterCreationResponse::SUCCESS);
+	UserManager::RequestCharacterList(sysAddr);
 }
 
 void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) {
@@ -409,9 +433,8 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID objectID;
 	inStream.Read(objectID);
-	uint32_t charID = static_cast<uint32_t>(objectID);
 
-	LOG("Received char delete req for ID: %llu (%u)", objectID, charID);
+	LOG("Received char delete req for ID: %llu", objectID);
 
 	bool hasCharacter = CheatDetection::VerifyLwoobjidIsSender(
 		objectID,
@@ -423,8 +446,8 @@ void UserManager::DeleteCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	if (!hasCharacter) {
 		WorldPackets::SendCharacterDeleteResponse(sysAddr, false);
 	} else {
-		LOG("Deleting character %i", charID);
-		Database::Get()->DeleteCharacter(charID);
+		LOG("Deleting character %llu", objectID);
+		Database::Get()->DeleteCharacter(objectID);
 
 		CBITSTREAM;
 		BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::UNEXPECTED_DISCONNECT);
@@ -445,17 +468,15 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	CINSTREAM_SKIP_HEADER;
 	LWOOBJID objectID;
 	inStream.Read(objectID);
-	GeneralUtils::ClearBit(objectID, eObjectBits::CHARACTER);
-	GeneralUtils::ClearBit(objectID, eObjectBits::PERSISTENT);
 
-	uint32_t charID = static_cast<uint32_t>(objectID);
-	LOG("Received char rename request for ID: %llu (%u)", objectID, charID);
+	LOG("Received char rename request for ID: %llu", objectID);
 
 	LUWString LUWStringName;
 	inStream.Read(LUWStringName);
-	const auto newName = LUWStringName.GetAsString();
+	auto newName = LUWStringName.GetAsString();
 
 	Character* character = nullptr;
+	const bool autoRejectNames = this->GetMuteAutoRejectNames() && u->GetIsMuted();
 
 	//Check if this user has this character:
 	bool ownsCharacter = CheatDetection::VerifyLwoobjidIsSender(
@@ -466,7 +487,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 		u->GetAccountID());
 
 	auto unusedItr = std::find_if(u->GetCharacters().begin(), u->GetCharacters().end(), [&](Character* c) {
-		if (c->GetID() == charID) {
+		if (c->GetID() == objectID) {
 			character = c;
 			return true;
 		}
@@ -476,19 +497,36 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	if (!ownsCharacter || !character) {
 		WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::UNKNOWN_ERROR);
 	} else if (ownsCharacter && character) {
+		if (autoRejectNames) {
+			// Create a random preapproved name (fallback to default if none available)
+			if (!m_FirstNames.empty() && !m_MiddleNames.empty() && !m_LastNames.empty()) {
+				std::string firstName = GeneralUtils::GetRandomElement(m_FirstNames);
+				std::string middleName = GeneralUtils::GetRandomElement(m_MiddleNames);
+				std::string lastName = GeneralUtils::GetRandomElement(m_LastNames);
+				newName = firstName + middleName + lastName;
+			} else {
+				newName = "character" + std::to_string(objectID);
+			}
+		}
+
 		if (newName == character->GetName()) {
 			WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::NAME_UNAVAILABLE);
 			return;
 		}
 
 		if (!Database::Get()->GetCharacterInfo(newName)) {
-			if (IsNamePreapproved(newName)) {
-				Database::Get()->SetCharacterName(charID, newName);
+			if (autoRejectNames) {
+				Database::Get()->SetCharacterName(objectID, newName);
+				LOG("Character %s auto-renamed to preapproved name %s due to mute", character->GetName().c_str(), newName.c_str());
+				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
+				UserManager::RequestCharacterList(sysAddr);
+			} else if (IsNamePreapproved(newName)) {
+				Database::Get()->SetCharacterName(objectID, newName);
 				LOG("Character %s now known as %s", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
 			} else {
-				Database::Get()->SetPendingCharacterName(charID, newName);
+				Database::Get()->SetPendingCharacterName(objectID, newName);
 				LOG("Character %s has been renamed to %s and is pending approval by a moderator.", character->GetName().c_str(), newName.c_str());
 				WorldPackets::SendCharacterRenameResponse(sysAddr, eRenameResponse::SUCCESS);
 				UserManager::RequestCharacterList(sysAddr);
@@ -502,7 +540,7 @@ void UserManager::RenameCharacter(const SystemAddress& sysAddr, Packet* packet) 
 	}
 }
 
-void UserManager::LoginCharacter(const SystemAddress& sysAddr, uint32_t playerID) {
+void UserManager::LoginCharacter(const SystemAddress& sysAddr, LWOOBJID playerID) {
 	User* u = GetUser(sysAddr);
 	if (!u) {
 		LOG("Couldn't get user to log in character");

@@ -30,7 +30,7 @@
 #include "CharacterComponent.h"
 #include "Amf3.h"
 
-ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Component(parent) {
+ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
 	using namespace GameMessages;
 	RegisterMsg<GetObjectReportInfo>(this, &ActivityComponent::OnGetObjectReportInfo);
 	/*
@@ -39,38 +39,11 @@ ActivityComponent::ActivityComponent(Entity* parent, int32_t activityID) : Compo
 	* if activityID is specified and if that column exists in the activities table, update the activity info with that data.
 	*/
 
-	m_ActivityID = activityID;
-	LoadActivityData(activityID);
+	m_ActivityID = componentID;
+	LoadActivityData(componentID);
 	if (m_Parent->HasVar(u"activityID")) {
 		m_ActivityID = parent->GetVar<int32_t>(u"activityID");
 		LoadActivityData(m_ActivityID);
-	}
-
-	auto* destroyableComponent = m_Parent->GetComponent<DestroyableComponent>();
-
-	if (destroyableComponent) {
-		// First lookup the loot matrix id for this component id.
-		CDActivityRewardsTable* activityRewardsTable = CDClientManager::GetTable<CDActivityRewardsTable>();
-		std::vector<CDActivityRewards> activityRewards = activityRewardsTable->Query([=](CDActivityRewards entry) {return (entry.LootMatrixIndex == destroyableComponent->GetLootMatrixID()); });
-
-		uint32_t startingLMI = 0;
-
-		// If we have one, set the starting loot matrix id to that.
-		if (activityRewards.size() > 0) {
-			startingLMI = activityRewards[0].LootMatrixIndex;
-		}
-
-		if (startingLMI > 0) {
-			// We may have more than 1 loot matrix index to use depending ont the size of the team that is looting the activity.
-			// So this logic will get the rest of the loot matrix indices for this activity.
-
-			std::vector<CDActivityRewards> objectTemplateActivities = activityRewardsTable->Query([=](CDActivityRewards entry) {return (activityRewards[0].objectTemplate == entry.objectTemplate); });
-			for (const auto& item : objectTemplateActivities) {
-				if (item.activityRating > 0 && item.activityRating < 5) {
-					m_ActivityLootMatrices.insert({ item.activityRating, item.LootMatrixIndex });
-				}
-			}
-		}
 	}
 }
 void ActivityComponent::LoadActivityData(const int32_t activityId) {
@@ -698,10 +671,6 @@ bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 		}
 	}
 	
-	auto& lootMatrices = activityInfo.PushDebug("Loot Matrices");
-	for (const auto& [activityRating, lootMatrixID] : m_ActivityLootMatrices) {
-		lootMatrices.PushDebug<AMFIntValue>("Loot Matrix " + std::to_string(activityRating)) = lootMatrixID;
-	}
 	activityInfo.PushDebug<AMFIntValue>("ActivityID") = m_ActivityID;
 	return true;
 }

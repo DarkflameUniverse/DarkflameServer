@@ -5,12 +5,13 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "dCommonVars.h"
 
 class ILeaderboard {
 public:
 
 	struct Entry {
-		uint32_t charId{};
+		LWOOBJID charId{};
 		uint32_t lastPlayedTimestamp{};
 		float primaryScore{};
 		float secondaryScore{};
@@ -36,12 +37,12 @@ public:
 	virtual std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) = 0;
 	virtual std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) = 0;
 	virtual std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) = 0;
-	virtual std::optional<Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) = 0;
+	virtual std::optional<Score> GetPlayerScore(const LWOOBJID playerId, const uint32_t gameId) = 0;
 
-	virtual void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) = 0;
-	virtual void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) = 0;
-	virtual void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) = 0;
-	virtual void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) = 0;
+	virtual void SaveScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) = 0;
+	virtual void UpdateScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) = 0;
+	virtual void IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) = 0;
+	virtual void IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) = 0;
 };
 
 #endif  //!__ILEADERBOARD__H__

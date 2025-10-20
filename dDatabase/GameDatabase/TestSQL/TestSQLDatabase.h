@@ -17,31 +17,31 @@ class TestSQLDatabase : public GameDatabase {
 
 	std::vector<std::string> GetApprovedCharacterNames() override;
 
-	std::vector<FriendData> GetFriendsList(uint32_t charID) override;
+	std::vector<FriendData> GetFriendsList(LWOOBJID charID) override;
 
-	std::optional<IFriends::BestFriendStatus> GetBestFriendStatus(const uint32_t playerCharacterId, const uint32_t friendCharacterId) override;
-	void SetBestFriendStatus(const uint32_t playerAccountId, const uint32_t friendAccountId, const uint32_t bestFriendStatus) override;
-	void AddFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
-	void RemoveFriend(const uint32_t playerAccountId, const uint32_t friendAccountId) override;
-	void UpdateActivityLog(const uint32_t characterId, const eActivityType activityType, const LWOMAPID mapId) override;
+	std::optional<IFriends::BestFriendStatus> GetBestFriendStatus(const LWOOBJID playerCharacterId, const LWOOBJID friendCharacterId) override;
+	void SetBestFriendStatus(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId, const uint32_t bestFriendStatus) override;
+	void AddFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) override;
+	void RemoveFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) override;
+	void UpdateActivityLog(const LWOOBJID characterId, const eActivityType activityType, const LWOMAPID mapId) override;
 	void DeleteUgcModelData(const LWOOBJID& modelId) override;
 	void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) override;
 	std::vector<IUgc::Model> GetAllUgcModels() override;
 	void CreateMigrationHistoryTable() override;
 	bool IsMigrationRun(const std::string_view str) override;
 	void InsertMigration(const std::string_view str) override;
-	std::optional<ICharInfo::Info> GetCharacterInfo(const uint32_t charId) override;
+	std::optional<ICharInfo::Info> GetCharacterInfo(const LWOOBJID charId) override;
 	std::optional<ICharInfo::Info> GetCharacterInfo(const std::string_view charId) override;
-	std::string GetCharacterXml(const uint32_t accountId) override;
-	void UpdateCharacterXml(const uint32_t characterId, const std::string_view lxfml) override;
+	std::string GetCharacterXml(const LWOOBJID accountId) override;
+	void UpdateCharacterXml(const LWOOBJID characterId, const std::string_view lxfml) override;
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
-	void InsertCharacterXml(const uint32_t accountId, const std::string_view lxfml) override;
-	std::vector<uint32_t> GetAccountCharacterIds(uint32_t accountId) override;
-	void DeleteCharacter(const uint32_t characterId) override;
-	void SetCharacterName(const uint32_t characterId, const std::string_view name) override;
-	void SetPendingCharacterName(const uint32_t characterId, const std::string_view name) override;
-	void UpdateLastLoggedInCharacter(const uint32_t characterId) override;
+	void InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) override;
+	std::vector<LWOOBJID> GetAccountCharacterIds(LWOOBJID accountId) override;
+	void DeleteCharacter(const LWOOBJID characterId) override;
+	void SetCharacterName(const LWOOBJID characterId, const std::string_view name) override;
+	void SetPendingCharacterName(const LWOOBJID characterId, const std::string_view name) override;
+	void UpdateLastLoggedInCharacter(const LWOOBJID characterId) override;
 	void SetPetNameModerationStatus(const LWOOBJID& petId, const IPetNames::Info& info) override;
 	std::optional<IPetNames::Info> GetPetNameInfo(const LWOOBJID& petId) override;
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) override;
@@ -60,30 +60,30 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
 		std::stringstream& sd0Data,
-		const uint32_t blueprintId,
+		const uint64_t blueprintId,
 		const uint32_t accountId,
-		const uint32_t characterId) override;
-	std::vector<MailInfo> GetMailForPlayer(const uint32_t characterId, const uint32_t numberOfMail) override;
+		const LWOOBJID characterId) override;
+	std::vector<MailInfo> GetMailForPlayer(const LWOOBJID characterId, const uint32_t numberOfMail) override;
 	std::optional<MailInfo> GetMail(const uint64_t mailId) override;
-	uint32_t GetUnreadMailCount(const uint32_t characterId) override;
+	uint32_t GetUnreadMailCount(const LWOOBJID characterId) override;
 	void MarkMailRead(const uint64_t mailId) override;
 	void DeleteMail(const uint64_t mailId) override;
 	void ClaimMailItem(const uint64_t mailId) override;
-	void InsertSlashCommandUsage(const uint32_t characterId, const std::string_view command) override;
+	void InsertSlashCommandUsage(const LWOOBJID characterId, const std::string_view command) override;
 	void UpdateAccountUnmuteTime(const uint32_t accountId, const uint64_t timeToUnmute) override;
 	void UpdateAccountBan(const uint32_t accountId, const bool banned) override;
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
 	void InsertNewAccount(const std::string_view username, const std::string_view bcryptpassword) override;
 	void SetMasterInfo(const IServers::MasterInfo& info) override;
-	std::optional<uint32_t> GetCurrentPersistentId() override;
+	std::optional<uint64_t> GetCurrentPersistentId() override;
+	IObjectIdTracker::Range GetPersistentIdRange() override;
 	void InsertDefaultPersistentId() override;
-	void UpdatePersistentId(const uint32_t id) override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
-	void AddIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) override;
-	void RemoveIgnore(const uint32_t playerId, const uint32_t ignoredPlayerId) override;
-	std::vector<IIgnoreList::Info> GetIgnoreList(const uint32_t playerId) override;
+	void AddIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
+	void RemoveIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
+	std::vector<IIgnoreList::Info> GetIgnoreList(const LWOOBJID playerId) override;
 	void InsertRewardCode(const uint32_t account_id, const uint32_t reward_code) override;
 	std::vector<uint32_t> GetRewardCodesByAccountID(const uint32_t account_id) override;
 	void AddBehavior(const IBehaviors::Info& info) override;
@@ -95,17 +95,19 @@ class TestSQLDatabase : public GameDatabase {
 	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override { return {}; };
 	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override { return {}; };
 	std::vector<ILeaderboard::Entry> GetAgsLeaderboard(const uint32_t activityId) override { return {}; };
-	void SaveScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override {};
-	void UpdateScore(const uint32_t playerId, const uint32_t gameId, const Score& score) override {};
-	std::optional<ILeaderboard::Score> GetPlayerScore(const uint32_t playerId, const uint32_t gameId) override { return {}; };
-	void IncrementNumWins(const uint32_t playerId, const uint32_t gameId) override {};
-	void IncrementTimesPlayed(const uint32_t playerId, const uint32_t gameId) override {};
-	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<uint32_t> characterId) override {};
+	void SaveScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) override {};
+	void UpdateScore(const LWOOBJID playerId, const uint32_t gameId, const Score& score) override {};
+	std::optional<ILeaderboard::Score> GetPlayerScore(const LWOOBJID playerId, const uint32_t gameId) override { return {}; };
+	void IncrementNumWins(const LWOOBJID playerId, const uint32_t gameId) override {};
+	void IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) override {};
+	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
-	IPropertyContents::Model GetModel(const LWOOBJID modelID) override { return {}; }
+	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
+	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
+	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
 };
 
 #endif  //!TESTSQLDATABASE_H
