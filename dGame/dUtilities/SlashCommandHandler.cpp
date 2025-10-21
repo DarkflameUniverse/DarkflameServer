@@ -1052,7 +1052,7 @@ void SlashCommandHandler::Startup() {
 		.info = "Resurrects the player",
 		.aliases = { "resurrect" },
 		.handle = GMZeroCommands::Resurrect,
-		.requiredLevel = eGameMasterLevel::CIVILIAN
+		.requiredLevel = eGameMasterLevel::DEVELOPER
 	};
 	RegisterCommand(ResurrectCommand);
 
