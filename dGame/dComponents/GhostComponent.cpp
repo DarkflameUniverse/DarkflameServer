@@ -4,6 +4,9 @@
 #include "ControllablePhysicsComponent.h"
 
 
+#include "Amf3.h"
+#include "GameMessages.h"
+
 GhostComponent::GhostComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_GhostReferencePoint = NiPoint3Constant::ZERO;
 	m_GhostOverridePoint = NiPoint3Constant::ZERO;
@@ -11,6 +14,7 @@ GhostComponent::GhostComponent(Entity* parent, const int32_t componentID) : Comp
 	
 	RegisterMsg<GameMessages::ToggleGMInvis>(this, &GhostComponent::OnToggleGMInvis);
 	RegisterMsg<GameMessages::GetGMInvis>(this, &GhostComponent::OnGetGMInvis);
+	RegisterMsg<GameMessages::GetObjectReportInfo>(this, &GhostComponent::MsgGetObjectReportInfo);
 }
 
 GhostComponent::~GhostComponent() {
@@ -108,4 +112,13 @@ bool GhostComponent::OnGetGMInvis(GameMessages::GameMsg& msg) {
 	auto& gmInvisMsg = static_cast<GameMessages::GetGMInvis&>(msg);
 	gmInvisMsg.bGMInvis = m_IsGMInvisible;
 	return gmInvisMsg.bGMInvis;
+}
+
+bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& cmptType = reportMsg.info->PushDebug("Ghost");
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	cmptType.PushDebug<AMFBoolValue>("Is GM Invis") = false;
+
+	return true;
 }

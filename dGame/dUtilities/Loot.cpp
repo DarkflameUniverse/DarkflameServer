@@ -365,6 +365,7 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 			lootMsg.spawnPos = spawnPosition;
 			lootMsg.sourceID = source;
 			lootMsg.item = LOT_NULL;
+			CalcFinalDropPos(lootMsg);
 			lootMsg.Send();
 			const auto* const memberEntity = Game::entityManager->GetEntity(member);
 			if (memberEntity) lootMsg.Send(memberEntity->GetSystemAddress());
@@ -377,6 +378,7 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		lootMsg.spawnPos = spawnPosition;
 		lootMsg.sourceID = source;
 		lootMsg.item = LOT_NULL;
+		CalcFinalDropPos(lootMsg);
 		lootMsg.Send();
 		lootMsg.Send(player->GetSystemAddress());
 	}

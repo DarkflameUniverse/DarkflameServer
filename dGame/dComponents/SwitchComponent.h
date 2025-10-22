@@ -67,6 +67,10 @@ public:
 	 */
 	static SwitchComponent* GetClosestSwitch(NiPoint3 position);
 
+	const std::vector<int32_t>& GetFactionsToRespondTo() const {
+		return m_FactionsToRespondTo;
+	}
+
 private:
 	/**
 	 * A list of all pet switches.

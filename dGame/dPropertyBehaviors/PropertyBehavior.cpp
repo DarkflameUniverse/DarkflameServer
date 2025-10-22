@@ -5,6 +5,7 @@
 #include "ControlBehaviorMsgs.h"
 #include "tinyxml2.h"
 #include "ModelComponent.h"
+#include "StringifiedEnum.h"
 
 #include <ranges>
 
@@ -178,13 +179,33 @@ void PropertyBehavior::Deserialize(const tinyxml2::XMLElement& behavior) {
 }
 
 void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
-	for (auto& state : m_States | std::views::values) state.Update(deltaTime, modelComponent);
+	auto& activeState = GetActiveState();
+	UpdateResult updateResult{};
+	activeState.Update(deltaTime, modelComponent, updateResult);
+	if (updateResult.newState.has_value() && updateResult.newState.value() != m_ActiveState) {
+		LOG("Behavior %llu is changing from state %s to %s", StringifiedEnum::ToString(m_ActiveState).data(), StringifiedEnum::ToString(updateResult.newState.value()).data());
+		GameMessages::ResetModelToDefaults resetMsg{};
+		resetMsg.bResetPos = false;
+		resetMsg.bResetRot = false;
+		resetMsg.bUnSmash = false;
+		resetMsg.bResetBehaviors = false;
+		modelComponent.OnResetModelToDefaults(resetMsg);
+		HandleMsg(resetMsg);
+		m_ActiveState = updateResult.newState.value();
+	}
 }
 
 void PropertyBehavior::OnChatMessageReceived(const std::string& sMessage) {
-	for (auto& state : m_States | std::views::values) state.OnChatMessageReceived(sMessage);
+	auto& activeState = GetActiveState();
+	activeState.OnChatMessageReceived(sMessage);
 }
 
 void PropertyBehavior::OnHit() {
-	for (auto& state : m_States | std::views::values) state.OnHit();
+	auto& activeState = GetActiveState();
+	activeState.OnHit();
+}
+
+State& PropertyBehavior::GetActiveState() {
+	DluAssert(m_States.contains(m_ActiveState));
+	return m_States[m_ActiveState];
 }

@@ -8,14 +8,32 @@
 #include "GameMessages.h"
 #include "BitStream.h"
 #include "eTriggerEventType.h"
+#include "Amf3.h"
 
 BouncerComponent::BouncerComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
 	m_PetEnabled = false;
 	m_PetBouncerEnabled = false;
 	m_PetSwitchLoaded = false;
+	m_Destination = GeneralUtils::TryParse<NiPoint3>(
+		GeneralUtils::SplitString(m_Parent->GetVarAsString(u"bouncer_destination"), '\x1f'))
+		.value_or(NiPoint3Constant::ZERO);
+	m_Speed = GeneralUtils::TryParse<float>(m_Parent->GetVarAsString(u"bouncer_speed")).value_or(-1.0f);
+	m_UsesHighArc = GeneralUtils::TryParse<bool>(m_Parent->GetVarAsString(u"bouncer_uses_high_arc")).value_or(false);
+	m_LockControls = GeneralUtils::TryParse<bool>(m_Parent->GetVarAsString(u"lock_controls")).value_or(false);
+	m_IgnoreCollision = !GeneralUtils::TryParse<bool>(m_Parent->GetVarAsString(u"ignore_collision")).value_or(true);
+	m_StickLanding = GeneralUtils::TryParse<bool>(m_Parent->GetVarAsString(u"stickLanding")).value_or(false);
+	m_UsesGroupName = GeneralUtils::TryParse<bool>(m_Parent->GetVarAsString(u"uses_group_name")).value_or(false);
+	m_GroupName = m_Parent->GetVarAsString(u"grp_name");
+	m_MinNumTargets = GeneralUtils::TryParse<int32_t>(m_Parent->GetVarAsString(u"num_targets_to_activate")).value_or(1);
+	m_CinematicPath = m_Parent->GetVarAsString(u"attached_cinematic_path");
 
 	if (parent->GetLOT() == 7625) {
 		LookupPetSwitch();
+	}
+
+	{
+		using namespace GameMessages;
+		RegisterMsg<GetObjectReportInfo>(this, &BouncerComponent::MsgGetObjectReportInfo);
 	}
 }
 
@@ -93,4 +111,55 @@ void BouncerComponent::LookupPetSwitch() {
 			LookupPetSwitch();
 			});
 	}
+}
+
+bool BouncerComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
+	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+	auto& cmptType = reportMsg.info->PushDebug("Bouncer");
+	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
+	auto& destPos = cmptType.PushDebug("Destination Position");
+	if (m_Destination != NiPoint3Constant::ZERO) {
+		destPos.PushDebug(m_Destination);
+	} else {
+		destPos.PushDebug("<font color=\'#FF0000\'>WARNING:</font> Bouncer has no target position, is likely missing config data");
+	}
+
+
+	if (m_Speed == -1.0f) {
+		cmptType.PushDebug("<font color=\'#FF0000\'>WARNING:</font> Bouncer has no speed value, is likely missing config data");
+	} else {
+		cmptType.PushDebug<AMFDoubleValue>("Bounce Speed") = m_Speed;
+	}
+	cmptType.PushDebug<AMFStringValue>("Bounce trajectory arc") = m_UsesHighArc ? "High Arc" : "Low Arc";
+	cmptType.PushDebug<AMFBoolValue>("Collision Enabled") = m_IgnoreCollision;
+	cmptType.PushDebug<AMFBoolValue>("Stick Landing") = m_StickLanding;
+	cmptType.PushDebug<AMFBoolValue>("Locks character's controls") = m_LockControls;
+	if (!m_CinematicPath.empty()) cmptType.PushDebug<AMFStringValue>("Cinematic Camera Path (plays during bounce)") = m_CinematicPath;
+
+	auto* switchComponent = m_Parent->GetComponent<SwitchComponent>();
+	auto& respondsToFactions = cmptType.PushDebug("Responds to Factions");
+	if (!switchComponent || switchComponent->GetFactionsToRespondTo().empty()) respondsToFactions.PushDebug("Faction 1");
+	else {
+		for (const auto faction : switchComponent->GetFactionsToRespondTo()) {
+			respondsToFactions.PushDebug(("Faction " + std::to_string(faction)));
+		}
+	}
+
+	cmptType.PushDebug<AMFBoolValue>("Uses a group name for interactions") = m_UsesGroupName;
+	if (!m_UsesGroupName) {
+		if (m_MinNumTargets > 1) {
+			cmptType.PushDebug("<font color=\'#FF0000\'>WARNING:</font> Bouncer has a required number of objects to activate, but no group for interactions.");
+		}
+
+		if (!m_GroupName.empty()) {
+			cmptType.PushDebug("<font color=\'#FF0000\'>WARNING:</font> Has a group name for interactions , but is marked to not use that name.");
+		}
+	} else {
+		if (m_GroupName.empty()) {
+			cmptType.PushDebug("<font color=\'#FF0000\'>WARNING:</font> Set to use a group name for inter actions, but no group name is assigned");
+		}
+		cmptType.PushDebug<AMFIntValue>("Number of interactions to activate bouncer") = m_MinNumTargets;
+	}
+
+	return true;
 }

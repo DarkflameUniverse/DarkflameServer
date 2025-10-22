@@ -48,6 +48,8 @@ public:
 	bool OnToggleGMInvis(GameMessages::GameMsg& msg);
 
 	bool OnGetGMInvis(GameMessages::GameMsg& msg);
+	
+	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
 
 private:
 
