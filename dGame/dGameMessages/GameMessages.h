@@ -243,8 +243,6 @@ namespace GameMessages {
 		bool cancelOnLogout = false, bool cancelOnRemoveBuff = true, bool cancelOnUi = false,
 		bool cancelOnUnequip = false, bool cancelOnZone = false, bool addedByTeammate = false, bool applyOnTeammates = false, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
-	void SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr);
-
 	void SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr);
 
 	// Property messages
@@ -931,6 +929,20 @@ namespace GameMessages {
 		void Serialize(RakNet::BitStream& stream) const override;
 		LWOOBJID lootID{};
 		LWOOBJID lootOwnerID{};
+	};
+
+	struct ToggleGMInvis : public GameMsg {
+		ToggleGMInvis() : GameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
+
+		void Serialize(RakNet::BitStream& stream) const override;
+		bool bStateOut{ false };
+
+	};
+
+	struct GetGMInvis : public GameMsg {
+		GetGMInvis() : GameMsg(MessageType::Game::GET_GM_INVIS) {}
+
+		bool bGMInvis{ false };
 	};
 };
 #endif // GAMEMESSAGES_H
