@@ -55,13 +55,15 @@ private:
 
 	NiPoint3 m_GhostReferencePoint;
 
-	bool m_GhostOverride;
 	NiPoint3 m_GhostOverridePoint;
 
 	std::unordered_set<LWOOBJID> m_ObservedEntities;
+
 	std::unordered_set<LWOOBJID> m_LimboConstructions;
 
-	bool m_IsGMInvisible = false;
+	bool m_GhostOverride;
+
+	bool m_IsGMInvisible;
 	
 };
 

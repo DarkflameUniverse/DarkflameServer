@@ -362,9 +362,16 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		return;
 	}
 	// Don't construct GM invisible entities unless it's for the GM themselves
+	// GMs can see other GMs if they are the same or lower level
 	GameMessages::GetGMInvis getGMInvisMsg;
 	getGMInvisMsg.Send(entity->GetObjectID());
-	if (getGMInvisMsg.bGMInvis && sysAddr != entity->GetSystemAddress()) return;
+	if (getGMInvisMsg.bGMInvis && sysAddr != entity->GetSystemAddress()) {
+		auto* toUser = UserManager::Instance()->GetUser(sysAddr);
+		if (!toUser) return;
+		auto* constructedUser = UserManager::Instance()->GetUser(entity->GetSystemAddress());
+		if (!constructedUser) return;
+		if (toUser->GetMaxGMLevel() < constructedUser->GetMaxGMLevel()) return;
+	}
 
 	if (entity->GetNetworkId() == 0) {
 		uint16_t networkId;

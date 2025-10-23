@@ -2,7 +2,8 @@
 #include "PlayerManager.h"
 #include "Character.h"
 #include "ControllablePhysicsComponent.h"
-
+#include "UserManager.h"
+#include "User.h"
 
 #include "Amf3.h"
 #include "GameMessages.h"
@@ -90,16 +91,22 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::GameMsg& msg) {
 	auto& gmInvisMsg = static_cast<GameMessages::ToggleGMInvis&>(msg);
 	gmInvisMsg.bStateOut = !m_IsGMInvisible;
 	m_IsGMInvisible = !m_IsGMInvisible;
-	LOG("GM Invisibility toggled to: %s", m_IsGMInvisible ? "true" : "false");
+	LOG_DEBUG("GM Invisibility toggled to: %s", m_IsGMInvisible ? "true" : "false");
 	gmInvisMsg.Send(UNASSIGNED_SYSTEM_ADDRESS);
+	auto* thisUser = UserManager::Instance()->GetUser(m_Parent->GetSystemAddress());
 	for (const auto& player : PlayerManager::GetAllPlayers()) {
 		if (!player || player->GetObjectID() == m_Parent->GetObjectID()) continue;
+		auto* toUser = UserManager::Instance()->GetUser(player->GetSystemAddress());
 		if (m_IsGMInvisible) {
-			Game::entityManager->DestructEntity(m_Parent, player->GetSystemAddress());
+			if (toUser->GetMaxGMLevel() < thisUser->GetMaxGMLevel()) {
+				Game::entityManager->DestructEntity(m_Parent, player->GetSystemAddress());
+			}
 		} else {
-			Game::entityManager->ConstructEntity(m_Parent, player->GetSystemAddress());
-			auto* controllableComp = m_Parent->GetComponent<ControllablePhysicsComponent>();
-			controllableComp->SetDirtyPosition(true);
+			if (toUser->GetMaxGMLevel() >= thisUser->GetMaxGMLevel()) {
+				Game::entityManager->ConstructEntity(m_Parent, player->GetSystemAddress());
+				auto* controllableComp = m_Parent->GetComponent<ControllablePhysicsComponent>();
+				controllableComp->SetDirtyPosition(true);
+			}
 		}
 	}
 	Game::entityManager->SerializeEntity(m_Parent);
@@ -108,7 +115,7 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::GameMsg& msg) {
 }
 
 bool GhostComponent::OnGetGMInvis(GameMessages::GameMsg& msg) {
-	LOG("GM Invisibility requested: %s", m_IsGMInvisible ? "true" : "false");
+	LOG_DEBUG("GM Invisibility requested: %s", m_IsGMInvisible ? "true" : "false");
 	auto& gmInvisMsg = static_cast<GameMessages::GetGMInvis&>(msg);
 	gmInvisMsg.bGMInvis = m_IsGMInvisible;
 	return gmInvisMsg.bGMInvis;
