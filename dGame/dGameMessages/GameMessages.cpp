@@ -1847,18 +1847,6 @@ void GameMessages::SendNotifyClientFailedPrecondition(LWOOBJID objectId, const S
 	SEND_PACKET;
 }
 
-void GameMessages::SendToggleGMInvis(LWOOBJID objectId, bool enabled, const SystemAddress& sysAddr) {
-	CBITSTREAM;
-	CMSGHEADER;
-
-	bitStream.Write(objectId);
-	bitStream.Write(MessageType::Game::TOGGLE_GM_INVIS);
-	bitStream.Write(enabled); // does not matter?
-
-	if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) SEND_PACKET_BROADCAST;
-	SEND_PACKET;
-}
-
 void GameMessages::SendSetName(LWOOBJID objectID, std::u16string name, const SystemAddress& sysAddr) {
 	CBITSTREAM;
 	CMSGHEADER;
@@ -6448,5 +6436,9 @@ namespace GameMessages {
 	void TeamPickupItem::Serialize(RakNet::BitStream& stream) const {
 		stream.Write(lootID);	
 		stream.Write(lootOwnerID);	
+	}
+
+	void ToggleGMInvis::Serialize(RakNet::BitStream& stream) const {
+		stream.Write(bStateOut);
 	}
 }
