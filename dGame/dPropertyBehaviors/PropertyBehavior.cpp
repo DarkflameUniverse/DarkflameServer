@@ -183,12 +183,11 @@ void PropertyBehavior::Update(float deltaTime, ModelComponent& modelComponent) {
 	UpdateResult updateResult{};
 	activeState.Update(deltaTime, modelComponent, updateResult);
 	if (updateResult.newState.has_value() && updateResult.newState.value() != m_ActiveState) {
-		LOG("Behavior %llu is changing from state %s to %s", StringifiedEnum::ToString(m_ActiveState).data(), StringifiedEnum::ToString(updateResult.newState.value()).data());
+		LOG("Behavior %llu is changing from state %s to %s", m_BehaviorId, StringifiedEnum::ToString(m_ActiveState).data(), StringifiedEnum::ToString(updateResult.newState.value()).data());
 		GameMessages::ResetModelToDefaults resetMsg{};
 		resetMsg.bResetPos = false;
 		resetMsg.bResetRot = false;
 		resetMsg.bUnSmash = false;
-		resetMsg.bResetBehaviors = false;
 		modelComponent.OnResetModelToDefaults(resetMsg);
 		HandleMsg(resetMsg);
 		m_ActiveState = updateResult.newState.value();
