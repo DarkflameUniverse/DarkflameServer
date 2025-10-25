@@ -95,4 +95,6 @@ public:
 
 	Behavior& operator=(const Behavior& other) = default;
 	Behavior& operator=(Behavior&& other) = default;
+
+	uint32_t GetBehaviorID() const { return m_behaviorId; }
 };
