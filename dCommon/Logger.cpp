@@ -106,7 +106,7 @@ FuncEntry::FuncEntry(const char* funcName, const char* fileName, const uint32_t 
 }
 
 FuncEntry::~FuncEntry() {
-	if (!m_FuncName) return;
+	if (!m_FuncName || !m_FileName) return;
 
 	LOG("<-- %s::%s:%i", m_FileName, m_FuncName, m_Line);
 }

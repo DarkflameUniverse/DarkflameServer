@@ -32,15 +32,12 @@ constexpr const char* GetFileNameFromAbsolutePath(const char* path) {
 #define LOG(message, ...) do { auto str_ = FILENAME_AND_LINE; Game::logger->Log(str_, message, ##__VA_ARGS__); } while(0)
 #define LOG_DEBUG(message, ...) do { auto str_ = FILENAME_AND_LINE; Game::logger->LogDebug(str_, message, ##__VA_ARGS__); } while(0)
 
-#ifndef __PRETTY_FUNCTION__
-#define __PRETTY_FUNCTION__ __FUNCTION__
-#endif
 // Place this right at the start of a function. Will log a message when called and then once you leave the function.
-#define LOG_ENTRY auto str_ = GetFileNameFromAbsolutePath(__FILE__); FuncEntry funcEntry_(__FUNCTION__, __PRETTY_FUNCTION__, str_, __LINE__)
+#define LOG_ENTRY auto str_ = GetFileNameFromAbsolutePath(__FILE__); FuncEntry funcEntry_(__FUNCTION__, str_, __LINE__)
 
 class FuncEntry {
 public:
-	FuncEntry(const char* funcName, const char* prettyFuncName, const char* fileName, const uint32_t line);
+	FuncEntry(const char* funcName, const char* fileName, const uint32_t line);
 	~FuncEntry();
 private:
 	const char* m_FuncName = nullptr;
