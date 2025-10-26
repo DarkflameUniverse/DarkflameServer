@@ -89,7 +89,8 @@ namespace DEVGMCommands {
 			GameMessages::SendChatModeUpdate(entity->GetObjectID(), eGameMasterLevel::CIVILIAN);
 			entity->SetGMLevel(eGameMasterLevel::CIVILIAN);
 
-			GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS);
+			GameMessages::ToggleGMInvis msg;
+			msg.Send(entity->GetObjectID());
 
 			GameMessages::SendSlashCommandFeedbackText(entity, u"Your game master level has been changed, you may not be able to use all commands.");
 		}
@@ -183,7 +184,6 @@ namespace DEVGMCommands {
 		Game::entityManager->ConstructEntity(entity);
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
 
-		GameMessages::SendToggleGMInvis(entity->GetObjectID(), false, UNASSIGNED_SYSTEM_ADDRESS); // need to retoggle because it gets reenabled on creation of new character
 	}
 
 	void PlayAnimation(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
