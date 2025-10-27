@@ -472,6 +472,7 @@ public:
 
 	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 	bool OnSetFaction(GameMessages::GameMsg& msg);
+	bool OnIsDead(GameMessages::GameMsg& msg);
 
 	void SetIsDead(const bool value) { m_IsDead = value; }
 

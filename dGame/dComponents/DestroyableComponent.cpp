@@ -88,6 +88,7 @@ DestroyableComponent::DestroyableComponent(Entity* parent, const int32_t compone
 
 	RegisterMsg<GetObjectReportInfo>(this, &DestroyableComponent::OnGetObjectReportInfo);
 	RegisterMsg<GameMessages::SetFaction>(this, &DestroyableComponent::OnSetFaction);
+	RegisterMsg<GameMessages::IsDead>(this, &DestroyableComponent::OnIsDead);
 }
 
 DestroyableComponent::~DestroyableComponent() {
@@ -1189,5 +1190,12 @@ bool DestroyableComponent::OnSetFaction(GameMessages::GameMsg& msg) {
 	m_DirtyHealth = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 	SetFaction(modifyFaction.factionID, modifyFaction.bIgnoreChecks);
+	return true;
+}
+
+bool DestroyableComponent::OnIsDead(GameMessages::GameMsg& msg) {
+	auto& isDeadMsg = static_cast<GameMessages::IsDead&>(msg);
+	isDeadMsg.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
+	LOG("%i %i %i %i", m_IsDead, GetHealth(), GetArmor(), isDeadMsg.bDead);
 	return true;
 }
