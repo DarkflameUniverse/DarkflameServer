@@ -7,6 +7,7 @@
 
 namespace GameMessages {
 	struct GetObjectReportInfo;
+	struct GetPosition;
 };
 
 namespace Raknet {
@@ -33,7 +34,7 @@ public:
 	int32_t GetCollisionGroup() const noexcept { return m_CollisionGroup; }
 	void SetCollisionGroup(int32_t group) noexcept { m_CollisionGroup = group; }
 protected:
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& msg);
 
 	dpEntity* CreatePhysicsEntity(eReplicaComponentType type);
 
@@ -41,7 +42,7 @@ protected:
 
 	void SpawnVertices(dpEntity* entity) const;
 
-	bool OnGetPosition(GameMessages::GameMsg& msg);
+	bool OnGetPosition(GameMessages::GetPosition& msg);
 
 	NiPoint3 m_Position;
 

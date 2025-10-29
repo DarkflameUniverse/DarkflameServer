@@ -9,13 +9,12 @@
 #include "Amf3.h"
 
 ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client) : Component(parent, componentID) {
-	using namespace GameMessages;
 	m_Serialized = serialized;
 	m_Client = client;
 	m_ScriptName = scriptName;
 
 	SetScript(scriptName);
-	RegisterMsg<GetObjectReportInfo>(this, &ScriptComponent::OnGetObjectReportInfo);
+	RegisterMsg(&ScriptComponent::OnGetObjectReportInfo);
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
@@ -52,10 +51,9 @@ void ScriptComponent::SetScript(const std::string& scriptName) {
 	m_Script = CppScripts::GetScript(m_Parent, scriptName);
 }
 
-bool ScriptComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& infoMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool ScriptComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 
-	auto& scriptInfo = infoMsg.info->PushDebug("Script");
+	auto& scriptInfo = reportInfo.info->PushDebug("Script");
 	scriptInfo.PushDebug<AMFStringValue>("Script Name") = m_ScriptName.empty() ? "None" : m_ScriptName;
 	auto& networkSettings = scriptInfo.PushDebug("Network Settings");
 	for (const auto* const setting : m_Parent->GetNetworkSettings()) {

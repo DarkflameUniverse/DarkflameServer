@@ -20,6 +20,12 @@ namespace GameMessages {
 	struct ShootingGalleryFire;
 	struct ChildLoaded;
 	struct PlayerResurrectionFinished;
+	struct RequestServerObjectInfo;
+	struct DropClientLoot;
+	struct GetFlag;
+	struct GetFactionTokenType;
+	struct PickupItem;
+	struct ChildRemoved;
 };
 
 namespace MessageType {
@@ -175,12 +181,12 @@ public:
 
 	void AddComponent(eReplicaComponentType componentId, Component* component);
 
-	bool MsgRequestServerObjectInfo(GameMessages::GameMsg& msg);
-	bool MsgDropClientLoot(GameMessages::GameMsg& msg);
-	bool MsgGetFlag(GameMessages::GameMsg& msg);
-	bool MsgGetFactionTokenType(GameMessages::GameMsg& msg);
-	bool MsgPickupItem(GameMessages::GameMsg& msg);
-	bool MsgChildRemoved(GameMessages::GameMsg& msg);
+	bool MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& msg);
+	bool MsgDropClientLoot(GameMessages::DropClientLoot& msg);
+	bool MsgGetFlag(GameMessages::GetFlag& msg);
+	bool MsgGetFactionTokenType(GameMessages::GetFactionTokenType& msg);
+	bool MsgPickupItem(GameMessages::PickupItem& msg);
+	bool MsgChildRemoved(GameMessages::ChildRemoved& msg);
 
 	// This is expceted to never return nullptr, an assert checks this.
 	CppScripts::Script* const GetScript() const;
@@ -343,14 +349,19 @@ public:
 
 	bool HandleMsg(GameMessages::GameMsg& msg) const;
 
-	void RegisterMsg(const MessageType::Game msgId, auto* self, const auto handler) {
-		RegisterMsg(msgId, std::bind(handler, self, std::placeholders::_1));
-	}
-
-	template<typename T>
-	inline void RegisterMsg(auto* self, const auto handler) {
-		T msg;
-		RegisterMsg(msg.msgId, self, handler);
+	// Provided a function that has a derived GameMessage as its only argument and returns a boolean,
+	// this will register it as a handler for that message type. Casting is done automatically to the type 
+	// of the message in the first argument. This object is expected to exist as long as the handler can be called.
+	template<typename DerivedGameMsg>
+	inline void RegisterMsg(bool (Entity::* handler)(DerivedGameMsg&)) {
+		static_assert(std::is_base_of_v<GameMessages::GameMsg, DerivedMsg>, "DerivedMsg must inherit from GameMsg");
+		const auto boundFunction = std::bind(handler, this, std::placeholders::_1);
+		// This is the actual function that will be registered, which casts the base GameMsg to the derived type
+		const auto castWrapper = [boundFunction](GameMessages::GameMsg& msg) {
+			return boundFunction(static_cast<DerivedGameMsg&>(msg));
+		};
+		DerivedGameMsg msg;
+		RegisterMsg(msg.msgId, castWrapper);
 	}
 
 	/**

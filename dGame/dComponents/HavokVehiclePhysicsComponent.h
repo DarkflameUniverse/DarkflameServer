@@ -68,7 +68,7 @@ public:
 	void SetRemoteInputInfo(const RemoteInputInfo&);
 
 private:
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	NiPoint3 m_Velocity;
 	NiPoint3 m_AngularVelocity;

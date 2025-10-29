@@ -16,6 +16,7 @@
 #include "CDComponentsRegistryTable.h"
 #include "QuickBuildComponent.h"
 #include "CDPhysicsComponentTable.h"
+#include "Amf3.h"
 
 #include "dNavMesh.h"
 
@@ -56,6 +57,8 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 	m_Paused = false;
 	m_SavedVelocity = NiPoint3Constant::ZERO;
 	m_IsBounced = false;
+
+	RegisterMsg(&MovementAIComponent::OnGetObjectReportInfo);
 
 	if (!m_Parent->GetComponent<BaseCombatAIComponent>()) SetPath(m_Parent->GetVarAsString(u"attached_path"));
 }
@@ -421,4 +424,64 @@ void MovementAIComponent::SetMaxSpeed(const float value) {
 	if (value == m_MaxSpeed) return;
 	m_MaxSpeed = value;
 	m_Acceleration = value / 5;
+}
+
+bool MovementAIComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+
+	auto& movementInfo = reportInfo.info->PushDebug("MovementAI");
+	if (m_Path) {
+		movementInfo.PushDebug<AMFStringValue>("Path") = m_Path->pathName;
+	}
+
+	auto& movementAiInfo = movementInfo.PushDebug("Movement AI Info");
+	movementAiInfo.PushDebug<AMFStringValue>("Movement Type") = m_Info.movementType;
+	movementAiInfo.PushDebug<AMFDoubleValue>("Wander Radius") = m_Info.wanderRadius;
+	movementAiInfo.PushDebug<AMFDoubleValue>("Wander Speed") = m_Info.wanderSpeed;
+	movementAiInfo.PushDebug<AMFDoubleValue>("Wander Chance") = m_Info.wanderChance;
+	movementAiInfo.PushDebug<AMFDoubleValue>("Wander Delay Min") = m_Info.wanderDelayMin;
+	movementAiInfo.PushDebug<AMFDoubleValue>("Wander Delay Max") = m_Info.wanderDelayMax;
+
+	auto& speedInfo = movementInfo.PushDebug("Speed Info");
+	speedInfo.PushDebug<AMFDoubleValue>("Base Speed") = m_BaseSpeed;
+	speedInfo.PushDebug<AMFDoubleValue>("Max Speed") = m_MaxSpeed;
+	speedInfo.PushDebug<AMFDoubleValue>("Current Speed") = m_CurrentSpeed;
+	speedInfo.PushDebug<AMFDoubleValue>("Acceleration") = m_Acceleration;
+
+	movementInfo.PushDebug<AMFDoubleValue>("Halt Distance") = m_HaltDistance;
+	movementInfo.PushDebug<AMFDoubleValue>("Time To Travel") = m_TimeToTravel;
+	movementInfo.PushDebug<AMFDoubleValue>("Time Travelled") = m_TimeTravelled;
+	movementInfo.PushDebug<AMFBoolValue>("Lock Rotation") = m_LockRotation;
+	movementInfo.PushDebug<AMFBoolValue>("Paused") = m_Paused;
+	movementInfo.PushDebug<AMFDoubleValue>("Pulling To Point") = m_PullingToPoint;
+
+	auto& pullPointInfo = movementInfo.PushDebug("Pull Point");
+	pullPointInfo.PushDebug<AMFDoubleValue>("X") = m_PullPoint.x;
+	pullPointInfo.PushDebug<AMFDoubleValue>("Y") = m_PullPoint.y;
+	pullPointInfo.PushDebug<AMFDoubleValue>("Z") = m_PullPoint.z;
+	
+	// movementInfo.PushDebug<AMFDoubleValue>("Delay") = m_Delay;
+
+	auto& waypoints = movementInfo.PushDebug("Interpolated Waypoints");
+	int i = 0;
+	for (const auto& point : m_InterpolatedWaypoints) {
+		auto& waypoint = waypoints.PushDebug("Waypoint " + std::to_string(++i));
+		waypoint.PushDebug<AMFDoubleValue>("X") = point.x;
+		waypoint.PushDebug<AMFDoubleValue>("Y") = point.y;
+		waypoint.PushDebug<AMFDoubleValue>("Z") = point.z;
+	}
+
+	i = 0;
+	auto& currentPath = movementInfo.PushDebug("Current Path");
+	auto pathCopy = m_CurrentPath; // Copy to avoid modifying the original stack
+	while (!pathCopy.empty()) {
+		const auto& waypoint = pathCopy.top();
+		auto& pathWaypoint = currentPath.PushDebug("Waypoint " + std::to_string(++i));
+		pathWaypoint.PushDebug<AMFDoubleValue>("X") = waypoint.position.x;
+		pathWaypoint.PushDebug<AMFDoubleValue>("Y") = waypoint.position.y;
+		pathWaypoint.PushDebug<AMFDoubleValue>("Z") = waypoint.position.z;
+
+		pathCopy.pop();
+	}
+
+	return true;
 }

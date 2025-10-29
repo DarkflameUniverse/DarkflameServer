@@ -116,7 +116,7 @@ public:
 	void SetMax(uint32_t max);
 
 private:
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	/**
 	 * A scale to apply to the size of the physics object

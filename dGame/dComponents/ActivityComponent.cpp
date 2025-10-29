@@ -31,8 +31,7 @@
 #include "Amf3.h"
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
-	using namespace GameMessages;
-	RegisterMsg<GetObjectReportInfo>(this, &ActivityComponent::OnGetObjectReportInfo);
+	RegisterMsg(&ActivityComponent::OnGetObjectReportInfo);
 	/*
 	* This is precisely what the client does functionally
 	* Use the component id as the default activity id and load its data from the database
@@ -591,9 +590,7 @@ Entity* LobbyPlayer::GetEntity() const {
 	return Game::entityManager->GetEntity(entityID);
 }
 
-bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
-
+bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	auto& activityInfo = reportInfo.info->PushDebug("Activity");
 
 	auto& instances = activityInfo.PushDebug("Instances: " + std::to_string(m_Instances.size()));
