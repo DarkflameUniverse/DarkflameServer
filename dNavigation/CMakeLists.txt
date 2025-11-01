@@ -1,11 +1,5 @@
 set(DNAVIGATION_SOURCES "dNavMesh.cpp")
 
-add_subdirectory(dTerrain)
-
-foreach(file ${DNAVIGATIONS_DTERRAIN_SOURCES})
-	set(DNAVIGATION_SOURCES ${DNAVIGATION_SOURCES} "dTerrain/${file}")
-endforeach()
-
 add_library(dNavigation OBJECT ${DNAVIGATION_SOURCES})
 target_include_directories(dNavigation PUBLIC "."
 	PRIVATE
