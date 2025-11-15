@@ -2360,4 +2360,5 @@ bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
 
 bool Entity::MsgChildRemoved(GameMessages::GameMsg& msg) {
 	GetScript()->OnChildRemoved(*this, static_cast<GameMessages::ChildRemoved&>(msg));
+	return true;
 }
