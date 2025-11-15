@@ -948,6 +948,12 @@ namespace GameMessages {
 		GetGMInvis() : GameMsg(MessageType::Game::GET_GM_INVIS) {}
 
 		bool bGMInvis{ false };
+  };
+
+	struct ChildRemoved : public GameMsg {
+		ChildRemoved() : GameMsg(MessageType::Game::CHILD_REMOVED) {}
+
+		LWOOBJID childID{};
 	};
 };
 #endif // GAMEMESSAGES_H

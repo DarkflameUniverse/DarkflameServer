@@ -96,3 +96,17 @@ bool Logger::GetLogToConsole() const {
 	}
 	return toReturn;
 }
+
+FuncEntry::FuncEntry(const char* funcName, const char* fileName, const uint32_t line) {
+	m_FuncName = funcName;
+	if (!m_FuncName) m_FuncName = "Unknown";
+	m_Line = line;
+	m_FileName = fileName;
+	LOG("--> %s::%s:%i", m_FileName, m_FuncName, m_Line);
+}
+
+FuncEntry::~FuncEntry() {
+	if (!m_FuncName || !m_FileName) return;
+
+	LOG("<-- %s::%s:%i", m_FileName, m_FuncName, m_Line);
+}
