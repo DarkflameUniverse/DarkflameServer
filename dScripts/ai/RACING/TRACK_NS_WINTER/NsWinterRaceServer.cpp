@@ -19,7 +19,7 @@ void NsWinterRaceServer::OnStartup(Entity* self) {
 	raceSet.push_back(make_unique<LDFData<std::u16string>>("Race_PathName", u"MainPath"));
 	raceSet.push_back(make_unique<LDFData<int32_t>>("Current_Lap", 1));
 	raceSet.push_back(make_unique<LDFData<int32_t>>("Number_of_Laps", 3));
-	raceSet.push_back(make_unique<LDFData<int32_t>>("activityID", 42));
+	raceSet.push_back(make_unique<LDFData<int32_t>>("activityID", 60));
 
 	raceSet.push_back(make_unique<LDFData<int32_t>>("Place_1", 100));
 	raceSet.push_back(make_unique<LDFData<int32_t>>("Place_2", 90));
