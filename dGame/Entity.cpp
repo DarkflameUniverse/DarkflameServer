@@ -189,6 +189,10 @@ Entity::~Entity() {
 	}
 
 	if (m_ParentEntity) {
+		GameMessages::ChildRemoved removedMsg{};
+		removedMsg.childID = m_ObjectID;
+		removedMsg.target = m_ParentEntity->GetObjectID();
+		removedMsg.Send();
 		m_ParentEntity->RemoveChild(this);
 	}
 }
@@ -198,6 +202,7 @@ void Entity::Initialize() {
 	RegisterMsg<GameMessages::DropClientLoot>(this, &Entity::MsgDropClientLoot);
 	RegisterMsg<GameMessages::GetFactionTokenType>(this, &Entity::MsgGetFactionTokenType);
 	RegisterMsg<GameMessages::PickupItem>(this, &Entity::MsgPickupItem);
+	RegisterMsg<GameMessages::ChildRemoved>(this, &Entity::MsgChildRemoved);
 	/**
 	 * Setup trigger
 	 */
@@ -2351,4 +2356,8 @@ bool Entity::MsgPickupItem(GameMessages::GameMsg& msg) {
 	}
 
 	return true;
+}
+
+bool Entity::MsgChildRemoved(GameMessages::GameMsg& msg) {
+	GetScript()->OnChildRemoved(*this, static_cast<GameMessages::ChildRemoved&>(msg));
 }

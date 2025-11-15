@@ -383,6 +383,8 @@ namespace CppScripts {
 		 * @param fire The child info
 		 */
 		virtual void OnChildLoaded(Entity& self, GameMessages::ChildLoaded& childLoaded) {};
+
+		virtual void OnChildRemoved(Entity& self, GameMessages::ChildRemoved& childRemoved) {};
 	};
 
 	Script* const GetScript(Entity* parent, const std::string& scriptName);
