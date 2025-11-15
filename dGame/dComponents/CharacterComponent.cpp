@@ -515,12 +515,12 @@ void CharacterComponent::RocketUnEquip(Entity* player) {
 }
 
 void CharacterComponent::TrackMissionCompletion(bool isAchievement) {
-	UpdatePlayerStatistic(MissionsCompleted);
-
 	// Achievements are tracked separately for the zone
 	if (isAchievement) {
 		const auto mapID = Game::zoneManager->GetZoneID().GetMapID();
 		GetZoneStatisticsForMap(mapID).m_AchievementsCollected++;
+	} else {
+		UpdatePlayerStatistic(MissionsCompleted);
 	}
 }
 
