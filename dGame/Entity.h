@@ -180,6 +180,7 @@ public:
 	bool MsgGetFlag(GameMessages::GameMsg& msg);
 	bool MsgGetFactionTokenType(GameMessages::GameMsg& msg);
 	bool MsgPickupItem(GameMessages::GameMsg& msg);
+	bool MsgChildRemoved(GameMessages::GameMsg& msg);
 
 	// This is expceted to never return nullptr, an assert checks this.
 	CppScripts::Script* const GetScript() const;

@@ -937,5 +937,11 @@ namespace GameMessages {
 		LWOOBJID lootID{};
 		LWOOBJID lootOwnerID{};
 	};
+
+	struct ChildRemoved : public GameMsg {
+		ChildRemoved() : GameMsg(MessageType::Game::CHILD_REMOVED) {}
+
+		LWOOBJID childID{};
+	};
 };
 #endif // GAMEMESSAGES_H

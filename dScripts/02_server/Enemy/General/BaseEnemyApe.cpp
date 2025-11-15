@@ -92,7 +92,7 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 			new LDFData<LWOOBJID>(u"ape", self->GetObjectID())
 		};
 
-		auto* anchor = Game::entityManager->CreateEntity(entityInfo);
+		auto* anchor = Game::entityManager->CreateEntity(entityInfo, nullptr, self);
 		Game::entityManager->ConstructEntity(anchor);
 		self->SetVar<LWOOBJID>(u"QB", anchor->GetObjectID());
 
@@ -138,5 +138,11 @@ void BaseEnemyApe::StunApe(Entity* self, bool stunState) {
 			true, true, true, true);
 
 		self->SetBoolean(u"knockedOut", stunState);
+	}
+}
+
+void BaseEnemyApe::OnChildRemoved(Entity& self, GameMessages::ChildRemoved& childRemoved) {
+	if (self.GetVar<LWOOBJID>(u"QB") == childRemoved.childID) {
+		self.SetVar<LWOOBJID>(u"QB", LWOOBJID_EMPTY);
 	}
 }
