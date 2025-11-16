@@ -217,7 +217,7 @@ public:
 
 	// Whether or not team loot should be dropped on death for this activity
 	// if true, and a player is supposed to get loot, they are skipped
-	bool GetNoTeamLootOnDeath() const { return m_ActivityInfo.noTeamLootOnDeath;}
+	bool GetNoTeamLootOnDeath() const { return m_ActivityInfo.noTeamLootOnDeath; }
 
 	/**
 	 * Returns if this activity has a lobby, e.g. if it needs to instance players to some other map
