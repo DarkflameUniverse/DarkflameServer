@@ -49,11 +49,10 @@ CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID
 	m_LastUpdateTimestamp = std::time(nullptr);
 	m_SystemAddress = systemAddress;
 
-	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &CharacterComponent::OnGetObjectReportInfo);
+	RegisterMsg(&CharacterComponent::OnGetObjectReportInfo);
 }
 
-bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool CharacterComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 
 	auto& cmptType = reportInfo.info->PushDebug("Character");
 

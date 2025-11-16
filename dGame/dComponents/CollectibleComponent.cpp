@@ -6,16 +6,14 @@
 
 CollectibleComponent::CollectibleComponent(Entity* parentEntity, const int32_t componentID, const int32_t collectibleId) :
 	Component(parentEntity, componentID), m_CollectibleId(collectibleId) {
-	using namespace GameMessages;
-	RegisterMsg<GetObjectReportInfo>(this, &CollectibleComponent::MsgGetObjectReportInfo);
+	RegisterMsg(&CollectibleComponent::MsgGetObjectReportInfo);
 }
 
 void CollectibleComponent::Serialize(RakNet::BitStream& outBitStream, bool isConstruction) {
 	outBitStream.Write(GetCollectibleId());
 }
 
-bool CollectibleComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportMsg = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool CollectibleComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportMsg) {
 	auto& cmptType = reportMsg.info->PushDebug("Collectible");
 	auto collectibleID = static_cast<uint32_t>(m_CollectibleId) + static_cast<uint32_t>(Game::server->GetZoneID() << 8);
 

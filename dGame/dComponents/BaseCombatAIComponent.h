@@ -234,7 +234,7 @@ public:
 	// Ignore a threat for a certain amount of time
 	void IgnoreThreat(const LWOOBJID target, const float time);
 
-	bool MsgGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 private:
 	/**

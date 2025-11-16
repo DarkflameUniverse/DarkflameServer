@@ -43,7 +43,7 @@ public:
 	 */
 	void SetScript(const std::string& scriptName);
 	
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 private:
 

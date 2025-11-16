@@ -32,9 +32,9 @@ public:
 	void LoadBehaviors();
 	void Update(float deltaTime) override;
 
-	bool OnRequestUse(GameMessages::GameMsg& msg);
-	bool OnResetModelToDefaults(GameMessages::GameMsg& msg);
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnRequestUse(GameMessages::RequestUse& requestUse);
+	bool OnResetModelToDefaults(GameMessages::ResetModelToDefaults& resetModelToDefaults);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	void Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) override;
 

@@ -31,6 +31,10 @@ typedef std::map<std::string, EquippedItem> EquipmentMap;
 
 enum class eItemType : int32_t;
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+}
+
 /**
  * Handles the inventory of entity, including the items they possess and have equipped. An entity can have inventories
  * of different types, each type representing a different group of items, see `eInventoryType` for a list of
@@ -411,7 +415,7 @@ public:
 	// Used to migrate a character version, no need to call outside of that context
 	void RegenerateItemIDs();
 
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	~InventoryComponent() override;
 
