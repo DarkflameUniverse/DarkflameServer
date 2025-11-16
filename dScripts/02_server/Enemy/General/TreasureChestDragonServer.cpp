@@ -20,24 +20,10 @@ void TreasureChestDragonServer::OnUse(Entity* self, Entity* user) {
 	if (scriptedActivityComponent == nullptr) {
 		return;
 	}
-
-	auto rating = 1;
-
+	
 	auto* team = TeamManager::Instance()->GetTeam(user->GetObjectID());
-
-	if (team != nullptr) {
-		rating = team->members.size();
-
-		for (const auto member : team->members) {
-			auto* memberObject = Game::entityManager->GetEntity(member);
-
-			if (memberObject == nullptr) continue;
-
-			Loot::DropActivityLoot(memberObject, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), rating);
-		}
-	} else {
-		Loot::DropActivityLoot(user, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), rating);
-	}
+	
+	Loot::DropActivityLoot(user, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), team ? team->members.size() : 1);
 
 	self->Smash(self->GetObjectID());
 }
