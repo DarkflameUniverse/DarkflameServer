@@ -203,6 +203,7 @@ void Entity::Initialize() {
 	RegisterMsg(&Entity::MsgGetFactionTokenType);
 	RegisterMsg(&Entity::MsgPickupItem);
 	RegisterMsg(&Entity::MsgChildRemoved);
+	RegisterMsg(&Entity::MsgGetFlag);
 	/**
 	 * Setup trigger
 	 */

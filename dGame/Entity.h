@@ -354,7 +354,7 @@ public:
 	// of the message in the first argument. This object is expected to exist as long as the handler can be called.
 	template<typename DerivedGameMsg>
 	inline void RegisterMsg(bool (Entity::* handler)(DerivedGameMsg&)) {
-		static_assert(std::is_base_of_v<GameMessages::GameMsg, DerivedMsg>, "DerivedMsg must inherit from GameMsg");
+		static_assert(std::is_base_of_v<GameMessages::GameMsg, DerivedGameMsg>, "DerivedGameMsg must inherit from GameMsg");
 		const auto boundFunction = std::bind(handler, this, std::placeholders::_1);
 		// This is the actual function that will be registered, which casts the base GameMsg to the derived type
 		const auto castWrapper = [boundFunction](GameMessages::GameMsg& msg) {
