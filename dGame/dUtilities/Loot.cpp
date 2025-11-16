@@ -298,7 +298,6 @@ void DropRegularLoot(Team& team, GameMessages::DropClientLoot& lootMsg, const bo
 	// have the same ID, this loop will only ever run at most 4 times.
 	do {
 		earningPlayer = team.GetNextLootOwner();
-		LOG_DEBUG("Checking earning player %llu", earningPlayer);
 		memberPosMsg.target = earningPlayer;
 		memberPosMsg.Send();
 		if (noTeamLootOnDeath) {
@@ -307,7 +306,6 @@ void DropRegularLoot(Team& team, GameMessages::DropClientLoot& lootMsg, const bo
 			isDeadMsg.Send();
 		}
 	} while (isDeadMsg.bDead || (NiPoint3::Distance(memberPosMsg.pos, lootMsg.spawnPos) > g_MAX_DROP_RADIUS));
-	LOG_DEBUG("Earning player for loot %llu", earningPlayer);
 	if (team.lootOption == 0 /* Shared loot */) {
 		lootMsg.target = earningPlayer;
 		lootMsg.ownerID = earningPlayer;
@@ -374,9 +372,6 @@ void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDro
 		}
 	}
 
-	// Coin roll is divided up between the members, rounded up, then dropped for each player
-	const uint32_t coinRoll = static_cast<uint32_t>(minCoins + GeneralUtils::GenerateRandomNumber<float>(0, 1) * (maxCoins - minCoins));
-	const auto droppedCoins = team ? std::ceil(static_cast<float>(coinRoll) / team->members.size()) : coinRoll;
 	// Filter out dead player if we need to
 	std::vector<LWOOBJID> lootEarners;
 	if (team) {

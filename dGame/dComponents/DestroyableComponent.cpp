@@ -1196,6 +1196,5 @@ bool DestroyableComponent::OnSetFaction(GameMessages::GameMsg& msg) {
 bool DestroyableComponent::OnIsDead(GameMessages::GameMsg& msg) {
 	auto& isDeadMsg = static_cast<GameMessages::IsDead&>(msg);
 	isDeadMsg.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
-	LOG("%i %i %i %i", m_IsDead, GetHealth(), GetArmor(), isDeadMsg.bDead);
 	return true;
 }
