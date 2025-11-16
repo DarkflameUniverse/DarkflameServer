@@ -26,6 +26,8 @@
 #include "Database.h"
 #include "CDObjectsTable.h"
 #include "CDRewardCodesTable.h"
+#include "CDLootMatrixTable.h"
+#include "CDLootTableTable.h"
 
 // Components
 #include "BuffComponent.h"
@@ -177,11 +179,13 @@ namespace DEVGMCommands {
 			charComp->m_Character->SetRightHand(minifigItemId);
 		} else {
 			Game::entityManager->ConstructEntity(entity);
+			Game::entityManager->ConstructEntity(entity, entity->GetSystemAddress());
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid Minifig item to change, try one of the following: Eyebrows, Eyes, HairColor, HairStyle, Pants, LeftHand, Mouth, RightHand, Shirt, Hands");
 			return;
 		}
 
 		Game::entityManager->ConstructEntity(entity);
+		Game::entityManager->ConstructEntity(entity, entity->GetSystemAddress());
 		ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(lowerName) + u" set to " + (GeneralUtils::to_u16string(minifigItemId)));
 
 	}
@@ -377,8 +381,6 @@ namespace DEVGMCommands {
 				line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 				SlashCommandHandler::HandleChatCommand(GeneralUtils::ASCIIToUTF16(line), &entity, sysAddr);
 			}
-		} else {
-			ChatPackets::SendSystemMessage(sysAddr, u"Unknown macro! Is the filename right?");
 		}
 	}
 
@@ -743,10 +745,39 @@ namespace DEVGMCommands {
 
 		auto tables = query.execQuery();
 
+		std::map<LOT, std::string> lotToName{};
+		std::map<std::string, LOT> nameToLot{};
 		while (!tables.eof()) {
-			std::string message = std::to_string(tables.getIntField("id")) + " - " + tables.getStringField("name");
-			ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::UTF8ToUTF16(message, message.size()));
+			const auto lot = tables.getIntField("id");
+			const auto name = tables.getStringField("name");
+			lotToName[lot] = name;
+			nameToLot[name] = lot;
 			tables.nextRow();
+		}
+
+		// if there arent a ton of results, print them to chat instead
+		if (lotToName.size() < 5) {
+			std::stringstream ss;
+			ss << "Lookup results for \"" << args << "\":";
+			for (const auto& [lot, name] : lotToName) {
+				ss << "\nLOT: " << lot << " - Name: " << name;
+			}
+			ChatPackets::SendSystemMessage(sysAddr, ss.str());
+		} else {
+			AMFArrayValue response;
+			response.Insert("visible", true);
+			response.Insert("objectID", "Search Results for: " + args);
+			response.Insert("serverInfo", true);
+			auto* const info = response.InsertArray("data");
+			auto& lotSort = info->PushDebug("Sorted by LOT");
+			for (const auto& [lot, name] : lotToName) {
+				auto& entry = lotSort.PushDebug<AMFStringValue>(std::to_string(lot)) = name;
+			}
+			auto& nameSort = info->PushDebug("Sorted by Name");
+			for (const auto& [name, lot] : nameToLot) {
+				auto& entry = nameSort.PushDebug<AMFStringValue>(name) = std::to_string(lot);
+			}
+			GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
 		}
 	}
 
@@ -1247,38 +1278,30 @@ namespace DEVGMCommands {
 	}
 
 	void Metrics(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
+		AMFArrayValue response;
+		response.Insert("visible", true);
+		response.Insert("objectID", "Metrics");
+		response.Insert("serverInfo", true);
+		auto* info = response.InsertArray("data");
 		for (const auto variable : Metrics::GetAllMetrics()) {
+			auto& metricData = info->PushDebug(StringifiedEnum::ToString(variable));
+
 			auto* metric = Metrics::GetMetric(variable);
 
 			if (metric == nullptr) {
 				continue;
 			}
 
-			ChatPackets::SendSystemMessage(
-				sysAddr,
-				GeneralUtils::ASCIIToUTF16(Metrics::MetricVariableToString(variable)) +
-				u": " +
-				GeneralUtils::to_u16string(Metrics::ToMiliseconds(metric->average)) +
-				u"ms"
-			);
+			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric->max)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric->min)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric->average)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric->measurementSize);
 		}
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Peak RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6)) +
-			u"MB"
-		);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Current RSS: " + GeneralUtils::to_u16string(static_cast<float>(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6)) +
-			u"MB"
-		);
-
-		ChatPackets::SendSystemMessage(
-			sysAddr,
-			u"Process ID: " + GeneralUtils::to_u16string(Metrics::GetProcessID())
-		);
+		auto& processInfo = info->PushDebug("Process Info");
+		processInfo.PushDebug<AMFStringValue>("Peak RSS") = std::to_string(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6) + "MB";
+		processInfo.PushDebug<AMFStringValue>("Current RSS") = std::to_string(static_cast<double>(Metrics::GetCurrentRSS()) / 1.024e6) + "MB";
+		processInfo.PushDebug<AMFIntValue>("Process ID") = Metrics::GetProcessID();
+		GameMessages::SendUIMessageServerToSingleClient("ToggleObjectDebugger", response, sysAddr);
 	}
 
 	void ReloadConfig(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1310,19 +1333,30 @@ namespace DEVGMCommands {
 		const auto loops = GeneralUtils::TryParse<uint32_t>(splitArgs[2]);
 		if (!loops) return;
 
+		auto* const lootMatrixTable = CDClientManager::GetTable<CDLootMatrixTable>();
+		auto* const lootTableTable = CDClientManager::GetTable<CDLootTableTable>();
+		bool found = false;
+		for (const auto& entry : lootMatrixTable->GetMatrix(lootMatrixIndex.value())) {
+			for (const auto& loot : lootTableTable->GetTable(entry.LootTableIndex)) {
+				found = targetLot.value() == loot.itemid;
+				if (found) break;
+			}
+		}
+
+		if (!found) {
+			std::stringstream ss;
+			ss << "Target LOT " << targetLot.value() << " not found in loot matrix " << lootMatrixIndex.value() << ".";
+			ChatPackets::SendSystemMessage(sysAddr, ss.str());
+			return;
+		}
+
 		uint64_t totalRuns = 0;
 
 		for (uint32_t i = 0; i < loops; i++) {
 			while (true) {
 				const auto lootRoll = Loot::RollLootMatrix(nullptr, lootMatrixIndex.value());
 				totalRuns += 1;
-				bool doBreak = false;
-				for (const auto& kv : lootRoll) {
-					if (static_cast<uint32_t>(kv.first) == targetLot) {
-						doBreak = true;
-					}
-				}
-				if (doBreak) break;
+				if (lootRoll.contains(targetLot.value())) break;
 			}
 		}
 
