@@ -1293,7 +1293,7 @@ namespace DEVGMCommands {
 			}
 
 			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric->max)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Mininum") = std::to_string(Metrics::ToMiliseconds(metric->min)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric->min)) + "ms";
 			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric->average)) + "ms";
 			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric->measurementSize);
 		}
