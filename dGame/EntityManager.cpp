@@ -361,16 +361,24 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		LOG("Attempted to construct null entity");
 		return;
 	}
+	// Don't construct GM invisible entities unless it's for the GM themselves
+	// GMs can see other GMs if they are the same or lower level
+	GameMessages::GetGMInvis getGMInvisMsg;
+	getGMInvisMsg.Send(entity->GetObjectID());
+	if (getGMInvisMsg.bGMInvis && sysAddr != entity->GetSystemAddress()) {
+		auto* toUser = UserManager::Instance()->GetUser(sysAddr);
+		if (!toUser) return;
+		auto* constructedUser = UserManager::Instance()->GetUser(entity->GetSystemAddress());
+		if (!constructedUser) return;
+		if (toUser->GetMaxGMLevel() < constructedUser->GetMaxGMLevel()) return;
+	}
 
 	if (entity->GetNetworkId() == 0) {
 		uint16_t networkId;
-
 		if (!m_LostNetworkIds.empty()) {
 			networkId = m_LostNetworkIds.top();
 			m_LostNetworkIds.pop();
-		} else {
-			networkId = ++m_NetworkIdCounter;
-		}
+		} else networkId = ++m_NetworkIdCounter;
 
 		entity->SetNetworkId(networkId);
 	}
@@ -379,10 +387,8 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		if (std::find(m_EntitiesToGhost.begin(), m_EntitiesToGhost.end(), entity) == m_EntitiesToGhost.end()) {
 			m_EntitiesToGhost.push_back(entity);
 		}
-
 		if (sysAddr == UNASSIGNED_SYSTEM_ADDRESS) {
 			CheckGhosting(entity);
-
 			return;
 		}
 	}
@@ -413,14 +419,9 @@ void EntityManager::ConstructEntity(Entity* entity, const SystemAddress& sysAddr
 		Game::server->Send(stream, sysAddr, false);
 	}
 
-	if (entity->IsPlayer()) {
-		if (entity->GetGMLevel() > eGameMasterLevel::CIVILIAN) {
-			GameMessages::SendToggleGMInvis(entity->GetObjectID(), true, sysAddr);
-		}
-	}
 }
 
-void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {
+void EntityManager::ConstructAllEntities(const SystemAddress& sysAddr) {	
 	//ZoneControl is special:
 	ConstructEntity(m_ZoneControlEntity, sysAddr);
 
@@ -488,11 +489,7 @@ void EntityManager::QueueGhostUpdate(LWOOBJID playerID) {
 void EntityManager::UpdateGhosting() {
 	for (const auto playerID : m_PlayersToUpdateGhosting) {
 		auto* player = PlayerManager::GetPlayer(playerID);
-
-		if (player == nullptr) {
-			continue;
-		}
-
+		if (!player) continue;
 		UpdateGhosting(player);
 	}
 
@@ -518,6 +515,7 @@ void EntityManager::UpdateGhosting(Entity* player) {
 		const auto observed = ghostComponent->IsObserved(id);
 
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
+
 
 		auto ghostingDistanceMax = m_GhostDistanceMaxSquared;
 		auto ghostingDistanceMin = m_GhostDistanceMinSqaured;
@@ -555,35 +553,25 @@ void EntityManager::UpdateGhosting(Entity* player) {
 }
 
 void EntityManager::CheckGhosting(Entity* entity) {
-	if (entity == nullptr) {
-		return;
-	}
+	if (!entity) return;
 
 	const auto& referencePoint = entity->GetPosition();
-
 	for (auto* player : PlayerManager::GetAllPlayers()) {
 		auto* ghostComponent = player->GetComponent<GhostComponent>();
 		if (!ghostComponent) continue;
 
 		const auto& entityPoint = ghostComponent->GetGhostReferencePoint();
-
 		const auto id = entity->GetObjectID();
-
 		const auto observed = ghostComponent->IsObserved(id);
-
 		const auto distance = NiPoint3::DistanceSquared(referencePoint, entityPoint);
 
 		if (observed && distance > m_GhostDistanceMaxSquared) {
 			ghostComponent->GhostEntity(id);
-
 			DestructEntity(entity, player->GetSystemAddress());
-
 			entity->SetObservers(entity->GetObservers() - 1);
 		} else if (!observed && m_GhostDistanceMinSqaured > distance) {
 			ghostComponent->ObserveEntity(id);
-
 			ConstructEntity(entity, player->GetSystemAddress());
-
 			entity->SetObservers(entity->GetObservers() + 1);
 		}
 	}

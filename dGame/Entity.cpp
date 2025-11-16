@@ -504,7 +504,7 @@ void Entity::Initialize() {
 		auto& systemAddress = m_Character->GetParentUser() ? m_Character->GetParentUser()->GetSystemAddress() : UNASSIGNED_SYSTEM_ADDRESS;
 		AddComponent<CharacterComponent>(characterID, m_Character, systemAddress)->LoadFromXml(m_Character->GetXMLDoc());
 
-		AddComponent<GhostComponent>(characterID);
+		AddComponent<GhostComponent>(characterID)->LoadFromXml(m_Character->GetXMLDoc());
 	}
 
 	const auto inventoryID = compRegistryTable->GetByIDAndType(m_TemplateID, eReplicaComponentType::INVENTORY);
