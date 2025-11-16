@@ -202,9 +202,11 @@ int main(int argc, char** argv) {
 	//Delete our objects here:
 	Database::Destroy("ChatServer");
 	delete Game::server;
+	Game::server = nullptr;
 	delete Game::logger;
 	Game::logger = nullptr;
 	delete Game::config;
+	Game::config = nullptr;
 
 	return EXIT_SUCCESS;
 }
