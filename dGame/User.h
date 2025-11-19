@@ -31,7 +31,7 @@ public:
 	std::string& GetSessionKey() { return m_SessionKey; }
 	SystemAddress& GetSystemAddress() { return m_SystemAddress; }
 
-	eGameMasterLevel GetMaxGMLevel() { return m_MaxGMLevel; }
+	eGameMasterLevel GetMaxGMLevel() const { return m_MaxGMLevel; }
 	uint32_t GetLastCharID() { return m_LastCharID; }
 	void SetLastCharID(uint32_t newCharID) { m_LastCharID = newCharID; }
 

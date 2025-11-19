@@ -12,7 +12,7 @@ GhostComponent::GhostComponent(Entity* parent, const int32_t componentID) : Comp
 	m_GhostReferencePoint = NiPoint3Constant::ZERO;
 	m_GhostOverridePoint = NiPoint3Constant::ZERO;
 	m_GhostOverride = false;
-	
+
 	RegisterMsg<GameMessages::ToggleGMInvis>(this, &GhostComponent::OnToggleGMInvis);
 	RegisterMsg<GameMessages::GetGMInvis>(this, &GhostComponent::OnGetGMInvis);
 	RegisterMsg<GameMessages::GetObjectReportInfo>(this, &GhostComponent::MsgGetObjectReportInfo);
@@ -43,7 +43,8 @@ void GhostComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	auto* ghstElement = objElement->FirstChildElement("ghst");
 	if (ghstElement) objElement->DeleteChild(ghstElement);
 	// Only save if GM invisible
-	if (!m_IsGMInvisible) return;
+	const auto* const user = UserManager::Instance()->GetUser(m_Parent->GetSystemAddress());
+	if (!m_IsGMInvisible || !user || user->GetMaxGMLevel() < eGameMasterLevel::FORUM_MODERATOR) return;
 	ghstElement = objElement->InsertNewChildElement("ghst");
 	if (ghstElement) ghstElement->SetAttribute("i", m_IsGMInvisible);
 }
