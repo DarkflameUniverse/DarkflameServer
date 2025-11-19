@@ -20,6 +20,7 @@ enum class eCharacterVersion : uint32_t {
 	NJ_JAYMISSIONS,
 	NEXUS_FORCE_EXPLORER, // Fixes pet ids in player inventories
 	PET_IDS, // Fixes pet ids in player inventories
+	RACING_ACHIEVEMENTS, // Fixes the "Go Outside and Play" meta achievements' tracking
 	UP_TO_DATE, // will become INVENTORY_PERSISTENT_IDS
 };
 

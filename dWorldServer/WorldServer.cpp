@@ -1115,6 +1115,46 @@ void HandlePacket(Packet* packet) {
 					case eCharacterVersion::PET_IDS: {
 						LOG("Regenerating item ids");
 						inventoryComponent->RegenerateItemIDs();
+						levelComponent->SetCharacterVersion(eCharacterVersion::RACING_ACHIEVEMENTS);
+						[[fallthrough]];
+					}
+					case eCharacterVersion::RACING_ACHIEVEMENTS: {
+						LOG("Fixing \"Go Outside and Play\" meta achievements");
+						constexpr std::array missionIDs = { 676U, 677U, 678U }; // meta achievements 2-4
+						for (const auto missionID : missionIDs) {
+							auto* raceMission = missionComponent->GetMission(missionID);
+							MissionTask* raceTask = nullptr;
+
+							if (raceMission == nullptr) {
+								break;
+							}
+							if (raceMission->IsComplete()) {
+								continue;
+							}
+
+							for (auto* task : raceMission->GetTasks()) {
+								if (task->GetClientInfo().id == missionID) {
+									raceTask = task;
+									break;
+								}
+							}
+							if (raceTask == nullptr) { // Should never be the case for these
+								LOG("Failed to find task for race mission (%u)!", missionID);
+								break;
+							}
+
+							auto count = 0U;
+							for (const auto target : raceTask->GetAllTargets()) {
+								const auto* targetMission = missionComponent->GetMission(target);
+								if ((targetMission != nullptr) && (targetMission->IsComplete())) {
+									++count;
+								}
+							}
+
+							// Set correct amount of continual progress
+							raceTask->SetProgress(count);
+							raceMission->CheckCompletion();
+						}
 						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 						[[fallthrough]];
 					}
