@@ -92,7 +92,7 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 }
 
 
-bool PrerequisiteExpression::Execute(const std::unordered_map<uint32_t, Mission*>& missions) const {
+bool PrerequisiteExpression::Execute(const std::map<uint32_t, Mission*>& missions) const {
 	auto a = this->a == 0;
 
 	auto b = this->b == nullptr;
@@ -129,7 +129,7 @@ PrerequisiteExpression::~PrerequisiteExpression() {
 }
 
 
-bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions) {
+bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::map<uint32_t, Mission*>& missions) {
 	const auto& missionIndex = missions.find(missionId);
 
 	if (missionIndex != missions.end()) {
@@ -155,7 +155,7 @@ bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unorde
 	return CheckPrerequisites(missionId, missions);
 }
 
-bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions) {
+bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::map<uint32_t, Mission*>& missions) {
 	const auto& index = expressions.find(missionId);
 	if (index != expressions.end()) {
 		return index->second->Execute(missions);

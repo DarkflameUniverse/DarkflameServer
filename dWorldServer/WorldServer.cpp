@@ -1118,6 +1118,11 @@ void HandlePacket(Packet* packet) {
 						levelComponent->SetCharacterVersion(eCharacterVersion::UP_TO_DATE);
 						[[fallthrough]];
 					}
+					case eCharacterVersion::INVENTORY_PERSISTENT_IDS: {
+						LOG("Fixing racing meta missions");
+						missionComponent->FixRacingMetaMissions();
+						[[fallthrough]];
+					}
 					case eCharacterVersion::UP_TO_DATE:
 						break;
 					}

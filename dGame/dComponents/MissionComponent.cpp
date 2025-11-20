@@ -3,6 +3,7 @@
  * Copyright 2019
  */
 
+#include <ranges>
 #include <sstream>
 #include <string>
 
@@ -71,7 +72,7 @@ eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const 
 }
 
 
-const std::unordered_map<uint32_t, Mission*>& MissionComponent::GetMissions() const {
+const std::map<uint32_t, Mission*>& MissionComponent::GetMissions() const {
 	return m_Missions;
 }
 
@@ -149,7 +150,7 @@ void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID a
 	}
 
 	for (const auto& [id, mission] : m_Missions) {
-		if (!mission || std::find(acceptedAchievements.begin(), acceptedAchievements.end(), mission->GetMissionId()) != acceptedAchievements.end()) continue;
+		if (!mission || std::ranges::find(acceptedAchievements, mission->GetMissionId()) != acceptedAchievements.end()) continue;
 
 		if (mission->IsAchievement() && ignoreAchievements) continue;
 
@@ -746,4 +747,31 @@ bool MissionComponent::OnGetMissionState(GameMessages::GameMsg& msg) {
 bool MissionComponent::OnMissionNeedsLot(GameMessages::GameMsg& msg) {
 	const auto& needMsg = static_cast<GameMessages::MissionNeedsLot&>(msg);
 	return RequiresItem(needMsg.item);
+}
+
+void MissionComponent::FixRacingMetaMissions() {
+	for (const auto mission : m_Missions | std::views::values) {
+		if (!mission || mission->IsComplete()) continue;
+
+		for (const auto task : mission->GetTasks()) {
+			if (!task) continue;
+
+			// has to be a racing meta mission and have a taskparam1 of 4
+			if (task->GetType() != eMissionTaskType::RACING || !task->GetClientInfo().taskParam1.starts_with("4")) continue;
+
+			// Each target is racing mission that needs to be completed.
+			// If its completed, progress the meta task by 1.
+			uint32_t progress = 0;
+			for (const auto& target : task->GetAllTargets()) {
+				if (target == 0) continue;
+				auto* racingMission = GetMission(target);
+				if (racingMission && racingMission->IsComplete()) {
+					progress++;
+				}
+			}
+			task->SetProgress(progress);
+		}
+		// in case the mission is actually complete, give them the rewards
+		mission->CheckCompletion();
+	}
 }

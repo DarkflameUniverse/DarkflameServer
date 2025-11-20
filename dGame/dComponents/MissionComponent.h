@@ -38,7 +38,7 @@ public:
 	 * Returns all the missions for this entity, mapped by mission ID
 	 * @return the missions for this entity, mapped by mission ID
 	 */
-	const std::unordered_map<uint32_t, Mission*>& GetMissions() const;
+	const std::map<uint32_t, Mission*>& GetMissions() const;
 
 	/**
 	 * Returns the mission for the given mission ID, if it exists
@@ -170,6 +170,8 @@ public:
 	bool HasMission(uint32_t missionId);
 
 	void ResetMission(const int32_t missionId);
+
+	void FixRacingMetaMissions();
 private:
 	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
 	bool OnGetMissionState(GameMessages::GameMsg& msg);
@@ -177,7 +179,7 @@ private:
 	/**
 	 * All the missions owned by this entity, mapped by mission ID
 	 */
-	std::unordered_map<uint32_t, Mission*> m_Missions;
+	std::map<uint32_t, Mission*> m_Missions;
 
 	/**
 	 * All the collectibles currently collected by the entity
