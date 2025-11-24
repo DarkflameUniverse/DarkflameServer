@@ -903,9 +903,7 @@ void DestroyableComponent::FixStats() {
 	int32_t maxImagination = 0;
 
 	// Go through all completed missions and add the reward stats
-	for (auto& pair : missionComponent->GetMissions()) {
-		auto* mission = pair.second;
-
+	for (const auto* mission : missionComponent->GetOrderedMissions()) {
 		if (!mission->IsComplete()) {
 			continue;
 		}

@@ -6,8 +6,10 @@
 #ifndef MISSIONCOMPONENT_H
 #define MISSIONCOMPONENT_H
 
+#include <list>
 #include <unordered_map>
 #include <vector>
+
 #include "dCommonVars.h"
 #include "RakNetTypes.h"
 #include "Entity.h"
@@ -39,6 +41,12 @@ public:
 	 * @return the missions for this entity, mapped by mission ID
 	 */
 	const std::unordered_map<uint32_t, Mission*>& GetMissions() const;
+
+	/**
+	 * Returns all the missions for this entity, ordered by insertion
+	 * @return the missions for this entity, ordered by insertion
+	 */
+	const std::list<Mission*>& GetOrderedMissions() const;
 
 	/**
 	 * Returns the mission for the given mission ID, if it exists
@@ -178,6 +186,11 @@ private:
 	 * All the missions owned by this entity, mapped by mission ID
 	 */
 	std::unordered_map<uint32_t, Mission*> m_Missions;
+
+	/**
+	 * All the missions owned by this entity, ordered by insertion
+	 */
+	std::list<Mission*> m_OrderedMissions;
 
 	/**
 	 * All the collectibles currently collected by the entity

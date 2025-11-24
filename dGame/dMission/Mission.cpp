@@ -139,7 +139,7 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 	}
 }
 
-void Mission::UpdateXmlDone(tinyxml2::XMLElement& element) {
+void Mission::UpdateXmlDone(tinyxml2::XMLElement& element) const {
 	// Start custom XML
 	element.SetAttribute("state", static_cast<unsigned int>(m_State));
 	// End custom XML
@@ -153,7 +153,7 @@ void Mission::UpdateXmlDone(tinyxml2::XMLElement& element) {
 	element.SetAttribute("cts", static_cast<unsigned int>(m_Timestamp));
 }
 
-void Mission::UpdateXmlCur(tinyxml2::XMLElement& element) {
+void Mission::UpdateXmlCur(tinyxml2::XMLElement& element) const {
 	// Start custom XML
 	element.SetAttribute("state", static_cast<unsigned int>(m_State));
 	// End custom XML
@@ -286,6 +286,10 @@ bool Mission::IsAvalible() const {
 
 bool Mission::IsFetchMission() const {
 	return m_Tasks.size() == 1 && m_Tasks[0]->GetType() == eMissionTaskType::TALK_TO_NPC;
+}
+
+uint32_t Mission::GetUniqueMissionOrderID() const {
+	return m_UniqueMissionID;
 }
 
 void Mission::MakeAvalible() {
