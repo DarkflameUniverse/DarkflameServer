@@ -430,6 +430,7 @@ at once. For that:
     - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
   - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
 - The directory structure should now be:
+```
   your-client-directory/
   ├── docker-compose.yml
   ├── .env
@@ -440,6 +441,7 @@ at once. For that:
       │   └── locale/
       ├── versions/
       └── patcher/
+```
 - Open a terminal in the folder with the `docker-compose.yml` and `client`
 - Run `docker compose up -d`
   - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
