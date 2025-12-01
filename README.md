@@ -419,8 +419,8 @@ at once. For that:
 
 - [Install Docker Desktop](https://docs.docker.com/get-docker/)
 - Open the directory that contains your LU Client
-  - If the `legouniverse.exe` is in a subfolder called `client`, you're good to go. There may also be a folder `versions`.
-  - Otherwise, create a new `client` folder and move the exe and everything else (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
+  - If the `legouniverse.exe` is in a subfolder called `client`, copy & paste it to the current directory.
+  - Create the `client` folder if it does not exist. If you created the `client` folder, move everything (e.g. `res` and `locale`) in there. This is necessary to work around a bug in the client that will prevent that you to log back in after getting disconnected.
 - Download the [docker-compose.yml](docker-compose.yml) file and place it next to `client`.
 - Download the [.env.example](.env.example) file and place it next to `client` with the file name `.env`
   - You may get warnings that this name starts with a dot, acknowledge those, this is intentional. Depending on your operating system, you may need to activate showing hidden files (e.g. Ctrl-H in Gnome on Linux) and/or file extensions ("File name extensions" in the "View" tab on Windows).
@@ -429,10 +429,21 @@ at once. For that:
     - Avoid `:` and `@` characters
     - Once the database user is created, changing the password will not update it, so the server will just fail to connect.
   - Set `EXTERNAL_IP` to your LAN IP or public IP if you want to host the game for friends & family
+- The directory structure should now be:
+  your-client-directory/
+  ├── docker-compose.yml
+  ├── .env
+  └── client/
+      ├── legouniverse.exe
+      ├── client/
+      │   ├── res/
+      │   └── locale/
+      ├── versions/
+      └── patcher/
 - Open a terminal in the folder with the `docker-compose.yml` and `client`
 - Run `docker compose up -d`
   - This might require `sudo` on Linux, and a recent version of [docker compose](https://docs.docker.com/compose/install/)
-- Run `docker exec -it dlu-darkflameserver-1 /app/MasterServer -a` and follow the instructions to create the initial admin account
+- Run `docker exec -it darkflameserver /app/MasterServer -a` and follow the instructions to create the initial admin account
 - Open <http://localhost:8000> to access Nexus Dashboard with the admin account to create normal users
 - Set `AUTHSERVERIP=0:localhost` in `client/boot.cfg`
   - Replace `localhost` with the value of `EXTERNAL_IP` if you changed that earlier.
