@@ -817,6 +817,42 @@ void SlashCommandHandler::Startup() {
 	};
 	RegisterCommand(ExecuteCommand);
 
+	Command GetSceneCommand{
+		.help = "Get the current scene ID and name at your position",
+		.info = "Displays the scene ID and name at the player's current position. Scenes do not care about height.",
+		.aliases = { "getscene", "scene" },
+		.handle = DEVGMCommands::GetScene,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetSceneCommand);
+
+	Command GetAdjacentScenesCommand{
+		.help = "Get all scenes adjacent to your current scene",
+		.info = "Displays all scenes that are directly connected to the player's current scene via scene transitions.",
+		.aliases = { "getadjacentscenes", "adjacentscenes" },
+		.handle = DEVGMCommands::GetAdjacentScenes,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(GetAdjacentScenesCommand);
+
+	Command SpawnScenePointsCommand{
+		.help = "Spawn bricks at points across your current scene",
+		.info = "Spawns bricks at sampled points across the player's current scene using terrain scene map data.",
+		.aliases = { "spawnscenepoints" },
+		.handle = DEVGMCommands::SpawnScenePoints,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnScenePointsCommand);
+
+	Command SpawnAllScenePointsCommand{
+		.help = "Spawn bricks at ALL vertices in ALL scenes (high density, many entities)",
+		.info = "Spawns bricks at every vertex in the terrain mesh for all scenes in the zone. WARNING: Creates a massive number of entities for maximum accuracy visualization.",
+		.aliases = { "spawnallscenepoints", "spawnallscenes" },
+		.handle = DEVGMCommands::SpawnAllScenePoints,
+		.requiredLevel = eGameMasterLevel::DEVELOPER
+	};
+	RegisterCommand(SpawnAllScenePointsCommand);
+
 	// Register Greater Than Zero Commands
 
 	Command KickCommand{
