@@ -124,7 +124,7 @@ bool GhostComponent::OnGetGMInvis(GameMessages::GameMsg& msg) {
 	// gmInvisMsg.bGMInvis = m_IsGMInvisible;
 	// return gmInvisMsg.bGMInvis;
 	gmInvisMsg.bGMInvis = false;
-	return false
+	return false;
 }
 
 bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
