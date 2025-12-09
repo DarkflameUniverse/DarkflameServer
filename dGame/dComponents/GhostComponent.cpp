@@ -89,6 +89,8 @@ void GhostComponent::GhostEntity(LWOOBJID id) {
 }
 
 bool GhostComponent::OnToggleGMInvis(GameMessages::GameMsg& msg) {
+	// TODO: disabled for now while bugs are fixed
+	return false;
 	auto& gmInvisMsg = static_cast<GameMessages::ToggleGMInvis&>(msg);
 	gmInvisMsg.bStateOut = !m_IsGMInvisible;
 	m_IsGMInvisible = !m_IsGMInvisible;
@@ -118,8 +120,11 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::GameMsg& msg) {
 bool GhostComponent::OnGetGMInvis(GameMessages::GameMsg& msg) {
 	LOG_DEBUG("GM Invisibility requested: %s", m_IsGMInvisible ? "true" : "false");
 	auto& gmInvisMsg = static_cast<GameMessages::GetGMInvis&>(msg);
-	gmInvisMsg.bGMInvis = m_IsGMInvisible;
-	return gmInvisMsg.bGMInvis;
+	// TODO: disabled for now while bugs are fixed
+	// gmInvisMsg.bGMInvis = m_IsGMInvisible;
+	// return gmInvisMsg.bGMInvis;
+	gmInvisMsg.bGMInvis = false;
+	return false;
 }
 
 bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GameMsg& msg) {
