@@ -398,6 +398,7 @@ void Mission::Catchup() {
 
 	for (auto* task : m_Tasks) {
 		const auto type = task->GetType();
+		const auto missionID = task->GetMission()->GetMissionId();
 
 		if (type == eMissionTaskType::GATHER) {
 			for (auto target : task->GetAllTargets()) {
@@ -406,6 +407,20 @@ void Mission::Catchup() {
 				for (auto i = 0U; i < count; ++i) {
 					task->Progress(target);
 				}
+			}
+		}
+
+		if (type == eMissionTaskType::RACING) {
+			// The "Go Outside and Play" meta achievements 2-4
+			// These achievements are the only ones in the game that continue their progress instead of starting at zero
+			constexpr std::array missionIDs = { 676U, 677U, 678U };
+			constexpr std::array initialValues = { 10U, 20U, 30U };
+			static_assert(missionIDs.size() == initialValues.size());
+			const auto& iter = std::find(missionIDs.begin(), missionIDs.end(), missionID);
+
+			if (iter != missionIDs.end()) {
+				const auto initialValue = initialValues[std::distance(missionIDs.begin(), iter)];
+				task->SetProgress(initialValue, false);
 			}
 		}
 
