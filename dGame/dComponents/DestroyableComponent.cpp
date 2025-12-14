@@ -755,7 +755,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
+	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, true, 1);
 
 	//NANI?!
 	if (!isPlayer) {
@@ -785,8 +785,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				lootMsg.sourceID = source;
 				lootMsg.item = LOT_NULL;
 				lootMsg.Send();
-				lootMsg.Send(m_Parent->GetSystemAddress());
-				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
+				character->SetCoins(coinsTotal, eLootSourceType::DELETION);
 			}
 		}
 
