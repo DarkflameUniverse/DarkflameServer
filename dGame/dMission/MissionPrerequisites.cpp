@@ -1,5 +1,6 @@
 #include "MissionPrerequisites.h"
 
+#include <algorithm>
 #include <sstream>
 #include <ctime>
 
@@ -92,16 +93,16 @@ PrerequisiteExpression::PrerequisiteExpression(const std::string& str) {
 }
 
 
-bool PrerequisiteExpression::Execute(const std::unordered_map<uint32_t, Mission*>& missions) const {
+bool PrerequisiteExpression::Execute(const std::list<Mission*>& missions) const {
 	auto a = this->a == 0;
 
 	auto b = this->b == nullptr;
 
 	if (!a) {
-		const auto index = missions.find(this->a);
+		const auto& iter = std::find_if(missions.begin(), missions.end(), [=](const Mission* m) { return m->GetMissionId() == this->a; });
 
-		if (index != missions.end()) {
-			const auto* mission = index->second;
+		if (iter != missions.end()) {
+			const auto* mission = *iter;
 
 			if (this->sub != 0) {
 				// Special case for one Wisp Lee repeatable mission.
@@ -129,11 +130,11 @@ PrerequisiteExpression::~PrerequisiteExpression() {
 }
 
 
-bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions) {
-	const auto& missionIndex = missions.find(missionId);
+bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::list<Mission*>& missions) {
+	const auto& iter = std::find_if(missions.begin(), missions.end(), [=](const Mission* m) { return m->GetMissionId() == missionId; });
 
-	if (missionIndex != missions.end()) {
-		auto* mission = missionIndex->second;
+	if (iter != missions.end()) {
+		const auto* mission = *iter;
 		const auto& info = mission->GetClientInfo();
 
 		if (info.repeatable) {
@@ -155,7 +156,7 @@ bool MissionPrerequisites::CanAccept(const uint32_t missionId, const std::unorde
 	return CheckPrerequisites(missionId, missions);
 }
 
-bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions) {
+bool MissionPrerequisites::CheckPrerequisites(uint32_t missionId, const std::list<Mission*>& missions) {
 	const auto& index = expressions.find(missionId);
 	if (index != expressions.end()) {
 		return index->second->Execute(missions);

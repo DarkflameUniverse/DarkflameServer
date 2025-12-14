@@ -37,27 +37,22 @@ MissionComponent::MissionComponent(Entity* parent, const int32_t componentID) : 
 
 //! Destructor
 MissionComponent::~MissionComponent() {
-	for (const auto* mission : m_OrderedMissions) {
+	for (const auto* mission : m_Missions) {
 		delete mission;
 	}
 
 	this->m_Missions.clear();
-	this->m_OrderedMissions.clear();
 }
 
 
 Mission* MissionComponent::GetMission(const uint32_t missionId) const {
-	if (m_Missions.count(missionId) == 0) {
+	const auto& iter = std::find_if(m_Missions.begin(), m_Missions.end(), [=](const Mission* m) { return m->GetMissionId() == missionId; });
+
+	if (iter == m_Missions.end()) {
 		return nullptr;
 	}
 
-	const auto& index = m_Missions.find(missionId);
-
-	if (index == m_Missions.end()) {
-		return nullptr;
-	}
-
-	return index->second;
+	return *iter;
 }
 
 
@@ -72,12 +67,8 @@ eMissionState MissionComponent::GetMissionState(const uint32_t missionId) const 
 }
 
 
-const std::unordered_map<uint32_t, Mission*>& MissionComponent::GetMissions() const {
+const std::list<Mission*>& MissionComponent::GetMissions() const {
 	return m_Missions;
-}
-
-const std::list<Mission*>& MissionComponent::GetOrderedMissions() const {
-	return m_OrderedMissions;
 }
 
 bool MissionComponent::CanAccept(const uint32_t missionId) const {
@@ -108,8 +99,7 @@ void MissionComponent::AcceptMission(const uint32_t missionId, const bool skipCh
 
 	mission->Accept();
 
-	this->m_Missions.insert_or_assign(missionId, mission);
-	this->m_OrderedMissions.push_back(mission);
+	this->m_Missions.push_back(mission);
 }
 
 void MissionComponent::CompleteMission(const uint32_t missionId, const bool skipChecks, const bool yieldRewards) {
@@ -143,8 +133,7 @@ void MissionComponent::RemoveMission(uint32_t missionId) {
 
 	delete mission;
 
-	m_Missions.erase(missionId);
-	m_OrderedMissions.remove(mission);
+	m_Missions.remove(mission);
 }
 
 void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
@@ -155,8 +144,8 @@ void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID a
 	}
 
 	// Make a snapshot of the mission container size before any possible additions.
-	const std::size_t currentMissionCount = m_OrderedMissions.size();
-	for (auto iter = m_OrderedMissions.begin(); static_cast<std::size_t>(std::distance(m_OrderedMissions.begin(), iter)) < currentMissionCount; ++iter) {
+	const std::size_t currentMissionCount = m_Missions.size();
+	for (auto iter = m_Missions.begin(); static_cast<std::size_t>(std::distance(m_Missions.begin(), iter)) < currentMissionCount; ++iter) {
 		auto* mission = *iter;
 		if (!mission || std::find(acceptedAchievements.begin(), acceptedAchievements.end(), mission->GetMissionId()) != acceptedAchievements.end()) continue;
 
@@ -311,8 +300,7 @@ const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskTy
 		// Instantiate new mission and accept it
 		auto* instance = new Mission(this, missionID);
 
-		m_Missions.insert_or_assign(missionID, instance);
-		m_OrderedMissions.push_back(instance);
+		m_Missions.push_back(instance);
 
 		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
 
@@ -383,8 +371,7 @@ const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskTy
 
 		auto* instance = new Mission(this, mission.id);
 
-		m_Missions.insert_or_assign(mission.id, instance);
-		m_OrderedMissions.push_back(instance);
+		m_Missions.push_back(instance);
 
 		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
 
@@ -487,7 +474,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 
 	result.finalize();
 
-	for (const auto* mission : m_OrderedMissions) {
+	for (const auto* mission : m_Missions) {
 		if (mission->IsComplete()) {
 			continue;
 		}
@@ -532,8 +519,7 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 		doneM = doneM->NextSiblingElement();
 
-		m_Missions.insert_or_assign(missionId, mission);
-		m_OrderedMissions.push_back(mission);
+		m_Missions.push_back(mission);
 	}
 
 	auto* currentM = cur->FirstChildElement();
@@ -544,8 +530,9 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 		currentM->QueryAttribute("id", &missionId);
 
-		const bool exists = m_Missions.contains(missionId);
-		auto* mission = exists? m_Missions[missionId] : new Mission(this, missionId);
+		const auto& iter = std::find_if(m_Missions.begin(), m_Missions.end(), [=](const Mission* m) { return m->GetMissionId() == missionId; });
+		const bool exists = iter != m_Missions.end();
+		auto* mission = exists? *iter : new Mission(this, missionId);
 
 		mission->LoadFromXmlCur(*currentM);
 
@@ -557,8 +544,7 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 		currentM = currentM->NextSiblingElement();
 
 		if (!exists) {
-			m_Missions.insert_or_assign(missionId, mission);
-			m_OrderedMissions.push_back(mission);
+			m_Missions.push_back(mission);
 		}
 	}
 }
@@ -582,7 +568,7 @@ void MissionComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	auto* done = doc.NewElement("done");
 	auto* cur = doc.NewElement("cur");
 
-	for (const auto* mission : m_OrderedMissions) {
+	for (const auto* mission : m_Missions) {
 		if (mission) {
 			const auto completions = mission->GetCompletions();
 
@@ -638,8 +624,7 @@ void MissionComponent::ResetMission(const int32_t missionId) {
 
 	delete mission;
 
-	m_Missions.erase(missionId);
-	m_OrderedMissions.remove(mission);
+	m_Missions.remove(mission);
 	GameMessages::SendResetMissions(m_Parent, m_Parent->GetSystemAddress(), missionId);
 }
 
@@ -729,7 +714,7 @@ bool MissionComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
 	std::map<uint32_t, Mission*> achievements;
 	std::map<uint32_t, Mission*> missions;
 	std::map<uint32_t, Mission*> doneMissions;
-	for (auto* mission : m_OrderedMissions) {
+	for (auto* mission : m_Missions) {
 		if (!mission) continue;
 		else if (mission->IsComplete()) doneMissions[mission->GetMissionId()] = mission;
 		else if (mission->IsAchievement()) achievements[mission->GetMissionId()] = mission;

@@ -37,16 +37,10 @@ public:
 	void UpdateXml(tinyxml2::XMLDocument& doc) override;
 
 	/**
-	 * Returns all the missions for this entity, mapped by mission ID
-	 * @return the missions for this entity, mapped by mission ID
+	 * Returns all the missions for this entity
+	 * @return the missions for this entity
 	 */
-	const std::unordered_map<uint32_t, Mission*>& GetMissions() const;
-
-	/**
-	 * Returns all the missions for this entity, ordered by insertion
-	 * @return the missions for this entity, ordered by insertion
-	 */
-	const std::list<Mission*>& GetOrderedMissions() const;
+	const std::list<Mission*>& GetMissions() const;
 
 	/**
 	 * Returns the mission for the given mission ID, if it exists
@@ -183,14 +177,9 @@ private:
 	bool OnGetMissionState(GameMessages::GameMsg& msg);
 	bool OnMissionNeedsLot(GameMessages::GameMsg& msg);
 	/**
-	 * All the missions owned by this entity, mapped by mission ID
+	 * All the missions owned by this entity
 	 */
-	std::unordered_map<uint32_t, Mission*> m_Missions;
-
-	/**
-	 * All the missions owned by this entity, ordered by insertion
-	 */
-	std::list<Mission*> m_OrderedMissions;
+	std::list<Mission*> m_Missions;
 
 	/**
 	 * All the collectibles currently collected by the entity

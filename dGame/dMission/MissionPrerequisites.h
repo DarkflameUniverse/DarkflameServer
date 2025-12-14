@@ -21,7 +21,7 @@ public:
 	 * @param missions the list of missions to check the prerequisites against (f.e. whether they're completed)
 	 * @return whether or not all the prerequisites are met
 	 */
-	bool Execute(const std::unordered_map<uint32_t, Mission*>& missions) const;
+	bool Execute(const std::list<Mission*>& missions) const;
 
 	explicit PrerequisiteExpression(const std::string& str);
 	~PrerequisiteExpression();
@@ -40,7 +40,7 @@ public:
 	 * @param missions the mission inventory to check the prerequisites against
 	 * @return whether or not the mission identified by the specified ID can be accepted
 	 */
-	static bool CanAccept(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
+	static bool CanAccept(uint32_t missionId, const std::list<Mission*>& missions);
 private:
 
 	/**
@@ -54,5 +54,5 @@ private:
 	 * @param missions the mission inventory to check the prerequisites against
 	 * @return whether or not the mission identified by the specified ID can be accepted
 	 */
-	static bool CheckPrerequisites(uint32_t missionId, const std::unordered_map<uint32_t, Mission*>& missions);
+	static bool CheckPrerequisites(uint32_t missionId, const std::list<Mission*>& missions);
 };
