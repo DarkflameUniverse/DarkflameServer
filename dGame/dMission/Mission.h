@@ -30,11 +30,11 @@ public:
 
 	// XML functions to load and save completed mission state to xml
 	void LoadFromXmlDone(const tinyxml2::XMLElement& element);
-	void UpdateXmlDone(tinyxml2::XMLElement& element);
+	void UpdateXmlDone(tinyxml2::XMLElement& element) const;
 
 	// XML functions to load and save current mission state and task data to xml
 	void LoadFromXmlCur(const tinyxml2::XMLElement& element);
-	void UpdateXmlCur(tinyxml2::XMLElement& element);
+	void UpdateXmlCur(tinyxml2::XMLElement& element) const;
 
 	/**
 	 * Returns the ID of this mission
@@ -235,7 +235,7 @@ public:
 	 *
 	 * @return The unique order ID
 	 */
-	uint32_t GetUniqueMissionOrderID() { return m_UniqueMissionID; };
+	uint32_t GetUniqueMissionOrderID() const;
 
 	/**
 	 * Sets the unique mission order ID of this mission
