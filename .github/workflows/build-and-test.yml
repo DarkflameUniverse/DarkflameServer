@@ -26,7 +26,7 @@ jobs:
         vs-version: '[17,18)'
         msbuild-architecture: x64
     - name: Install libssl and switch to XCode 15.2 (Mac Only)
-      if: ${{ matrix.os == 'macos-13' }}
+      if: ${{ matrix.os == 'macos-latest' }}
       run: |
         brew install openssl@3
         sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
