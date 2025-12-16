@@ -13,7 +13,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-22.04, macos-latest ]
+        os: [ windows-2022, ubuntu-22.04, macos-14 ]
 
     steps:
     - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
@@ -26,7 +26,7 @@ jobs:
         vs-version: '[17,18)'
         msbuild-architecture: x64
     - name: Install libssl and switch to XCode 15.2 (Mac Only)
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: ${{ matrix.os == 'macos-14' }}
       run: |
         brew install openssl@3
     - name: Get CMake 3.x
