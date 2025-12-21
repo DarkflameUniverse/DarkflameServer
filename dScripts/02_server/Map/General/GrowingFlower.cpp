@@ -2,6 +2,7 @@
 #include "MissionComponent.h"
 #include "eMissionTaskType.h"
 #include "eMissionState.h"
+#include "ScriptedActivityComponent.h"
 #include "Loot.h"
 
 void GrowingFlower::OnSkillEventFired(Entity* self, Entity* target, const std::string& message) {
@@ -13,7 +14,10 @@ void GrowingFlower::OnSkillEventFired(Entity* self, Entity* target, const std::s
 		const auto mission1 = self->GetVar<int32_t>(u"missionID");
 		const auto mission2 = self->GetVar<int32_t>(u"missionID2");
 
-		Loot::DropActivityLoot(target, self->GetObjectID(), self->GetLOT(), 0);
+		auto* scriptedActivityComponent = self->GetComponent<ScriptedActivityComponent>();
+		if (scriptedActivityComponent != nullptr) {
+			Loot::DropActivityLoot(target, self->GetObjectID(), scriptedActivityComponent->GetActivityID(), 0);
+		}
 
 		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
