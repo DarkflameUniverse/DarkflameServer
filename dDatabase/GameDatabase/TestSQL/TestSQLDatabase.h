@@ -103,6 +103,11 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
+	void RecordFailedAttempt(const uint32_t accountId) override {};
+	void ClearFailedAttempts(const uint32_t accountId) override {};
+	void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) override {};
+	bool IsLockedOut(const uint32_t accountId) override { return false; };
+	uint8_t GetFailedAttempts(const uint32_t accountId) override { return 0; };
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }

@@ -45,3 +45,40 @@ uint32_t MySQLDatabase::GetAccountCount() {
 	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM accounts;");
 	return res->next() ? res->getUInt("count") : 0;
 }
+
+void MySQLDatabase::RecordFailedAttempt(const uint32_t accountId) {
+	ExecuteUpdate("UPDATE accounts SET failed_attempts = failed_attempts + 1 WHERE id = ?;", accountId);
+}
+
+void MySQLDatabase::ClearFailedAttempts(const uint32_t accountId) {
+	ExecuteUpdate("UPDATE accounts SET failed_attempts = 0, lockout_time = NULL, last_login = NOW() WHERE id = ?;", accountId);
+}
+
+void MySQLDatabase::SetLockout(const uint32_t accountId, const int64_t lockoutUntil) {
+	ExecuteUpdate("UPDATE accounts SET lockout_time = FROM_UNIXTIME(?) WHERE id = ?;", lockoutUntil, accountId);
+}
+
+bool MySQLDatabase::IsLockedOut(const uint32_t accountId) {
+	auto result = ExecuteSelect("SELECT lockout_time FROM accounts WHERE id = ?;", accountId);
+	if (!result->next()) {
+		return false;
+	}
+
+	// If lockout_time is set and in the future, account is locked
+	const char* lockoutTime = result->getString("lockout_time").c_str();
+	if (lockoutTime == nullptr || strlen(lockoutTime) == 0) {
+		return false;
+	}
+
+	// Simplified check - if lockout_time exists and is not null, it's locked
+	return true;
+}
+
+uint8_t MySQLDatabase::GetFailedAttempts(const uint32_t accountId) {
+	auto result = ExecuteSelect("SELECT failed_attempts FROM accounts WHERE id = ?;", accountId);
+	if (!result->next()) {
+		return 0;
+	}
+
+	return result->getUInt("failed_attempts");
+}

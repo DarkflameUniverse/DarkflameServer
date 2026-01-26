@@ -124,6 +124,11 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	uint32_t GetAccountCount() override;
+	void RecordFailedAttempt(const uint32_t accountId) override;
+	void ClearFailedAttempts(const uint32_t accountId) override;
+	void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) override;
+	bool IsLockedOut(const uint32_t accountId) override;
+	uint8_t GetFailedAttempts(const uint32_t accountId) override;
 	bool IsNameInUse(const std::string_view name) override;
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;

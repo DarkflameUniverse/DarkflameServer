@@ -19,23 +19,24 @@
 #include "eGameMasterLevel.h"
 #include "dChatFilter.h"
 #include "TeamContainer.h"
+#include "HTTPContext.h"
 
 using json = nlohmann::json;
 
-void HandleHTTPPlayersRequest(HTTPReply& reply, std::string body) {
+void HandleHTTPPlayersRequest(HTTPReply& reply, const HTTPContext& context) {
 	const json data = Game::playerContainer;
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Players Online\"}" : data.dump();
 }
 
-void HandleHTTPTeamsRequest(HTTPReply& reply, std::string body) {
+void HandleHTTPTeamsRequest(HTTPReply& reply, const HTTPContext& context) {
 	const json data = TeamContainer::GetTeamContainer();
 	reply.status = data.empty() ? eHTTPStatusCode::NO_CONTENT : eHTTPStatusCode::OK;
 	reply.message = data.empty() ? "{\"error\":\"No Teams Online\"}" : data.dump();
 }
 
-void HandleHTTPAnnounceRequest(HTTPReply& reply, std::string body) {
-	auto data = GeneralUtils::TryParse<json>(body);
+void HandleHTTPAnnounceRequest(HTTPReply& reply, const HTTPContext& context) {
+	auto data = GeneralUtils::TryParse<json>(context.body);
 	if (!data) {
 		reply.status = eHTTPStatusCode::BAD_REQUEST;
 		reply.message = "{\"error\":\"Invalid JSON\"}";
@@ -96,18 +97,21 @@ namespace ChatWeb {
 		Game::web.RegisterHTTPRoute({
 			.path = v1_route + "players",
 			.method = eHTTPMethod::GET,
+			.middleware = {},
 			.handle = HandleHTTPPlayersRequest
 		});
 
 		Game::web.RegisterHTTPRoute({
 			.path = v1_route + "teams",
 			.method = eHTTPMethod::GET,
+			.middleware = {},
 			.handle = HandleHTTPTeamsRequest
 		});
 
 		Game::web.RegisterHTTPRoute({
 			.path = v1_route + "announce",
 			.method = eHTTPMethod::POST,
+			.middleware = {},
 			.handle = HandleHTTPAnnounceRequest
 		});
 

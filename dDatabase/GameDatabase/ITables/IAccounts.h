@@ -39,6 +39,22 @@ public:
 	virtual void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) = 0;
 
 	virtual uint32_t GetAccountCount() = 0;
+
+	// Login attempt tracking methods
+	// Record a failed login attempt
+	virtual void RecordFailedAttempt(const uint32_t accountId) = 0;
+
+	// Clear failed login attempts and update last login time
+	virtual void ClearFailedAttempts(const uint32_t accountId) = 0;
+
+	// Set account lockout
+	virtual void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) = 0;
+
+	// Check if account is locked out
+	virtual bool IsLockedOut(const uint32_t accountId) = 0;
+
+	// Get failed attempt count
+	virtual uint8_t GetFailedAttempts(const uint32_t accountId) = 0;
 };
 
 #endif  //!__IACCOUNTS__H__
