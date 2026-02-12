@@ -616,7 +616,7 @@
 			]
 		},
 		{
-			"name": "ci-macos-13",
+			"name": "ci-macos-15-intel",
 			"displayName": "[Release] MacOS",
 			"description": "CI workflow preset for MacOS",
 			"steps": [
