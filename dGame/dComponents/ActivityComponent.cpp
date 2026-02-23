@@ -325,9 +325,8 @@ bool ActivityComponent::CheckCost(Entity* player) const {
 }
 
 bool ActivityComponent::TakeCost(Entity* player) const {
-
 	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
-	return CheckCost(player) && inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount, eInventoryType::ALL);
+	return CheckCost(player) && inventoryComponent && inventoryComponent->RemoveItem(m_ActivityInfo.optionalCostLOT, m_ActivityInfo.optionalCostCount, eInventoryType::ALL);
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
