@@ -1,0 +1,95 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Play Keys - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="play-keys-container">
+		<div class="table-card">
+			<div class="table-header">
+				<h2 class="mb-0">Play Keys</h2>
+				<p class="text-muted">View and manage play keys</p>
+			</div>
+			<div class="table-body">
+				<table id="playKeysTable" class="table table-dark table-striped table-hover">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Key String</th>
+							<th>Uses Remaining</th>
+							<th>Created</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Data populated by DataTables -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script>
+		$(document).ready(function() {
+			// Initialize DataTable with server-side processing
+			$('#playKeysTable').DataTable({
+				processing: true,
+				serverSide: true,
+				pageLength: 25,
+				lengthMenu: [10, 25, 50, 100],
+				ajax: {
+					url: '/api/tables/play_keys',
+					type: 'POST',
+					contentType: 'application/json',
+					data: function(d) {
+						return JSON.stringify(d);
+					}
+				},
+				columns: [
+					{ data: 'id' },
+					{ data: 'key_string' },
+					{ data: 'key_uses' },
+					{
+						data: 'created_at',
+						render: function(data) {
+							return data ? new Date(data).toLocaleString() : '-';
+						}
+					},
+					{
+						data: 'active',
+						render: function(data) {
+							return data ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
+						}
+					},
+					{
+						data: 'id',
+						render: function(data) {
+							return '<div class="account-actions">' +
+								'<button class="btn btn-sm btn-info" onclick="viewKey(' + data + ')" title="View">👁️</button>' +
+								'<button class="btn btn-sm btn-warning" onclick="editKey(' + data + ')" title="Edit">✏️</button>' +
+								'</div>';
+						},
+						orderable: false,
+						searchable: false
+					}
+				],
+				order: [[0, 'asc']],
+				stateSave: false
+			});
+		});
+
+		function viewKey(id) {
+			alert('View key: ' + id);
+			// TODO: Implement key view modal
+		}
+
+		function editKey(id) {
+			alert('Edit key: ' + id);
+			// TODO: Implement key edit modal
+		}
+	</script>
+{% endblock %}

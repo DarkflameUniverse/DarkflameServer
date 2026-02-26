@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include "json.hpp"
 
 enum class eGameMasterLevel : uint8_t;
 
@@ -55,6 +56,14 @@ public:
 
 	// Get failed attempt count
 	virtual uint8_t GetFailedAttempts(const uint32_t accountId) = 0;
+
+	// Get paginated list of accounts with optional search/filtering for DataTables
+	// Returns a JSON object with the account data and metadata
+	virtual nlohmann::json GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) = 0;
+
+	// Get a single account by ID
+	// Returns a JSON object with the account details
+	virtual nlohmann::json GetAccountById(uint32_t accountId) = 0;
 };
 
 #endif  //!__IACCOUNTS__H__

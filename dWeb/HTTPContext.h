@@ -5,6 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include "eHTTPStatusCode.h"
+#include "json.hpp"
 
 /**
  * HTTP Request Context
@@ -55,5 +56,15 @@ struct HTTPContext {
 		std::string lowerName = headerName;
 		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
 		headers[lowerName] = value;
+	}
+	
+	/**
+	 * Get user data as JSON for template rendering
+	 */
+	nlohmann::json GetUserDataJson() const {
+		nlohmann::json userData;
+		userData["username"] = authenticatedUser;
+		userData["gmLevel"] = gmLevel;
+		return userData;
 	}
 };

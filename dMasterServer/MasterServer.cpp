@@ -899,11 +899,11 @@ int ShutdownSequence(int32_t signal) {
 		instance->SetIsShuttingDown(true);
 	}
 
-	LOG("Attempting to shutdown instances, max 60 seconds...");
+	LOG("Attempting to shutdown instances, max 10 seconds...");
 
 	auto t = std::chrono::high_resolution_clock::now();
 	uint32_t framesSinceShutdownStart = 0;
-	constexpr uint32_t maxShutdownTime = 60 * mediumFramerate;
+	constexpr uint32_t maxShutdownTime = 10 * mediumFramerate;
 	bool allInstancesShutdown = false;
 	Packet* packet = nullptr;
 	while (true) {
@@ -949,7 +949,7 @@ int ShutdownSequence(int32_t signal) {
 				LOG("Chat server did not shutdown in time");
 			}
 			if (dashboardServerMasterPeerSysAddr != UNASSIGNED_SYSTEM_ADDRESS) {
-				LOG("Web server did not shutdown in time");
+				LOG("Dashboard server did not shutdown in time");
 			}
 			for (const auto& instance : Game::im->GetInstances()) {
 				if (instance == nullptr) {

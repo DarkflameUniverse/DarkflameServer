@@ -2,9 +2,13 @@
 
 body {
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-	background-color: #f8f9fa;
 	margin: 0;
 	padding: 0;
+}
+
+body.d-flex.bg-dark.text-white {
+	background-color: #0d0d0d;
+	color: #fff;
 }
 
 /* Sidebar adjustments */
@@ -91,21 +95,6 @@ main {
 	margin-bottom: 20px;
 }
 
-.card {
-	background: white;
-	padding: 25px;
-	border-radius: 10px;
-	box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.card h2 {
-	color: #333;
-	margin-bottom: 15px;
-	font-size: 1.5em;
-	border-bottom: 2px solid #667eea;
-	padding-bottom: 10px;
-}
-
 .stat {
 	display: flex;
 	justify-content: space-between;
@@ -174,4 +163,333 @@ main {
 	text-align: center;
 	padding: 20px;
 	color: #666;
+}
+
+/* Dark theme for data tables and containers */
+
+/* Container margin for sidebar layout */
+.account-view-container,
+.accounts-container,
+.characters-container,
+.play-keys-container,
+.properties-container,
+.bug-reports-container {
+	margin-left: 280px;
+	padding: 20px;
+}
+
+/* Table card styling */
+.table-card {
+	background-color: #1a1a1a;
+	border: 1px solid #333;
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.table-header {
+	background-color: #222;
+	padding: 1.5rem;
+	border-bottom: 1px solid #333;
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.table-header h2 {
+	margin: 0;
+	color: #fff;
+}
+
+.table-body {
+	padding: 1.5rem;
+}
+
+/* Bootstrap card overrides for dark theme */
+.card {
+	background-color: #1a1a1a;
+	border: 1px solid #333;
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	margin-bottom: 1.5rem;
+}
+
+.card-header {
+	background-color: #222;
+	padding: 1.5rem;
+	border-bottom: 1px solid #333;
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.card-header h2 {
+	margin: 0;
+	color: #fff;
+}
+
+.card-body {
+	padding: 1.5rem;
+}
+
+/* Table styling */
+.table-dark {
+	color: #fff;
+}
+
+.table-dark thead {
+	background-color: #2a2a2a;
+}
+
+.table-dark thead th {
+	border-bottom: 2px solid #444;
+	color: #aaa;
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.875rem;
+	padding: 1rem;
+}
+
+.table-dark tbody td {
+	padding: 0.875rem 1rem;
+	border-bottom: 1px solid #333;
+	vertical-align: middle;
+}
+
+.table-dark tbody tr:hover {
+	background-color: #252525;
+}
+
+/* DataTables customization */
+.dataTables_wrapper {
+	color: #fff;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+	background-color: #2a2a2a;
+	color: #fff;
+	border: 1px solid #444;
+	border-radius: 0.25rem;
+	padding: 0.4rem 0.6rem;
+}
+
+.dataTables_wrapper .dataTables_filter input::placeholder {
+	color: #888;
+}
+
+.dataTables_wrapper .dataTables_info {
+	color: #aaa;
+	padding: 1rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+	background: #2a2a2a;
+	color: #fff;
+	border: 1px solid #444;
+	margin: 0 2px;
+	padding: 0.4rem 0.8rem;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+	background: #3a3a3a;
+	border: 1px solid #555;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+	background: #0d6efd;
+	border: 1px solid #0d6efd;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.dataTables_wrapper .dataTables_length select {
+	background-color: #2a2a2a;
+	color: #fff;
+	border: 1px solid #444;
+	padding: 0.4rem 0.6rem;
+	border-radius: 0.25rem;
+}
+
+/* Detail grid layout */
+.detail-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 1.5rem;
+}
+
+.detail-item {
+	background-color: #0a0a0a;
+	padding: 1rem;
+	border-radius: 0.25rem;
+	border-left: 3px solid #0d6efd;
+}
+
+.detail-label {
+	color: #999;
+	font-size: 0.875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 0.5rem;
+}
+
+.detail-value {
+	color: #fff;
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+/* Badge styling */
+.badge {
+	display: inline-block;
+	padding: 0.35rem 0.6rem;
+	font-size: 0.8rem;
+	font-weight: 500;
+	border-radius: 0.25rem;
+}
+
+.badge-active {
+	background-color: #28a745;
+	color: #fff;
+}
+
+.badge-inactive {
+	background-color: #6c757d;
+	color: #fff;
+}
+
+.badge-banned {
+	background-color: #dc3545;
+	color: #fff;
+}
+
+.badge-locked {
+	background-color: #ffc107;
+	color: #000;
+}
+
+.badge-gm {
+	background-color: #17a2b8;
+	color: #fff;
+}
+
+.badge-approved {
+	background-color: #28a745;
+	color: #fff;
+}
+
+.badge-pending {
+	background-color: #ffc107;
+	color: #000;
+}
+
+/* Button styling */
+.button-group {
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 1.5rem;
+}
+
+.btn {
+	padding: 0.5rem 1rem;
+	border-radius: 0.25rem;
+	border: none;
+	cursor: pointer;
+	font-weight: 500;
+	transition: all 0.2s;
+}
+
+.btn-sm {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+}
+
+.btn-primary {
+	background-color: #0d6efd;
+	color: #fff;
+}
+
+.btn-primary:hover {
+	background-color: #0b5ed7;
+}
+
+.btn-secondary {
+	background-color: #6c757d;
+	color: #fff;
+}
+
+.btn-secondary:hover {
+	background-color: #5c636a;
+}
+
+.btn-danger {
+	background-color: #dc3545;
+	color: #fff;
+}
+
+.btn-danger:hover {
+	background-color: #c82333;
+}
+
+.btn-info {
+	background-color: #17a2b8;
+	color: #fff;
+}
+
+.btn-info:hover {
+	background-color: #138496;
+}
+
+.btn-warning {
+	background-color: #ffc107;
+	color: #000;
+}
+
+.btn-warning:hover {
+	background-color: #e0a800;
+}
+
+/* Action buttons */
+.account-actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+/* Utility classes */
+.text-muted {
+	color: #999 !important;
+}
+
+.back-link {
+	color: #0d6efd;
+	text-decoration: none;
+	margin-bottom: 1rem;
+	display: inline-block;
+}
+
+.back-link:hover {
+	text-decoration: underline;
+}
+
+.report-preview {
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.search-section {
+	margin-bottom: 1.5rem;
+}
+
+.search-input {
+	background-color: #2a2a2a;
+	border: 1px solid #444;
+	color: #fff;
+	padding: 0.5rem;
+	border-radius: 0.25rem;
+}
+
+.search-input::placeholder {
+	color: #888;
 }

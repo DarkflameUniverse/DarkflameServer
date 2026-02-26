@@ -93,6 +93,8 @@ public:
 	bool IsEnabled() const { return enabled; };
 	// Send a message to all connected WebSocket clients that are subscribed to the given topic
 	void static SendWSMessage(std::string sub, nlohmann::json& message);
+	// Get mongoose manager for direct access
+	mg_mgr& GetManager() { return mgr; };
 private:
 	// mongoose manager
 	mg_mgr mgr;

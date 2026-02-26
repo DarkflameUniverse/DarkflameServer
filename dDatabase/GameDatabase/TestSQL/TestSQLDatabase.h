@@ -103,11 +103,18 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
+	uint32_t GetCharacterCount() override { return 0; };
 	void RecordFailedAttempt(const uint32_t accountId) override {};
 	void ClearFailedAttempts(const uint32_t accountId) override {};
 	void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) override {};
 	bool IsLockedOut(const uint32_t accountId) override { return false; };
 	uint8_t GetFailedAttempts(const uint32_t accountId) override { return 0; };
+	nlohmann::json GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return nlohmann::json::object(); };
+	nlohmann::json GetAccountById(uint32_t accountId) override { return nlohmann::json::object(); };
+	std::string GetCharactersTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };
+	std::string GetPlayKeysTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };
+	std::string GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };
+	std::string GetBugReportsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override { return "{}"; };
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }

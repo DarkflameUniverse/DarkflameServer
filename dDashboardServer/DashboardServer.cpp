@@ -20,14 +20,13 @@
 #include "Diagnostics.h"
 #include "Web.h"
 #include "Server.h"
-#include "MasterPacketHandler.h"
 
-#include "routes/ServerState.h"
-#include "routes/APIRoutes.h"
-#include "routes/StaticRoutes.h"
-#include "routes/DashboardRoutes.h"
-#include "routes/WSRoutes.h"
-#include "routes/AuthRoutes.h"
+#include "ServerState.h"
+#include "APIRoutes.h"
+#include "StaticRoutes.h"
+#include "DashboardRoutes.h"
+#include "WSRoutes.h"
+#include "AuthRoutes.h"
 #include "AuthMiddleware.h"
 
 namespace Game {
@@ -157,12 +156,22 @@ int main(int argc, char** argv) {
 		const auto elapsedSinceBroadcast = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastBroadcast).count();
 
 		if (elapsed >= 1000.0f / 60.0f) {
-			// Handle master server packets
-			Packet* packet = g_Server->ReceiveFromMaster();
-			if (packet) {
-				MasterPacketHandler::HandleMasterPacket(packet);
-				g_Server->DeallocateMasterPacket(packet);
-			}
+			// // Handle master server packets
+			// Packet* packet = g_Server->ReceiveFromMaster();
+			// if (packet) {
+			// 	RakNet::BitStream bitStream(packet->data, packet->length, false);
+			// 	PacketHandler::HandlePacket(bitStream, packet->systemAddress);
+			// 	g_Server->DeallocateMasterPacket(packet);
+			// }
+
+			// // Handle RakNet protocol packets from connected servers
+			// packet = g_Server->Receive();
+			// while (packet) {
+			// 	RakNet::BitStream bitStream(packet->data, packet->length, false);
+			// 	PacketHandler::HandlePacket(bitStream, packet->systemAddress);
+			// 	g_Server->DeallocatePacket(packet);
+			// 	packet = g_Server->Receive();
+			// }
 
 			// Handle web requests
 			Game::web.ReceiveRequests();
@@ -190,3 +199,5 @@ int main(int argc, char** argv) {
 
 	return EXIT_SUCCESS;
 }
+
+

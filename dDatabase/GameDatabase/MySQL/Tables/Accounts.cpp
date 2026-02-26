@@ -1,6 +1,7 @@
 #include "MySQLDatabase.h"
 
 #include "eGameMasterLevel.h"
+#include "json.hpp"
 
 std::optional<IAccounts::Info> MySQLDatabase::GetAccountInfo(const std::string_view username) {
 	auto result = ExecuteSelect("SELECT id, password, banned, locked, play_key_id, gm_level, mute_expire FROM accounts WHERE name = ? LIMIT 1;", username);
@@ -81,4 +82,106 @@ uint8_t MySQLDatabase::GetFailedAttempts(const uint32_t accountId) {
 	}
 
 	return result->getUInt("failed_attempts");
+}
+
+nlohmann::json MySQLDatabase::GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search, uint32_t orderColumn, bool orderAsc) {
+	// Build base query
+	std::string baseQuery = "SELECT id, name, banned, locked, gm_level, mute_expire, created_at FROM accounts";
+	std::string whereClause;
+	std::string orderClause;
+
+	// Add search filter if provided
+	if (!search.empty()) {
+		whereClause = " WHERE name LIKE CONCAT('%', ?, '%')";
+	}
+
+	// Map column indices to database columns
+	std::string orderColumnName = "id";
+	switch (orderColumn) {
+		case 0: orderColumnName = "id"; break;
+		case 1: orderColumnName = "name"; break;
+		case 2: orderColumnName = "banned"; break;
+		case 3: orderColumnName = "locked"; break;
+		case 4: orderColumnName = "gm_level"; break;
+		case 5: orderColumnName = "mute_expire"; break;
+		case 6: orderColumnName = "created_at"; break;
+		default: orderColumnName = "id";
+	}
+
+	orderClause = " ORDER BY " + orderColumnName + (orderAsc ? " ASC" : " DESC");
+
+	// Build the main query
+	std::string mainQuery = baseQuery + whereClause + orderClause + " LIMIT ?, ?;";
+
+	// Get total count
+	std::string totalCountQuery = "SELECT COUNT(*) as count FROM accounts;";
+	auto totalCountResult = ExecuteSelect(totalCountQuery);
+	uint32_t totalRecords = totalCountResult->next() ? totalCountResult->getUInt("count") : 0;
+
+	// Get filtered count
+	uint32_t filteredRecords = totalRecords;
+	if (!search.empty()) {
+		std::string filteredCountQuery = "SELECT COUNT(*) as count FROM accounts WHERE name LIKE CONCAT('%', ?, '%');";
+		auto filteredCountResult = ExecuteSelect(filteredCountQuery, search);
+		filteredRecords = filteredCountResult->next() ? filteredCountResult->getUInt("count") : 0;
+	}
+
+	// Execute main query
+	std::unique_ptr<sql::ResultSet> result;
+	if (!search.empty()) {
+		result = ExecuteSelect(mainQuery, search, start, length);
+	} else {
+		result = ExecuteSelect(mainQuery, start, length);
+	}
+
+	// Build response JSON
+	nlohmann::json accountsArray = nlohmann::json::array();
+
+	while (result->next()) {
+		nlohmann::json account = {
+			{"id", result->getUInt("id")},
+			{"name", result->getString("name")},
+			{"banned", result->getBoolean("banned")},
+			{"locked", result->getBoolean("locked")},
+			{"gm_level", result->getInt("gm_level")},
+			{"mute_expire", result->getUInt64("mute_expire")},
+			{"created_at", result->getString("created_at")}
+		};
+		accountsArray.push_back(account);
+	}
+
+	nlohmann::json response = {
+		{"draw", 1},
+		{"recordsTotal", totalRecords},
+		{"recordsFiltered", filteredRecords},
+		{"data", accountsArray}
+	};
+
+	return response;
+}
+
+nlohmann::json MySQLDatabase::GetAccountById(uint32_t accountId) {
+	try {
+		const std::string query = "SELECT id, name, banned, locked, gm_level, mute_expire, created_at FROM accounts WHERE id = ?;";
+		auto result = ExecuteSelect(query, accountId);
+
+		if (!result->next()) {
+			return nlohmann::json{{"error", "Account not found"}};
+		}
+
+		nlohmann::json account = {
+			{"id", result->getUInt("id")},
+			{"name", result->getString("name")},
+			{"banned", result->getBoolean("banned")},
+			{"locked", result->getBoolean("locked")},
+			{"gm_level", result->getInt("gm_level")},
+			{"mute_expire", result->getUInt64("mute_expire")},
+			{"created_at", result->getString("created_at")}
+		};
+
+		return account;
+	} catch (const sql::SQLException& e) {
+		LOG_DEBUG("SQL Error: %s", e.what());
+		return nlohmann::json{{"error", "Database error"}};
+	}
 }

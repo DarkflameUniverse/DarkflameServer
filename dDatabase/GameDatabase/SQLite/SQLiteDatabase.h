@@ -58,6 +58,7 @@ public:
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
 	void InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) override;
+	std::string GetCharactersTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
 	std::vector<LWOOBJID> GetAccountCharacterIds(LWOOBJID accountId) override;
 	void DeleteCharacter(const LWOOBJID characterId) override;
 	void SetCharacterName(const LWOOBJID characterId, const std::string_view name) override;
@@ -77,6 +78,7 @@ public:
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
+	std::string GetBugReportsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
 	void InsertCheatDetection(const IPlayerCheatDetections::Info& info) override;
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
@@ -101,6 +103,7 @@ public:
 	void InsertDefaultPersistentId() override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
+	std::string GetPlayKeysTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
 	void AddIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
 	void RemoveIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
@@ -124,15 +127,19 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	uint32_t GetAccountCount() override;
+	uint32_t GetCharacterCount() override;
 	void RecordFailedAttempt(const uint32_t accountId) override;
 	void ClearFailedAttempts(const uint32_t accountId) override;
 	void SetLockout(const uint32_t accountId, const int64_t lockoutUntil) override;
 	bool IsLockedOut(const uint32_t accountId) override;
 	uint8_t GetFailedAttempts(const uint32_t accountId) override;
+	nlohmann::json GetAccountsTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
+	nlohmann::json GetAccountById(uint32_t accountId) override;
 	bool IsNameInUse(const std::string_view name) override;
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override;
+	std::string GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) override;
 private:
 	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 

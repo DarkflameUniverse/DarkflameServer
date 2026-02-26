@@ -65,8 +65,4 @@ void RegisterStaticRoutes() {
 	// Serve JavaScript files
 	ServeStaticFile("/js/dashboard.js", "dDashboardServer/static/js/dashboard.js");
 	ServeStaticFile("/js/login.js", "dDashboardServer/static/js/login.js");
-	
-	// Also serve from /static/ paths for backwards compatibility
-	ServeStaticFile("/static/css/dashboard.css", "dDashboardServer/static/css/dashboard.css");
-	ServeStaticFile("/static/js/dashboard.js", "dDashboardServer/static/js/dashboard.js");
 }

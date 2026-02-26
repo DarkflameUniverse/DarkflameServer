@@ -10,6 +10,7 @@
 #include "IHTTPMiddleware.h"
 #include <ranges>
 #include <set>
+#include <vector>
 #include <cctype>
 
 namespace Game {
@@ -217,7 +218,65 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 		}
 
 		// Handle HTTP request
-		const auto routeItr = g_HTTPRoutes.find({method, uri});
+		auto routeItr = g_HTTPRoutes.find({method, uri});
+		
+		// If exact match not found, try pattern matching with :param syntax
+		if (routeItr == g_HTTPRoutes.end()) {
+			for (const auto& [key, route] : g_HTTPRoutes) {
+				if (key.first != method) continue;
+				
+				const std::string& pattern = key.second;
+				// Simple pattern matching for :param syntax
+				if (pattern.find(':') != std::string::npos) {
+					// Split by '/' and compare segments
+					std::vector<std::string> patternSegments;
+					std::vector<std::string> uriSegments;
+					
+					size_t pos = 0;
+					const std::string& str = pattern;
+					while (pos < str.length()) {
+						size_t slash = str.find('/', pos);
+						if (slash == std::string::npos) slash = str.length();
+						if (slash > pos) { // Skip empty segments
+							patternSegments.push_back(str.substr(pos, slash - pos));
+						}
+						pos = slash + 1;
+					}
+					
+					pos = 0;
+					while (pos < uri.length()) {
+						size_t slash = uri.find('/', pos);
+						if (slash == std::string::npos) slash = uri.length();
+						if (slash > pos) { // Skip empty segments
+							uriSegments.push_back(uri.substr(pos, slash - pos));
+						}
+						pos = slash + 1;
+					}
+					
+					// Check if segment counts match
+					if (patternSegments.size() == uriSegments.size()) {
+						bool matches = true;
+						for (size_t i = 0; i < patternSegments.size(); ++i) {
+							const auto& patternSeg = patternSegments[i];
+							const auto& uriSeg = uriSegments[i];
+							
+							// If pattern segment is a parameter (starts with :), it always matches
+							// Otherwise it must be an exact match
+							if (!patternSeg.empty() && patternSeg[0] != ':' && patternSeg != uriSeg) {
+								matches = false;
+								break;
+							}
+						}
+						
+						if (matches) {
+							routeItr = g_HTTPRoutes.find({method, pattern});
+							break;
+						}
+					}
+				}
+			}
+		}
+		
 		if (routeItr != g_HTTPRoutes.end()) {
 			const auto& route = routeItr->second;
 			
@@ -508,7 +567,7 @@ void Web::SendWSMessage(const std::string subscription, json& data) {
 		g_AuthenticatedWSConnections.erase(conn);
 	}
 	
-	for (auto *wc = Game::web.mgr.conns; wc != NULL; wc = wc->next) {
+	for (auto *wc = Game::web.GetManager().conns; wc != NULL; wc = wc->next) {
 		if (wc->is_websocket && wc->data[index] == SubscriptionStatus::SUBSCRIBED) {
 			mg_ws_send(wc, data.dump().c_str(), data.dump().size(), WEBSOCKET_OP_TEXT);
 		}

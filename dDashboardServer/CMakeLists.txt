@@ -1,16 +1,9 @@
 set(DDASHBOARDSERVER_SOURCES
 	"DashboardServer.cpp"
-	"MasterPacketHandler.cpp"
-	"routes/APIRoutes.cpp"
-	"routes/StaticRoutes.cpp"
-	"routes/DashboardRoutes.cpp"
-	"routes/WSRoutes.cpp"
-	"routes/AuthRoutes.cpp"
-	"auth/JWTUtils.cpp"
-	"auth/DashboardAuthService.cpp"
-	"auth/AuthMiddleware.cpp"
-	"auth/RequireAuthMiddleware.cpp"
 )
+
+add_subdirectory(routes)
+add_subdirectory(auth)
 
 add_executable(DashboardServer ${DDASHBOARDSERVER_SOURCES})
 
@@ -29,11 +22,12 @@ target_include_directories(DashboardServer PRIVATE
 	"${PROJECT_SOURCE_DIR}/dServer"
 	"${PROJECT_SOURCE_DIR}/thirdparty"
 	"${PROJECT_SOURCE_DIR}/thirdparty/nlohmann"
+	"${PROJECT_SOURCE_DIR}/dDashboardServer"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/auth"
 	"${PROJECT_SOURCE_DIR}/dDashboardServer/routes"
 )
 
-target_link_libraries(DashboardServer ${COMMON_LIBRARIES} dWeb dServer bcrypt OpenSSL::Crypto)
+target_link_libraries(DashboardServer ${COMMON_LIBRARIES} dWeb dServer bcrypt OpenSSL::Crypto DashboardRoutes DashboardAuth)
 
 
 # Copy static files and templates to build directory (always copy)
