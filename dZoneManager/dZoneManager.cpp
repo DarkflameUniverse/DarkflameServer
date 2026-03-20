@@ -368,9 +368,7 @@ void dZoneManager::BuildSceneGraph() {
 	const auto& scenes = m_pZone->GetScenes();
 	for (const auto& [sceneID, sceneRef] : scenes) {
 		// Ensure every scene has an entry, even if it has no transitions
-		if (m_SceneAdjacencyList.find(sceneID) == m_SceneAdjacencyList.end()) {
-			m_SceneAdjacencyList[sceneID] = std::vector<LWOSCENEID>();
-		}
+		m_SceneAdjacencyList.try_emplace(sceneID, std::vector<LWOSCENEID>());
 	}
 
 	// Build adjacency list from scene transitions
