@@ -2078,12 +2078,13 @@ namespace DEVGMCommands {
 					// Skip invalid scenes (scene ID 0 typically means no scene)
 					if (sceneID == 0) continue;
 					
-				// Calculate world position (same as GenerateTerrainMesh)
-				const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
-				const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
-				const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
-				
-				NiPoint3 spawnPos(worldX, worldY, worldZ);					EntityInfo info;
+					// Calculate world position (same as GenerateTerrainMesh)
+					const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
+					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+					const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
+					
+					NiPoint3 spawnPos(worldX, worldY, worldZ);
+					EntityInfo info;
 					info.lot = lot + sceneID; // to show different scenes
 					info.pos = spawnPos;
 					info.rot = QuatUtils::IDENTITY;
