@@ -271,20 +271,21 @@ namespace Raw {
 				outRaw.maxBoundsX = std::numeric_limits<float>::lowest();
 				outRaw.maxBoundsZ = std::numeric_limits<float>::lowest();
 				
-		for (const auto& chunk : outRaw.chunks) {
-			// Calculate chunk bounds
-			const float chunkMinX = chunk.offsetX;
-			const float chunkMinZ = chunk.offsetZ;
-			const float chunkMaxX = chunkMinX + (chunk.width * chunk.scaleFactor);
-			const float chunkMaxZ = chunkMinZ + (chunk.height * chunk.scaleFactor);
+			for (const auto& chunk : outRaw.chunks) {
+				// Calculate chunk bounds
+				const float chunkMinX = chunk.offsetX;
+				const float chunkMinZ = chunk.offsetZ;
+				const float chunkMaxX = chunkMinX + (chunk.width * chunk.scaleFactor);
+				const float chunkMaxZ = chunkMinZ + (chunk.height * chunk.scaleFactor);
 				
 				// Update overall bounds
 				outRaw.minBoundsX = std::min(outRaw.minBoundsX, chunkMinX);
 				outRaw.minBoundsZ = std::min(outRaw.minBoundsZ, chunkMinZ);
 				outRaw.maxBoundsX = std::max(outRaw.maxBoundsX, chunkMaxX);
 				outRaw.maxBoundsZ = std::max(outRaw.maxBoundsZ, chunkMaxZ);
-			}				LOG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]", 
-					outRaw.minBoundsX, outRaw.maxBoundsX, outRaw.minBoundsZ, outRaw.maxBoundsZ);
+			}
+			LOG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]", 
+				outRaw.minBoundsX, outRaw.maxBoundsX, outRaw.minBoundsZ, outRaw.maxBoundsZ);
 			}
 		}			return true;
 		} catch (const std::exception&) {
