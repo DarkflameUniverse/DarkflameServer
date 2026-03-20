@@ -287,7 +287,8 @@ namespace Raw {
 			LOG("Raw terrain bounds: X[%.2f, %.2f], Z[%.2f, %.2f]", 
 				outRaw.minBoundsX, outRaw.maxBoundsX, outRaw.minBoundsZ, outRaw.maxBoundsZ);
 			}
-		}			return true;
+		}
+		return true;
 		} catch (const std::exception&) {
 			return false;
 		}
