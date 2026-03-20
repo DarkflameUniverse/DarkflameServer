@@ -324,32 +324,32 @@ namespace Raw {
 					const uint32_t heightIndex = chunk.width * i + j;
 					if (heightIndex >= chunk.heightMap.size()) continue;
 					
-				const float y = chunk.heightMap[heightIndex];
+					const float y = chunk.heightMap[heightIndex];
 
-				// Calculate world position				
-				const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
-				const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
-				const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
+					// Calculate world position				
+					const float worldX = ((i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
+					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
+					const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
 
-				const NiPoint3 worldPos(worldX, worldY, worldZ);
+					const NiPoint3 worldPos(worldX, worldY, worldZ);
 
-			// Get scene ID at this position
-			// Map heightmap position to scene map position
-			// The scene map is colorMapResolution x colorMapResolution
-			// We need to map from heightmap coordinates (i, j) to scene map coordinates
-			const float sceneMapI = ((i) / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
-			const float sceneMapJ = ((j) / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
-			
-			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-			// Scene map uses the same indexing pattern as heightmap: row * width + col
-			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
+					// Get scene ID at this position
+					// Map heightmap position to scene map position
+					// The scene map is colorMapResolution x colorMapResolution
+					// We need to map from heightmap coordinates (i, j) to scene map coordinates
+					const float sceneMapI = ((i) / (chunk.width - 1)) * (chunk.colorMapResolution - 1);
+					const float sceneMapJ = ((j) / (chunk.height - 1)) * (chunk.colorMapResolution - 1);
+					
+					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
+					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
+					// Scene map uses the same indexing pattern as heightmap: row * width + col
+					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
 
-			uint8_t sceneID = 0;
-			if (sceneIndex < chunk.sceneMap.size()) {
-				sceneID = chunk.sceneMap[sceneIndex];
-			}					
-			outMesh.vertices.emplace_back(worldPos, sceneID);
+					uint8_t sceneID = 0;
+					if (sceneIndex < chunk.sceneMap.size()) {
+						sceneID = chunk.sceneMap[sceneIndex];
+					}					
+					outMesh.vertices.emplace_back(worldPos, sceneID);
 					if (i > 0 && j > 0) {
 						const uint32_t currentVert = vertexOffset + chunk.width * i + j;
 						const uint32_t leftVert = currentVert - 1;
