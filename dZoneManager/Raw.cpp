@@ -58,12 +58,12 @@ namespace Raw {
 			return false;
 		}
 
-	BinaryIO::BinaryRead(stream, chunk.width);
-	BinaryIO::BinaryRead(stream, chunk.height);
-	BinaryIO::BinaryRead(stream, chunk.offsetX);
-	BinaryIO::BinaryRead(stream, chunk.offsetZ);
+		BinaryIO::BinaryRead(stream, chunk.width);
+		BinaryIO::BinaryRead(stream, chunk.height);
+		BinaryIO::BinaryRead(stream, chunk.offsetX);
+		BinaryIO::BinaryRead(stream, chunk.offsetZ);
 
-	if (stream.fail()) {
+		if (stream.fail()) {
 			return false;
 		}			// For version < 32, shader ID comes before texture IDs
 			if (version < 32) {
