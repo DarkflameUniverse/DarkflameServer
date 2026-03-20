@@ -1993,7 +1993,8 @@ namespace DEVGMCommands {
 					const float worldY = (y / chunk.scaleFactor) * chunk.scaleFactor;
 					const float worldZ = ((j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
 					
-					NiPoint3 spawnPos(worldX, worldY, worldZ);						EntityInfo info;
+					NiPoint3 spawnPos(worldX, worldY, worldZ);
+					EntityInfo info;
 						info.lot = lot + currentSceneID.GetSceneID(); // to differentiate scenes
 						info.pos = spawnPos;
 						info.rot = QuatUtils::IDENTITY;
