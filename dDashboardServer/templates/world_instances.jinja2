@@ -1,6 +1,6 @@
-<div class="card border-0 shadow-sm mt-4">
-	<div class="card-header bg-light">
-		<h5 class="mb-0">Active World Instances</h5>
+<div class="card mt-4">
+	<div class="card-header">
+		<h2>Active World Instances</h2>
 	</div>
 	<div class="card-body">
 		<div id="world-list">
@@ -8,8 +8,8 @@
 				<p class="text-muted text-center mb-0">No active world instances</p>
 			{% else %}
 				<div class="table-responsive">
-					<table class="table table-sm mb-0">
-						<thead class="table-light">
+					<table class="table table-dark table-hover mb-0">
+						<thead>
 							<tr>
 								<th>Zone</th>
 								<th>Instance</th>
@@ -24,8 +24,8 @@
 								<td>{{ world.mapID }}</td>
 								<td>{{ world.instanceID }}</td>
 								<td>{{ world.cloneID }}</td>
-								<td><span class="badge bg-secondary">{{ world.players }}</span></td>
-								<td>{% if world.isPrivate %}<span class="badge bg-warning">Private</span>{% else %}<span class="badge bg-primary">Public</span>{% endif %}</td>
+								<td><span class="badge badge-primary">{{ world.players }}</span></td>
+								<td>{% if world.isPrivate %}<span class="badge badge-warning">Private</span>{% else %}<span class="badge badge-success">Public</span>{% endif %}</td>
 							</tr>
 							{% endfor %}
 						</tbody>

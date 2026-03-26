@@ -70,6 +70,10 @@ enum SubscriptionStatus {
 	SUBSCRIBED = 1
 };
 
+// WebSocket authentication callback function type
+// Returns true if token is valid, false otherwise
+using WSAuthCallback = std::function<bool(const std::string&)>;
+
 class Web {
 public:
 	// Constructor
@@ -89,17 +93,23 @@ public:
 	void RegisterWSSubscription(const std::string& subscription);
 	// Add global middleware that applies to all routes
 	void AddGlobalMiddleware(MiddlewarePtr middleware);
+	// Set WebSocket authentication callback for token validation
+	void SetWSAuthCallback(WSAuthCallback callback) { wsAuthCallback = callback; }
 	// Returns if the web server is enabled
 	bool IsEnabled() const { return enabled; };
 	// Send a message to all connected WebSocket clients that are subscribed to the given topic
 	void static SendWSMessage(std::string sub, nlohmann::json& message);
 	// Get mongoose manager for direct access
 	mg_mgr& GetManager() { return mgr; };
+	// Get WebSocket auth callback (used during WebSocket upgrade)
+	WSAuthCallback GetWSAuthCallback() const { return wsAuthCallback; }
 private:
 	// mongoose manager
 	mg_mgr mgr;
 	// If the web server is enabled
 	bool enabled = false;
+	// WebSocket authentication callback
+	WSAuthCallback wsAuthCallback = nullptr;
 };
 
 #endif // !__WEB_H__

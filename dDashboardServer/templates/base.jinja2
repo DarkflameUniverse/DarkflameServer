@@ -28,6 +28,40 @@
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 	<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.7/b-3.2.6/fh-4.0.6/sc-2.4.3/datatables.min.js" integrity="sha384-BPUXtS4tH3onFfu5m+dPbFfpLOXQwSWGwrsNWxOAAwqqJx6tJHhFkGF6uitrmEui" crossorigin="anonymous"></script>
+	<script>
+		// Global logout function (available on all pages)
+		function deleteCookie(name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict`;
+		}
+
+		function logout() {
+			deleteCookie('dashboardToken');
+			deleteCookie('gmLevel');
+			localStorage.removeItem('dashboardToken');
+			window.location.href = '/login';
+		}
+
+		// Setup logout button
+		document.addEventListener('DOMContentLoaded', () => {
+			const logoutBtn = document.getElementById('logoutBtn');
+			if (logoutBtn) {
+				logoutBtn.addEventListener('click', (e) => {
+					e.preventDefault();
+					logout();
+				});
+			}
+		});
+	</script>
+	
+	<!-- Load dashboard.js only on dashboard pages (not on login) -->
+	<script>
+		const isLoginPage = document.querySelector('.login-container') !== null;
+		if (!isLoginPage) {
+			const script = document.createElement('script');
+			script.src = '/js/dashboard.js';
+			document.head.appendChild(script);
+		}
+	</script>
 
 	{% block scripts %}{% endblock %}
 </body>

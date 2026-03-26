@@ -6,12 +6,13 @@
 
 {% block content %}
 	<div class="play-keys-container">
-		<div class="table-card">
-			<div class="table-header">
-				<h2 class="mb-0">Play Keys</h2>
-				<p class="text-muted">View and manage play keys</p>
-			</div>
-			<div class="table-body">
+		<div class="container-fluid">
+			<div class="card">
+				<div class="card-header">
+					<h2>Play Keys <span class="play_key-count">0</span></h2>
+					<p class="text-muted">View and manage play keys</p>
+				</div>
+				<div class="card-body">
 				<table id="playKeysTable" class="table table-dark table-striped table-hover">
 					<thead>
 						<tr>
@@ -27,16 +28,18 @@
 						<!-- Data populated by DataTables -->
 					</tbody>
 				</table>
+				</div>
 			</div>
 		</div>
 	</div>
 {% endblock %}
 
 {% block scripts %}
+	<script src="/js/realtime.js"></script>
 	<script>
 		$(document).ready(function() {
 			// Initialize DataTable with server-side processing
-			$('#playKeysTable').DataTable({
+			const table = $('#playKeysTable').DataTable({
 				processing: true,
 				serverSide: true,
 				pageLength: 25,
@@ -80,6 +83,25 @@
 				order: [[0, 'asc']],
 				stateSave: false
 			});
+
+			// Register table for real-time updates
+			realtimeManager.RegisterTable('play_key', table);
+
+			// Update play key count on table draw
+			table.on('draw.dt', function() {
+				const info = table.page.info();
+				const countEl = document.querySelector('.play_key-count');
+				if (countEl && info) {
+					countEl.textContent = info.recordsTotal;
+				}
+			});
+
+			// Initialize real-time listener when WebSocket is ready
+			const waitForWS = setInterval(() => {
+				if (typeof realtimeManager !== 'undefined' && wsConnectionReady) {
+					clearInterval(waitForWS);
+				}
+			}, 100);
 		});
 
 		function viewKey(id) {

@@ -2,6 +2,7 @@ set(DASHBOARDAUTH_SOURCES
 	"JWTUtils.cpp"
 	"DashboardAuthService.cpp"
 	"AuthMiddleware.cpp"
+	"AuthTokenHandler.cpp"
 	"RequireAuthMiddleware.cpp"
 )
 

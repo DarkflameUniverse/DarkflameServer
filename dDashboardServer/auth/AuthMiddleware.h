@@ -23,12 +23,6 @@ public:
 
 	bool Process(HTTPContext& context, HTTPReply& reply) override;
 	std::string GetName() const override { return "AuthMiddleware"; }
-
-private:
-	// Extract token from various sources
-	static std::string ExtractTokenFromQueryString(const std::string& queryString);
-	static std::string ExtractTokenFromCookies(const std::string& cookieHeader);
-	static std::string ExtractTokenFromAuthHeader(const std::string& authHeader);
 };
 
 #endif // !__AUTHMIDDLEWARE_H__

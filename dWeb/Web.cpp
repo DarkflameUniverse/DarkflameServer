@@ -187,13 +187,30 @@ void HandleHTTPMessage(mg_connection* connection, const mg_http_message* http_ms
 			
 			bool authenticated = isInternal; // Internal connections are automatically trusted
 			
-			// For external connections, require authentication cookie
+			// For external connections, require authentication cookie and valid JWT
 			if (!isInternal) {
 				const auto* cookieHeader = mg_http_get_header(const_cast<mg_http_message*>(http_msg), "Cookie");
 				if (cookieHeader) {
 					std::string cookieStr = std::string(cookieHeader->buf, cookieHeader->len);
-					if (!cookieStr.empty() && cookieStr.find("dashboardToken=") != std::string::npos) {
-						authenticated = true;
+					
+					// Extract token from cookie
+					const std::string tokenPrefix = "dashboardToken=";
+					const size_t tokenPos = cookieStr.find(tokenPrefix);
+					
+					if (tokenPos != std::string::npos) {
+						size_t valueStart = tokenPos + tokenPrefix.length();
+						size_t valueEnd = cookieStr.find(";", valueStart);
+						
+						if (valueEnd == std::string::npos) {
+							valueEnd = cookieStr.length();
+						}
+						
+						std::string token = cookieStr.substr(valueStart, valueEnd - valueStart);
+						
+						// Use authentication callback if available
+						if (Game::web.GetWSAuthCallback()) {
+							authenticated = Game::web.GetWSAuthCallback()(token);
+						}
 					}
 				}
 			}

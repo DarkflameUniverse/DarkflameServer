@@ -7,12 +7,12 @@
 {% block content %}
 	<div class="accounts-container">
 		<div class="container-fluid">
-			<div class="table-card">
-				<div class="table-header">
-                    <h2 class="mb-0">Accounts</h2>
-                    <p class="text-muted">View and manage user accounts</p>
+			<div class="card">
+				<div class="card-header">
+					<h2>Accounts</h2>
+					<p class="text-muted">View and manage user accounts - <span class="account-count">0</span> total</p>
 				</div>
-				<div class="table-body">
+				<div class="card-body">
 					<div class="table-responsive">
 						<table id="accountsTable" class="table table-dark table-hover mb-0">
 							<thead>
@@ -39,10 +39,11 @@
 {% endblock %}
 
 {% block scripts %}
+	<script src="/js/realtime.js"></script>
 	<script>
 		$(document).ready(function() {
 			// Initialize DataTable with server-side processing
-			$('#accountsTable').DataTable({
+			const table = $('#accountsTable').DataTable({
 				processing: true,
 				serverSide: true,
 				pageLength: 25,
@@ -119,6 +120,25 @@
 				order: [[0, 'asc']],
 				stateSave: false
 			});
+
+			// Register table for real-time updates
+			realtimeManager.RegisterTable('account', table);
+
+			// Update account count when DataTable loads
+			table.on('draw.dt', function() {
+				const info = table.page.info();
+				const countEl = document.querySelector('.account-count');
+				if (countEl && info) {
+					countEl.textContent = info.recordsTotal;
+				}
+			});
+
+			// Initialize real-time listener when WebSocket is ready
+			const waitForWS = setInterval(() => {
+				if (typeof realtimeManager !== 'undefined' && wsConnectionReady) {
+					clearInterval(waitForWS);
+				}
+			}, 100);
 		});
 
 		function viewAccount(id) {

@@ -1,28 +1,28 @@
 <div class="col-md-6 col-lg-4">
-	<div class="card border-0 shadow-sm h-100">
-		<div class="card-header bg-light">
+	<div class="card h-100">
+		<div class="card-header">
 			<h5 class="mb-0">Server Status</h5>
 		</div>
 		<div class="card-body">
 			<div class="d-flex justify-content-between align-items-center mb-3">
 				<span>Auth Server</span>
 				{% if auth.online %}
-					<span class="badge bg-success" id="auth-status">Online</span>
+					<span class="badge badge-active" id="auth-status">Online</span>
 				{% else %}
-					<span class="badge bg-danger" id="auth-status">Offline</span>
+					<span class="badge badge-banned" id="auth-status">Offline</span>
 				{% endif %}
 			</div>
 			<div class="d-flex justify-content-between align-items-center mb-3">
 				<span>Chat Server</span>
 				{% if chat.online %}
-					<span class="badge bg-success" id="chat-status">Online</span>
+					<span class="badge badge-active" id="chat-status">Online</span>
 				{% else %}
-					<span class="badge bg-danger" id="chat-status">Offline</span>
+					<span class="badge badge-banned" id="chat-status">Offline</span>
 				{% endif %}
 			</div>
 			<div class="d-flex justify-content-between align-items-center">
 				<span>Active Worlds</span>
-				<span class="badge bg-primary" id="world-count">{{ length(worlds) }}</span>
+				<span class="badge badge-primary" id="world-count">{{ length(worlds) }}</span>
 			</div>
 		</div>
 	</div>

@@ -129,6 +129,14 @@ function connectWebSocket() {
 				event: 'subscribe',
 				subscription: 'dashboard_update'
 			}));
+
+			// Mark connection as ready for other handlers
+			wsConnectionReady = true;
+
+			// Initialize real-time table manager
+			if (typeof realtimeManager !== 'undefined') {
+				realtimeManager.Initialize();
+			}
 			
 			document.getElementById('connection-status')?.remove();
 		};
@@ -147,6 +155,12 @@ function connectWebSocket() {
 				if (data.event === 'dashboard_update') {
 					updateDashboard(data);
 				}
+
+				// Route to generic realtime handler for all table updates
+				if (typeof realtimeManager !== 'undefined') {
+					realtimeManager.HandleMessage(data);
+				}
+
 			} catch (error) {
 				console.error('Error parsing WebSocket message:', error);
 			}

@@ -28,6 +28,8 @@
 #include "WSRoutes.h"
 #include "AuthRoutes.h"
 #include "AuthMiddleware.h"
+#include "DashboardAuthService.h"
+#include "AuthTokenHandler.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -129,6 +131,12 @@ int main(int argc, char** argv) {
 		LOG("Failed to start web server on %s:%d", ourIP.c_str(), ourPort);
 		return EXIT_FAILURE;
 	}
+
+	// Set up WebSocket authentication callback using consolidated handler
+	Game::web.SetWSAuthCallback([](const std::string& token) -> bool {
+		auto result = AuthTokenHandler::ValidateToken(token);
+		return result.isValid;
+	});
 
 	// Register global middleware
 	Game::web.AddGlobalMiddleware(std::make_shared<AuthMiddleware>());

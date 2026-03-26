@@ -2,50 +2,62 @@
 
 {% block title %}Dashboard Login - DarkflameServer{% endblock %}
 
-{% block extra_css %}
+{% block css %}
 	<link rel="stylesheet" href="/css/login.css">
 {% endblock %}
 
 {% block content %}
-	<div class="min-vh-100 d-flex align-items-center justify-content-center">
-		<div class="container">
-			<div class="row justify-content-center">
-				<div class="col-md-6 col-lg-5">
-					<div class="card shadow-lg border-0">
-						<div class="card-body p-5">
-							<h1 class="text-center mb-4">🎮 DarkflameServer</h1>
-							
-							<div id="alert" class="alert" role="alert" style="display: none;"></div>
-							
-							<form id="loginForm">
-								<div class="mb-3">
-									<label for="username" class="form-label">Username</label>
-									<input type="text" class="form-control" id="username" name="username" required autofocus>
-								</div>
-								
-								<div class="mb-3">
-									<label for="password" class="form-label">Password</label>
-									<input type="password" class="form-control" id="password" name="password" required maxlength="40">
-								</div>
-								
-								<div class="mb-3 form-check">
-									<input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
-									<label class="form-check-label" for="rememberMe">
-										Remember me for 30 days
-									</label>
-								</div>
-								
-								<button type="submit" class="btn btn-primary w-100" id="loginBtn">
-									<span id="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
-									<span>Login</span>
-								</button>
-							</form>
-						</div>
+<div class="login-container">
+	<div class="login-wrapper">
+		<div class="login-left">
+			<div class="login-branding">
+				<div class="logo">⚙️</div>
+				<h1>DarkflameServer</h1>
+				<p>Administration Dashboard</p>
+			</div>
+			<div class="login-info">
+				<h3>Welcome Back</h3>
+				<p>Manage your DarkflameServer infrastructure with ease. Secure access to server administration tools.</p>
+			</div>
+		</div>
+
+		<div class="login-right">
+			<div class="login-form-wrapper">
+				<h2>Sign In</h2>
+				
+				<div id="alert" class="alert-box" role="alert" style="display: none;"></div>
+				
+				<form id="loginForm" class="login-form">
+					<div class="form-group">
+						<label for="username">Username</label>
+						<input type="text" id="username" name="username" required autofocus placeholder="Enter your username">
+						<div class="form-focus"></div>
 					</div>
+					
+					<div class="form-group">
+						<label for="password">Password</label>
+						<input type="password" id="password" name="password" required maxlength="40" placeholder="Enter your password">
+						<div class="form-focus"></div>
+					</div>
+					
+					<div class="form-checkbox">
+						<input type="checkbox" id="rememberMe" name="rememberMe">
+						<label for="rememberMe">Remember me for 30 days</label>
+					</div>
+					
+					<button type="submit" class="btn-login" id="loginBtn">
+						<span id="loading" class="spinner" style="display: none;"></span>
+						<span class="btn-text">Sign In</span>
+					</button>
+				</form>
+				
+				<div class="login-footer">
+					<p>Contact your administrator if you don't have access</p>
 				</div>
 			</div>
 		</div>
 	</div>
+</div>
 {% endblock %}
 
 {% block scripts %}
