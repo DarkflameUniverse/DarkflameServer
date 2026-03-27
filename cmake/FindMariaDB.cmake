@@ -13,10 +13,10 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	# These values track the published Windows MSI packages used by the prebuilt path.
 	# Keep the Connector/C++ package version aligned with the checked out submodule tag when possible.
 	# Go to https://mariadb.com/downloads/connectors/ to find the up-to-date URL parts.
-    set(MARIADB_CONNECTOR_C_VERSION "3.4.8")
+	set(MARIADB_CONNECTOR_C_VERSION "3.4.8")
 	set(MARIADB_CONNECTOR_C_BUCKET "4516894")
 	set(MARIADB_CONNECTOR_C_MD5 "50f6fc0c77b8d3bacbeac0126e179861")
-    set(MARIADB_CONNECTOR_CPP_VERSION "1.1.7")
+	set(MARIADB_CONNECTOR_CPP_VERSION "1.1.7")
 	set(MARIADB_CONNECTOR_CPP_BUCKET "4464908")
 	set(MARIADB_CONNECTOR_CPP_MD5 "08644a7ff084b5933325cadb904796e5")
 	
