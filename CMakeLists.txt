@@ -72,7 +72,11 @@ set(RECASTNAVIGATION_EXAMPLES OFF CACHE BOOL "" FORCE)
 # Disabled no-register
 # Disabled unknown pragmas because Linux doesn't understand Windows pragmas.
 if(UNIX)
-	add_link_options("-Wl,-rpath,$ORIGIN/")
+	if(APPLE)
+		add_link_options("-Wl,-rpath,@loader_path/")
+	else()
+		add_link_options("-Wl,-rpath,$ORIGIN/")
+	endif()
 	add_compile_options("-fPIC")
 	add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0 _GLIBCXX_USE_CXX17_ABI=0)
 
