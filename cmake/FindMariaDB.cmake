@@ -10,9 +10,8 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
 	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
 
-	# These values track the latest published Windows MSI packages.
-	# MariaDB Connector/C++ 1.0.7 does not currently have a published win64 MSI,
-	# so the prebuilt Windows path cannot exactly match the source-built submodule version.
+	# These values track the published Windows MSI packages used by the prebuilt path.
+	# Keep the Connector/C++ package version aligned with the checked out submodule tag when possible.
 	# Go to https://mariadb.com/downloads/connectors/ to find the up-to-date URL parts.
     set(MARIADB_CONNECTOR_C_VERSION "3.4.8")
 	set(MARIADB_CONNECTOR_C_BUCKET "4516894")
