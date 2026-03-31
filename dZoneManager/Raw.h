@@ -7,7 +7,6 @@
 #include <vector>
 #include <string>
 #include <istream>
-#include <map>
 #include "NiPoint3.h"
 #include "dCommonVars.h"
 
