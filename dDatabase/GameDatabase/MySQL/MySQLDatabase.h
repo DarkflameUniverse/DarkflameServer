@@ -9,22 +9,14 @@
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
 typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
-// Holds a PreparedStatement and its ResultSet together to ensure the statement
-// outlives the result.
+// This struct is used to keep the PreparedStatement alive alongside the ResultSet, since the ResultSet will be invalidated if the PreparedStatement is destroyed.
+// Declaring the members in reverse order of usage to ensure the PreparedStatement is destroyed after the ResultSet. This is guaranteed by the C++ standard.
 struct PreparedStmtResultSet {
 	std::unique_ptr<sql::PreparedStatement> m_stmt;
 	std::unique_ptr<sql::ResultSet> m_resultSet;
 
 	PreparedStmtResultSet(sql::PreparedStatement* stmt = nullptr, sql::ResultSet* resultSet = nullptr)
 		: m_stmt(stmt), m_resultSet(resultSet) {}
-
-	PreparedStmtResultSet(PreparedStmtResultSet&&) = default;
-	PreparedStmtResultSet& operator=(PreparedStmtResultSet&&) = default;
-
-	~PreparedStmtResultSet() {
-		m_resultSet.reset();
-		m_stmt.reset();
-	}
 
 	sql::ResultSet* operator->() const {
 		return m_resultSet.get();
@@ -161,12 +153,12 @@ private:
 	// The return type is a PreparedStmtResultSet which keeps the PreparedStatement alive alongside the ResultSet.
 	template<typename... Args>
 	inline PreparedStmtResultSet ExecuteSelect(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
-		SetParams(preppedStmt, std::forward<Args>(args)...);
-		std::unique_ptr<sql::ResultSet> resultSet;
-		DLU_SQL_TRY_CATCH_RETHROW(resultSet.reset(preppedStmt->executeQuery()));
+		PreparedStmtResultSet toReturn;
+		toReturn.m_stmt.reset(CreatePreppedStmt(query));
+		SetParams(toReturn.m_stmt, std::forward<Args>(args)...);
+		DLU_SQL_TRY_CATCH_RETHROW(toReturn.m_resultSet.reset(toReturn.m_stmt->executeQuery()));
 		// Release ownership of the pointers to the PreparedStatement and ResultSet to the PreparedStmtResultSet struct, which will ensure they are properly cleaned up.
-		return PreparedStmtResultSet(preppedStmt.release(), resultSet.release());
+		return toReturn;
 	}
 
 	template<typename... Args>
