@@ -2,6 +2,7 @@
 #define SCENE_COLOR_H
 
 #include "NiColor.h"
+#include <cstdint>
 #include <vector>
 
 class SceneColor {
@@ -158,7 +159,7 @@ public:
 		TEMPLATE_COLORS[145] = NiColor(1.0f, 0.682353f, 0.2588235f);
 	}
 
-	const NiColor& Get(unsigned char index) const {
+	const NiColor& Get(uint8_t index) const {
 		return (index < 146) ? TEMPLATE_COLORS[index] : FALLBACK_COLOR;
 	}
 
