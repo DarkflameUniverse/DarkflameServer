@@ -93,10 +93,40 @@ namespace Raw {
 			}
 
 			// Read heightmap
-			uint32_t heightMapSize = chunk.width * chunk.height;
+			const size_t width = static_cast<size_t>(chunk.width);
+			const size_t height = static_cast<size_t>(chunk.height);
+
+			if (width == 0 || height == 0) {
+				LOG("Chunk %u has invalid heightmap dimensions: width=%zu, height=%zu", chunk.id, width, height);
+				return false;
+			}
+
+			if (width > kMaxResolution || height > kMaxResolution) {
+				LOG("Chunk %u heightmap dimensions exceed maximum resolution %u: width=%zu, height=%zu", chunk.id, kMaxResolution, width, height);
+				return false;
+			}
+
+			if (height != 0 && width > std::numeric_limits<size_t>::max() / height) {
+				LOG("Chunk %u heightmap size multiplication overflows: width=%zu, height=%zu", chunk.id, width, height);
+				return false;
+			}
+
+			const size_t heightMapSize = width * height;
+			const size_t elementSize = sizeof(chunk.heightMap[0]);
+
+			if (elementSize != 0 && heightMapSize > std::numeric_limits<size_t>::max() / elementSize) {
+				LOG("Chunk %u heightmap byte size overflows: elements=%zu, elementSize=%zu", chunk.id, heightMapSize, elementSize);
+				return false;
+			}
+
+			const size_t totalBytes = heightMapSize * elementSize;
+			if (totalBytes == 0 || totalBytes > kMaxBlobBytes) {
+				LOG("Chunk %u heightmap total size invalid: bytes=%zu (max %zu)", chunk.id, totalBytes, kMaxBlobBytes);
+				return false;
+			}
 
 			chunk.heightMap.resize(heightMapSize);
-			for (uint32_t i = 0; i < heightMapSize; ++i) {
+			for (size_t i = 0; i < heightMapSize; ++i) {
 				BinaryIO::BinaryRead(stream, chunk.heightMap[i]);
 			}
 
