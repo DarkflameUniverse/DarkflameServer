@@ -446,6 +446,8 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		break;
 	}
 	case eMissionTaskType::PLACE_MODEL:
+		[[fallthrough]];
+	case eMissionTaskType::ADD_BEHAVIOR:
 	{
 		AddProgress(count);
 		break;

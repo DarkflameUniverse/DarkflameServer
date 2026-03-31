@@ -9,6 +9,28 @@
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
 typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
+// Holds a PreparedStatement and its ResultSet together to ensure the statement
+// outlives the result.
+struct PreparedStmtResultSet {
+	std::unique_ptr<sql::PreparedStatement> m_stmt;
+	std::unique_ptr<sql::ResultSet> m_resultSet;
+
+	PreparedStmtResultSet(sql::PreparedStatement* stmt = nullptr, sql::ResultSet* resultSet = nullptr)
+		: m_stmt(stmt), m_resultSet(resultSet) {}
+
+	PreparedStmtResultSet(PreparedStmtResultSet&&) = default;
+	PreparedStmtResultSet& operator=(PreparedStmtResultSet&&) = default;
+
+	~PreparedStmtResultSet() {
+		m_resultSet.reset();
+		m_stmt.reset();
+	}
+
+	sql::ResultSet* operator->() const {
+		return m_resultSet.get();
+	}
+};
+
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
 template<typename ParamType>
@@ -136,12 +158,15 @@ private:
 	// Generic query functions that can be used for any query.
 	// Return type may be different depending on the query, so it is up to the caller to check the return type.
 	// The first argument is the query string, and the rest are the parameters to bind to the query.
-	// The return type is a unique_ptr to the result set, which is deleted automatically when it goes out of scope
+	// The return type is a PreparedStmtResultSet which keeps the PreparedStatement alive alongside the ResultSet.
 	template<typename... Args>
-	inline std::unique_ptr<sql::ResultSet> ExecuteSelect(const std::string& query, Args&&... args) {
+	inline PreparedStmtResultSet ExecuteSelect(const std::string& query, Args&&... args) {
 		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
 		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(return std::unique_ptr<sql::ResultSet>(preppedStmt->executeQuery()));
+		std::unique_ptr<sql::ResultSet> resultSet;
+		DLU_SQL_TRY_CATCH_RETHROW(resultSet.reset(preppedStmt->executeQuery()));
+		// Release ownership of the pointers to the PreparedStatement and ResultSet to the PreparedStmtResultSet struct, which will ensure they are properly cleaned up.
+		return PreparedStmtResultSet(preppedStmt.release(), resultSet.release());
 	}
 
 	template<typename... Args>
