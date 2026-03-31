@@ -97,30 +97,26 @@ void Zone::LoadZoneIntoMemory() {
 			throw std::runtime_error("Aborting Zone loading due to no Zone Raw File.");
 		}
 
-		if (m_FileFormatVersion >= Zone::FileFormatVersion::PrePreAlpha) {
-			auto rawFile = Game::assetManager->GetFile(zoneFolderPath + m_ZoneRawPath);
-			if (!Raw::ReadRaw(rawFile, m_Raw)) {
-				LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
-				throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+		auto rawFile = Game::assetManager->GetFile(zoneFolderPath + m_ZoneRawPath);
+		if (!Raw::ReadRaw(rawFile, m_Raw)) {
+			LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
+			throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+		}
+		LOG("Loaded Raw Terrain with %u chunks", m_Raw.numChunks);
+
+
+		// Optionally export terrain mesh to OBJ for debugging/visualization
+		if (Game::config->GetValue("export_terrain_to_obj") == "1") {
+
+			// Generate terrain mesh
+			Raw::GenerateTerrainMesh(m_Raw, m_TerrainMesh);
+			LOG("Generated terrain mesh with %llu vertices and %llu triangles", m_TerrainMesh.vertices.size(), m_TerrainMesh.triangles.size() / 3);
+
+			// Write to OBJ
+			std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
+			if (Raw::WriteTerrainMeshToOBJ(m_TerrainMesh, objFileName)) {
+				LOG("Exported terrain mesh to %s", objFileName.c_str());
 			}
-			LOG("Loaded Raw Terrain with %u chunks", m_Raw.numChunks);
-
-
-			// Optionally export terrain mesh to OBJ for debugging/visualization
-			if (Game::config->GetValue("export_terrain_to_obj") == "1") {
-
-				// Generate terrain mesh
-				Raw::GenerateTerrainMesh(m_Raw, m_TerrainMesh);
-				LOG("Generated terrain mesh with %llu vertices and %llu triangles", m_TerrainMesh.vertices.size(), m_TerrainMesh.triangles.size() / 3);
-
-				// Write to OBJ
-				std::string objFileName = "terrain_" + std::to_string(m_ZoneID.GetMapID()) + ".obj";
-				if (Raw::WriteTerrainMeshToOBJ(m_TerrainMesh, objFileName)) {
-					LOG("Exported terrain mesh to %s", objFileName.c_str());
-				}
-			}
-		} else {
-			LOG("Zone %s is too old to have Raw data, please update the map", m_ZoneFilePath.c_str());
 		}
 
 		if (m_FileFormatVersion >= Zone::FileFormatVersion::PreAlpha) {
