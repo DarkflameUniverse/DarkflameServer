@@ -157,7 +157,7 @@ private:
 		toReturn.m_stmt.reset(CreatePreppedStmt(query));
 		SetParams(toReturn.m_stmt, std::forward<Args>(args)...);
 		DLU_SQL_TRY_CATCH_RETHROW(toReturn.m_resultSet.reset(toReturn.m_stmt->executeQuery()));
-		// Release ownership of the pointers to the PreparedStatement and ResultSet to the PreparedStmtResultSet struct, which will ensure they are properly cleaned up.
+		// Return the PreparedStmtResultSet, which now owns both the PreparedStatement and ResultSet via unique_ptr and will ensure they are properly cleaned up.
 		return toReturn;
 	}
 
