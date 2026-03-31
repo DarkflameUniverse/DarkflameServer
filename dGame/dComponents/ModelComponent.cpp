@@ -189,7 +189,7 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 			// Check if this behavior is able to be found via lot (if so, its a loot behavior).
 			insertedBehavior.SetIsLoot(inventoryComponent->FindItemByLot(msg.GetBehaviorId(), eInventoryType::BEHAVIORS));
 		}
-		auto* missionComponent = playerEntity->GetComponent<MissionComponent>();
+		auto* const missionComponent = playerEntity->GetComponent<MissionComponent>();
 		if (missionComponent) missionComponent->Progress(eMissionTaskType::ADD_BEHAVIOR, 0);
 	}
 
