@@ -349,9 +349,10 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 			// Scene map uses the same indexing pattern as heightmap: row * width + col
 			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
 
-			// Bounds check
+			// Bounds check: if this chunk's sceneMap is inconsistent, skip this chunk
 			if (sceneIndex >= chunk.sceneMap.size()) {
-				return LWOSCENEID_INVALID;
+				LOG_DEBUG("GetSceneIDFromPosition: sceneIndex %u out of bounds (sceneMap size: %zu), skipping malformed chunk.", sceneIndex, chunk.sceneMap.size());
+				continue;
 			}
 
 			// Get scene ID from sceneMap
