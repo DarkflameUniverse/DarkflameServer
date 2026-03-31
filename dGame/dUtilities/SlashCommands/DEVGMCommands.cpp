@@ -2106,7 +2106,7 @@ namespace DEVGMCommands {
 
 		// Send detailed feedback
 		std::ostringstream feedback;
-		feedback << "Spawned LOT "  << spawnedCount << " total points across " 
+		feedback << "Spawned " << spawnedCount << " total points (base LOT " << lot << ") across "
 				 << sceneSpawnCounts.size() << " scenes:\n";
 		
 		for (const auto& [sceneID, count] : sceneSpawnCounts) {
