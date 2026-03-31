@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <limits>
 
+namespace {
+constexpr uint32_t kMaxResolution = 4096;
+constexpr size_t kMaxBlobBytes = 64ULL * 1024 * 1024; // 64 MiB
+} // namespace
+
 namespace Raw {
 
 	/**
@@ -106,9 +111,17 @@ namespace Raw {
 				chunk.colorMapResolution = chunk.width; // Default to chunk width for older versions
 			}
 
-			uint32_t colorMapPixelCount = chunk.colorMapResolution * chunk.colorMapResolution * 4; // RGBA
+			if (chunk.colorMapResolution > kMaxResolution) {
+				LOG("Chunk colorMapResolution %u exceeds maximum %u", chunk.colorMapResolution, kMaxResolution);
+				return false;
+			}
+			const size_t colorMapPixelCount = static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution * 4; // RGBA
+			if (colorMapPixelCount > kMaxBlobBytes) {
+				LOG("Chunk colorMap size %zu exceeds maximum %zu bytes", colorMapPixelCount, kMaxBlobBytes);
+				return false;
+			}
 			chunk.colorMap.resize(colorMapPixelCount);
-			stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), colorMapPixelCount);
+			stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(colorMapPixelCount));
 
 			if (stream.fail()) {
 				return false;
@@ -117,8 +130,12 @@ namespace Raw {
 			uint32_t lightMapSize;
 			BinaryIO::BinaryRead(stream, lightMapSize);
 
+			if (lightMapSize > kMaxBlobBytes) {
+				LOG("Chunk lightMap size %u exceeds maximum %zu bytes", lightMapSize, kMaxBlobBytes);
+				return false;
+			}
 			chunk.lightMap.resize(lightMapSize);
-			stream.read(reinterpret_cast<char*>(chunk.lightMap.data()), lightMapSize);
+			stream.read(reinterpret_cast<char*>(chunk.lightMap.data()), static_cast<std::streamsize>(lightMapSize));
 
 			if (stream.fail()) {
 				return false;
@@ -131,9 +148,17 @@ namespace Raw {
 				chunk.textureMapResolution = chunk.width; // Default to chunk width for older versions
 			}
 
-			uint32_t textureMapPixelCount = chunk.textureMapResolution * chunk.textureMapResolution * 4;
+			if (chunk.textureMapResolution > kMaxResolution) {
+				LOG("Chunk textureMapResolution %u exceeds maximum %u", chunk.textureMapResolution, kMaxResolution);
+				return false;
+			}
+			const size_t textureMapPixelCount = static_cast<size_t>(chunk.textureMapResolution) * chunk.textureMapResolution * 4;
+			if (textureMapPixelCount > kMaxBlobBytes) {
+				LOG("Chunk textureMap size %zu exceeds maximum %zu bytes", textureMapPixelCount, kMaxBlobBytes);
+				return false;
+			}
 			chunk.textureMap.resize(textureMapPixelCount);
-			stream.read(reinterpret_cast<char*>(chunk.textureMap.data()), textureMapPixelCount);
+			stream.read(reinterpret_cast<char*>(chunk.textureMap.data()), static_cast<std::streamsize>(textureMapPixelCount));
 
 			if (stream.fail()) {
 				return false;
@@ -146,8 +171,12 @@ namespace Raw {
 			uint32_t blendMapDDSSize;
 			BinaryIO::BinaryRead(stream, blendMapDDSSize);
 
+			if (blendMapDDSSize > kMaxBlobBytes) {
+				LOG("Chunk blendMap size %u exceeds maximum %zu bytes", blendMapDDSSize, kMaxBlobBytes);
+				return false;
+			}
 			chunk.blendMap.resize(blendMapDDSSize);
-			stream.read(reinterpret_cast<char*>(chunk.blendMap.data()), blendMapDDSSize);
+			stream.read(reinterpret_cast<char*>(chunk.blendMap.data()), static_cast<std::streamsize>(blendMapDDSSize));
 
 			if (stream.fail()) {
 				return false;
@@ -170,10 +199,14 @@ namespace Raw {
 
 			// Scene map (version 32+ only)
 			if (version >= 32) {
-				uint32_t sceneMapSize = chunk.colorMapResolution * chunk.colorMapResolution;
+				const size_t sceneMapSize = static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution;
 
+				if (sceneMapSize > kMaxBlobBytes) {
+					LOG("Chunk sceneMap size %zu exceeds maximum %zu bytes", sceneMapSize, kMaxBlobBytes);
+					return false;
+				}
 				chunk.sceneMap.resize(sceneMapSize);
-				stream.read(reinterpret_cast<char*>(chunk.sceneMap.data()), sceneMapSize);
+				stream.read(reinterpret_cast<char*>(chunk.sceneMap.data()), static_cast<std::streamsize>(sceneMapSize));
 
 				if (stream.fail()) {
 					return false;
