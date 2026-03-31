@@ -332,11 +332,19 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 			heightJ >= 0.0f && heightJ < static_cast<float>(chunk.height)) {
 			
 			// Map heightmap position to scene map position (same as GenerateTerrainMesh)
-			const float sceneMapI = (heightI / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-			const float sceneMapJ = (heightJ / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-			
-			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
+			const float sceneMapI = (chunk.width > 1)
+				? (heightI / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1)
+				: 0.0f;
+			const float sceneMapJ = (chunk.height > 1)
+				? (heightJ / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1)
+				: 0.0f;
+
+			const uint32_t sceneI = (chunk.colorMapResolution > 0)
+				? std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1)
+				: 0;
+			const uint32_t sceneJ = (chunk.colorMapResolution > 0)
+				? std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1)
+				: 0;
 
 			// Scene map uses the same indexing pattern as heightmap: row * width + col
 			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
