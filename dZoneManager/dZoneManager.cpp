@@ -320,7 +320,7 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 	// Find the chunk containing this position
 	// Reverse the world position calculation from GenerateTerrainMesh
 	for (const auto& chunk : raw.chunks) {
-		if (chunk.sceneMap.empty()) continue;
+		if (chunk.sceneMap.empty() || chunk.scaleFactor <= 0.0f || chunk.width <= 1 || chunk.height <= 1 || chunk.colorMapResolution == 0) continue;
 
 		// Reverse: worldX = (i + offsetX/scaleFactor) * scaleFactor
 		// Therefore: i = worldX/scaleFactor - offsetX/scaleFactor
