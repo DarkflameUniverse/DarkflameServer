@@ -381,15 +381,17 @@ namespace Raw {
 			return; // No scene data available
 		}
 
-		LOG("GenerateTerrainMesh: Processing %u chunks", raw.chunks.size());
+		LOG("GenerateTerrainMesh: Processing %zu chunks", raw.chunks.size());
 
 		uint32_t vertexOffset = 0;
 
 		for (const auto& chunk : raw.chunks) {
-			// Skip chunks without scene maps
-			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()) {
-				LOG("Skipping chunk %u (sceneMap: %zu, colorMapRes: %u, heightMap: %zu)", 
-					chunk.id, chunk.sceneMap.size(), chunk.colorMapResolution, chunk.heightMap.size());
+			// Skip chunks without scene maps or with invalid dimensions/scale
+			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()
+				|| chunk.scaleFactor <= 0.0f || chunk.width <= 1 || chunk.height <= 1) {
+				LOG("Skipping chunk %u (sceneMap: %zu, colorMapRes: %u, heightMap: %zu, scaleFactor: %f, width: %u, height: %u)", 
+					chunk.id, chunk.sceneMap.size(), chunk.colorMapResolution, chunk.heightMap.size(),
+					chunk.scaleFactor, chunk.width, chunk.height);
 				continue;
 			}
 
