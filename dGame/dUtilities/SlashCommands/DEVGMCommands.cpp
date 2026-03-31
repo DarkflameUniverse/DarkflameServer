@@ -1962,7 +1962,8 @@ namespace DEVGMCommands {
 		uint32_t spawnedCount = 0;
 		
 		for (const auto& chunk : raw.chunks) {
-			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()) continue;
+			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()
+				|| chunk.width <= 1 || chunk.height <= 1 || chunk.scaleFactor <= 0.0f) continue;
 
 			// Iterate through the heightmap (same as GenerateTerrainMesh)
 			for (uint32_t i = 0; i < chunk.width; ++i) {
