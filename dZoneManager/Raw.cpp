@@ -9,6 +9,7 @@
 namespace {
 constexpr uint32_t kMaxResolution = 4096;
 constexpr size_t kMaxBlobBytes = 64ULL * 1024 * 1024; // 64 MiB
+constexpr uint32_t kMaxChunks = 1024;
 } // namespace
 
 namespace Raw {
@@ -220,6 +221,11 @@ namespace Raw {
 				return false;
 			}
 
+			const size_t flairBytes = static_cast<size_t>(numFlairs) * sizeof(FlairAttributes);
+			if (flairBytes > kMaxBlobBytes) {
+				LOG("Chunk %u flair count %u exceeds maximum (byte size %zu > %zu)", chunk.id, numFlairs, flairBytes, kMaxBlobBytes);
+				return false;
+			}
 			chunk.flairs.resize(numFlairs);
 			for (uint32_t i = 0; i < numFlairs; ++i) {
 				if (!ReadFlairAttributes(stream, chunk.flairs[i])) {
@@ -251,6 +257,11 @@ namespace Raw {
 			}
 
 			// Mesh vert usage
+			const size_t vertBytes = static_cast<size_t>(chunk.vertSize) * sizeof(uint16_t);
+			if (vertBytes > kMaxBlobBytes) {
+				LOG("Chunk %u vertSize %u exceeds maximum (byte size %zu > %zu)", chunk.id, chunk.vertSize, vertBytes, kMaxBlobBytes);
+				return false;
+			}
 			chunk.meshVertUsage.resize(chunk.vertSize);
 			for (uint32_t i = 0; i < chunk.vertSize; ++i) {
 				BinaryIO::BinaryRead(stream, chunk.meshVertUsage[i]);
@@ -318,6 +329,11 @@ namespace Raw {
 				BinaryIO::BinaryRead(stream, outRaw.numChunks);
 				BinaryIO::BinaryRead(stream, outRaw.numChunksWidth);
 				BinaryIO::BinaryRead(stream, outRaw.numChunksHeight);
+
+				if (outRaw.numChunks > kMaxChunks) {
+					LOG("Raw numChunks %u exceeds maximum %u", outRaw.numChunks, kMaxChunks);
+					return false;
+				}
 
 				// Read all chunks
 				outRaw.chunks.resize(outRaw.numChunks);
