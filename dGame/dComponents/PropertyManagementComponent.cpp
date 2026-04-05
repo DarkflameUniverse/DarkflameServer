@@ -131,12 +131,22 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 		// Load daily reputation contributions and subscribe to position updates
 		m_CurrentDate = GeneralUtils::GetCurrentUTCDate();
 		LoadDailyContributions();
-		Entity::OnPlayerPositionUpdate += [this](Entity* player, const PositionUpdate& update) {
-			OnPlayerPositionUpdateHandler(player, update);
+		Entity::OnPlayerPositionUpdate += [](Entity* player, const PositionUpdate& update) {
+			auto* propertyManagementComponent = PropertyManagementComponent::instance;
+			if (propertyManagementComponent == nullptr) {
+				return;
+			}
+
+			propertyManagementComponent->OnPlayerPositionUpdateHandler(player, update);
 		};
 	}
 }
 
+PropertyManagementComponent::~PropertyManagementComponent() {
+	if (instance == this) {
+		instance = nullptr;
+	}
+}
 LWOOBJID PropertyManagementComponent::GetOwnerId() const {
 	return owner;
 }
