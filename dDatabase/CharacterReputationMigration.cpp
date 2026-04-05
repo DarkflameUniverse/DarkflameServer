@@ -17,7 +17,7 @@ uint32_t CharacterReputationMigration::Run() {
 
 		tinyxml2::XMLDocument doc;
 		if (doc.Parse(xmlStr.c_str(), xmlStr.size()) != tinyxml2::XML_SUCCESS) {
-			LOG("Failed to parse XML for character %llu during reputation migration", charId);
+			LOG("Failed to parse XML for character %llu during reputation migration", static_cast<uint64_t>(charId));
 			continue;
 		}
 
