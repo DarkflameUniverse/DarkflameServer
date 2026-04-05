@@ -1,6 +1,7 @@
 #ifndef TESTSQLDATABASE_H
 #define TESTSQLDATABASE_H
 
+#include <unordered_map>
 #include "GameDatabase.h"
 
 class TestSQLDatabase : public GameDatabase {
@@ -103,11 +104,27 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
+	std::vector<LWOOBJID> GetAllCharacterIds() override { return {}; };
+	int64_t GetCharacterReputation(const LWOOBJID charId) override {
+		auto it = m_CharacterReputation.find(charId);
+		return it != m_CharacterReputation.end() ? it->second : 0;
+	};
+	void SetCharacterReputation(const LWOOBJID charId, const int64_t reputation) override {
+		m_CharacterReputation[charId] = reputation;
+	};
+	std::vector<IPropertyReputationContribution::ContributionInfo> GetPropertyReputationContributions(
+		const LWOOBJID propertyId, const std::string& date) override { return {}; };
+	void UpdatePropertyReputationContribution(
+		const LWOOBJID propertyId, const LWOOBJID playerId,
+		const std::string& date, const uint32_t reputationGained) override {};
+	void UpdatePropertyReputation(const LWOOBJID propertyId, const uint32_t reputation) override {};
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
+private:
+	std::unordered_map<LWOOBJID, int64_t> m_CharacterReputation;
 };
 
 #endif  //!TESTSQLDATABASE_H

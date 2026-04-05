@@ -25,6 +25,8 @@
 #include "IAccountsRewardCodes.h"
 #include "IBehaviors.h"
 #include "IUgcModularBuild.h"
+#include "ICharacterReputation.h"
+#include "IPropertyReputationContribution.h"
 
 #ifdef _DEBUG
 #  define DLU_SQL_TRY_CATCH_RETHROW(x) do { try { x; } catch (std::exception& ex) { LOG("SQL Error: %s", ex.what()); throw; } } while(0)
@@ -38,7 +40,8 @@ class GameDatabase :
 	public IPropertyContents, public IProperty, public IPetNames, public ICharXml,
 	public IMigrationHistory, public IUgc, public IFriends, public ICharInfo,
 	public IAccounts, public IActivityLog, public IAccountsRewardCodes, public IIgnoreList,
-	public IBehaviors, public IUgcModularBuild {
+	public IBehaviors, public IUgcModularBuild,
+	public ICharacterReputation, public IPropertyReputationContribution {
 public:
 	virtual ~GameDatabase() = default;
 	// TODO: These should be made private.

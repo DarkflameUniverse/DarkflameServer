@@ -139,6 +139,15 @@ public:
 	void IncrementTimesPlayed(const LWOOBJID playerId, const uint32_t gameId) override;
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
+	std::vector<LWOOBJID> GetAllCharacterIds() override;
+	int64_t GetCharacterReputation(const LWOOBJID charId) override;
+	void SetCharacterReputation(const LWOOBJID charId, const int64_t reputation) override;
+	std::vector<IPropertyReputationContribution::ContributionInfo> GetPropertyReputationContributions(
+		const LWOOBJID propertyId, const std::string& date) override;
+	void UpdatePropertyReputationContribution(
+		const LWOOBJID propertyId, const LWOOBJID playerId,
+		const std::string& date, const uint32_t reputationGained) override;
+	void UpdatePropertyReputation(const LWOOBJID propertyId, const uint32_t reputation) override;
 	uint32_t GetAccountCount() override;
 	bool IsNameInUse(const std::string_view name) override;
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;

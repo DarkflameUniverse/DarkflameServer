@@ -357,4 +357,18 @@ namespace GeneralUtils {
 			return value - modulo;
 		}
 	}
+
+	//! Returns the current UTC date as a string in "YYYY-MM-DD" format
+	inline std::string GetCurrentUTCDate() {
+		const auto now = std::time(nullptr);
+		std::tm utcTime{};
+#ifdef _MSC_VER
+		gmtime_s(&utcTime, &now);
+#else
+		gmtime_r(&now, &utcTime);
+#endif
+		char buf[11];
+		std::strftime(buf, sizeof(buf), "%Y-%m-%d", &utcTime);
+		return std::string(buf);
+	}
 }

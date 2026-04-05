@@ -52,6 +52,18 @@ std::vector<LWOOBJID> MySQLDatabase::GetAccountCharacterIds(const LWOOBJID accou
 	return toReturn;
 }
 
+std::vector<LWOOBJID> MySQLDatabase::GetAllCharacterIds() {
+	auto result = ExecuteSelect("SELECT id FROM charinfo;");
+
+	std::vector<LWOOBJID> toReturn;
+	toReturn.reserve(result->rowsCount());
+	while (result->next()) {
+		toReturn.push_back(result->getInt64("id"));
+	}
+
+	return toReturn;
+}
+
 void MySQLDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 	ExecuteInsert(
 		"INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`) VALUES (?,?,?,?,?,?)",

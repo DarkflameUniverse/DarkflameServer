@@ -480,7 +480,6 @@ void Mission::YieldRewards() {
 		auto* const character = entity->GetComponent<CharacterComponent>();
 		if (character) {
 			character->SetReputation(character->GetReputation() + info.reward_reputation);
-			GameMessages::SendUpdateReputation(entity->GetObjectID(), character->GetReputation(), entity->GetSystemAddress());
 		}
 	}
 
