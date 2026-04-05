@@ -900,6 +900,10 @@ void PropertyManagementComponent::Update(float deltaTime) {
 	// Check for day rollover
 	const auto currentDate = GeneralUtils::GetCurrentUTCDate();
 	if (currentDate != m_CurrentDate) {
+		if (m_ReputationDirty) {
+			LOG_DEBUG("Saving dirty reputation data before daily rollover for property %llu", static_cast<unsigned long long>(propertyId));
+			SaveReputation();
+		}
 		m_CurrentDate = currentDate;
 		m_PlayerActivity.clear();
 	}
