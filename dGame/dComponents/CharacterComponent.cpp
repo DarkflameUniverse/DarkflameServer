@@ -42,7 +42,7 @@ CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID
 
 	m_EditorEnabled = false;
 	m_EditorLevel = m_GMLevel;
-	m_Reputation = Database::Get()->GetCharacterReputation(m_Character->GetObjectID());
+	m_Reputation = Database::Get()->GetCharacterReputation(m_Character->GetID());
 
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
