@@ -940,7 +940,7 @@ void PropertyManagementComponent::OnPlayerPositionUpdateHandler(Entity* player, 
 	// Check velocity threshold (player must be active/moving)
 	if (update.velocity.SquaredLength() < m_RepVelocityThreshold * m_RepVelocityThreshold) return;
 
-	const auto playerId = player->GetObjectID();
+	const auto playerId = character->GetID();
 	auto& info = m_PlayerActivity[playerId];
 
 	// Check daily cap
