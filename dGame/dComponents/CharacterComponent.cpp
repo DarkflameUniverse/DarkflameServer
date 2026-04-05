@@ -251,7 +251,7 @@ void CharacterComponent::SetPvpEnabled(const bool value) {
 
 void CharacterComponent::SetReputation(int64_t newValue) {
 	m_Reputation = newValue;
-	Database::Get()->SetCharacterReputation(m_Character->GetObjectID(), m_Reputation);
+	Database::Get()->SetCharacterReputation(m_Character->GetID(), m_Reputation);
 	GameMessages::SendUpdateReputation(m_Parent->GetObjectID(), m_Reputation, m_Parent->GetSystemAddress());
 }
 
