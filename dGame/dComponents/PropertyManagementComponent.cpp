@@ -90,13 +90,33 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 		}
 
 		// Load reputation config
-		auto configFloat = [](const std::string& key, float def) {
+		auto configFloat = [](const std::string& key, const float def) {
 			const auto& val = Game::config->GetValue(key);
-			return val.empty() ? def : std::stof(val);
+			if (val.empty()) {
+				return def;
+			}
+
+			float parsedValue {};
+			if (GeneralUtils::TryParse<float>(val, parsedValue)) {
+				return parsedValue;
+			}
+
+			LOG("Invalid config value for '%s': '%s'. Using default: %f", key.c_str(), val.c_str(), def);
+			return def;
 		};
-		auto configUint = [](const std::string& key, uint32_t def) {
+		auto configUint = [](const std::string& key, const std::uint32_t def) {
 			const auto& val = Game::config->GetValue(key);
-			return val.empty() ? def : static_cast<uint32_t>(std::stoul(val));
+			if (val.empty()) {
+				return def;
+			}
+
+			std::uint32_t parsedValue {};
+			if (GeneralUtils::TryParse<std::uint32_t>(val, parsedValue)) {
+				return parsedValue;
+			}
+
+			LOG("Invalid config value for '%s': '%s'. Using default: %u", key.c_str(), val.c_str(), def);
+			return def;
 		};
 		m_RepInterval = configFloat("property_rep_interval", 60.0f);
 		m_RepDailyCap = configUint("property_rep_daily_cap", 50);
