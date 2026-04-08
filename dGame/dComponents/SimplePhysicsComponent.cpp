@@ -12,6 +12,7 @@
 #include "CDPhysicsComponentTable.h"
 
 #include "Entity.h"
+#include "MovingPlatformComponent.h"
 #include "StringifiedEnum.h"
 #include "Amf3.h"
 
@@ -39,6 +40,11 @@ SimplePhysicsComponent::~SimplePhysicsComponent() {
 
 void SimplePhysicsComponent::Update(const float deltaTime) {
 	if (m_Velocity == NiPoint3Constant::ZERO) return;
+
+	// If this entity has a MovingPlatformComponent, it owns position updates.
+	// Don't double-move by also applying velocity here.
+	if (m_Parent->GetComponent<MovingPlatformComponent>()) return;
+
 	m_Position += m_Velocity * deltaTime;
 	m_DirtyPosition = true;
 	Game::entityManager->SerializeEntity(m_Parent);

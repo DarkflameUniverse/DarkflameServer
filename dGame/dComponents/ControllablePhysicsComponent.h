@@ -261,6 +261,19 @@ public:
   /**
 	 * Push or Pop a layer of stun immunity to this entity
 	 */
+	/**
+	 * Sets the platform the entity is standing on for local space serialization
+	 */
+	void SetPlatformEntity(LWOOBJID platformID) { m_PlatformEntityID = platformID; m_DirtyPosition = true; }
+
+	/**
+	 * Returns the platform the entity is standing on
+	 */
+	LWOOBJID GetPlatformEntity() const { return m_PlatformEntityID; }
+
+	void SetLocalSpacePosition(const NiPoint3& pos) { m_LocalSpacePosition = pos; }
+	void SetLocalSpaceLinearVelocity(const NiPoint3& vel) { m_LocalSpaceLinearVelocity = vel; }
+
 	void SetStunImmunity(
 		const eStateChangeType state,
 		const LWOOBJID originator = LWOOBJID_EMPTY,
@@ -403,6 +416,21 @@ private:
   /**
 	 * stun immunity counters
 	 */
+	/**
+	 * The platform entity the player is standing on (for local space serialization)
+	 */
+	LWOOBJID m_PlatformEntityID = LWOOBJID_EMPTY;
+
+	/**
+	 * The player's position in the platform's local space
+	 */
+	NiPoint3 m_LocalSpacePosition{};
+
+	/**
+	 * The player's linear velocity in the platform's local space
+	 */
+	NiPoint3 m_LocalSpaceLinearVelocity{};
+
 	int32_t m_ImmuneToStunAttackCount;
 	int32_t m_ImmuneToStunEquipCount;
 	int32_t m_ImmuneToStunInteractCount;

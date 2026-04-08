@@ -1,4 +1,11 @@
+add_subdirectory(MovingPlatformComponent)
+
+foreach(file ${DGAME_DCOMPONENTS_MOVINGPLATFORMCOMPONENT})
+	list(APPEND DGAME_DCOMPONENTS_SUBCOMPONENT_SOURCES "MovingPlatformComponent/${file}")
+endforeach()
+
 set(DGAME_DCOMPONENTS_SOURCES
+	${DGAME_DCOMPONENTS_SUBCOMPONENT_SOURCES}
 	"AchievementVendorComponent.cpp"
 	"ActivityComponent.cpp"
 	"BaseCombatAIComponent.cpp"
@@ -51,7 +58,7 @@ set(DGAME_DCOMPONENTS_SOURCES
 )
 
 add_library(dComponents OBJECT ${DGAME_DCOMPONENTS_SOURCES})
-target_include_directories(dComponents PUBLIC "."
+target_include_directories(dComponents PUBLIC "." "MovingPlatformComponent"
 	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors" # via ModelComponent.h
 	"${PROJECT_SOURCE_DIR}/dGame/dPropertyBehaviors/ControlBehaviorMessages"
 	"${PROJECT_SOURCE_DIR}/dGame/dMission" # via MissionComponent.h

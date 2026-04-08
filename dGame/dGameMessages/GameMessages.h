@@ -104,7 +104,10 @@ namespace GameMessages {
 	void SendStartPathing(Entity* entity);
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving);
+		eMovementPlatformState movementState = eMovementPlatformState::Moving,
+		bool bReverse = false, float fIdleTimeElapsed = 0.0f, float fMoveTimeElapsed = 0.0f,
+		float fPercentBetweenPoints = 0.0f, NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO,
+		NiQuaternion qUnexpectedRotation = QuatUtils::IDENTITY);
 
 	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);

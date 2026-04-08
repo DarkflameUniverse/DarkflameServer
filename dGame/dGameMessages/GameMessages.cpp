@@ -365,31 +365,18 @@ void GameMessages::SendResetMissions(Entity* entity, const SystemAddress& sysAdd
 
 void GameMessages::SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint,
 	int iIndex, int iDesiredWaypointIndex, int nextIndex,
-	eMovementPlatformState movementState) {
+	eMovementPlatformState movementState,
+	bool bReverse, float fIdleTimeElapsed, float fMoveTimeElapsed,
+	float fPercentBetweenPoints, NiPoint3 ptUnexpectedLocation,
+	NiQuaternion qUnexpectedRotation) {
 	CBITSTREAM;
 	CMSGHEADER;
-
-	const auto lot = entity->GetLOT();
-
-	if (lot == 12341 || lot == 5027 || lot == 5028 || lot == 14335 || lot == 14447 || lot == 14449 || lot == 11306 || lot == 11308) {
-		iDesiredWaypointIndex = (lot == 11306 || lot == 11308) ? 1 : 0;
-		iIndex = 0;
-		nextIndex = 0;
-		bStopAtDesiredWaypoint = true;
-		movementState = eMovementPlatformState::Stationary;
-	}
 
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::PLATFORM_RESYNC);
 
-	bool bReverse = false;
 	int eCommand = 0;
 	int eUnexpectedCommand = 0;
-	float fIdleTimeElapsed = 0.0f;
-	float fMoveTimeElapsed = 0.0f;
-	float fPercentBetweenPoints = 0.0f;
-	NiPoint3 ptUnexpectedLocation = NiPoint3Constant::ZERO;
-	NiQuaternion qUnexpectedRotation = QuatUtils::IDENTITY;
 
 	bitStream.Write(bReverse);
 	bitStream.Write(bStopAtDesiredWaypoint);

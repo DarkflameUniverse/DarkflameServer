@@ -152,7 +152,17 @@ void ControllablePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 			outBitStream.Write(m_AngularVelocity.z);
 		}
 
-		outBitStream.Write0(); // local_space_info, always zero for now.
+		bool hasLocalSpaceInfo = m_PlatformEntityID != LWOOBJID_EMPTY;
+		outBitStream.Write(hasLocalSpaceInfo);
+		if (hasLocalSpaceInfo) {
+			outBitStream.Write(m_PlatformEntityID);
+			outBitStream.Write(m_LocalSpacePosition.x);
+			outBitStream.Write(m_LocalSpacePosition.y);
+			outBitStream.Write(m_LocalSpacePosition.z);
+			outBitStream.Write(m_LocalSpaceLinearVelocity.x);
+			outBitStream.Write(m_LocalSpaceLinearVelocity.y);
+			outBitStream.Write(m_LocalSpaceLinearVelocity.z);
+		}
 
 		if (!bIsInitialUpdate) {
 			m_DirtyPosition = false;
