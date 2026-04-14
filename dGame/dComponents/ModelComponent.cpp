@@ -189,8 +189,7 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 			// Check if this behavior is able to be found via lot (if so, its a loot behavior).
 			insertedBehavior.SetIsLoot(inventoryComponent->FindItemByLot(msg.GetBehaviorId(), eInventoryType::BEHAVIORS));
 		}
-		auto* const missionComponent = playerEntity->GetComponent<MissionComponent>();
-		if (missionComponent) missionComponent->Progress(eMissionTaskType::ADD_BEHAVIOR, 0);
+		ProgressAddBehaviorMission(*playerEntity);
 	}
 
 	auto* const simplePhysComponent = m_Parent->GetComponent<SimplePhysicsComponent>();
@@ -198,6 +197,11 @@ void ModelComponent::AddBehavior(AddMessage& msg) {
 		simplePhysComponent->SetPhysicsMotionState(1);
 		Game::entityManager->SerializeEntity(m_Parent);
 	}
+}
+
+void ModelComponent::ProgressAddBehaviorMission(Entity& playerEntity) {
+	auto* const missionComponent = playerEntity.GetComponent<MissionComponent>();
+	if (missionComponent) missionComponent->Progress(eMissionTaskType::ADD_BEHAVIOR, 0);
 }
 
 std::string ModelComponent::SaveBehavior(const PropertyBehavior& behavior) const {
