@@ -1,0 +1,113 @@
+{{! Navigation brand, nav toggle bar }}
+<nav class='navbar navbar-expand-sm navbar-dark bg-primary flex-row pb-3'>
+  <div class='container md-0 flex-nowrap'>
+
+    {{! Logo and App Name }}
+    <nav class="navbar">
+      <a class="navbar-brand" href="{{url.main_index}}">
+        <img src="{{static.logo}}" width="30" height="30" class="d-inline-block align-top" alt="">
+        {{config.APP_NAME}}
+      </a>
+    </nav>
+{{! Navigation brand, nav toggle bar }}
+<nav class='navbar navbar-expand-sm navbar-dark bg-primary flex-row pb-3'>
+  <div class='container md-0 flex-nowrap'>
+
+    {{! Logo and App Name }}
+    <nav class="navbar">
+      <a class="navbar-brand" href="{{url.main_index}}">
+        <img src="{{static.logo}}" width="30" height="30" class="d-inline-block align-top" alt="">
+        {{config.APP_NAME}}
+      </a>
+    </nav>
+
+
+    {{! Visible only on large devices }}
+    <nav class='navbar-nav'>
+      <div class='collapse navbar-collapse'>
+        {{#current_user_authenticated}}
+          {{#USER_ENABLE_INVITE_USER}}
+            <a class='btn-nav-dashboard me-2' href='{{url.user_invite_user}}'>Invite</a>
+          {{/USER_ENABLE_INVITE_USER}}
+          <a class='btn-nav-dashboard' href='{{url.user_logout}}'><i class='fas fa-sign-out-alt me-1'></i>Logout</a>
+        {{/current_user_authenticated}}
+      </div>
+    </nav>
+
+    <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navbarSupportedContent' aria-controls='navbarSupportedContent' aria-expanded='false' aria-label='Toggle navigation'>
+      <span class='navbar-toggler-icon'></span>
+    </button>
+
+  </div>
+</nav>
+
+{{! Navigation menu / links bar }}
+<nav class='navbar navbar-expand-sm navbar-dark bg-primary p-sm-0 py-0 {{#navbar_shadow}}shadow-sm{{/navbar_shadow}}'>
+  <div class='container mt-0 pt-0'>
+    <div class='collapse navbar-collapse' id='navbarSupportedContent' style='margin-top: -16px;'>
+      <nav class='navbar-nav me-auto'>
+        <a id='main-index' class='nav-link' href='{{url.main_index}}'>Home</a>
+
+        {{#gm_ge_3}}
+          {{! General Moderation Links }}
+          <a id='accounts-index' class='nav-link' href='{{url.accounts_index}}'>Accounts</a>
+          <a id='character-index' class='nav-link' href='{{url.characters_index}}'>Characters</a>
+          <a id='property-index' class='nav-link' href='{{url.properties_index}}'>Properties</a>
+        {{/gm_ge_3}}
+
+        {{#gm_ge_5_require_play_key}}
+          {{! Play Keys }}
+          <a id='play_keys-index' class='nav-link' href='{{url.play_keys_index}}'>Play Keys</a>
+        {{/gm_ge_5_require_play_key}}
+
+        {{#gm_ge_2}}
+          <a id='report-index' class='nav-link' href='{{url.reports_index}}'>Reports</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Tools</a>
+            <div class="dropdown-menu">
+
+              <a class="dropdown-item text-center" href='{{url.mail_send}}'>Send Mail</a>
+              <hr/>
+              <h3 class="text-center">Moderation</h3>
+              <a class="dropdown-item text-center" href='{{url.moderation_unapproved}}'>Unapproved Items</a>
+              <a class="dropdown-item text-center" href='{{url.moderation_approved}}'>Approved Items</a>
+              <a class="dropdown-item text-center" href='{{url.moderation_all}}'>All Items</a>
+              <hr/>
+              <h3 class="text-center">Bug Reports</h3>
+              <a class="dropdown-item text-center" href='{{url.bug_reports_unresolved}}'>Unresolved Reports</a>
+              <a class="dropdown-item text-center" href='{{url.bug_reports_resolved}}'>Resolved Reports</a>
+              <a class="dropdown-item text-center" href='{{url.bug_reports_all}}'>All Reports</a>
+              {{#gm_ge_8}}
+                <hr/>
+                <h3 class="text-center">Logs</h3>
+                <a class="dropdown-item text-center" href='{{url.log_command}}'>Command Log</a>
+                <a class="dropdown-item text-center" href='{{url.log_activity}}'>Activity Log</a>
+                <a class="dropdown-item text-center" href='{{url.log_audit}}'>Audit Log</a>
+                <a class="dropdown-item text-center" href='{{url.log_system}}'>System Log</a>
+              {{/gm_ge_8}}
+            </div>
+          </li>
+        {{/gm_ge_2}}
+
+        {{#gm_eq_0}}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Bug Reports</a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item text-center" href='{{url.bug_reports_unresolved}}'>Unresolved Reports</a>
+              <a class="dropdown-item text-center" href='{{url.bug_reports_resolved}}'>Resolved Reports</a>
+              <a class="dropdown-item text-center" href='{{url.bug_reports_all}}'>All Reports</a>
+            </div>
+          </li>
+        {{/gm_eq_0}}
+
+        {{#current_user_authenticated}}
+          <a id='main-about' class='nav-link' href='{{url.main_about}}'>About</a>
+        {{/current_user_authenticated}}
+
+        {{#current_user_authenticated}}
+          <a class='nav-link d-sm-none' href='{{url.user_logout}}'><i class='fas fa-sign-out-alt me-1'></i>Logout</a>
+        {{/current_user_authenticated}}
+      </nav>
+    </div>
+  </div>
+</nav>

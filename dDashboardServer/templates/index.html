@@ -1,0 +1,293 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Dashboard</h1>
+    </div>
+</div>
+
+{{#is_authenticated}}
+<div class="row">
+    <!-- Account Info Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-person-circle text-primary"></i>
+                    Your Account
+                </h5>
+                <p class="card-text">
+                    <strong>Username:</strong> {{username}}<br>
+                    <strong>Account ID:</strong> {{account_id}}<br>
+                    <strong>GM Level:</strong> {{gm_level}} ({{gm_level_name}})
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {{#is_gm_3_plus}}
+    <!-- Server Stats Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-server text-success"></i>
+                    Server Status
+                </h5>
+                <div id="server-stats">
+                    <p class="card-text">
+                        <strong>Master:</strong> <span id="master-status" class="badge bg-secondary">Loading...</span><br>
+                        <strong>Connected Clients:</strong> <span id="client-count">-</span><br>
+                        <strong>Packets Sent:</strong> <span id="packets-sent">-</span><br>
+                        <strong>Packets Received:</strong> <span id="packets-received">-</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accounts Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-people text-info"></i>
+                    Accounts
+                </h5>
+                <p class="card-text">
+                    <strong>Total Accounts:</strong> <span id="total-accounts">-</span><br>
+                    <strong>Banned:</strong> <span id="banned-accounts">-</span><br>
+                    <strong>Locked:</strong> <span id="locked-accounts">-</span>
+                </p>
+                <a href="/accounts" class="btn btn-sm btn-primary">Manage Accounts</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Characters Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-person-badge text-warning"></i>
+                    Characters
+                </h5>
+                <p class="card-text">
+                    <strong>Total Characters:</strong> <span id="total-characters">-</span><br>
+                    <strong>Pending Names:</strong> <span id="pending-names">-</span>
+                </p>
+                <a href="/characters" class="btn btn-sm btn-primary">Manage Characters</a>
+            </div>
+        </div>
+    </div>
+    {{/is_gm_3_plus}}
+</div>
+
+{{#is_gm_3_plus}}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i>
+                    Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <table id="recent-activity-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Character</th>
+                            <th>Activity</th>
+                            <th>Map</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via API -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{{/is_gm_3_plus}}
+
+<!-- Character Cards for All Authenticated Users -->
+<div class="row mt-4">
+    <div class="col-12">
+        <h3 class="mb-3">
+            <i class="bi bi-person-badge"></i>
+            Your Characters
+        </h3>
+        <hr>
+    </div>
+</div>
+
+<div class="row" id="character-cards-container">
+    <!-- Character cards will be populated via JavaScript -->
+    <div class="col-12 text-center">
+        <p class="text-muted">Loading characters...</p>
+    </div>
+</div>
+
+{{/is_authenticated}}
+
+{{^is_authenticated}}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3>Welcome to DarkflameServer Dashboard</h3>
+                <p class="lead">Please log in to access the dashboard.</p>
+                <a href="/login" class="btn btn-primary btn-lg">Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+{{/is_authenticated}}
+
+<script>
+{{#is_gm_3_plus}}
+// Load dashboard stats
+async function loadDashboardStats() {
+    try {
+        // Server stats
+        const serverStats = await API.get('/api/stats/server');
+        if (serverStats) {
+            updateServerStats(serverStats);
+        }
+
+        // Account stats
+        const accountStats = await API.get('/api/stats/accounts');
+        if (accountStats) {
+            updateAccountStats(accountStats);
+        }
+
+        // Character stats
+        const characterStats = await API.get('/api/stats/characters');
+        if (characterStats) {
+            updateCharacterStats(characterStats);
+        }
+
+        // Recent activity
+        const activities = await API.get('/api/stats/recent-activity');
+        if (activities && activities.data) {
+            updateRecentActivity(activities.data);
+        }
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+    }
+}
+
+// Update server stats on UI
+function updateServerStats(data) {
+    document.getElementById('master-status').textContent = data.master_connected ? 'Connected' : 'Disconnected';
+    document.getElementById('master-status').className = data.master_connected ? 'badge bg-success' : 'badge bg-danger';
+    document.getElementById('client-count').textContent = data.connected_clients || 0;
+    document.getElementById('packets-sent').textContent = data.packets_sent || 0;
+    document.getElementById('packets-received').textContent = data.packets_received || 0;
+}
+
+// Update account stats on UI
+function updateAccountStats(data) {
+    document.getElementById('total-accounts').textContent = data.total || 0;
+    document.getElementById('banned-accounts').textContent = data.banned || 0;
+    document.getElementById('locked-accounts').textContent = data.locked || 0;
+}
+
+// Update character stats on UI
+function updateCharacterStats(data) {
+    document.getElementById('total-characters').textContent = data.total || 0;
+    document.getElementById('pending-names').textContent = data.pending_names || 0;
+}
+
+// Update recent activity table
+function updateRecentActivity(data) {
+    // Avoid reinitialising the DataTable on repeated calls (e.g. interval refreshs).
+    // If the table already exists, update its data and redraw. Otherwise initialize it.
+    if ($.fn.DataTable.isDataTable('#recent-activity-table')) {
+        const table = $('#recent-activity-table').DataTable();
+        table.clear();
+        table.rows.add(data);
+        table.draw(false);
+    } else {
+        const table = $('#recent-activity-table').DataTable({
+            data: data,
+            columns: [
+                { data: 'timestamp' },
+                { data: 'character_name' },
+                { data: 'activity' },
+                { data: 'map_id' }
+            ],
+            pageLength: 10,
+            order: [[0, 'desc']]
+        });
+    }
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadDashboardStats);
+
+// Auto-refresh stats every 30 seconds
+setInterval(loadDashboardStats, 30000);
+{{/is_gm_3_plus}}
+
+{{#is_authenticated}}
+// Load user's characters for character cards
+async function loadUserCharacters() {
+    try {
+        const res = await API.get('/api/user/characters');
+        const characters = (res && Array.isArray(res.data)) ? res.data : (res || []);
+
+        const container = document.getElementById('character-cards-container');
+        container.innerHTML = '';
+
+        if (characters.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center">
+                    <p class="text-muted">You don't have any characters yet. Log in to the game to create one!</p>
+                </div>
+            `;
+            return;
+        }
+
+        characters.forEach(char => {
+            const card = document.createElement('div');
+            card.className = 'col-md-6 col-lg-4 mb-4';
+            card.innerHTML = `
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-person-circle"></i>
+                            ${char.name}
+                        </h5>
+                        <p class="card-text">
+                            <strong>Level:</strong> ${char.level || 0}<br>
+                            <strong>Universe Score:</strong> ${char.uscore || 0}<br>
+                            <strong>Current Zone:</strong> ${char.zone_id || 'Unknown'}<br>
+                            <strong>Last Login:</strong> ${char.last_login && char.last_login > 0 ? new Date(char.last_login * 1000).toLocaleString() : 'Never'}
+                        </p>
+                        ${char.pending_name ? `<span class="badge bg-warning mb-2">Pending Name: ${char.pending_name}</span><br>` : ''}
+                        ${char.needs_rename ? '<span class="badge bg-danger mb-2">Needs Rename</span><br>' : ''}
+                        <a href="/characters/view/${char.id}" class="btn btn-sm btn-primary mt-2">View Details</a>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Error loading user characters:', error);
+        const container = document.getElementById('character-cards-container');
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    Failed to load your characters. Please try refreshing the page.
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Load character cards on page load
+document.addEventListener('DOMContentLoaded', loadUserCharacters);
+{{/is_authenticated}}
+</script>

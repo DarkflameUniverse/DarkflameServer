@@ -1,0 +1,106 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-terminal"></i>
+            Command Logs
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Commands</h5>
+            </div>
+            <div class="card-body">
+                <table id="commands-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Character</th>
+                            <th>Command</th>
+                            <th>Arguments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via DataTables Ajax -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showLibraryError(message) {
+    const el = document.getElementById('commands-table');
+    if (el) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'alert alert-danger';
+        wrapper.textContent = message;
+        el.replaceWith(wrapper);
+    } else {
+        alert(message);
+    }
+}
+
+function loadCommandLogs() {
+    API.get('/api/auth/status').then(status => {
+        if (!status || !status.authenticated || status.gm_level < 8) {
+            showLibraryError('You do not have permission to view command logs. GM Level 8+ required.');
+            return;
+        }
+
+        API.get('/api/logs/commands').then(res => {
+            const data = Array.isArray(res.data) ? res.data : (res || []);
+
+            if ($.fn.DataTable.isDataTable('#commands-table')) {
+                const table = $('#commands-table').DataTable();
+                table.clear();
+                table.rows.add(data);
+                table.draw(false);
+            } else {
+                $('#commands-table').DataTable({
+                    data: data,
+                    columns: [
+                        {
+                            data: 'timestamp',
+                            render: function(d) {
+                                if (!d || d === 0) return '-';
+                                return new Date(d * 1000).toLocaleString();
+                            }
+                        },
+                        {
+                            data: 'character_name',
+                            render: function(d, t, row) {
+                                if (row.character_id) {
+                                    return `<a href="/characters/view/${row.character_id}">${d || row.character_id}</a>`;
+                                }
+                                return d || '-';
+                            }
+                        },
+                        { data: 'command' },
+                        { data: 'arguments', render: d => d || '-' }
+                    ],
+                    pageLength: 25,
+                    order: [[0, 'desc']],
+                    processing: true
+                });
+            }
+
+        }).catch(err => {
+            const msg = err && err.message ? err.message : 'Failed to load command logs';
+            showLibraryError(`Error loading command logs: ${msg}`);
+        });
+
+    }).catch(err => {
+        showLibraryError(`Error checking authentication: ${err && err.message ? err.message : err}`);
+    });
+}
+
+// Initialize when jQuery/DataTables and API are ready
+safeInit(function($) {
+    loadCommandLogs();
+}, { requireApi: true, timeout: 8000 });
+</script>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}} - DarkflameServer Dashboard</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Custom CSS consolidated -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+
+    {{#extra_head}}
+    {{{extra_head}}}
+    {{/extra_head}}
+</head>
+<body>
+    {{#show_navbar}}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+                DarkflameServer Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_home}} active{{/nav_home}}" href="/">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
+                    </li>
+                    {{#is_gm_3_plus}}
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_accounts}} active{{/nav_accounts}}" href="/accounts">
+                            <i class="bi bi-people"></i> Accounts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_characters}} active{{/nav_characters}}" href="/characters">
+                            <i class="bi bi-person-badge"></i> Characters
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-shield-check"></i> Moderation
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/moderation/pending">Pending Pets</a></li>
+                            <li><a class="dropdown-item" href="/properties">Properties</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_mail}} active{{/nav_mail}}" href="/mail/send">
+                            <i class="bi bi-envelope"></i> Mail
+                        </a>
+                    </li>
+                    {{/is_gm_3_plus}}
+                    {{#is_gm_5_plus}}
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_playkeys}} active{{/nav_playkeys}}" href="/playkeys">
+                            <i class="bi bi-key"></i> Play Keys
+                        </a>
+                    </li>
+                    {{/is_gm_5_plus}}
+                    {{#is_gm_8_plus}}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-journal-text"></i> Logs
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/logs/activities">Activity Logs</a></li>
+                            <li><a class="dropdown-item" href="/logs/commands">Command Logs</a></li>
+                            <li><a class="dropdown-item" href="/logs/audits">Audit Logs</a></li>
+                        </ul>
+                    </li>
+                    {{/is_gm_8_plus}}
+                    <li class="nav-item">
+                        <a class="nav-link{{#nav_bugs}} active{{/nav_bugs}}" href="/bugs">
+                            <i class="bi bi-bug"></i> Bug Reports
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{username}}
+                            {{#gm_level_name}}
+                            <span class="badge bg-primary">{{gm_level_name}}</span>
+                            {{/gm_level_name}}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/about">About</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout(); return false;">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {{/show_navbar}}
+
+    <main class="{{#show_navbar}}container-fluid mt-4{{/show_navbar}}">
+        {{#flash_messages}}
+        <div class="alert alert-{{type}} alert-dismissible fade show" role="alert">
+            {{message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {{/flash_messages}}
+
+        {{{content}}}
+    </main>
+
+    <footer class="footer mt-auto py-3 bg-dark border-top">
+        <div class="container text-center">
+            <span class="text-muted">DarkflameServer Dashboard &copy; 2025 | Powered by Crow C++</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Shared helper: wait for jQuery/DataTables (keeps pages resilient to CDN timing) -->
+    <script src="/static/js/wait-for-jq-dt.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/login.js"></script>
+
+    {{#extra_scripts}}
+    {{{extra_scripts}}}
+    {{/extra_scripts}}
+</body>
+</html>

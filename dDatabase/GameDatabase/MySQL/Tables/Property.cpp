@@ -198,3 +198,44 @@ std::optional<IProperty::Info> MySQLDatabase::GetPropertyInfo(const LWOOBJID id)
 
 	return ReadPropertyInfo(propertyEntry);
 }
+
+std::vector<IProperty::Info> MySQLDatabase::GetAllProperties() {
+	std::vector<IProperty::Info> out;
+	auto res = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, "
+		"last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties ORDER BY id DESC;"
+	);
+
+	while (res->next()) {
+		out.push_back(ReadPropertyInfo(res));
+	}
+
+	return out;
+}
+
+std::vector<IProperty::Info> MySQLDatabase::GetPropertiesByApprovalStatus(uint32_t approved) {
+	std::vector<IProperty::Info> out;
+	auto res = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, "
+		"last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties WHERE mod_approved = ? ORDER BY id DESC;",
+		approved
+	);
+
+	while (res->next()) {
+		out.push_back(ReadPropertyInfo(res));
+	}
+
+	return out;
+}
+
+uint32_t MySQLDatabase::GetPropertyCount() {
+	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM properties;");
+	return res->next() ? res->getUInt("count") : 0;
+}
+
+uint32_t MySQLDatabase::GetUnapprovedPropertyCount() {
+	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM properties WHERE mod_approved = 0;");
+	return res->next() ? res->getUInt("count") : 0;
+}

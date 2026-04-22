@@ -56,6 +56,18 @@ void TestSQLDatabase::UpdateActivityLog(const LWOOBJID characterId, const eActiv
 
 }
 
+std::vector<IActivityLog::Entry> TestSQLDatabase::GetRecentActivity(const uint32_t limit) {
+	return {};
+}
+
+uint32_t TestSQLDatabase::GetActivityLogCount() {
+	return {};
+}
+
+std::vector<IActivityLog::Entry> TestSQLDatabase::GetActivityLogPaginated(uint32_t offset, uint32_t limit, const std::string& orderColumn, const std::string& orderDir) {
+	return {};
+}
+
 void TestSQLDatabase::DeleteUgcModelData(const LWOOBJID& modelId) {
 
 }
@@ -192,6 +204,115 @@ void TestSQLDatabase::InsertNewMail(const MailInfo& mail) {
 
 }
 
+// PlayKeys (dashboard)
+std::vector<IPlayKeys::Info> TestSQLDatabase::GetAllPlayKeys() {
+	return {};
+}
+
+std::optional<IPlayKeys::Info> TestSQLDatabase::GetPlayKeyById(const uint32_t playkeyId) {
+	return {};
+}
+
+std::optional<IPlayKeys::Info> TestSQLDatabase::GetPlayKeyByString(const std::string_view key_string) {
+	return {};
+}
+
+bool TestSQLDatabase::ConsumePlayKeyUsage(const uint32_t playkeyId) {
+	return false;
+}
+
+void TestSQLDatabase::CreatePlayKey(const std::string_view key, uint32_t accountId, const std::string_view notes) {
+}
+
+void TestSQLDatabase::UpdatePlayKey(const uint32_t playkeyId, uint32_t accountId, bool active, const std::string_view notes) {
+}
+
+void TestSQLDatabase::DeletePlayKey(const uint32_t playkeyId) {
+}
+
+uint32_t TestSQLDatabase::GetPlayKeyCount() {
+	return 0;
+}
+
+// Bug reports (dashboard)
+std::vector<IBugReports::DetailedInfo> TestSQLDatabase::GetAllBugReports() {
+	return {};
+}
+
+std::vector<IBugReports::DetailedInfo> TestSQLDatabase::GetUnresolvedBugReports() {
+	return {};
+}
+
+std::vector<IBugReports::DetailedInfo> TestSQLDatabase::GetResolvedBugReports() {
+	return {};
+}
+
+std::optional<IBugReports::DetailedInfo> TestSQLDatabase::GetBugReportById(const uint64_t reportId) {
+	return {};
+}
+
+void TestSQLDatabase::ResolveBugReport(const uint64_t reportId, const uint32_t resolverAccountId, const std::string_view resolutionNotes) {
+}
+
+uint32_t TestSQLDatabase::GetBugReportCount() {
+	return 0;
+}
+
+uint32_t TestSQLDatabase::GetUnresolvedBugReportCount() {
+	return 0;
+}
+
+// Property moderation (dashboard)
+std::vector<IProperty::Info> TestSQLDatabase::GetAllProperties() {
+	return {};
+}
+
+std::vector<IProperty::Info> TestSQLDatabase::GetPropertiesByApprovalStatus(uint32_t status) {
+	return {};
+}
+
+uint32_t TestSQLDatabase::GetPropertyCount() {
+	return 0;
+}
+
+uint32_t TestSQLDatabase::GetUnapprovedPropertyCount() {
+	return 0;
+}
+
+// Pet name moderation (dashboard)
+std::vector<IPetNames::DetailedInfo> TestSQLDatabase::GetAllPetNames() {
+	return {};
+}
+
+std::vector<IPetNames::DetailedInfo> TestSQLDatabase::GetPetNamesByStatus(int32_t status) {
+	return {};
+}
+
+void TestSQLDatabase::SetPetApprovalStatus(const LWOOBJID& petId, int32_t status) {
+}
+
+uint32_t TestSQLDatabase::GetPendingPetNamesCount() {
+	return 0;
+}
+
+// Character edits (dashboard)
+void TestSQLDatabase::UpdateCharacterPermissions(const LWOOBJID characterId, const ePermissionMap permissions) {
+}
+
+void TestSQLDatabase::SetCharacterNeedsRename(const LWOOBJID characterId, const bool needsRename) {
+}
+
+// Account dashboard helpers
+std::optional<IAccounts::DetailedInfo> TestSQLDatabase::GetAccountById(const uint32_t accountId) {
+	return {};
+}
+
+void TestSQLDatabase::UpdateAccountEmail(const uint32_t accountId, const std::string_view email) {
+}
+
+void TestSQLDatabase::DeleteAccount(const uint32_t accountId) {
+}
+
 void TestSQLDatabase::InsertNewUgcModel(std::stringstream& sd0Data, const uint64_t blueprintId, const uint32_t accountId, const LWOOBJID characterId) {
 
 }
@@ -230,6 +351,14 @@ void TestSQLDatabase::UpdateAccountUnmuteTime(const uint32_t accountId, const ui
 
 void TestSQLDatabase::UpdateAccountBan(const uint32_t accountId, const bool banned) {
 
+}
+
+void TestSQLDatabase::UpdateAccountLock(const uint32_t accountId, const bool locked) {
+
+}
+
+std::vector<IAccounts::ListInfo> TestSQLDatabase::GetAllAccounts() {
+	return {};
 }
 
 void TestSQLDatabase::UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) {
@@ -297,6 +426,10 @@ void TestSQLDatabase::RemoveBehavior(const LWOOBJID behaviorId) {
 }
 
 void TestSQLDatabase::UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) {
+
+}
+
+void TestSQLDatabase::UpdateAccountPlayKey(const uint32_t accountId, const uint32_t playKeyId) {
 
 }
 

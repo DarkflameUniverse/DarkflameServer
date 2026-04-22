@@ -193,10 +193,53 @@ std::optional<IProperty::Info> SQLiteDatabase::GetPropertyInfo(const LWOOBJID id
 	auto [_, propertyEntry] = ExecuteSelect(
 		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, last_updated, time_claimed, reputation, mod_approved, performance_cost "
 		"FROM properties WHERE id = ?;", id);
-	
+
 	if (propertyEntry.eof()) {
 		return std::nullopt;
 	}
 
 	return ReadPropertyInfo(propertyEntry);
+}
+
+std::vector<IProperty::Info> SQLiteDatabase::GetAllProperties() {
+	std::vector<IProperty::Info> out;
+	auto [stmt, res] = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, "
+		"last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties ORDER BY id DESC;"
+	);
+
+	while (!res.eof()) {
+		out.push_back(ReadPropertyInfo(res));
+		res.nextRow();
+	}
+
+	return out;
+}
+
+std::vector<IProperty::Info> SQLiteDatabase::GetPropertiesByApprovalStatus(uint32_t approved) {
+	std::vector<IProperty::Info> out;
+	auto [stmt, res] = ExecuteSelect(
+		"SELECT id, owner_id, clone_id, name, description, privacy_option, rejection_reason, "
+		"last_updated, time_claimed, reputation, mod_approved, performance_cost "
+		"FROM properties WHERE mod_approved = ? ORDER BY id DESC;",
+		approved
+	);
+
+	while (!res.eof()) {
+		out.push_back(ReadPropertyInfo(res));
+		res.nextRow();
+	}
+
+	return out;
+}
+
+uint32_t SQLiteDatabase::GetPropertyCount() {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) as count FROM properties;");
+	return res.eof() ? 0 : res.getIntField("count");
+}
+
+uint32_t SQLiteDatabase::GetUnapprovedPropertyCount() {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) as count FROM properties WHERE mod_approved = 0;");
+	return res.eof() ? 0 : res.getIntField("count");
 }

@@ -24,3 +24,46 @@ std::optional<IPetNames::Info> SQLiteDatabase::GetPetNameInfo(const LWOOBJID& pe
 
 	return toReturn;
 }
+
+std::vector<IPetNames::DetailedInfo> SQLiteDatabase::GetAllPetNames() {
+	std::vector<IPetNames::DetailedInfo> out;
+	auto [stmt, res] = ExecuteSelect("SELECT id, pet_name, approved, owner_id FROM pet_names ORDER BY id DESC;");
+
+	while (!res.eof()) {
+		IPetNames::DetailedInfo info;
+		info.id = static_cast<LWOOBJID>(res.getInt64Field("id"));
+		info.petName = res.getStringField("pet_name");
+		info.approvalStatus = res.getIntField("approved");
+		info.ownerId = static_cast<LWOOBJID>(res.getInt64Field("owner_id"));
+		out.push_back(info);
+		res.nextRow();
+	}
+
+	return out;
+}
+
+std::vector<IPetNames::DetailedInfo> SQLiteDatabase::GetPetNamesByStatus(int32_t status) {
+	std::vector<IPetNames::DetailedInfo> out;
+	auto [stmt, res] = ExecuteSelect("SELECT id, pet_name, approved, owner_id FROM pet_names WHERE approved = ? ORDER BY id DESC;", status);
+
+	while (!res.eof()) {
+		IPetNames::DetailedInfo info;
+		info.id = static_cast<LWOOBJID>(res.getInt64Field("id"));
+		info.petName = res.getStringField("pet_name");
+		info.approvalStatus = res.getIntField("approved");
+		info.ownerId = static_cast<LWOOBJID>(res.getInt64Field("owner_id"));
+		out.push_back(info);
+		res.nextRow();
+	}
+
+	return out;
+}
+
+void SQLiteDatabase::SetPetApprovalStatus(const LWOOBJID& petId, int32_t status) {
+	ExecuteUpdate("UPDATE pet_names SET approved = ? WHERE id = ?;", status, petId);
+}
+
+uint32_t SQLiteDatabase::GetPendingPetNamesCount() {
+	auto [_, res] = ExecuteSelect("SELECT COUNT(*) as count FROM pet_names WHERE approved = 1;");
+	return res.eof() ? 0 : res.getIntField("count");
+}

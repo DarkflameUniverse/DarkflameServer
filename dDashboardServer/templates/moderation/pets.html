@@ -1,0 +1,85 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-paw"></i> Pet Name Moderation</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Pending Pet Names</div>
+            <div class="card-body">
+                <table id="pets-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Character</th>
+                            <th>Pet Name</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let petsTable = null;
+
+function loadPets() {
+    API.get('/api/moderation/pets').then(res => {
+        const data = Array.isArray(res.data) ? res.data : (res || []);
+
+        if ($.fn.DataTable.isDataTable('#pets-table')) {
+            const table = $('#pets-table').DataTable();
+            table.clear();
+            table.rows.add(data);
+            table.draw(false);
+            petsTable = table;
+        } else {
+            petsTable = $('#pets-table').DataTable({
+                data: data,
+                columns: [
+                    { data: 'id' },
+                    { data: 'character_name' },
+                    { data: 'pet_name' },
+                    { data: 'submitted', render: d => d ? new Date(d * 1000).toLocaleString() : '-' },
+                    { data: null, orderable: false, render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-success" onclick="approvePet(${row.id})">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="rejectPet(${row.id})">Reject</button>
+                        `;
+                    } }
+                ],
+                order: [[0, 'desc']],
+                pageLength: 25
+            });
+        }
+
+    }).catch(err => { alert(err && err.message ? err.message : 'Failed to load pets'); });
+}
+
+// Initialize when libraries are ready
+safeInit(function($) {
+    loadPets();
+}, { requireApi: true, timeout: 8000 });
+
+window.approvePet = async function(id) {
+    if (!confirm('Approve this pet name?')) return;
+    try {
+        const res = await API.post(`/api/moderation/pets/${id}/approve`);
+        if (res && res.success) { loadPets(); alert('Approved'); } else { alert(res.error || 'Failed'); }
+    } catch (err) { alert(err.message); }
+};
+
+window.rejectPet = async function(id) {
+    if (!confirm('Reject this pet name?')) return;
+    try {
+        const res = await API.post(`/api/moderation/pets/${id}/reject`);
+        if (res && res.success) { loadPets(); alert('Rejected'); } else { alert(res.error || 'Failed'); }
+    } catch (err) { alert(err.message); }
+};
+</script>

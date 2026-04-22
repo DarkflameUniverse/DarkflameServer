@@ -1,0 +1,73 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-activity"></i>
+            Activity Logs
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Player Activity</h5>
+            </div>
+            <div class="card-body">
+                <table id="activity-log-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Character</th>
+                            <th>Activity</th>
+                            <th>Map ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via DataTables Ajax -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize when libraries are ready
+safeInit(function($) {
+    $('#activity-log-table').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '/api/activity-log',
+            type: 'GET'
+        },
+        columns: [
+            {
+                data: 'timestamp',
+                render: function(data, type, row) {
+                    if (type === 'display' || type === 'filter') {
+                        const date = new Date(data * 1000);
+                        return date.toLocaleString();
+                    }
+                    return data;
+                }
+            },
+            {
+                data: 'character_name',
+                render: function(data, type, row) {
+                    return `<a href="/characters/view/${row.character_id}">${data}</a>`;
+                }
+            },
+            {
+                data: 'activity_name'
+            },
+            {
+                data: 'map_id'
+            }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25
+    });
+}, { requireApi: false, timeout: 8000 });
+</script>

@@ -61,8 +61,14 @@ public:
 
 	// Update the property performance cost for the given property id.
 	virtual void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) = 0;
-	
+
 	// Insert a new property into the database.
 	virtual void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) = 0;
+
+	// Dashboard methods
+	virtual std::vector<Info> GetAllProperties() = 0;
+	virtual std::vector<Info> GetPropertiesByApprovalStatus(uint32_t approved) = 0;
+	virtual uint32_t GetPropertyCount() = 0;
+	virtual uint32_t GetUnapprovedPropertyCount() = 0;
 };
 #endif  //!__IPROPERTY__H__

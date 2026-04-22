@@ -1,0 +1,162 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-people"></i>
+            Account Management
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Accounts</h5>
+            </div>
+            <div class="card-body">
+                <table id="accounts-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>GM Level</th>
+                            <th>Banned</th>
+                            <th>Locked</th>
+                            <th>Muted Until</th>
+                            <th>Play Key ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via DataTables Ajax -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Wait for jQuery + DataTables to be available without copying libraries locally.
+// Poll for a limited time and show a helpful error if they fail to load.
+function showLibraryError(message) {
+    const el = document.getElementById('accounts-table');
+    if (el) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'alert alert-danger';
+        wrapper.textContent = message;
+        el.replaceWith(wrapper);
+    } else {
+        alert(message);
+    }
+}
+
+// Use the same pattern as Recent Activity: wait for DOMContentLoaded, check auth, then fetch data
+function loadAccounts() {
+    API.get('/api/auth/status').then(status => {
+        if (!status || !status.authenticated || status.gm_level < 3) {
+            showLibraryError('You do not have permission to view accounts. Please log in with sufficient GM level.');
+            return;
+        }
+
+        API.get('/api/accounts').then(res => {
+            const data = Array.isArray(res.data) ? res.data : (res || []);
+
+            if ($.fn.DataTable.isDataTable('#accounts-table')) {
+                const table = $('#accounts-table').DataTable();
+                table.clear();
+                table.rows.add(data);
+                table.draw(false);
+            } else {
+                const table = $('#accounts-table').DataTable({
+                    data: data,
+                    columns: [
+                        { data: 'id' },
+                        { data: 'name', render: function(d, t, row) { return `<a href="/accounts/view/${row.id}">${d}</a>`; } },
+                        { data: 'gm_level', render: function(d) { const badges={0:'secondary',1:'info',2:'primary',3:'success',4:'success',5:'warning',6:'warning',7:'warning',8:'danger',9:'danger'}; return `<span class="badge bg-${badges[d]||'secondary'}">${d}</span>`; } },
+                        { data: 'banned', render: d => d ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>' },
+                        { data: 'locked', render: d => d ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-success">No</span>' },
+                        { data: 'mute_expire', render: function(d) { if (!d || d === 0) return '-'; return new Date(d * 1000).toLocaleString(); } },
+                        { data: 'play_key_id' },
+                        { data: null, orderable: false, render: function(data, type, row) {
+                            return `
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="/accounts/view/${row.id}" class="btn btn-info" title="View"><i class="bi bi-eye"></i></a>
+                                    <button data-account-id="${row.id}" class="btn btn-warning js-toggle-lock" title="Lock/Unlock"><i class="bi bi-lock"></i></button>
+                                    <button data-account-id="${row.id}" class="btn btn-danger js-toggle-ban" title="Ban/Unban"><i class="bi bi-slash-circle"></i></button>
+                                    <button data-account-id="${row.id}" class="btn btn-secondary js-mute-account" title="Mute"><i class="bi bi-mic-mute"></i></button>
+                                </div>`;
+                        } }
+                    ],
+                    pageLength: 25,
+                    order: [[0, 'asc']],
+                    processing: true
+                });
+
+                // Delegated event handlers
+                $('#accounts-table').on('click', '.js-toggle-lock', function() { const id = $(this).data('account-id'); toggleLock(id, table); });
+                $('#accounts-table').on('click', '.js-toggle-ban', function() { const id = $(this).data('account-id'); toggleBan(id, table); });
+                $('#accounts-table').on('click', '.js-mute-account', function() { const id = $(this).data('account-id'); muteAccount(id, table); });
+            }
+
+        }).catch(err => {
+            const msg = err && err.message ? err.message : 'Failed to load accounts';
+            showLibraryError(`Error loading accounts: ${msg}`);
+        });
+
+    }).catch(err => {
+        showLibraryError(`Error checking authentication: ${err && err.message ? err.message : err}`);
+    });
+}
+
+// Initialize when jQuery/DataTables and API are ready
+safeInit(function($) {
+    loadAccounts();
+}, { requireApi: true, timeout: 8000 });
+
+async function toggleLock(accountId, table) {
+    if (!confirm('Are you sure you want to toggle the lock status for this account?')) return;
+    try {
+        const result = await API.post(`/api/accounts/${accountId}/lock`);
+        if (result.success) {
+            if (table && table.ajax) table.ajax.reload();
+            showAlert('success', 'Account lock status updated');
+        } else {
+            showAlert('danger', result.error || 'Failed to update account');
+        }
+    } catch (error) {
+        showAlert('danger', error.message || error);
+    }
+}
+
+async function toggleBan(accountId, table) {
+    if (!confirm('Are you sure you want to toggle the ban status for this account?')) return;
+    try {
+        const result = await API.post(`/api/accounts/${accountId}/ban`);
+        if (result.success) {
+            if (table && table.ajax) table.ajax.reload();
+            showAlert('success', 'Account ban status updated');
+        } else {
+            showAlert('danger', result.error || 'Failed to update account');
+        }
+    } catch (error) {
+        showAlert('danger', error.message || error);
+    }
+}
+
+async function muteAccount(accountId, table) {
+    const days = prompt('Enter number of days to mute (0 to unmute):');
+    if (days === null) return;
+    try {
+        const result = await API.post(`/api/accounts/${accountId}/mute`, { days: parseInt(days) });
+        if (result.success) {
+            if (table && table.ajax) table.ajax.reload();
+            showAlert('success', 'Account mute status updated');
+        } else {
+            showAlert('danger', result.error || 'Failed to update account');
+        }
+    } catch (error) {
+        showAlert('danger', error.message || error);
+    }
+}
+</script>

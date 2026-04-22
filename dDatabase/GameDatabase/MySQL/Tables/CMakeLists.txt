@@ -21,6 +21,8 @@ set(DDATABASES_DATABASES_MYSQL_TABLES_SOURCES
 	"Servers.cpp"
 	"Ugc.cpp"
 	"UgcModularBuild.cpp"
+	"DashboardAuditLog.cpp"
+	"DashboardConfig.cpp"
 	PARENT_SCOPE
 )
 

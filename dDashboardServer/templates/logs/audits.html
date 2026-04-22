@@ -1,0 +1,139 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-journal-check"></i>
+            Audit Logs
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Dashboard Audit Trail</h5>
+            </div>
+            <div class="card-body">
+                <table id="audits-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Target</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via DataTables Ajax -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showLibraryError(message) {
+    const el = document.getElementById('audits-table');
+    if (el) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'alert alert-danger';
+        wrapper.textContent = message;
+        el.replaceWith(wrapper);
+    } else {
+        alert(message);
+    }
+}
+
+function loadAuditLogs() {
+    API.get('/api/auth/status').then(status => {
+        if (!status || !status.authenticated || status.gm_level < 8) {
+            showLibraryError('You do not have permission to view audit logs. GM Level 8+ required.');
+            return;
+        }
+
+        API.get('/api/logs/audits').then(res => {
+            const data = Array.isArray(res.data) ? res.data : (res || []);
+
+            if ($.fn.DataTable.isDataTable('#audits-table')) {
+                const table = $('#audits-table').DataTable();
+                table.clear();
+                table.rows.add(data);
+                table.draw(false);
+            } else {
+                $('#audits-table').DataTable({
+                    data: data,
+                    columns: [
+                        {
+                            data: 'timestamp',
+                            render: function(d) {
+                                if (!d || d === 0) return '-';
+                                return new Date(d * 1000).toLocaleString();
+                            }
+                        },
+                        {
+                            data: 'admin_username',
+                            render: function(d, t, row) {
+                                if (row.admin_account_id) {
+                                    return `<a href="/accounts/view/${row.admin_account_id}">${d || row.admin_account_id}</a>`;
+                                }
+                                return d || '-';
+                            }
+                        },
+                        {
+                            data: 'action',
+                            render: function(d) {
+                                // Color-code actions
+                                const badges = {
+                                    'ban': 'danger',
+                                    'unban': 'success',
+                                    'lock': 'warning',
+                                    'unlock': 'success',
+                                    'mute': 'warning',
+                                    'unmute': 'success',
+                                    'delete': 'danger',
+                                    'create': 'success',
+                                    'update': 'info',
+                                    'gm_level_change': 'primary'
+                                };
+                                const action = d.toLowerCase();
+                                const badgeClass = badges[action] || 'secondary';
+                                return `<span class="badge bg-${badgeClass}">${d}</span>`;
+                            }
+                        },
+                        {
+                            data: 'target_type',
+                            render: function(d, t, row) {
+                                if (!d) return '-';
+                                if (d === 'account' && row.target_id) {
+                                    return `<a href="/accounts/view/${row.target_id}">Account ${row.target_id}</a>`;
+                                } else if (d === 'character' && row.target_id) {
+                                    return `<a href="/characters/view/${row.target_id}">Character ${row.target_id}</a>`;
+                                }
+                                return `${d} ${row.target_id || ''}`;
+                            }
+                        },
+                        { data: 'details', render: d => d || '-' }
+                    ],
+                    pageLength: 25,
+                    order: [[0, 'desc']],
+                    processing: true
+                });
+            }
+
+        }).catch(err => {
+            const msg = err && err.message ? err.message : 'Failed to load audit logs';
+            showLibraryError(`Error loading audit logs: ${msg}`);
+        });
+
+    }).catch(err => {
+        showLibraryError(`Error checking authentication: ${err && err.message ? err.message : err}`);
+    });
+}
+
+// Initialize when jQuery/DataTables and API are ready
+safeInit(function($) {
+    loadAuditLogs();
+}, { requireApi: true, timeout: 8000 });
+</script>

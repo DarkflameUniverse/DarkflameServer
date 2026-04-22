@@ -1,0 +1,82 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-house"></i> Property Moderation</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Pending Properties</div>
+            <div class="card-body">
+                <table id="properties-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Owner (Character)</th>
+                            <th>Property Name</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let propertiesTable = null;
+
+function loadProperties() {
+    API.get('/api/moderation/properties').then(res => {
+        const data = Array.isArray(res.data) ? res.data : (res || []);
+
+        if ($.fn.DataTable.isDataTable('#properties-table')) {
+            const table = $('#properties-table').DataTable();
+            table.clear();
+            table.rows.add(data);
+            table.draw(false);
+            propertiesTable = table;
+        } else {
+            propertiesTable = $('#properties-table').DataTable({
+                data: data,
+                columns: [
+                    { data: 'id' },
+                    { data: 'character_name' },
+                    { data: 'property_name' },
+                    { data: 'submitted', render: d => d ? new Date(d * 1000).toLocaleString() : '-' },
+                    { data: null, orderable: false, render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-success" onclick="approveProperty(${row.id})">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="rejectProperty(${row.id})">Reject</button>
+                        `;
+                    } }
+                ],
+                order: [[0, 'desc']],
+                pageLength: 25
+            });
+        }
+    }).catch(err => { alert(err && err.message ? err.message : 'Failed to load properties'); });
+}
+
+// Initialize when libraries are ready
+safeInit(function($) { loadProperties(); }, { requireApi: true, timeout: 8000 });
+
+window.approveProperty = async function(id) {
+    if (!confirm('Approve this property?')) return;
+    try {
+        const res = await API.post(`/api/moderation/properties/${id}/approve`);
+        if (res && res.success) { loadProperties(); alert('Approved'); } else { alert(res.error || 'Failed'); }
+    } catch (err) { alert(err.message); }
+};
+
+window.rejectProperty = async function(id) {
+    if (!confirm('Reject this property?')) return;
+    try {
+        const res = await API.post(`/api/moderation/properties/${id}/reject`);
+        if (res && res.success) { loadProperties(); alert('Rejected'); } else { alert(res.error || 'Failed'); }
+    } catch (err) { alert(err.message); }
+};
+</script>

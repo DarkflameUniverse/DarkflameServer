@@ -45,6 +45,9 @@ public:
 	void AddFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) override;
 	void RemoveFriend(const LWOOBJID playerAccountId, const LWOOBJID friendAccountId) override;
 	void UpdateActivityLog(const LWOOBJID characterId, const eActivityType activityType, const LWOMAPID mapId) override;
+	std::vector<IActivityLog::Entry> GetRecentActivity(const uint32_t limit) override;
+	uint32_t GetActivityLogCount() override;
+	std::vector<IActivityLog::Entry> GetActivityLogPaginated(uint32_t offset, uint32_t limit, const std::string& orderColumn, const std::string& orderDir) override;
 	void DeleteUgcModelData(const LWOOBJID& modelId) override;
 	void UpdateUgcModelData(const LWOOBJID& modelId, std::stringstream& lxfml) override;
 	std::vector<IUgc::Model> GetAllUgcModels() override;
@@ -56,6 +59,14 @@ public:
 	std::string GetCharacterXml(const LWOOBJID accountId) override;
 	void UpdateCharacterXml(const LWOOBJID characterId, const std::string_view lxfml) override;
 	std::optional<IAccounts::Info> GetAccountInfo(const std::string_view username) override;
+
+	// Account dashboard details
+	std::optional<IAccounts::DetailedInfo> GetAccountById(const uint32_t accountId) override;
+	void UpdateAccountEmail(const uint32_t accountId, const std::string_view email) override;
+	void DeleteAccount(const uint32_t accountId) override;
+	std::vector<IAccounts::ListInfo> GetAllAccounts() override;
+	void UpdateAccountLock(const uint32_t accountId, const bool locked) override;
+	std::vector<IAccounts::SessionInfo> GetAccountSessions(const uint32_t accountId, uint32_t limit = 50) override;
 	void InsertNewCharacter(const ICharInfo::Info info) override;
 	void InsertCharacterXml(const LWOOBJID accountId, const std::string_view lxfml) override;
 	std::vector<LWOOBJID> GetAccountCharacterIds(LWOOBJID accountId) override;
@@ -65,6 +76,12 @@ public:
 	void UpdateLastLoggedInCharacter(const LWOOBJID characterId) override;
 	void SetPetNameModerationStatus(const LWOOBJID& petId, const IPetNames::Info& info) override;
 	std::optional<IPetNames::Info> GetPetNameInfo(const LWOOBJID& petId) override;
+
+	// Pet name moderation
+	std::vector<IPetNames::DetailedInfo> GetAllPetNames() override;
+	std::vector<IPetNames::DetailedInfo> GetPetNamesByStatus(int32_t status) override;
+	void SetPetApprovalStatus(const LWOOBJID& petId, int32_t status) override;
+	uint32_t GetPendingPetNamesCount() override;
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOMAPID mapId, const LWOCLONEID cloneId) override;
 	void UpdatePropertyModerationInfo(const IProperty::Info& info) override;
 	void UpdatePropertyDetails(const IProperty::Info& info) override;
@@ -77,6 +94,15 @@ public:
 	void RemoveModel(const LWOOBJID& modelId) override;
 	void UpdatePerformanceCost(const LWOZONEID& zoneId, const float performanceCost) override;
 	void InsertNewBugReport(const IBugReports::Info& info) override;
+
+	// Bug reports (dashboard)
+	std::vector<IBugReports::DetailedInfo> GetAllBugReports() override;
+	std::vector<IBugReports::DetailedInfo> GetUnresolvedBugReports() override;
+	std::vector<IBugReports::DetailedInfo> GetResolvedBugReports() override;
+	std::optional<IBugReports::DetailedInfo> GetBugReportById(const uint64_t reportId) override;
+	void ResolveBugReport(const uint64_t reportId, const uint32_t resolvedById, const std::string_view resolution) override;
+	uint32_t GetBugReportCount() override;
+	uint32_t GetUnresolvedBugReportCount() override;
 	void InsertCheatDetection(const IPlayerCheatDetections::Info& info) override;
 	void InsertNewMail(const MailInfo& mail) override;
 	void InsertNewUgcModel(
@@ -91,6 +117,7 @@ public:
 	void DeleteMail(const uint64_t mailId) override;
 	void ClaimMailItem(const uint64_t mailId) override;
 	void InsertSlashCommandUsage(const LWOOBJID characterId, const std::string_view command) override;
+	std::vector<ICommandLog::Entry> GetCommandLogs(uint32_t limit = 100) override;
 	void UpdateAccountUnmuteTime(const uint32_t accountId, const uint64_t timeToUnmute) override;
 	void UpdateAccountBan(const uint32_t accountId, const bool banned) override;
 	void UpdateAccountPassword(const uint32_t accountId, const std::string_view bcryptpassword) override;
@@ -101,6 +128,16 @@ public:
 	void InsertDefaultPersistentId() override;
 	std::optional<uint32_t> GetDonationTotal(const uint32_t activityId) override;
 	std::optional<bool> IsPlaykeyActive(const int32_t playkeyId) override;
+
+	// Play keys management
+	std::vector<IPlayKeys::Info> GetAllPlayKeys() override;
+	std::optional<IPlayKeys::Info> GetPlayKeyById(const uint32_t playkeyId) override;
+	std::optional<IPlayKeys::Info> GetPlayKeyByString(const std::string_view key_string) override;
+	bool ConsumePlayKeyUsage(const uint32_t playkeyId) override;
+	void CreatePlayKey(const std::string_view key_string, uint32_t uses, const std::string_view notes) override;
+	void UpdatePlayKey(const uint32_t playkeyId, uint32_t uses, bool active, const std::string_view notes) override;
+	void DeletePlayKey(const uint32_t playkeyId) override;
+	uint32_t GetPlayKeyCount() override;
 	std::vector<IUgc::Model> GetUgcModels(const LWOOBJID& propertyId) override;
 	void AddIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
 	void RemoveIgnore(const LWOOBJID playerId, const LWOOBJID ignoredPlayerId) override;
@@ -111,6 +148,7 @@ public:
 	std::string GetBehavior(const LWOOBJID behaviorId) override;
 	void RemoveBehavior(const LWOOBJID characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
+	void UpdateAccountPlayKey(const uint32_t accountId, const uint32_t playKeyId) override;
 	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
 	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
@@ -124,10 +162,45 @@ public:
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override;
 	void DeleteUgcBuild(const LWOOBJID bigId) override;
 	uint32_t GetAccountCount() override;
+	uint32_t GetBannedAccountCount() override;
+	uint32_t GetLockedAccountCount() override;
 	bool IsNameInUse(const std::string_view name) override;
+	uint32_t GetCharacterCount() override;
+	std::vector<ICharInfo::Info> GetAllCharactersPaginated(uint32_t offset, uint32_t limit, const std::string& orderColumn, const std::string& orderDir) override;
+	std::vector<ICharInfo::Info> GetCharactersWithPendingNames() override;
+
+	// Character management additions
+	void UpdateCharacterPermissions(const LWOOBJID characterId, ePermissionMap permissions) override;
+	void SetCharacterNeedsRename(const LWOOBJID characterId, bool needsRename) override;
+	std::optional<ICharInfo::Stats> GetCharacterStats(const LWOOBJID characterId) override;
+	std::vector<ICharInfo::InventoryItem> GetCharacterInventory(const LWOOBJID characterId) override;
+	std::vector<ICharInfo::Activity> GetCharacterActivity(const LWOOBJID characterId, uint32_t limit = 50) override;
+	void RescueCharacter(const LWOOBJID characterId, uint32_t zoneId) override;
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override;
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override;
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override;
+
+	// Property listing/approval (dashboard)
+	std::vector<IProperty::Info> GetAllProperties() override;
+	std::vector<IProperty::Info> GetPropertiesByApprovalStatus(uint32_t approved) override;
+	uint32_t GetPropertyCount() override;
+	uint32_t GetUnapprovedPropertyCount() override;
+
+	// Dashboard Audit Log
+	void InsertAuditLog(const std::string_view ip_address, const std::string_view endpoint,
+		const std::string_view method, const std::string_view user_agent, int32_t response_code) override;
+	std::vector<IDashboardAuditLog::AuditLogEntry> GetRecentAuditLogs(uint32_t limit) override;
+	std::vector<IDashboardAuditLog::AuditLogEntry> GetAuditLogsByIP(const std::string_view ip_address, uint32_t limit) override;
+	void CleanupOldAuditLogs(uint32_t days_to_keep) override;
+	void InsertAdminActionLog(uint32_t adminAccountId, const std::string_view action,
+	                          const std::string_view targetType, uint64_t targetId,
+	                          const std::string_view details) override;
+	std::vector<IDashboardAuditLog::AdminActionLog> GetAuditLogs(uint32_t limit = 100) override;
+
+	// Dashboard Config
+	std::optional<std::string> GetDashboardConfig(const std::string_view config_key) override;
+	void SetDashboardConfig(const std::string_view config_key, const std::string_view config_value) override;
+
 private:
 	CppSQLite3Statement CreatePreppedStmt(const std::string& query);
 

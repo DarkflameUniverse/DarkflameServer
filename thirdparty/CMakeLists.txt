@@ -80,3 +80,26 @@ FetchContent_MakeAvailable(glm)
 add_subdirectory(MD5)
 
 add_subdirectory(mongoose)
+
+# ASIO for Crow
+FetchContent_Declare(
+	asio
+	GIT_REPOSITORY	https://github.com/chriskohlhoff/asio.git
+	GIT_TAG 	asio-1-28-0
+	GIT_PROGRESS TRUE
+	GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(asio)
+set(ASIO_INCLUDE_DIR ${asio_SOURCE_DIR}/asio/include CACHE STRING "" FORCE)
+
+# Crow for Dashboard Server
+FetchContent_Declare(
+	Crow
+	GIT_REPOSITORY	https://github.com/CrowCpp/Crow.git
+	GIT_TAG 	v1.2.0
+	GIT_PROGRESS TRUE
+	GIT_SHALLOW 1
+)
+set(CROW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(CROW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(Crow)

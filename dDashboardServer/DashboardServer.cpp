@@ -1,3 +1,6 @@
+#ifndef PROJECT_VERSION
+#define PROJECT_VERSION "dev"
+#endif
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -22,7 +25,10 @@
 #include "RakNetDefines.h"
 #include "MessageIdentifiers.h"
 
+#include "MessageType/Server.h"
+
 #include "DashboardWeb.h"
+#include "DashboardShared.h"
 
 namespace Game {
 	Logger* logger = nullptr;
@@ -32,6 +38,9 @@ namespace Game {
 	Game::signal_t lastSignal = 0;
 	std::mt19937 randomEngine;
 }
+
+// Forward declaration
+void HandlePacket(Packet* packet);
 
 int main(int argc, char** argv) {
 	constexpr uint32_t dashboardFramerate = mediumFramerate;
@@ -83,18 +92,9 @@ int main(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
-	// setup the chat api web server
-	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(80);
-	if (!Game::web.Startup("localhost", web_server_port)) {
-		// if we want the web server and it fails to start, exit
-		LOG("Failed to start web server, shutting down.");
-		Database::Destroy("DashboardServer");
-		delete Game::logger;
-		delete Game::config;
-		return EXIT_FAILURE;
-	}
-
-	DashboardWeb::RegisterRoutes();
+	// Setup and start the Crow web server (runs in its own thread)
+	const uint32_t web_server_port = GeneralUtils::TryParse<uint32_t>(Game::config->GetValue("web_server_port")).value_or(8080);
+	DashboardWeb::Initialize(web_server_port);
 
 	//Find out the master's IP:
 	std::string masterIP;
@@ -116,6 +116,9 @@ int main(int argc, char** argv) {
 
 	Game::server = new dServer(ourIP, ourPort, 0, maxClients, false, true, Game::logger, masterIP, masterPort, ServiceType::COMMON, Game::config, &Game::lastSignal, masterPassword);
 
+	// Update shared state with master server info
+	DashboardShared::g_Stats.SetMasterInfo(masterIP, masterPort);
+
 	Game::randomEngine = std::mt19937(time(0));
 
 	//Run it until server gets a kill message from Master:
@@ -128,6 +131,7 @@ int main(int argc, char** argv) {
 	uint32_t framesSinceLastSQLPing = 0;
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
+	auto startTime = lastTime; // Track server start time for uptime
 
 	Game::logger->Flush(); // once immediately before main loop
 	while (!Game::ShouldShutdown()) {
@@ -137,14 +141,43 @@ int main(int argc, char** argv) {
 
 			if (framesSinceMasterDisconnect >= dashboardFramerate)
 				break; //Exit our loop, shut down.
-		} else framesSinceMasterDisconnect = 0;
+			
+			DashboardShared::SetMasterConnected(false);
+		} else {
+			framesSinceMasterDisconnect = 0;
+			DashboardShared::SetMasterConnected(true);
+		}
 
 		const auto currentTime = std::chrono::high_resolution_clock::now();
 		const float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
 		lastTime = currentTime;
 
-		// Check and handle web requests:
-		Game::web.ReceiveRequests();
+		// Check for packets from master:
+		Game::server->ReceiveFromMaster();
+		
+		// Process queued packet sends from Crow threads
+		if (DashboardShared::g_PacketQueue.HasPending()) {
+			auto pendingPackets = DashboardShared::g_PacketQueue.DequeueAll();
+			for (const auto& request : pendingPackets) {
+				// Create BitStream from queued data
+				RakNet::BitStream bitStream(const_cast<unsigned char*>(request.data.data()), request.data.size(), false);
+				
+				// Send via RakNet (safe - we're in the RakNet thread)
+				Game::server->Send(bitStream, request.target, request.broadcast);
+				DashboardShared::OnPacketSent();
+				
+				LOG("Sent queued packet from web request (%zu bytes)", request.data.size());
+			}
+		}
+		
+		// Check for RakNet packets:
+		packet = Game::server->Receive();
+		if (packet) {
+			HandlePacket(packet);
+			DashboardShared::OnPacketReceived(); // Update shared stats
+			Game::server->DeallocatePacket(packet);
+			packet = nullptr;
+		}
 
 		//Push our log every 30s:
 		if (framesSinceLastFlush >= logFlushTime) {
@@ -167,10 +200,13 @@ int main(int argc, char** argv) {
 			framesSinceLastSQLPing = 0;
 		} else framesSinceLastSQLPing++;
 
-		//Sleep our thread since auth can afford to.
-		t += std::chrono::milliseconds(dashboardFrameDelta); //Chat can run at a lower "fps"
+		//Sleep our thread since dashboard can afford to.
+		t += std::chrono::milliseconds(dashboardFrameDelta);
 		std::this_thread::sleep_until(t);
 	}
+
+	// Stop the Crow web server
+	DashboardWeb::Stop();
 
 	//Delete our objects here:
 	Database::Destroy("DashboardServer");
@@ -179,4 +215,34 @@ int main(int argc, char** argv) {
 	delete Game::config;
 
 	return EXIT_SUCCESS;
+}
+
+void HandlePacket(Packet* packet) {
+	if (packet->length < 4) return;
+
+	if (packet->data[0] == ID_DISCONNECTION_NOTIFICATION || packet->data[0] == ID_CONNECTION_LOST) {
+		LOG("A client has disconnected");
+		DashboardShared::OnClientDisconnected();
+		return;
+	}
+
+	if (packet->data[0] == ID_NEW_INCOMING_CONNECTION) {
+		LOG("New incoming connection from %s", packet->systemAddress.ToString());
+		DashboardShared::OnClientConnected();
+		return;
+	}
+
+	if (packet->data[0] != ID_USER_PACKET_ENUM) return;
+
+	// Handle server packets
+	if (static_cast<ServiceType>(packet->data[1]) == ServiceType::COMMON) {
+		if (static_cast<MessageType::Server>(packet->data[3]) == MessageType::Server::VERSION_CONFIRM) {
+			LOG("Version confirmation received from client");
+			DashboardShared::OnPacketReceived("VERSION_CONFIRM");
+		}
+	}
+
+	// Add more packet handling as needed
+	// This is where you would handle custom dashboard-specific packets
+	// All packet handling can safely update DashboardShared state
 }

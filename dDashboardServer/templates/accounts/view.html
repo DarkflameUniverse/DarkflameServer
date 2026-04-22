@@ -1,0 +1,214 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-person-circle"></i> Account Details</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Account Info</div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">ID</dt><dd class="col-sm-8" id="acct-id">-</dd>
+                    <dt class="col-sm-4">Username</dt><dd class="col-sm-8" id="acct-name">-</dd>
+                    <dt class="col-sm-4">Email</dt><dd class="col-sm-8" id="acct-email">-</dd>
+                    <dt class="col-sm-4">GM Level</dt><dd class="col-sm-8" id="acct-gm">-</dd>
+                    <dt class="col-sm-4">Banned</dt><dd class="col-sm-8" id="acct-banned">-</dd>
+                    <dt class="col-sm-4">Locked</dt><dd class="col-sm-8" id="acct-locked">-</dd>
+                    <dt class="col-sm-4">Mute Expire</dt><dd class="col-sm-8" id="acct-mute">-</dd>
+                    <dt class="col-sm-4">Play Key ID</dt><dd class="col-sm-8" id="acct-playkey">-</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Administrative Actions</div>
+            <div class="card-body">
+                <button class="btn btn-danger mb-2" id="delete-account">Delete Account</button>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label">Set GM Level</label>
+                    <input type="number" id="gm-level-input" class="form-control" min="0" max="9">
+                    <button class="btn btn-primary mt-2" id="set-gm">Update GM Level</button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Update Email</label>
+                    <input type="email" id="email-input" class="form-control">
+                    <button class="btn btn-primary mt-2" id="set-email">Update Email</button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Reset Password</label>
+                    <input type="password" id="password-input" class="form-control">
+                    <button class="btn btn-primary mt-2" id="reset-password">Reset Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Characters</div>
+            <div class="card-body">
+                <table id="characters-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Level</th>
+                            <th>Map</th>
+                            <th>Last Login</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Sessions</div>
+            <div class="card-body">
+                <table id="sessions-table" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Session ID</th>
+                            <th>IP Address</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
+                            <th>Active</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const accountId = (window.location.pathname.split('/').pop() || '').trim();
+
+async function loadAccount() {
+    try {
+        const res = await API.get(`/api/accounts/${accountId}`);
+        if (res && res.success) {
+            $('#acct-id').text(res.id);
+            $('#acct-name').text(res.name);
+            $('#acct-email').text(res.email || '-');
+            $('#acct-gm').text(res.gm_level);
+            $('#acct-banned').html(res.banned ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>');
+            $('#acct-locked').html(res.locked ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-success">No</span>');
+            $('#acct-mute').text(res.mute_expire && res.mute_expire>0 ? new Date(res.mute_expire*1000).toLocaleString() : '-');
+            $('#acct-playkey').text(res.play_key_id || '-');
+            $('#gm-level-input').val(res.gm_level);
+            $('#email-input').val(res.email || '');
+            // Load related data
+            loadCharacters();
+            loadSessions();
+        } else {
+            alert(res.error || 'Failed to load account');
+        }
+    } catch (err) { alert(err.message); }
+}
+
+async function loadCharacters() {
+    try {
+        const res = await API.get(`/api/accounts/${accountId}/characters`);
+        const data = (res && Array.isArray(res.data)) ? res.data : (res || []);
+
+        if ($.fn.DataTable.isDataTable('#characters-table')) {
+            const table = $('#characters-table').DataTable();
+            table.clear();
+            table.rows.add(data);
+            table.draw(false);
+        } else {
+            $('#characters-table').DataTable({
+                data: data,
+                columns: [
+                    { data: 'id' },
+                    { data: 'name', render: function(d, t, row) { return `<a href="/characters/view/${row.id}">${d}</a>`; } },
+                    { data: 'level' },
+                    { data: 'map_id' },
+                    { data: 'last_login', render: d => d ? new Date(d * 1000).toLocaleString() : '-' }
+                ],
+                order: [[0, 'desc']],
+                pageLength: 10
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load characters', err);
+    }
+}
+
+async function loadSessions() {
+    try {
+        const res = await API.get(`/api/accounts/${accountId}/sessions`);
+        const data = (res && Array.isArray(res.data)) ? res.data : (res || []);
+
+        if ($.fn.DataTable.isDataTable('#sessions-table')) {
+            const table = $('#sessions-table').DataTable();
+            table.clear();
+            table.rows.add(data);
+            table.draw(false);
+        } else {
+            $('#sessions-table').DataTable({
+                data: data,
+                columns: [
+                    { data: 'session_id' },
+                    { data: 'ip_address' },
+                    { data: 'login_time', render: d => d ? new Date(d * 1000).toLocaleString() : '-' },
+                    { data: 'logout_time', render: d => d && d>0 ? new Date(d * 1000).toLocaleString() : '-' },
+                    { data: 'active', render: d => d ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>' }
+                ],
+                order: [[2, 'desc']],
+                pageLength: 10
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load sessions', err);
+    }
+}
+
+// Initialize when libraries are ready (API used, jQuery optional)
+safeInit(function($) {
+    loadAccount();
+
+    document.getElementById('delete-account').addEventListener('click', async function() {
+        if (!confirm('Delete this account? This action is irreversible.')) return;
+        try {
+            const res = await API.post(`/api/accounts/${accountId}/delete`, {});
+            if (res && res.success) {
+                alert('Account deleted');
+                window.location.href = '/accounts';
+            } else {
+                alert(res.error || 'Failed to delete');
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('set-gm').addEventListener('click', async function() {
+        const lvl = parseInt(document.getElementById('gm-level-input').value);
+        try {
+            const res = await API.post(`/api/accounts/${accountId}/gm-level`, { gm_level: lvl });
+            if (res && res.success) { alert('GM level updated'); loadAccount(); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('set-email').addEventListener('click', async function() {
+        const email = document.getElementById('email-input').value.trim();
+        try {
+            const res = await API.post(`/api/accounts/${accountId}/email`, { email: email });
+            if (res && res.success) { alert('Email updated'); loadAccount(); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('reset-password').addEventListener('click', async function() {
+        const pw = document.getElementById('password-input').value;
+        if (!pw || pw.length < 8) { alert('Password must be at least 8 characters'); return; }
+        try {
+            const res = await API.post(`/api/accounts/${accountId}/password-reset`, { password: pw });
+            if (res && res.success) { alert('Password reset'); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+}, { requireApi: true, timeout: 8000 });
+</script>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang='en'>
+
+  <head>
+
+    <!-- Title -->
+    <title>{{#title}}{{title}}{{/title}}{{^title}}Dashboard{{/title}} - {{config.APP_NAME}}</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{! CSS }}
+    <style>
+      .required:after {
+        content:" *";
+        color: red;
+      }
+      .error {
+        color: red;
+      }
+    </style>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <!-- Custom CSS consolidated -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+
+  </head>
+  <body class="bg-dark text-white">
+
+    {{> header}}
+
+    <!-- Content -->
+
+    <div class="container py-0">
+
+      <!-- Text -->
+      <div class="text-center">
+        <span class="h3 mb-0"><br/>{{content_before}}<br/><br/></span>
+      </div>
+
+      <!-- Flashed messages: expect `messages` to be an array of {category, message} -->
+      {! TODO: make this dynamic toasts !!}
+      {{#messages}}
+        <div class="alert alert-{{category}}" role="alert">
+          {{message}}
+        </div>
+      {{/messages}}
+
+    </div>
+
+    <div class='container mt-4'>
+      {{content}}
+    </div>
+
+    <div class='container mt-4'>
+      {{content_after}}
+    </div>
+
+    <footer>
+      {{#footer}}
+        <hr class="my-5"/>
+      {{/footer}}
+    </footer>
+
+    {{! JS assets }}
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jQuery (optional fallback for older scripts) -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Shared helper: wait for jQuery/DataTables (keeps pages resilient to CDN timing) -->
+    <script src="/static/js/wait-for-jq-dt.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/login.js"></script>
+    <script>
+      // set the active nav-link item (use vanilla JS, fallback to jQuery)
+      (function(){
+        var endpoint = '{{request_endpoint}}' || '';
+        try{
+          var target_nav = '#' + endpoint.replace(/\./g, '-');
+          var el = document.querySelector(target_nav);
+          if(el) el.classList.add('active');
+          else if(window.jQuery) $(target_nav).addClass('active');
+        }catch(e){}
+      })();
+
+      // initialize Bootstrap 5 tooltips (no jQuery required)
+      (function(){
+        try{
+          var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+          tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+          });
+        }catch(e){
+          // fallback for legacy attribute name if still used
+          // legacy jQuery tooltip fallback (only runs if bootstrap init failed and jQuery tooltip is present)
+          if(window.jQuery && window.jQuery.fn && window.jQuery.fn.tooltip) $(function(){ $('[data-toggle="tooltip"]').tooltip(); });
+        }
+      })();
+
+      function setInnerHTML(elm, html) {
+        elm.innerHTML = html;
+        // re-init Bootstrap tooltips inside newly injected content
+        try{
+          var tooltipTriggerList = [].slice.call(elm.querySelectorAll('[data-bs-toggle="tooltip"]'));
+          tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+          });
+        }catch(e){
+          if(window.jQuery && window.jQuery.fn && window.jQuery.fn.tooltip) $("body").tooltip({ selector: '[data-toggle=tooltip]' });
+        }
+        Array.from(elm.querySelectorAll("script")).forEach(function(oldScriptEl) {
+          var newScriptEl = document.createElement("script");
+          Array.from(oldScriptEl.attributes).forEach(function(attr) {
+            newScriptEl.setAttribute(attr.name, attr.value);
+          });
+          var scriptText = document.createTextNode(oldScriptEl.innerHTML || '');
+          newScriptEl.appendChild(scriptText);
+          oldScriptEl.parentNode.replaceChild(newScriptEl, oldScriptEl);
+        });
+      }
+    </script>
+
+  </body>
+</html>

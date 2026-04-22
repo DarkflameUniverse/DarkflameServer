@@ -24,3 +24,44 @@ std::optional<IPetNames::Info> MySQLDatabase::GetPetNameInfo(const LWOOBJID& pet
 
 	return toReturn;
 }
+
+std::vector<IPetNames::DetailedInfo> MySQLDatabase::GetAllPetNames() {
+	std::vector<IPetNames::DetailedInfo> out;
+	auto res = ExecuteSelect("SELECT id, pet_name, approved, owner_id FROM pet_names ORDER BY id DESC;");
+
+	while (res->next()) {
+		IPetNames::DetailedInfo info;
+		info.id = res->getUInt64("id");
+		info.petName = res->getString("pet_name").c_str();
+		info.approvalStatus = res->getInt("approved");
+		info.ownerId = res->getUInt64("owner_id");
+		out.push_back(info);
+	}
+
+	return out;
+}
+
+std::vector<IPetNames::DetailedInfo> MySQLDatabase::GetPetNamesByStatus(int32_t status) {
+	std::vector<IPetNames::DetailedInfo> out;
+	auto res = ExecuteSelect("SELECT id, pet_name, approved, owner_id FROM pet_names WHERE approved = ? ORDER BY id DESC;", status);
+
+	while (res->next()) {
+		IPetNames::DetailedInfo info;
+		info.id = res->getUInt64("id");
+		info.petName = res->getString("pet_name").c_str();
+		info.approvalStatus = res->getInt("approved");
+		info.ownerId = res->getUInt64("owner_id");
+		out.push_back(info);
+	}
+
+	return out;
+}
+
+void MySQLDatabase::SetPetApprovalStatus(const LWOOBJID& petId, int32_t status) {
+	ExecuteUpdate("UPDATE pet_names SET approved = ? WHERE id = ?;", status, petId);
+}
+
+uint32_t MySQLDatabase::GetPendingPetNamesCount() {
+	auto res = ExecuteSelect("SELECT COUNT(*) as count FROM pet_names WHERE approved = 1;");
+	return res->next() ? res->getUInt("count") : 0;
+}

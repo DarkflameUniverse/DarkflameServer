@@ -1,0 +1,314 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-person-badge"></i> Character Details</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Character Info</div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">ID</dt><dd class="col-sm-7" id="char-id">-</dd>
+                    <dt class="col-sm-5">Name</dt><dd class="col-sm-7" id="char-name">-</dd>
+                    <dt class="col-sm-5">Pending Name</dt><dd class="col-sm-7" id="char-pending-name">-</dd>
+                    <dt class="col-sm-5">Account</dt><dd class="col-sm-7" id="char-account">-</dd>
+                    <dt class="col-sm-5">Level</dt><dd class="col-sm-7" id="char-level">-</dd>
+                    <dt class="col-sm-5">Universe Score</dt><dd class="col-sm-7" id="char-uscore">-</dd>
+                    <dt class="col-sm-5">Current Zone</dt><dd class="col-sm-7" id="char-zone">-</dd>
+                    <dt class="col-sm-5">Last Login</dt><dd class="col-sm-7" id="char-last-login">-</dd>
+                    <dt class="col-sm-5">Created</dt><dd class="col-sm-7" id="char-created">-</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Restrictions</div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Mail Restricted</dt><dd class="col-sm-7" id="char-mail-restricted">-</dd>
+                    <dt class="col-sm-5">Trade Restricted</dt><dd class="col-sm-7" id="char-trade-restricted">-</dd>
+                    <dt class="col-sm-5">Chat Restricted</dt><dd class="col-sm-7" id="char-chat-restricted">-</dd>
+                    <dt class="col-sm-5">Needs Rename</dt><dd class="col-sm-7" id="char-needs-rename">-</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Administrative Actions</div>
+            <div class="card-body">
+                <button class="btn btn-warning mb-2 w-100" id="rescue-char">
+                    <i class="bi bi-life-preserver"></i> Rescue Character
+                </button>
+                <button class="btn btn-primary mb-2 w-100" id="approve-name">
+                    <i class="bi bi-check-circle"></i> Approve Pending Name
+                </button>
+                <button class="btn btn-danger mb-2 w-100" id="delete-char">
+                    <i class="bi bi-trash"></i> Delete Character
+                </button>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label">Toggle Mail Restriction</label>
+                    <button class="btn btn-secondary w-100" id="toggle-mail">Toggle Mail</button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Toggle Trade Restriction</label>
+                    <button class="btn btn-secondary w-100" id="toggle-trade">Toggle Trade</button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Toggle Chat Restriction</label>
+                    <button class="btn btn-secondary w-100" id="toggle-chat">Toggle Chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="stats-tab" data-bs-toggle="tab" href="#stats" role="tab">Stats</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="inventory-tab" data-bs-toggle="tab" href="#inventory" role="tab">Inventory</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="activity-tab" data-bs-toggle="tab" href="#activity" role="tab">Activity</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="stats" role="tabpanel">
+                        <h6>Character Statistics</h6>
+                        <div id="char-stats-content">
+                            <dl class="row">
+                                <dt class="col-sm-6">Total Currency Collected</dt><dd class="col-sm-6" id="stat-currency">-</dd>
+                                <dt class="col-sm-6">Total Bricks Collected</dt><dd class="col-sm-6" id="stat-bricks">-</dd>
+                                <dt class="col-sm-6">Total Smashables</dt><dd class="col-sm-6" id="stat-smashables">-</dd>
+                                <dt class="col-sm-6">Total Quick Builds</dt><dd class="col-sm-6" id="stat-quickbuilds">-</dd>
+                                <dt class="col-sm-6">Total Enemies Smashed</dt><dd class="col-sm-6" id="stat-enemies">-</dd>
+                                <dt class="col-sm-6">Total Rockets Used</dt><dd class="col-sm-6" id="stat-rockets">-</dd>
+                                <dt class="col-sm-6">Total Missions Completed</dt><dd class="col-sm-6" id="stat-missions">-</dd>
+                                <dt class="col-sm-6">Total Pets Tamed</dt><dd class="col-sm-6" id="stat-pets">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="inventory" role="tabpanel">
+                        <h6>Inventory Items</h6>
+                        <div id="char-inventory-content">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Item ID</th>
+                                        <th>Count</th>
+                                        <th>Slot</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-tbody">
+                                    <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="activity" role="tabpanel">
+                        <h6>Recent Activity</h6>
+                        <div id="char-activity-content">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Activity</th>
+                                        <th>Map</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-tbody">
+                                    <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const characterId = (window.location.pathname.split('/').pop() || '').trim();
+
+async function loadCharacter() {
+    try {
+        const res = await API.get(`/api/characters/${characterId}`);
+        if (res && res.success) {
+            $('#char-id').text(res.id);
+            $('#char-name').text(res.name);
+            $('#char-pending-name').text(res.pending_name || '-');
+
+            if (res.account_id) {
+                $('#char-account').html(`<a href="/accounts/view/${res.account_id}">${res.account_name || res.account_id}</a>`);
+            } else {
+                $('#char-account').text('-');
+            }
+
+            $('#char-level').text(res.level || 0);
+            $('#char-uscore').text(res.uscore || 0);
+            $('#char-zone').text(res.zone_id || '-');
+            $('#char-last-login').text(res.last_login && res.last_login > 0 ? new Date(res.last_login * 1000).toLocaleString() : 'Never');
+            $('#char-created').text(res.created_on ? new Date(res.created_on * 1000).toLocaleString() : '-');
+
+            // Restrictions
+            $('#char-mail-restricted').html(res.mail_restricted ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>');
+            $('#char-trade-restricted').html(res.trade_restricted ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>');
+            $('#char-chat-restricted').html(res.chat_restricted ? '<span class="badge bg-danger">Yes</span>' : '<span class="badge bg-success">No</span>');
+            $('#char-needs-rename').html(res.needs_rename ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-success">No</span>');
+
+            // Load related data
+            loadCharacterStats();
+            loadCharacterActivity();
+        } else {
+            alert(res.error || 'Failed to load character');
+        }
+    } catch (err) {
+        alert(err.message || 'Error loading character');
+    }
+}
+
+async function loadCharacterStats() {
+    try {
+        const res = await API.get(`/api/characters/${characterId}/stats`);
+        if (res && res.success) {
+            $('#stat-currency').text(res.total_currency_collected || 0);
+            $('#stat-bricks').text(res.total_bricks_collected || 0);
+            $('#stat-smashables').text(res.total_smashables || 0);
+            $('#stat-quickbuilds').text(res.total_quickbuilds_completed || 0);
+            $('#stat-enemies').text(res.total_enemies_smashed || 0);
+            $('#stat-rockets').text(res.total_rockets_used || 0);
+            $('#stat-missions').text(res.total_missions_completed || 0);
+            $('#stat-pets').text(res.total_pets_tamed || 0);
+        }
+    } catch (err) {
+        console.error('Failed to load character stats', err);
+    }
+}
+
+async function loadCharacterActivity() {
+    try {
+        const res = await API.get(`/api/characters/${characterId}/activity`);
+        const data = (res && Array.isArray(res.data)) ? res.data : [];
+
+        const tbody = $('#activity-tbody');
+        tbody.empty();
+
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="3" class="text-center">No activity found</td></tr>');
+        } else {
+            data.forEach(activity => {
+                const row = $('<tr>');
+                row.append($('<td>').text(new Date(activity.timestamp * 1000).toLocaleString()));
+                row.append($('<td>').text(activity.activity));
+                row.append($('<td>').text(activity.map_id));
+                tbody.append(row);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load character activity', err);
+        $('#activity-tbody').html('<tr><td colspan="3" class="text-center text-danger">Failed to load activity</td></tr>');
+    }
+}
+
+// Load inventory when the tab is clicked
+$('#inventory-tab').on('shown.bs.tab', async function() {
+    try {
+        const res = await API.get(`/api/characters/${characterId}/inventory`);
+        const data = (res && Array.isArray(res.data)) ? res.data : [];
+
+        const tbody = $('#inventory-tbody');
+        tbody.empty();
+
+        if (data.length === 0) {
+            tbody.append('<tr><td colspan="3" class="text-center">No items found</td></tr>');
+        } else {
+            data.forEach(item => {
+                const row = $('<tr>');
+                row.append($('<td>').text(item.item_id));
+                row.append($('<td>').text(item.count || 1));
+                row.append($('<td>').text(item.slot || '-'));
+                tbody.append(row);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load inventory', err);
+        $('#inventory-tbody').html('<tr><td colspan="3" class="text-center text-danger">Failed to load inventory</td></tr>');
+    }
+});
+
+// Initialize when libraries are ready
+safeInit(function($) {
+    loadCharacter();
+
+    document.getElementById('rescue-char').addEventListener('click', async function() {
+        if (!confirm('Rescue this character to a safe location?')) return;
+        try {
+            const res = await API.post(`/api/characters/${characterId}/rescue`, {});
+            if (res && res.success) {
+                alert('Character rescued');
+                loadCharacter();
+            } else {
+                alert(res.error || 'Failed to rescue character');
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('approve-name').addEventListener('click', async function() {
+        try {
+            const res = await API.post(`/api/characters/${characterId}/approve-name`, {});
+            if (res && res.success) {
+                alert('Name approved');
+                loadCharacter();
+            } else {
+                alert(res.error || 'Failed to approve name');
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('delete-char').addEventListener('click', async function() {
+        const confirmMsg = 'DELETE this character? This action is irreversible!';
+        if (!confirm(confirmMsg)) return;
+        const doubleConfirm = prompt('Type "DELETE" to confirm:');
+        if (doubleConfirm !== 'DELETE') return;
+        try {
+            const res = await API.post(`/api/characters/${characterId}/delete`, {});
+            if (res && res.success) {
+                alert('Character deleted');
+                window.location.href = '/characters';
+            } else {
+                alert(res.error || 'Failed to delete');
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('toggle-mail').addEventListener('click', async function() {
+        try {
+            const res = await API.post(`/api/characters/${characterId}/toggle-mail`, {});
+            if (res && res.success) { alert('Mail restriction toggled'); loadCharacter(); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('toggle-trade').addEventListener('click', async function() {
+        try {
+            const res = await API.post(`/api/characters/${characterId}/toggle-trade`, {});
+            if (res && res.success) { alert('Trade restriction toggled'); loadCharacter(); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById('toggle-chat').addEventListener('click', async function() {
+        try {
+            const res = await API.post(`/api/characters/${characterId}/toggle-chat`, {});
+            if (res && res.success) { alert('Chat restriction toggled'); loadCharacter(); } else { alert(res.error || 'Failed'); }
+        } catch (err) { alert(err.message); }
+    });
+}, { requireApi: true, timeout: 8000 });
+</script>

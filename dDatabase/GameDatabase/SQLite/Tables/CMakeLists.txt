@@ -7,6 +7,8 @@ set(DDATABASES_DATABASES_SQLITE_TABLES_SOURCES
 	"CharInfo.cpp"
 	"CharXml.cpp"
 	"CommandLog.cpp"
+	"DashboardAuditLog.cpp"
+	"DashboardConfig.cpp"
 	"Friends.cpp"
 	"IgnoreList.cpp"
 	"Leaderboard.cpp"

@@ -1,0 +1,80 @@
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-envelope"></i> Send Mail</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Compose Mail</div>
+            <div class="card-body">
+                <form id="send-mail-form">
+                    <div class="mb-3 form-check">
+                        <input class="form-check-input" type="checkbox" id="send-to-all">
+                        <label class="form-check-label" for="send-to-all">Send to all characters</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Recipient Character ID (leave blank if sending to all)</label>
+                        <input type="number" id="recipient-id" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input type="text" id="subject" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea id="body" class="form-control" rows="6" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Attachment LOT (optional)</label>
+                            <input type="number" id="attachment-lot" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Attachment Count</label>
+                            <input type="number" id="attachment-count" class="form-control" value="1" min="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Mail</button>
+                </form>
+                <div id="mail-result" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('send-mail-form');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const sendToAll = document.getElementById('send-to-all').checked;
+        const recipientId = parseInt(document.getElementById('recipient-id').value) || 0;
+        const subject = document.getElementById('subject').value.trim();
+        const body = document.getElementById('body').value.trim();
+        const lot = parseInt(document.getElementById('attachment-lot').value) || 0;
+        const count = parseInt(document.getElementById('attachment-count').value) || 1;
+
+        const payload = { subject: subject, body: body };
+        if (sendToAll) payload.send_to_all = true;
+        else payload.recipient_id = recipientId;
+        if (lot > 0) {
+            payload.attachment_lot = lot;
+            payload.attachment_count = count;
+        }
+
+        try {
+            const res = await API.post('/api/mail/send', payload);
+            if (res && res.success) {
+                document.getElementById('mail-result').innerHTML = `<div class="alert alert-success">Sent to ${res.recipients} recipient(s)</div>`;
+                form.reset();
+            } else {
+                document.getElementById('mail-result').innerHTML = `<div class="alert alert-danger">${res.error || 'Failed to send mail'}</div>`;
+            }
+        } catch (err) {
+            document.getElementById('mail-result').innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        }
+    });
+});
+</script>
