@@ -6,6 +6,7 @@
 #include "GameDatabase.h"
 
 class TestSQLDatabase : public GameDatabase {
+public:
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 

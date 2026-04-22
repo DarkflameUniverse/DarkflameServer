@@ -126,3 +126,6 @@ docker-compose.override.yml
 # CMake scripts
 !cmake/*
 !cmake/toolchains/*
+
+.mcp.json
+.claude/

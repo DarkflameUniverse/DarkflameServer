@@ -90,43 +90,15 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 		}
 
 		// Load reputation config
-		auto configFloat = [](const std::string& key, const float def) {
-			const auto& val = Game::config->GetValue(key);
-			if (val.empty()) {
-				return def;
-			}
-
-			float parsedValue {};
-			if (GeneralUtils::TryParse<float>(val, parsedValue)) {
-				return parsedValue;
-			}
-
-			LOG("Invalid config value for '%s': '%s'. Using default: %f", key.c_str(), val.c_str(), def);
-			return def;
-		};
-		auto configUint = [](const std::string& key, const std::uint32_t def) {
-			const auto& val = Game::config->GetValue(key);
-			if (val.empty()) {
-				return def;
-			}
-
-			std::uint32_t parsedValue {};
-			if (GeneralUtils::TryParse<std::uint32_t>(val, parsedValue)) {
-				return parsedValue;
-			}
-
-			LOG("Invalid config value for '%s': '%s'. Using default: %u", key.c_str(), val.c_str(), def);
-			return def;
-		};
-		m_RepInterval = configFloat("property_rep_interval", 60.0f);
-		m_RepDailyCap = configUint("property_rep_daily_cap", 50);
-		m_RepPerTick = configUint("property_rep_per_tick", 1);
-		m_RepMultiplier = configFloat("property_rep_multiplier", 1.0f);
-		m_RepVelocityThreshold = configFloat("property_rep_velocity_threshold", 0.5f);
-		m_RepSaveInterval = configFloat("property_rep_save_interval", 300.0f);
-		m_RepDecayRate = configFloat("property_rep_decay_rate", 0.0f);
-		m_RepDecayInterval = configFloat("property_rep_decay_interval", 86400.0f);
-		m_RepDecayMinimum = configUint("property_rep_decay_minimum", 0);
+		m_RepInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_interval")).value_or(60.0f);
+		m_RepDailyCap = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_daily_cap")).value_or(50);
+		m_RepPerTick = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_per_tick")).value_or(1);
+		m_RepMultiplier = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_multiplier")).value_or(1.0f);
+		m_RepVelocityThreshold = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_velocity_threshold")).value_or(0.5f);
+		m_RepSaveInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_save_interval")).value_or(300.0f);
+		m_RepDecayRate = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_decay_rate")).value_or(0.0f);
+		m_RepDecayInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_decay_interval")).value_or(86400.0f);
+		m_RepDecayMinimum = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_decay_minimum")).value_or(0);
 
 		// Load daily reputation contributions and subscribe to position updates
 		m_CurrentDate = GeneralUtils::GetCurrentUTCDate();
@@ -146,6 +118,7 @@ PropertyManagementComponent::~PropertyManagementComponent() {
 	if (instance == this) {
 		instance = nullptr;
 	}
+	SaveReputation();
 }
 LWOOBJID PropertyManagementComponent::GetOwnerId() const {
 	return owner;
@@ -900,10 +873,6 @@ void PropertyManagementComponent::OnChatMessageReceived(const std::string& sMess
 
 		modelComponent->OnChatMessageReceived(sMessage);
 	}
-}
-
-PropertyManagementComponent::~PropertyManagementComponent() {
-	SaveReputation();
 }
 
 void PropertyManagementComponent::Update(float deltaTime) {
