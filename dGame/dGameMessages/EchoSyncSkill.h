@@ -47,8 +47,7 @@ public:
 
 		uint32_t sBitStreamLength{};
 		stream.Read(sBitStreamLength);
-		const uint32_t MAX_BITSTREAM_LENGTH = 0x500000; // Prevent DoS via unbounded sBitStream
-		if (sBitStreamLength > MAX_BITSTREAM_LENGTH) return false;
+		if (sBitStreamLength > MAX_MESSAGE_LENGTH) return false;
 		for (unsigned int k = 0; k < sBitStreamLength; k++) {
 			unsigned char character;
 			stream.Read(character);

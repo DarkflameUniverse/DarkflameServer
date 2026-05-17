@@ -17,7 +17,6 @@ ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	inStream.Read(message.unknown);
 	inStream.Read(messageLength);
 
-	const int32_t MAX_MESSAGE_LENGTH = 0x500000; // Prevent DoS via unbounded message length
 	if (messageLength > MAX_MESSAGE_LENGTH) return message;
 
 	for (int32_t i = 0; i < (messageLength - 1); ++i) {

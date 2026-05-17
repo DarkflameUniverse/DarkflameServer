@@ -2423,7 +2423,7 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* e
 	uint32_t commandLength{};
 	inStream.Read(commandLength);
 
-	if (commandLength > 0x500000) return; // Prevent DoS via unbounded command buffer
+	if (commandLength > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded command buffer
 
 	std::string command;
 	command.reserve(commandLength);
@@ -3630,8 +3630,7 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(brickCount);
 
-	const uint32_t MAX_BRICK_COUNT = 0x500000;
-	if (brickCount > MAX_BRICK_COUNT) return; // Prevent DoS via unbounded brick count
+	if (brickCount > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded brick count
 
 	bricks.reserve(brickCount);
 
@@ -5823,8 +5822,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 	uint32_t messageLength;
 	inStream.Read(messageLength);
 
-	const uint32_t MAX_STRING_LENGTH = 0x50000; // Prevent DoS via unbounded strings
-	if (messageLength > MAX_STRING_LENGTH) return;
+	if (messageLength > MAX_MESSAGE_LENGTH) return;
 
 	for (uint32_t i = 0; i < (messageLength); ++i) {
 		uint16_t character;
@@ -6157,19 +6155,18 @@ void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entit
 	bool locked{}; // All groups are locked by default
 
 	uint32_t size{};
-	const uint32_t MAX_STRING_LENGTH = 0x500000; // Prevent DoS via oversized inventory group strings
 	if (!inStream.Read(size)) return;
-	if (size > MAX_STRING_LENGTH) return; // Bounds check before resize
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	action.resize(size);
 	if (!inStream.Read(action.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
-	if (size > MAX_STRING_LENGTH) return; // Bounds check before resize
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	groupUpdate.groupId.resize(size);
 	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
-	if (size > MAX_STRING_LENGTH / 2) return; // Bounds check: size * 2 would overflow or exceed limit
+	if (size > MAX_MESSAGE_LENGTH / 2) return; // Bounds check: size * 2 would overflow or exceed limit
 	groupName.resize(size);
 	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
 
