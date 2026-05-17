@@ -134,7 +134,6 @@ public:
 	 * Checks if there's any achievements we might be able to accept for the given parameters
 	 * @param type the task type for tasks in the achievement that we wish to progress
 	 * @param value the value to progress by
-	 * @param progress if we can accept the mission, this will apply the progression
 	 * @param associate optional associate related to mission progression
 	 * @param targets optional multiple targets related to mission progression
 	 * @param count the number of values to progress by (differs by task type)
