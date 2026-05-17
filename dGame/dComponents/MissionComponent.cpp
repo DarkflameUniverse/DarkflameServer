@@ -144,19 +144,40 @@ void MissionComponent::RemoveMission(uint32_t missionId) {
 
 void MissionComponent::Progress(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count, bool ignoreAchievements) {
 	LOG("Progressing missions %s %i %llu %s %s", StringifiedEnum::ToString(type).data(), value, associate, targets.c_str(), ignoreAchievements ? "(ignoring achievements)" : "");
-	std::vector<uint32_t> acceptedAchievements;
-	if (count > 0 && !ignoreAchievements) {
-		acceptedAchievements = LookForAchievements(type, value, true, associate, targets, count);
+
+	// If we are already iterating m_Missions, defer this call to avoid iterator invalidation
+	// from re-entrant insertions (e.g. a completing achievement triggering LookForAchievements).
+	if (m_IsProgressing) {
+		m_PendingProgress.push_back({ type, value, associate, targets, count, ignoreAchievements });
+		return;
 	}
 
+	std::vector<uint32_t> acceptedAchievements;
+	if (count > 0 && !ignoreAchievements) {
+		acceptedAchievements = LookForAchievements(type, value, associate, targets, count);
+	}
+
+	m_IsProgressing = true;
 	for (const auto& [id, mission] : m_Missions) {
-		if (!mission || std::ranges::find(acceptedAchievements, mission->GetMissionId()) != acceptedAchievements.end()) continue;
+		if (!mission) continue;
 
 		if (mission->IsAchievement() && ignoreAchievements) continue;
 
 		if (mission->IsComplete()) continue;
 
 		mission->Progress(type, value, associate, targets, count);
+	}
+	m_IsProgressing = false;
+
+	// Drain any Progress() calls that were deferred during the loop above.
+	// Each call here may itself defer further calls, which are drained recursively
+	// before returning, so the while loop only needs one pass in practice.
+	while (!m_PendingProgress.empty()) {
+		auto pending = std::move(m_PendingProgress);
+		m_PendingProgress.clear();
+		for (const auto& p : pending) {
+			Progress(p.type, p.value, p.associate, p.targets, p.count, p.ignoreAchievements);
+		}
 	}
 }
 
@@ -280,10 +301,7 @@ bool MissionComponent::GetMissionInfo(uint32_t missionId, CDMissions& result) {
 	return true;
 }
 
-#define MISSION_NEW_METHOD
-
-const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value, bool progress, LWOOBJID associate, const std::string& targets, int32_t count) {
-#ifdef MISSION_NEW_METHOD
+const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskType type, int32_t value, LWOOBJID associate, const std::string& targets, int32_t count) {
 	// Query for achievments, using the cache
 	const auto& result = QueryAchievements(type, value, targets);
 
@@ -310,85 +328,9 @@ const std::vector<uint32_t> MissionComponent::LookForAchievements(eMissionTaskTy
 		instance->Accept();
 
 		acceptedAchievements.push_back(missionID);
-
-		if (progress) {
-			// Progress mission to bring it up to speed
-			instance->Progress(type, value, associate, targets, count);
-		}
 	}
 
 	return acceptedAchievements;
-#else
-	auto* missionTasksTable = CDClientManager::GetTable<CDMissionTasksTable>();
-	auto* missionsTable = CDClientManager::GetTable<CDMissionsTable>();
-
-	auto tasks = missionTasksTable->Query([=](const CDMissionTasks& entry) {
-		return entry.taskType == static_cast<unsigned>(type);
-		});
-
-	std::vector<uint32_t> acceptedAchievements;
-
-	for (const auto& task : tasks) {
-		if (GetMission(task.id) != nullptr) {
-			continue;
-		}
-
-		const auto missionEntries = missionsTable->Query([=](const CDMissions& entry) {
-			return entry.id == static_cast<int>(task.id) && !entry.isMission;
-			});
-
-		if (missionEntries.empty()) {
-			continue;
-		}
-
-		const auto mission = missionEntries[0];
-
-		if (mission.isMission || !MissionPrerequisites::CanAccept(mission.id, m_Missions)) {
-			continue;
-		}
-
-		if (task.target != value && task.targetGroup != targets) {
-			auto stream = std::istringstream(task.targetGroup);
-			std::string token;
-
-			auto found = false;
-
-			while (std::getline(stream, token, ',')) {
-				try {
-					const auto target = std::stoul(token);
-
-					found = target == value;
-
-					if (found) {
-						break;
-					}
-				} catch (std::invalid_argument& exception) {
-					LOG("Failed to parse target (%s): (%s)!", token.c_str(), exception.what());
-				}
-			}
-
-			if (!found) {
-				continue;
-			}
-		}
-
-		auto* instance = new Mission(this, mission.id);
-
-		m_Missions.insert_or_assign(mission.id, instance);
-
-		if (instance->IsMission()) instance->SetUniqueMissionOrderID(++m_LastUsedMissionOrderUID);
-
-		instance->Accept();
-
-		acceptedAchievements.push_back(mission.id);
-
-		if (progress) {
-			instance->Progress(type, value, associate, targets, count);
-		}
-	}
-
-	return acceptedAchievements;
-#endif
 }
 
 const std::vector<uint32_t>& MissionComponent::QueryAchievements(eMissionTaskType type, int32_t value, const std::string targets) {
@@ -497,7 +439,7 @@ bool MissionComponent::RequiresItem(const LOT lot) {
 		}
 	}
 
-	const auto required = LookForAchievements(eMissionTaskType::GATHER, lot, false);
+	const auto required = LookForAchievements(eMissionTaskType::GATHER, lot);
 
 	return !required.empty();
 }
