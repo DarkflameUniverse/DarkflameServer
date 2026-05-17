@@ -140,7 +140,7 @@ public:
 	 * @param count the number of values to progress by (differs by task type)
 	 * @return true if a achievement was accepted, false otherwise
 	 */
-	const std::vector<uint32_t> LookForAchievements(eMissionTaskType type, int32_t value, bool progress = true, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
+	const std::vector<uint32_t> LookForAchievements(eMissionTaskType type, int32_t value, LWOOBJID associate = LWOOBJID_EMPTY, const std::string& targets = "", int32_t count = 1);
 
 	/**
 	 * Checks if there's a mission active that requires the collection of the specified LOT
@@ -208,6 +208,25 @@ private:
 	 * In live this value started at 745.
 	 */
 	uint32_t m_LastUsedMissionOrderUID = 746U;
+
+	/**
+	 * Holds arguments for a Progress() call that arrived re-entrantly while m_Missions was
+	 * being iterated, so it can be replayed after the active loop finishes.
+	 */
+	struct PendingProgress {
+		eMissionTaskType type;
+		int32_t value;
+		LWOOBJID associate;
+		std::string targets;
+		int32_t count;
+		bool ignoreAchievements;
+	};
+
+	/// True while the m_Missions range-for loop in Progress() is executing.
+	bool m_IsProgressing = false;
+
+	/// Re-entrant Progress() calls deferred here for replay after the active loop finishes.
+	std::vector<PendingProgress> m_PendingProgress;
 };
 
 #endif // MISSIONCOMPONENT_H
