@@ -11,7 +11,7 @@ ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	CINSTREAM_SKIP_HEADER;
 
 	ChatMessage message;
-	int32_t messageLength;
+	int32_t messageLength{};
 
 	inStream.Read(message.chatChannel);
 	inStream.Read(message.unknown);
