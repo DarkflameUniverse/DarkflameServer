@@ -17,7 +17,7 @@ ChatMessage ClientPackets::HandleChatMessage(Packet* packet) {
 	inStream.Read(message.unknown);
 	inStream.Read(messageLength);
 
-	if (messageLength > MAX_MESSAGE_LENGTH) return message;
+	if (messageLength > MAX_MESSAGE_LENGTH || messageLength < 0) return message;
 
 	for (int32_t i = 0; i < (messageLength - 1); ++i) {
 		char16_t character;
