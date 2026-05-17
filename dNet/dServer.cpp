@@ -216,7 +216,7 @@ bool dServer::Startup() {
 
 	if (!mPeer) return false;
 
-	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
+	if (mUseEncryption) mPeer->InitializeSecurity(nullptr, nullptr, nullptr, nullptr);
 	if (!mPeer->Startup(mMaxConnections, 10, &mSocketDescriptor, 1)) return false;
 
 	if (mIsInternal) {
