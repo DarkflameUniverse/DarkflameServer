@@ -307,6 +307,6 @@ void AuthPackets::SendLoginResponse(dServer* server, const SystemAddress& sysAdd
 		bitStream.Write(LUString(username));
 		server->SendToMaster(bitStream);
 
-		LOG("Set sessionKey: %i for user %s", sessionKey, username.c_str());
+		LOG("Set session key for user %s", username.c_str());
 	}
 }

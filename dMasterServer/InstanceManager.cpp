@@ -308,7 +308,7 @@ const InstancePtr& InstanceManager::FindPrivateInstance(const std::string& passw
 			continue;
 		}
 
-		LOG("Password: %s == %s => %d", password.c_str(), instance->GetPassword().c_str(), password == instance->GetPassword());
+		LOG("Checking private zone password match (result: %d)", password == instance->GetPassword());
 
 		if (instance->GetPassword() == password) {
 			return instance;

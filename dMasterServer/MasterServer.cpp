@@ -720,7 +720,7 @@ void HandlePacket(Packet* packet) {
 				password += character;
 			}
 			const auto& newInst = Game::im->CreatePrivateInstance(mapId, cloneId, password.c_str());
-			LOG("Creating private zone %i/%i/%i with password %s", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID(), password.c_str());
+			LOG("Creating private zone %i/%i/%i", newInst->GetMapID(), newInst->GetCloneID(), newInst->GetInstanceID());
 
 			break;
 		}
@@ -747,7 +747,7 @@ void HandlePacket(Packet* packet) {
 
 			const auto& instance = Game::im->FindPrivateInstance(password.c_str());
 
-			LOG("Join private zone: %llu %d %s %p", requestID, mythranShift, password.c_str(), instance.get());
+			LOG("Join private zone: %llu %d %p", requestID, mythranShift, instance.get());
 
 			if (instance == nullptr) {
 				return;

@@ -215,6 +215,8 @@ bool dServer::Startup() {
 	mPeer = RakNetworkFactory::GetRakPeerInterface();
 
 	if (!mPeer) return false;
+
+	if (mUseEncryption) mPeer->InitializeSecurity(nullptr, nullptr, nullptr, nullptr);
 	if (!mPeer->Startup(mMaxConnections, 10, &mSocketDescriptor, 1)) return false;
 
 	if (mIsInternal) {
@@ -226,7 +228,6 @@ bool dServer::Startup() {
 	}
 
 	mPeer->SetMaximumIncomingConnections(mMaxConnections);
-	if (mUseEncryption) mPeer->InitializeSecurity(NULL, NULL, NULL, NULL);
 
 	return true;
 }
