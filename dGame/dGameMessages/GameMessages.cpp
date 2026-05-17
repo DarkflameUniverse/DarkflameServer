@@ -2408,6 +2408,11 @@ void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* e
 	std::unique_ptr<AMFArrayValue> amfArguments;
 	try {
 		auto deserializedData = reader.Read(inStream);
+		if (!deserializedData || deserializedData->GetValueType() != eAmf::Array) {
+			LOG("Failed to deserialize AMF data for control behaviors command: not an array");
+			return;
+		}
+
 		amfArguments.reset(static_cast<AMFArrayValue*>(deserializedData.release()));
 	} catch (...) {
 		LOG("Failed to deserialize AMF data for control behaviors command");
