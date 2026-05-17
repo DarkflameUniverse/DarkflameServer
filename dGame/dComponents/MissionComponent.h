@@ -214,12 +214,12 @@ private:
 	 * being iterated, so it can be replayed after the active loop finishes.
 	 */
 	struct PendingProgress {
-		eMissionTaskType type;
-		int32_t value;
-		LWOOBJID associate;
+		eMissionTaskType type{};
+		int32_t value{};
+		LWOOBJID associate{};
 		std::string targets;
-		int32_t count;
-		bool ignoreAchievements;
+		int32_t count{};
+		bool ignoreAchievements{};
 	};
 
 	/// True while the m_Missions range-for loop in Progress() is executing.
