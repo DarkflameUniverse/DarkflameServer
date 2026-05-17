@@ -5835,7 +5835,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t clientVersionLength;
 	inStream.Read(clientVersionLength);
-	if (clientVersionLength > MAX_STRING_LENGTH) return;
+	if (clientVersionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5844,7 +5844,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t nOtherPlayerIDLength;
 	inStream.Read(nOtherPlayerIDLength);
-	if (nOtherPlayerIDLength > MAX_STRING_LENGTH) return;
+	if (nOtherPlayerIDLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < nOtherPlayerIDLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5853,7 +5853,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t selectionLength;
 	inStream.Read(selectionLength);
-	if (selectionLength > MAX_STRING_LENGTH) return;
+	if (selectionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < selectionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
