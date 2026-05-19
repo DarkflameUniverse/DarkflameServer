@@ -94,6 +94,11 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvis& gmInvisMsg) {
 	LOG_DEBUG("GM Invisibility toggled to: %s", m_IsGMInvisible ? "true" : "false");
 	gmInvisMsg.Send(UNASSIGNED_SYSTEM_ADDRESS);
 	auto* thisUser = UserManager::Instance()->GetUser(m_Parent->GetSystemAddress());
+	if (!thisUser) {
+		LOG("Unable to find user for entity %llu when toggling GM invisibility!", m_Parent->GetObjectID());
+		return false;
+	}
+
 	for (const auto& player : PlayerManager::GetAllPlayers()) {
 		if (!player || player->GetObjectID() == m_Parent->GetObjectID()) continue;
 		auto* toUser = UserManager::Instance()->GetUser(player->GetSystemAddress());
