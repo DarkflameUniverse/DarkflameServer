@@ -1193,9 +1193,3 @@ bool DestroyableComponent::OnIsDead(GameMessages::IsDead& isDead) {
 	isDead.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
 	return true;
 }
-
-bool DestroyableComponent::OnIsDead(GameMessages::GameMsg& msg) {
-	auto& isDeadMsg = static_cast<GameMessages::IsDead&>(msg);
-	isDeadMsg.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
-	return true;
-}
