@@ -13,7 +13,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ windows-2022, ubuntu-22.04, macos-13 ]
+        os: [ windows-2022, ubuntu-22.04, macos-15-intel ]
 
     steps:
     - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2

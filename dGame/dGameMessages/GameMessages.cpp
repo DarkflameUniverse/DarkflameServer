@@ -2405,11 +2405,25 @@ void GameMessages::SendUnSmash(Entity* entity, LWOOBJID builderID, float duratio
 
 void GameMessages::HandleControlBehaviors(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	AMFDeserialize reader;
-	std::unique_ptr<AMFArrayValue> amfArguments{ static_cast<AMFArrayValue*>(reader.Read(inStream).release()) };
+	std::unique_ptr<AMFArrayValue> amfArguments;
+	try {
+		auto deserializedData = reader.Read(inStream);
+		if (!deserializedData || deserializedData->GetValueType() != eAmf::Array) {
+			LOG("Failed to deserialize AMF data for control behaviors command: not an array");
+			return;
+		}
+
+		amfArguments.reset(static_cast<AMFArrayValue*>(deserializedData.release()));
+	} catch (...) {
+		LOG("Failed to deserialize AMF data for control behaviors command");
+		return;
+	}
 	if (amfArguments->GetValueType() != eAmf::Array) return;
 
 	uint32_t commandLength{};
 	inStream.Read(commandLength);
+
+	if (commandLength > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded command buffer
 
 	std::string command;
 	command.reserve(commandLength);
@@ -3615,6 +3629,8 @@ void GameMessages::HandlePetTamingTryBuild(RakNet::BitStream& inStream, Entity* 
 	bool clientFailed;
 
 	inStream.Read(brickCount);
+
+	if (brickCount > MAX_MESSAGE_LENGTH) return; // Prevent DoS via unbounded brick count
 
 	bricks.reserve(brickCount);
 
@@ -5806,6 +5822,8 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 	uint32_t messageLength;
 	inStream.Read(messageLength);
 
+	if (messageLength > MAX_MESSAGE_LENGTH) return;
+
 	for (uint32_t i = 0; i < (messageLength); ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5817,6 +5835,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t clientVersionLength;
 	inStream.Read(clientVersionLength);
+	if (clientVersionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < clientVersionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5825,6 +5844,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t nOtherPlayerIDLength;
 	inStream.Read(nOtherPlayerIDLength);
+	if (nOtherPlayerIDLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < nOtherPlayerIDLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5833,6 +5853,7 @@ void GameMessages::HandleReportBug(RakNet::BitStream& inStream, Entity* entity) 
 
 	uint32_t selectionLength;
 	inStream.Read(selectionLength);
+	if (selectionLength > MAX_MESSAGE_LENGTH) return;
 	for (unsigned int k = 0; k < selectionLength; k++) {
 		unsigned char character;
 		inStream.Read(character);
@@ -5931,6 +5952,7 @@ void GameMessages::HandleUpdatePlayerStatistic(RakNet::BitStream& inStream, Enti
 void GameMessages::HandleDeactivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity) {
 	auto controllablePhysicsComponent = entity->GetComponent<ControllablePhysicsComponent>();
 	if (controllablePhysicsComponent) controllablePhysicsComponent->DeactivateBubbleBuff();
+	GameMessages::SendDeactivateBubbleBuffFromServer(entity->GetObjectID(), entity->GetSystemAddress());
 }
 
 void GameMessages::HandleActivateBubbleBuff(RakNet::BitStream& inStream, Entity* entity) {
@@ -6134,14 +6156,17 @@ void GameMessages::HandleUpdateInventoryGroup(RakNet::BitStream& inStream, Entit
 
 	uint32_t size{};
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	action.resize(size);
 	if (!inStream.Read(action.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH) return; // Bounds check before resize
 	groupUpdate.groupId.resize(size);
 	if (!inStream.Read(groupUpdate.groupId.data(), size)) return;
 
 	if (!inStream.Read(size)) return;
+	if (size > MAX_MESSAGE_LENGTH / 2) return; // Bounds check: size * 2 would overflow or exceed limit
 	groupName.resize(size);
 	if (!inStream.Read(reinterpret_cast<char*>(groupName.data()), size * 2)) return;
 

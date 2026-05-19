@@ -63,7 +63,7 @@ private:
 
 	bool m_GhostOverride;
 
-	bool m_IsGMInvisible;
+	bool m_IsGMInvisible{ false };
 	
 };
 

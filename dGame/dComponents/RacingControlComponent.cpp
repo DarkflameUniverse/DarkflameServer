@@ -33,7 +33,7 @@
 #endif
 
 RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t componentID)
-	: Component(parent, componentID) {
+	: ActivityComponent(parent, componentID) {
 	m_PathName = u"MainPath";
 	m_NumberOfLaps = 3;
 	m_RemainingLaps = m_NumberOfLaps;
@@ -70,7 +70,7 @@ void RacingControlComponent::OnPlayerLoaded(Entity* player) {
 	auto* vehicle = inventoryComponent->FindItemByLot(8092);
 
 	// If the race has already started, send the player back to the main world.
-	if (m_Loaded || !vehicle) {
+	if (m_Loaded || !vehicle || !TakeCost(player)) {
 		auto* characterComponent = player->GetComponent<CharacterComponent>();
 		if (characterComponent) characterComponent->SendToZone(m_MainWorld);
 		return;

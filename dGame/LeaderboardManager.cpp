@@ -289,6 +289,10 @@ void LeaderboardManager::SaveScore(const LWOOBJID& playerID, const GameID activi
 			ILeaderboard::Score oldScoreFlipped{oldScore->secondaryScore, oldScore->primaryScore, oldScore->tertiaryScore};
 			ILeaderboard::Score newScoreFlipped{newScore.secondaryScore, newScore.primaryScore, newScore.tertiaryScore};
 			newHighScore = newScoreFlipped > oldScoreFlipped;
+		} else if (leaderboardType == Leaderboard::Type::Donations) {
+			// Donations just need to go up if updated
+			newHighScore = true;
+			newScore.primaryScore += oldScore->primaryScore;
 		}
 
 		if (newHighScore) {

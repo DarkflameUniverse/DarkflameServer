@@ -961,5 +961,11 @@ namespace GameMessages {
 
 		LWOOBJID childID{};
 	};
+
+	struct IsDead : public GameMsg {
+		IsDead() : GameMsg(MessageType::Game::IS_DEAD) {}
+
+		bool bDead{};
+	};
 };
 #endif // GAMEMESSAGES_H

@@ -43,7 +43,8 @@ void GhostComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	auto* ghstElement = objElement->FirstChildElement("ghst");
 	if (ghstElement) objElement->DeleteChild(ghstElement);
 	// Only save if GM invisible
-	if (!m_IsGMInvisible) return;
+	const auto* const user = UserManager::Instance()->GetUser(m_Parent->GetSystemAddress());
+	if (!m_IsGMInvisible || !user || user->GetMaxGMLevel() < eGameMasterLevel::FORUM_MODERATOR) return;
 	ghstElement = objElement->InsertNewChildElement("ghst");
 	if (ghstElement) ghstElement->SetAttribute("i", m_IsGMInvisible);
 }
@@ -115,8 +116,11 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvis& gmInvisMsg) {
 
 bool GhostComponent::OnGetGMInvis(GameMessages::GetGMInvis& gmInvisMsg) {
 	LOG_DEBUG("GM Invisibility requested: %s", m_IsGMInvisible ? "true" : "false");
-	gmInvisMsg.bGMInvis = m_IsGMInvisible;
-	return gmInvisMsg.bGMInvis;
+	// TODO: disabled for now while bugs are fixed
+	// gmInvisMsg.bGMInvis = m_IsGMInvisible;
+	// return gmInvisMsg.bGMInvis;
+	gmInvisMsg.bGMInvis = false;
+	return false;
 }
 
 bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportMsg) {

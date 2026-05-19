@@ -1,6 +1,5 @@
 #include "CDActivitiesTable.h"
 
-
 void CDActivitiesTable::LoadValuesFromDatabase() {
 	// First, get the size of the table
 	uint32_t size = 0;
@@ -55,4 +54,14 @@ std::vector<CDActivities> CDActivitiesTable::Query(std::function<bool(CDActiviti
 		>> cpplinq::to_vector();
 
 	return data;
+}
+
+std::optional<const CDActivities> CDActivitiesTable::GetActivity(const uint32_t activityID) {
+	auto& entries = GetEntries();
+	for (const auto& entry : entries) {
+		if (entry.ActivityID == activityID) {
+			return entry;
+		}
+	}
+	return std::nullopt;
 }

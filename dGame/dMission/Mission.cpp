@@ -407,9 +407,7 @@ void Mission::Catchup() {
 					task->Progress(target);
 				}
 			}
-		}
-
-		if (type == eMissionTaskType::PLAYER_FLAG) {
+		} else if (type == eMissionTaskType::PLAYER_FLAG) {
 			for (int32_t target : task->GetAllTargets()) {
 				const auto flag = GetCharacter()->GetPlayerFlag(target);
 
@@ -422,6 +420,24 @@ void Mission::Catchup() {
 				if (task->IsComplete()) {
 					break;
 				}
+			}
+		} else if (type == eMissionTaskType::RACING) {
+			// check if its a racing meta task ("4") and then set its progress to the current completed missions in all tasks
+			const auto& clientInfo = task->GetClientInfo();
+			if (clientInfo.taskParam1.starts_with("4")) {
+				// Each target is racing mission that needs to be completed.
+				// If its completed, progress the meta task by 1.
+				// at the end set the task progress to avoid sending excess msgs across the wire
+				uint32_t progress = 0;
+				for (const auto& target : task->GetAllTargets()) {
+					if (target == 0) continue;
+
+					auto* racingMission = m_MissionComponent->GetMission(target);
+					if (racingMission != nullptr && racingMission->IsComplete()) {
+						progress++;
+					}
+				}
+				task->SetProgress(progress);
 			}
 		}
 	}

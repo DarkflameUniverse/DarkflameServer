@@ -418,7 +418,24 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 			AddProgress(count);
 		} else if (associate == 4 || associate == 5 || associate == 14) {
 			if (!InAllTargets(value)) break;
-			AddProgress(count);
+			if (associate == 4) {
+				// Recount all completed target missions so this stays idempotent with
+				// Catchup, which sets the same value on Accept(). AddProgress would
+				// double-count when LookForAchievements runs Catchup then Progress.
+				auto* entity = mission->GetAssociate();
+				if (entity == nullptr) break;
+				auto* missionComponent = entity->GetComponent<MissionComponent>();
+				if (missionComponent == nullptr) break;
+				uint32_t completedCount = 0;
+				for (const auto& target : GetAllTargets()) {
+					if (target == 0) continue;
+					auto* targetMission = missionComponent->GetMission(target);
+					if (targetMission != nullptr && targetMission->IsComplete()) completedCount++;
+				}
+				SetProgress(completedCount);
+			} else {
+				AddProgress(count);
+			}
 		} else if (associate == 17) {
 			if (!InAllTargets(value)) break;
 			AddProgress(count);
@@ -446,6 +463,8 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 		break;
 	}
 	case eMissionTaskType::PLACE_MODEL:
+		[[fallthrough]];
+	case eMissionTaskType::ADD_BEHAVIOR:
 	{
 		AddProgress(count);
 		break;

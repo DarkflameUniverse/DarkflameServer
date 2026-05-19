@@ -58,6 +58,10 @@ void ChatPackets::SendChatMessage(const SystemAddress& sysAddr, char chatChannel
 	SEND_PACKET_BROADCAST;
 }
 
+void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::string& message, const bool broadcast) {
+	ChatPackets::SendSystemMessage(sysAddr, GeneralUtils::ASCIIToUTF16(message), broadcast);
+}
+
 void ChatPackets::SendSystemMessage(const SystemAddress& sysAddr, const std::u16string& message, const bool broadcast) {
 	CBITSTREAM;
 	BitStreamUtils::WriteHeader(bitStream, ServiceType::CHAT, MessageType::Chat::GENERAL_CHAT_MESSAGE);

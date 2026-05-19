@@ -9,6 +9,20 @@
 typedef std::unique_ptr<sql::PreparedStatement>& UniquePreppedStmtRef;
 typedef std::unique_ptr<sql::ResultSet> UniqueResultSet;
 
+// This struct is used to keep the PreparedStatement alive alongside the ResultSet, since the ResultSet will be invalidated if the PreparedStatement is destroyed.
+// Declaring the members in reverse order of usage to ensure the PreparedStatement is destroyed after the ResultSet. This is guaranteed by the C++ standard.
+struct PreparedStmtResultSet {
+	std::unique_ptr<sql::PreparedStatement> m_stmt;
+	std::unique_ptr<sql::ResultSet> m_resultSet;
+
+	PreparedStmtResultSet(sql::PreparedStatement* stmt = nullptr, sql::ResultSet* resultSet = nullptr)
+		: m_stmt(stmt), m_resultSet(resultSet) {}
+
+	sql::ResultSet* operator->() const {
+		return m_resultSet.get();
+	}
+};
+
 // Purposefully no definition for this to provide linker errors in the case someone tries to
 // bind a parameter to a type that isn't defined.
 template<typename ParamType>
@@ -136,12 +150,15 @@ private:
 	// Generic query functions that can be used for any query.
 	// Return type may be different depending on the query, so it is up to the caller to check the return type.
 	// The first argument is the query string, and the rest are the parameters to bind to the query.
-	// The return type is a unique_ptr to the result set, which is deleted automatically when it goes out of scope
+	// The return type is a PreparedStmtResultSet which keeps the PreparedStatement alive alongside the ResultSet.
 	template<typename... Args>
-	inline std::unique_ptr<sql::ResultSet> ExecuteSelect(const std::string& query, Args&&... args) {
-		std::unique_ptr<sql::PreparedStatement> preppedStmt(CreatePreppedStmt(query));
-		SetParams(preppedStmt, std::forward<Args>(args)...);
-		DLU_SQL_TRY_CATCH_RETHROW(return std::unique_ptr<sql::ResultSet>(preppedStmt->executeQuery()));
+	inline PreparedStmtResultSet ExecuteSelect(const std::string& query, Args&&... args) {
+		PreparedStmtResultSet toReturn;
+		toReturn.m_stmt.reset(CreatePreppedStmt(query));
+		SetParams(toReturn.m_stmt, std::forward<Args>(args)...);
+		DLU_SQL_TRY_CATCH_RETHROW(toReturn.m_resultSet.reset(toReturn.m_stmt->executeQuery()));
+		// Return the PreparedStmtResultSet, which now owns both the PreparedStatement and ResultSet via unique_ptr and will ensure they are properly cleaned up.
+		return toReturn;
 	}
 
 	template<typename... Args>

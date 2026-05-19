@@ -184,7 +184,7 @@ static void DLOG(char ch, void *param) {
 	static size_t len{};
 	if (ch != '\n') buf[len++] = ch; // we provide the newline in our logger
 	if (ch == '\n' || len >= sizeof(buf)) {
-		LOG_DEBUG("%.*s", static_cast<int>(len), buf);
+		if (Game::logger) LOG_DEBUG("%.*s", static_cast<int>(len), buf);
 		len = 0;
 	}
 }

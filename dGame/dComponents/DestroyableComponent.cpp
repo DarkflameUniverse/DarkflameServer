@@ -754,7 +754,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 	const auto isPlayer = m_Parent->IsPlayer();
 
-	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, false, 1);
+	GameMessages::SendDie(m_Parent, source, source, true, killType, deathType, 0, 0, 0, isPlayer, true, 1);
 
 	//NANI?!
 	if (!isPlayer) {
@@ -784,8 +784,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 				lootMsg.sourceID = source;
 				lootMsg.item = LOT_NULL;
 				lootMsg.Send();
-				lootMsg.Send(m_Parent->GetSystemAddress());
-				character->SetCoins(coinsTotal, eLootSourceType::PICKUP);
+				character->SetCoins(coinsTotal, eLootSourceType::DELETION);
 			}
 		}
 
@@ -1192,5 +1191,11 @@ bool DestroyableComponent::OnSetFaction(GameMessages::SetFaction& setFaction) {
 
 bool DestroyableComponent::OnIsDead(GameMessages::IsDead& isDead) {
 	isDead.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
+	return true;
+}
+
+bool DestroyableComponent::OnIsDead(GameMessages::GameMsg& msg) {
+	auto& isDeadMsg = static_cast<GameMessages::IsDead&>(msg);
+	isDeadMsg.bDead = m_IsDead || (GetHealth() == 0 && GetArmor() == 0);
 	return true;
 }

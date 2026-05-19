@@ -98,6 +98,8 @@ public:
 		return msg.GetNeedsNewBehaviorID();
 	};
 
+	void ProgressAddBehaviorMission(Entity& playerEntity);
+
 	void AddBehavior(AddMessage& msg);
 
 	void RemoveBehavior(MoveToInventoryMessage& msg, const bool keepItem);

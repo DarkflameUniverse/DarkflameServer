@@ -1,7 +1,7 @@
 #include "MySQLDatabase.h"
 #include "ePropertySortType.h"
 
-IProperty::Info ReadPropertyInfo(UniqueResultSet& result) {
+IProperty::Info ReadPropertyInfo(PreparedStmtResultSet& result) {
 	IProperty::Info info;
 	info.id = result->getUInt64("id");
 	info.ownerId = result->getInt64("owner_id");
@@ -21,7 +21,7 @@ IProperty::Info ReadPropertyInfo(UniqueResultSet& result) {
 std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(const IProperty::PropertyLookup& params) {
 	std::optional<IProperty::PropertyEntranceResult> result;
 	std::string query;
-	std::unique_ptr<sql::ResultSet> properties;
+	PreparedStmtResultSet properties;
 
 	if (params.sortChoice == SORT_TYPE_FEATURED || params.sortChoice == SORT_TYPE_FRIENDS) {
 		query = R"QUERY(

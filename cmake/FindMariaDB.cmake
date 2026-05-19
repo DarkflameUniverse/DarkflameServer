@@ -10,14 +10,15 @@ if(WIN32 AND NOT MARIADB_BUILD_SOURCE)
 	file(MAKE_DIRECTORY "${MARIADB_MSI_DIR}")
 	file(MAKE_DIRECTORY "${MARIADB_CONNECTOR_DIR}")
 
-    # These values need to be updated whenever a new minor release replaces an old one
-	# Go to https://mariadb.com/downloads/connectors/ to find the up-to-date URL parts
-    set(MARIADB_CONNECTOR_C_VERSION "3.2.7")
-	set(MARIADB_CONNECTOR_C_BUCKET "2319651")
-	set(MARIADB_CONNECTOR_C_MD5 "f8636d733f1d093af9d4f22f3239f885")
-    set(MARIADB_CONNECTOR_CPP_VERSION "1.0.2")
-	set(MARIADB_CONNECTOR_CPP_BUCKET "2531525")
-	set(MARIADB_CONNECTOR_CPP_MD5 "3034bbd6ca00a0125345f9fd1a178401")
+	# These values track the published Windows MSI packages used by the prebuilt path.
+	# Keep the Connector/C++ package version aligned with the checked out submodule tag when possible.
+	# Go to https://mariadb.com/downloads/connectors/ to find the up-to-date URL parts.
+	set(MARIADB_CONNECTOR_C_VERSION "3.4.8")
+	set(MARIADB_CONNECTOR_C_BUCKET "4516894")
+	set(MARIADB_CONNECTOR_C_MD5 "50f6fc0c77b8d3bacbeac0126e179861")
+	set(MARIADB_CONNECTOR_CPP_VERSION "1.1.7")
+	set(MARIADB_CONNECTOR_CPP_BUCKET "4464908")
+	set(MARIADB_CONNECTOR_CPP_MD5 "08644a7ff084b5933325cadb904796e5")
 	
 	set(MARIADB_CONNECTOR_C_MSI "mariadb-connector-c-${MARIADB_CONNECTOR_C_VERSION}-win64.msi")
 	set(MARIADB_CONNECTOR_CPP_MSI "mariadb-connector-cpp-${MARIADB_CONNECTOR_CPP_VERSION}-win64.msi")
@@ -79,23 +80,39 @@ else() # Build from source
 			-DWITH_EXTERNAL_ZLIB=ON
 			-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
-			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
+			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0\ -include\ cstdint)
 	else()
 		set(MARIADB_EXTRA_CMAKE_ARGS
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
-			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0)
+			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0\ -include\ cstdint)
 	endif()
 
+	set(MARIADBCPP_BUILD_DIR "${PROJECT_BINARY_DIR}/thirdparty/mariadb-connector-cpp/src/mariadb_connector_cpp-build")
 	set(MARIADBCPP_INSTALL_DIR ${PROJECT_BINARY_DIR}/prefix)
-	set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
-	set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_LIBRARY_DIR}/plugin)
 	set(MARIADBCPP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/mariadb-connector-cpp)
 	set(MARIADB_INCLUDE_DIR "${MARIADBCPP_SOURCE_DIR}/include")
+
+	if(WIN32)
+		set(MARIADBCPP_LIBRARY_DIR ${PROJECT_BINARY_DIR}/mariadbcpp)
+		set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_LIBRARY_DIR}/plugin)
+		set(MARIADB_INSTALL_COMMAND)
+	else()
+		set(MARIADBCPP_LIBRARY_DIR ${MARIADBCPP_BUILD_DIR})
+		set(MARIADBCPP_PLUGIN_DIR ${MARIADBCPP_BUILD_DIR}/libmariadb)
+		set(MARIADB_INSTALL_COMMAND INSTALL_COMMAND ${CMAKE_COMMAND} -E true)
+	endif()
+
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+		set(MARIADB_POLICY_VERSION_ARG -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+	endif()
+
 	ExternalProject_Add(mariadb_connector_cpp
 		PREFIX "${PROJECT_BINARY_DIR}/thirdparty/mariadb-connector-cpp"
 		SOURCE_DIR ${MARIADBCPP_SOURCE_DIR}
+		BINARY_DIR ${MARIADBCPP_BUILD_DIR}
 		INSTALL_DIR ${MARIADBCPP_INSTALL_DIR}
 		CMAKE_ARGS  -Wno-dev
+					${MARIADB_POLICY_VERSION_ARG}
 					-DWITH_UNIT_TESTS=OFF
 					-DMARIADB_LINK_DYNAMIC=OFF
 					-DCMAKE_BUILD_RPATH_USE_ORIGIN=${CMAKE_BUILD_RPATH_USE_ORIGIN}
@@ -103,6 +120,7 @@ else() # Build from source
 					-DINSTALL_LIBDIR=${MARIADBCPP_LIBRARY_DIR}
 					-DINSTALL_PLUGINDIR=${MARIADBCPP_PLUGIN_DIR}
 					${MARIADB_EXTRA_CMAKE_ARGS}
+		${MARIADB_INSTALL_COMMAND}
 		BUILD_ALWAYS true
 	)
 
