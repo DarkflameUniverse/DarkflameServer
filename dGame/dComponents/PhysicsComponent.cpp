@@ -31,11 +31,11 @@ PhysicsComponent::PhysicsComponent(Entity* parent, const int32_t componentID) : 
 
 	if (m_Parent->HasVar(u"CollisionGroupID")) m_CollisionGroup = m_Parent->GetVar<int32_t>(u"CollisionGroupID");
 
-	RegisterMsg(MessageType::Game::GET_POSITION, this, &PhysicsComponent::OnGetPosition);
+	RegisterMsg(&PhysicsComponent::OnGetPosition);
 }
 
-bool PhysicsComponent::OnGetPosition(GameMessages::GameMsg& msg) {
-	static_cast<GameMessages::GetPosition&>(msg).pos = GetPosition();
+bool PhysicsComponent::OnGetPosition(GameMessages::GetPosition& msg) {
+	msg.pos = GetPosition();
 	return true;
 }
 
@@ -245,8 +245,7 @@ void PhysicsComponent::SpawnVertices(dpEntity* entity) const {
 	}
 }
 
-bool PhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool PhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	auto& info = reportInfo.info->PushDebug("Physics");
 	reportInfo.subCategory = &info;
 

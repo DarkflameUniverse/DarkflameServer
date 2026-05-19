@@ -3,7 +3,7 @@
 #include "Amf3.h"
 
 HavokVehiclePhysicsComponent::HavokVehiclePhysicsComponent(Entity* parent, const int32_t componentID) : PhysicsComponent(parent, componentID) {
-	RegisterMsg(MessageType::Game::GET_OBJECT_REPORT_INFO, this, &HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
+	RegisterMsg(&HavokVehiclePhysicsComponent::OnGetObjectReportInfo);
 
 	m_Velocity = NiPoint3Constant::ZERO;
 	m_AngularVelocity = NiPoint3Constant::ZERO;
@@ -102,9 +102,8 @@ void HavokVehiclePhysicsComponent::Serialize(RakNet::BitStream& outBitStream, bo
 	outBitStream.Write0();
 }
 
-bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GameMsg& msg) {
-	PhysicsComponent::OnGetObjectReportInfo(msg);
-	auto& reportInfo = static_cast<GameMessages::GetObjectReportInfo&>(msg);
+bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
+	PhysicsComponent::OnGetObjectReportInfo(reportInfo);
 	if (!reportInfo.subCategory) {
 		return false;
 	}

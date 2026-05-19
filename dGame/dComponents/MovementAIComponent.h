@@ -211,6 +211,7 @@ public:
 
 	bool IsPaused() const { return m_Paused; }
 
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 private:
 
 	/**

@@ -936,6 +936,12 @@ namespace GameMessages {
 		LWOOBJID lootOwnerID{};
 	};
 
+	struct IsDead : public GameMsg {
+		IsDead() : GameMsg(MessageType::Game::IS_DEAD) {}
+
+		bool bDead{};
+	};
+
 	struct ToggleGMInvis : public GameMsg {
 		ToggleGMInvis() : GameMsg(MessageType::Game::TOGGLE_GM_INVIS) {}
 
@@ -954,12 +960,6 @@ namespace GameMessages {
 		ChildRemoved() : GameMsg(MessageType::Game::CHILD_REMOVED) {}
 
 		LWOOBJID childID{};
-	};
-
-	struct IsDead : public GameMsg {
-		IsDead() : GameMsg(MessageType::Game::IS_DEAD) {}
-
-		bool bDead{};
 	};
 };
 #endif // GAMEMESSAGES_H

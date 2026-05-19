@@ -17,6 +17,10 @@ enum class eGameActivity : uint32_t;
 
 class Item;
 
+namespace GameMessages {
+	struct GetObjectReportInfo;
+}
+
 /**
  * The statistics that can be achieved per zone
  */
@@ -331,7 +335,7 @@ public:
 	void LoadVisitedLevelsXml(const tinyxml2::XMLElement& doc);
 private:
 
-	bool OnGetObjectReportInfo(GameMessages::GameMsg& msg);
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
 	/**
 	 * The map of active venture vision effects
