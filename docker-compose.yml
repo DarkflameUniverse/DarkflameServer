@@ -3,6 +3,7 @@ name: dlu
 
 services:
   darkflamedb:
+    container_name: darkflamedb
     networks:
       - darkflame
     image: mariadb:latest
@@ -21,6 +22,7 @@ services:
       retries: 3
 
   darkflameserver:
+    container_name: darkflameserver
     networks:
       - darkflame
     image: ghcr.io/darkflameuniverse/darkflameserver:latest
@@ -53,6 +55,7 @@ services:
       test: ["CMD", "ls", "/app/resServer/CDServer.sqlite"]
 
   darkflameweb:
+    container_name: darkflameweb
     networks:
       - darkflame
     image: ghcr.io/darkflameuniverse/nexusdashboard:latest
