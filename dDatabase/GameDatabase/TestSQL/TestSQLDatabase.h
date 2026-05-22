@@ -1,9 +1,12 @@
 #ifndef TESTSQLDATABASE_H
 #define TESTSQLDATABASE_H
 
+#include <map>
+#include <unordered_map>
 #include "GameDatabase.h"
 
 class TestSQLDatabase : public GameDatabase {
+public:
 	void Connect() override;
 	void Destroy(std::string source = "") override;
 
@@ -103,11 +106,54 @@ class TestSQLDatabase : public GameDatabase {
 	void InsertUgcBuild(const std::string& modules, const LWOOBJID bigId, const std::optional<LWOOBJID> characterId) override {};
 	void DeleteUgcBuild(const LWOOBJID bigId) override {};
 	uint32_t GetAccountCount() override { return 0; };
+	std::vector<LWOOBJID> GetAllCharacterIds() override { return {}; };
+	int64_t GetCharacterReputation(const LWOOBJID charId) override {
+		auto it = m_CharacterReputation.find(charId);
+		return it != m_CharacterReputation.end() ? it->second : 0;
+	};
+	void SetCharacterReputation(const LWOOBJID charId, const int64_t reputation) override {
+		m_CharacterReputation[charId] = reputation;
+	};
+	std::vector<IPropertyReputationContribution::ContributionInfo> GetPropertyReputationContributions(
+		const LWOOBJID propertyId, const std::string& date) override {
+		const auto key = std::make_pair(propertyId, date);
+		if (m_PropertyContributions.contains(key)) {
+			return m_PropertyContributions.at(key);
+		}
+		return {};
+	};
+	void UpdatePropertyReputationContribution(
+		const LWOOBJID propertyId, const LWOOBJID playerId,
+		const std::string& date, const uint32_t reputationGained) override {
+		const auto key = std::make_pair(propertyId, date);
+		auto& entries = m_PropertyContributions[key];
+		for (auto& entry : entries) {
+			if (entry.playerId == playerId) {
+				entry.reputationGained = reputationGained;
+				return;
+			}
+		}
+		entries.push_back({ playerId, reputationGained });
+	};
+	void UpdatePropertyReputation(const LWOOBJID propertyId, const uint32_t reputation) override {
+		m_PropertyReputation[propertyId] = reputation;
+	};
+	// Test helper: retrieve the property reputation stored via UpdatePropertyReputation.
+	uint32_t GetPropertyReputation(const LWOOBJID propertyId) const {
+		if (m_PropertyReputation.contains(propertyId)) {
+			return m_PropertyReputation.at(propertyId);
+		}
+		return 0;
+	}
 
 	bool IsNameInUse(const std::string_view name) override { return false; };
 	std::optional<IPropertyContents::Model> GetModel(const LWOOBJID modelID) override { return {}; }
 	std::optional<IProperty::Info> GetPropertyInfo(const LWOOBJID id) override { return {}; }
 	std::optional<IUgc::Model> GetUgcModel(const LWOOBJID ugcId) override { return {}; }
+private:
+	std::unordered_map<LWOOBJID, int64_t> m_CharacterReputation;
+	std::unordered_map<LWOOBJID, uint32_t> m_PropertyReputation;
+	std::map<std::pair<LWOOBJID, std::string>, std::vector<IPropertyReputationContribution::ContributionInfo>> m_PropertyContributions;
 };
 
 #endif  //!TESTSQLDATABASE_H

@@ -27,6 +27,9 @@
 #include "CppScripts.h"
 #include <ranges>
 #include "dConfig.h"
+#include "PositionUpdate.h"
+#include "GeneralUtils.h"
+#include "User.h"
 
 PropertyManagementComponent* PropertyManagementComponent::instance = nullptr;
 
@@ -75,9 +78,48 @@ PropertyManagementComponent::PropertyManagementComponent(Entity* parent, const i
 		this->reputation = propertyInfo->reputation;
 
 		Load();
+
+		// Cache owner's account ID for same-account reputation exclusion
+		if (this->owner != LWOOBJID_EMPTY) {
+			auto ownerCharId = this->owner;
+			GeneralUtils::ClearBit(ownerCharId, eObjectBits::CHARACTER);
+			auto charInfo = Database::Get()->GetCharacterInfo(ownerCharId);
+			if (charInfo) {
+				m_OwnerAccountId = charInfo->accountId;
+			}
+		}
+
+		// Load reputation config
+		m_RepInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_interval")).value_or(60.0f);
+		m_RepDailyCap = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_daily_cap")).value_or(50);
+		m_RepPerTick = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_per_tick")).value_or(1);
+		m_RepMultiplier = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_multiplier")).value_or(1.0f);
+		m_RepVelocityThreshold = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_velocity_threshold")).value_or(0.5f);
+		m_RepSaveInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_save_interval")).value_or(300.0f);
+		m_RepDecayRate = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_decay_rate")).value_or(0.0f);
+		m_RepDecayInterval = GeneralUtils::TryParse<float>(Game::config->GetValue("property_rep_decay_interval")).value_or(86400.0f);
+		m_RepDecayMinimum = GeneralUtils::TryParse<std::uint32_t>(Game::config->GetValue("property_rep_decay_minimum")).value_or(0);
+
+		// Load daily reputation contributions and subscribe to position updates
+		m_CurrentDate = GeneralUtils::GetCurrentUTCDate();
+		LoadDailyContributions();
+		Entity::OnPlayerPositionUpdate += [](Entity* player, const PositionUpdate& update) {
+			auto* propertyManagementComponent = PropertyManagementComponent::instance;
+			if (propertyManagementComponent == nullptr) {
+				return;
+			}
+
+			propertyManagementComponent->OnPlayerPositionUpdateHandler(player, update);
+		};
 	}
 }
 
+PropertyManagementComponent::~PropertyManagementComponent() {
+	if (instance == this) {
+		instance = nullptr;
+	}
+	SaveReputation();
+}
 LWOOBJID PropertyManagementComponent::GetOwnerId() const {
 	return owner;
 }
@@ -832,3 +874,126 @@ void PropertyManagementComponent::OnChatMessageReceived(const std::string& sMess
 		modelComponent->OnChatMessageReceived(sMessage);
 	}
 }
+
+void PropertyManagementComponent::Update(float deltaTime) {
+	// Check for day rollover
+	const auto currentDate = GeneralUtils::GetCurrentUTCDate();
+	if (currentDate != m_CurrentDate) {
+		if (m_ReputationDirty) {
+			LOG_DEBUG("Saving dirty reputation data before daily rollover for property %llu", static_cast<unsigned long long>(propertyId));
+			SaveReputation();
+		}
+		m_CurrentDate = currentDate;
+		m_PlayerActivity.clear();
+	}
+
+	// Periodic reputation save
+	m_ReputationSaveTimer += deltaTime;
+	if (m_ReputationSaveTimer >= m_RepSaveInterval && m_ReputationDirty) {
+		SaveReputation();
+		m_ReputationSaveTimer = 0.0f;
+	}
+
+	// Property reputation decay
+	if (m_RepDecayRate > 0.0f && owner != LWOOBJID_EMPTY) {
+		m_DecayTimer += deltaTime;
+		if (m_DecayTimer >= m_RepDecayInterval) {
+			m_DecayTimer = 0.0f;
+			if (reputation > m_RepDecayMinimum) {
+				const auto loss = static_cast<uint32_t>(m_RepDecayRate);
+				reputation = (reputation > m_RepDecayMinimum + loss) ? reputation - loss : m_RepDecayMinimum;
+				m_ReputationDirty = true;
+			}
+		}
+	}
+}
+
+void PropertyManagementComponent::OnPlayerPositionUpdateHandler(Entity* player, const PositionUpdate& update) {
+	if (owner == LWOOBJID_EMPTY) return;
+	if (propertyId == LWOOBJID_EMPTY) return;
+	if (m_RepInterval <= 0.0f) return;
+
+	// Check same-account exclusion (covers owner + owner's alts)
+	auto* character = player->GetCharacter();
+	if (!character) return;
+	auto* parentUser = character->GetParentUser();
+	if (!parentUser) return;
+	if (parentUser->GetAccountID() == m_OwnerAccountId) return;
+
+	// Check velocity threshold (player must be active/moving)
+	if (update.velocity.SquaredLength() < m_RepVelocityThreshold * m_RepVelocityThreshold) return;
+
+	const auto playerId = character->GetID();
+	auto& info = m_PlayerActivity[playerId];
+
+	// Check daily cap
+	if (info.dailyContribution >= m_RepDailyCap) return;
+
+	// Compute delta time since last position update for this player
+	const auto now = std::chrono::steady_clock::now();
+	if (info.hasLastUpdate) {
+		const auto dt = std::chrono::duration<float>(now - info.lastUpdate).count();
+		// Cap delta to avoid spikes from reconnects etc.
+		const auto clampedDt = std::min(dt, 1.0f);
+		info.activeTime += clampedDt;
+	}
+	info.lastUpdate = now;
+	info.hasLastUpdate = true;
+
+	// Check if we've accumulated enough active time for a reputation tick
+	if (info.activeTime >= m_RepInterval) {
+		info.activeTime -= m_RepInterval;
+
+		const auto repGain = static_cast<uint32_t>(m_RepPerTick * m_RepMultiplier);
+		if (repGain == 0) return;
+
+		// Clamp to daily cap
+		const auto actualGain = std::min(repGain, m_RepDailyCap - info.dailyContribution);
+		if (actualGain == 0) return;
+
+		// Grant property reputation
+		reputation += actualGain;
+		info.dailyContribution += actualGain;
+		m_ReputationDirty = true;
+
+		// Grant character reputation to property owner
+		auto* ownerEntity = Game::entityManager->GetEntity(owner);
+		if (ownerEntity) {
+			auto* charComp = ownerEntity->GetComponent<CharacterComponent>();
+			if (charComp) {
+				charComp->SetReputation(charComp->GetReputation() + actualGain);
+			}
+		} else {
+			// Owner is offline, update DB directly
+			auto ownerCharId = owner;
+			GeneralUtils::ClearBit(ownerCharId, eObjectBits::CHARACTER);
+			const auto currentRep = Database::Get()->GetCharacterReputation(ownerCharId);
+			Database::Get()->SetCharacterReputation(ownerCharId, currentRep + actualGain);
+		}
+	}
+}
+
+void PropertyManagementComponent::SaveReputation() {
+	if (!m_ReputationDirty) return;
+	if (propertyId == LWOOBJID_EMPTY) return;
+
+	Database::Get()->UpdatePropertyReputation(propertyId, reputation);
+
+	for (const auto& [playerId, info] : m_PlayerActivity) {
+		if (info.dailyContribution > 0) {
+			Database::Get()->UpdatePropertyReputationContribution(propertyId, playerId, m_CurrentDate, info.dailyContribution);
+		}
+	}
+
+	m_ReputationDirty = false;
+}
+
+void PropertyManagementComponent::LoadDailyContributions() {
+	if (propertyId == LWOOBJID_EMPTY) return;
+
+	const auto contributions = Database::Get()->GetPropertyReputationContributions(propertyId, m_CurrentDate);
+	for (const auto& contrib : contributions) {
+		m_PlayerActivity[contrib.playerId].dailyContribution = contrib.reputationGained;
+	}
+}
+

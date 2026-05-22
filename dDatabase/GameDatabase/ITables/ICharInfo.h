@@ -33,6 +33,9 @@ public:
 	// Get the character ids for the given account.
 	virtual std::vector<LWOOBJID> GetAccountCharacterIds(const LWOOBJID accountId) = 0;
 
+	// Get all character ids.
+	virtual std::vector<LWOOBJID> GetAllCharacterIds() = 0;
+
 	// Insert a new character into the database.
 	virtual void InsertNewCharacter(const ICharInfo::Info info) = 0;
 

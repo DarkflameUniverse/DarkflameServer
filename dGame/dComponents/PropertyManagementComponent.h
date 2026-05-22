@@ -1,9 +1,12 @@
 #pragma once
 
 #include <chrono>
+#include <unordered_map>
 #include "Entity.h"
 #include "Component.h"
 #include "eReplicaComponentType.h"
+
+class PositionUpdate;
 
 /**
  * Information regarding which players may visit this property
@@ -164,9 +167,40 @@ public:
 
 	LWOOBJID GetId() const noexcept { return propertyId; }
 
-
 	void OnChatMessageReceived(const std::string& sMessage) const;
+
+	void Update(float deltaTime) override;
+
+	~PropertyManagementComponent() override;
+
 private:
+	void OnPlayerPositionUpdateHandler(Entity* player, const PositionUpdate& update);
+	void SaveReputation();
+	void LoadDailyContributions();
+
+	struct PlayerActivityInfo {
+		float activeTime = 0.0f;
+		uint32_t dailyContribution = 0;
+		std::chrono::steady_clock::time_point lastUpdate{};
+		bool hasLastUpdate = false;
+	};
+	std::unordered_map<LWOOBJID, PlayerActivityInfo> m_PlayerActivity;
+	float m_ReputationSaveTimer = 0.0f;
+	float m_DecayTimer = 0.0f;
+	bool m_ReputationDirty = false;
+	std::string m_CurrentDate;
+	uint32_t m_OwnerAccountId = 0;
+
+	// Cached config values
+	float m_RepInterval = 60.0f;
+	uint32_t m_RepDailyCap = 50;
+	uint32_t m_RepPerTick = 1;
+	float m_RepMultiplier = 1.0f;
+	float m_RepVelocityThreshold = 0.5f;
+	float m_RepSaveInterval = 300.0f;
+	float m_RepDecayRate = 0.0f;
+	float m_RepDecayInterval = 86400.0f;
+	uint32_t m_RepDecayMinimum = 0;
 	/**
 	 * This
 	 */

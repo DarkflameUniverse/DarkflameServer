@@ -160,7 +160,7 @@ public:
 	 * Sets the lifetime reputation of the character to newValue
 	 * @param newValue the value to set reputation to
 	 */
-	void SetReputation(int64_t newValue) { m_Reputation = newValue; };
+	void SetReputation(int64_t newValue);
 
 	/**
 	 * Sets the current value of PvP combat being enabled

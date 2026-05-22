@@ -55,6 +55,18 @@ std::vector<LWOOBJID> SQLiteDatabase::GetAccountCharacterIds(const LWOOBJID acco
 	return toReturn;
 }
 
+std::vector<LWOOBJID> SQLiteDatabase::GetAllCharacterIds() {
+	auto [_, result] = ExecuteSelect("SELECT id FROM charinfo;");
+
+	std::vector<LWOOBJID> toReturn;
+	while (!result.eof()) {
+		toReturn.push_back(result.getInt64Field("id"));
+		result.nextRow();
+	}
+
+	return toReturn;
+}
+
 void SQLiteDatabase::InsertNewCharacter(const ICharInfo::Info info) {
 	ExecuteInsert(
 		"INSERT INTO `charinfo`(`id`, `account_id`, `name`, `pending_name`, `needs_rename`, `last_login`, `prop_clone_id`) VALUES (?,?,?,?,?,?,(SELECT IFNULL(MAX(`prop_clone_id`), 0) + 1 FROM `charinfo`))",

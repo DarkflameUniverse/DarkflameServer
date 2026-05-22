@@ -42,7 +42,7 @@ CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID
 
 	m_EditorEnabled = false;
 	m_EditorLevel = m_GMLevel;
-	m_Reputation = 0;
+	m_Reputation = Database::Get()->GetCharacterReputation(m_Character->GetID());
 
 	m_CurrentActivity = eGameActivity::NONE;
 	m_CountryCode = 0;
@@ -248,6 +248,12 @@ void CharacterComponent::SetPvpEnabled(const bool value) {
 	m_PvpEnabled = value;
 }
 
+void CharacterComponent::SetReputation(int64_t newValue) {
+	m_Reputation = newValue;
+	Database::Get()->SetCharacterReputation(m_Character->GetID(), m_Reputation);
+	GameMessages::SendUpdateReputation(m_Parent->GetObjectID(), m_Reputation, m_Parent->GetSystemAddress());
+}
+
 void CharacterComponent::SetGMLevel(eGameMasterLevel gmlevel) {
 	m_DirtyGMInfo = true;
 	if (gmlevel > eGameMasterLevel::CIVILIAN) m_IsGM = true;
@@ -262,10 +268,6 @@ void CharacterComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 		LOG("Failed to find char tag while loading XML!");
 		return;
 	}
-	if (character->QueryAttribute("rpt", &m_Reputation) == tinyxml2::XML_NO_ATTRIBUTE) {
-		SetReputation(0);
-	}
-
 	auto* vl = character->FirstChildElement("vl");
 	if (vl) LoadVisitedLevelsXml(*vl);
 	character->QueryUnsigned64Attribute("co", &m_ClaimCodes[0]);
@@ -407,8 +409,6 @@ void CharacterComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
 	if (m_ClaimCodes[3] != 0) character->SetAttribute("co3", m_ClaimCodes[3]);
 
 	character->SetAttribute("ls", m_Uscore);
-	// Custom attribute to keep track of reputation.
-	character->SetAttribute("rpt", GetReputation());
 	character->SetAttribute("stt", StatisticsToString().c_str());
 
 	// Set the zone statistics of the form <zs><s/> ... <s/></zs>
