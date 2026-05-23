@@ -11,6 +11,7 @@
 #include "WorldConfig.h"
 #include "CDZoneTableTable.h"
 #include <chrono>
+#include <cmath>
 #include "eObjectBits.h"
 #include "CDZoneTableTable.h"
 #include "AssetManager.h"
@@ -61,6 +62,9 @@ void dZoneManager::Initialize(const LWOZONEID& zoneID) {
 	m_ZoneControlObject = zoneControl;
 
 	m_pZone->Initalize();
+
+	// Build the scene graph after zone is loaded
+	BuildSceneGraph();
 
 	endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
@@ -297,4 +301,141 @@ void dZoneManager::LoadWorldConfig() {
 	m_WorldConfig->levelCapCurrencyConversion = worldConfig.getIntField("LevelCapCurrencyConversion");
 
 	LOG_DEBUG("Loaded WorldConfig into memory");
+}
+
+LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const {
+	if (!m_pZone) return LWOSCENEID_INVALID;
+
+	const auto& raw = m_pZone->GetZoneRaw();
+	
+	// If no chunks, no scene data available
+	if (raw.chunks.empty()) {
+		return LWOSCENEID_INVALID;
+	}
+
+	// Convert 3D position to 2D (XZ plane) and clamp to terrain bounds
+	float posX = std::clamp(position.x, raw.minBoundsX, raw.maxBoundsX);
+	float posZ = std::clamp(position.z, raw.minBoundsZ, raw.maxBoundsZ);
+
+	// Find the chunk containing this position
+	// Reverse the world position calculation from GenerateTerrainMesh
+	for (const auto& chunk : raw.chunks) {
+		if (chunk.sceneMap.empty() || chunk.scaleFactor <= 0.0f || chunk.width <= 1 || chunk.height <= 1 || chunk.colorMapResolution == 0) continue;
+
+		// Reverse: worldX = (i + offsetX/scaleFactor) * scaleFactor
+		// Therefore: i = worldX/scaleFactor - offsetX/scaleFactor
+		const float heightI = posX / chunk.scaleFactor - (chunk.offsetX / chunk.scaleFactor);
+		const float heightJ = posZ / chunk.scaleFactor - (chunk.offsetZ / chunk.scaleFactor);
+
+		// Check if position is within this chunk's heightmap bounds
+		if (heightI >= 0.0f && heightI < static_cast<float>(chunk.width) &&
+			heightJ >= 0.0f && heightJ < static_cast<float>(chunk.height)) {
+			
+			// Map heightmap position to scene map position (same as GenerateTerrainMesh)
+			const float sceneMapI = (chunk.width > 1)
+				? (heightI / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1)
+				: 0.0f;
+			const float sceneMapJ = (chunk.height > 1)
+				? (heightJ / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1)
+				: 0.0f;
+
+			const uint32_t sceneI = (chunk.colorMapResolution > 0)
+				? std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1)
+				: 0;
+			const uint32_t sceneJ = (chunk.colorMapResolution > 0)
+				? std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1)
+				: 0;
+
+			// Scene map uses the same indexing pattern as heightmap: row * width + col
+			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
+
+			// Bounds check: if this chunk's sceneMap is inconsistent, skip this chunk
+			if (sceneIndex >= chunk.sceneMap.size()) {
+				LOG_DEBUG("GetSceneIDFromPosition: sceneIndex %u out of bounds (sceneMap size: %zu), skipping malformed chunk.", sceneIndex, chunk.sceneMap.size());
+				continue;
+			}
+
+			// Get scene ID from sceneMap
+			const uint8_t sceneID = chunk.sceneMap[sceneIndex];
+			
+			// Return the scene ID
+			return LWOSCENEID(sceneID, 0);
+		}
+	}
+
+	// Position not found in any chunk
+	return LWOSCENEID_INVALID;
+}
+
+void dZoneManager::BuildSceneGraph() {
+	if (!m_pZone) return;
+
+	// Clear any existing adjacency list
+	m_SceneAdjacencyList.clear();
+
+	// Initialize adjacency list with all scenes
+	const auto& scenes = m_pZone->GetScenes();
+	for (const auto& [sceneID, sceneRef] : scenes) {
+		// Ensure every scene has an entry, even if it has no transitions
+		m_SceneAdjacencyList.try_emplace(sceneID, std::vector<LWOSCENEID>());
+	}
+
+	// Build adjacency list from scene transitions
+	const auto& transitions = m_pZone->GetSceneTransitions();
+	for (const auto& transition : transitions) {
+		// Each transition has multiple points, each pointing to a scene
+		// We need to determine which scenes this transition connects
+		
+		// Group transition points by their scene IDs to find unique connections
+		std::set<LWOSCENEID> connectedScenes;
+		for (const auto& point : transition.points) {
+			if (point.sceneID != LWOSCENEID_INVALID) {
+				connectedScenes.insert(point.sceneID);
+			}
+		}
+
+		// Create bidirectional edges between all scenes in this transition
+		// (transitions typically connect two scenes, but can be more complex)
+		std::vector<LWOSCENEID> sceneList(connectedScenes.begin(), connectedScenes.end());
+		
+		for (size_t i = 0; i < sceneList.size(); ++i) {
+			for (size_t j = 0; j < sceneList.size(); ++j) {
+				if (i != j) {
+					LWOSCENEID fromScene = sceneList[i];
+					LWOSCENEID toScene = sceneList[j];
+					
+					// Add edge if it doesn't already exist
+					auto& adjacentScenes = m_SceneAdjacencyList[fromScene];
+					if (std::find(adjacentScenes.begin(), adjacentScenes.end(), toScene) == adjacentScenes.end()) {
+						adjacentScenes.push_back(toScene);
+					}
+				}
+			}
+		}
+	}
+	
+	// Scene 0 (global scene) is always loaded and adjacent to all other scenes
+	LWOSCENEID globalScene = LWOSCENEID(0, 0);
+	for (auto& [sceneID, adjacentScenes] : m_SceneAdjacencyList) {
+		if (sceneID != globalScene) {
+			// Add global scene to this scene's adjacency list if not already present
+			if (std::find(adjacentScenes.begin(), adjacentScenes.end(), globalScene) == adjacentScenes.end()) {
+				adjacentScenes.push_back(globalScene);
+			}
+			
+			// Add this scene to global scene's adjacency list if not already present
+			auto& globalAdjacent = m_SceneAdjacencyList[globalScene];
+			if (std::find(globalAdjacent.begin(), globalAdjacent.end(), sceneID) == globalAdjacent.end()) {
+				globalAdjacent.push_back(sceneID);
+			}
+		}
+	}
+}
+
+std::vector<LWOSCENEID> dZoneManager::GetAdjacentScenes(LWOSCENEID sceneID) const {
+	auto it = m_SceneAdjacencyList.find(sceneID);
+	if (it != m_SceneAdjacencyList.end()) {
+		return it->second;
+	}
+	return std::vector<LWOSCENEID>();
 }
