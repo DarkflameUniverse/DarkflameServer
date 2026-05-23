@@ -119,6 +119,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 find_package(MariaDB)
+find_package(OpenSSL REQUIRED)
+
 
 # Create a /resServer directory
 make_directory(${CMAKE_BINARY_DIR}/resServer)
@@ -135,7 +137,7 @@ endif()
 message(STATUS "Variable: DLU_CONFIG_DIR = ${DLU_CONFIG_DIR}")
 
 # Copy resource files on first build
-set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "blocklist.dcf")
+set(RESOURCE_FILES "sharedconfig.ini" "authconfig.ini" "chatconfig.ini" "worldconfig.ini" "masterconfig.ini" "dashboardconfig.ini" "blocklist.dcf")
 message(STATUS "Checking resource file integrity")
 
 include(Utils)
@@ -331,6 +333,7 @@ endif()
 add_subdirectory(dWorldServer)
 add_subdirectory(dAuthServer)
 add_subdirectory(dChatServer)
+add_subdirectory(dDashboardServer)
 add_subdirectory(dMasterServer) # Add MasterServer last so it can rely on the other binaries
 
 target_precompile_headers(

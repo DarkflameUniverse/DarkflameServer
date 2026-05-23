@@ -1,0 +1,97 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Bug Reports - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="bug-reports-container">
+		<div class="table-card">
+			<div class="table-header">
+				<h2 class="mb-0">Bug Reports</h2>
+				<p class="text-muted">View and manage bug reports from players</p>
+			</div>
+			<div class="table-body">
+				<table id="bugReportsTable" class="table table-dark table-striped table-hover">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Player</th>
+							<th>Client Version</th>
+							<th>Submitted</th>
+							<th>Report Preview</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Data populated by DataTables -->
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script>
+		$(document).ready(function() {
+			// Initialize DataTable with server-side processing
+			$('#bugReportsTable').DataTable({
+				processing: true,
+				serverSide: true,
+				pageLength: 25,
+				lengthMenu: [10, 25, 50, 100],
+				ajax: {
+					url: '/api/tables/bug_reports',
+					type: 'POST',
+					contentType: 'application/json',
+					data: function(d) {
+						return JSON.stringify(d);
+					}
+				},
+				columns: [
+					{ data: 'id' },
+					{ data: 'other_player_id' },
+					{ data: 'client_version' },
+					{
+						data: 'submitted',
+						render: function(data) {
+							return data ? new Date(data).toLocaleString() : '-';
+						}
+					},
+					{
+						data: 'body',
+						render: function(data) {
+							return '<span class="report-preview" title="' + (data || '') + '">' + (data || '-') + '</span>';
+						}
+					},
+					{
+						data: 'id',
+						render: function(data) {
+							return '<div class="account-actions">' +
+								'<button class="btn btn-sm btn-info" onclick="viewReport(' + data + ')" title="View">👁️</button>' +
+								'<button class="btn btn-sm btn-danger" onclick="deleteReport(' + data + ')" title="Delete">🗑️</button>' +
+								'</div>';
+						},
+						orderable: false,
+						searchable: false
+					}
+				],
+				order: [[0, 'desc']],
+				stateSave: false
+			});
+		});
+
+		function viewReport(id) {
+			alert('View report: ' + id);
+			// TODO: Implement report view modal
+		}
+
+		function deleteReport(id) {
+			if (confirm('Are you sure you want to delete this report?')) {
+				alert('Delete report: ' + id);
+				// TODO: Implement report deletion
+			}
+		}
+	</script>
+{% endblock %}

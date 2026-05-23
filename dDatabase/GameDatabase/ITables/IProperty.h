@@ -64,5 +64,9 @@ public:
 	
 	// Insert a new property into the database.
 	virtual void InsertNewProperty(const IProperty::Info& info, const uint32_t templateId, const LWOZONEID& zoneId) = 0;
+
+	// Get paginated list of properties with optional search/filtering for DataTables
+	// Returns a JSON-formatted string with the property data and metadata
+	virtual std::string GetPropertiesTable(uint32_t start, uint32_t length, const std::string_view search = "", uint32_t orderColumn = 0, bool orderAsc = true) = 0;
 };
 #endif  //!__IPROPERTY__H__
