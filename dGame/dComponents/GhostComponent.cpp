@@ -29,26 +29,6 @@ GhostComponent::~GhostComponent() {
 	}
 }
 
-void GhostComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
-	auto* objElement = doc.FirstChildElement("obj");
-	if (!objElement) return;
-	auto* ghstElement = objElement->FirstChildElement("ghst");
-	if (!ghstElement) return;
-	m_IsGMInvisible = ghstElement->BoolAttribute("i");
-}
-
-void GhostComponent::UpdateXml(tinyxml2::XMLDocument& doc) {
-	auto* objElement = doc.FirstChildElement("obj");
-	if (!objElement) return;
-	auto* ghstElement = objElement->FirstChildElement("ghst");
-	if (ghstElement) objElement->DeleteChild(ghstElement);
-	// Only save if GM invisible
-	const auto* const user = UserManager::Instance()->GetUser(m_Parent->GetSystemAddress());
-	if (!m_IsGMInvisible || !user || user->GetMaxGMLevel() < eGameMasterLevel::FORUM_MODERATOR) return;
-	ghstElement = objElement->InsertNewChildElement("ghst");
-	if (ghstElement) ghstElement->SetAttribute("i", m_IsGMInvisible);
-}
-
 void GhostComponent::SetGhostReferencePoint(const NiPoint3& value) {
 	m_GhostReferencePoint = value;
 }
@@ -107,7 +87,7 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvis& gmInvisMsg) {
 				Game::entityManager->DestructEntity(m_Parent, player->GetSystemAddress());
 			}
 		} else {
-			if (toUser->GetMaxGMLevel() >= thisUser->GetMaxGMLevel()) {
+			if (toUser->GetMaxGMLevel() < thisUser->GetMaxGMLevel()) {
 				Game::entityManager->ConstructEntity(m_Parent, player->GetSystemAddress());
 				auto* controllableComp = m_Parent->GetComponent<ControllablePhysicsComponent>();
 				controllableComp->SetDirtyPosition(true);
@@ -121,11 +101,8 @@ bool GhostComponent::OnToggleGMInvis(GameMessages::ToggleGMInvis& gmInvisMsg) {
 
 bool GhostComponent::OnGetGMInvis(GameMessages::GetGMInvis& gmInvisMsg) {
 	LOG_DEBUG("GM Invisibility requested: %s", m_IsGMInvisible ? "true" : "false");
-	// TODO: disabled for now while bugs are fixed
-	// gmInvisMsg.bGMInvis = m_IsGMInvisible;
-	// return gmInvisMsg.bGMInvis;
-	gmInvisMsg.bGMInvis = false;
-	return false;
+	gmInvisMsg.bGMInvis = m_IsGMInvisible;
+	return gmInvisMsg.bGMInvis;
 }
 
 bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportMsg) {
