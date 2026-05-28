@@ -1,0 +1,93 @@
+name: Canary
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  canary-release:
+    name: Publish Canary Release
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Get last release tag
+        id: last_tag
+        run: |
+          tag=$(git describe --tags --abbrev=0 --match "v*.*.*" 2>/dev/null || echo "none")
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog since last release tag
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --unreleased --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Prepend header to changelog
+        run: |
+          last="${{ steps.last_tag.outputs.tag }}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+          short="${sha:0:7}"
+          if [ "$last" != "none" ]; then
+            header="Changes since **$last** ([full diff](https://github.com/${{ github.repository }}/compare/${last}...${sha}))\n\n"
+          else
+            header="Changes up to \`${short}\`\n\n"
+          fi
+          printf "%b" "$header" | cat - CHANGES.md > CHANGES.tmp && mv CHANGES.tmp CHANGES.md
+
+      - name: Download artifacts from CI run
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          path: artifacts/
+
+      - name: Package artifacts
+        run: |
+          declare -A platform_map=(
+            ["build-windows-2022"]="darkflame-universe-windows"
+            ["build-ubuntu-22.04"]="darkflame-universe-linux"
+            ["build-macos-15-intel"]="darkflame-universe-macos"
+          )
+          cd artifacts
+          for dir in */; do
+            name="${dir%/}"
+            out="${platform_map[$name]:-$name}"
+            zip -r "../${out}.zip" "$dir"
+          done
+          cd ..
+          ls -lh *.zip
+
+      - name: Delete existing canary release
+        run: gh release delete canary --yes --cleanup-tag 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create canary pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: canary
+          name: "Canary ${{ steps.last_tag.outputs.tag }}+${{ github.event.workflow_run.head_sha }}"
+          bodyFile: CHANGES.md
+          artifacts: "*.zip"
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: true
+          draft: false
+          allowUpdates: true
+          removeArtifacts: true
+          commit: ${{ github.event.workflow_run.head_sha }}

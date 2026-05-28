@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Create Release
+    # Only run when CI completed successfully on a version tag
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Download artifacts from CI run
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          path: artifacts/
+
+      - name: Package artifacts
+        run: |
+          declare -A platform_map=(
+            ["build-windows-2022"]="darkflame-universe-windows"
+            ["build-ubuntu-22.04"]="darkflame-universe-linux"
+            ["build-macos-15-intel"]="darkflame-universe-macos"
+          )
+          cd artifacts
+          for dir in */; do
+            name="${dir%/}"
+            out="${platform_map[$name]:-$name}"
+            zip -r "../${out}.zip" "$dir"
+          done
+          cd ..
+          ls -lh *.zip
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.event.workflow_run.head_branch }}
+          name: ${{ github.event.workflow_run.head_branch }}
+          bodyFile: CHANGES.md
+          artifacts: "*.zip"
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          draft: false
