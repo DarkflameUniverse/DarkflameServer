@@ -12,18 +12,18 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
+    continue-on-error: ${{ github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v') }}
     strategy:
       matrix:
         os: [ windows-2022, ubuntu-22.04, macos-15-intel ]
 
     steps:
-    - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
+    - uses: actions/checkout@v4
       with:
         submodules: true
     - name: Add msbuild to PATH (Windows only)
       if: ${{ matrix.os == 'windows-2022' }}
-      uses: microsoft/setup-msbuild@767f00a3f09872d96a0cb9fcd5e6a4ff33311330
+      uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
@@ -33,15 +33,15 @@ jobs:
         brew install openssl@3
         sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
     - name: Get CMake 3.x
-      uses: lukka/get-cmake@28983e0d3955dba2bb0a6810caae0c6cf268ec0c
+      uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
       with:
-        cmakeVersion: "~3.25.0"  # <--= optional, use most recent 3.25.x version
+        cmakeVersion: "~3.25.0"
     - name: cmake
-      uses: lukka/run-cmake@67c73a83a46f86c4e0b96b741ac37ff495478c38
+      uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:
         workflowPreset: "ci-${{matrix.os}}"
     - name: artifacts
-      uses: actions/upload-artifact@6027e3dd177782cd8ab9af838c04fd81a07f1d47
+      uses: actions/upload-artifact@v4
       with:
         name: build-${{matrix.os}}
         path: |

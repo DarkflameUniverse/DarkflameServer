@@ -12,20 +12,21 @@ permissions:
 jobs:
   release:
     name: Create Release
-    # Only run when CI completed successfully on a version tag
+    # Only run when CI completed successfully on a tag push (not a PR branch named like a version)
     if: |
       github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
       startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Generate changelog
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
         id: cliff
         with:
           config: cliff.toml
@@ -35,7 +36,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Download artifacts from CI run
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         with:
           run_id: ${{ github.event.workflow_run.id }}
           path: artifacts/
@@ -57,7 +58,7 @@ jobs:
           ls -lh *.zip
 
       - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{ github.event.workflow_run.head_branch }}
           name: ${{ github.event.workflow_run.head_branch }}
