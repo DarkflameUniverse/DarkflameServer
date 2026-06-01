@@ -39,11 +39,6 @@ jobs:
       with:
         vs-version: '[17,18)'
         msbuild-architecture: x64
-    - name: Install libssl and switch to XCode 15.2 (Mac Only)
-      if: ${{ matrix.os == 'macos-15-intel' }}
-      run: |
-        brew install openssl@3
-        sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
     - name: Get CMake 3.x
       uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
       with:
