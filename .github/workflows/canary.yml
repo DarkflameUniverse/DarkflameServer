@@ -59,9 +59,9 @@ jobs:
       - name: Package artifacts
         run: |
           declare -A platform_map=(
-            ["build-windows-2022"]="darkflame-universe-windows"
-            ["build-ubuntu-22.04"]="darkflame-universe-linux"
-            ["build-macos-15-intel"]="darkflame-universe-macos"
+            ["build-windows"]="darkflame-universe-windows"
+            ["build-linux"]="darkflame-universe-linux"
+            ["build-macos"]="darkflame-universe-macos"
           )
           cd artifacts
           for dir in */; do
