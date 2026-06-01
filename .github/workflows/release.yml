@@ -49,7 +49,7 @@ jobs:
             ["build-macos"]="darkflame-universe-macos"
           )
           cd artifacts
-          for dir in */; do
+          for dir in build-*/; do
             name="${dir%/}"
             out="${platform_map[$name]:-$name}"
             zip -r "../${out}.zip" "$dir"
