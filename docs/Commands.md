@@ -15,8 +15,8 @@
 |pvp|`/pvp`|Toggle your PVP flag|0|
 |requestmailcount|`/requestmailcount`|Sends notification with number of unread messages in the player's mailbox. Aliases: `/checkmail`.|0|
 |who|`/who`|Displays all players on the instance|0|
-|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on. This must be enabled by a server admin. Aliases: `/tnp`.|0|
-|toggleskipcinematics|`/toggleskipcinematics`|Skips mission and world load related cinematics. This must be enabled by a server admin. Aliases: `/tsc`.|0|
+|togglenameplate|`/togglenameplate`|Turns the nameplate above your head that is visible to other players off and on. This must be enabled by a server admin. Aliases: `/tnp`.|8 or 0 if `allow_nameplate_off` is 1|
+|toggleskipcinematics|`/toggleskipcinematics`|Skips mission and world load related cinematics. This must be enabled by a server admin. Aliases: `/tsc`.|8 or 0 if `allow_players_to_skip_cinematics` is 1|
 
 ## Client-handled Commands
 
@@ -91,7 +91,7 @@ These commands are registered by the server so they appear in help, but their be
 |fly|`/fly <speed>`|Toggles your flying state with an optional parameter for the speed scale.|8|
 |attackimmune|`/attackimmune <value>`|Sets the character's immunity to basic attacks state, where value can be one of "1", to make yourself immune to basic attack damage, or "0" to undo|8|
 |gmimmune|`/gmimmune <value>`|Sets the character's GMImmune state, where value can be one of "1", to make yourself immune to damage, or "0" to undo|8|
-|gminvis|`/gminvis`|Toggles invisibility for the character, though it's currently a bit buggy. Requires nonzero GM Level for the character, but the account must have a GM level of 8.|8|
+|gminvis|`/gminvis`|Toggles invisibility for the character. Does not save across worlds.|1|
 |setname|`/setname <name>`|Sets a temporary name for your player. The name resets when you log out|8|
 |title|`/title <title>`|Temporarily appends your player's name with " - &#60;title&#62;". This resets when you log out|8|
 |showall|`/showall (displayZoneData) (displayIndividualPlayers)`|Usage: /showall (displayZoneData: Default 1) (displayIndividualPlayers: Default 1)|2|
@@ -105,7 +105,7 @@ These commands are registered by the server so they appear in help, but their be
 |announce|`/announce`|Sends an announcement. `/setanntitle` and `/setannmsg` must be called first to configure the announcement.|8|
 |kill|`/kill <username>`|Smashes the character whom the given user is playing|8|
 |metrics|`/metrics`|Prints some information about the server's performance|8|
-|setannmsg|`/setannmsg <message>`|Sets the message of an announcement. Use with `/setannmtitle` and `/announce`|8|
+|setannmsg|`/setannmsg <message>`|Sets the message of an announcement. Use with `/setanntitle` and `/announce`|8|
 |setanntitle|`/setanntitle <title>`|Sets the title of an announcement. Use with `/setannmsg` and `/announce`|8|
 |shutdown|`/shutdown`|Shuts this world down|8|
 |shutdownuniverse|`/shutdownuniverse`|Sends a shutdown message to the master server. This will send an announcement to all players that the universe will shut down in 10 minutes.|9|
@@ -145,9 +145,9 @@ These commands are primarily for development and testing. The usage of many of t
 |getnavmeshheight|`/getnavmeshheight`|Display the navmesh height at your current position|8|
 |giveuscore|`/giveuscore <uscore>`|Gives uscore|8|
 |gmadditem|`/gmadditem <id> (count)`|Adds the given item to your inventory by id. Aliases: `/give`.|8|
-|inspect|`/inspect <component or ldf variable or player name> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`|Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the the IDs of all components the entity has. See detailed usage in the DLU docs|8|
+|inspect|`/inspect <component or ldf variable or player name> (-m <waypoint> | -a <animation> | -s | -p | -f (faction) | -t)`|Finds the closest entity with the given component or LNV variable (ignoring players and racing cars), printing its ID, distance from the player, and whether it is sleeping, as well as the IDs of all components the entity has. See detailed usage in the DLU docs|8|
 |list-spawns|`/list-spawns`|Lists all the character spawn points in the zone. Additionally, this command will display the current scene that plays when the character lands in the next zone, if there is one. Aliases: `/listspawns`.|8|
-|locrow|`/locrow`|Prints the your current position and rotation information to the console|8|
+|locrow|`/locrow`|Prints your current position and rotation information to the console|8|
 |lookup|`/lookup <query>`|Searches through the Objects table in the client SQLite database for items whose display name, name, or description contains the query. Query can be multiple words delimited by spaces.|8|
 |playanimation|`/playanimation <id>`|Play an animation with given ID. Aliases: `/playanim`.|8|
 |playeffect|`/playeffect <effect id> <effect type> <effect name>`|Plays an effect|8|
