@@ -67,7 +67,6 @@ jobs:
           build/*/navmeshes/
           build/*/migrations/
           build/*/*.dcf
-          !build/*/*.pdb
           !build/*/d*/
           !build/*/*.dSYM/
           !build/**/*.debug
