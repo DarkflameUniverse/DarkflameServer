@@ -208,8 +208,8 @@ void TacArcBehavior::Load() {
 		GetFloat("offset_z", 0.0f)
 	);
 	this->m_method = GetInt("method", 1);
-	this->m_upperBound = std::abs(GetFloat("upper_bound", 4.4f));
-	this->m_lowerBound = std::abs(GetFloat("lower_bound", 0.4f)) - 5.0f; // Makes it so players and objects can still be targetted when slightly below the caster.  FIXME: use bounding spheres at some point
+	this->m_upperBound = GetFloat("upper_bound", 4.4f);
+	this->m_lowerBound = GetFloat("lower_bound", 0.4f) - 5.0f; // Makes it so players and objects can still be targetted when slightly below the caster.  FIXME: use bounding spheres at some point
 	this->m_usePickedTarget = GetBoolean("use_picked_target", false);
 	this->m_useTargetPostion = GetBoolean("use_target_position", false);
 	this->m_checkEnv = GetBoolean("check_env", false);
