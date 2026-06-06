@@ -1,0 +1,133 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Accounts - DarkflameServer{% endblock %}
+
+{% block css %}{% endblock %}
+
+{% block content %}
+	<div class="accounts-container">
+		<div class="container-fluid">
+			<div class="table-card">
+				<div class="table-header">
+                    <h2 class="mb-0">Accounts</h2>
+                    <p class="text-muted">View and manage user accounts</p>
+				</div>
+				<div class="table-body">
+					<div class="table-responsive">
+						<table id="accountsTable" class="table table-dark table-hover mb-0">
+							<thead>
+								<tr>
+									<th>ID</th>
+									<th>Username</th>
+									<th>Banned</th>
+									<th>Locked</th>
+									<th>GM Level</th>
+									<th>Mute Expires</th>
+									<th>Created</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								<!-- Data populated by DataTables -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script>
+		$(document).ready(function() {
+			// Initialize DataTable with server-side processing
+			$('#accountsTable').DataTable({
+				processing: true,
+				serverSide: true,
+				pageLength: 25,
+				lengthMenu: [10, 25, 50, 100],
+				ajax: {
+					url: '/api/tables/accounts',
+					type: 'POST',
+					contentType: 'application/json',
+					data: function(d) {
+						return JSON.stringify(d);
+					},
+					error: function(xhr, error, thrown) {
+						console.error('Error loading accounts:', error);
+						if (xhr.status === 401) {
+							window.location.href = '/login';
+						}
+					}
+				},
+				columns: [
+					{ data: 'id' },
+					{ data: 'name' },
+					{
+						data: 'banned',
+						render: function(data) {
+							return data ? '<span class="badge badge-banned">Banned</span>' : '<span class="badge bg-success">Active</span>';
+						}
+					},
+					{
+						data: 'locked',
+						render: function(data) {
+							return data ? '<span class="badge badge-locked">Locked</span>' : '<span class="badge bg-secondary">Unlocked</span>';
+						}
+					},
+					{
+						data: 'gm_level',
+						render: function(data) {
+							if (data === 0) return '-';
+							return '<span class="badge badge-gm">Level ' + data + '</span>';
+						}
+					},
+					{
+						data: 'mute_expire',
+						render: function(data) {
+							if (data === 0) return 'Not Muted';
+							const now = Math.floor(Date.now() / 1000);
+							const isMuted = data > now;
+							const date = new Date(data * 1000);
+							const dateStr = date.toLocaleString();
+							if (isMuted) {
+								return '<span class="badge bg-danger">Muted until ' + dateStr + '</span>';
+							} else {
+								return '<span class="badge bg-success">Expired ' + dateStr + '</span>';
+							}
+						}
+					},
+					{
+						data: 'created_at',
+						render: function(data) {
+							return data ? new Date(data).toLocaleString() : '-';
+						}
+					},
+					{
+						data: 'id',
+						render: function(data) {
+							return '<div class="account-actions">' +
+								'<button class="btn btn-sm btn-info" onclick="viewAccount(' + data + ')" title="View">👁️</button>' +
+								'<button class="btn btn-sm btn-warning" onclick="editAccount(' + data + ')" title="Edit">✏️</button>' +
+								'</div>';
+						},
+						orderable: false,
+						searchable: false
+					}
+				],
+				order: [[0, 'asc']],
+				stateSave: false
+			});
+		});
+
+		function viewAccount(id) {
+			window.location.href = '/accounts/' + id;
+		}
+
+		function editAccount(id) {
+			alert('Edit account: ' + id);
+			// TODO: Implement account edit modal
+		}
+	</script>
+{% endblock %}

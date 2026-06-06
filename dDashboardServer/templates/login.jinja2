@@ -1,0 +1,53 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Dashboard Login - DarkflameServer{% endblock %}
+
+{% block extra_css %}
+	<link rel="stylesheet" href="/css/login.css">
+{% endblock %}
+
+{% block content %}
+	<div class="min-vh-100 d-flex align-items-center justify-content-center">
+		<div class="container">
+			<div class="row justify-content-center">
+				<div class="col-md-6 col-lg-5">
+					<div class="card shadow-lg border-0">
+						<div class="card-body p-5">
+							<h1 class="text-center mb-4">🎮 DarkflameServer</h1>
+							
+							<div id="alert" class="alert" role="alert" style="display: none;"></div>
+							
+							<form id="loginForm">
+								<div class="mb-3">
+									<label for="username" class="form-label">Username</label>
+									<input type="text" class="form-control" id="username" name="username" required autofocus>
+								</div>
+								
+								<div class="mb-3">
+									<label for="password" class="form-label">Password</label>
+									<input type="password" class="form-control" id="password" name="password" required maxlength="40">
+								</div>
+								
+								<div class="mb-3 form-check">
+									<input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+									<label class="form-check-label" for="rememberMe">
+										Remember me for 30 days
+									</label>
+								</div>
+								
+								<button type="submit" class="btn btn-primary w-100" id="loginBtn">
+									<span id="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
+									<span>Login</span>
+								</button>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/login.js"></script>
+{% endblock %}

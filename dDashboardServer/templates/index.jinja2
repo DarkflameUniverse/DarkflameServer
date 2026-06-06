@@ -1,0 +1,35 @@
+{% extends "base.jinja2" %}
+
+{% block title %}Dashboard - DarkflameServer{% endblock %}
+
+{% block content %}
+	<!-- Main Content -->
+	<main style="margin-left: 280px;">
+		<div class="container-fluid p-3 p-md-4">
+
+			<div class="row g-3">
+				{% include "server_status.jinja2" %}
+				{% include "statistics.jinja2" %}
+			</div>
+
+			{% include "world_instances.jinja2" %}
+		</div>
+	</main>
+{% endblock %}
+
+{% block scripts %}
+	<script src="/js/dashboard.js"></script>
+	<script>
+		// Check authentication and initialize dashboard
+		document.addEventListener('DOMContentLoaded', () => {
+			// checkAuthentication is now async and calls connectWebSocket when ready
+			checkAuthentication();
+			
+			// Setup logout button
+			document.getElementById('logoutBtn').addEventListener('click', (e) => {
+				e.preventDefault();
+				logout();
+			});
+		});
+	</script>
+{% endblock %}
