@@ -797,8 +797,14 @@ std::string CharacterComponent::StatisticsToString() const {
 	return result.str();
 }
 
-uint64_t CharacterComponent::GetStatisticFromSplit(std::vector<std::string> split, uint32_t index) {
-	return split.size() > index ? std::stoull(split.at(index)) : 0;
+uint64_t CharacterComponent::GetStatisticFromSplit(const std::vector<std::string>& split, const uint32_t index) {
+	uint64_t toReturn = 0;
+	if (index < split.size()) {
+		const auto parsed = GeneralUtils::TryParse<uint64_t>(split[index]);
+		if (parsed) toReturn = *parsed;
+	}
+	
+	return toReturn;
 }
 
 ZoneStatistics& CharacterComponent::GetZoneStatisticsForMap(LWOMAPID mapID) {

@@ -131,7 +131,7 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 
 	const auto lookupResult = Database::Get()->GetProperties(propertyLookup);
 
-	for (const auto& propertyEntry : lookupResult->entries) {
+	for (const auto& propertyEntry : lookupResult.entries) {
 		const auto owner = propertyEntry.ownerId;
 		const auto otherCharacter = Database::Get()->GetCharacterInfo(owner);
 		if (!otherCharacter.has_value()) {
@@ -174,5 +174,5 @@ void PropertyEntranceComponent::OnPropertyEntranceSync(Entity* entity, bool incl
 	}
 
 	// Query here is to figure out whether or not to display the button to go to the next page or not.
-	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, lookupResult->totalEntriesMatchingQuery - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
+	GameMessages::SendPropertySelectQuery(m_Parent->GetObjectID(), startIndex, lookupResult.totalEntriesMatchingQuery - (startIndex + numResults) > 0, character->GetPropertyCloneID(), false, true, entries, sysAddr);
 }

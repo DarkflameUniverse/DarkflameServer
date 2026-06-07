@@ -449,45 +449,48 @@ void MissionComponent::LoadFromXml(const tinyxml2::XMLDocument& doc) {
 
 	if (mis == nullptr) return;
 
-	auto* cur = mis->FirstChildElement("cur");
 	auto* done = mis->FirstChildElement("done");
-
-	auto* doneM = done->FirstChildElement();
-
-	while (doneM) {
-		int missionId;
-
-		doneM->QueryAttribute("id", &missionId);
-
-		auto* mission = new Mission(this, missionId);
-
-		mission->LoadFromXmlDone(*doneM);
-
-		doneM = doneM->NextSiblingElement();
-
-		m_Missions.insert_or_assign(missionId, mission);
-	}
-
-	auto* currentM = cur->FirstChildElement();
-
-	uint32_t missionOrder{};
-	while (currentM) {
-		int missionId;
-
-		currentM->QueryAttribute("id", &missionId);
-
-		auto* mission = m_Missions.contains(missionId) ? m_Missions[missionId] : new Mission(this, missionId);
-
-		mission->LoadFromXmlCur(*currentM);
-
-		if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
-			mission->SetUniqueMissionOrderID(missionOrder);
-			if (missionOrder > m_LastUsedMissionOrderUID) m_LastUsedMissionOrderUID = missionOrder;
+	if (done) {
+		auto* doneM = done->FirstChildElement();
+		
+		while (doneM) {
+			int missionId;
+			
+			doneM->QueryAttribute("id", &missionId);
+			
+			auto* mission = new Mission(this, missionId);
+			
+			mission->LoadFromXmlDone(*doneM);
+			
+			doneM = doneM->NextSiblingElement();
+			
+			m_Missions.insert_or_assign(missionId, mission);
 		}
+	}
+	
+	auto* cur = mis->FirstChildElement("cur");
+	if (cur) {
+		auto* currentM = cur->FirstChildElement();
 
-		currentM = currentM->NextSiblingElement();
+		uint32_t missionOrder{};
+		while (currentM) {
+			int missionId;
 
-		m_Missions.insert_or_assign(missionId, mission);
+			currentM->QueryAttribute("id", &missionId);
+
+			auto* mission = m_Missions.contains(missionId) ? m_Missions[missionId] : new Mission(this, missionId);
+
+			mission->LoadFromXmlCur(*currentM);
+
+			if (currentM->QueryAttribute("o", &missionOrder) == tinyxml2::XML_SUCCESS && mission->IsMission()) {
+				mission->SetUniqueMissionOrderID(missionOrder);
+				if (missionOrder > m_LastUsedMissionOrderUID) m_LastUsedMissionOrderUID = missionOrder;
+			}
+
+			currentM = currentM->NextSiblingElement();
+
+			m_Missions.insert_or_assign(missionId, mission);
+		}
 	}
 }
 

@@ -306,7 +306,7 @@ void RacingControlComponent::OnRequestDie(Entity* player, const std::u16string& 
 				eKillType::VIOLENT, deathType, 0, 0, 90.0f, false, true, 0);
 
 			auto* destroyableComponent = vehicle->GetComponent<DestroyableComponent>();
-			uint32_t respawnImagination = 0;
+			int32_t respawnImagination = 0;
 			// Reset imagination to half its current value, rounded up to the nearest value divisible by 10, as it was done in live.
 			// Do not actually change the value yet.  Do that on respawn.
 			if (destroyableComponent) {

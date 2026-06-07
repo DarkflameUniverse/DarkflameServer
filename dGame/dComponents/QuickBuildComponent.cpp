@@ -380,7 +380,7 @@ void QuickBuildComponent::StartQuickBuild(Entity* const user) {
 		m_Builder = user->GetObjectID();
 
 		auto* character = user->GetComponent<CharacterComponent>();
-		character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
+		if (character) character->SetCurrentActivity(eGameActivity::QUICKBUILDING);
 
 		Game::entityManager->SerializeEntity(user);
 

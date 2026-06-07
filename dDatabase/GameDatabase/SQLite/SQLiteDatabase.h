@@ -111,7 +111,7 @@ public:
 	std::string GetBehavior(const LWOOBJID behaviorId) override;
 	void RemoveBehavior(const LWOOBJID characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
-	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
+	IProperty::PropertyEntranceResult GetProperties(const IProperty::PropertyLookup& params) override;
 	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override;
@@ -170,91 +170,91 @@ private:
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const std::string_view param) {
-	LOG("%s", param.data());
+	LOG_DEBUG("%s", param.data());
 	stmt.bind(index, param.data());
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const char* param) {
-	LOG("%s", param);
+	LOG_DEBUG("%s", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const std::string param) {
-	LOG("%s", param.c_str());
+	LOG_DEBUG("%s", param.c_str());
 	stmt.bind(index, param.c_str());
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const int8_t param) {
-	LOG("%u", param);
+	LOG_DEBUG("%u", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const uint8_t param) {
-	LOG("%d", param);
+	LOG_DEBUG("%d", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const int16_t param) {
-	LOG("%u", param);
+	LOG_DEBUG("%u", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const uint16_t param) {
-	LOG("%d", param);
+	LOG_DEBUG("%d", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const uint32_t param) {
-	LOG("%u", param);
+	LOG_DEBUG("%u", param);
 	stmt.bind(index, static_cast<int32_t>(param));
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const int32_t param) {
-	LOG("%d", param);
+	LOG_DEBUG("%d", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const int64_t param) {
-	LOG("%llu", param);
+	LOG_DEBUG("%llu", param);
 	stmt.bind(index, static_cast<sqlite_int64>(param));
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const uint64_t param) {
-	LOG("%llu", param);
+	LOG_DEBUG("%llu", param);
 	stmt.bind(index, static_cast<sqlite_int64>(param));
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const float param) {
-	LOG("%f", param);
+	LOG_DEBUG("%f", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const double param) {
-	LOG("%f", param);
+	LOG_DEBUG("%f", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const bool param) {
-	LOG("%d", param);
+	LOG_DEBUG("%d", param);
 	stmt.bind(index, param);
 }
 
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const std::istream* param) {
-	LOG("Blob");
+	LOG_DEBUG("Blob");
 	// This is the one time you will ever see me use const_cast.
 	std::stringstream stream;
 	stream << param->rdbuf();
@@ -264,10 +264,10 @@ inline void SetParam(PreppedStmtRef stmt, const int index, const std::istream* p
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const std::optional<uint32_t> param) {
 	if (param) {
-		LOG("%d", param.value());
+		LOG_DEBUG("%d", param.value());
 		stmt.bind(index, static_cast<int>(param.value()));
 	} else {
-		LOG("Null");
+		LOG_DEBUG("Null");
 		stmt.bindNull(index);
 	}
 }
@@ -275,10 +275,10 @@ inline void SetParam(PreppedStmtRef stmt, const int index, const std::optional<u
 template<>
 inline void SetParam(PreppedStmtRef stmt, const int index, const std::optional<LWOOBJID> param) {
 	if (param) {
-		LOG("%d", param.value());
+		LOG_DEBUG("%d", param.value());
 		stmt.bind(index, static_cast<sqlite_int64>(param.value()));
 	} else {
-		LOG("Null");
+		LOG_DEBUG("Null");
 		stmt.bindNull(index);
 	}
 }

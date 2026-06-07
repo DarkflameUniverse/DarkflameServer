@@ -793,7 +793,7 @@ void DestroyableComponent::Smash(const LWOOBJID source, const eKillType killType
 
 		std::vector<Entity*> scriptedActs = Game::entityManager->GetEntitiesByComponent(eReplicaComponentType::SCRIPTED_ACTIVITY);
 		for (Entity* scriptEntity : scriptedActs) {
-			if (scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
+			if (!zoneControl || scriptEntity->GetObjectID() != zoneControl->GetObjectID()) { // Don't want to trigger twice on instance worlds
 				scriptEntity->GetScript()->OnPlayerDied(scriptEntity, m_Parent);
 			}
 		}
@@ -964,6 +964,8 @@ void DestroyableComponent::DoHardcoreModeDrops(const LWOOBJID source) {
 	if (m_Parent->IsPlayer()) {
 		//remove hardcore_lose_uscore_on_death_percent from the player's uscore:
 		auto* character = m_Parent->GetComponent<CharacterComponent>();
+		if (!character) return;
+
 		auto uscore = character->GetUScore();
 
 		auto uscoreToLose = static_cast<uint64_t>(uscore * (Game::entityManager->GetHardcoreLoseUscoreOnDeathPercent() / 100.0f));

@@ -922,7 +922,9 @@ void PetComponent::Deactivate() {
 }
 
 void PetComponent::Release() {
-	auto* inventoryComponent = GetOwner()->GetComponent<InventoryComponent>();
+	auto* const owner = GetOwner();
+	if (!owner) return;
+	auto* const inventoryComponent = owner->GetComponent<InventoryComponent>();
 
 	if (inventoryComponent == nullptr) {
 		return;
@@ -932,9 +934,9 @@ void PetComponent::Release() {
 
 	inventoryComponent->RemoveDatabasePet(m_DatabaseId);
 
-	auto* item = inventoryComponent->FindItemBySubKey(m_DatabaseId);
+	auto* const item = inventoryComponent->FindItemBySubKey(m_DatabaseId);
 
-	item->SetCount(0, false, false);
+	if (item) item->SetCount(0, false, false);
 }
 
 void PetComponent::Command(const NiPoint3& position, const LWOOBJID source, const int32_t commandType, const int32_t typeId, const bool overrideObey) {

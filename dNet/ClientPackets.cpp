@@ -108,6 +108,7 @@ ChatModerationRequest ClientPackets::HandleChatModerationRequest(Packet* packet)
 
 	uint16_t messageLength;
 	inStream.Read(messageLength);
+	if (messageLength > MAX_MESSAGE_LENGTH) return request;
 	for (uint32_t i = 0; i < messageLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);

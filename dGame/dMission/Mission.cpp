@@ -74,23 +74,19 @@ Mission::Mission(MissionComponent* missionComponent, const uint32_t missionId) {
 
 void Mission::LoadFromXmlDone(const tinyxml2::XMLElement& element) {
 	// Start custom XML
-	if (element.Attribute("state") != nullptr) {
-		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
-	}
+	m_State = static_cast<eMissionState>(element.UnsignedAttribute("state"));
 	// End custom XML
 
-	if (element.Attribute("cct") != nullptr) {
-		m_Completions = std::stoul(element.Attribute("cct"));
+	m_Completions = element.UnsignedAttribute("cct");
 
-		m_Timestamp = std::stoul(element.Attribute("cts"));
-	}
+	m_Timestamp = element.UnsignedAttribute("cts");
 }
 
 void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 	const auto* const character = GetCharacter();
 	// Start custom XML
 	if (element.Attribute("state") != nullptr) {
-		m_State = static_cast<eMissionState>(std::stoul(element.Attribute("state")));
+		m_State = static_cast<eMissionState>(element.IntAttribute("state", -1));
 	}
 	// End custom XML
 
@@ -106,7 +102,7 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 
 		const auto type = curTask->GetType();
 
-		auto value = std::stoul(task->Attribute("v"));
+		auto value = task->UnsignedAttribute("v");
 		curTask->SetProgress(value, false);
 		task = task->NextSiblingElement();
 
@@ -114,7 +110,7 @@ void Mission::LoadFromXmlCur(const tinyxml2::XMLElement& element) {
 		if (type == eMissionTaskType::COLLECTION || type == eMissionTaskType::VISIT_PROPERTY) {
 			std::vector<uint32_t> uniques;
 			while (task != nullptr && value > 0) {
-				const auto unique = std::stoul(task->Attribute("v"));
+				const auto unique = task->UnsignedAttribute("v");
 
 				uniques.push_back(unique);
 

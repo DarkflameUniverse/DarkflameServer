@@ -107,20 +107,12 @@ std::vector<NiPoint3> PropertyManagementComponent::GetPaths() const {
 
 	std::vector<float> points;
 
-	std::istringstream stream(result.getStringField("path"));
-	std::string token;
-
-	while (std::getline(stream, token, ' ')) {
-		try {
-			auto value = std::stof(token);
-
-			points.push_back(value);
-		} catch (std::invalid_argument& exception) {
-			LOG("Failed to parse value (%s): (%s)!", token.c_str(), exception.what());
-		}
+	for (const auto& str : GeneralUtils::SplitString(result.getStringField("path"), ' ')) {
+		const auto value = GeneralUtils::TryParse<float>(str);
+		if (value) points.push_back(value.value());
 	}
 
-	for (auto i = 0u; i < points.size(); i += 3) {
+	for (auto i = 0u; i + 2 < points.size(); i += 3) {
 		paths.emplace_back(points[i], points[i + 1], points[i + 2]);
 	}
 
@@ -780,15 +772,17 @@ void PropertyManagementComponent::OnQueryPropertyData(Entity* originator, const 
 		privacy = static_cast<char>(this->privacyOption);
 		if (moderatorRequested) {
 			auto moderationInfo = Database::Get()->GetPropertyInfo(zoneId, cloneId);
-			if (moderationInfo->rejectionReason != "") {
-				moderatorRequested = false;
-				rejectionReason = moderationInfo->rejectionReason;
-			} else if (moderationInfo->rejectionReason == "" && moderationInfo->modApproved == 1) {
-				moderatorRequested = false;
-				rejectionReason = "";
-			} else {
-				moderatorRequested = true;
-				rejectionReason = "";
+			if (moderationInfo) {
+				if (moderationInfo->rejectionReason != "") {
+					moderatorRequested = false;
+					rejectionReason = moderationInfo->rejectionReason;
+				} else if (moderationInfo->rejectionReason == "" && moderationInfo->modApproved == 1) {
+					moderatorRequested = false;
+					rejectionReason = "";
+				} else {
+					moderatorRequested = true;
+					rejectionReason = "";
+				}
 			}
 		}
 	}

@@ -71,6 +71,7 @@ Sd0::Sd0(std::istream& buffer) {
 
 		WriteSize(chunk, chunkSize);
 
+		// Possible overflow from a massive chunk or allocation of a massive chunk. TODO: fix this
 		chunk.resize(chunkSize + dataOffset);
 		auto* dataStart = reinterpret_cast<char*>(chunk.data() + dataOffset);
 		if (!buffer.read(dataStart, chunkSize)) {
@@ -94,6 +95,11 @@ void Sd0::FromData(const uint8_t* data, size_t bufferSize) {
 		const auto compressedSize = ZCompression::Compress(
 			startOffset, numToCopy,
 			compressedChunk.data(), compressedChunk.size());
+
+		if (compressedSize == -1) {
+			LOG("Failed to compress chunk, aborting");
+			break;
+		}
 
 		auto& chunk = m_Chunks.emplace_back();
 		bool firstBuffer = m_Chunks.size() == 1;
@@ -119,6 +125,12 @@ std::string Sd0::GetAsStringUncompressed() const {
 		auto dataOffset = GetDataOffset(first);
 		first = false;
 		const auto chunkSize = chunk.size();
+		if (chunkSize <= static_cast<size_t>(dataOffset)) {
+			LOG("Bad chunkSize for data, aborting");
+			toReturn = "";
+			totalSize = 0;
+			break;
+		}
 
 		auto oldSize = toReturn.size();
 		toReturn.resize(oldSize + MAX_UNCOMPRESSED_CHUNK_SIZE);
@@ -127,6 +139,13 @@ std::string Sd0::GetAsStringUncompressed() const {
 			chunk.data() + dataOffset, chunkSize - dataOffset,
 			reinterpret_cast<uint8_t*>(toReturn.data()) + oldSize, MAX_UNCOMPRESSED_CHUNK_SIZE,
 			error);
+
+		if (uncompressedSize == -1) {
+			LOG("Failed to decompress chunk, aborting");
+			toReturn = "";
+			totalSize = 0;
+			break;
+		}
 
 		totalSize += uncompressedSize;
 	}

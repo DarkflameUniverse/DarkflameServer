@@ -326,7 +326,7 @@ void DropRegularLoot(Team& team, GameMessages::DropClientLoot& lootMsg, const bo
 void DropLoot(Entity* player, const LWOOBJID source, const std::map<LOT, LootDropInfo>& rolledItems, uint32_t minCoins, uint32_t maxCoins, const bool noTeamLootOnDeath) {
 	player = player->GetOwner(); // if the owner is overwritten, we collect that here
 	const auto playerID = player->GetObjectID();
-	if (!player || !player->IsPlayer()) {
+	if (!player->IsPlayer()) {
 		LOG("Trying to drop loot for non-player %llu:%i", playerID, player->GetLOT());
 		return;
 	}

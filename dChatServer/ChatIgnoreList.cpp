@@ -3,6 +3,7 @@
 #include "MessageType/Chat.h"
 #include "BitStreamUtils.h"
 #include "Game.h"
+#include "dConfig.h"
 #include "Logger.h"
 #include "eObjectBits.h"
 
@@ -72,8 +73,8 @@ void ChatIgnoreList::AddIgnore(Packet* packet) {
 		return;
 	}
 
-	constexpr int32_t MAX_IGNORES = 32;
-	if (receiver.ignoredPlayers.size() > MAX_IGNORES) {
+	const int32_t MAX_IGNORES = Game::config->GetValue("max_ignores", 32);
+	if (receiver.ignoredPlayers.size() >= MAX_IGNORES) {
 		LOG_DEBUG("Player %llu has too many ignores", playerId);
 		return;
 	}

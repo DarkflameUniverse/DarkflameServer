@@ -15,4 +15,9 @@ public:
 	void Load() override;
 private:
 	float m_Timeout;
+	
+	Behavior* m_GroundAction{};
+	Behavior* m_HitAction{};
+	Behavior* m_HitActionEnemy{};
+	Behavior* m_TimeoutAction{};
 };

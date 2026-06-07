@@ -187,8 +187,13 @@ namespace GMZeroCommands {
 		auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
 
-		ChatPackets::SendSystemMessage(sysAddr, u"Requesting private map...");
 		const auto& password = splitArgs[0];
+		if (password.length() >= 50) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Password is too long.");
+			return;
+		}
+
+		ChatPackets::SendSystemMessage(sysAddr, u"Requesting private map...");
 
 		ZoneInstanceManager::Instance()->RequestPrivateZone(Game::server, false, password, [=](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 			LOG("Transferring %s to Zone %i (Instance %i | Clone %i | Mythran Shift: %s) with IP %s and Port %i", sysAddr.ToString(), zoneID, zoneInstance, zoneClone, mythranShift == true ? "true" : "false", serverIP.c_str(), serverPort);

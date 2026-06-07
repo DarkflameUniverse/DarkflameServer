@@ -82,7 +82,7 @@ private:
 	EntityInfo m_EntityInfo;
 	int32_t m_AmountSpawned = 0;
 	bool m_Start = false;
-	Spawner* m_SpawnOnSmash = nullptr;
+	LWOOBJID m_SpawnOnSmashID = LWOOBJID_EMPTY;
 };
 
 #endif // SPAWNER_H

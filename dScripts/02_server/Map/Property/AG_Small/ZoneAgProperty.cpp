@@ -413,7 +413,8 @@ void ZoneAgProperty::BaseOnFireEventServerSide(Entity* self, Entity* sender, std
 		if (player == nullptr)
 			return;
 
-		player->GetCharacter()->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
+		auto* const character = player->GetCharacter();
+		if (character) character->SetPlayerFlag(self->GetVar<int32_t>(defeatedProperyFlag), true);
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), u"PlayCinematic", 0, 0,
 			LWOOBJID_EMPTY, destroyedCinematic, UNASSIGNED_SYSTEM_ADDRESS);
 

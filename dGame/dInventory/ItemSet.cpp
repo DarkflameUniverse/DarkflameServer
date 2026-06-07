@@ -128,8 +128,8 @@ void ItemSet::OnEquip(const LOT lot) {
 		return;
 	}
 
-	auto* skillComponent = m_InventoryComponent->GetParent()->GetComponent<SkillComponent>();
-	auto* missionComponent = m_InventoryComponent->GetParent()->GetComponent<MissionComponent>();
+	auto [skillComponent, missionComponent] = m_InventoryComponent->GetParent()->GetComponentsMut<SkillComponent, MissionComponent>();
+	if (!skillComponent || !missionComponent) return; // Nothing to do here if these are null
 
 	for (const auto skill : skillSet) {
 		auto* skillTable = CDClientManager::GetTable<CDSkillBehaviorTable>();
