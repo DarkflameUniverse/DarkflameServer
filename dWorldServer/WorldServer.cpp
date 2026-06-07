@@ -768,7 +768,7 @@ void HandleMasterPacket(Packet* packet) {
 
 		LUString username;
 		inStream.Read(username);
-		LOG("Got new session alert for user %s %i", username.string.c_str(), sessionKey);
+		LOG("Got new session alert for user %s", username.string.c_str());
 		//Find them:
 		User* user = UserManager::Instance()->GetUser(username.string.c_str());
 		if (!user) {
