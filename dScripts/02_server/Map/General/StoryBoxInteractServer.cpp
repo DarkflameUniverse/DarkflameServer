@@ -44,7 +44,7 @@ void StoryBoxInteractServer::OnUse(Entity* self, Entity* user) {
 		flagMsg.Send();
 		if (!flagMsg.flag) {
 			auto* const character = user->GetCharacter();
-			if (character) user->GetCharacter()->SetPlayerFlag(boxFlag, true);
+			if (character) character->SetPlayerFlag(boxFlag, true);
 			GameMessages::SendFireEventClientSide(self->GetObjectID(), user->GetSystemAddress(), u"achieve", LWOOBJID_EMPTY, 0, -1, LWOOBJID_EMPTY);
 		}
 	}

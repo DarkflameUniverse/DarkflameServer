@@ -62,11 +62,12 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t c
 		m_RespawnPos = GeneralUtils::TryParse(respawnPos, NiPoint3Constant::ZERO);
 
 		const auto respawnRot = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rspRot"), '\x1f');
-		m_RespawnRot = NiQuaternion(
+		m_RespawnRot = respawnRot.size() >= 4 ? NiQuaternion(
 			GeneralUtils::TryParse(respawnRot[0], 1.0f),
 			GeneralUtils::TryParse(respawnRot[1], 0.0f),
 			GeneralUtils::TryParse(respawnRot[2], 0.0f),
-			GeneralUtils::TryParse(respawnRot[3], 0.0f));
+			GeneralUtils::TryParse(respawnRot[3], 0.0f))
+			: QuatUtils::IDENTITY;
 	}
 
 	// HF - RespawnPoints. Legacy respawn entity.

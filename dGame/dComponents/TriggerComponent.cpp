@@ -404,7 +404,7 @@ void TriggerComponent::HandleSetPhysicsVolumeEffect(Entity* targetEntity, std::v
 
 		phantomPhysicsComponent->SetDirection(direction);
 	}
-	if (argArray.size() > 5) {
+	if (argArray.size() > 6) {
 		const uint32_t min = GeneralUtils::TryParse(argArray.at(6), 0);
 		phantomPhysicsComponent->SetMin(min);
 

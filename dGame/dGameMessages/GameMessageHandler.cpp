@@ -62,7 +62,7 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 	User* usr = UserManager::Instance()->GetUser(sysAddr);
 
 	if (!usr) {
-		LOG("Failed to find a logged in user for (%llu), aborting GM: %4i, %s!", sysAddr.ToString(), messageID, StringifiedEnum::ToString(messageID).data());
+		LOG("Failed to find a logged in user for (%llu), aborting GM: %4i, %s!", objectID, messageID, StringifiedEnum::ToString(messageID).data());
 		return;
 	}
 
