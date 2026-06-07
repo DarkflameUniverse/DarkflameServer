@@ -243,6 +243,12 @@ namespace GeneralUtils {
 		return std::nullopt;
 	}
 
+	// A version of TryParse that will return `errorVal` if `str` failed to parse.
+	template <std::floating_point T>
+	[[nodiscard]] T TryParse(std::string_view str, const T errorVal) {
+		return TryParse<T>(str).value_or(errorVal);
+	}
+
 #endif
 
 	/**
