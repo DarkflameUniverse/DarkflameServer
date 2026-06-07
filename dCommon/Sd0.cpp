@@ -45,6 +45,12 @@ Sd0::Sd0(std::istream& buffer) {
 		uint32_t bufferSize = buffer.tellg();
 		buffer.seekg(0, std::ios::beg);
 		WriteSize(firstChunk, bufferSize);
+		// its expected that if we got here, we got an old sd0 buffer where we ignored the sd0 part
+		// that means this can be at most the compressed chunk limit.
+		if (bufferSize > MAX_UNCOMPRESSED_CHUNK_SIZE) {
+			LOG("Possible bad chunk size of %i specified, rejecting.", bufferSize);
+			return;
+		}
 		firstChunk.resize(firstChunk.size() + bufferSize);
 		auto* dataStart = reinterpret_cast<char*>(firstChunk.data() + GetDataOffset(true));
 		if (!buffer.read(dataStart, bufferSize)) {
@@ -71,7 +77,12 @@ Sd0::Sd0(std::istream& buffer) {
 
 		WriteSize(chunk, chunkSize);
 
-		// Possible overflow from a massive chunk or allocation of a massive chunk. TODO: fix this
+		// Assuming a good buffer that is large enough to take up 2 zlib buffers
+		// any buffer should be compressed enough to take up less size than its uncompressed counterpart
+		if (chunkSize > MAX_UNCOMPRESSED_CHUNK_SIZE) {
+			LOG("Possible bad chunk size of %i specified, rejecting.", chunkSize);
+			break;
+		}
 		chunk.resize(chunkSize + dataOffset);
 		auto* dataStart = reinterpret_cast<char*>(chunk.data() + dataOffset);
 		if (!buffer.read(dataStart, chunkSize)) {
