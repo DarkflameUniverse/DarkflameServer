@@ -65,7 +65,7 @@ Lxfml::Result Lxfml::NormalizePositionOnlyFirstPart(const std::string_view data)
 			if (highest.y < y) highest.y = y;
 			if (highest.z < z) highest.z = z;
 		} catch (std::exception& e) {
-			LOG("Failed to parse a split value of either (%s), (%s), or (%s).", split[9], split[10], split[11]);
+			LOG("Failed to parse a split value of either (%s), (%s), or (%s).", split[9].c_str(), split[10].c_str(), split[11].c_str());
 			return toReturn; // Early return since we failed to parse this lxfml.
 		}
 	}
