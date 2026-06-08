@@ -7,7 +7,6 @@
 void ResetMissions(Entity& user) {
 	for (int32_t i = 1; i < 7; i++) {
 		int32_t flag = 2020 + i;
-		LOG("Setting flag %i to false", flag);
 		auto* const character = user.GetCharacter();
 		if (character) character->SetPlayerFlag(flag, false);
 	}
