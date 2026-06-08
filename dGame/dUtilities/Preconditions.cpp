@@ -166,7 +166,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::InBuild:
 		return character->GetBuildMode();
 	case PreconditionType::TeamCheck:
-		return false; // TODO
+		return false; // TODO: requires knowing the player's minigame team assignment (red/blue etc.); DLU does not track this per-player
 	case PreconditionType::IsPetTaming:
 		return PetComponent::GetTamingPet(player->GetObjectID()) != nullptr;
 	case PreconditionType::HasFaction:
@@ -186,13 +186,13 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 
 		return true;
 	case PreconditionType::HasRacingLicence:
-		return false; // TODO
+		return false; // TODO: requires a racing licence level on the player; DLU does not track this
 	case PreconditionType::DoesNotHaveRacingLicence:
-		return false; // TODO
+		return false; // TODO: requires a racing licence level on the player; DLU does not track this
 	case PreconditionType::LegoClubMember:
 		return true; // Live LU opened LEGO CLUB to All players at some point, so always retuen true
 	case PreconditionType::NoInteraction:
-		return false; // TODO
+		return false; // TODO: requires tracking the player's currently active interaction object; DLU does not track this
 	case PreconditionType::HasLevel:
 		return levelComponent->GetLevel() >= value;
 	case PreconditionType::NotFreeTrial:
