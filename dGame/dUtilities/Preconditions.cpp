@@ -13,6 +13,7 @@
 #include "DestroyableComponent.h"
 #include "GameMessages.h"
 #include "eMissionState.h"
+#include "PetComponent.h"
 
 std::map<uint32_t, Precondition*> Preconditions::cache = {};
 
@@ -79,6 +80,9 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 	case PreconditionType::DoesNotHaveRacingLicence:
 	case PreconditionType::LegoClubMember:
 	case PreconditionType::NoInteraction:
+	case PreconditionType::NotFreeTrial:
+	case PreconditionType::MissionActive:
+	case PreconditionType::DoesNotHaveFlag:
 		any = true;
 		break;
 	case PreconditionType::DoesNotHaveItem:
@@ -154,7 +158,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 		if (missionComponent == nullptr) return false;
 		return missionComponent->GetMissionState(value) >= eMissionState::COMPLETE;
 	case PreconditionType::PetDeployed:
-		return false; // TODO
+		return PetComponent::GetActivePet(player->GetObjectID()) != nullptr;
 	case PreconditionType::HasFlag:
 		return character->GetPlayerFlag(value);
 	case PreconditionType::WithinShape:
@@ -164,7 +168,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::TeamCheck:
 		return false; // TODO
 	case PreconditionType::IsPetTaming:
-		return false; // TODO
+		return PetComponent::GetTamingPet(player->GetObjectID()) != nullptr;
 	case PreconditionType::HasFaction:
 		for (const auto faction : destroyableComponent->GetFactionIDs()) {
 			if (faction == static_cast<int>(value)) {
@@ -186,11 +190,20 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::DoesNotHaveRacingLicence:
 		return false; // TODO
 	case PreconditionType::LegoClubMember:
-		return false; // TODO
+		return true; // Live LU opened LEGO CLUB to All players at some point, so always retuen true
 	case PreconditionType::NoInteraction:
 		return false; // TODO
 	case PreconditionType::HasLevel:
 		return levelComponent->GetLevel() >= value;
+	case PreconditionType::NotFreeTrial:
+		return true; // DLU does not support free trial accounts; all players pass this check
+	case PreconditionType::MissionActive: {
+		if (missionComponent == nullptr) return false;
+		const auto state = missionComponent->GetMissionState(value);
+		return state == eMissionState::ACTIVE || state == eMissionState::COMPLETE_ACTIVE;
+	}
+	case PreconditionType::DoesNotHaveFlag:
+		return !character->GetPlayerFlag(value);
 	default:
 		return true; // There are a couple more unknown preconditions. Always return true in this case.
 	}
