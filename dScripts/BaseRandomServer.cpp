@@ -124,21 +124,23 @@ void BaseRandomServer::NotifySpawnerOfDeath(Entity* self, Spawner* spawner) {
 		return;
 	}
 
-	const auto& sectionName = spawnerName.substr(0, spawnerName.size() - 7);
+	if (spawnerName.size() >= 7) {
+		const auto& sectionName = spawnerName.substr(0, spawnerName.size() - 7);
 
-	const auto variableName = u"mobsDead" + GeneralUtils::ASCIIToUTF16(sectionName);
+		const auto variableName = u"mobsDead" + GeneralUtils::ASCIIToUTF16(sectionName);
 
-	auto mobDeathCount = self->GetVar<int32_t>(variableName);
+		auto mobDeathCount = self->GetVar<int32_t>(variableName);
 
-	mobDeathCount++;
+		mobDeathCount++;
 
-	if (mobDeathCount >= mobDeathResetNumber) {
-		const auto& zoneInfo = GeneralUtils::SplitString(sectionName, '_');
+		if (mobDeathCount >= mobDeathResetNumber) {
+			const auto& zoneInfo = GeneralUtils::SplitString(sectionName, '_');
 
-		SpawnSection(self, sectionName, sectionMultipliers[zoneInfo[sectionIDConst - 1]]);
+			SpawnSection(self, sectionName, sectionMultipliers[zoneInfo[sectionIDConst - 1]]);
+		}
+
+		self->SetVar(variableName, mobDeathCount);
 	}
-
-	self->SetVar(variableName, mobDeathCount);
 }
 
 void BaseRandomServer::NamedEnemyDeath(Entity* self, Spawner* spawner) {

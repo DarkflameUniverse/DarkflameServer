@@ -93,13 +93,14 @@ std::vector<CDMissions> CDMissionsTable::Query(std::function<bool(CDMissions)> p
 }
 
 const CDMissions* CDMissionsTable::GetPtrByMissionID(uint32_t missionID) const {
+	const CDMissions* toReturn = &Default;
 	for (const auto& entry : GetEntries()) {
 		if (entry.id == missionID) {
-			return const_cast<CDMissions*>(&entry);
+			toReturn = &entry;
 		}
 	}
 
-	return &Default;
+	return toReturn;
 }
 
 const CDMissions& CDMissionsTable::GetByMissionID(uint32_t missionID, bool& found) const {

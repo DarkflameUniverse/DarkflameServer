@@ -26,7 +26,8 @@ void NsConcertChoiceBuildManager::SpawnCrate(Entity* self) {
 	const auto splitGroup = GeneralUtils::SplitString(group, '_');
 	if (splitGroup.size() < 2)
 		return;
-	const auto groupNumber = std::stoi(splitGroup.at(1));
+	const auto groupNumber = GeneralUtils::TryParse(splitGroup.at(1), -1);
+	if (groupNumber == -1) return;
 
 	EntityInfo info{};
 	info.lot = crate.lot;

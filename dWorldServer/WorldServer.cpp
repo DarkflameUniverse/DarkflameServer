@@ -763,7 +763,8 @@ void HandleMasterPacket(Packet* packet) {
 
 	case MessageType::Master::NEW_SESSION_ALERT: {
 		CINSTREAM_SKIP_HEADER;
-		uint32_t sessionKey = inStream.Read(sessionKey);
+		uint32_t sessionKey{};
+		inStream.Read(sessionKey);
 
 		LUString username;
 		inStream.Read(username);
@@ -970,8 +971,7 @@ void HandlePacket(Packet* packet) {
 	}
 
 	case MessageType::World::LOGIN_REQUEST: {
-		RakNet::BitStream inStream(packet->data, packet->length, false);
-		uint64_t header = inStream.Read(header);
+		CINSTREAM_SKIP_HEADER;
 
 		LWOOBJID playerID = 0;
 		inStream.Read(playerID);
@@ -1256,13 +1256,22 @@ void HandlePacket(Packet* packet) {
 			return;
 		}
 
-		Entity* entity = Game::entityManager->GetEntity(user->GetLastUsedChar()->GetObjectID());
-		if (entity) entity->ProcessPositionUpdate(positionUpdate);
+		if (const auto* const lastChar = user->GetLastUsedChar()) {
+			if (auto* const entity = Game::entityManager->GetEntity(lastChar->GetObjectID())) {
+				entity->ProcessPositionUpdate(positionUpdate);
+			}
+		}
 		break;
 	}
 
 	case MessageType::World::MAIL: {
-		Mail::HandleMail(inStream, packet->systemAddress, UserManager::Instance()->GetUser(packet->systemAddress)->GetLastUsedChar()->GetEntity());
+		if (auto* const user = UserManager::Instance()->GetUser(packet->systemAddress)) {
+			if (auto* const lastChar = user->GetLastUsedChar()) {
+				if (auto* const entity = lastChar->GetEntity()) {
+					Mail::HandleMail(inStream, packet->systemAddress, entity);
+				}
+			}
+		}
 		break;
 	}
 
@@ -1285,7 +1294,8 @@ void HandlePacket(Packet* packet) {
 		LWOOBJID objectID = 0;
 		auto user = UserManager::Instance()->GetUser(packet->systemAddress);
 		if (user) {
-			objectID = user->GetLastUsedChar()->GetObjectID();
+			const auto* const lastChar = user->GetLastUsedChar();
+			if (lastChar) objectID = lastChar->GetObjectID();
 		}
 
 		bitStream.Write(objectID);
@@ -1385,13 +1395,19 @@ void HandlePacket(Packet* packet) {
 				return;
 			}
 
-			if (user->GetIsMuted()) {
-				user->GetLastUsedChar()->SendMuteNotice();
+			const auto* const lastChar = user->GetLastUsedChar();
+			if (!lastChar) {
+				LOG("No last used character for chat message %i", user->GetAccountID());
 				return;
 			}
-			std::string playerName = user->GetLastUsedChar()->GetName();
-			bool isMythran = user->GetLastUsedChar()->GetGMLevel() > eGameMasterLevel::CIVILIAN;
-			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), user->GetLastUsedChar()->GetGMLevel()).empty();
+
+			if (user->GetIsMuted()) {
+				lastChar->SendMuteNotice();
+				return;
+			}
+			std::string playerName = lastChar->GetName();
+			bool isMythran = lastChar->GetGMLevel() > eGameMasterLevel::CIVILIAN;
+			bool isOk = Game::chatFilter->IsSentenceOkay(GeneralUtils::UTF16ToWTF8(chatMessage.message), lastChar->GetGMLevel()).empty();
 			LOG_DEBUG("Msg: %s was approved previously? %i", GeneralUtils::UTF16ToWTF8(chatMessage.message).c_str(), user->GetLastChatMessageApproved());
 			if (!isOk) return;
 			if (!isOk && !isMythran) return;

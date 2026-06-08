@@ -109,6 +109,7 @@ void dpEntity::SetPosition(const NiPoint3& newPos) {
 }
 
 void dpEntity::SetRotation(const NiQuaternion& newRot) {
+	if (!m_CollisionShape) return;
 	m_Rotation = newRot;
 
 	if (m_CollisionShape->GetShapeType() == dpShapeType::Box) {
@@ -118,6 +119,7 @@ void dpEntity::SetRotation(const NiQuaternion& newRot) {
 }
 
 void dpEntity::SetScale(float newScale) {
+	if (!m_CollisionShape) return;
 	m_Scale = newScale;
 
 	if (m_CollisionShape->GetShapeType() == dpShapeType::Box) {

@@ -80,7 +80,7 @@ else() # Build from source
 			-DWITH_EXTERNAL_ZLIB=ON
 			-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings
-			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0\ -include\ cstdint)
+			-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0\ -Wno-inconsistent-missing-override\ -include\ cstdint)
 	else()
 		set(MARIADB_EXTRA_CMAKE_ARGS
 			-DCMAKE_C_FLAGS=-w # disable zlib warnings

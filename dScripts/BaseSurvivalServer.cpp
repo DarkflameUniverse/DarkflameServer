@@ -24,7 +24,8 @@ void BaseSurvivalServer::BasePlayerLoaded(Entity* self, Entity* player) {
 
 	if (waitingIter != state.waitingPlayers.end() || playersIter != state.players.end()) {
 		auto* characterComponent = player->GetComponent<CharacterComponent>();
-		if (characterComponent) characterComponent->SendToZone(player->GetCharacter()->GetLastNonInstanceZoneID());
+		const auto* const character = player->GetCharacter();
+		if (characterComponent && character) characterComponent->SendToZone(character->GetLastNonInstanceZoneID());
 
 		return;
 	}

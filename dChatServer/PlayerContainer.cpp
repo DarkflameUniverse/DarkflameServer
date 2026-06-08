@@ -176,6 +176,7 @@ LWOOBJID PlayerContainer::GetId(const std::u16string& playerName) {
 	return toReturn;
 }
 
+// TODO Make this a pointer again or do something to make it so you cant edit the LWOOBJID_EMPTY entry?  it should be ignored in all cases anyways though...
 PlayerData& PlayerContainer::GetPlayerDataMutable(const LWOOBJID& playerID) {
 	return m_Players.contains(playerID) ? m_Players[playerID] : m_Players[LWOOBJID_EMPTY];
 }

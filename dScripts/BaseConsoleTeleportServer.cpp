@@ -96,7 +96,7 @@ void BaseConsoleTeleportServer::TransferPlayer(Entity* self, Entity* player, int
 
 	auto* characterComponent = player->GetComponent<CharacterComponent>();
 
-	if (characterComponent) characterComponent->SendToZone(std::stoi(GeneralUtils::UTF16ToWTF8(teleportZone)));
+	if (characterComponent) characterComponent->SendToZone(GeneralUtils::TryParse(GeneralUtils::UTF16ToWTF8(teleportZone), 0));
 
 	UpdatePlayerTable(self, player, false);
 }

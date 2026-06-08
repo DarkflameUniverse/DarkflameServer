@@ -43,11 +43,11 @@ void Level::MakeSpawner(SceneObject obj) {
 	for (LDFBaseData* data : obj.settings) {
 		if (!data) continue;
 		if (data->GetKey() == u"spawntemplate") {
-			spawnInfo.templateID = std::stoi(data->GetValueAsString());
+			spawnInfo.templateID = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 		}
 
 		if (data->GetKey() == u"spawner_node_id") {
-			node->nodeID = std::stoi(data->GetValueAsString());
+			node->nodeID = GeneralUtils::TryParse(data->GetValueAsString(), 0u);
 		}
 
 		if (data->GetKey() == u"spawner_name") {
@@ -55,35 +55,34 @@ void Level::MakeSpawner(SceneObject obj) {
 		}
 
 		if (data->GetKey() == u"max_to_spawn") {
-			spawnInfo.maxToSpawn = std::stoi(data->GetValueAsString());
+			spawnInfo.maxToSpawn = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 		}
 
 		if (data->GetKey() == u"spawner_active_on_load") {
-			spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+			spawnInfo.activeOnLoad = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 
 		if (data->GetKey() == u"active_on_load") {
-			spawnInfo.activeOnLoad = std::stoi(data->GetValueAsString());
+			spawnInfo.activeOnLoad = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 
 		if (data->GetKey() == u"respawn") {
 			if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
 			{
-				spawnInfo.respawnTime = std::stof(data->GetValueAsString());
+				spawnInfo.respawnTime = GeneralUtils::TryParse(data->GetValueAsString(), 0.0f);
 			} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
 			{
-				spawnInfo.respawnTime = std::stoul(data->GetValueAsString()) / 1000;
+				spawnInfo.respawnTime = GeneralUtils::TryParse(data->GetValueAsString(), 0) / 1000;
 			}
 		}
 		if (data->GetKey() == u"spawnsGroupOnSmash") {
-			spawnInfo.spawnsOnSmash = std::stoi(data->GetValueAsString());
+			spawnInfo.spawnsOnSmash = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 		if (data->GetKey() == u"spawnNetNameForSpawnGroupOnSmash") {
 			spawnInfo.spawnOnSmashGroupName = data->GetValueAsString();
 		}
 		if (data->GetKey() == u"groupID") { // Load object groups
-			std::string groupStr = data->GetValueAsString();
-			spawnInfo.groups = GeneralUtils::SplitString(groupStr, ';');
+			spawnInfo.groups = GeneralUtils::SplitString(data->GetValueAsString(), ';');
 			if (spawnInfo.groups.back().empty()) spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
 		}
 		if (data->GetKey() == u"no_auto_spawn") {
@@ -236,10 +235,11 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		BinaryIO::BinaryRead(file, obj.lot);
 
 		if (header.fileInfo.version >= 38) {
-			uint32_t tmp = 1;
+			int32_t tmp = 1;
 			BinaryIO::BinaryRead(file, tmp);
 			if (tmp > -1 && tmp < 11) obj.nodeType = tmp;
 		}
+
 		if (header.fileInfo.version >= 32) {
 			BinaryIO::BinaryRead(file, obj.glomId);
 		}
@@ -290,7 +290,7 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			}
 			// If this is a client only object, we can skip loading it
 			if (data->GetKey() == u"loadOnClientOnly") {
-				skipLoadingObject |= static_cast<bool>(std::stoi(data->GetValueAsString()));
+				skipLoadingObject |= GeneralUtils::TryParse(data->GetValueAsString(), false);
 				break;
 			}
 		}

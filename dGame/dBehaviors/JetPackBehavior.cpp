@@ -7,6 +7,7 @@
 
 void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_stream, const BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
+	if (!entity) return;
 
 	GameMessages::SendSetJetPackMode(entity, true, this->m_BypassChecks, this->m_EnableHover, this->m_effectId, this->m_Airspeed, this->m_MaxAirspeed, this->m_VerticalVelocity, this->m_WarningEffectID);
 
@@ -21,6 +22,7 @@ void JetPackBehavior::Handle(BehaviorContext* context, RakNet::BitStream& bit_st
 
 void JetPackBehavior::UnCast(BehaviorContext* context, BehaviorBranchContext branch) {
 	auto* entity = Game::entityManager->GetEntity(branch.target);
+	if (!entity) return;
 
 	GameMessages::SendSetJetPackMode(entity, false);
 

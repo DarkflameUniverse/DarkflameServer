@@ -157,8 +157,7 @@ void AuthPackets::HandleLoginRequest(dServer* server, Packet* packet) {
 	}
 
 	//If we aren't running in live mode, then only GMs are allowed to enter:
-	const auto& closedToNonDevs = Game::config->GetValue("closed_to_non_devs");
-	if (closedToNonDevs.size() > 0 && bool(std::stoi(closedToNonDevs)) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
+	if (Game::config->GetValue<bool>("closed_to_non_devs", false) && accountInfo->maxGmLevel == eGameMasterLevel::CIVILIAN) {
 		stamps.emplace_back(eStamps::GM_REQUIRED, 1);
 		AuthPackets::SendLoginResponse(server, packet->systemAddress, eLoginResponse::PERMISSIONS_NOT_HIGH_ENOUGH, "The server is currently only open to developers.", "", 2001, username, stamps);
 		return;

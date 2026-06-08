@@ -57,7 +57,7 @@ bool SpawnPetBaseServer::CheckNumberOfPets(Entity* self, Entity* user) {
 		if (petID.empty())
 			continue;
 
-		const auto* spawnedPet = Game::entityManager->GetEntity(std::stoull(petID));
+		const auto* spawnedPet = Game::entityManager->GetEntity(GeneralUtils::TryParse(petID, LWOOBJID_EMPTY));
 		if (spawnedPet == nullptr)
 			continue;
 

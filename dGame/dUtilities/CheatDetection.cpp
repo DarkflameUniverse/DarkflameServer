@@ -54,17 +54,23 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 		
 		// If player exists and entity exists in world, use both for logging info.
 		if (entity && player) {
+			const auto* const playerChar = player->GetCharacter();
+			const auto& playerName = playerChar ? playerChar->GetName() : "(null player character)";
+			const auto* const entityChar = entity->GetCharacter();
+			const auto& entityName = entityChar ? entityChar->GetName() : "(null entity character)";
 			LOG("Player (%s) (%llu) at system address (%s) with sending player (%s) (%llu) does not match their own.",
-				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
+				playerName.c_str(), player->GetObjectID(),
 				sysAddr.ToString(),
-				entity->GetCharacter()->GetName().c_str(), entity->GetObjectID());
-			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
+				entityName.c_str(), entity->GetObjectID());
+			if (playerChar) toReport = playerChar->GetParentUser();
 		// In the case that the target entity id did not exist, just log the player info.
 		} else if (player) {
+			const auto* const playerChar = player->GetCharacter();
+			const auto& playerName = playerChar ? playerChar->GetName() : "(null player character)";
 			LOG("Player (%s) (%llu) at system address (%s) with sending player (%llu) does not match their own.",
-				player->GetCharacter()->GetName().c_str(), player->GetObjectID(),
+				playerName.c_str(), player->GetObjectID(),
 				sysAddr.ToString(), id);
-			if (player->GetCharacter()) toReport = player->GetCharacter()->GetParentUser();
+			if (playerChar) toReport = playerChar->GetParentUser();
 		// In the rare case that the player does not exist, just log the system address and who the target id was.
 		} else {
 			LOG("Player at system address (%s) with sending player (%llu) does not match their own.",
@@ -76,8 +82,11 @@ void LogAndSaveFailedAntiCheatCheck(const LWOOBJID& id, const SystemAddress& sys
 		auto* user = UserManager::Instance()->GetUser(sysAddr);
 		
 		if (user) {
+			const auto* const lastChar = user->GetLastUsedChar();
+			const auto& lastName = lastChar ? lastChar->GetName() : "(null last char)";
+			const auto lastObjID = lastChar ? lastChar->GetObjectID() : LWOOBJID_EMPTY;
 			LOG("User at system address (%s) (%s) (%llu) sent a packet as (%llu) which is not an id they own.",
-				sysAddr.ToString(), user->GetLastUsedChar()->GetName().c_str(), user->GetLastUsedChar()->GetObjectID(), id);
+				sysAddr.ToString(), lastName.c_str(), lastObjID, id);
 		// Can't know sending player. Just log system address for IP banning.
 		} else {
 			LOG("No user found for system address (%s).", sysAddr.ToString());

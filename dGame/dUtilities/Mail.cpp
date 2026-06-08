@@ -74,69 +74,74 @@ namespace Mail {
 	void SendRequest::Handle() {
 		SendResponse response;
 		auto* character = player->GetCharacter();
-		const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail() && character->GetParentUser()->GetIsMuted();
-		const bool restrictedMailAccess = character->HasPermission(ePermissionMap::RestrictedMailAccess);
-
-		if (character && !(restrictedMailAccess || restrictMailOnMute)) {
-			mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
-			auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);
-
-			if (!receiverID) {
-				response.status = eSendResponse::RecipientNotFound;
-			} else if (GeneralUtils::CaseInsensitiveStringCompare(mailInfo.recipient, character->GetName()) || receiverID->id == character->GetID()) {
-				response.status = eSendResponse::CannotMailSelf;
-			} else {
-				uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
-				uint32_t stackSize = 0;
-
-				auto inventoryComponent = player->GetComponent<InventoryComponent>();
-				Item* item = nullptr;
-
-				bool hasAttachment = mailInfo.itemID != 0 && mailInfo.itemCount > 0;
-
-				if (hasAttachment) {
-					item = inventoryComponent->FindItemById(mailInfo.itemID);
-					if (item) {
-						mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig().mailPercentAttachmentFee);
-						mailInfo.itemLOT = item->GetLot();
-					}
-				}
-
-				if (hasAttachment && !item) {
-					response.status = eSendResponse::AttachmentNotFound;
-				} else if (player->GetCharacter()->GetCoins() - mailCost < 0) {
-					response.status = eSendResponse::NotEnoughCoins;
-				} else {
-					bool removeSuccess = true;
-					// Remove coins and items from the sender
-					player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
-					if (inventoryComponent && hasAttachment && item) {
-						removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, ALL, true);
-						auto* missionComponent = player->GetComponent<MissionComponent>();
-						if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
-					}
-
-					// we passed all the checks, now we can actully send the mail
-					if (removeSuccess) {
-						mailInfo.senderId = character->GetID();
-						mailInfo.senderUsername = character->GetName();
-						mailInfo.receiverId = receiverID->id;
-						mailInfo.itemSubkey = LWOOBJID_EMPTY;
-
-						//clear out the attachementID
-						mailInfo.itemID = 0;
-
-						Database::Get()->InsertNewMail(mailInfo);
-						response.status = eSendResponse::Success;
-						character->SaveXMLToDatabase();
-					} else {
-						response.status = eSendResponse::AttachmentNotFound;
-					}
-				}
-			}
+		if (!character) {
+			response.status = eSendResponse::UnknownError;
 		} else {
-			response.status = eSendResponse::SenderAccountIsMuted;
+			const bool restrictMailOnMute = UserManager::Instance()->GetMuteRestrictMail() && character->GetParentUser()->GetIsMuted();
+			const bool restrictedMailAccess = character->HasPermission(ePermissionMap::RestrictedMailAccess);
+
+			if (character && !(restrictedMailAccess || restrictMailOnMute)) {
+				mailInfo.recipient = std::regex_replace(mailInfo.recipient, std::regex("[^0-9a-zA-Z]+"), "");
+				auto receiverID = Database::Get()->GetCharacterInfo(mailInfo.recipient);
+
+				if (!receiverID) {
+					response.status = eSendResponse::RecipientNotFound;
+				} else if (GeneralUtils::CaseInsensitiveStringCompare(mailInfo.recipient, character->GetName()) || receiverID->id == character->GetID()) {
+					response.status = eSendResponse::CannotMailSelf;
+				} else {
+					uint32_t mailCost = Game::zoneManager->GetWorldConfig().mailBaseFee;
+					uint32_t stackSize = 0;
+
+					auto inventoryComponent = player->GetComponent<InventoryComponent>();
+					Item* item = nullptr;
+
+					bool hasAttachment = mailInfo.itemID != 0 && mailInfo.itemCount > 0;
+
+					if (hasAttachment) {
+						item = inventoryComponent->FindItemById(mailInfo.itemID);
+						if (item) {
+							mailCost += (item->GetInfo().baseValue * Game::zoneManager->GetWorldConfig().mailPercentAttachmentFee);
+							mailInfo.itemLOT = item->GetLot();
+						}
+					}
+
+					if (hasAttachment && !item) {
+						response.status = eSendResponse::AttachmentNotFound;
+					} else if (player->GetCharacter()->GetCoins() - mailCost < 0) {
+						response.status = eSendResponse::NotEnoughCoins;
+					} else {
+						bool removeSuccess = true;
+						// Remove coins and items from the sender
+						player->GetCharacter()->SetCoins(player->GetCharacter()->GetCoins() - mailCost, eLootSourceType::MAIL);
+						if (inventoryComponent && hasAttachment && item) {
+							removeSuccess = inventoryComponent->RemoveItem(mailInfo.itemLOT, mailInfo.itemCount, ALL, true);
+							auto* missionComponent = player->GetComponent<MissionComponent>();
+							if (missionComponent && removeSuccess) missionComponent->Progress(eMissionTaskType::GATHER, mailInfo.itemLOT, LWOOBJID_EMPTY, "", -mailInfo.itemCount);
+						}
+
+						// we passed all the checks, now we can actully send the mail
+						if (removeSuccess) {
+							mailInfo.senderId = character->GetID();
+							mailInfo.senderUsername = character->GetName();
+							mailInfo.receiverId = receiverID->id;
+							mailInfo.itemSubkey = LWOOBJID_EMPTY;
+
+							//clear out the attachementID
+							mailInfo.itemID = 0;
+
+							Database::Get()->InsertNewMail(mailInfo);
+							response.status = eSendResponse::Success;
+							character->SaveXMLToDatabase();
+						} else {
+							response.status = eSendResponse::AttachmentNotFound;
+						}
+					}
+				}
+			} else {
+				response.status = eSendResponse::SenderAccountIsMuted;
+			}
 		}
+
 		LOG("Finished send with status %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
@@ -193,7 +198,7 @@ namespace Mail {
 
 		if (mailID > 0 && playerID == player->GetObjectID() && inv) {
 			auto playerMail = Database::Get()->GetMail(mailID);
-			if (!playerMail) {
+			if (!playerMail || playerMail->receiverId != player->GetObjectID()) {
 				response.status = eAttachmentCollectResponse::MailNotFound;
 			} else if (!inv->HasSpaceForLoot({ {playerMail->itemLOT, playerMail->itemCount} })) {
 				response.status = eAttachmentCollectResponse::NoSpaceInInventory;
@@ -225,15 +230,21 @@ namespace Mail {
 		DeleteResponse response;
 		response.mailID = mailID;
 
-		auto mailData = Database::Get()->GetMail(mailID);
-		if (mailData && !(mailData->itemLOT > 0 && mailData->itemCount > 0)) {
-			Database::Get()->DeleteMail(mailID);
-			response.status = eDeleteResponse::Success;
-		} else if (mailData && mailData->itemLOT > 0 && mailData->itemCount > 0) {
-			response.status = eDeleteResponse::HasAttachments;
-		} else {
-			response.status = eDeleteResponse::NotFound;
+		const auto mailData = Database::Get()->GetMail(mailID);
+		response.status = eDeleteResponse::NotFound;
+		if (mailData) {
+			if (mailData->receiverId != playerID) {
+				LOG("Player %llu attempted to delete mail owned by %llu. Possible spoof?", playerID, mailData->receiverId);
+			} else {
+				if (!(mailData->itemLOT > 0 && mailData->itemCount > 0)) {
+					Database::Get()->DeleteMail(mailID);
+					response.status = eDeleteResponse::Success;
+				} else if (mailData->itemLOT > 0 && mailData->itemCount > 0) {
+					response.status = eDeleteResponse::HasAttachments;
+				}
+			}
 		}
+
 		LOG("DeleteRequest status %s", StringifiedEnum::ToString(response.status).data());
 		response.Send(sysAddr);
 	}
@@ -253,11 +264,19 @@ namespace Mail {
 
 	void ReadRequest::Handle() {
 		ReadResponse response;
+		response.status = eReadResponse::UnknownError;
 		response.mailID = mailID;
 
-		if (Database::Get()->GetMail(mailID)) {
-			response.status = eReadResponse::Success;
-			Database::Get()->MarkMailRead(mailID);
+		const auto mail = Database::Get()->GetMail(mailID);
+		if (mail) {
+			if (mail->receiverId == player->GetObjectID()) {
+				response.status = eReadResponse::Success;
+				Database::Get()->MarkMailRead(mailID);
+			} else {
+				LOG("Player %llu tried to mark mail read for player %llu", mail->receiverId, player->GetObjectID());
+			}
+		} else {
+			LOG("No mail by ID %llu found to mark as read.", mailID);
 		}
 
 		LOG("ReadRequest %s", StringifiedEnum::ToString(response.status).data());

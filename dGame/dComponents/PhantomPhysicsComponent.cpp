@@ -58,31 +58,16 @@ PhantomPhysicsComponent::PhantomPhysicsComponent(Entity* parent, const int32_t c
 	}
 
 	if (m_IsRespawnVolume) {
-		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspPos"));
+		const auto respawnPos = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rspPos"), '\x1f');
+		m_RespawnPos = GeneralUtils::TryParse(respawnPos, NiPoint3Constant::ZERO);
 
-			std::string segment;
-			std::vector<std::string> seglist;
-
-			while (std::getline(respawnString, segment, '\x1f')) {
-				seglist.push_back(segment);
-			}
-
-			m_RespawnPos = NiPoint3(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]));
-		}
-
-		{
-			auto respawnString = std::stringstream(m_Parent->GetVarAsString(u"rspRot"));
-
-			std::string segment;
-			std::vector<std::string> seglist;
-
-			while (std::getline(respawnString, segment, '\x1f')) {
-				seglist.push_back(segment);
-			}
-
-			m_RespawnRot = NiQuaternion(std::stof(seglist[0]), std::stof(seglist[1]), std::stof(seglist[2]), std::stof(seglist[3]));
-		}
+		const auto respawnRot = GeneralUtils::SplitString(m_Parent->GetVarAsString(u"rspRot"), '\x1f');
+		m_RespawnRot = respawnRot.size() >= 4 ? NiQuaternion(
+			GeneralUtils::TryParse(respawnRot[0], 1.0f),
+			GeneralUtils::TryParse(respawnRot[1], 0.0f),
+			GeneralUtils::TryParse(respawnRot[2], 0.0f),
+			GeneralUtils::TryParse(respawnRot[3], 0.0f))
+			: QuatUtils::IDENTITY;
 	}
 
 	// HF - RespawnPoints. Legacy respawn entity.

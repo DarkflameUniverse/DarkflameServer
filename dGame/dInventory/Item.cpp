@@ -401,7 +401,8 @@ void Item::Disassemble(const eInventoryType inventoryType) {
 			const auto deliminator = '+';
 
 			while (std::getline(ssData, token, deliminator)) {
-				const auto modLot = std::stoi(token.substr(2, token.size() - 1));
+				if (token.size() <= 2) continue; // invalid token, must have size of at least 3.
+				const auto modLot = GeneralUtils::TryParse(token.substr(2, token.size() - 1), LOT_NULL);
 
 				modArray.push_back(modLot);
 			}
@@ -440,7 +441,10 @@ void Item::DisassembleModel(uint32_t numToDismantle) {
 	std::vector<std::string> renderAssetSplit = GeneralUtils::SplitString(renderAsset, '/');
 	if (renderAssetSplit.empty()) return;
 
-	std::string lxfmlPath = "BrickModels" + lxfmlFolderName + "/" + GeneralUtils::SplitString(renderAssetSplit.back(), '.').at(0) + ".lxfml";
+	const auto renderAssetSplitSplit = GeneralUtils::SplitString(renderAssetSplit.back(), '.');
+	if (renderAssetSplitSplit.empty()) return;
+
+	std::string lxfmlPath = "BrickModels" + lxfmlFolderName + "/" + renderAssetSplitSplit[0] + ".lxfml";
 	auto file = Game::assetManager->GetFile(lxfmlPath.c_str());
 
 	if (!file) {

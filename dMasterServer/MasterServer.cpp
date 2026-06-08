@@ -328,20 +328,14 @@ int main(int argc, char** argv) {
 	}
 
 	Game::randomEngine = std::mt19937(time(0));
-	uint32_t maxClients = 999;
-	uint32_t ourPort = 2000;
-	std::string ourIP = "localhost";
-	const auto maxClientsString = Game::config->GetValue("max_clients");
-	if (!maxClientsString.empty()) maxClients = std::stoi(maxClientsString);
-	const auto masterServerPortString = Game::config->GetValue("master_server_port");
-	if (!masterServerPortString.empty()) ourPort = std::atoi(masterServerPortString.c_str());
-	const auto externalIPString = Game::config->GetValue("external_ip");
-	if (!externalIPString.empty()) ourIP = externalIPString;
+	uint32_t maxClients = Game::config->GetValue("max_clients", 999);
+	uint32_t ourPort = Game::config->GetValue("master_server_port", 2000);
+	std::string ourIP = Game::config->GetValue("external_ip", "localhost");
 
 	char salt[BCRYPT_HASHSIZE];
 	char hash[BCRYPT_HASHSIZE];
-	const auto& cfgPassword = Game::config->GetValue("master_password");
-	int res = GenerateBCryptPassword(!cfgPassword.empty() ? cfgPassword : "3.25DARKFLAME1", 13, salt, hash);
+	const auto& cfgPassword = Game::config->GetValue<std::string>("master_password", "3.25DARKFLAME1");
+	int res = GenerateBCryptPassword(cfgPassword, 13, salt, hash);
 	assert(res == 0);
 
 	Game::server = new dServer(ourIP, ourPort, 0, maxClients, true, false, Game::logger, "", 0, ServiceType::MASTER, Game::config, &Game::lastSignal, hash);
@@ -535,8 +529,7 @@ void HandlePacket(Packet* packet) {
 
 		case MessageType::Master::REQUEST_ZONE_TRANSFER: {
 			LOG("Received zone transfer req");
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 			uint64_t requestID = 0;
 			uint8_t mythranShift = false;
 			uint32_t zoneID = 0;
@@ -575,8 +568,7 @@ void HandlePacket(Packet* packet) {
 			//This is here because otherwise we'd have to include IM in
 			//non-master servers. This packet allows us to add World
 			//servers back if master crashed
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			uint32_t theirPort = 0;
 			uint32_t theirZoneID = 0;
@@ -602,13 +594,13 @@ void HandlePacket(Packet* packet) {
 						instance->SetSysAddr(packet->systemAddress);
 					}
 				}
-                break;
+				break;
 			case ServiceType::CHAT:
 				chatServerMasterPeerSysAddr = packet->systemAddress;
 				break;
-            case ServiceType::AUTH:
-                authServerMasterPeerSysAddr = packet->systemAddress;
-                break;
+			case ServiceType::AUTH:
+				authServerMasterPeerSysAddr = packet->systemAddress;
+				break;
 			default:
 				// We just ignore any other server type
 				break;
@@ -664,8 +656,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::PLAYER_ADDED: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			LWOMAPID theirZoneID = 0;
 			LWOINSTANCEID theirInstanceID = 0;
@@ -684,8 +675,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::PLAYER_REMOVED: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			LWOMAPID theirZoneID = 0;
 			LWOINSTANCEID theirInstanceID = 0;
@@ -702,8 +692,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::CREATE_PRIVATE_ZONE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			uint32_t mapId;
 			LWOCLONEID cloneId;
@@ -714,6 +703,8 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
+			len = std::min<uint32_t>(len, 50); // cap the master password at 50 characters
+
 			for (uint32_t i = 0; len > i; i++) {
 				char character;
 				inStream.Read<char>(character);
@@ -726,8 +717,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::REQUEST_PRIVATE_ZONE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			uint64_t requestID = 0;
 			uint8_t mythranShift = false;
@@ -739,6 +729,7 @@ void HandlePacket(Packet* packet) {
 
 			uint32_t len;
 			inStream.Read<uint32_t>(len);
+			len = std::min<uint32_t>(len, 50);
 
 			for (uint32_t i = 0; i < len; i++) {
 				char character; inStream.Read<char>(character);
@@ -761,8 +752,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::WORLD_READY: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			LWOMAPID zoneID;
 			LWOINSTANCEID instanceID;
@@ -785,8 +775,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::PREP_ZONE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			int32_t zoneID;
 			inStream.Read(zoneID);
@@ -801,8 +790,7 @@ void HandlePacket(Packet* packet) {
 		}
 
 		case MessageType::Master::AFFIRM_TRANSFER_RESPONSE: {
-			RakNet::BitStream inStream(packet->data, packet->length, false);
-			uint64_t header = inStream.Read(header);
+			CINSTREAM_SKIP_HEADER;
 
 			uint64_t requestID;
 
@@ -876,7 +864,7 @@ int ShutdownSequence(int32_t signal) {
 		if (!instance->GetIsReady()) {
 			Game::im->RemoveInstance(instance);
 		}
-		
+
 		instance->SetIsShuttingDown(true);
 	}
 

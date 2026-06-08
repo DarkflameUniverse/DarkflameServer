@@ -408,7 +408,7 @@ void NjMonastryBossInstance::SummonWave(Entity* self, Entity* frakjaw) {
 
 	// Stop the music for the first, fourth and fifth wave
 	const auto wave = self->GetVar<uint32_t>(WaveNumberVariable);
-	if (wave >= 1 || wave < (m_Waves.size() - 1)) {
+	if (wave >= 1 && wave < (m_Waves.size() - 1)) {
 		GameMessages::SendNotifyClientObject(self->GetObjectID(), StopMusicNotification, 0, 0,
 			LWOOBJID_EMPTY, AudioWaveAudio + std::to_string(wave - 1),
 			UNASSIGNED_SYSTEM_ADDRESS);

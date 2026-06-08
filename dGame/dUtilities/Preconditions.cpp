@@ -114,11 +114,13 @@ bool Precondition::Check(Entity* player, bool evaluateCosts) const {
 
 
 bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluateCosts) const {
-	auto* missionComponent = player->GetComponent<MissionComponent>();
-	auto* inventoryComponent = player->GetComponent<InventoryComponent>();
-	auto* destroyableComponent = player->GetComponent<DestroyableComponent>();
-	auto* levelComponent = player->GetComponent<LevelProgressionComponent>();
 	auto* character = player->GetCharacter();
+	auto [missionComponent, inventoryComponent, destroyableComponent, levelComponent] =
+		player->GetComponentsMut<const MissionComponent, /* not const */ InventoryComponent, const DestroyableComponent, const LevelProgressionComponent>();
+	
+	if (!missionComponent || !inventoryComponent || !destroyableComponent || !levelComponent || !character) {
+		return false;
+	}
 
 	Mission* mission;
 

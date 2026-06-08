@@ -33,7 +33,8 @@ void NtParadoxPanelServer::OnUse(Entity* self, Entity* user) {
 
 			const auto flag = self->GetVar<int32_t>(u"flag");
 
-			player->GetCharacter()->SetPlayerFlag(flag, true);
+			auto* const character = player->GetCharacter();
+			if (character) character->SetPlayerFlag(flag, true);
 
 			RenderComponent::PlayAnimation(player, u"rebuild-celebrate");
 

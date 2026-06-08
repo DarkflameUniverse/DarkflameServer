@@ -103,12 +103,9 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 
 	//Compress the data before sending:
 	const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());
-	uint8_t* compressedData = new uint8_t[reservedSize];
+	auto compressedData = std::make_unique<uint8_t[]>(reservedSize);
 
-	// TODO There should be better handling here for not enough memory...
-	if (!compressedData) return;
-
-	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData, reservedSize);
+	size_t size = ZCompression::Compress(data.GetData(), data.GetNumberOfBytesUsed(), compressedData.get(), reservedSize);
 
 	assert(size <= reservedSize);
 
@@ -123,11 +120,10 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 	 * an assertion is done to prevent bad data from being saved or sent.
 	 */
 #pragma warning(disable:6385) // C6385 Reading invalid data from 'compressedData'.
-	bitStream.WriteAlignedBytes(compressedData, size);
+	bitStream.WriteAlignedBytes(compressedData.get(), size);
 #pragma warning(default:6385)
 
 	SEND_PACKET;
-	delete[] compressedData;
 	LOG("Sent CreateCharacter for ID: %llu", player);
 }
 

@@ -2137,6 +2137,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 	inStream.Read(worldId);
 
 	inStream.Read(descriptionLength);
+	if (descriptionLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < descriptionLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -2144,6 +2145,7 @@ void GameMessages::HandleUpdatePropertyOrModelForFilterCheck(RakNet::BitStream& 
 	}
 
 	inStream.Read(nameLength);
+	if (nameLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < nameLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -2474,9 +2476,15 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 
 	uint32_t sd0Size;
 	inStream.Read(sd0Size);
-	std::unique_ptr<char[]> sd0Data(new char[sd0Size]);
 
-	if (sd0Data == nullptr) return;
+	// For the sake of letting players make models as big as they want, only reject if we cant allocate the required memory.
+	std::unique_ptr<char[]> sd0Data;
+	try {
+		sd0Data.reset(new char[sd0Size]);
+	} catch (std::exception& e) {
+		LOG("Failed to allocate sd0 of size %u", sd0Size);
+		return;
+	}
 
 	inStream.ReadAlignedBytes(reinterpret_cast<unsigned char*>(sd0Data.get()), sd0Size);
 
@@ -2652,6 +2660,7 @@ void GameMessages::HandlePropertyEntranceSync(RakNet::BitStream& inStream, Entit
 	inStream.Read(startIndex);
 	inStream.Read(filterTextLength);
 
+	if (filterTextLength > MAX_MESSAGE_LENGTH) return;
 	for (auto i = 0u; i < filterTextLength; i++) {
 		char c;
 		inStream.Read(c);
@@ -3040,6 +3049,7 @@ void GameMessages::HandleVerifyAck(RakNet::BitStream& inStream, Entity* entity, 
 
 	uint32_t sBitStreamLength = 0;
 	inStream.Read(sBitStreamLength);
+	if (sBitStreamLength > MAX_MESSAGE_LENGTH) return;
 	for (uint64_t k = 0; k < sBitStreamLength; k++) {
 		uint8_t character;
 		inStream.Read(character);
@@ -3261,6 +3271,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(currency);
 	inStream.Read(itemCount);
+	if (itemCount > MAX_MESSAGE_LENGTH) return;
 
 	LOG("Trade update from (%llu) -> (%llu), (%i)", entity->GetObjectID(), currency, itemCount);
 
@@ -3673,6 +3684,7 @@ void GameMessages::HandleRequestSetPetName(RakNet::BitStream& inStream, Entity* 
 
 	inStream.Read(nameLength);
 
+	if (nameLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < nameLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3742,6 +3754,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity*
 	inStream.Read(iButton);
 
 	inStream.Read(identifierLength);
+	if (identifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < identifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3749,6 +3762,7 @@ void GameMessages::HandleMessageBoxResponse(RakNet::BitStream& inStream, Entity*
 	}
 
 	inStream.Read(userDataLength);
+	if (userDataLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < userDataLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3796,6 +3810,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* e
 	std::u16string identifier;
 
 	inStream.Read(buttonIdentifierLength);
+	if (buttonIdentifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < buttonIdentifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -3805,6 +3820,7 @@ void GameMessages::HandleChoiceBoxRespond(RakNet::BitStream& inStream, Entity* e
 	inStream.Read(iButton);
 
 	inStream.Read(identifierLength);
+	if (identifierLength > MAX_MESSAGE_LENGTH) return;
 	for (size_t i = 0; i < identifierLength; i++) {
 		char16_t character;
 		inStream.Read(character);
@@ -4158,7 +4174,13 @@ void GameMessages::HandleUpdatePropertyPerformanceCost(RakNet::BitStream& inStre
 		return;
 	}
 
-	Database::Get()->UpdatePerformanceCost(zone->GetZoneID(), performanceCost);
+	const auto* const propertyManagementComponent = entity->GetComponent<PropertyManagementComponent>();
+	const auto* const ownerEntity = propertyManagementComponent ? propertyManagementComponent->GetOwner() : nullptr;
+	const auto* const character = ownerEntity ? ownerEntity->GetCharacter() : nullptr;
+	const auto& zoneID = zone->GetZoneID();
+	if (character && character->GetPropertyCloneID() == zoneID.GetCloneID()) {
+		Database::Get()->UpdatePerformanceCost(zoneID, performanceCost);
+	}
 }
 
 void GameMessages::HandleVehicleNotifyHitImaginationServer(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
@@ -4783,13 +4805,19 @@ void GameMessages::HandleParseChatMessage(RakNet::BitStream& inStream, Entity* e
 
 	uint32_t wsStringLength;
 	inStream.Read(wsStringLength);
+
+	if (wsStringLength > MAX_MESSAGE_LENGTH) {
+		LOG("Max message length reached, capping message.");
+		wsStringLength = MAX_MESSAGE_LENGTH;
+	}
+
 	for (uint32_t i = 0; i < wsStringLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
 		wsString.push_back(character);
 	}
 
-	if (wsString[0] == L'/') {
+	if (!wsString.empty() && wsString[0] == L'/') {
 		SlashCommandHandler::HandleChatCommand(wsString, entity, sysAddr);
 	}
 }
@@ -4806,6 +4834,7 @@ void GameMessages::HandleFireEventServerSide(RakNet::BitStream& inStream, Entity
 	LWOOBJID senderID{};
 
 	inStream.Read(argsLength);
+	if (argsLength > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < argsLength; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5436,7 +5465,7 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 	std::vector<LOT> modList;
 	auto& oldPartList = character->GetVar<std::string>(u"currentModifiedBuild");
 	bool everyPieceSwapped = !oldPartList.empty(); // If the player didn't put a build in initially, then they should not get this achievement.
-	if (count >= 3) {
+	if (count >= 3 && count < 8) {
 		std::u16string modules;
 
 		for (uint32_t k = 0; k < count; k++) {
@@ -5733,6 +5762,7 @@ void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entit
 
 	inStream.Read(activator);
 	inStream.Read(playerChoicesLen);
+	if (playerChoicesLen > MAX_MESSAGE_LENGTH) return;
 	for (uint32_t i = 0; i < playerChoicesLen; ++i) {
 		uint16_t character;
 		inStream.Read(character);
@@ -5890,7 +5920,7 @@ void GameMessages::HandlePlayerRailArrivedNotification(RakNet::BitStream& inStre
 	const SystemAddress& sysAddr) {
 	uint32_t pathNameLength;
 	inStream.Read(pathNameLength);
-
+	if (pathNameLength > MAX_MESSAGE_LENGTH) return;
 	std::u16string pathName;
 	for (auto k = 0; k < pathNameLength; k++) {
 		uint16_t c;

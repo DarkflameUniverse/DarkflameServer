@@ -17,50 +17,63 @@ PropertyBehavior::PropertyBehavior(bool _isTemplated) {
 	isTemplated = _isTemplated;
 }
 
+bool CheckStateRange(const BehaviorState state) {
+	return state >= BehaviorState::HOME_STATE && state <= BehaviorState::STAR_STATE;
+}
+
 template<>
 void PropertyBehavior::HandleMsg(AddStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(AddActionMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RearrangeStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(UpdateActionMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(UpdateStripUiMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RemoveStripMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(RemoveActionsMessage& msg) {
+	if (!CheckStateRange(msg.GetActionContext().GetStateId())) return;
 	m_States[msg.GetActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetActionContext().GetStateId();
 };
 
 template<>
 void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
@@ -68,6 +81,8 @@ void PropertyBehavior::HandleMsg(SplitStripMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();
@@ -75,6 +90,8 @@ void PropertyBehavior::HandleMsg(MigrateActionsMessage& msg) {
 
 template<>
 void PropertyBehavior::HandleMsg(MergeStripsMessage& msg) {
+	if (!CheckStateRange(msg.GetSourceActionContext().GetStateId())) return;
+	if (!CheckStateRange(msg.GetDestinationActionContext().GetStateId())) return;
 	m_States[msg.GetSourceActionContext().GetStateId()].HandleMsg(msg);
 	m_States[msg.GetDestinationActionContext().GetStateId()].HandleMsg(msg);
 	m_LastEditedState = msg.GetDestinationActionContext().GetStateId();

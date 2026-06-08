@@ -17,6 +17,11 @@ void SwitchMultipleBehavior::Handle(BehaviorContext* context, RakNet::BitStream&
 		return;
 	};
 
+	if (m_behaviors.empty()) {
+		LOG("No behaviors were loaded for %i, aborting call.", m_behaviorId);
+		return;
+	}
+
 	uint32_t trigger = 0;
 
 	for (unsigned int i = 0; i < this->m_behaviors.size(); i++) {

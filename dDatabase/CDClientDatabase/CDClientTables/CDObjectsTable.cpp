@@ -69,7 +69,7 @@ const CDObjects& CDObjectsTable::GetByID(const uint32_t lot) {
 		entry.name = tableData.getStringField("name", "");
 		UNUSED(entry.placeable = tableData.getIntField("placeable", -1));
 		entry.type = tableData.getStringField("type", "");
-		UNUSED(ntry.description = tableData.getStringField(4, ""));
+		UNUSED(entry.description = tableData.getStringField(4, ""));
 		UNUSED(entry.localize = tableData.getIntField("localize", -1));
 		UNUSED(entry.npcTemplateID = tableData.getIntField("npcTemplateID", -1));
 		UNUSED(entry.displayName = tableData.getStringField("displayName", ""));

@@ -53,16 +53,21 @@ Lxfml::Result Lxfml::NormalizePositionOnlyFirstPart(const std::string_view data)
 			continue;
 		}
 
-		auto x = GeneralUtils::TryParse<float>(split[9]).value();
-		auto y = GeneralUtils::TryParse<float>(split[10]).value();
-		auto z = GeneralUtils::TryParse<float>(split[11]).value();
-		if (x < lowest.x) lowest.x = x;
-		if (y < lowest.y) lowest.y = y;
-		if (z < lowest.z) lowest.z = z;
+		try {
+			auto x = GeneralUtils::TryParse<float>(split[9]).value();
+			auto y = GeneralUtils::TryParse<float>(split[10]).value();
+			auto z = GeneralUtils::TryParse<float>(split[11]).value();
+			if (x < lowest.x) lowest.x = x;
+			if (y < lowest.y) lowest.y = y;
+			if (z < lowest.z) lowest.z = z;
 
-		if (highest.x < x) highest.x = x;
-		if (highest.y < y) highest.y = y;
-		if (highest.z < z) highest.z = z;
+			if (highest.x < x) highest.x = x;
+			if (highest.y < y) highest.y = y;
+			if (highest.z < z) highest.z = z;
+		} catch (std::exception& e) {
+			LOG("Failed to parse a split value of either (%s), (%s), or (%s).", split[9].c_str(), split[10].c_str(), split[11].c_str());
+			return toReturn; // Early return since we failed to parse this lxfml.
+		}
 	}
 
 	auto delta = (highest - lowest) / 2.0f;

@@ -241,7 +241,7 @@ void SGCannon::GameOverTimerFunc(Entity* self) {
 
 void SGCannon::DoSpawnTimerFunc(Entity* self, const std::string& name) {
 	if (self->GetVar<bool>(GameStartedVariable)) {
-		const auto spawnNumber = static_cast<uint32_t>(std::stoi(name.substr(7)));
+		const auto spawnNumber = GeneralUtils::TryParse(name.substr(7), 0);
 		const auto& activeSpawns = self->GetVar<std::vector<SGEnemy>>(ActiveSpawnsVariable);
 		if (activeSpawns.size() <= spawnNumber) {
 			LOG_DEBUG("Trying to spawn %i when spawns size is only %i", spawnNumber, activeSpawns.size());

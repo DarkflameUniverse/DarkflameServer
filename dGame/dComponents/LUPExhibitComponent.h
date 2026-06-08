@@ -22,7 +22,7 @@ public:
 	void NextLUPExhibit();
 private:
 	float m_UpdateTimer = 0.0f;
-	std::array<LOT, 4> m_LUPExhibits = { 11121, 11295, 11423, 11979 };
+	const std::array<LOT, 4> m_LUPExhibits = { 11121, 11295, 11423, 11979 };
 	uint8_t m_LUPExhibitIndex = 0;
 	bool m_DirtyLUPExhibit = true;
 };

@@ -18,8 +18,8 @@ IProperty::Info ReadPropertyInfo(PreparedStmtResultSet& result) {
 	return info;
 }
 
-std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(const IProperty::PropertyLookup& params) {
-	std::optional<IProperty::PropertyEntranceResult> result;
+IProperty::PropertyEntranceResult MySQLDatabase::GetProperties(const IProperty::PropertyLookup& params) {
+	IProperty::PropertyEntranceResult result;
 	std::string query;
 	PreparedStmtResultSet properties;
 
@@ -73,8 +73,7 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 			params.playerId
 		);
 		if (count->next()) {
-			if (!result) result = IProperty::PropertyEntranceResult();
-			result->totalEntriesMatchingQuery = count->getUInt("count");
+			result.totalEntriesMatchingQuery = count->getUInt("count");
 		}
 	} else {
 		if (params.sortChoice == SORT_TYPE_REPUTATION) {
@@ -127,14 +126,12 @@ std::optional<IProperty::PropertyEntranceResult> MySQLDatabase::GetProperties(co
 			params.playerSort
 		);
 		if (count->next()) {
-			if (!result) result = IProperty::PropertyEntranceResult();
-			result->totalEntriesMatchingQuery = count->getUInt("count");
+			result.totalEntriesMatchingQuery = count->getUInt("count");
 		}
 	}
 
 	while (properties->next()) {
-		if (!result) result = IProperty::PropertyEntranceResult();
-		result->entries.push_back(ReadPropertyInfo(properties));
+		result.entries.push_back(ReadPropertyInfo(properties));
 	}
 
 	return result;

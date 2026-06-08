@@ -127,7 +127,7 @@ public:
 	std::string GetBehavior(const LWOOBJID behaviorId) override;
 	void RemoveBehavior(const LWOOBJID characterId) override;
 	void UpdateAccountGmLevel(const uint32_t accountId, const eGameMasterLevel gmLevel) override;
-	std::optional<IProperty::PropertyEntranceResult> GetProperties(const IProperty::PropertyLookup& params) override;
+	IProperty::PropertyEntranceResult GetProperties(const IProperty::PropertyLookup& params) override;
 	std::vector<ILeaderboard::Entry> GetDescendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetAscendingLeaderboard(const uint32_t activityId) override;
 	std::vector<ILeaderboard::Entry> GetNsLeaderboard(const uint32_t activityId) override;

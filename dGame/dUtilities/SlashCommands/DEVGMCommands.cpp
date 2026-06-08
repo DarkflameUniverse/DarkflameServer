@@ -825,7 +825,7 @@ namespace DEVGMCommands {
 		}
 
 		const auto numberToSpawnOptional = GeneralUtils::TryParse<uint32_t>(splitArgs[1]);
-		if (!numberToSpawnOptional && numberToSpawnOptional.value() > 0) {
+		if (!numberToSpawnOptional) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid number of enemies to spawn.");
 			return;
 		}
@@ -833,7 +833,7 @@ namespace DEVGMCommands {
 
 		// Must spawn within a radius of at least 0.0f
 		const auto radiusToSpawnWithinOptional = GeneralUtils::TryParse<float>(splitArgs[2]);
-		if (!radiusToSpawnWithinOptional && radiusToSpawnWithinOptional.value() < 0.0f) {
+		if (!radiusToSpawnWithinOptional || radiusToSpawnWithinOptional.value() < 0.0f) {
 			ChatPackets::SendSystemMessage(sysAddr, u"Invalid radius to spawn within.");
 			return;
 		}
@@ -1133,6 +1133,10 @@ namespace DEVGMCommands {
 		}
 
 		const auto& password = splitArgs[2];
+		if (password.length() >= 50) {
+			ChatPackets::SendSystemMessage(sysAddr, u"Password is too long.");
+			return;
+		}
 
 		ZoneInstanceManager::Instance()->CreatePrivateZone(Game::server, zone.value(), clone.value(), password);
 

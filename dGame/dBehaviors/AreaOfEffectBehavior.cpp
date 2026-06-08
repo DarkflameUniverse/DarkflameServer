@@ -42,6 +42,7 @@ void AreaOfEffectBehavior::Handle(BehaviorContext* context, RakNet::BitStream& b
 		LWOOBJID target{};
 		if (!bitStream.Read(target)) {
 			LOG("failed to read in target %i from bitStream, aborting target Handle!", i);
+			continue;
 		};
 		targets.push_back(target);
 	}

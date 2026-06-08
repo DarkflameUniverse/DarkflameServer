@@ -37,7 +37,7 @@ public:
 	void NamedTimerDone(Entity* self, const std::string& timerName);
 
 protected:
-	std::vector<int32_t> namedMobs = {
+	const std::vector<int32_t> namedMobs = {
 		11988, // Ronin
 		11984, // Spiderling
 		12654, // Horsemen

@@ -48,7 +48,7 @@ std::vector<MailInfo> MySQLDatabase::GetMailForPlayer(const LWOOBJID characterId
 }
 
 std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
-	auto res = ExecuteSelect("SELECT attachment_lot, attachment_count FROM mail WHERE id=? LIMIT 1;", mailId);
+	auto res = ExecuteSelect("SELECT attachment_lot, attachment_count, receiver_id FROM mail WHERE id=? LIMIT 1;", mailId);
 
 	if (!res->next()) {
 		return std::nullopt;
@@ -57,6 +57,7 @@ std::optional<MailInfo> MySQLDatabase::GetMail(const uint64_t mailId) {
 	MailInfo toReturn;
 	toReturn.itemLOT = res->getInt("attachment_lot");
 	toReturn.itemCount = res->getInt("attachment_count");
+	toReturn.receiverId = res->getUInt64("receiver_id");
 
 	return toReturn;
 }

@@ -478,6 +478,7 @@ std::vector<LWOOBJID> BaseCombatAIComponent::GetTargetWithinAggroRange() const {
 
 	for (auto id : m_Parent->GetTargetsInPhantom()) {
 		auto* other = Game::entityManager->GetEntity(id);
+		if (!other) continue;
 
 		const auto distance = Vector3::DistanceSquared(m_Parent->GetPosition(), other->GetPosition());
 
