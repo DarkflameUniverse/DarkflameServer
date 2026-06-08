@@ -230,6 +230,7 @@ PreconditionExpression::PreconditionExpression(const std::string& conditions) {
 		case '&':
 		case ';':
 		case '(':
+		case ':':
 			b << conditions.substr(i + 1);
 			done = true;
 			break;
