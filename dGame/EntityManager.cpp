@@ -10,7 +10,6 @@
 #include "SkillComponent.h"
 #include "SwitchComponent.h"
 #include "UserManager.h"
-#include "Metrics.hpp"
 #include "dZoneManager.h"
 #include "MissionComponent.h"
 #include "Game.h"

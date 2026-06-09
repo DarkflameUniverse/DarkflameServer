@@ -23,7 +23,6 @@
 #include "SkillComponent.h"
 #include "QuickBuildComponent.h"
 #include "DestroyableComponent.h"
-#include "Metrics.hpp"
 #include "CDComponentsRegistryTable.h"
 #include "CDPhysicsComponentTable.h"
 #include "dNavMesh.h"
