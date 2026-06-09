@@ -56,6 +56,12 @@ public:
 	bool GetDepossessOnHit() const { return m_DepossessOnHit; };
 
 	/**
+	 * Returns the skill set ID for this possessable (0 = no skill set)
+	 * @return the skill set ID
+	 */
+	int32_t GetSkillSet() const { return m_SkillSet; };
+
+	/**
 	 * Forcibly depossess the Entity
 	 */
 	void ForceDepossess() { m_ImmediatelyDepossess = true; m_DirtyPossessable = true; };
@@ -118,4 +124,9 @@ private:
 	 *
 	 */
 	bool m_ItemSpawned = false;
+
+	/**
+	 * @brief Skill set ID from PossessableComponent CDClient table (0 = none)
+	 */
+	int32_t m_SkillSet = 0;
 };

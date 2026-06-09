@@ -3946,11 +3946,19 @@ void GameMessages::SendSetMountInventoryID(Entity* entity, const LWOOBJID& objec
 	CMSGHEADER;
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::SET_MOUNT_INVENTORY_ID);
-	bitStream.Write(objectID);
+	bitStream.Write(objectID != LWOOBJID_EMPTY);
+	if (objectID != LWOOBJID_EMPTY) bitStream.Write(objectID);
 
 	SEND_PACKET_BROADCAST;
 }
 
+void GameMessages::UseSkillSet::Serialize(RakNet::BitStream& bitStream) const {
+	bitStream.Write(bRemove);
+	bitStream.Write(possessedId != LWOOBJID_EMPTY);
+	if (possessedId != LWOOBJID_EMPTY) bitStream.Write(possessedId);
+	bitStream.Write(setId != -1);
+	if (setId != -1) bitStream.Write(setId);
+}
 
 void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	// Get the objectID from the bitstream
@@ -3986,9 +3994,6 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* e
 
 			// Update the entity that was possessing
 			Game::entityManager->SerializeEntity(entity);
-
-			// We aren't mounted so remove the stun
-			GameMessages::SendSetStunned(entity->GetObjectID(), eStateChangeType::POP, UNASSIGNED_SYSTEM_ADDRESS, LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
 		}
 	}
 }
@@ -3996,10 +4001,14 @@ void GameMessages::HandleDismountComplete(RakNet::BitStream& inStream, Entity* e
 
 void GameMessages::HandleAcknowledgePossession(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
 	Game::entityManager->SerializeEntity(entity);
-	LWOOBJID objectId{};
-	inStream.Read(objectId);
-	auto* mount = Game::entityManager->GetEntity(objectId);
-	if (mount) Game::entityManager->SerializeEntity(mount);
+	bool hasObjectId{};
+	inStream.Read(hasObjectId);
+	if (hasObjectId) {
+		LWOOBJID objectId{};
+		inStream.Read(objectId);
+		auto* mount = Game::entityManager->GetEntity(objectId);
+		if (mount) Game::entityManager->SerializeEntity(mount);
+	}
 }
 
 //Racing
