@@ -266,12 +266,10 @@ void TradingManager::CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, con
 	trades.erase(tradeId);
 }
 
-const std::unique_ptr<Trade>& TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
+void TradingManager::NewTrade(LWOOBJID participantA, LWOOBJID participantB) {
 	const LWOOBJID tradeId = ObjectIDManager::GenerateObjectID();
 
-	const auto& trade = trades.insert_or_assign(tradeId, std::make_unique<Trade>(tradeId, participantA, participantB));
+	trades.insert_or_assign(tradeId, std::make_unique<Trade>(tradeId, participantA, participantB));
 
 	LOG("Created new trade between (%llu) <-> (%llu)", participantA, participantB);
-
-	return trade.first->second;
 }

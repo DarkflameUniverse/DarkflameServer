@@ -64,7 +64,7 @@ public:
 	const std::unique_ptr<Trade>& GetTrade(LWOOBJID tradeId) const;
 	const std::unique_ptr<Trade>& GetPlayerTrade(LWOOBJID playerId) const;
 	void CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, const bool sendCancelMessage = true);
-	const std::unique_ptr<Trade>& NewTrade(LWOOBJID participantA, LWOOBJID participantB);
+	void NewTrade(LWOOBJID participantA, LWOOBJID participantB);
 
 private:
 	static TradingManager* m_Address; //For singleton method
