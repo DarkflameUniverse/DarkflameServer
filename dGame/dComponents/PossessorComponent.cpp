@@ -43,6 +43,7 @@ void PossessorComponent::Mount(Entity* mount) {
 
 	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
+		possessableComponent->SetPossessor(m_Parent->GetObjectID());
 		SetPossessable(mount->GetObjectID());
 		SetPossessableType(possessableComponent->GetPossessionType());
 		if (possessableComponent->GetSkillSet() != 0) {
@@ -54,12 +55,11 @@ void PossessorComponent::Mount(Entity* mount) {
 		}
 	}
 
-	auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (characterComponent) characterComponent->SetIsRacing(true);
-
 	// GM's to send
 	GameMessages::SendSetJetPackMode(m_Parent, false);
 	if (mount->GetComponent<HavokVehiclePhysicsComponent>()) {
+		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
+		if (characterComponent) characterComponent->SetIsRacing(true);
 		GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
 	}
 
@@ -89,7 +89,9 @@ void PossessorComponent::Dismount(Entity* mount, bool forceDismount) {
 		Game::entityManager->SerializeEntity(m_Parent);
 		Game::entityManager->SerializeEntity(mount);
 
-		auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
-		if (characterComponent) characterComponent->SetIsRacing(false);
+		if (mount->GetComponent<HavokVehiclePhysicsComponent>()) {
+			auto characterComponent = m_Parent->GetComponent<CharacterComponent>();
+			if (characterComponent) characterComponent->SetIsRacing(false);
+		}
 	}
 }
