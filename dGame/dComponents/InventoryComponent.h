@@ -402,6 +402,8 @@ public:
 
 	std::map<BehaviorSlot, uint32_t> GetSkills() { return m_Skills; };
 
+	void ClearSkills() { m_Skills.clear(); };
+
 	bool SetSkill(int slot, uint32_t skillId);
 	bool SetSkill(BehaviorSlot slot, uint32_t skillId);
 
