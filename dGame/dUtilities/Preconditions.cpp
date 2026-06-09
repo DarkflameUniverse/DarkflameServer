@@ -190,7 +190,7 @@ bool Precondition::CheckValue(Entity* player, const uint32_t value, bool evaluat
 	case PreconditionType::DoesNotHaveRacingLicence:
 		return false; // TODO: requires a racing licence level on the player; DLU does not track this
 	case PreconditionType::LegoClubMember:
-		return true; // Live LU opened LEGO CLUB to All players at some point, so always retuen true
+		return true; // Live LU opened LEGO CLUB to All players at some point, so always return true
 	case PreconditionType::NoInteraction:
 		return false; // TODO: requires tracking the player's currently active interaction object; DLU does not track this
 	case PreconditionType::HasLevel:
