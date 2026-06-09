@@ -367,11 +367,10 @@ public:
 	void RemoveDatabasePet(LWOOBJID id);
 
 	/**
-	 * Returns the current behavior slot active for the passed item type
-	 * @param type the item type to find the behavior slot for
-	 * @return the current behavior slot active for the passed item type
+	 * Returns the behavior slot for the given equipLocation string.
+	 * This is the authoritative mapping used for skill slot assignment.
 	 */
-	static BehaviorSlot FindBehaviorSlot(eItemType type);
+	static BehaviorSlot FindBehaviorSlot(const std::string& equipLocation);
 
 	/**
 	 * Checks if the inventory type is a temp inventory

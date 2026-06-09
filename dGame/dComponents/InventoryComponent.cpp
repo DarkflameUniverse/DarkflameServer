@@ -1180,13 +1180,11 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
 	}
-
-	const auto index = m_Skills.find(slot);
 
 	const auto skill = FindSkill(lot);
 
@@ -1215,7 +1213,7 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1327,22 +1325,16 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
-	switch (type) {
-	case eItemType::HAT:
-		return BehaviorSlot::Head;
-	case eItemType::NECK:
-		return BehaviorSlot::Neck;
-	case eItemType::LEFT_HAND:
-		return BehaviorSlot::Offhand;
-	case eItemType::RIGHT_HAND:
-		return BehaviorSlot::Primary;
-	case eItemType::CONSUMABLE:
-		return BehaviorSlot::Consumable;
-	default:
-		return BehaviorSlot::Invalid;
-	}
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation) {
+	// Skill slot is determined by equipLocation, not itemType.
+	// Mapping confirmed against live captures and client data (issue #1339).
+	if (equipLocation == "special_r") return BehaviorSlot::Primary;
+	if (equipLocation == "hair")      return BehaviorSlot::Head;
+	if (equipLocation == "special_l") return BehaviorSlot::Offhand;
+	if (equipLocation == "clavicle")  return BehaviorSlot::Neck;
+	return BehaviorSlot::Invalid;
 }
+
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
 	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
