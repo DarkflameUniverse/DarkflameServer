@@ -2,15 +2,16 @@
 
 #include "Entity.h"
 
-struct TradeItem
-{
+#include <map>
+#include <memory>
+
+struct TradeItem {
 	LWOOBJID itemId;
 	LOT itemLot;
 	uint32_t itemCount;
 };
 
-class Trade
-{
+class Trade {
 public:
 	explicit Trade(LWOOBJID tradeId, LWOOBJID participantA, LWOOBJID participantB);
 	~Trade();
@@ -50,8 +51,7 @@ private:
 };
 
 
-class TradingManager
-{
+class TradingManager {
 public:
 	static TradingManager* Instance() {
 		if (!m_Address) {
@@ -61,16 +61,13 @@ public:
 		return m_Address;
 	}
 
-	explicit TradingManager();
-	~TradingManager();
-
-	Trade* GetTrade(LWOOBJID tradeId) const;
-	Trade* GetPlayerTrade(LWOOBJID playerId) const;
+	const std::unique_ptr<Trade>& GetTrade(LWOOBJID tradeId) const;
+	const std::unique_ptr<Trade>& GetPlayerTrade(LWOOBJID playerId) const;
 	void CancelTrade(const LWOOBJID canceller, LWOOBJID tradeId, const bool sendCancelMessage = true);
-	Trade* NewTrade(LWOOBJID participantA, LWOOBJID participantB);
+	void NewTrade(LWOOBJID participantA, LWOOBJID participantB);
 
 private:
 	static TradingManager* m_Address; //For singleton method
 
-	std::unordered_map<LWOOBJID, Trade*> trades;
+	std::unordered_map<LWOOBJID, std::unique_ptr<Trade>> trades;
 };

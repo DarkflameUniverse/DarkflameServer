@@ -3221,7 +3221,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 
 		LOG("Trade request to (%llu)", i64Invitee);
 
-		auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+		const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 		if (trade != nullptr) {
 			if (!trade->IsParticipant(i64Invitee)) {
@@ -3244,7 +3244,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 }
 
 void GameMessages::HandleClientTradeCancel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3258,7 +3258,7 @@ void GameMessages::HandleClientTradeAccept(RakNet::BitStream& inStream, Entity* 
 
 	LOG("Trade accepted from (%llu) -> (%d)", entity->GetObjectID(), bFirst);
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3324,7 +3324,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 		LOG("Trade item from (%llu) -> (%llu)/(%llu), (%i), (%llu), (%i), (%i)", entity->GetObjectID(), itemId, itemId2, lot, unknown1, unknown2, unknown3);
 	}
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
