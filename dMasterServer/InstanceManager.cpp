@@ -333,7 +333,7 @@ int InstanceManager::GetHardCap(LWOMAPID mapID) {
 }
 
 void InstanceManager::PruneUnreadyInstances() {
-	for (int i = m_Instances.size() - 1; i >= 0; i--) {
+	for (int i = static_cast<int>(m_Instances.size()) - 1; i >= 0; i--) {
 		if (!m_Instances[i]->GetIsReady()) m_Instances.erase(m_Instances.cbegin() + i);
 	}
 }
