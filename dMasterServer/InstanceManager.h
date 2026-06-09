@@ -133,6 +133,7 @@ public:
 	const InstancePtr& CreatePrivateInstance(LWOMAPID mapID, LWOCLONEID cloneID, const std::string& password);
 	const InstancePtr& FindPrivateInstance(const std::string& password);
 	void SetIsShuttingDown(bool value) { this->m_IsShuttingDown = value; };
+	void PruneUnreadyInstances();
 
 private:
 	std::string mExternalIP;
