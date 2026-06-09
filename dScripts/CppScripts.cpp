@@ -278,6 +278,7 @@
 #include "NjEarthPetServer.h"
 #include "NjDragonEmblemChestServer.h"
 #include "NjNyaMissionitems.h"
+#include "OldManNPC.h"
 
 // Scripted equipment
 #include "AnvilOfArmor.h"
@@ -628,6 +629,7 @@ namespace {
 		{"scripts\\02_server\\Map\\njhub\\L_EARTH_PET_SERVER.lua", []() {return new NjEarthPetServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_DRAGON_EMBLEM_CHEST_SERVER.lua", []() {return new NjDragonEmblemChestServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_NYA_MISSION_ITEMS.lua", []() {return new NjNyaMissionitems();}},
+		{"scripts\\02_server\\Map\\njhub\\L_OLD_MAN_NPC.lua", []() {return new OldManNPC();}},
 
 		//DLU
 		{"scripts\\02_server\\DLU\\DLUVanityTeleportingObject.lua", []() {return new DLUVanityTeleportingObject();}},
