@@ -5,8 +5,8 @@
 #include <chrono>
 
 namespace {
-	std::unordered_map<MetricVariable, Metric> m_Metrics = {};
-	std::vector<MetricVariable> m_Variables = {
+	std::unordered_map<MetricVariable, Metric> g_Metrics = {};
+	std::vector<MetricVariable> g_Variables = {
 		MetricVariable::GameLoop,
 		MetricVariable::PacketHandling,
 		MetricVariable::UpdateEntities,
@@ -21,7 +21,7 @@ namespace {
 }
 
 void Metrics::AddMeasurement(MetricVariable variable, int64_t value) {
-	auto& metric = m_Metrics[variable];
+	auto& metric = g_Metrics[variable];
 
 	AddMeasurement(metric, value);
 }
@@ -45,7 +45,7 @@ void Metrics::AddMeasurement(Metric& metric, int64_t value) {
 }
 
 const Metric& Metrics::GetMetric(MetricVariable variable) {
-	auto& metric = m_Metrics[variable];
+	auto& metric = g_Metrics[variable];
 
 	int64_t average = 0;
 
@@ -61,7 +61,7 @@ const Metric& Metrics::GetMetric(MetricVariable variable) {
 }
 
 void Metrics::StartMeasurement(MetricVariable variable) {
-	auto& metric = m_Metrics[variable];
+	auto& metric = g_Metrics[variable];
 
 	metric.activeMeasurement = std::chrono::high_resolution_clock::now();
 }
@@ -69,7 +69,7 @@ void Metrics::StartMeasurement(MetricVariable variable) {
 void Metrics::EndMeasurement(MetricVariable variable) {
 	const auto end = std::chrono::high_resolution_clock::now();
 
-	auto& metric = m_Metrics[variable];
+	auto& metric = g_Metrics[variable];
 
 	const auto elapsed = end - metric.activeMeasurement;
 
@@ -87,7 +87,7 @@ const std::string_view Metrics::MetricVariableToString(MetricVariable variable) 
 }
 
 const std::vector<MetricVariable>& Metrics::GetAllMetrics() {
-	return m_Variables;
+	return g_Variables;
 }
 
 /* RSS Memory utilities
