@@ -2,6 +2,9 @@
 
 #include "Entity.h"
 
+#include <map>
+#include <memory>
+
 struct TradeItem {
 	LWOOBJID itemId;
 	LOT itemLot;
