@@ -14,7 +14,7 @@
 #include "dConfig.h"
 #include "dpWorld.h"
 #include "dZoneManager.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
@@ -1538,7 +1538,6 @@ void FinalizeShutdown() {
 	LOG("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), g_InstanceID);
 
 	//Delete our objects here:
-	Metrics::Clear();
 	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;

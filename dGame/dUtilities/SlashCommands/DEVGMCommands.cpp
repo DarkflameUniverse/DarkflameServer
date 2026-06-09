@@ -13,7 +13,7 @@
 #include "dpShapeSphere.h"
 #include "dZoneManager.h"
 #include "EntityInfo.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PlayerManager.h"
 #include "SlashCommandHandler.h"
 #include "UserManager.h"
@@ -1288,18 +1288,14 @@ namespace DEVGMCommands {
 		response.Insert("serverInfo", true);
 		auto* info = response.InsertArray("data");
 		for (const auto variable : Metrics::GetAllMetrics()) {
-			auto& metricData = info->PushDebug(StringifiedEnum::ToString(variable));
+			auto& metricData = info->PushDebug(Metrics::MetricVariableToString(variable));
 
-			auto* metric = Metrics::GetMetric(variable);
+			const auto& metric = Metrics::GetMetric(variable);
 
-			if (metric == nullptr) {
-				continue;
-			}
-
-			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric->max)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric->min)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric->average)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric->measurementSize);
+			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric.max)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric.min)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric.average)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric.measurementSize);
 		}
 		auto& processInfo = info->PushDebug("Process Info");
 		processInfo.PushDebug<AMFStringValue>("Peak RSS") = std::to_string(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6) + "MB";
