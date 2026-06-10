@@ -8,6 +8,7 @@
 #include "eReplicaComponentType.h"
 
 #include "CDActivitiesTable.h"
+#include <array>
 
 namespace GameMessages {
 	class GameMsg;

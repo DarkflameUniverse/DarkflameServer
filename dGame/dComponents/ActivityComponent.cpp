@@ -33,8 +33,7 @@
 #include <ranges>
 
 namespace {
-	ActivityInstance g_EmptyInstance{ nullptr, CDActivities{} };
-	ActivityPlayer g_EmtpyPlayerData{};
+	const ActivityInstance g_EmptyInstance{ nullptr, CDActivities{} };
 }
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
@@ -157,6 +156,7 @@ void ActivityComponent::PlayerJoinLobby(Entity* player) {
 				PlayerReady(entity, joinedPlayer.ready);
 				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::PLAYER_ADDED);
 			}
+			break;
 		}
 	}
 
@@ -387,6 +387,7 @@ bool ActivityComponent::PlayerHasActivityData(LWOOBJID playerID) const {
 
 void ActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) {
 	m_ActivityPlayers.erase(playerID);
+	m_DirtyActivityInfo = true;
 }
 
 float_t ActivityComponent::GetActivityValue(LWOOBJID playerID, uint32_t index) const {

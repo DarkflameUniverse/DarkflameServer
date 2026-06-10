@@ -87,7 +87,7 @@ void NpcAgCourseStarter::OnFireEventServerSide(Entity* self, Entity* sender, std
 		if (startTime == 0 || startTime == -1.0f) return;
 
 		const auto raceTimeElapsed = fRaceEndTime - startTime;
-		scriptedActivityComponent->SetActivityValue(senderId, 1, raceTimeElapsed);
+		scriptedActivityComponent->SetActivityValue(senderId, 2, raceTimeElapsed);
 
 		auto* const missionComponent = sender->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr) {
