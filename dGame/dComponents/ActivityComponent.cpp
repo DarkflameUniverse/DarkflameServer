@@ -22,6 +22,7 @@
 #include "eMatchUpdate.h"
 #include "ServiceType.h"
 #include "MessageType/Chat.h"
+#include "ObjectIDManager.h"
 
 #include "CDCurrencyTableTable.h"
 #include "CDActivityRewardsTable.h"
@@ -29,6 +30,12 @@
 #include "LeaderboardManager.h"
 #include "CharacterComponent.h"
 #include "Amf3.h"
+#include <ranges>
+
+namespace {
+	ActivityInstance g_EmptyInstance{ nullptr, CDActivities{} };
+	ActivityPlayer g_EmtpyPlayerData{};
+}
 
 ActivityComponent::ActivityComponent(Entity* parent, int32_t componentID) : Component(parent, componentID) {
 	RegisterMsg(&ActivityComponent::OnGetObjectReportInfo);
@@ -71,9 +78,9 @@ void ActivityComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsIniti
 	if (m_DirtyActivityInfo) {
 		outBitStream.Write<uint32_t>(m_ActivityPlayers.size());
 		if (!m_ActivityPlayers.empty()) {
-			for (const auto& activityPlayer : m_ActivityPlayers) {
-				outBitStream.Write<LWOOBJID>(activityPlayer->playerID);
-				for (const auto& activityValue : activityPlayer->values) {
+			for (const auto& [playerID, values] : m_ActivityPlayers) {
+				outBitStream.Write<LWOOBJID>(playerID);
+				for (const auto& activityValue : values) {
 					outBitStream.Write<float_t>(activityValue);
 				}
 			}
@@ -111,78 +118,80 @@ void ActivityComponent::PlayerJoin(Entity* player) {
 	if (HasLobby()) {
 		PlayerJoinLobby(player);
 	} else if (!IsPlayedBy(player)) {
-		auto* instance = NewInstance();
-		instance->AddParticipant(player);
+		NewInstance().AddParticipant(player);
 	}
 }
 
 void ActivityComponent::PlayerJoinLobby(Entity* player) {
 	if (!m_Parent->HasComponent(eReplicaComponentType::QUICK_BUILD))
 		GameMessages::SendMatchResponse(player, player->GetSystemAddress(), 0); // tell the client they joined a lobby
-	LobbyPlayer* newLobbyPlayer = new LobbyPlayer();
-	newLobbyPlayer->entityID = player->GetObjectID();
-	Lobby* playerLobby = nullptr;
+	LobbyPlayer newLobbyPlayer{};
+	newLobbyPlayer.entityID = player->GetObjectID();
+	LWOOBJID playerLobbyID = LWOOBJID_EMPTY;
 
 	auto* character = player->GetCharacter();
 	if (character != nullptr)
 		character->SetLastNonInstanceZoneID(Game::zoneManager->GetZone()->GetWorldID());
 
-	for (Lobby* lobby : m_Queue) {
-		if (lobby->players.size() < m_ActivityInfo.maxTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby->players.size() < m_ActivityInfo.maxTeams) {
+	for (auto& [lobbyID, lobby] : m_Queue) {
+		if (lobby.players.size() < m_ActivityInfo.maxTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() < m_ActivityInfo.maxTeams) {
 			// If an empty slot in an existing lobby is found
-			lobby->players.push_back(newLobbyPlayer);
-			playerLobby = lobby;
+			lobby.players.push_back(newLobbyPlayer);
+			playerLobbyID = lobbyID;
 
 			// Update the joining player on players already in the lobby, and update players already in the lobby on the joining player
-			std::string matchUpdateJoined = "player=9:" + std::to_string(player->GetObjectID()) + "\nplayerName=0:" + player->GetCharacter()->GetName();
-			for (LobbyPlayer* joinedPlayer : lobby->players) {
-				auto* entity = joinedPlayer->GetEntity();
+			LDFData<LWOOBJID> playerLDF("player", player->GetObjectID());
+			LDFData<std::string> playerName("playerName", player->GetCharacter()->GetName());
+			std::string matchUpdateJoined = playerLDF.GetString() + "\n" + playerName.GetString();
+			for (const auto& joinedPlayer : lobby.players) {
+				auto* const entity = joinedPlayer.GetEntity();
 
 				if (entity == nullptr) {
 					continue;
 				}
 
-				std::string matchUpdate = "player=9:" + std::to_string(entity->GetObjectID()) + "\nplayerName=0:" + entity->GetCharacter()->GetName();
+				LDFData<LWOOBJID> entityLDF("player", entity->GetObjectID());
+				LDFData<std::string> entityName("playerName", entity->GetCharacter()->GetName());
+				std::string matchUpdate = entityLDF.GetString() + "\n" + entityName.GetString();
 				GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchUpdate, eMatchUpdate::PLAYER_ADDED);
-				PlayerReady(entity, joinedPlayer->ready);
+				PlayerReady(entity, joinedPlayer.ready);
 				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateJoined, eMatchUpdate::PLAYER_ADDED);
 			}
 		}
 	}
 
-	if (!playerLobby) {
+	if (playerLobbyID == LWOOBJID_EMPTY) {
 		// If all lobbies are full
-		playerLobby = new Lobby();
-		playerLobby->players.push_back(newLobbyPlayer);
-		playerLobby->timer = m_ActivityInfo.waitTime / 1000;
-		m_Queue.push_back(playerLobby);
+		playerLobbyID = ObjectIDManager::GenerateObjectID();
+		auto& newLobby = m_Queue[playerLobbyID];
+		newLobby.players.push_back(newLobbyPlayer);
+		newLobby.timer = m_ActivityInfo.waitTime / 1000;
 	}
+	const auto& lobby = m_Queue[playerLobbyID];
 
-	if (m_ActivityInfo.maxTeamSize != 1 && playerLobby->players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && playerLobby->players.size() >= m_ActivityInfo.minTeams) {
+	if (m_ActivityInfo.maxTeamSize != 1 && lobby.players.size() >= m_ActivityInfo.minTeamSize || m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() >= m_ActivityInfo.minTeams) {
 		// Update the joining player on the match timer
-		std::string matchTimerUpdate = "time=3:" + std::to_string(playerLobby->timer);
-		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
+		LDFData<float> matchTimer("time", lobby.timer);
+		GameMessages::SendMatchUpdate(player, player->GetSystemAddress(), matchTimer.GetString(), eMatchUpdate::PHASE_WAIT_READY);
 	}
 }
 
 void ActivityComponent::PlayerLeave(LWOOBJID playerID) {
-
 	// Removes the player from a lobby and notifies the others, not applicable for non-lobby instances
-	for (Lobby* lobby : m_Queue) {
-		for (int i = 0; i < lobby->players.size(); ++i) {
-			if (lobby->players[i]->entityID == playerID) {
-				std::string matchUpdateLeft = "player=9:" + std::to_string(playerID);
-				for (LobbyPlayer* lobbyPlayer : lobby->players) {
-					auto* entity = lobbyPlayer->GetEntity();
+	for (auto& lobby : m_Queue | std::views::values) {
+		for (int i = 0; i < lobby.players.size(); i++) {
+			const auto& player = lobby.players[i];
+			if (player.entityID == playerID) {
+				LDFData<LWOOBJID> matchUpdateLeft("player", playerID);
+				for (const auto& lobbyPlayer : lobby.players) {
+					auto* const entity = lobbyPlayer.GetEntity();
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft, eMatchUpdate::PLAYER_REMOVED);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchUpdateLeft.GetString(), eMatchUpdate::PLAYER_REMOVED);
 				}
 
-				delete lobby->players[i];
-				lobby->players[i] = nullptr;
-				lobby->players.erase(lobby->players.begin() + i);
+				lobby.players.erase(lobby.players.begin() + i);
 
 				return;
 			}
@@ -191,85 +200,79 @@ void ActivityComponent::PlayerLeave(LWOOBJID playerID) {
 }
 
 void ActivityComponent::Update(float deltaTime) {
-	std::vector<Lobby*> lobbiesToRemove{};
+	std::vector<LWOOBJID> lobbiesToRemove{};
 	// Ticks all the lobbies, not applicable for non-instance activities
-	for (Lobby* lobby : m_Queue) {
-		for (LobbyPlayer* player : lobby->players) {
-			auto* entity = player->GetEntity();
+	for (auto& [lobbyID, lobby] : m_Queue) {
+		for (const auto& player : lobby.players) {
+			const auto* const entity = player.GetEntity();
 			if (entity == nullptr) {
-				PlayerLeave(player->entityID);
+				PlayerLeave(player.entityID);
 				return;
 			}
 		}
 
-		if (lobby->players.empty()) {
-			lobbiesToRemove.push_back(lobby);
+		if (lobby.players.empty()) {
+			lobbiesToRemove.push_back(lobbyID);
 			continue;
 		}
 
 		// Update the match time for all players
-		if (m_ActivityInfo.maxTeamSize != 1 && lobby->players.size() >= m_ActivityInfo.minTeamSize
-			|| m_ActivityInfo.maxTeamSize == 1 && lobby->players.size() >= m_ActivityInfo.minTeams) {
-			if (lobby->timer == m_ActivityInfo.waitTime / 1000) {
-				for (LobbyPlayer* joinedPlayer : lobby->players) {
-					auto* entity = joinedPlayer->GetEntity();
+		if (m_ActivityInfo.maxTeamSize != 1 && lobby.players.size() >= m_ActivityInfo.minTeamSize
+			|| m_ActivityInfo.maxTeamSize == 1 && lobby.players.size() >= m_ActivityInfo.minTeams) {
+			if (lobby.timer == m_ActivityInfo.waitTime / 1000) {
+				for (const auto& joinedPlayer : lobby.players) {
+					auto* const entity = joinedPlayer.GetEntity();
 
 					if (entity == nullptr)
 						continue;
 
-					std::string matchTimerUpdate = "time=3:" + std::to_string(lobby->timer);
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_READY);
+					LDFData<float> matchTimerUpdate("time", lobby.timer);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate.GetString(), eMatchUpdate::PHASE_WAIT_READY);
 				}
 			}
 
-			lobby->timer -= deltaTime;
+			lobby.timer -= deltaTime;
 		}
 
 		bool lobbyReady = true;
-		for (LobbyPlayer* player : lobby->players) {
-			if (player->ready) continue;
+		for (const auto& player : lobby.players) {
+			if (player.ready) continue;
 			lobbyReady = false;
 		}
 
 		// If everyone's ready, jump the timer
-		if (lobbyReady && lobby->timer > m_ActivityInfo.startDelay / 1000) {
-			lobby->timer = m_ActivityInfo.startDelay / 1000;
+		if (lobbyReady && lobby.timer > m_ActivityInfo.startDelay / 1000) {
+			lobby.timer = m_ActivityInfo.startDelay / 1000;
 
 			// Update players in lobby on switch to start delay
-			std::string matchTimerUpdate = "time=3:" + std::to_string(lobby->timer);
-			for (LobbyPlayer* player : lobby->players) {
-				auto* entity = player->GetEntity();
+			LDFData<float> matchTimerUpdate("time", lobby.timer);
+			for (const auto& player : lobby.players) {
+				auto* const entity = player.GetEntity();
 
 				if (entity == nullptr)
 					continue;
 
-				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate, eMatchUpdate::PHASE_WAIT_START);
+				GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchTimerUpdate.GetString(), eMatchUpdate::PHASE_WAIT_START);
 			}
 		}
 
 		// The timer has elapsed, start the instance
-		if (lobby->timer <= 0.0f) {
+		if (lobby.timer <= 0.0f) {
 			LOG("Setting up instance.");
-			ActivityInstance* instance = NewInstance();
-			LoadPlayersIntoInstance(instance, lobby->players);
-			instance->StartZone();
-			lobbiesToRemove.push_back(lobby);
+			auto& instance = NewInstance();
+			LoadPlayersIntoInstance(instance, lobby.players);
+			instance.StartZone();
+			lobbiesToRemove.push_back(lobbyID);
 		}
 	}
 
-	while (!lobbiesToRemove.empty()) {
-		RemoveLobby(lobbiesToRemove.front());
-		lobbiesToRemove.erase(lobbiesToRemove.begin());
+	for (const auto id : lobbiesToRemove) {
+		RemoveLobby(id);
 	}
 }
 
-void ActivityComponent::RemoveLobby(Lobby* lobby) {
-	for (int i = 0; i < m_Queue.size(); ++i) {
-		if (m_Queue[i] == lobby) {
-			m_Queue.erase(m_Queue.begin() + i);
-			return;
-		}
-	}
+void ActivityComponent::RemoveLobby(const LWOOBJID lobbyID) {
+	if (m_Queue.contains(lobbyID)) m_Queue.erase(lobbyID);
 }
 
 bool ActivityComponent::HasLobby() const {
@@ -278,9 +281,9 @@ bool ActivityComponent::HasLobby() const {
 }
 
 bool ActivityComponent::PlayerIsInQueue(Entity* player) {
-	for (Lobby* lobby : m_Queue) {
-		for (LobbyPlayer* lobbyPlayer : lobby->players) {
-			if (player->GetObjectID() == lobbyPlayer->entityID) return true;
+	for (const auto& lobby : m_Queue | std::views::values) {
+		for (const auto& lobbyPlayer : lobby.players) {
+			if (player->GetObjectID() == lobbyPlayer.entityID) return true;
 		}
 	}
 
@@ -288,8 +291,8 @@ bool ActivityComponent::PlayerIsInQueue(Entity* player) {
 }
 
 bool ActivityComponent::IsPlayedBy(Entity* player) const {
-	for (const auto* instance : this->m_Instances) {
-		for (const auto* instancePlayer : instance->GetParticipants()) {
+	for (const auto& instance : m_Instances) {
+		for (const auto* instancePlayer : instance.GetParticipants()) {
 			if (instancePlayer != nullptr && instancePlayer->GetObjectID() == player->GetObjectID())
 				return true;
 		}
@@ -299,8 +302,8 @@ bool ActivityComponent::IsPlayedBy(Entity* player) const {
 }
 
 bool ActivityComponent::IsPlayedBy(LWOOBJID playerID) const {
-	for (const auto* instance : this->m_Instances) {
-		for (const auto* instancePlayer : instance->GetParticipants()) {
+	for (const auto& instance : m_Instances) {
+		for (const auto* instancePlayer : instance.GetParticipants()) {
 			if (instancePlayer != nullptr && instancePlayer->GetObjectID() == playerID)
 				return true;
 		}
@@ -329,136 +332,94 @@ bool ActivityComponent::TakeCost(Entity* player) const {
 }
 
 void ActivityComponent::PlayerReady(Entity* player, bool bReady) {
-	for (Lobby* lobby : m_Queue) {
-		for (LobbyPlayer* lobbyPlayer : lobby->players) {
-			if (lobbyPlayer->entityID == player->GetObjectID()) {
+	for (auto& lobby : m_Queue | std::views::values) {
+		for (auto& lobbyPlayer : lobby.players) {
+			if (lobbyPlayer.entityID == player->GetObjectID()) {
 
-				lobbyPlayer->ready = bReady;
+				lobbyPlayer.ready = bReady;
 
 				// Update players in lobby on player being ready
-				std::string matchReadyUpdate = "player=9:" + std::to_string(player->GetObjectID());
+				LDFData<LWOOBJID> matchReadyUpdate("player", player->GetObjectID());
 				eMatchUpdate readyStatus = eMatchUpdate::PLAYER_READY;
 				if (!bReady) readyStatus = eMatchUpdate::PLAYER_NOT_READY;
-				for (LobbyPlayer* otherPlayer : lobby->players) {
-					auto* entity = otherPlayer->GetEntity();
+				for (const auto& otherPlayer : lobby.players) {
+					auto* const entity = otherPlayer.GetEntity();
 					if (entity == nullptr)
 						continue;
 
-					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchReadyUpdate, readyStatus);
+					GameMessages::SendMatchUpdate(entity, entity->GetSystemAddress(), matchReadyUpdate.GetString(), readyStatus);
 				}
 			}
 		}
 	}
 }
 
-ActivityInstance* ActivityComponent::NewInstance() {
-	auto* instance = new ActivityInstance(m_Parent, m_ActivityInfo);
-	m_Instances.push_back(instance);
-	return instance;
+ActivityInstance& ActivityComponent::NewInstance() {
+	m_Instances.push_back(ActivityInstance(m_Parent, m_ActivityInfo));
+	return m_Instances.back();
 }
 
-void ActivityComponent::LoadPlayersIntoInstance(ActivityInstance* instance, const std::vector<LobbyPlayer*>& lobby) const {
-	for (LobbyPlayer* player : lobby) {
-		auto* entity = player->GetEntity();
+void ActivityComponent::LoadPlayersIntoInstance(ActivityInstance& instance, const std::vector<LobbyPlayer>& lobby) const {
+	for (const auto& player : lobby) {
+		auto* const entity = player.GetEntity();
 		if (entity == nullptr || !CheckCost(entity)) {
 			continue;
 		}
 
-		instance->AddParticipant(entity);
+		instance.AddParticipant(entity);
 	}
 }
 
-const std::vector<ActivityInstance*>& ActivityComponent::GetInstances() const {
-	return m_Instances;
-}
-
-ActivityInstance* ActivityComponent::GetInstance(const LWOOBJID playerID) {
-	for (const auto* instance : GetInstances()) {
-		for (const auto* participant : instance->GetParticipants()) {
+const ActivityInstance& ActivityComponent::GetInstance(const LWOOBJID playerID) const {
+	for (const auto& instance : m_Instances) {
+		for (const auto* participant : instance.GetParticipants()) {
 			if (participant->GetObjectID() == playerID)
-				return const_cast<ActivityInstance*>(instance);
+				return instance;
 		}
 	}
 
-	return nullptr;
+	return g_EmptyInstance;
 }
 
-void ActivityComponent::ClearInstances() {
-	for (ActivityInstance* instance : m_Instances) {
-		delete instance;
-	}
-	m_Instances.clear();
-}
-
-ActivityPlayer* ActivityComponent::GetActivityPlayerData(LWOOBJID playerID) {
-	for (auto* activityData : m_ActivityPlayers) {
-		if (activityData->playerID == playerID) {
-			return activityData;
-		}
-	}
-
-	return nullptr;
+bool ActivityComponent::PlayerHasActivityData(LWOOBJID playerID) const {
+	return m_ActivityPlayers.contains(playerID);
 }
 
 void ActivityComponent::RemoveActivityPlayerData(LWOOBJID playerID) {
-	for (size_t i = 0; i < m_ActivityPlayers.size(); i++) {
-		if (m_ActivityPlayers[i]->playerID == playerID) {
-			delete m_ActivityPlayers[i];
-			m_ActivityPlayers[i] = nullptr;
-
-			m_ActivityPlayers.erase(m_ActivityPlayers.begin() + i);
-			m_DirtyActivityInfo = true;
-			Game::entityManager->SerializeEntity(m_Parent);
-
-			return;
-		}
-	}
+	m_ActivityPlayers.erase(playerID);
 }
 
-ActivityPlayer* ActivityComponent::AddActivityPlayerData(LWOOBJID playerID) {
-	auto* data = GetActivityPlayerData(playerID);
-	if (data != nullptr)
-		return data;
+float_t ActivityComponent::GetActivityValue(LWOOBJID playerID, uint32_t index) const {
+	float value = -1.0f;
 
-	m_ActivityPlayers.push_back(new ActivityPlayer{ playerID, {} });
-	m_DirtyActivityInfo = true;
-	Game::entityManager->SerializeEntity(m_Parent);
-
-	return GetActivityPlayerData(playerID);
-}
-
-float_t ActivityComponent::GetActivityValue(LWOOBJID playerID, uint32_t index) {
-	auto value = -1.0f;
-
-	auto* data = GetActivityPlayerData(playerID);
-	if (data != nullptr) {
-		value = data->values[std::min(index, static_cast<uint32_t>(9))];
+	const auto& data = m_ActivityPlayers.find(playerID);
+	if (data != m_ActivityPlayers.cend()) {
+		value = data->second[std::min(index, static_cast<uint32_t>(9))];
 	}
-
+	LOG_DEBUG("Player %llu has score %f at index %i", playerID, value, index);
 	return value;
 }
 
 void ActivityComponent::SetActivityValue(LWOOBJID playerID, uint32_t index, float_t value) {
-	auto* data = AddActivityPlayerData(playerID);
-	if (data != nullptr) {
-		data->values[std::min(index, static_cast<uint32_t>(9))] = value;
-	}
+	auto& data = m_ActivityPlayers[playerID];
+	data[std::min(index, static_cast<uint32_t>(9))] = value;
+	LOG_DEBUG("%llu index %i has score of %f", playerID, index, value);
 	m_DirtyActivityInfo = true;
 	Game::entityManager->SerializeEntity(m_Parent);
 }
 
 void ActivityComponent::PlayerRemove(LWOOBJID playerID) {
-	for (auto* instance : GetInstances()) {
-		auto participants = instance->GetParticipants();
+	for (int i = 0; i < m_Instances.size(); i++) {
+		auto& instance = m_Instances[i];
+		auto participants = instance.GetParticipants();
 		for (const auto* participant : participants) {
 			if (participant != nullptr && participant->GetObjectID() == playerID) {
-				instance->RemoveParticipant(participant);
+				instance.RemoveParticipant(participant);
 				RemoveActivityPlayerData(playerID);
 
 				// If the instance is empty after the delete of the participant, delete the instance too
-				if (instance->GetParticipants().empty()) {
-					m_Instances.erase(std::find(m_Instances.begin(), m_Instances.end(), instance));
-					delete instance;
+				if (instance.GetParticipants().empty()) {
+					m_Instances.erase(m_Instances.begin() + i);
 				}
 				return;
 			}
@@ -595,14 +556,13 @@ bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo&
 	auto& instances = activityInfo.PushDebug("Instances: " + std::to_string(m_Instances.size()));
 	size_t i = 0;
 	for (const auto& activityInstance : m_Instances) {
-		if (!activityInstance) continue;
 		auto& instance = instances.PushDebug("Instance " + std::to_string(i++));
-		instance.PushDebug<AMFIntValue>("Score") = activityInstance->GetScore();
-		instance.PushDebug<AMFIntValue>("Next Zone Clone ID") = activityInstance->GetNextZoneCloneID();
+		instance.PushDebug<AMFIntValue>("Score") = activityInstance.GetScore();
+		instance.PushDebug<AMFIntValue>("Next Zone Clone ID") = activityInstance.GetNextZoneCloneID();
 
 		{
 			auto& activityInfo = instance.PushDebug("Activity Info");
-			const auto& instanceActInfo = activityInstance->GetActivityInfo();
+			const auto& instanceActInfo = activityInstance.GetActivityInfo();
 			activityInfo.PushDebug<AMFIntValue>("ActivityID") = instanceActInfo.ActivityID;
 			activityInfo.PushDebug<AMFIntValue>("locStatus") = instanceActInfo.locStatus;
 			activityInfo.PushDebug<AMFIntValue>("instanceMapID") = instanceActInfo.instanceMapID;
@@ -625,7 +585,7 @@ bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo&
 		}
 
 		auto& participants = instance.PushDebug("Participants");
-		for (const auto* participant : activityInstance->GetParticipants()) {
+		for (const auto* participant : activityInstance.GetParticipants()) {
 			if (!participant) continue;
 			auto* character = participant->GetCharacter();
 			if (!character) continue;
@@ -635,38 +595,36 @@ bool ActivityComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo&
 
 	auto& queue = activityInfo.PushDebug("Queue");
 	i = 0;
-	for (const auto& lobbyQueue : m_Queue) {
+	for (const auto& lobbyQueue : m_Queue | std::views::values) {
 		auto& lobby = queue.PushDebug("Lobby " + std::to_string(i++));
-		lobby.PushDebug<AMFDoubleValue>("Timer") = lobbyQueue->timer;
+		lobby.PushDebug<AMFDoubleValue>("Timer") = lobbyQueue.timer;
 
 		auto& players = lobby.PushDebug("Players");
-		for (const auto* player : lobbyQueue->players) {
-			if (!player) continue;
-			auto* playerEntity = player->GetEntity();
+		for (const auto& player : lobbyQueue.players) {
+			const auto* const playerEntity = player.GetEntity();
 			if (!playerEntity) continue;
 			auto* character = playerEntity->GetCharacter();
 			if (!character) continue;
 
-			players.PushDebug<AMFStringValue>(std::to_string(playerEntity->GetObjectID()) + ": " + character->GetName()) = player->ready ? "Ready" : "Not Ready";
+			players.PushDebug<AMFStringValue>(std::to_string(playerEntity->GetObjectID()) + ": " + character->GetName()) = player.ready ? "Ready" : "Not Ready";
 		}
 	}
 
 	auto& activityPlayers = activityInfo.PushDebug("Activity Players");
-	for (const auto* activityPlayer : m_ActivityPlayers) {
-		if (!activityPlayer) continue;
-		auto* const activityPlayerEntity = Game::entityManager->GetEntity(activityPlayer->playerID);
+	for (const auto& [playerID, playerScores] : m_ActivityPlayers) {
+		auto* const activityPlayerEntity = Game::entityManager->GetEntity(playerID);
 		if (!activityPlayerEntity) continue;
 		auto* character = activityPlayerEntity->GetCharacter();
 		if (!character) continue;
 
-		auto& playerData = activityPlayers.PushDebug(std::to_string(activityPlayer->playerID) + " " + character->GetName());
+		auto& playerData = activityPlayers.PushDebug(std::to_string(playerID) + " " + character->GetName());
 
 		auto& scores = playerData.PushDebug("Scores");
 		for (size_t i = 0; i < 10; ++i) {
-			scores.PushDebug<AMFDoubleValue>(std::to_string(i)) = activityPlayer->values[i];
+			scores.PushDebug<AMFDoubleValue>(std::to_string(i)) = playerScores[i];
 		}
 	}
-	
+
 	activityInfo.PushDebug<AMFIntValue>("ActivityID") = m_ActivityID;
 	return true;
 }
