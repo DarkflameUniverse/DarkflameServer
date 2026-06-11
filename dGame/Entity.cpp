@@ -427,7 +427,7 @@ void Entity::Initialize() {
 					comp->SetMaxArmor(destCompData[0].armor);
 					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
-					comp->SetIsSmashable(destCompData[0].isSmashable);
+					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
