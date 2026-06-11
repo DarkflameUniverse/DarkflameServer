@@ -727,10 +727,6 @@ void InventoryComponent::Serialize(RakNet::BitStream& outBitStream, const bool b
 		for (const auto& pair : m_Equipped) {
 			const auto item = pair.second;
 
-			if (bIsInitialUpdate) {
-				AddItemSkills(item.lot);
-			}
-
 			outBitStream.Write(item.id);
 			outBitStream.Write(item.lot);
 
@@ -1180,13 +1176,11 @@ LOT InventoryComponent::GetConsumable() const {
 void InventoryComponent::AddItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
 	}
-
-	const auto index = m_Skills.find(slot);
 
 	const auto skill = FindSkill(lot);
 
@@ -1215,7 +1209,7 @@ void InventoryComponent::FixInvisibleItems() {
 void InventoryComponent::RemoveItemSkills(const LOT lot) {
 	const auto info = Inventory::FindItemComponent(lot);
 
-	const auto slot = FindBehaviorSlot(static_cast<eItemType>(info.itemType));
+	const auto slot = FindBehaviorSlot(info.equipLocation);
 
 	if (slot == BehaviorSlot::Invalid) {
 		return;
@@ -1227,15 +1221,31 @@ void InventoryComponent::RemoveItemSkills(const LOT lot) {
 		return;
 	}
 
-	const auto old = index->second;
+	const auto skillId = FindSkill(lot);
 
-	GameMessages::SendRemoveSkill(m_Parent, old);
+	// Only act on this slot if it still holds the skill from this item.
+	// Another item may have overwritten the slot since this one was equipped.
+	if (index->second != skillId) {
+		return;
+	}
 
 	m_Skills.erase(slot);
 
+	// Find another slot that still holds this skillID (if any).
+	const auto surviving = std::ranges::find_if(m_Skills, [skillId](const auto& pair) {
+		return pair.second == skillId;
+	});
+
+	// The client stores one acquiredSkillsInfo entry per skillID, tagged with the slotID
+	// it was originally added with. Always send RemoveSkill to clear that entry, then
+	// re-add with the surviving slot so the client shows it in the correct place.
+	GameMessages::SendRemoveSkill(m_Parent, skillId);
+	if (surviving != m_Skills.end()) {
+		GameMessages::SendAddSkill(m_Parent, skillId, surviving->first);
+	}
+
 	if (slot == BehaviorSlot::Primary) {
 		m_Skills.insert_or_assign(BehaviorSlot::Primary, 1);
-
 		GameMessages::SendAddSkill(m_Parent, 1, BehaviorSlot::Primary);
 	}
 }
@@ -1327,22 +1337,16 @@ void InventoryComponent::RemoveDatabasePet(LWOOBJID id) {
 	m_Pets.erase(id);
 }
 
-BehaviorSlot InventoryComponent::FindBehaviorSlot(const eItemType type) {
-	switch (type) {
-	case eItemType::HAT:
-		return BehaviorSlot::Head;
-	case eItemType::NECK:
-		return BehaviorSlot::Neck;
-	case eItemType::LEFT_HAND:
-		return BehaviorSlot::Offhand;
-	case eItemType::RIGHT_HAND:
-		return BehaviorSlot::Primary;
-	case eItemType::CONSUMABLE:
-		return BehaviorSlot::Consumable;
-	default:
-		return BehaviorSlot::Invalid;
-	}
+BehaviorSlot InventoryComponent::FindBehaviorSlot(const std::string& equipLocation) {
+	// Skill slot is determined by equipLocation, not itemType.
+	// Mapping confirmed against live captures and client data (issue #1339).
+	if (equipLocation == "special_r") return BehaviorSlot::Primary;
+	if (equipLocation == "hair")      return BehaviorSlot::Head;
+	if (equipLocation == "special_l") return BehaviorSlot::Offhand;
+	if (equipLocation == "clavicle")  return BehaviorSlot::Neck;
+	return BehaviorSlot::Invalid;
 }
+
 
 bool InventoryComponent::IsTransferInventory(eInventoryType type, bool includeVault) {
 	return type == VENDOR_BUYBACK || (includeVault && (type == VAULT_ITEMS || type == VAULT_MODELS)) || type == TEMP_ITEMS || type == TEMP_MODELS || type == MODELS_IN_BBB;
@@ -1684,10 +1688,28 @@ bool InventoryComponent::SetSkill(BehaviorSlot slot, uint32_t skillId) {
 	const auto index = m_Skills.find(slot);
 	if (index != m_Skills.end()) {
 		const auto old = index->second;
-		GameMessages::SendRemoveSkill(m_Parent, old);
+		// Only remove the old skill from the client if no other slot still holds it.
+		// The client's acquiredSkillsInfo is keyed by skillID (one entry per skill),
+		// so RemoveSkill clears it globally — sending it while another slot still uses
+		// the same skillID would break that slot on the client.
+		const auto usedElsewhere = std::ranges::any_of(m_Skills, [&](const auto& pair) {
+			return pair.first != slot && pair.second == old;
+		});
+		if (!usedElsewhere) {
+			GameMessages::SendRemoveSkill(m_Parent, old);
+		}
 	}
 
-	GameMessages::SendAddSkill(m_Parent, skillId, slot);
+	// Only send AddSkill if the client doesn't already know about this skillID.
+	// The client early-exits on duplicate AddSkill (same skillID already in
+	// acquiredSkillsInfo) without updating the slot — so only send when it's new.
+	const auto alreadyKnown = std::ranges::any_of(m_Skills, [&](const auto& pair) {
+		return pair.first != slot && pair.second == skillId;
+	});
+	if (!alreadyKnown) {
+		GameMessages::SendAddSkill(m_Parent, skillId, slot);
+	}
+
 	m_Skills.insert_or_assign(slot, skillId);
 	return true;
 }

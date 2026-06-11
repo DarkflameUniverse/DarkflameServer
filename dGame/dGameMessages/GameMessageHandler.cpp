@@ -159,6 +159,10 @@ void GameMessageHandler::HandleMessage(RakNet::BitStream& inStream, const System
 
 		InventoryComponent* inv = entity->GetComponent<InventoryComponent>();
 		if (inv) {
+			// Clear server-side skill state so AddItemSkills sends fresh AddSkill
+			// packets to the now-ready client. Skills sent during entity construction
+			// (Serialize) arrive before LWOSkillComponent is initialized and are dropped.
+			inv->ClearSkills();
 			auto items = inv->GetEquippedItems();
 			for (auto pair : items) {
 				const auto item = pair.second;
