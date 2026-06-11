@@ -66,9 +66,11 @@ bool ProximityMonitorComponent::IsInProximity(const std::string& name, LWOOBJID 
 bool ProximityMonitorComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	auto& proxInfo = reportInfo.info->PushDebug("Proximity Monitor");
 	for (const auto& [name, entity] : m_ProximitiesData) {
+		if (!entity) continue;
 		auto& proxAmf = proxInfo.PushDebug(name);
-		if (entity->GetShape()->GetShapeType() == dpShapeType::Sphere) {
-			const auto* const sphere = static_cast<dpShapeSphere*>(entity->GetShape());
+		const auto* const shape = entity->GetShape();
+		if (shape && shape->GetShapeType() == dpShapeType::Sphere) {
+			const auto* const sphere = static_cast<const dpShapeSphere*>(shape);
 			proxAmf.PushDebug<AMFDoubleValue>("Radius") = sphere->GetRadius();
 		}
 		proxAmf.PushDebug<AMFBoolValue>("Sleeping") = entity->GetSleeping();
