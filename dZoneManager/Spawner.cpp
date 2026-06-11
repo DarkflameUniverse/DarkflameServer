@@ -55,7 +55,8 @@ Spawner::Spawner(const SpawnerInfo info) {
 			m_SpawnSmashFoundGroup = true;
 			m_SpawnOnSmashID = ssSpawner ? ssSpawner->m_Info.spawnerID : LWOOBJID_EMPTY;
 			ssSpawner->AddSpawnedEntityDieCallback([=, this]() {
-				Spawn();
+				// Intentionally left as a non debug log since i have no idea how much stuff this would affect
+				LOG("WOULD HAVE SPAWNED %i", m_EntityInfo.lot);
 				});
 		}
 	}
