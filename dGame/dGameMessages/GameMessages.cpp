@@ -46,6 +46,7 @@
 #include <sstream>
 #include <future>
 #include <chrono>
+#include <ranges>
 #include "RakString.h"
 
 //CDB includes:
@@ -469,7 +470,7 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	auto config = item->GetConfig();
 
-	for (auto* data : config) {
+	for (const auto& data : config.values | std::views::values) {
 		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
 	}
 
@@ -5502,10 +5503,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 		//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
 		//Game::entityManager->SerializeEntity(entity);
 
-		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
-
-		std::vector<LDFBaseData*> config;
-		config.push_back(moduleAssembly);
+		LwoNameValue config;
+		config.Insert(u"assemblyPartLOTs", modules);
 
 		LWOOBJID newID = ObjectIDManager::GetPersistentID();
 

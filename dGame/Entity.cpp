@@ -123,8 +123,8 @@ Entity::Entity(const LWOOBJID& objectID, const EntityInfo& info, User* parentUse
 	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;
 
-	for (const auto* setting : info.settings) m_Settings.values.insert_or_assign(setting->GetKey(), std::unique_ptr<LDFBaseData>(setting->Copy()));
-	for (const auto* setting : info.networkSettings) m_NetworkSettings.values.insert_or_assign(setting->GetKey(), std::unique_ptr<LDFBaseData>(setting->Copy()));
+	m_Settings.From(info.settings);
+	m_NetworkSettings.From(info.settings);
 	m_DefaultPosition = info.pos;
 	m_DefaultRotation = info.rot;
 	m_Scale = info.scale;

@@ -134,7 +134,7 @@ public:
 		uint32_t count,
 		eLootSourceType lootSourceType = eLootSourceType::NONE,
 		eInventoryType inventoryType = INVALID,
-		const std::vector<LDFBaseData*>& config = {},
+		const LwoNameValue& config = {},
 		LWOOBJID parent = LWOOBJID_EMPTY,
 		bool showFlyingLoot = true,
 		bool isModMoveAndEquip = false,
@@ -213,7 +213,7 @@ public:
 	 * @param item the item to place
 	 * @param keepCurrent stores the item in an additional temp slot if there's already an item equipped
 	 */
-	void UpdateSlot(const std::string& location, EquippedItem item, bool keepCurrent = false);
+	void UpdateSlot(const std::string& location, const EquippedItem& item, bool keepCurrent = false);
 
 	/**
 	 * Removes a slot from the inventory

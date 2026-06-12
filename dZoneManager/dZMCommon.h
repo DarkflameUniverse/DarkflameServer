@@ -13,7 +13,6 @@ struct SceneObject {
 	NiPoint3 position;
 	NiQuaternion rotation = QuatUtils::IDENTITY;
 	float scale = 1.0f;
-	//std::string settings;
 	uint32_t value3;
 	std::vector<LDFBaseData*> settings;
 };

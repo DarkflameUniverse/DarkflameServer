@@ -70,7 +70,7 @@ void Level::MakeSpawner(SceneObject obj) {
 			if (data->GetValueType() == eLDFType::LDF_TYPE_FLOAT) // Floats are in seconds
 			{
 				spawnInfo.respawnTime = GeneralUtils::TryParse(data->GetValueAsString(), 0.0f);
-			} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms?
+			} else if (data->GetValueType() == eLDFType::LDF_TYPE_U32) // Ints are in ms
 			{
 				spawnInfo.respawnTime = GeneralUtils::TryParse(data->GetValueAsString(), 0) / 1000;
 			}

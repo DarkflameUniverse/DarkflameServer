@@ -1,5 +1,5 @@
-#ifndef __LDFFORMAT__H__
-#define __LDFFORMAT__H__
+#ifndef LDFFORMAT_H
+#define LDFFORMAT_H
 
 // Custom Classes
 #include "dCommonVars.h"
@@ -229,7 +229,41 @@ template<> inline std::string LDFData<std::string>::GetValueString() const { ret
 
 struct LwoNameValue {
 	using ValueType = std::map<std::u16string, std::unique_ptr<LDFBaseData>>;
+	ValueType Copy() const {
+		ValueType copy;
+		for (const auto& [key, value] : values) copy.insert_or_assign(key, std::unique_ptr<LDFBaseData>(value->Copy()));
+		return copy;
+	}
+
+	void From(const std::vector<LDFBaseData*>& other) {
+		for (const auto* data : other) values.insert_or_assign(data->GetKey(), std::unique_ptr<LDFBaseData>(data->Copy()));
+	}
+
+	LwoNameValue& operator=(const LwoNameValue& other) {
+		this->values = other.Copy();
+		return *this;
+	}
+
+	template<typename T>
+	void Insert(const std::u16string& key, const T& value) {
+		values.insert_or_assign(key, std::unique_ptr(std::make_unique<LDFData<T>>(key, value)));
+	}
+
+	void Insert(const std::u16string& key, const char* value) {
+		Insert<std::string>(key, value);
+	}
+
+	void Insert(const std::u16string& key, const char16_t* value) {
+		Insert<std::u16string>(key, value);
+	}
+
+	LwoNameValue() = default;
+
+	LwoNameValue(const LwoNameValue& other) {
+		this->values = other.Copy();
+	}
+
 	ValueType values;
 };
 
-#endif  //!__LDFFORMAT__H__
+#endif  //!LDFFORMAT_H

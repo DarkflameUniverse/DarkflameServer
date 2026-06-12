@@ -1268,10 +1268,10 @@ namespace DEVGMCommands {
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
-		std::vector<LDFBaseData*> data{};
-		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem.value()));
+		LwoNameValue config;
+		config.Insert<LOT>(u"reforgedLOT", reforgedItem.value());
 
-		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, data);
+		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, config);
 	}
 
 	void Crash(Entity* entity, const SystemAddress& sysAddr, const std::string args) {

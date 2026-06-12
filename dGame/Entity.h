@@ -331,11 +331,6 @@ public:
 	ComponentType* AddComponent(VaArgs... args);
 
 	/**
-	 * Get the LDF data.
-	 */
-	LDFBaseData* GetVarData(const std::u16string& name) const;
-
-	/**
 	 * Get the LDF value and convert it to a string.
 	 */
 	std::string GetVarAsString(const std::u16string& name) const;
@@ -377,6 +372,11 @@ public:
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
 
 private:
+
+	/**
+	 * Get the LDF data.
+	 */
+	LDFBaseData* GetVarData(const std::u16string& name) const;
 	template<typename T>
 	LwoNameValue::ValueType::iterator InsertLnvData(LwoNameValue& lnv, const std::u16string& key, T value);
 	void WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const;

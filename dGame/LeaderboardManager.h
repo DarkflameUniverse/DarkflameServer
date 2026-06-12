@@ -70,8 +70,7 @@ public:
 	
 
 private:
-	using LeaderboardEntry = std::vector<LDFBaseData*>;
-	using LeaderboardEntries = std::vector<LeaderboardEntry>;
+	using LeaderboardEntries = std::vector<LwoNameValue>;
 
 	LeaderboardEntries entries;
 	LWOOBJID relatedPlayer;
@@ -81,7 +80,7 @@ private:
 	bool weekly;
 	uint32_t numResults;
 public:
-	LeaderboardEntry& PushBackEntry() {
+	LwoNameValue& PushBackEntry() {
 		return entries.emplace_back();
 	}
 
