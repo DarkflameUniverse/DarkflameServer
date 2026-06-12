@@ -99,7 +99,7 @@ public:
 
 	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
 
-	const std::vector<LDFBaseData*>& GetNetworkSettings() const { return m_NetworkSettings; }
+	const LwoNameValue& GetNetworkSettings() const { return m_NetworkSettings; }
 
 	bool GetIsDead() const;
 
@@ -313,6 +313,12 @@ public:
 	void SetNetworkVar(const std::u16string& name, std::vector<T> value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
 
 	template<typename T>
+	void SetNetworkVar(const std::string& name, T value, const SystemAddress& sysAddr = UNASSIGNED_SYSTEM_ADDRESS);
+
+	template<typename T>
+	LwoNameValue::ValueType::iterator InsertNetworkVar(const std::u16string& name, T value);
+
+	template<typename T>
 	T GetNetworkVar(const std::u16string& name);
 
 	/**
@@ -360,7 +366,7 @@ public:
 		// This is the actual function that will be registered, which casts the base GameMsg to the derived type
 		const auto castWrapper = [boundFunction](GameMessages::GameMsg& msg) {
 			return boundFunction(static_cast<DerivedGameMsg&>(msg));
-		};
+			};
 		DerivedGameMsg msg;
 		RegisterMsg(msg.msgId, castWrapper);
 	}
@@ -377,7 +383,7 @@ private:
 	LOT m_TemplateID;
 
 	std::vector<LDFBaseData*> m_Settings;
-	std::vector<LDFBaseData*> m_NetworkSettings;
+	LwoNameValue m_NetworkSettings;
 
 	NiPoint3 m_DefaultPosition;
 	NiQuaternion m_DefaultRotation = QuatUtils::IDENTITY;
@@ -503,32 +509,35 @@ void Entity::SetVar(const std::u16string& name, T value) {
 }
 
 template<typename T>
-void Entity::SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr) {
-	LDFData<T>* newData = nullptr;
-
-	for (auto* data : m_NetworkSettings) {
-		if (data->GetKey() != name)
-			continue;
-
-		newData = dynamic_cast<LDFData<T>*>(data);
-		if (newData != nullptr) {
-			newData->SetValue(value);
-		} else {  // If we're changing types
-			m_NetworkSettings.erase(
-				std::remove(m_NetworkSettings.begin(), m_NetworkSettings.end(), data), m_NetworkSettings.end()
-			);
-			delete data;
+LwoNameValue::ValueType::iterator Entity::InsertNetworkVar(const std::u16string& name, T value) {
+	auto itr = m_NetworkSettings.values.find(name);
+	if (itr != m_NetworkSettings.values.end()) {
+		auto lnv = dynamic_cast<LDFData<T>*>(itr->second.get());
+		if (!lnv) {
+			// Is of different type
+			itr->second = std::make_unique<LDFData<T>>(name, value);
+		} else {
+			// Is the same type and exists
+			lnv->SetValue(value);
 		}
-
-		break;
+	} else {
+		// Doesn't exist
+		itr = m_NetworkSettings.values.insert_or_assign(name, std::make_unique<LDFData<T>>(name, value)).first;
 	}
+	
+	return itr;
+}
 
-	if (newData == nullptr) {
-		newData = new LDFData<T>(name, value);
-	}
+template<typename T>
+void Entity::SetNetworkVar(const std::u16string& name, T value, const SystemAddress& sysAddr) {
+	const auto itr = InsertNetworkVar<T>(name, value);
 
-	m_NetworkSettings.push_back(newData);
-	SendNetworkVar(newData->GetString(true), sysAddr);
+	SendNetworkVar(itr->second->GetString(), sysAddr);
+}
+
+template<typename T>
+void Entity::SetNetworkVar(const std::string& name, T value, const SystemAddress& sysAddr) {
+	SetNetworkVar(GeneralUtils::UTF8ToUTF16(name), value, sysAddr);
 }
 
 template<typename T>
@@ -539,26 +548,10 @@ void Entity::SetNetworkVar(const std::u16string& name, std::vector<T> values, co
 	for (const auto& value : values) {
 		LDFData<T>* newData = nullptr;
 		const auto& indexedName = name + u"." + GeneralUtils::to_u16string(index);
-
-		for (auto* data : m_NetworkSettings) {
-			if (data->GetKey() != indexedName)
-				continue;
-
-			newData = dynamic_cast<LDFData<T>*>(data);
-			newData->SetValue(value);
-			break;
-		}
-
-		if (newData == nullptr) {
-			newData = new LDFData<T>(indexedName, value);
-		}
-
-		m_NetworkSettings.push_back(newData);
-
-		if (index == values.size()) {
-			updates << newData->GetString(true);
-		} else {
-			updates << newData->GetString(true) << "\n";
+		const auto itr = InsertNetworkVar<T>(indexedName, value);
+		updates << itr->second->GetString();
+		if (index != values.size()) {
+			updates << "\n";
 		}
 
 		index++;
@@ -569,18 +562,15 @@ void Entity::SetNetworkVar(const std::u16string& name, std::vector<T> values, co
 
 template<typename T>
 T Entity::GetNetworkVar(const std::u16string& name) {
-	for (auto* data : m_NetworkSettings) {
-		if (data == nullptr || data->GetKey() != name)
-			continue;
+	T toReturn = LDFData<T>::Default;
 
-		auto* typed = dynamic_cast<LDFData<T>*>(data);
-		if (typed == nullptr)
-			continue;
-
-		return typed->GetValue();
+	const auto itr = m_NetworkSettings.values.find(name);
+	if (itr != m_NetworkSettings.values.cend()) {
+		auto* cast = dynamic_cast<LDFData<T>*>(itr->second.get());
+		if (cast) toReturn = cast->GetValue();
 	}
 
-	return LDFData<T>::Default;
+	return toReturn;
 }
 
 /**

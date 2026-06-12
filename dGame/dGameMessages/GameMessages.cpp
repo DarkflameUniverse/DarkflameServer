@@ -465,20 +465,20 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	bitStream.Write(lootSourceType != eLootSourceType::NONE); // Loot source
 	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
-	LWONameValue extraInfo;
+	std::u16string extraInfo;
 
 	auto config = item->GetConfig();
 
 	for (auto* data : config) {
-		extraInfo.name += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
+		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
 	}
 
-	if (extraInfo.name.length() > 0) extraInfo.name.pop_back(); // remove the last comma
+	if (extraInfo.length() > 0) extraInfo.pop_back(); // remove the last comma
 
-	bitStream.Write<uint32_t>(extraInfo.name.size());
-	if (extraInfo.name.size() > 0) {
-		for (uint32_t i = 0; i < extraInfo.name.size(); ++i) {
-			bitStream.Write<uint16_t>(extraInfo.name[i]);
+	bitStream.Write<uint32_t>(extraInfo.size());
+	if (extraInfo.size() > 0) {
+		for (uint32_t i = 0; i < extraInfo.size(); ++i) {
+			bitStream.Write<uint16_t>(extraInfo[i]);
 		}
 		bitStream.Write<uint16_t>(0x00);
 	}
@@ -743,13 +743,9 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::BROADCAST_TEXT_TO_CHATBOX);
 
-	LWONameValue attribs;
-	attribs.name = attrs;
-	attribs.length = attrs.size();
-
-	bitStream.Write<uint32_t>(attribs.length);
-	for (uint32_t i = 0; i < attribs.length; ++i) {
-		bitStream.Write<uint16_t>(attribs.name[i]);
+	bitStream.Write<uint32_t>(attrs.size());
+	for (uint32_t i = 0; i < attrs.size(); ++i) {
+		bitStream.Write<uint16_t>(attrs[i]);
 	}
 	bitStream.Write<uint16_t>(0x00); // Null Terminator
 
@@ -5266,7 +5262,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	int eInvType = INVENTORY_MAX;
 	bool eLootTypeSourceIsDefault = false;
 	int eLootTypeSource = LOOTTYPE_NONE;
-	LWONameValue extraInfo;
+	int32_t extraInfoLength = 0;
+	std::u16string extraInfo;
 	bool forceDeletion = true;
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
@@ -5292,12 +5289,12 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	if (eInvTypeIsDefault) inStream.Read(eInvType);
 	inStream.Read(eLootTypeSourceIsDefault);
 	if (eLootTypeSourceIsDefault) inStream.Read(eLootTypeSource);
-	inStream.Read(extraInfo.length);
-	if (extraInfo.length > 0) {
-		for (uint32_t i = 0; i < extraInfo.length; ++i) {
+	inStream.Read(extraInfoLength);
+	if (extraInfoLength > 0) {
+		for (uint32_t i = 0; i < extraInfoLength; ++i) {
 			uint16_t character;
 			inStream.Read(character);
-			extraInfo.name.push_back(character);
+			extraInfo.push_back(character);
 		}
 		uint16_t nullTerm;
 		inStream.Read(nullTerm);
@@ -5754,7 +5751,6 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity) {
 	LWOOBJID activator;
-	//std::map<LWOOBJID, LWONameValue> additionalPlayers;
 	uint32_t playerChoicesLen;
 	std::string playerChoices;
 	int type;

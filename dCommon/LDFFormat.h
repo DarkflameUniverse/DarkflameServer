@@ -6,6 +6,7 @@
 #include "GeneralUtils.h"
 
 // C++
+#include <map>
 #include <string>
 #include <string_view>
 #include <sstream>
@@ -225,5 +226,10 @@ template<> inline std::string LDFData<uint64_t>::GetValueString() const { return
 template<> inline std::string LDFData<LWOOBJID>::GetValueString() const { return std::to_string(this->value); }
 
 template<> inline std::string LDFData<std::string>::GetValueString() const { return this->value; }
+
+struct LwoNameValue {
+	using ValueType = std::map<std::u16string, std::unique_ptr<LDFBaseData>>;
+	ValueType values;
+};
 
 #endif  //!__LDFFORMAT__H__
