@@ -97,7 +97,7 @@ public:
 
 	LWOOBJID GetSpawnerID() const { return m_SpawnerID; }
 
-	const std::vector<LDFBaseData*>& GetSettings() const { return m_Settings; }
+	const LwoNameValue& GetSettings() const { return m_Settings; }
 
 	const LwoNameValue& GetNetworkSettings() const { return m_NetworkSettings; }
 
@@ -377,12 +377,14 @@ public:
 	static Observable<Entity*, const PositionUpdate&> OnPlayerPositionUpdate;
 
 private:
-	void WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStream& outBitStream) const;
+	template<typename T>
+	LwoNameValue::ValueType::iterator InsertLnvData(LwoNameValue& lnv, const std::u16string& key, T value);
+	void WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const;
 	LWOOBJID m_ObjectID;
 
 	LOT m_TemplateID;
 
-	std::vector<LDFBaseData*> m_Settings;
+	LwoNameValue m_Settings;
 	LwoNameValue m_NetworkSettings;
 
 	NiPoint3 m_DefaultPosition;
@@ -489,43 +491,32 @@ T Entity::GetVarAs(const std::u16string& name) const {
 
 template<typename T>
 void Entity::SetVar(const std::u16string& name, T value) {
-	auto* data = GetVarData(name);
-
-	if (data == nullptr) {
-		auto* data = new LDFData<T>(name, value);
-
-		m_Settings.push_back(data);
-
-		return;
-	}
-
-	auto* typed = dynamic_cast<LDFData<T>*>(data);
-
-	if (typed == nullptr) {
-		return;
-	}
-
-	typed->SetValue(value);
+	InsertLnvData<T>(m_Settings, name, value);
 }
 
 template<typename T>
-LwoNameValue::ValueType::iterator Entity::InsertNetworkVar(const std::u16string& name, T value) {
-	auto itr = m_NetworkSettings.values.find(name);
-	if (itr != m_NetworkSettings.values.end()) {
+LwoNameValue::ValueType::iterator Entity::InsertLnvData(LwoNameValue& lnv, const std::u16string& key, T value) {
+	auto itr = lnv.values.find(key);
+	if (itr != lnv.values.end()) {
 		auto lnv = dynamic_cast<LDFData<T>*>(itr->second.get());
 		if (!lnv) {
 			// Is of different type
-			itr->second = std::make_unique<LDFData<T>>(name, value);
+			itr->second = std::make_unique<LDFData<T>>(key, value);
 		} else {
 			// Is the same type and exists
 			lnv->SetValue(value);
 		}
 	} else {
 		// Doesn't exist
-		itr = m_NetworkSettings.values.insert_or_assign(name, std::make_unique<LDFData<T>>(name, value)).first;
+		itr = lnv.values.insert_or_assign(key, std::make_unique<LDFData<T>>(key, value)).first;
 	}
-	
+
 	return itr;
+}
+
+template<typename T>
+LwoNameValue::ValueType::iterator Entity::InsertNetworkVar(const std::u16string& name, T value) {
+	return InsertLnvData<T>(m_NetworkSettings, name, value);
 }
 
 template<typename T>

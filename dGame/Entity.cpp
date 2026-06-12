@@ -123,7 +123,7 @@ Entity::Entity(const LWOOBJID& objectID, const EntityInfo& info, User* parentUse
 	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;
 
-	m_Settings = info.settings;
+	for (const auto* setting : info.settings) m_Settings.values.insert_or_assign(setting->GetKey(), std::unique_ptr<LDFBaseData>(setting->Copy()));
 	for (const auto* setting : info.networkSettings) m_NetworkSettings.values.insert_or_assign(setting->GetKey(), std::unique_ptr<LDFBaseData>(setting->Copy()));
 	m_DefaultPosition = info.pos;
 	m_DefaultRotation = info.rot;
@@ -949,13 +949,13 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
-void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStream& outBitStream) const {
+void Entity::WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const {
 	RakNet::BitStream settingStream;
-	int32_t numberOfValidKeys = ldf.size();
+	int32_t numberOfValidKeys = ldf.values.size();
 
 	// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
 	// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
-	for (LDFBaseData* data : ldf) {
+	for (const auto& data : ldf.values | std::views::values) {
 		if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
 			data->WriteToPacket(settingStream);
 		} else {
@@ -987,16 +987,15 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
-		if (!m_Settings.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
+		if (!m_Settings.values.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream.Write1(); // Has ldf data
 			WriteLDFData(m_Settings, outBitStream);
 		} else if (!syncLDF.empty()) {
 			// Find all the ldf data we need to write
-			std::vector<LDFBaseData*> ldfData;
-			ldfData.reserve(m_Settings.size());
+			LwoNameValue ldfData;
 
 			for (const auto& data : syncLDF) {
-				ldfData.push_back(GetVarData(data));
+				ldfData.values.insert_or_assign(data, std::unique_ptr<LDFBaseData>(GetVarData(data)->Copy()));
 			}
 
 			outBitStream.Write1(); // Has ldf data
@@ -2045,13 +2044,7 @@ void Entity::SetI64(const std::u16string& name, const int64_t value) {
 }
 
 bool Entity::HasVar(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data->GetKey() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return m_Settings.values.contains(name);
 }
 
 uint16_t Entity::GetNetworkId() const {
@@ -2084,19 +2077,8 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 }
 
 LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data == nullptr) {
-			continue;
-		}
-
-		if (data->GetKey() != name) {
-			continue;
-		}
-
-		return data;
-	}
-
-	return nullptr;
+	const auto itr = m_Settings.values.find(name);
+	return itr != m_Settings.values.cend() ? itr->second.get() : nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
@@ -2276,7 +2258,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	}
 
 	auto& configData = objectInfo.PushDebug("Config Data");
-	for (const auto config : m_Settings) {
+	for (const auto& config : m_Settings.values | std::views::values) {
 		configData.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(config->GetKey())) = config->GetValueAsString();
 	}
 
