@@ -45,10 +45,8 @@ void VanityUtilities::SpawnVanity() {
 			info.pos = { 259.5f, 246.4f, -705.2f };
 			info.rot = { 0.0f, 0.0f, 1.0f, 0.0f };
 			info.spawnerID = Game::entityManager->GetZoneControlEntity()->GetObjectID();
-			info.settings = {
-				new LDFData<bool>(u"hasCustomText", true),
-				new LDFData<std::string>(u"customText", ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/TESTAMENT.md").string()))
-			};
+			info.settings.Insert<bool>(u"hasCustomText", true);
+			info.settings.Insert<std::string>(u"customText", ParseMarkdown((BinaryPathFinder::GetBinaryDir() / "vanity/TESTAMENT.md").string()));
 
 			auto* entity = Game::entityManager->CreateEntity(info);
 			Game::entityManager->ConstructEntity(entity);
@@ -231,7 +229,7 @@ void ParseXml(const std::string& file) {
 
 			auto* configElement = object->FirstChildElement("config");
 			std::vector<std::u16string> keys = {};
-			std::vector<LDFBaseData*> config = {};
+			LwoNameValue config;
 			if (configElement) {
 				for (auto* key = configElement->FirstChildElement("key"); key != nullptr;
 					key = key->NextSiblingElement("key")) {
@@ -239,16 +237,16 @@ void ParseXml(const std::string& file) {
 					auto* data = key->GetText();
 					if (!data) continue;
 
-					LDFBaseData* configData = LDFBaseData::DataFromString(data);
+					const auto& configData = config.ParseInsert(data);
 					if (configData->GetKey() == u"useLocationsAsRandomSpawnPoint" && configData->GetValueType() == eLDFType::LDF_TYPE_BOOLEAN) {
 						useLocationsAsRandomSpawnPoint = static_cast<bool>(configData);
+						config.Erase(u"useLocationsAsRandomSpawnPoint");
 						continue;
 					}
 					keys.push_back(configData->GetKey());
-					config.push_back(configData);
 				}
 			}
-			if (!keys.empty()) config.push_back(new LDFData<std::vector<std::u16string>>(u"syncLDF", keys));
+			if (!keys.empty()) config.Insert<std::vector<std::u16string>>(u"syncLDF", keys);
 
 			VanityObject objectData{
 				.m_Name = name,

@@ -17,7 +17,7 @@ struct SpawnerNode {
 	uint32_t nodeID = 0;
 	uint32_t nodeMax = 1;
 	std::vector<LWOOBJID> entities;
-	std::vector<LDFBaseData*> config;
+	LwoNameValue config;
 };
 
 struct SpawnerInfo {

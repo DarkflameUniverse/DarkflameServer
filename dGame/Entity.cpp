@@ -123,8 +123,8 @@ Entity::Entity(const LWOOBJID& objectID, const EntityInfo& info, User* parentUse
 	m_PhantomCollisionCallbacks = {};
 	m_IsParentChildDirty = true;
 
-	m_Settings.From(info.settings);
-	m_NetworkSettings.From(info.settings);
+	m_Settings = info.settings;
+	m_NetworkSettings = info.networkSettings;
 	m_DefaultPosition = info.pos;
 	m_DefaultRotation = info.rot;
 	m_Scale = info.scale;
@@ -995,7 +995,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 			LwoNameValue ldfData;
 
 			for (const auto& data : syncLDF) {
-				ldfData.values.insert_or_assign(data, std::unique_ptr<LDFBaseData>(GetVarData(data)->Copy()));
+				ldfData.values.insert_or_assign(data, GetVarData(data)->Copy());
 			}
 
 			outBitStream.Write1(); // Has ldf data
@@ -2076,13 +2076,13 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 	GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
 }
 
-LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
+const LDFBaseData* const Entity::GetVarData(const std::u16string& name) const {
 	const auto itr = m_Settings.values.find(name);
 	return itr != m_Settings.values.cend() ? itr->second.get() : nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
-	auto* data = GetVarData(name);
+	const auto* const data = GetVarData(name);
 	return data ? data->GetValueAsString() : "";
 }
 

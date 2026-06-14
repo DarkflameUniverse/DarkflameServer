@@ -152,7 +152,7 @@ public:
 	 */
 	RacingPlayerInfo* GetPlayerData(LWOOBJID playerID);
 
-	void MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg);
+	bool MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg);
 
 private:
 

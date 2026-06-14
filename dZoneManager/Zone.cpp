@@ -111,7 +111,7 @@ void Zone::LoadZoneIntoMemory() {
 					node->nodeID = 0;
 					node->config = waypoint.config;
 
-					for (LDFBaseData* data : waypoint.config) {
+					for (const auto& data : waypoint.config | std::views::values) {
 						if (!data) continue;
 
 						if (data->GetKey() == u"spawner_node_id") {
@@ -465,7 +465,7 @@ void Zone::LoadPath(std::istream& file) {
 						command.data = value;
 					} else LOG("Tried to load invalid waypoint command '%s'", parameter.c_str());
 				} else {
-					waypoint.config.emplace_back(LDFBaseData::DataFromString(parameter + "=" + value));
+					waypoint.config.ParseInsert(parameter + "=" + value);
 				}
 
 			}

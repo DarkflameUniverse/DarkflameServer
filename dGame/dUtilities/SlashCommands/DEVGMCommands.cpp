@@ -802,7 +802,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert<bool>(u"SpawnedFromSlashCommand", true);
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
@@ -844,7 +844,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert(u"SpawnedFromSlashCommand", true);
 
 		auto playerPosition = entity->GetPosition();
 		while (numberToSpawn > 0) {

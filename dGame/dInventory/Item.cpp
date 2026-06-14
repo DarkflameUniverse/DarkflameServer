@@ -560,8 +560,7 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 		const auto* data = x->Attribute(abbreviation.c_str());
 		if (!data) continue;
 
-		auto* const newPtr = LDFBaseData::DataFromString(fullName + "=" + data);
-		config.values.insert_or_assign(newPtr->GetKey(), std::unique_ptr<LDFBaseData>(newPtr));
+		config.ParseInsert(fullName + "=" + data);
 	}
 }
 

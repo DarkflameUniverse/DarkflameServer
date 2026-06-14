@@ -346,10 +346,7 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 		info.spawner = nullptr;
 		info.spawnerID = spawnerID;
 		info.spawnerNodeID = 0;
-
-		for (const auto& setting : item->GetConfig().values | std::views::values) {
-			info.settings.push_back(setting->Copy());
-		}
+		info.settings = item->GetConfig();
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info);
 		if (newEntity != nullptr) {
@@ -393,11 +390,11 @@ void PropertyManagementComponent::UpdateModelPosition(const LWOOBJID id, const N
 
 	auto* spawner = Game::zoneManager->GetSpawner(spawnerId);
 
-	info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
-	info.nodes[0]->config.push_back(new LDFData<LWOOBJID>(u"userModelID", info.spawnerID));
-	info.nodes[0]->config.push_back(new LDFData<int>(u"modelType", 2));
-	info.nodes[0]->config.push_back(new LDFData<bool>(u"propertyObjectID", true));
-	info.nodes[0]->config.push_back(new LDFData<int>(u"componentWhitelist", 1));
+	info.nodes[0]->config.Insert<LWOOBJID>(u"modelBehaviors", 0);
+	info.nodes[0]->config.Insert<LWOOBJID>(u"userModelID", info.spawnerID);
+	info.nodes[0]->config.Insert<int>(u"modelType", 2);
+	info.nodes[0]->config.Insert<bool>(u"propertyObjectID", true);
+	info.nodes[0]->config.Insert<int>(u"componentWhitelist", 1);
 
 	auto* model = spawner->Spawn();
 	auto* modelComponent = model->GetComponent<ModelComponent>();
@@ -606,23 +603,23 @@ void PropertyManagementComponent::Load() {
 
 		info.spawnerID = databaseModel.id;
 
-		std::vector<LDFBaseData*> settings;
+		LwoNameValue& settings = node->config;
 
 		//BBB property models need to have extra stuff set for them:
 		if (databaseModel.lot == 14) {
 			LWOOBJID blueprintID = databaseModel.ugcId;
 
-			settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintID));
-			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-			settings.push_back(new LDFData<int>(u"modelType", 2));
-			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
+			settings.Insert<LWOOBJID>(u"blueprintid", blueprintID);
+			settings.Insert<int>(u"componentWhitelist", 1);
+			settings.Insert<int>(u"modelType", 2);
+			settings.Insert<bool>(u"propertyObjectID", true);
+			settings.Insert<LWOOBJID>(u"userModelID", databaseModel.id);
 		} else {
-			settings.push_back(new LDFData<int>(u"modelType", 2));
-			settings.push_back(new LDFData<LWOOBJID>(u"userModelID", databaseModel.id));
-			settings.push_back(new LDFData<LWOOBJID>(u"modelBehaviors", 0));
-			settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-			settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
+			settings.Insert<int>(u"modelType", 2);
+			settings.Insert<LWOOBJID>(u"userModelID", databaseModel.id);
+			settings.Insert<LWOOBJID>(u"modelBehaviors", 0);
+			settings.Insert<bool>(u"propertyObjectID", true);
+			settings.Insert<int>(u"componentWhitelist", 1);
 		}
 
 		std::ostringstream userModelBehavior;
@@ -637,9 +634,7 @@ void PropertyManagementComponent::Load() {
 			firstAdded = true;
 		}
 
-		settings.push_back(new LDFData<std::string>(u"userModelBehaviors", userModelBehavior.str()));
-
-		node->config = settings;
+		settings.Insert<std::string>(u"userModelBehaviors", userModelBehavior.str());
 
 		const auto spawnerId = Game::zoneManager->MakeSpawner(info);
 

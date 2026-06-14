@@ -2618,11 +2618,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintIDs[i]));
-		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-		info.settings.push_back(new LDFData<int>(u"modelType", 2));
-		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", modelIDs[i]));
+		info.settings.Insert<LWOOBJID>(u"blueprintid", blueprintIDs[i]);
+		info.settings.Insert<int>(u"componentWhitelist", 1);
+		info.settings.Insert<int>(u"modelType", 2);
+		info.settings.Insert<bool>(u"propertyObjectID", true);
+		info.settings.Insert<LWOOBJID>(u"userModelID", modelIDs[i]);
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
 			Game::entityManager->ConstructEntity(newEntity);
@@ -6304,7 +6304,7 @@ namespace GameMessages {
 		bitStream.Write(id);
 
 		std::string toWrite;
-		for (const auto* item : localizeParams) {
+		for (const auto& item : localizeParams | std::views::values) {
 			toWrite += item->GetString() + "\n";
 		}
 		if (!toWrite.empty()) toWrite.pop_back();

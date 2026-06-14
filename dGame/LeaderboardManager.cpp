@@ -42,7 +42,7 @@ void Leaderboard::Clear() {
 	entries.clear();
 }
 
-inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const LDFBaseData* const data) {
+inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::unique_ptr<LDFBaseData>& data) {
 	leaderboard << "\nResult[0].Row[" << index << "]." << data->GetString();
 }
 
@@ -60,7 +60,7 @@ void Leaderboard::Serialize(RakNet::BitStream& bitStream) const {
 	int32_t rowNumber = 0;
 	for (auto& entry : entries) {
 		for (const auto& data : entry.values | std::views::values) {
-			if (data) WriteLeaderboardRow(leaderboard, rowNumber, data.get());
+			if (data) WriteLeaderboardRow(leaderboard, rowNumber, data);
 		}
 		rowNumber++;
 	}

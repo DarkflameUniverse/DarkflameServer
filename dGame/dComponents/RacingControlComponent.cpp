@@ -58,6 +58,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t com
 	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
+	RegisterMsg(&RacingControlComponent::MsgConfigureRacingControl);
 }
 
 RacingControlComponent::~RacingControlComponent() {}
@@ -871,8 +872,8 @@ void RacingControlComponent::Update(float deltaTime) {
 	}
 }
 
-void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
-	for (const auto& dataUnique : msg.racingSettings) {
+bool RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
+	for (const auto& dataUnique : msg.racingSettings | std::views::values) {
 		if (!dataUnique) continue;
 		const auto* const data = dataUnique.get();
 		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
@@ -886,4 +887,5 @@ void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::Confi
 			m_MinimumPlayersForGroupAchievements = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		}
 	}
+	return true;
 }

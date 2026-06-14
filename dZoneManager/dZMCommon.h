@@ -14,7 +14,7 @@ struct SceneObject {
 	NiQuaternion rotation = QuatUtils::IDENTITY;
 	float scale = 1.0f;
 	uint32_t value3;
-	std::vector<LDFBaseData*> settings;
+	LwoNameValue settings;
 };
 
 #define LOT_MARKER_PLAYER_START 1931

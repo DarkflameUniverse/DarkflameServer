@@ -376,7 +376,7 @@ private:
 	/**
 	 * Get the LDF data.
 	 */
-	LDFBaseData* GetVarData(const std::u16string& name) const;
+	const LDFBaseData* const GetVarData(const std::u16string& name) const;
 	template<typename T>
 	LwoNameValue::ValueType::iterator InsertLnvData(LwoNameValue& lnv, const std::u16string& key, T value);
 	void WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const;
@@ -467,13 +467,13 @@ T* Entity::GetComponent() const {
 
 template<typename T>
 const T& Entity::GetVar(const std::u16string& name) const {
-	auto* data = GetVarData(name);
+	const auto* const data = GetVarData(name);
 
 	if (data == nullptr) {
 		return LDFData<T>::Default;
 	}
 
-	auto* typed = dynamic_cast<LDFData<T>*>(data);
+	auto* typed = dynamic_cast<const LDFData<T>* const>(data);
 
 	if (typed == nullptr) {
 		return LDFData<T>::Default;

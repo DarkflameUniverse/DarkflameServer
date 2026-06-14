@@ -16,6 +16,7 @@
 #include "AssetManager.h"
 #include "ClientVersion.h"
 #include "dConfig.h"
+#include <ranges>
 
 Level::Level(Zone* parentZone, const std::string& filepath) {
 	m_ParentZone = parentZone;
@@ -30,7 +31,7 @@ Level::Level(Zone* parentZone, const std::string& filepath) {
 	ReadChunks(stream);
 }
 
-void Level::MakeSpawner(SceneObject obj) {
+void Level::MakeSpawner(const SceneObject& obj) {
 	SpawnerInfo spawnInfo = SpawnerInfo();
 	SpawnerNode* node = new SpawnerNode();
 	spawnInfo.templateID = obj.lot;
@@ -40,7 +41,7 @@ void Level::MakeSpawner(SceneObject obj) {
 	node->rotation = obj.rotation;
 	node->config = obj.settings;
 	spawnInfo.nodes.push_back(node);
-	for (LDFBaseData* data : obj.settings) {
+	for (const auto& data : obj.settings.values | std::views::values) {
 		if (!data) continue;
 		if (data->GetKey() == u"spawntemplate") {
 			spawnInfo.templateID = GeneralUtils::TryParse(data->GetValueAsString(), 0);
@@ -86,13 +87,13 @@ void Level::MakeSpawner(SceneObject obj) {
 			if (spawnInfo.groups.back().empty()) spawnInfo.groups.erase(spawnInfo.groups.end() - 1);
 		}
 		if (data->GetKey() == u"no_auto_spawn") {
-			spawnInfo.noAutoSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+			spawnInfo.noAutoSpawn = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 		if (data->GetKey() == u"no_timed_spawn") {
-			spawnInfo.noTimedSpawn = static_cast<LDFData<bool>*>(data)->GetValue();
+			spawnInfo.noTimedSpawn = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 		if (data->GetKey() == u"spawnActivator") {
-			spawnInfo.spawnActivator = static_cast<LDFData<bool>*>(data)->GetValue();
+			spawnInfo.spawnActivator = GeneralUtils::TryParse(data->GetValueAsString(), false);
 		}
 	}
 
@@ -257,20 +258,14 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 			Game::zoneManager->GetZoneMut()->SetSpawnRot(obj.rotation);
 		}
 
-		std::string sData = GeneralUtils::UTF16ToWTF8(ldfString);
-		std::stringstream ssData(sData);
-		std::string token;
-		char deliminator = '\n';
-
-		while (std::getline(ssData, token, deliminator)) {
-			LDFBaseData* ldfData = LDFBaseData::DataFromString(token);
-			obj.settings.push_back(ldfData);
+		for (const auto& token : GeneralUtils::SplitString(GeneralUtils::UTF16ToWTF8(ldfString), '\n')) {
+			obj.settings.ParseInsert(token);
 		}
 
 
 		// We should never have more than 1 zone control object
 		bool skipLoadingObject = obj.lot == zoneControlObject->GetLOT();
-		for (LDFBaseData* data : obj.settings) {
+		for (const auto& data : obj.settings | std::views::values) {
 			if (!data) continue;
 			if (data->GetKey() == u"gatingOnFeature") {
 				gating.featureName = data->GetValueAsString();
@@ -296,11 +291,6 @@ void Level::ReadSceneObjectDataChunk(std::istream& file, Header& header) {
 		}
 
 		if (skipLoadingObject) {
-			for (auto* setting : obj.settings) {
-				delete setting;
-				setting = nullptr;
-			}
-
 			continue;
 		}
 
