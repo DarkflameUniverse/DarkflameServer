@@ -49,7 +49,7 @@
 			"inherits": "default",
 			"displayName": "[Multi] Windows (MSVC)",
 			"description": "Set architecture to 64-bit (b/c RakNet)",
-			"generator": "Visual Studio 17 2022",
+			"generator": "Visual Studio 18 2026",
 			"binaryDir": "${sourceDir}/build/msvc",
 			"architecture": {
 				"value": "x64"
