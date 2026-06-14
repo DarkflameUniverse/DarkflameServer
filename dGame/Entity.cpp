@@ -995,7 +995,8 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 			LwoNameValue ldfData;
 
 			for (const auto& data : syncLDF) {
-				ldfData.values.insert_or_assign(data, GetVarData(data)->Copy());
+				const auto* toInsert = GetVarData(data);
+				if (toInsert) ldfData.values.insert_or_assign(data, toInsert->Copy());
 			}
 
 			outBitStream.Write1(); // Has ldf data

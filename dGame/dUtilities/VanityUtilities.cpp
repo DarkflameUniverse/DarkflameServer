@@ -239,7 +239,7 @@ void ParseXml(const std::string& file) {
 
 					const auto& configData = config.ParseInsert(data);
 					if (configData->GetKey() == u"useLocationsAsRandomSpawnPoint" && configData->GetValueType() == eLDFType::LDF_TYPE_BOOLEAN) {
-						useLocationsAsRandomSpawnPoint = static_cast<bool>(configData);
+						useLocationsAsRandomSpawnPoint = static_cast<const LDFData<bool>*>(configData.get())->GetValue();
 						config.Erase(u"useLocationsAsRandomSpawnPoint");
 						continue;
 					}

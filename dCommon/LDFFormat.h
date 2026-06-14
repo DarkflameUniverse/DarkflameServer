@@ -264,7 +264,9 @@ struct LwoNameValue {
 
 	const LDFPtr& ParseInsert(const std::string& data) {
 		LDFPtr toInsert(LDFBaseData::DataFromString(data));
-		return this->values.insert_or_assign(toInsert->GetKey(), std::move(toInsert)).first->second;
+		return toInsert ?
+		this->values.insert_or_assign(toInsert->GetKey(), std::move(toInsert)).first->second :
+		this->values.insert_or_assign(u"FAILED_TO_PARSE_" + GeneralUtils::UTF8ToUTF16(data), std::make_unique<LDFData<std::string>>("", "")).first->second;
 	}
 
 	const LDFPtr& ParseInsert(const std::u16string& data) {

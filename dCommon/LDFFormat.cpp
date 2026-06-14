@@ -14,7 +14,7 @@
 std::unique_ptr<LDFBaseData> LDFBaseData::DataFromString(const std::string_view& format) {
 	std::unique_ptr<LDFBaseData> toReturn;
 	// A valid LDF must be at least 3 characters long (=0:) is the shortest valid LDF (empty UTF-16 key with no initial value)
-	if (!format.empty() && format.length() > 3) {
+	if (!format.empty() && format.length() > 2) {
 		auto equalsPosition = format.find('=');
 		// You can have an empty key, just make sure the type and value might exist
 		if (equalsPosition != std::string::npos && equalsPosition != (format.size() - 1)) {

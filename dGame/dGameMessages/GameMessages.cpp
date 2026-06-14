@@ -468,7 +468,7 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
 	std::u16string extraInfo;
 
-	auto config = item->GetConfig();
+	const auto& config = item->GetConfig();
 
 	for (const auto& data : config.values | std::views::values) {
 		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";

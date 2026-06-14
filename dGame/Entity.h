@@ -498,13 +498,13 @@ template<typename T>
 LwoNameValue::ValueType::iterator Entity::InsertLnvData(LwoNameValue& lnv, const std::u16string& key, T value) {
 	auto itr = lnv.values.find(key);
 	if (itr != lnv.values.end()) {
-		auto lnv = dynamic_cast<LDFData<T>*>(itr->second.get());
-		if (!lnv) {
+		auto* lnvCast = dynamic_cast<LDFData<T>*>(itr->second.get());
+		if (!lnvCast) {
 			// Is of different type
 			itr->second = std::make_unique<LDFData<T>>(key, value);
 		} else {
 			// Is the same type and exists
-			lnv->SetValue(value);
+			lnvCast->SetValue(value);
 		}
 	} else {
 		// Doesn't exist
@@ -537,7 +537,6 @@ void Entity::SetNetworkVar(const std::u16string& name, std::vector<T> values, co
 	auto index = 1;
 
 	for (const auto& value : values) {
-		LDFData<T>* newData = nullptr;
 		const auto& indexedName = name + u"." + GeneralUtils::to_u16string(index);
 		const auto itr = InsertNetworkVar<T>(indexedName, value);
 		updates << itr->second->GetString();
