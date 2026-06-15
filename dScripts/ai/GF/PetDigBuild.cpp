@@ -13,14 +13,12 @@ void PetDigBuild::OnQuickBuildComplete(Entity* self, Entity* target) {
 	info.pos = pos;
 	info.rot = self->GetRotation();
 	info.spawnerID = self->GetSpawnerID();
-	info.settings = {
-			new LDFData<LWOOBJID>(u"builder", target->GetObjectID()),
-			new LDFData<LWOOBJID>(u"X", self->GetObjectID())
-	};
+	info.settings.Insert<LWOOBJID>(u"builder", target->GetObjectID());
+	info.settings.Insert<LWOOBJID>(u"X", self->GetObjectID());
 
 	if (!flagNumber.empty()) {
 		info.lot = 7410; // Normal GF treasure
-		info.settings.push_back(new LDFData<std::u16string>(u"groupID", u"Flag" + flagNumber));
+		info.settings.Insert<std::u16string>(u"groupID", u"Flag" + flagNumber);
 	} else {
 		auto* missionComponent = target->GetComponent<MissionComponent>();
 		if (missionComponent != nullptr && missionComponent->GetMissionState(746) == eMissionState::ACTIVE) {

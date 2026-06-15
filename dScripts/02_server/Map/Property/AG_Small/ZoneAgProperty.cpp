@@ -95,10 +95,8 @@ void ZoneAgProperty::LoadInstance(Entity* self) {
 
 	for (auto* spawner : Game::zoneManager->GetSpawnersByName(self->GetVar<std::string>(InstancerSpawner))) {
 		for (auto* spawnerNode : spawner->m_Info.nodes) {
-			spawnerNode->config.push_back(
-				new LDFData<std::string>(u"custom_script_server",
-					R"(scripts\ai\GENERAL\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua)"));
-			spawnerNode->config.push_back(new LDFData<std::u16string>(u"transferText", u"SPIDER_QUEEN_EXIT_QUESTION"));
+			spawnerNode->config.Insert<std::string>(u"custom_script_server", R"(scripts\ai\GENERAL\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua)");
+			spawnerNode->config.Insert<std::u16string>(u"transferText", u"SPIDER_QUEEN_EXIT_QUESTION");
 		}
 	}
 

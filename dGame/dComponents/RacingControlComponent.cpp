@@ -26,6 +26,7 @@
 #include "dZoneManager.h"
 #include "CDActivitiesTable.h"
 #include "eStateChangeType.h"
+#include <ranges>
 #include <ctime>
 
 #ifndef M_PI
@@ -57,6 +58,7 @@ RacingControlComponent::RacingControlComponent(Entity* parent, const int32_t com
 	CDActivitiesTable* activitiesTable = CDClientManager::GetTable<CDActivitiesTable>();
 	std::vector<CDActivities> activities = activitiesTable->Query([=](CDActivities entry) {return (entry.instanceMapID == worldID); });
 	for (CDActivities activity : activities) m_ActivityID = activity.ActivityID;
+	RegisterMsg(&RacingControlComponent::MsgConfigureRacingControl);
 }
 
 RacingControlComponent::~RacingControlComponent() {}
@@ -178,11 +180,10 @@ void RacingControlComponent::LoadPlayerVehicle(Entity* player,
 		moduleAssemblyComponent->SetSubKey(item->GetSubKey());
 		moduleAssemblyComponent->SetUseOptionalParts(false);
 
-		for (auto* config : item->GetConfig()) {
-			if (config->GetKey() == u"assemblyPartLOTs") {
-				moduleAssemblyComponent->SetAssemblyPartsLOTs(
-					GeneralUtils::ASCIIToUTF16(config->GetValueAsString()));
-			}
+		const auto& lnv = item->GetConfig().values;
+		const auto itr = lnv.find(u"assemblyPartLOTs");
+		if (itr != lnv.end()) {
+			moduleAssemblyComponent->SetAssemblyPartsLOTs(GeneralUtils::ASCIIToUTF16(itr->second->GetValueAsString()));
 		}
 	}
 
@@ -871,10 +872,10 @@ void RacingControlComponent::Update(float deltaTime) {
 	}
 }
 
-void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
-	for (const auto& dataUnique : msg.racingSettings) {
+bool RacingControlComponent::MsgConfigureRacingControl(const GameMessages::ConfigureRacingControl& msg) {
+	for (const auto& dataUnique : msg.racingSettings | std::views::values) {
 		if (!dataUnique) continue;
-		const auto* const data = dataUnique.get(); 
+		const auto* const data = dataUnique.get();
 		if (data->GetKey() == u"Race_PathName" && data->GetValueType() == LDF_TYPE_UTF_16) {
 			m_PathName = static_cast<const LDFData<std::u16string>*>(data)->GetValue();
 		} else if (data->GetKey() == u"activityID" && data->GetValueType() == LDF_TYPE_S32) {
@@ -886,4 +887,5 @@ void RacingControlComponent::MsgConfigureRacingControl(const GameMessages::Confi
 			m_MinimumPlayersForGroupAchievements = static_cast<const LDFData<int32_t>*>(data)->GetValue();
 		}
 	}
+	return true;
 }

@@ -1,6 +1,8 @@
 #ifndef NIQUATERNION_H
 #define NIQUATERNION_H
-
+#ifndef GLM_ENABLE_EXPERIMENTAL
+# define GLM_ENABLE_EXPERIMENTAL
+#endif
 // Custom Classes
 #include "NiPoint3.h"
 

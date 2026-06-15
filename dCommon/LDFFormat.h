@@ -1,11 +1,12 @@
-#ifndef __LDFFORMAT__H__
-#define __LDFFORMAT__H__
+#ifndef LDFFORMAT_H
+#define LDFFORMAT_H
 
 // Custom Classes
 #include "dCommonVars.h"
 #include "GeneralUtils.h"
 
 // C++
+#include <map>
 #include <string>
 #include <string_view>
 #include <sstream>
@@ -46,17 +47,17 @@ public:
 
 	virtual std::string GetValueAsString() const = 0;
 
-	virtual LDFBaseData* Copy() const = 0;
+	virtual std::unique_ptr<LDFBaseData> Copy() const = 0;
 
 	/**
 	 * Given an input string, return the data as a LDF key.
 	 */
-	static LDFBaseData* DataFromString(const std::string_view& format);
+	static std::unique_ptr<LDFBaseData> DataFromString(const std::string_view& format);
 
 };
 
 template<typename T>
-class LDFData: public LDFBaseData {
+class LDFData : public LDFBaseData {
 private:
 	std::u16string key;
 	T value;
@@ -164,8 +165,8 @@ public:
 		return this->GetValueString();
 	}
 
-	LDFBaseData* Copy() const override {
-		return new LDFData<T>(key, value);
+	std::unique_ptr<LDFBaseData> Copy() const override {
+		return std::make_unique<LDFData<T>>(key, value);
 	}
 
 	inline static const T Default = {};
@@ -226,4 +227,81 @@ template<> inline std::string LDFData<LWOOBJID>::GetValueString() const { return
 
 template<> inline std::string LDFData<std::string>::GetValueString() const { return this->value; }
 
-#endif  //!__LDFFORMAT__H__
+struct LwoNameValue {
+	using LDFPtr = std::unique_ptr<LDFBaseData>;
+	using ValueType = std::map<std::u16string, LDFPtr>;
+
+	LwoNameValue& operator=(const LwoNameValue& other) {
+		this->values = other.Copy();
+		return *this;
+	}
+
+	template<typename T>
+	void Insert(const std::u16string& key, const T& value) {
+		this->values.insert_or_assign(key, std::unique_ptr(std::make_unique<LDFData<T>>(key, value)));
+	}
+
+	void Insert(const std::u16string& key, const char* value) {
+		this->Insert<std::string>(key, value);
+	}
+
+	void Insert(const std::u16string& key, const char16_t* value) {
+		this->Insert<std::u16string>(key, value);
+	}
+
+	template<typename T>
+	void Insert(const std::string& key, const T& value) {
+		this->Insert<T>(GeneralUtils::UTF8ToUTF16(key), value);
+	}
+
+	void Insert(const std::string& key, const char* value) {
+		this->Insert<std::string>(GeneralUtils::UTF8ToUTF16(key), value);
+	}
+
+	void Insert(const std::string& key, const char16_t* value) {
+		this->Insert<std::u16string>(GeneralUtils::UTF8ToUTF16(key), value);
+	}
+
+	const LDFPtr& ParseInsert(const std::string& data) {
+		LDFPtr toInsert(LDFBaseData::DataFromString(data));
+		return toInsert ?
+		this->values.insert_or_assign(toInsert->GetKey(), std::move(toInsert)).first->second :
+		this->values.insert_or_assign(u"FAILED_TO_PARSE_" + GeneralUtils::UTF8ToUTF16(data), std::make_unique<LDFData<std::string>>("", "")).first->second;
+	}
+
+	const LDFPtr& ParseInsert(const std::u16string& data) {
+		return this->ParseInsert(GeneralUtils::UTF16ToWTF8(data));
+	}
+
+	ValueType::const_iterator begin() const {
+		return this->values.cbegin();
+	}
+
+	ValueType::const_iterator end() const {
+		return this->values.cend();
+	}
+
+	void Erase(const std::u16string& key) {
+		this->values.erase(key);
+	}
+
+	void Erase(const std::string& key) {
+		this->Erase(GeneralUtils::ASCIIToUTF16(key));
+	}
+
+	LwoNameValue() = default;
+
+	LwoNameValue(const LwoNameValue& other) {
+		this->values = other.Copy();
+	}
+
+	ValueType values;
+private:
+	ValueType Copy() const {
+		ValueType copy;
+		for (const auto& [key, value] : this->values) copy.insert_or_assign(key, value->Copy());
+		return copy;
+	}
+};
+
+#endif  //!LDFFORMAT_H

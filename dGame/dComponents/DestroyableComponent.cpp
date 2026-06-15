@@ -881,9 +881,9 @@ void DestroyableComponent::FixStats() {
 	int32_t currentImagination = destroyableComponent->GetImagination();
 
 	// Unequip all items
-	auto equipped = inventoryComponent->GetEquippedItems();
+	const auto equipped = inventoryComponent->GetEquippedItems();
 
-	for (auto& equippedItem : equipped) {
+	for (const auto& equippedItem : equipped) {
 		// Get the item with the item ID
 		auto* item = inventoryComponent->FindItemById(equippedItem.second.id);
 
@@ -924,7 +924,7 @@ void DestroyableComponent::FixStats() {
 	buffComponent->ReApplyBuffs();
 
 	// Requip all items
-	for (auto& equippedItem : equipped) {
+	for (const auto& equippedItem : equipped) {
 		// Get the item with the item ID
 		auto* item = inventoryComponent->FindItemById(equippedItem.second.id);
 

@@ -16,10 +16,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
-	set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-endif()
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 	# Export the compile commands for debugging
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) 	# Set CMAKE visibility policy to NEW on project and subprojects
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON) # Set C and C++ symbol visibility to hide inlined functions

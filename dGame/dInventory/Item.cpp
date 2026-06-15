@@ -28,6 +28,7 @@
 #include "CDObjectSkillsTable.h"
 #include "CDComponentsRegistryTable.h"
 #include "CDPackageComponentTable.h"
+#include <ranges>
 
 namespace {
 	const std::map<std::string, std::string> ExtraSettingAbbreviations = {
@@ -46,7 +47,7 @@ namespace {
 	};
 }
 
-Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const std::vector<LDFBaseData*>& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
+Item::Item(const LWOOBJID id, const LOT lot, Inventory* inventory, const uint32_t slot, const uint32_t count, const bool bound, const LwoNameValue& config, const LWOOBJID parent, LWOOBJID subKey, eLootSourceType lootSourceType) {
 	if (!Inventory::IsValidItem(lot)) {
 		return;
 	}
@@ -71,7 +72,7 @@ Item::Item(
 	Inventory* inventory,
 	const uint32_t slot,
 	const uint32_t count,
-	const std::vector<LDFBaseData*>& config,
+	const LwoNameValue& config,
 	const LWOOBJID parent,
 	bool showFlyingLoot,
 	bool isModMoveAndEquip,
@@ -131,11 +132,11 @@ uint32_t Item::GetSlot() const {
 	return slot;
 }
 
-std::vector<LDFBaseData*> Item::GetConfig() const {
+const LwoNameValue& Item::GetConfig() const {
 	return config;
 }
 
-std::vector<LDFBaseData*>& Item::GetConfig() {
+LwoNameValue& Item::GetConfig() {
 	return config;
 }
 
@@ -379,7 +380,7 @@ void Item::UseNonEquip(Item* item) {
 }
 
 void Item::Disassemble(const eInventoryType inventoryType) {
-	for (auto* data : config) {
+	for (const auto& data : config.values | std::views::values) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			auto modStr = data->GetValueAsString();
 
@@ -530,18 +531,12 @@ void Item::RemoveFromInventory() {
 
 Item::~Item() {
 	delete preconditions;
-
-	for (auto* value : config) {
-		delete value;
-	}
-
-	config.clear();
 }
 
 void Item::SaveConfigXml(tinyxml2::XMLElement& i) const {
 	tinyxml2::XMLElement* x = nullptr;
 
-	for (const auto* config : this->config) {
+	for (const auto& config : config.values | std::views::values) {
 		const auto& key = GeneralUtils::UTF16ToWTF8(config->GetKey());
 		const auto saveKey = ExtraSettingAbbreviations.find(key);
 		if (saveKey == ExtraSettingAbbreviations.end()) {
@@ -561,12 +556,11 @@ void Item::LoadConfigXml(const tinyxml2::XMLElement& i) {
 	const auto* x = i.FirstChildElement("x");
 	if (!x) return;
 
-	for (const auto& pair : ExtraSettingAbbreviations) {
-		const auto* data = x->Attribute(pair.second.c_str());
+	for (const auto& [fullName, abbreviation] : ExtraSettingAbbreviations) {
+		const auto* data = x->Attribute(abbreviation.c_str());
 		if (!data) continue;
 
-		const auto value = pair.first + "=" + data;
-		config.push_back(LDFBaseData::DataFromString(value));
+		config.ParseInsert(fullName + "=" + data);
 	}
 }
 

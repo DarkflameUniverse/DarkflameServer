@@ -802,7 +802,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert<bool>(u"SpawnedFromSlashCommand", true);
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
@@ -844,7 +844,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert(u"SpawnedFromSlashCommand", true);
 
 		auto playerPosition = entity->GetPosition();
 		while (numberToSpawn > 0) {
@@ -1268,10 +1268,10 @@ namespace DEVGMCommands {
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
-		std::vector<LDFBaseData*> data{};
-		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem.value()));
+		LwoNameValue config;
+		config.Insert<LOT>(u"reforgedLOT", reforgedItem.value());
 
-		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, data);
+		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, config);
 	}
 
 	void Crash(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
