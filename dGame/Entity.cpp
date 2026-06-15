@@ -1615,23 +1615,8 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	const auto& grpNameQBShowBricks = GetVarAsString(u"grpNameQBShowBricks");
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
-
-		Spawner* spawner = nullptr;
-
-		if (!spawners.empty()) {
-			spawner = spawners[0];
-		} else {
-			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
-
-			if (!spawners.empty()) {
-				spawner = spawners[0];
-			}
-		}
-
-		if (spawner != nullptr) {
-			spawner->Spawn();
-		}
+		for (auto* const spawner :  Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
+		for (auto* const spawner : Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
 	}
 
 	// Track a player being smashed
