@@ -13,7 +13,6 @@ void ResetMissions(Entity& user) {
 }
 
 void OldManNPC::OnUse(Entity* self, Entity* user) {
-	LOG("");
 	const auto* const missionComponent = user->GetComponent<MissionComponent>();
 	if (!missionComponent) return;
 
@@ -24,7 +23,6 @@ void OldManNPC::OnUse(Entity* self, Entity* user) {
 	}
 
 	const auto missionState = mission->GetMissionState();
-	LOG("mission state %i", missionState);
 	if (missionState == eMissionState::AVAILABLE || missionState == eMissionState::COMPLETE_AVAILABLE) {
 		ResetMissions(*user);
 	}
