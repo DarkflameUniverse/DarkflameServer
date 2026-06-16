@@ -737,10 +737,10 @@ namespace {
 		"scripts\\ai\\MINIGAME\\SIEGE\\OBJECTS\\ATTACKER_BOUNCER_SERVER.lua",
 		"scripts\\ai\\AG\\L_AG_ZONE_PLAYER.lua",
 		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_MOVEMENT.lua", // Really old alpha script
-		"scripts\\zone\\LUPs\\DeepFreeze Intro\\WBL_Enemy_Beaver.lua" // Really old alpha script
-		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_WANDER_SMALL.lua" // Really old alpha script
-		"scripts\\ai\\NP\\L_NPC_NP_OLD_MAN_SHERLAND.lua" // This NPC doesn't even exist in modern crux, the only place this is used...
-		"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua" // This platform does not exist even when moved manually on a client
+		"scripts\\zone\\LUPs\\DeepFreeze Intro\\WBL_Enemy_Beaver.lua", // Really old alpha script
+		"scripts\\ai\\GENERAL\\L_NPC_GENERIC_WANDER_SMALL.lua", // Really old alpha script
+		"scripts\\ai\\NP\\L_NPC_NP_OLD_MAN_SHERLAND.lua", // This NPC doesn't even exist in modern crux, the only place this is used...
+		"scripts\\02_server\\Map\\General\\L_SIMPLE_MOVER_SWITCH.lua", // This platform does not exist even when moved manually on a client
 	};
 };
 
