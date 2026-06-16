@@ -962,5 +962,12 @@ namespace GameMessages {
 
 		LWOOBJID childID{};
 	};
+
+	struct ObjectLoaded : public GameMsg {
+		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
+
+		LWOOBJID objectID{};
+		LOT lot{};
+	};
 };
 #endif // GAMEMESSAGES_H
