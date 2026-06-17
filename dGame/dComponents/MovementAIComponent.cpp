@@ -180,7 +180,7 @@ void MovementAIComponent::Update(const float deltaTime) {
 					SetPath(waypoints);
 				} else if (m_Path->pathBehavior == PathBehavior::Once) {
 					// In this case we intended to follow a path and once we've followed it we camp there, otherwise we'd just wander home again.
-					m_BaseCombatAI->SetStartingPosition(m_SourcePosition);
+					if (m_BaseCombatAI) m_BaseCombatAI->SetStartingPosition(m_SourcePosition);
 					Stop();
 					return;
 				}
@@ -459,7 +459,7 @@ void MovementAIComponent::RunWaypointCommands(uint32_t waypointNum) {
 			if (inventoryComponent) {
 				// items should always exist
 				auto* const item = inventoryComponent->GetInventory(eInventoryType::ITEMS)->FindItemBySlot(0);
-				inventoryComponent->EquipItem(item);
+				if (item) inventoryComponent->EquipItem(item);
 			}
 			break;
 		}
@@ -468,19 +468,19 @@ void MovementAIComponent::RunWaypointCommands(uint32_t waypointNum) {
 			if (inventoryComponent) {
 				// items should always exist
 				auto* const item = inventoryComponent->GetInventory(eInventoryType::ITEMS)->FindItemBySlot(0);
-				inventoryComponent->UnEquipItem(item);
+				if (item) inventoryComponent->UnEquipItem(item);
 			}
 			break;
 		}
-		// case eWaypointCommandType::DELAY: {
+		case eWaypointCommandType::DELAY: {
 		// 	Pause(GeneralUtils::TryParse<float>(data).value_or(0.0f));
-		// 	break;
-		// }
+			break;
+		}
 		case eWaypointCommandType::EMOTE: {
 			// m_Delay = RenderComponent::GetAnimationTime(m_Parent, data);
 			// const auto emoteID = GeneralUtils::TryParse<uint32_t>(data);
 			// if (emoteID) GameMessages::SendPlayEmote(m_Parent->GetObjectID(), emoteID.value(), LWOOBJID_EMPTY, UNASSIGNED_SYSTEM_ADDRESS);
-			// break;
+			break;
 		}
 		case eWaypointCommandType::TELEPORT: break;
 		case eWaypointCommandType::PATH_SPEED: m_BaseSpeed = GetBaseSpeed(m_Parent->GetLOT()) * GeneralUtils::TryParse<float>(data).value_or(1.0f); break;

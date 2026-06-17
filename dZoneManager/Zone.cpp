@@ -104,7 +104,7 @@ void Zone::LoadZoneIntoMemory() {
 			for (const Path& path : m_Paths) {
 				if (path.pathType != PathType::Spawner) continue;
 				SpawnerInfo info{};
-				for (int i = 0; i < path.pathWaypoints.size(); i++) {
+				for (size_t i = 0; i < path.pathWaypoints.size(); i++) {
 					const auto& waypoint = path.pathWaypoints[i];
 					SpawnerNode* node = new SpawnerNode();
 					node->position = waypoint.position;
