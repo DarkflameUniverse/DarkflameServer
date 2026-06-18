@@ -210,8 +210,10 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 	}
 
 	if (stunnedThisFrame) {
-		m_MovementAI->Stop();
+		if (!m_MovementAI->IsPaused()) m_MovementAI->Pause();
 
+		// in this case we just become unstunned so check if we paused and resume if we did
+		if (!m_Stunned && m_MovementAI->IsPaused()) m_MovementAI->Resume();
 		return;
 	}
 
@@ -317,12 +319,14 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		SetAiState(AiState::aggro);
 	} else {
 		SetAiState(AiState::idle);
+		if (m_MovementAI) m_MovementAI->SetMaxSpeed(1.0f);
 	}
 
 	if (!hasSkillToCast) return;
 
 	if (m_Target == LWOOBJID_EMPTY) {
 		SetAiState(AiState::idle);
+		if (m_MovementAI) m_MovementAI->SetMaxSpeed(1.0f);
 
 		return;
 	}
@@ -618,6 +622,11 @@ void BaseCombatAIComponent::Wander() {
 		return;
 	}
 
+	// If we have a path to follow we should almost certainly do that instead of wandering.
+	if (m_MovementAI->HasPath()) {
+		return;
+	}
+
 	m_MovementAI->SetHaltDistance(0);
 
 	const auto& info = m_MovementAI->GetInfo();
@@ -862,12 +871,12 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReport
 	// roundInfo.PushDebug<AMFDoubleValue>("Combat Start Delay") = m_CombatStartDelay;
 	std::string curState;
 	switch (m_State) {
-		case idle: curState = "Idling"; break;
-		case aggro: curState = "Aggroed"; break;
-		case tether: curState = "Returning to Tether"; break;
-		case spawn: curState = "Spawn"; break;
-		case dead: curState = "Dead"; break;
-		default: curState = "Unknown or Undefined"; break;
+	case idle: curState = "Idling"; break;
+	case aggro: curState = "Aggroed"; break;
+	case tether: curState = "Returning to Tether"; break;
+	case spawn: curState = "Spawn"; break;
+	case dead: curState = "Dead"; break;
+	default: curState = "Unknown or Undefined"; break;
 	}
 	cmptType.PushDebug<AMFStringValue>("Current Combat State") = curState;
 

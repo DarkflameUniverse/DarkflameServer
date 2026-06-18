@@ -236,6 +236,8 @@ public:
 
 	bool MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 
+	void SetStartingPosition(const NiPoint3& pos) { m_StartPosition = pos; }
+
 private:
 	/**
 	 * Returns the current target or the target that currently is the largest threat to this entity

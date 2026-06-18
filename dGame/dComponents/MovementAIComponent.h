@@ -212,7 +212,15 @@ public:
 	bool IsPaused() const { return m_Paused; }
 
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	bool HasPath() const { return m_Path != nullptr; }
 private:
+
+	/**
+	 * @brief
+	 * Runs the commands on a waypoint if a path exists
+	 */
+	void RunWaypointCommands(uint32_t waypointNum);
 
 	/**
 	 * Sets the current position of the entity
