@@ -38,3 +38,11 @@ std::vector<CDObjectSkills> CDObjectSkillsTable::Query(std::function<bool(CDObje
 
 	return data;
 }
+
+std::vector<CDObjectSkills> CDObjectSkillsTable::Get(const LOT lot) const {
+	std::vector<CDObjectSkills> toReturn;
+	for (const auto& entry : GetEntries()) {
+		if (entry.objectTemplate == lot) toReturn.push_back(entry);
+	}
+	return toReturn;
+}

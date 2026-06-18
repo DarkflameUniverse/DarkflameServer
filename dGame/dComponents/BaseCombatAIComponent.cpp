@@ -13,6 +13,8 @@
 
 #include "CDClientDatabase.h"
 #include "CDClientManager.h"
+#include "CDObjectSkillsTable.h"
+#include "CDSkillBehaviorTable.h"
 #include "DestroyableComponent.h"
 
 #include <algorithm>
@@ -29,6 +31,8 @@
 #include "Amf3.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
+	if (!m_Parent) return;
+
 	RegisterMsg(&BaseCombatAIComponent::MsgGetObjectReportInfo);
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
@@ -43,7 +47,7 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 	//Grab the aggro information from BaseCombatAI:
 	auto componentQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius FROM BaseCombatAIComponent WHERE id = ?;");
+		"SELECT aggroRadius, tetherSpeed, pursuitSpeed, softTetherRadius, hardTetherRadius, minRoundLength, maxRoundLength, combatRoundLength FROM BaseCombatAIComponent WHERE id = ?;");
 	componentQuery.bind(1, static_cast<int>(componentID));
 
 	auto componentResult = componentQuery.execQuery();
@@ -63,45 +67,43 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 
 		if (!componentResult.fieldIsNull("hardTetherRadius"))
 			m_HardTetherRadius = componentResult.getFloatField("hardTetherRadius");
+		
+		m_MinRoundLength = componentResult.getFloatField("minRoundLength");
+		m_MaxRoundLength = componentResult.getFloatField("maxRoundLength");
+		m_CombatRoundLength = componentResult.getFloatField("combatRoundLength");
 	}
-
-	componentResult.finalize();
 
 	// Get aggro and tether radius from settings and use this if it is present.  Only overwrite the
 	// radii if it is greater than the one in the database.
-	if (m_Parent) {
-		auto aggroRadius = m_Parent->GetVar<float>(u"aggroRadius");
-		m_AggroRadius = aggroRadius != 0 ? aggroRadius : m_AggroRadius;
-		auto tetherRadius = m_Parent->GetVar<float>(u"tetherRadius");
-		m_HardTetherRadius = tetherRadius != 0 ? tetherRadius : m_HardTetherRadius;
-	}
+	m_AggroRadius = m_Parent->HasVar(u"aggroRadius") ? m_Parent->GetVar<float>(u"aggroRadius") : m_AggroRadius;
+	m_HardTetherRadius = m_Parent->HasVar(u"tetherRadius") ? m_Parent->GetVar<float>(u"tetherRadius") : m_HardTetherRadius;
 
 	/*
 	 * Find skills
 	 */
-	auto skillQuery = CDClientDatabase::CreatePreppedStmt(
-		"SELECT skillID, cooldown, behaviorID FROM SkillBehavior WHERE skillID IN (SELECT skillID FROM ObjectSkills WHERE objectTemplate = ?);");
-	skillQuery.bind(1, static_cast<int>(parent->GetLOT()));
+	for (const auto objectSkill : CDClientManager::GetTable<CDObjectSkillsTable>()->Get(parent->GetLOT())) {
+		const auto skillBehavior = CDClientManager::GetTable<CDSkillBehaviorTable>()->GetSkillByID(objectSkill.skillID);
+		if (skillBehavior.skillID == objectSkill.skillID) {
+			const auto skillId = skillBehavior.skillID;
 
-	auto result = skillQuery.execQuery();
+			const auto abilityCooldown = skillBehavior.cooldown;
 
-	while (!result.eof()) {
-		const auto skillId = static_cast<uint32_t>(result.getIntField("skillID"));
+			const auto behaviorId = skillBehavior.behaviorID;
 
-		const auto abilityCooldown = static_cast<float>(result.getFloatField("cooldown"));
+			const auto combatWeight = objectSkill.AICombatWeight;
 
-		const auto behaviorId = static_cast<uint32_t>(result.getIntField("behaviorID"));
+			auto* behavior = Behavior::CreateBehavior(behaviorId);
 
-		auto* behavior = Behavior::CreateBehavior(behaviorId);
+			AiSkillEntry entry = { .skillId = skillId, .cooldown = 0.0f, .abilityCooldown = abilityCooldown, .behavior = behavior, .combatWeight = combatWeight };
 
-		std::stringstream behaviorQuery;
-
-		AiSkillEntry entry = { skillId, 0, abilityCooldown, behavior };
-
-		m_SkillEntries.push_back(entry);
-
-		result.nextRow();
+			m_SkillEntries.push_back(entry);
+		}
 	}
+
+	// Place the highest chance skills at the front so they are more likely to be rolled
+	std::ranges::sort(m_SkillEntries, [](const AiSkillEntry& lhs, const AiSkillEntry& rhs) {
+		return lhs.combatWeight < rhs.combatWeight;
+		});
 
 	Stun(1.0f);
 
@@ -248,10 +250,12 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hasSkillToCast = false;
+	uint32_t maxSkillWeights = 0;
 	for (auto& entry : m_SkillEntries) {
 		if (entry.cooldown > 0.0f) {
 			entry.cooldown -= deltaTime;
 		} else {
+			maxSkillWeights += entry.combatWeight;
 			hasSkillToCast = true;
 		}
 	}
@@ -337,10 +341,19 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 		LookAt(target->GetPosition());
 	}
 
-	for (auto i = 0; i < m_SkillEntries.size(); ++i) {
-		auto entry = m_SkillEntries.at(i);
+	// Roll to find which skill we'll try to cast
+	auto randomizedWeight = GeneralUtils::GenerateRandomNumber<int32_t>(0, maxSkillWeights);
 
-		if (entry.cooldown > 0) {
+	for (auto& entry : m_SkillEntries) {
+		// Skill isn't cooled off yet
+		if (entry.cooldown > 0.0f) {
+			continue;
+		}
+
+		randomizedWeight -= entry.combatWeight;
+
+		// if the weight is still greater than 0 continue to the next rolled skill
+		if (randomizedWeight > 0) {
 			continue;
 		}
 
@@ -358,8 +371,6 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			m_SkillTime = result.skillTime;
 
 			entry.cooldown = entry.abilityCooldown + m_SkillTime;
-
-			m_SkillEntries[i] = entry;
 
 			break;
 		}
@@ -914,8 +925,16 @@ bool BaseCombatAIComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReport
 	}
 
 	auto& ignoredThreats = cmptType.PushDebug("Temp Ignored Threats");
-	for (const auto& [id, threat] : m_ThreatEntries) {
+	for (const auto& [id, threat] : m_RemovedThreatList) {
 		ignoredThreats.PushDebug<AMFDoubleValue>(std::to_string(id) + " - Time") = threat;
 	}
+	auto& skillInfo = cmptType.PushDebug("Skill Info");
+	for (const auto& skill : m_SkillEntries) {
+		auto& skillDebug = skillInfo.PushDebug("Skill ID " + std::to_string(skill.skillId));
+		skillDebug.PushDebug<AMFDoubleValue>("Cooldown") = skill.cooldown;
+		skillDebug.PushDebug<AMFDoubleValue>("Ability Cooldown") = skill.abilityCooldown;
+		skillDebug.PushDebug<AMFIntValue>("AI Combat Weight") = skill.combatWeight;
+	}
+
 	return true;
 }
