@@ -55,6 +55,8 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 }
 
 void BossSpiderQueenEnemyServer::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
+	if (name != "AggroRadius" || !entering || !entering->IsPlayer()) return;
+
 	auto playerCount = self->GetVar<int32_t>(u"player_count");
 
 	if (status == "ENTER") {

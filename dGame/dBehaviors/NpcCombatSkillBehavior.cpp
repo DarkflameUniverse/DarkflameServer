@@ -31,7 +31,7 @@ void NpcCombatSkillBehavior::Load() {
 	this->m_npcSkillTime = GetFloat("npc skill time");
 	this->m_minRange = GetFloat("min range") * 0.9f; // Make the min and max 10% smaller to account for server/client position disagreements
 	this->m_minRange *= this->m_minRange;
-	this->m_maxRange = GetFloat("max range"); // Make the min and max 10% smaller to account for server/client position disagreements
+	this->m_maxRange = GetFloat("max range") * 0.9f; // Make the min and max 10% smaller to account for server/client position disagreements
 	this->m_maxRange *= this->m_maxRange;
 
 	const auto parameters = GetParameterNames();

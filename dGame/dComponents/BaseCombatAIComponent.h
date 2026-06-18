@@ -181,6 +181,7 @@ public:
 	/**
 	 * Stuns the entity for a certain amount of time, will not work if the entity is stun immune
 	 * @param time the time to stun the entity, if stunnable
+	 * @param force whether or not to force the stun and ignore checks
 	 */
 	void Stun(float time, const bool force = false);
 
