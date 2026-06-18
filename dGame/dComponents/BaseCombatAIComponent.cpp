@@ -31,8 +31,6 @@
 #include "Amf3.h"
 
 BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t componentID) : Component(parent, componentID) {
-	if (!m_Parent) return;
-
 	RegisterMsg(&BaseCombatAIComponent::MsgGetObjectReportInfo);
 	m_Target = LWOOBJID_EMPTY;
 	m_DirtyStateOrTarget = true;
@@ -99,11 +97,6 @@ BaseCombatAIComponent::BaseCombatAIComponent(Entity* parent, const int32_t compo
 			m_SkillEntries.push_back(entry);
 		}
 	}
-
-	// Place the highest chance skills at the front so they are more likely to be rolled
-	std::ranges::sort(m_SkillEntries, [](const AiSkillEntry& lhs, const AiSkillEntry& rhs) {
-		return lhs.combatWeight < rhs.combatWeight;
-		});
 
 	Stun(1.0f);
 
@@ -250,7 +243,7 @@ void BaseCombatAIComponent::Update(const float deltaTime) {
 
 void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 	bool hasSkillToCast = false;
-	uint32_t maxSkillWeights = 0;
+	int32_t maxSkillWeights = 0;
 	for (auto& entry : m_SkillEntries) {
 		if (entry.cooldown > 0.0f) {
 			entry.cooldown -= deltaTime;
