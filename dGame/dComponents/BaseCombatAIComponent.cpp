@@ -340,7 +340,7 @@ void BaseCombatAIComponent::CalculateCombat(const float deltaTime) {
 			continue;
 		}
 
-		const auto result = skillComponent->CalculateBehavior(entry.skillId, entry.behavior->m_behaviorId, LWOOBJID_EMPTY);
+		const auto result = skillComponent->CalculateBehavior(entry.skillId, entry.behavior->m_behaviorId, GetTarget());
 
 		if (result.success) {
 			if (m_MovementAI != nullptr) {
@@ -746,8 +746,8 @@ void BaseCombatAIComponent::SetTetherSpeed(float value) {
 	m_TetherSpeed = value;
 }
 
-void BaseCombatAIComponent::Stun(const float time) {
-	if (m_StunImmune || m_StunTime > time) {
+void BaseCombatAIComponent::Stun(const float time, const bool force) {
+	if (!force && (m_StunImmune || m_StunTime > time)) {
 		return;
 	}
 

@@ -182,7 +182,7 @@ public:
 	 * Stuns the entity for a certain amount of time, will not work if the entity is stun immune
 	 * @param time the time to stun the entity, if stunnable
 	 */
-	void Stun(float time);
+	void Stun(float time, const bool force = false);
 
 	/**
 	 * Gets the radius that will cause this entity to get aggro'd, causing a target chase

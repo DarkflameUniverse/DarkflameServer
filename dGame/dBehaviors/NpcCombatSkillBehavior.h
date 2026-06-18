@@ -9,6 +9,7 @@ public:
 	float m_npcSkillTime;
 
 	float m_maxRange{};
+	float m_minRange{};
 
 	/*
 	 * Inherited
