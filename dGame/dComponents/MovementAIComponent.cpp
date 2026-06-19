@@ -37,8 +37,6 @@ MovementAIComponent::MovementAIComponent(Entity* parent, const int32_t component
 	m_Info = info;
 	m_AtFinalWaypoint = true;
 
-	m_BaseCombatAI = nullptr;
-
 	m_BaseCombatAI = m_Parent->GetComponent<BaseCombatAIComponent>();
 
 	//Try and fix the insane values:
@@ -131,7 +129,11 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	m_TimeTravelled += deltaTime;
 
-	SetPosition(ApproximateLocation());
+	const auto approxPos = ApproximateLocation();
+	SetPosition(approxPos);
+	// Set the AIs new home based on where our current waypoint is IF we're idle, that way we can return to this
+	// when resuming the pathing after losing aggro while moving the aggro hitbox with us
+	if (m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle) m_BaseCombatAI->SetStartingPosition(approxPos);
 
 	if (m_TimeTravelled < m_TimeToTravel) return;
 	m_TimeTravelled = 0.0f;
@@ -166,32 +168,34 @@ void MovementAIComponent::Update(const float deltaTime) {
 			SetRotation(QuatUtils::LookAt(source, m_NextWaypoint));
 		}
 	} else {
-		// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
-		const auto waypointNum = m_IsBounced ? m_CurrentPath.size() : m_CurrentPathWaypointCount - m_CurrentPath.size() - 1;
-		RunWaypointCommands(waypointNum);
-		if (m_CurrentPath.empty()) {
-			if (m_Path) {
-				if (m_Path->pathBehavior == PathBehavior::Loop) {
-					SetPath(m_Path->pathWaypoints);
-				} else if (m_Path->pathBehavior == PathBehavior::Bounce) {
-					m_IsBounced = !m_IsBounced;
-					std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
-					if (m_IsBounced) std::ranges::reverse(waypoints);
-					SetPath(waypoints);
-				} else if (m_Path->pathBehavior == PathBehavior::Once) {
-					// In this case we intended to follow a path and once we've followed it we camp there, otherwise we'd just wander home again.
-					if (m_BaseCombatAI) m_BaseCombatAI->SetStartingPosition(m_SourcePosition);
+		// Only try to renew or continue the path if we're in the idle or spawn state and we actually have a combatAI component
+		if (!m_BaseCombatAI || (m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle)) {
+			// Check if there are more waypoints in the queue, if so set our next destination to the next waypoint
+			const auto waypointNum = m_IsBounced ? m_CurrentPath.size() : m_CurrentPathWaypointCount - m_CurrentPath.size() - 1;
+			RunWaypointCommands(waypointNum);
+			if (m_CurrentPath.empty()) {
+				if (m_Path) {
+					if (m_Path->pathBehavior == PathBehavior::Loop) {
+						SetPath(m_Path->pathWaypoints);
+					} else if (m_Path->pathBehavior == PathBehavior::Bounce) {
+						m_IsBounced = !m_IsBounced;
+						std::vector<PathWaypoint> waypoints = m_Path->pathWaypoints;
+						if (m_IsBounced) std::ranges::reverse(waypoints);
+						SetPath(waypoints);
+					} else if (m_Path->pathBehavior == PathBehavior::Once) {
+						// In this case we intended to follow a path and once we've followed it we camp there, otherwise we'd just wander home again.
+						Stop();
+						return;
+					}
+				} else {
 					Stop();
 					return;
 				}
 			} else {
-				Stop();
-				return;
-			}
-		} else {
-			SetDestination(m_CurrentPath.top().position);
+				SetDestination(m_CurrentPath.top().position);
 
-			m_CurrentPath.pop();
+				m_CurrentPath.pop();
+			}
 		}
 	}
 
@@ -218,8 +222,7 @@ NiPoint3 MovementAIComponent::GetCurrentWaypoint() const {
 
 NiPoint3 MovementAIComponent::ApproximateLocation() const {
 	auto source = m_SourcePosition;
-
-	if (AtFinalWaypoint()) return source;
+	if (AtFinalWaypoint()) return m_Parent->GetPosition();
 
 	auto destination = m_NextWaypoint;
 
@@ -473,7 +476,7 @@ void MovementAIComponent::RunWaypointCommands(uint32_t waypointNum) {
 			break;
 		}
 		case eWaypointCommandType::DELAY: {
-		// 	Pause(GeneralUtils::TryParse<float>(data).value_or(0.0f));
+			// 	Pause(GeneralUtils::TryParse<float>(data).value_or(0.0f));
 			break;
 		}
 		case eWaypointCommandType::EMOTE: {
@@ -521,12 +524,13 @@ bool MovementAIComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInf
 	movementInfo.PushDebug<AMFBoolValue>("Lock Rotation") = m_LockRotation;
 	movementInfo.PushDebug<AMFBoolValue>("Paused") = m_Paused;
 	movementInfo.PushDebug<AMFDoubleValue>("Pulling To Point") = m_PullingToPoint;
+	movementInfo.PushDebug<AMFBoolValue>("At Final Waypoint") = m_AtFinalWaypoint;
 
 	auto& pullPointInfo = movementInfo.PushDebug("Pull Point");
 	pullPointInfo.PushDebug<AMFDoubleValue>("X") = m_PullPoint.x;
 	pullPointInfo.PushDebug<AMFDoubleValue>("Y") = m_PullPoint.y;
 	pullPointInfo.PushDebug<AMFDoubleValue>("Z") = m_PullPoint.z;
-	
+
 	// movementInfo.PushDebug<AMFDoubleValue>("Delay") = m_Delay;
 
 	auto& waypoints = movementInfo.PushDebug("Interpolated Waypoints");
