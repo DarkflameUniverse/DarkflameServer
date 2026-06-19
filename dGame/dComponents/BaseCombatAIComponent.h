@@ -33,13 +33,15 @@ enum class AiState : uint32_t {
  */
 struct AiSkillEntry
 {
-	uint32_t skillId;
+	uint32_t skillId{};
 
-	float cooldown;
+	float cooldown{};
 
-	float abilityCooldown;
+	float abilityCooldown{};
 
-	Behavior* behavior;
+	Behavior* behavior{};
+
+	int32_t combatWeight{};
 };
 
 /**
@@ -396,8 +398,16 @@ private:
 	 */
 	bool m_DirtyStateOrTarget = false;
 
+	// Min amount of time to remain as in combat after casting a skill
+	float m_MinRoundLength = 0.0f;
+	
+	// max amount of time to remain as in combat after casting a skill
+	float m_MaxRoundLength = 0.0f;
+
 	// The amount of time the entity will be forced to tether for
 	float m_ForcedTetherTime = 0.0f;
+
+	float m_CombatRoundLength = 0.0f;
 
 	// The amount of time a removed threat will be ignored for. 
 	std::map<LWOOBJID, float> m_RemovedThreatList;
