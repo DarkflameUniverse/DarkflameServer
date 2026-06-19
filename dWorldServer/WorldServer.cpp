@@ -1019,6 +1019,7 @@ void HandlePacket(Packet* packet) {
 		if (user) {
 			Character* c = user->GetLastUsedChar();
 			if (c != nullptr) {
+				if (Game::entityManager->GetEntity(c->GetObjectID())) return;
 				std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
 				Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
 
