@@ -129,7 +129,11 @@ void MovementAIComponent::Update(const float deltaTime) {
 
 	m_TimeTravelled += deltaTime;
 
-	SetPosition(ApproximateLocation());
+	const auto approxPos = ApproximateLocation();
+	SetPosition(approxPos);
+	// Set the AIs new home based on where our current waypoint is IF we're idle, that way we can return to this
+	// when resuming the pathing after losing aggro while moving the aggro hitbox with us
+	if (m_BaseCombatAI && m_BaseCombatAI->GetState() == AiState::idle) m_BaseCombatAI->SetStartingPosition(approxPos);
 
 	if (m_TimeTravelled < m_TimeToTravel) return;
 	m_TimeTravelled = 0.0f;
@@ -180,7 +184,6 @@ void MovementAIComponent::Update(const float deltaTime) {
 						SetPath(waypoints);
 					} else if (m_Path->pathBehavior == PathBehavior::Once) {
 						// In this case we intended to follow a path and once we've followed it we camp there, otherwise we'd just wander home again.
-						if (m_BaseCombatAI) m_BaseCombatAI->SetStartingPosition(m_SourcePosition);
 						Stop();
 						return;
 					}
