@@ -123,22 +123,25 @@ void Zone::LoadZoneIntoMemory() {
 						if (!data) continue;
 
 						if (data->GetKey() == u"spawner_node_id") {
-							node->nodeID = std::stoi(data->GetValueAsString());
+							node->nodeID = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 						} else if (data->GetKey() == u"spawner_max_per_node") {
-							node->nodeMax = std::stoi(data->GetValueAsString());
+							node->nodeMax = GeneralUtils::TryParse(data->GetValueAsString(), 0);
 						} else if (data->GetKey() == u"groupID") { // Load object group
-							std::string groupStr = data->GetValueAsString();
-							info.groups = GeneralUtils::SplitString(groupStr, ';');
+							info.groups = GeneralUtils::SplitString(data->GetValueAsString(), ';');
 							if (info.groups.back().empty()) info.groups.erase(info.groups.end() - 1);
 						} else if (data->GetKey() == u"grpNameQBShowBricks") {
-							if (data->GetValueAsString().empty()) continue;
-							/*std::string groupStr = data->GetValueAsString();
-							info.groups.push_back(groupStr);*/
 							info.grpNameQBShowBricks = data->GetValueAsString();
 						} else if (data->GetKey() == u"spawner_name") {
 							info.name = data->GetValueAsString();
+						} else if (data->GetKey() == u"weight") {
+							node->weight = GeneralUtils::TryParse(data->GetValueAsString(), 1);
+							if (node->weight <= 0) {
+								LOG("Found a spawner with a weight of <= 0, is this intentional? %s:%i", info.name.c_str(), node->nodeID);
+								node->weight = 1;
+							}
 						}
 					}
+
 					info.nodes.push_back(node);
 				}
 				info.templateID = path.spawner.spawnedLOT;
