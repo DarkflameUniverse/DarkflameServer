@@ -137,6 +137,7 @@ void Zone::LoadZoneIntoMemory() {
 							node->weight = GeneralUtils::TryParse(data->GetValueAsString(), 1);
 							if (node->weight <= 0) {
 								LOG("Found a spawner with a weight of <= 0, is this intentional? %s:%i", info.name.c_str(), node->nodeID);
+								node->weight = 1;
 							}
 						}
 					}
