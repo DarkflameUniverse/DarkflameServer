@@ -103,9 +103,11 @@ namespace GameMessages {
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
+
+	// special is for the FV tree platform, feature is complete if we just do that so meh
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving);
+		eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
 
 	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);

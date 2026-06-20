@@ -613,13 +613,14 @@ void Entity::Initialize() {
 
 			if (rebuildResetTime != 0.0f) {
 				quickBuildComponent->SetResetTime(rebuildResetTime);
-
-				// Known bug with moving platform in FV that casues it to build at the end instead of the start.
-				// This extends the smash time so players can ride up the lift.
-				if (m_TemplateID == 9483) {
-					quickBuildComponent->SetResetTime(quickBuildComponent->GetResetTime() + 25);
-				}
 			}
+
+			const auto objectID = GetObjectID();
+			// FV tree handler for when built so it sets the state to moving at the correct time
+			if (GetLOT() == 9483) quickBuildComponent->AddQuickBuildCompleteCallback([objectID](Entity* user) {
+				auto* const entity = Game::entityManager->GetEntity(objectID);
+				if (entity) GameMessages::SendPlatformResync(entity, UNASSIGNED_SYSTEM_ADDRESS, false, 0, 1, 1, eMovementPlatformState::Moving, true);
+				});
 
 			const auto activityID = GetVar<int32_t>(u"activityID");
 
@@ -1616,7 +1617,7 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 
 	const auto& grpNameQBShowBricks = GetVarAsString(u"grpNameQBShowBricks");
 	if (!grpNameQBShowBricks.empty()) {
-		for (auto* const spawner :  Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
+		for (auto* const spawner : Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
 		for (auto* const spawner : Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
 	}
 
