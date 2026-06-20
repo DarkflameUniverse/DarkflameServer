@@ -289,6 +289,14 @@ struct LwoNameValue {
 		this->Erase(GeneralUtils::ASCIIToUTF16(key));
 	}
 
+	ValueType::iterator find(const ValueType::key_type& key) {
+		return this->values.find(key);
+	}
+
+	ValueType::const_iterator find(const ValueType::key_type& key) const {
+		return this->values.find(key);
+	}
+
 	LwoNameValue() = default;
 
 	LwoNameValue(const LwoNameValue& other) {
