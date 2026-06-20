@@ -2237,6 +2237,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
 	objectInfo.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
 	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(GetSpawnerID());
+	objectInfo.PushDebug<AMFStringValue>("Owner override") = std::to_string(m_OwnerOverride);
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
 	for (const auto [id, component] : m_Components) {
