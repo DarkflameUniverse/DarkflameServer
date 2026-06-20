@@ -105,15 +105,7 @@ void PlayerContainer::RemovePlayer(const LWOOBJID playerID) {
 	auto* team = TeamContainer::GetTeam(playerID);
 
 	if (team != nullptr) {
-		const auto memberName = GeneralUtils::UTF8ToUTF16(player.playerName);
-
-		for (const auto memberId : team->memberIDs) {
-			const auto& otherMember = GetPlayerData(memberId);
-
-			if (!otherMember) continue;
-
-			TeamContainer::SendTeamSetOffWorldFlag(otherMember, playerID, { 0, 0, 0 });
-		}
+		TeamContainer::RemoveMember(team, playerID, false, false, true);
 	}
 
 	ChatWeb::SendWSPlayerUpdate(player, eActivityType::PlayerLoggedOut);

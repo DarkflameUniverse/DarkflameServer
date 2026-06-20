@@ -40,7 +40,7 @@ public:
 public:
 	Level(Zone* parentZone, const std::string& filepath);
 	
-	static void MakeSpawner(SceneObject obj);
+	static void MakeSpawner(const SceneObject& obj);
 
 	std::map<uint32_t, Header> m_ChunkHeaders;
 private:

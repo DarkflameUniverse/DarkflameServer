@@ -1,6 +1,8 @@
 #ifndef __NIPOINT3_H__
 #define __NIPOINT3_H__
-
+#ifndef GLM_ENABLE_EXPERIMENTAL
+# define GLM_ENABLE_EXPERIMENTAL
+#endif
 /*!
   \file NiPoint3.hpp
   \brief Defines a point in space in XYZ coordinates

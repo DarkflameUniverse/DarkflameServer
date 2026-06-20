@@ -8,6 +8,8 @@
 #include "GameMessages.h"
 #include "Amf3.h"
 
+#include <ranges>
+
 ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, const std::string& scriptName, bool serialized, bool client) : Component(parent, componentID) {
 	m_Serialized = serialized;
 	m_Client = client;
@@ -20,7 +22,7 @@ ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, cons
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {
 	if (bIsInitialUpdate) {
 		const auto& networkSettings = m_Parent->GetNetworkSettings();
-		auto hasNetworkSettings = !networkSettings.empty();
+		auto hasNetworkSettings = !networkSettings.values.empty();
 		outBitStream.Write(hasNetworkSettings);
 
 		if (hasNetworkSettings) {
@@ -28,9 +30,9 @@ void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitial
 			// First write the most inner LDF data
 			RakNet::BitStream ldfData;
 			ldfData.Write<uint8_t>(0);
-			ldfData.Write<uint32_t>(networkSettings.size());
+			ldfData.Write<uint32_t>(networkSettings.values.size());
 
-			for (auto* networkSetting : networkSettings) {
+			for (const auto& networkSetting : networkSettings.values | std::views::values) {
 				networkSetting->WriteToPacket(ldfData);
 			}
 
@@ -56,7 +58,7 @@ bool ScriptComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& r
 	auto& scriptInfo = reportInfo.info->PushDebug("Script");
 	scriptInfo.PushDebug<AMFStringValue>("Script Name") = m_ScriptName.empty() ? "None" : m_ScriptName;
 	auto& networkSettings = scriptInfo.PushDebug("Network Settings");
-	for (const auto* const setting : m_Parent->GetNetworkSettings()) {
+	for (const auto& setting : m_Parent->GetNetworkSettings().values | std::views::values) {
 		networkSettings.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(setting->GetKey())) = setting->GetValueAsString();
 	}
 

@@ -25,7 +25,7 @@ void VerifyBehavior::Calculate(BehaviorContext* context, RakNet::BitStream& bitS
 
 		const auto distance = Vector3::DistanceSquared(self->GetPosition(), entity->GetPosition());
 
-		if (distance > this->m_range * this->m_range) {
+		if (distance > this->m_range) {
 			success = false;
 		}
 	} else if (this->m_blockCheck) {
@@ -57,4 +57,5 @@ void VerifyBehavior::Load() {
 	this->m_action = GetAction("action");
 
 	this->m_range = GetFloat("range");
+	this->m_range = this->m_range * this->m_range * 0.9f; // Range checks are slightly smaller than the actual range to account for client/server discrepancies
 }

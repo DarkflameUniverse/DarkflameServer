@@ -1,105 +1,77 @@
-#include "Metrics.hpp"
+#include "Metrics.h"
+
+#include "StringifiedEnum.h"
 
 #include <chrono>
 
-std::unordered_map<MetricVariable, Metric*> Metrics::m_Metrics = {};
-std::vector<MetricVariable> Metrics::m_Variables = {
-	MetricVariable::GameLoop,
-	MetricVariable::PacketHandling,
-	MetricVariable::UpdateEntities,
-	MetricVariable::UpdateSpawners,
-	MetricVariable::Physics,
-	MetricVariable::UpdateReplica,
-	MetricVariable::Ghosting,
-	MetricVariable::CPUTime,
-	MetricVariable::Sleep,
-	MetricVariable::Frame,
-};
+namespace {
+	std::unordered_map<MetricVariable, Metric> g_Metrics = {};
+	std::vector<MetricVariable> g_Variables = {
+		MetricVariable::GameLoop,
+		MetricVariable::PacketHandling,
+		MetricVariable::UpdateEntities,
+		MetricVariable::UpdateSpawners,
+		MetricVariable::Physics,
+		MetricVariable::UpdateReplica,
+		MetricVariable::Ghosting,
+		MetricVariable::CPUTime,
+		MetricVariable::Sleep,
+		MetricVariable::Frame,
+	};
+}
 
 void Metrics::AddMeasurement(MetricVariable variable, int64_t value) {
-	const auto& iter = m_Metrics.find(variable);
-
-	Metric* metric;
-
-	if (iter == m_Metrics.end()) {
-		metric = new Metric();
-
-		m_Metrics[variable] = metric;
-	} else {
-		metric = iter->second;
-	}
+	auto& metric = g_Metrics[variable];
 
 	AddMeasurement(metric, value);
 }
 
-void Metrics::AddMeasurement(Metric* metric, int64_t value) {
-	const auto index = metric->measurementIndex;
+void Metrics::AddMeasurement(Metric& metric, int64_t value) {
+	const auto index = metric.measurementIndex;
 
-	metric->measurements[index] = value;
+	metric.measurements[index] = value;
 
-	if (metric->max == -1 || value > metric->max) {
-		metric->max = value;
-	} else if (metric->min == -1 || metric->min > value) {
-		metric->min = value;
+	if (metric.max == -1 || value > metric.max) {
+		metric.max = value;
+	} else if (metric.min == -1 || metric.min > value) {
+		metric.min = value;
 	}
 
-	if (metric->measurementSize < MAX_MEASURMENT_POINTS) {
-		metric->measurementSize++;
+	if (metric.measurementSize < MAX_MEASURMENT_POINTS) {
+		metric.measurementSize++;
 	}
 
-	metric->measurementIndex = (index + 1) % MAX_MEASURMENT_POINTS;
+	metric.measurementIndex = (index + 1) % MAX_MEASURMENT_POINTS;
 }
 
-const Metric* Metrics::GetMetric(MetricVariable variable) {
-	const auto& iter = m_Metrics.find(variable);
-
-	if (iter == m_Metrics.end()) {
-		return nullptr;
-	}
-
-	Metric* metric = iter->second;
+const Metric& Metrics::GetMetric(MetricVariable variable) {
+	auto& metric = g_Metrics[variable];
 
 	int64_t average = 0;
 
-	for (size_t i = 0; i < metric->measurementSize; i++) {
-		average += metric->measurements[i];
+	for (size_t i = 0; i < metric.measurementSize; i++) {
+		average += metric.measurements[i];
 	}
 
-	average /= metric->measurementSize;
+	average /= metric.measurementSize;
 
-	metric->average = average;
+	metric.average = average;
 
 	return metric;
 }
 
 void Metrics::StartMeasurement(MetricVariable variable) {
-	const auto& iter = m_Metrics.find(variable);
+	auto& metric = g_Metrics[variable];
 
-	Metric* metric;
-
-	if (iter == m_Metrics.end()) {
-		metric = new Metric();
-
-		m_Metrics[variable] = metric;
-	} else {
-		metric = iter->second;
-	}
-
-	metric->activeMeasurement = std::chrono::high_resolution_clock::now();
+	metric.activeMeasurement = std::chrono::high_resolution_clock::now();
 }
 
 void Metrics::EndMeasurement(MetricVariable variable) {
 	const auto end = std::chrono::high_resolution_clock::now();
 
-	const auto& iter = m_Metrics.find(variable);
+	auto& metric = g_Metrics[variable];
 
-	if (iter == m_Metrics.end()) {
-		return;
-	}
-
-	Metric* metric = iter->second;
-
-	const auto elapsed = end - metric->activeMeasurement;
+	const auto elapsed = end - metric.activeMeasurement;
 
 	const auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
 
@@ -110,44 +82,12 @@ float Metrics::ToMiliseconds(int64_t nanoseconds) {
 	return static_cast<float>(nanoseconds) / 1e6;
 }
 
-std::string Metrics::MetricVariableToString(MetricVariable variable) {
-	switch (variable) {
-	case MetricVariable::GameLoop:
-		return "GameLoop";
-	case MetricVariable::PacketHandling:
-		return "PacketHandling";
-	case MetricVariable::UpdateEntities:
-		return "UpdateEntities";
-	case MetricVariable::UpdateSpawners:
-		return "UpdateSpawners";
-	case MetricVariable::Physics:
-		return "Physics";
-	case MetricVariable::UpdateReplica:
-		return "UpdateReplica";
-	case MetricVariable::Sleep:
-		return "Sleep";
-	case MetricVariable::CPUTime:
-		return "CPUTime";
-	case MetricVariable::Frame:
-		return "Frame";
-	case MetricVariable::Ghosting:
-		return "Ghosting";
-
-	default:
-		return "Invalid";
-	}
+const std::string_view Metrics::MetricVariableToString(MetricVariable variable) {
+	return StringifiedEnum::ToString(variable);
 }
 
 const std::vector<MetricVariable>& Metrics::GetAllMetrics() {
-	return m_Variables;
-}
-
-void Metrics::Clear() {
-	for (const auto& pair : m_Metrics) {
-		delete pair.second;
-	}
-
-	m_Metrics.clear();
+	return g_Variables;
 }
 
 /* RSS Memory utilities

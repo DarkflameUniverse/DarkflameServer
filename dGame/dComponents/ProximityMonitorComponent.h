@@ -64,6 +64,7 @@ public:
 
 private:
 
+	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
 	/**
 	 * All the proximity sensors for this component, indexed by name
 	 */

@@ -37,6 +37,7 @@ target_include_directories(dScriptsServerBase PUBLIC "."
 	"Minigame"
 	"Minigame/General"
 	"Objects"
+	"Objects/Hatchlings"
 )
 target_precompile_headers(dScriptsServerBase REUSE_FROM dScriptsBase)
 

@@ -332,6 +332,12 @@ int InstanceManager::GetHardCap(LWOMAPID mapID) {
 	return zone ? zone->population_hard_cap : 12;
 }
 
+void InstanceManager::PruneUnreadyInstances() {
+	for (int i = static_cast<int>(m_Instances.size()) - 1; i >= 0; i--) {
+		if (!m_Instances[i]->GetIsReady()) m_Instances.erase(m_Instances.cbegin() + i);
+	}
+}
+
 void Instance::SetShutdownComplete(const bool value) {
 	m_Shutdown = value;
 }
@@ -359,4 +365,3 @@ bool Instance::IsFull(bool isFriendTransfer) const {
 
 	return true;
 }
-

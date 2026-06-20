@@ -316,15 +316,16 @@ void Entity::Initialize() {
 			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
+			const auto& targetSceneName = m_Character->GetTargetScene();
 
 			//If we came from another zone, put us in the starting loc
-			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
+			// Exception for Moon Base as you tend to spawn on the roof.
+			// second exception if we have a specified targetScene since that would only be possible in a test map
+			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
 				NiPoint3 pos;
 				NiQuaternion rot = QuatUtils::IDENTITY;
 
-				const auto& targetSceneName = m_Character->GetTargetScene();
 				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
 					rot = Game::zoneManager->GetZone()->GetSpawnRot();
@@ -427,7 +428,7 @@ void Entity::Initialize() {
 					comp->SetMaxArmor(destCompData[0].armor);
 					comp->SetDeathBehavior(destCompData[0].death_behavior);
 
-					comp->SetIsSmashable(destCompData[0].isSmashable);
+					comp->SetIsSmashable(comp->GetIsSmashable() || destCompData[0].isSmashable);
 
 					comp->SetLootMatrixID(destCompData[0].LootMatrixIndex);
 					comp->SetCurrencyIndex(destCompData[0].CurrencyIndex);
@@ -949,13 +950,13 @@ void Entity::SetGMLevel(eGameMasterLevel value) {
 	}
 }
 
-void Entity::WriteLDFData(const std::vector<LDFBaseData*>& ldf, RakNet::BitStream& outBitStream) const {
+void Entity::WriteLDFData(const LwoNameValue& ldf, RakNet::BitStream& outBitStream) const {
 	RakNet::BitStream settingStream;
-	int32_t numberOfValidKeys = ldf.size();
+	int32_t numberOfValidKeys = ldf.values.size();
 
 	// Writing keys value pairs the client does not expect to receive or interpret will result in undefined behavior,
 	// so we need to filter out any keys that are not valid and fix the number of valid keys to be correct.
-	for (LDFBaseData* data : ldf) {
+	for (const auto& data : ldf.values | std::views::values) {
 		if (data && data->GetValueType() != eLDFType::LDF_TYPE_UNKNOWN) {
 			data->WriteToPacket(settingStream);
 		} else {
@@ -987,16 +988,16 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		const auto& syncLDF = GetVar<std::vector<std::u16string>>(u"syncLDF");
 
 		// Only sync for models.
-		if (!m_Settings.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
+		if (!m_Settings.values.empty() && (GetComponent<ModelComponent>() && !GetComponent<PetComponent>())) {
 			outBitStream.Write1(); // Has ldf data
 			WriteLDFData(m_Settings, outBitStream);
 		} else if (!syncLDF.empty()) {
 			// Find all the ldf data we need to write
-			std::vector<LDFBaseData*> ldfData;
-			ldfData.reserve(m_Settings.size());
+			LwoNameValue ldfData;
 
 			for (const auto& data : syncLDF) {
-				ldfData.push_back(GetVarData(data));
+				const auto* toInsert = GetVarData(data);
+				if (toInsert) ldfData.values.insert_or_assign(data, toInsert->Copy());
 			}
 
 			outBitStream.Write1(); // Has ldf data
@@ -1613,26 +1614,10 @@ void Entity::Kill(Entity* murderer, const eKillType killType) {
 		else Game::entityManager->DestroyEntity(this);
 	}
 
-	const auto& grpNameQBShowBricks = GetVar<std::string>(u"grpNameQBShowBricks");
-
+	const auto& grpNameQBShowBricks = GetVarAsString(u"grpNameQBShowBricks");
 	if (!grpNameQBShowBricks.empty()) {
-		auto spawners = Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks);
-
-		Spawner* spawner = nullptr;
-
-		if (!spawners.empty()) {
-			spawner = spawners[0];
-		} else {
-			spawners = Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks);
-
-			if (!spawners.empty()) {
-				spawner = spawners[0];
-			}
-		}
-
-		if (spawner != nullptr) {
-			spawner->Spawn();
-		}
+		for (auto* const spawner :  Game::zoneManager->GetSpawnersByName(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
+		for (auto* const spawner : Game::zoneManager->GetSpawnersInGroup(grpNameQBShowBricks)) if (spawner) spawner->Spawn();
 	}
 
 	// Track a player being smashed
@@ -2046,13 +2031,7 @@ void Entity::SetI64(const std::u16string& name, const int64_t value) {
 }
 
 bool Entity::HasVar(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data->GetKey() == name) {
-			return true;
-		}
-	}
-
-	return false;
+	return m_Settings.values.contains(name);
 }
 
 uint16_t Entity::GetNetworkId() const {
@@ -2084,24 +2063,13 @@ void Entity::SendNetworkVar(const std::string& data, const SystemAddress& sysAdd
 	GameMessages::SendSetNetworkScriptVar(this, sysAddr, data);
 }
 
-LDFBaseData* Entity::GetVarData(const std::u16string& name) const {
-	for (auto* data : m_Settings) {
-		if (data == nullptr) {
-			continue;
-		}
-
-		if (data->GetKey() != name) {
-			continue;
-		}
-
-		return data;
-	}
-
-	return nullptr;
+const LDFBaseData* const Entity::GetVarData(const std::u16string& name) const {
+	const auto itr = m_Settings.values.find(name);
+	return itr != m_Settings.values.cend() ? itr->second.get() : nullptr;
 }
 
 std::string Entity::GetVarAsString(const std::u16string& name) const {
-	auto* data = GetVarData(name);
+	const auto* const data = GetVarData(name);
 	return data ? data->GetValueAsString() : "";
 }
 
@@ -2270,6 +2238,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
 	objectInfo.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
 	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(GetSpawnerID());
+	objectInfo.PushDebug<AMFStringValue>("Owner override") = std::to_string(m_OwnerOverride);
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
 	for (const auto [id, component] : m_Components) {
@@ -2277,7 +2246,7 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	}
 
 	auto& configData = objectInfo.PushDebug("Config Data");
-	for (const auto config : m_Settings) {
+	for (const auto& config : m_Settings.values | std::views::values) {
 		configData.PushDebug<AMFStringValue>(GeneralUtils::UTF16ToWTF8(config->GetKey())) = config->GetValueAsString();
 	}
 

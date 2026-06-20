@@ -21,9 +21,7 @@ void StinkyFishTarget::OnSkillEventFired(Entity* self, Entity* caster, const std
 	entityInfo.pos = self->GetPosition();
 	entityInfo.rot = self->GetRotation();
 	entityInfo.spawnerID = self->GetObjectID();
-	entityInfo.settings = {
-		new LDFData<bool>(u"no_timed_spawn", true)
-	};
+	entityInfo.settings.Insert(u"no_timed_spawn", true);
 
 	auto* fish = Game::entityManager->CreateEntity(entityInfo);
 	Game::entityManager->ConstructEntity(fish);

@@ -82,15 +82,12 @@ void BaseEnemyApe::OnTimerDone(Entity* self, std::string timerName) {
 		entityInfo.spawnerID = self->GetObjectID();
 		entityInfo.lot = self->GetVar<LOT>(u"QuickbuildAnchorLOT") != 0
 			? self->GetVar<LOT>(u"QuickbuildAnchorLOT") : 7549;
-		entityInfo.settings = {
-			new LDFData<std::string>(u"rebuild_activators",
+		entityInfo.settings.Insert<std::string>(u"rebuild_activators",
 									 std::to_string(objectPosition.GetX()) + "\x1f" +
 									 std::to_string(objectPosition.GetY()) + "\x1f" +
-									 std::to_string(objectPosition.GetZ())
-			),
-			new LDFData<bool>(u"no_timed_spawn", true),
-			new LDFData<LWOOBJID>(u"ape", self->GetObjectID())
-		};
+									 std::to_string(objectPosition.GetZ()));
+		entityInfo.settings.Insert<bool>(u"no_timed_spawn", true);
+		entityInfo.settings.Insert<LWOOBJID>(u"ape", self->GetObjectID());
 
 		auto* anchor = Game::entityManager->CreateEntity(entityInfo, nullptr, self);
 		Game::entityManager->ConstructEntity(anchor);

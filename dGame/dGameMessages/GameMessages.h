@@ -13,6 +13,7 @@
 #include "Brick.h"
 #include "MessageType/Game.h"
 #include "eGameMasterLevel.h"
+#include "LDFFormat.h"
 
 class AMFBaseValue;
 class AMFArrayValue;
@@ -711,7 +712,7 @@ namespace GameMessages {
 		bool translate{};
 		int32_t time{};
 		std::u16string id{};
-		std::vector<LDFBaseData*> localizeParams{};
+		LwoNameValue localizeParams{};
 		std::u16string imageName{};
 		std::u16string text{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
@@ -734,7 +735,7 @@ namespace GameMessages {
 
 	struct ConfigureRacingControl : public GameMsg {
 		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
-		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+		LwoNameValue racingSettings{};
 	};
 
 	struct SetModelToBuild : public GameMsg {
@@ -754,7 +755,7 @@ namespace GameMessages {
 	struct ActivityNotify : public GameMsg {
 		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
 
-		std::vector<std::unique_ptr<LDFBaseData>> notification{};
+		LwoNameValue notification{};
 	};
 
 	struct ShootingGalleryFire : public GameMsg {
@@ -960,6 +961,13 @@ namespace GameMessages {
 		ChildRemoved() : GameMsg(MessageType::Game::CHILD_REMOVED) {}
 
 		LWOOBJID childID{};
+	};
+
+	struct ObjectLoaded : public GameMsg {
+		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
+
+		LWOOBJID objectID{};
+		LOT lot{};
 	};
 };
 #endif // GAMEMESSAGES_H

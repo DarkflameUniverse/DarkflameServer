@@ -515,9 +515,7 @@ void NjMonastryBossInstance::FightOver(Entity* self) {
 		info.pos = treasureChest->GetPosition();
 		info.rot = treasureChest->GetRotation();
 		info.spawnerID = self->GetObjectID();
-		info.settings = {
-			new LDFData<LWOOBJID>(u"parent_tag", self->GetObjectID())
-		};
+		info.settings.Insert<LWOOBJID>(u"parent_tag", self->GetObjectID());
 
 		// Finally spawn a treasure chest at the correct spawn point
 		auto* chestObject = Game::entityManager->CreateEntity(info);

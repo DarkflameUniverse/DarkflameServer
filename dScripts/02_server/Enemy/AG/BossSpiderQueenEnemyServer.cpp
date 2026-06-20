@@ -16,6 +16,7 @@
 #include "eReplicaComponentType.h"
 #include "RenderComponent.h"
 #include "PlayerManager.h"
+#include "eStateChangeType.h"
 
 #include <vector>
 
@@ -48,8 +49,28 @@ void BossSpiderQueenEnemyServer::OnStartup(Entity* self) {
 	combat->SetStunImmune(true);
 
 	m_CurrentBossStage = 1;
-
+	ToggleAttacking(*self, false);
+	self->SetProximityRadius(65.0f, "AggroRadius");
 	// Obtain faction and collision group to save for subsequent resets
+}
+
+void BossSpiderQueenEnemyServer::OnProximityUpdate(Entity* self, Entity* entering, std::string name, std::string status) {
+	if (name != "AggroRadius" || !entering || !entering->IsPlayer()) return;
+
+	auto playerCount = self->GetVar<int32_t>(u"player_count");
+
+	if (status == "ENTER") {
+		if (playerCount == 0) {
+			ToggleAttacking(*self, true);
+		}
+		playerCount++;
+	} else if (status == "LEAVE") {
+		playerCount--;
+		if (playerCount == 0) {
+			ToggleAttacking(*self, false);
+		}
+	}
+	self->SetVar<int32_t>(u"player_count", playerCount);
 }
 
 void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
@@ -71,6 +92,7 @@ void BossSpiderQueenEnemyServer::OnDie(Entity* self, Entity* killer) {
 	self->SetPosition({ 10000, 0, 10000 });
 
 	Game::entityManager->SerializeEntity(self);
+	ToggleAttacking(*self, false);
 
 	controller->OnFireEventServerSide(self, "ClearProperty");
 }
@@ -633,4 +655,20 @@ float BossSpiderQueenEnemyServer::PlayAnimAndReturnTime(Entity* self, const std:
 	}
 
 	return animTimer;
+}
+
+void BossSpiderQueenEnemyServer::ToggleAttacking(Entity& self, bool on) {
+	const auto stoppedFlag = self.GetVarAs<bool>(u"stoppedFlag");
+
+	if (!on) {
+		if (stoppedFlag) return;
+
+		self.SetVar(u"stoppedFlag", true);
+		combat->Stun(100000.0f, true); // forcibly stun so we stop attacking people trying to put on armor
+	} else {
+		if (!stoppedFlag) return;
+
+		self.SetVar(u"stoppedFlag", false);
+		combat->Stun(0.0f, true); // forcibly turn off the stun we put on above
+	}
 }

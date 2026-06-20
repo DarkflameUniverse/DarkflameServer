@@ -46,6 +46,7 @@
 #include <sstream>
 #include <future>
 #include <chrono>
+#include <ranges>
 #include "RakString.h"
 
 //CDB includes:
@@ -465,20 +466,20 @@ void GameMessages::SendAddItemToInventoryClientSync(Entity* entity, const System
 
 	bitStream.Write(lootSourceType != eLootSourceType::NONE); // Loot source
 	if (lootSourceType != eLootSourceType::NONE) bitStream.Write(lootSourceType);
-	LWONameValue extraInfo;
+	std::u16string extraInfo;
 
-	auto config = item->GetConfig();
+	const auto& config = item->GetConfig();
 
-	for (auto* data : config) {
-		extraInfo.name += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
+	for (const auto& data : config.values | std::views::values) {
+		extraInfo += GeneralUtils::ASCIIToUTF16(data->GetString()) + u",";
 	}
 
-	if (extraInfo.name.length() > 0) extraInfo.name.pop_back(); // remove the last comma
+	if (extraInfo.length() > 0) extraInfo.pop_back(); // remove the last comma
 
-	bitStream.Write<uint32_t>(extraInfo.name.size());
-	if (extraInfo.name.size() > 0) {
-		for (uint32_t i = 0; i < extraInfo.name.size(); ++i) {
-			bitStream.Write<uint16_t>(extraInfo.name[i]);
+	bitStream.Write<uint32_t>(extraInfo.size());
+	if (extraInfo.size() > 0) {
+		for (uint32_t i = 0; i < extraInfo.size(); ++i) {
+			bitStream.Write<uint16_t>(extraInfo[i]);
 		}
 		bitStream.Write<uint16_t>(0x00);
 	}
@@ -743,13 +744,9 @@ void GameMessages::SendBroadcastTextToChatbox(Entity* entity, const SystemAddres
 	bitStream.Write(entity->GetObjectID());
 	bitStream.Write(MessageType::Game::BROADCAST_TEXT_TO_CHATBOX);
 
-	LWONameValue attribs;
-	attribs.name = attrs;
-	attribs.length = attrs.size();
-
-	bitStream.Write<uint32_t>(attribs.length);
-	for (uint32_t i = 0; i < attribs.length; ++i) {
-		bitStream.Write<uint16_t>(attribs.name[i]);
+	bitStream.Write<uint32_t>(attrs.size());
+	for (uint32_t i = 0; i < attrs.size(); ++i) {
+		bitStream.Write<uint16_t>(attrs[i]);
 	}
 	bitStream.Write<uint16_t>(0x00); // Null Terminator
 
@@ -2621,11 +2618,11 @@ void GameMessages::HandleBBBSaveRequest(RakNet::BitStream& inStream, Entity* ent
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
 
-		info.settings.push_back(new LDFData<LWOOBJID>(u"blueprintid", blueprintIDs[i]));
-		info.settings.push_back(new LDFData<int>(u"componentWhitelist", 1));
-		info.settings.push_back(new LDFData<int>(u"modelType", 2));
-		info.settings.push_back(new LDFData<bool>(u"propertyObjectID", true));
-		info.settings.push_back(new LDFData<LWOOBJID>(u"userModelID", modelIDs[i]));
+		info.settings.Insert<LWOOBJID>(u"blueprintid", blueprintIDs[i]);
+		info.settings.Insert<int>(u"componentWhitelist", 1);
+		info.settings.Insert<int>(u"modelType", 2);
+		info.settings.Insert<bool>(u"propertyObjectID", true);
+		info.settings.Insert<LWOOBJID>(u"userModelID", modelIDs[i]);
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 		if (newEntity) {
 			Game::entityManager->ConstructEntity(newEntity);
@@ -3221,7 +3218,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 
 		LOG("Trade request to (%llu)", i64Invitee);
 
-		auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+		const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 		if (trade != nullptr) {
 			if (!trade->IsParticipant(i64Invitee)) {
@@ -3244,7 +3241,7 @@ void GameMessages::HandleClientTradeRequest(RakNet::BitStream& inStream, Entity*
 }
 
 void GameMessages::HandleClientTradeCancel(RakNet::BitStream& inStream, Entity* entity, const SystemAddress& sysAddr) {
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3258,7 +3255,7 @@ void GameMessages::HandleClientTradeAccept(RakNet::BitStream& inStream, Entity* 
 
 	LOG("Trade accepted from (%llu) -> (%d)", entity->GetObjectID(), bFirst);
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -3324,7 +3321,7 @@ void GameMessages::HandleClientTradeUpdate(RakNet::BitStream& inStream, Entity* 
 		LOG("Trade item from (%llu) -> (%llu)/(%llu), (%i), (%llu), (%i), (%i)", entity->GetObjectID(), itemId, itemId2, lot, unknown1, unknown2, unknown3);
 	}
 
-	auto* trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
+	const auto& trade = TradingManager::Instance()->GetPlayerTrade(entity->GetObjectID());
 
 	if (trade == nullptr) return;
 
@@ -5266,7 +5263,8 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	int eInvType = INVENTORY_MAX;
 	bool eLootTypeSourceIsDefault = false;
 	int eLootTypeSource = LOOTTYPE_NONE;
-	LWONameValue extraInfo;
+	int32_t extraInfoLength = 0;
+	std::u16string extraInfo;
 	bool forceDeletion = true;
 	bool iLootTypeSourceIsDefault = false;
 	LWOOBJID iLootTypeSource = LWOOBJID_EMPTY;
@@ -5292,12 +5290,12 @@ void GameMessages::HandleRemoveItemFromInventory(RakNet::BitStream& inStream, En
 	if (eInvTypeIsDefault) inStream.Read(eInvType);
 	inStream.Read(eLootTypeSourceIsDefault);
 	if (eLootTypeSourceIsDefault) inStream.Read(eLootTypeSource);
-	inStream.Read(extraInfo.length);
-	if (extraInfo.length > 0) {
-		for (uint32_t i = 0; i < extraInfo.length; ++i) {
+	inStream.Read(extraInfoLength);
+	if (extraInfoLength > 0) {
+		for (uint32_t i = 0; i < extraInfoLength; ++i) {
 			uint16_t character;
 			inStream.Read(character);
-			extraInfo.name.push_back(character);
+			extraInfo.push_back(character);
 		}
 		uint16_t nullTerm;
 		inStream.Read(nullTerm);
@@ -5505,10 +5503,8 @@ void GameMessages::HandleModularBuildFinish(RakNet::BitStream& inStream, Entity*
 		//inv->UnequipItem(inv->GetItemStackByLOT(6086, eInventoryType::ITEMS)); // take off the thinking cap
 		//Game::entityManager->SerializeEntity(entity);
 
-		const auto moduleAssembly = new LDFData<std::u16string>(u"assemblyPartLOTs", modules);
-
-		std::vector<LDFBaseData*> config;
-		config.push_back(moduleAssembly);
+		LwoNameValue config;
+		config.Insert(u"assemblyPartLOTs", modules);
 
 		LWOOBJID newID = ObjectIDManager::GetPersistentID();
 
@@ -5754,7 +5750,6 @@ void GameMessages::HandleUseNonEquipmentItem(RakNet::BitStream& inStream, Entity
 
 void GameMessages::HandleMatchRequest(RakNet::BitStream& inStream, Entity* entity) {
 	LWOOBJID activator;
-	//std::map<LWOOBJID, LWONameValue> additionalPlayers;
 	uint32_t playerChoicesLen;
 	std::string playerChoices;
 	int type;
@@ -6309,7 +6304,7 @@ namespace GameMessages {
 		bitStream.Write(id);
 
 		std::string toWrite;
-		for (const auto* item : localizeParams) {
+		for (const auto& item : localizeParams | std::views::values) {
 			toWrite += item->GetString() + "\n";
 		}
 		if (!toWrite.empty()) toWrite.pop_back();

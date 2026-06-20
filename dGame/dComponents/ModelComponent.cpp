@@ -221,8 +221,8 @@ void ModelComponent::RemoveBehavior(MoveToInventoryMessage& msg, const bool keep
 			auto* const inventoryComponent = playerEntity->GetComponent<InventoryComponent>();
 			if (inventoryComponent && !behavior.GetIsLoot()) {
 				// config is owned by the item
-				std::vector<LDFBaseData*> config;
-				config.push_back(new LDFData<std::string>(u"userModelName", behavior.GetName()));
+				LwoNameValue config;
+				config.Insert(u"userModelName", behavior.GetName());
 				inventoryComponent->AddItem(7965, 1, eLootSourceType::PROPERTY, eInventoryType::BEHAVIORS, config, LWOOBJID_EMPTY, true, false, msg.GetBehaviorId());
 			}
 		}

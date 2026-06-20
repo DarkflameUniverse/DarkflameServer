@@ -11,6 +11,7 @@
 #include "BitStreamUtils.h"
 
 #include <iostream>
+#include <ranges>
 
 void HTTPMonitorInfo::Serialize(RakNet::BitStream& bitStream) const {
 	bitStream.Write(port);
@@ -88,18 +89,18 @@ void WorldPackets::SendCreateCharacter(const SystemAddress& sysAddr, int64_t rep
 
 	RakNet::BitStream data;
 
-	std::vector<std::unique_ptr<LDFBaseData>> ldfData;
-	ldfData.push_back(std::move(make_unique<LDFData<LWOOBJID>>(u"objid", player)));
-	ldfData.push_back(std::move(make_unique<LDFData<LOT>>(u"template", 1)));
-	ldfData.push_back(std::move(make_unique<LDFData<string>>(u"xmlData", xmlData)));
-	ldfData.push_back(std::move(make_unique<LDFData<u16string>>(u"name", username)));
-	ldfData.push_back(std::move(make_unique<LDFData<int32_t>>(u"gmlevel", static_cast<int32_t>(gm))));
-	ldfData.push_back(std::move(make_unique<LDFData<int32_t>>(u"chatmode", static_cast<int32_t>(gm))));
-	ldfData.push_back(std::move(make_unique<LDFData<int64_t>>(u"reputation", reputation)));
-	ldfData.push_back(std::move(make_unique<LDFData<int32_t>>(u"propertycloneid", cloneID)));
+	LwoNameValue ldfData;
+	ldfData.Insert<LWOOBJID>(u"objid", player);
+	ldfData.Insert<LOT>(u"template", 1);
+	ldfData.Insert<string>(u"xmlData", xmlData);
+	ldfData.Insert<u16string>(u"name", username);
+	ldfData.Insert<int32_t>(u"gmlevel", static_cast<int32_t>(gm));
+	ldfData.Insert<int32_t>(u"chatmode", static_cast<int32_t>(gm));
+	ldfData.Insert<int64_t>(u"reputation", reputation);
+	ldfData.Insert<int32_t>(u"propertycloneid", cloneID);
 	
-	data.Write<uint32_t>(ldfData.size());
-	for (const auto& toSerialize : ldfData) toSerialize->WriteToPacket(data);
+	data.Write<uint32_t>(ldfData.values.size());
+	for (const auto& toSerialize : ldfData | std::views::values) toSerialize->WriteToPacket(data);
 
 	//Compress the data before sending:
 	const uint32_t reservedSize = ZCompression::GetMaxCompressedLength(data.GetNumberOfBytesUsed());

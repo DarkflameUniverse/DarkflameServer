@@ -1,4 +1,11 @@
+add_subdirectory(Hatchlings)
+
 set(DSCRIPTS_SOURCES_02_SERVER_OBJECTS 
 	"AgSurvivalBuffStation.cpp"
-	"StinkyFishTarget.cpp"
-	PARENT_SCOPE)
+	"StinkyFishTarget.cpp")
+
+foreach(file ${DSCRIPTS_SOURCES_02_SERVER_OBJECTS_HATCHLINGS})
+	set(DSCRIPTS_SOURCES_02_SERVER_OBJECTS ${DSCRIPTS_SOURCES_02_SERVER_OBJECTS} "Hatchlings/${file}")
+endforeach()
+
+set(DSCRIPTS_SOURCES_02_SERVER_OBJECTS ${DSCRIPTS_SOURCES_02_SERVER_OBJECTS} PARENT_SCOPE)
