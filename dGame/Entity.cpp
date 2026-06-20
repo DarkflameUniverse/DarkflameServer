@@ -316,15 +316,17 @@ void Entity::Initialize() {
 			controllablePhysics->LoadFromXml(m_Character->GetXMLDoc());
 
 			const auto mapID = Game::server->GetZoneID();
+			const auto& targetSceneName = m_Character->GetTargetScene();
 
 			//If we came from another zone, put us in the starting loc
-			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603) { // Exception for Moon Base as you tend to spawn on the roof.
+			// Exception for Moon Base as you tend to spawn on the roof.
+			// second exception if we have a specified targetScene since that would only be possible in a test map
+			if (m_Character->GetZoneID() != Game::server->GetZoneID() || mapID == 1603 || !targetSceneName.empty()) {
 				NiPoint3 pos;
 				NiQuaternion rot = QuatUtils::IDENTITY;
 
-				const auto& targetSceneName = m_Character->GetTargetScene();
 				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-
+				LOG("args %i (%s) %i", m_Character->HasBeenToWorld(mapID), targetSceneName.c_str(), targetScene != nullptr);
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
 					rot = Game::zoneManager->GetZone()->GetSpawnRot();
