@@ -166,6 +166,7 @@
 #include "AgSalutingNpcs.h"
 #include "BossSpiderQueenEnemyServer.h"
 #include "RockHydrantSmashable.h"
+#include "HatchlingPets.h"
 
 // Misc Scripts
 #include "ExplodingAsset.h"
@@ -423,6 +424,7 @@ namespace {
 		{"scripts\\ai\\NS\\L_NS_CONCERT_INSTRUMENT_QB.lua", []() {return new NsConcertInstrument();}},
 		{"scripts\\ai\\NS\\L_NS_JONNY_FLAG_MISSION_SERVER.lua", []() {return new NsJohnnyMissionServer();}},
 		{"scripts\\02_server\\Objects\\L_STINKY_FISH_TARGET.lua", []() {return new StinkyFishTarget();}},
+		{"scripts\\02_server\\Objects\\Hatchlings\\L_HATCHLING_PETS.lua", []() {return new HatchlingPets();}},
 		{"scripts\\zone\\PROPERTY\\NS\\L_ZONE_NS_PROPERTY.lua", []() {return new ZoneNsProperty();}},
 		{"scripts\\02_server\\Map\\Property\\NS_Med\\L_ZONE_NS_MED_PROPERTY.lua", []() {return new ZoneNsMedProperty();}},
 		{"scripts\\02_server\\Map\\NS\\L_NS_TOKEN_CONSOLE_SERVER.lua", []() {return new NsTokenConsoleServer();}},

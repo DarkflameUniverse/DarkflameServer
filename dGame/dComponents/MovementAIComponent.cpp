@@ -189,6 +189,15 @@ void MovementAIComponent::Update(const float deltaTime) {
 					}
 				} else {
 					Stop();
+					if (m_FollowedTarget != LWOOBJID_EMPTY) {
+						GameMessages::GetPosition getPos;
+						if (!getPos.Send(m_FollowedTarget)) {
+							LOG("Target %llu does not exist anymore to follow", m_FollowedTarget);
+							m_FollowedTarget = LWOOBJID_EMPTY;
+						} else {
+							SetDestination(getPos.pos);
+						}
+					}
 					return;
 				}
 			} else {
@@ -555,5 +564,25 @@ bool MovementAIComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInf
 		pathCopy.pop();
 	}
 
+	movementInfo.PushDebug<AMFStringValue>("Followed Target") = std::to_string(m_FollowedTarget);
+
 	return true;
+}
+
+void MovementAIComponent::FollowTarget(const LWOOBJID target) {
+	if (target == LWOOBJID_EMPTY) {
+		m_FollowedTarget = target;
+		return;
+	}
+	GameMessages::GetPosition getPos;
+	if (!getPos.Send(target)) {
+		LOG("Tried to follow target %llu but they don't exist", target);
+		m_FollowedTarget = LWOOBJID_EMPTY;
+		return;
+	}
+
+	m_FollowedTarget = target;
+	SetMaxSpeed(1.0f);
+	m_CurrentSpeed = 1.0f;
+	SetDestination(getPos.pos);
 }
