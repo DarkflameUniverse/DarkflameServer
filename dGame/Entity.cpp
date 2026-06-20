@@ -326,7 +326,6 @@ void Entity::Initialize() {
 				NiQuaternion rot = QuatUtils::IDENTITY;
 
 				auto* targetScene = Game::entityManager->GetSpawnPointEntity(targetSceneName);
-				LOG("args %i (%s) %i", m_Character->HasBeenToWorld(mapID), targetSceneName.c_str(), targetScene != nullptr);
 				if (m_Character->HasBeenToWorld(mapID) && targetSceneName.empty()) {
 					pos = m_Character->GetRespawnPoint(mapID);
 					rot = Game::zoneManager->GetZone()->GetSpawnRot();
