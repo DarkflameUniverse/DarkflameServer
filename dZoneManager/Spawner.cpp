@@ -203,7 +203,7 @@ void Spawner::Update(const float deltaTime) {
 	}
 }
 
-const std::vector<LWOOBJID>& Spawner::GetSpawnedObjectIDs() const {
+const std::vector<LWOOBJID> Spawner::GetSpawnedObjectIDs() const {
 	std::vector<LWOOBJID> ids;
 	ids.reserve(m_Entities.size());
 	for (const auto objId : m_Entities | std::views::keys) {
