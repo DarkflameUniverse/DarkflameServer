@@ -6,6 +6,7 @@ set(DSCRIPTS_SOURCES_02_SERVER_MAP_NJHUB
 	"EnemySkeletonSpawner.cpp"
 	"FallingTile.cpp"
 	"FlameJetServer.cpp"
+	"LightningOrbServer.cpp"
 	"ImaginationShrineServer.cpp"
 	"Lieutenant.cpp"
 	"MonCoreNookDoors.cpp"
