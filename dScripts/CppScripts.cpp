@@ -274,6 +274,7 @@
 #include "MonCoreNookDoors.h"
 #include "MonCoreSmashableDoors.h"
 #include "FlameJetServer.h"
+#include "LightningOrbServer.h"
 #include "BurningTile.h"
 #include "NjEarthDragonPetServer.h"
 #include "NjEarthPetServer.h"
@@ -628,6 +629,7 @@ namespace {
 		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
 		{"scripts\\02_server\\Map\\njhub\\L_MON_CORE_SMASHABLE_DOORS.lua", []() {return new MonCoreSmashableDoors();}},
 		{"scripts\\02_server\\Map\\njhub\\L_FLAME_JET_SERVER.lua", []() {return new FlameJetServer();}},
+		{"scripts\\02_server\\Map\\njhub\\L_LIGHTNING_ORB_SERVER.lua", []() {return new LightningOrbServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_BURNING_TILE.lua", []() {return new BurningTile();}},
 		{"scripts\\02_server\\Map\\njhub\\L_SPAWN_EARTH_PET_SERVER.lua", []() {return new NjEarthDragonPetServer();}},
 		{"scripts\\02_server\\Map\\njhub\\L_EARTH_PET_SERVER.lua", []() {return new NjEarthPetServer();}},
