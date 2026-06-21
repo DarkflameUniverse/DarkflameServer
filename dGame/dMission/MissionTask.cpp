@@ -218,7 +218,6 @@ void MissionTask::Progress(int32_t value, LWOOBJID associate, const std::string&
 	uint32_t activityId;
 	uint32_t lot;
 	uint32_t collectionId;
-	std::vector<LDFBaseData*> settings;
 
 	switch (type) {
 	case eMissionTaskType::UNKNOWN:

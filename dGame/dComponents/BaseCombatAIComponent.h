@@ -33,13 +33,15 @@ enum class AiState : uint32_t {
  */
 struct AiSkillEntry
 {
-	uint32_t skillId;
+	uint32_t skillId{};
 
-	float cooldown;
+	float cooldown{};
 
-	float abilityCooldown;
+	float abilityCooldown{};
 
-	Behavior* behavior;
+	Behavior* behavior{};
+
+	int32_t combatWeight{};
 };
 
 /**
@@ -181,8 +183,9 @@ public:
 	/**
 	 * Stuns the entity for a certain amount of time, will not work if the entity is stun immune
 	 * @param time the time to stun the entity, if stunnable
+	 * @param force whether or not to force the stun and ignore checks
 	 */
-	void Stun(float time);
+	void Stun(float time, const bool force = false);
 
 	/**
 	 * Gets the radius that will cause this entity to get aggro'd, causing a target chase
@@ -235,6 +238,8 @@ public:
 	void IgnoreThreat(const LWOOBJID target, const float time);
 
 	bool MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	void SetStartingPosition(const NiPoint3& pos) { m_StartPosition = pos; }
 
 private:
 	/**
@@ -394,8 +399,16 @@ private:
 	 */
 	bool m_DirtyStateOrTarget = false;
 
+	// Min amount of time to remain as in combat after casting a skill
+	float m_MinRoundLength = 0.0f;
+	
+	// max amount of time to remain as in combat after casting a skill
+	float m_MaxRoundLength = 0.0f;
+
 	// The amount of time the entity will be forced to tether for
 	float m_ForcedTetherTime = 0.0f;
+
+	float m_CombatRoundLength = 0.0f;
 
 	// The amount of time a removed threat will be ignored for. 
 	std::map<LWOOBJID, float> m_RemovedThreatList;

@@ -24,6 +24,7 @@
 #include "WorldPackets.h"
 #include "MessageType/Game.h"
 #include <ctime>
+#include <ranges>
 
 CharacterComponent::CharacterComponent(Entity* parent, const int32_t componentID, Character* character, const SystemAddress& systemAddress) : Component(parent, componentID) {
 	m_Character = character;
@@ -491,7 +492,7 @@ Item* CharacterComponent::RocketEquip(Entity* player) {
 	if (!rocket) return rocket;
 
 	// build and define the rocket config
-	for (LDFBaseData* data : rocket->GetConfig()) {
+	for (const auto& data : rocket->GetConfig().values | std::views::values) {
 		if (data->GetKey() == u"assemblyPartLOTs") {
 			std::string newRocketStr = data->GetValueAsString() + ";";
 			GeneralUtils::ReplaceInString(newRocketStr, "+", ";");

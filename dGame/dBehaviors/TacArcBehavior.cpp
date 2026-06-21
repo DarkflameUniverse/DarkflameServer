@@ -207,6 +207,10 @@ void TacArcBehavior::Load() {
 		GetFloat("offset_y", 0.0f),
 		GetFloat("offset_z", 0.0f)
 	);
+	// https://explorer.lu/skills/behaviors/6212/6203 HACK: i cant figure out why the dragon fire wall doesnt work with the offset, probably has to be fixed with the near/far height parameters
+	if (m_behaviorId == 6203) {
+		this->m_offset = NiPoint3Constant::ZERO;
+	}
 	this->m_method = GetInt("method", 1);
 	this->m_upperBound = GetFloat("upper_bound", 4.4f);
 	this->m_lowerBound = GetFloat("lower_bound", 0.4f) - 5.0f; // Makes it so players and objects can still be targetted when slightly below the caster.  FIXME: use bounding spheres at some point

@@ -13,6 +13,7 @@
 #include "Brick.h"
 #include "MessageType/Game.h"
 #include "eGameMasterLevel.h"
+#include "LDFFormat.h"
 
 class AMFBaseValue;
 class AMFArrayValue;
@@ -102,9 +103,11 @@ namespace GameMessages {
 	void SendPlayNDAudioEmitter(Entity* entity, const SystemAddress& sysAddr, std::string audioGUID);
 
 	void SendStartPathing(Entity* entity);
+
+	// special is for the FV tree platform, feature is complete if we just do that so meh
 	void SendPlatformResync(Entity* entity, const SystemAddress& sysAddr, bool bStopAtDesiredWaypoint = false,
 		int iIndex = 0, int iDesiredWaypointIndex = 1, int nextIndex = 1,
-		eMovementPlatformState movementState = eMovementPlatformState::Moving);
+		eMovementPlatformState movementState = eMovementPlatformState::Moving, bool special = false);
 
 	void SendResetMissions(Entity* entity, const SystemAddress& sysAddr, const int32_t missionid = -1);
 	void SendRestoreToPostLoadStats(Entity* entity, const SystemAddress& sysAddr);
@@ -711,7 +714,7 @@ namespace GameMessages {
 		bool translate{};
 		int32_t time{};
 		std::u16string id{};
-		std::vector<LDFBaseData*> localizeParams{};
+		LwoNameValue localizeParams{};
 		std::u16string imageName{};
 		std::u16string text{};
 		void Serialize(RakNet::BitStream& bitStream) const override;
@@ -734,7 +737,7 @@ namespace GameMessages {
 
 	struct ConfigureRacingControl : public GameMsg {
 		ConfigureRacingControl() : GameMsg(MessageType::Game::CONFIGURE_RACING_CONTROL) {}
-		std::vector<std::unique_ptr<LDFBaseData>> racingSettings{};
+		LwoNameValue racingSettings{};
 	};
 
 	struct SetModelToBuild : public GameMsg {
@@ -754,7 +757,7 @@ namespace GameMessages {
 	struct ActivityNotify : public GameMsg {
 		ActivityNotify() : GameMsg(MessageType::Game::ACTIVITY_NOTIFY) {}
 
-		std::vector<std::unique_ptr<LDFBaseData>> notification{};
+		LwoNameValue notification{};
 	};
 
 	struct ShootingGalleryFire : public GameMsg {
@@ -969,6 +972,13 @@ namespace GameMessages {
 		bool bRemove{};
 		LWOOBJID possessedId{ LWOOBJID_EMPTY };
 		int32_t setId{ -1 };
+	};
+
+	struct ObjectLoaded : public GameMsg {
+		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
+
+		LWOOBJID objectID{};
+		LOT lot{};
 	};
 };
 #endif // GAMEMESSAGES_H

@@ -12,7 +12,6 @@
 #include "eReplicaComponentType.h"
 #include "PhysicsComponent.h"
 
-class LDFBaseData;
 class Entity;
 class dpEntity;
 enum class ePhysicsEffectType : uint32_t ;

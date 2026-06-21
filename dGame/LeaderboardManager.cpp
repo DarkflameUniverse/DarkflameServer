@@ -18,7 +18,8 @@
 #include "DluAssert.h"
 
 #include "CDActivitiesTable.h"
-#include "Metrics.hpp"
+
+#include <chrono>
 
 namespace LeaderboardManager {
 	std::map<GameID, Leaderboard::Type> leaderboardCache;
@@ -38,10 +39,10 @@ Leaderboard::~Leaderboard() {
 }
 
 void Leaderboard::Clear() {
-	for (auto& entry : entries) for (auto ldfData : entry) delete ldfData;
+	entries.clear();
 }
 
-inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, LDFBaseData* data) {
+inline void WriteLeaderboardRow(std::ostringstream& leaderboard, const uint32_t& index, const std::unique_ptr<LDFBaseData>& data) {
 	leaderboard << "\nResult[0].Row[" << index << "]." << data->GetString();
 }
 
@@ -58,8 +59,8 @@ void Leaderboard::Serialize(RakNet::BitStream& bitStream) const {
 
 	int32_t rowNumber = 0;
 	for (auto& entry : entries) {
-		for (auto* data : entry) {
-			WriteLeaderboardRow(leaderboard, rowNumber, data);
+		for (const auto& data : entry.values | std::views::values) {
+			if (data) WriteLeaderboardRow(leaderboard, rowNumber, data);
 		}
 		rowNumber++;
 	}
@@ -84,57 +85,56 @@ void QueryToLdf(Leaderboard& leaderboard, const std::vector<ILeaderboard::Entry>
 	for (const auto& leaderboardEntry : leaderboardEntries) {
 		constexpr int32_t MAX_NUM_DATA_PER_ROW = 9;
 		auto& entry = leaderboard.PushBackEntry();
-		entry.reserve(MAX_NUM_DATA_PER_ROW);
-		entry.push_back(new LDFData<uint64_t>(u"CharacterID", leaderboardEntry.charId));
-		entry.push_back(new LDFData<uint64_t>(u"LastPlayed", leaderboardEntry.lastPlayedTimestamp));
-		entry.push_back(new LDFData<int32_t>(u"NumPlayed", leaderboardEntry.numTimesPlayed));
-		entry.push_back(new LDFData<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(leaderboardEntry.name)));
-		entry.push_back(new LDFData<uint64_t>(u"RowNumber", leaderboardEntry.ranking));
+		entry.Insert<uint64_t>(u"CharacterID", leaderboardEntry.charId);
+		entry.Insert<uint64_t>(u"LastPlayed", leaderboardEntry.lastPlayedTimestamp);
+		entry.Insert<int32_t>(u"NumPlayed", leaderboardEntry.numTimesPlayed);
+		entry.Insert<std::u16string>(u"name", GeneralUtils::ASCIIToUTF16(leaderboardEntry.name));
+		entry.Insert<uint64_t>(u"RowNumber", leaderboardEntry.ranking);
 		switch (leaderboard.GetLeaderboardType()) {
 		case ShootingGallery:
-			entry.push_back(new LDFData<int32_t>(u"Score", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Score", leaderboardEntry.primaryScore);
 			// Score:1
-			entry.push_back(new LDFData<int32_t>(u"Streak", leaderboardEntry.secondaryScore));
+			entry.Insert<int32_t>(u"Streak", leaderboardEntry.secondaryScore);
 			// Streak:1
-			entry.push_back(new LDFData<float>(u"HitPercentage", leaderboardEntry.tertiaryScore));
+			entry.Insert<float>(u"HitPercentage", leaderboardEntry.tertiaryScore);
 			// HitPercentage:3 between 0 and 1
 			break;
 		case Racing:
-			entry.push_back(new LDFData<float>(u"BestTime", leaderboardEntry.primaryScore));
+			entry.Insert<float>(u"BestTime", leaderboardEntry.primaryScore);
 			// BestLapTime:3
-			entry.push_back(new LDFData<float>(u"BestLapTime", leaderboardEntry.secondaryScore));
+			entry.Insert<float>(u"BestLapTime", leaderboardEntry.secondaryScore);
 			// BestTime:3
-			entry.push_back(new LDFData<int32_t>(u"License", 1));
+			entry.Insert<int32_t>(u"License", 1);
 			// License:1 - 1 if player has completed mission 637 and 0 otherwise
-			entry.push_back(new LDFData<int32_t>(u"NumWins", leaderboardEntry.numWins));
+			entry.Insert<int32_t>(u"NumWins", leaderboardEntry.numWins);
 			// NumWins:1
 			break;
 		case UnusedLeaderboard4:
-			entry.push_back(new LDFData<int32_t>(u"Points", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Points", leaderboardEntry.primaryScore);
 			// Points:1
 			break;
 		case MonumentRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Time", leaderboardEntry.primaryScore);
 			// Time:1(?)
 			break;
 		case FootRace:
-			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Time", leaderboardEntry.primaryScore);
 			// Time:1
 			break;
 		case Survival:
-			entry.push_back(new LDFData<int32_t>(u"Points", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Points", leaderboardEntry.primaryScore);
 			// Points:1
-			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.secondaryScore));
+			entry.Insert<int32_t>(u"Time", leaderboardEntry.secondaryScore);
 			// Time:1
 			break;
 		case SurvivalNS:
-			entry.push_back(new LDFData<int32_t>(u"Wave", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Wave", leaderboardEntry.primaryScore);
 			// Wave:1
-			entry.push_back(new LDFData<int32_t>(u"Time", leaderboardEntry.secondaryScore));
+			entry.Insert<int32_t>(u"Time", leaderboardEntry.secondaryScore);
 			// Time:1
 			break;
 		case Donations:
-			entry.push_back(new LDFData<int32_t>(u"Score", leaderboardEntry.primaryScore));
+			entry.Insert<int32_t>(u"Score", leaderboardEntry.primaryScore);
 			// Score:1
 			break;
 		case None:

@@ -111,18 +111,6 @@ private:
 
 constexpr LWOSCENEID LWOSCENEID_INVALID = -1;
 
-struct LWONameValue {
-	uint32_t length = 0;        //!< The length of the name
-	std::u16string name;			//!< The name
-
-	LWONameValue() = default;
-
-	LWONameValue(const std::u16string& name) {
-		this->name = name;
-		this->length = static_cast<uint32_t>(name.length());
-	}
-};
-
 struct FriendData {
 public:
 	bool isOnline = false;

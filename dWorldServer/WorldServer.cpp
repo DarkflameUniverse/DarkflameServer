@@ -14,7 +14,7 @@
 #include "dConfig.h"
 #include "dpWorld.h"
 #include "dZoneManager.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PerformanceManager.h"
 #include "Diagnostics.h"
 #include "BinaryPathFinder.h"
@@ -1019,6 +1019,7 @@ void HandlePacket(Packet* packet) {
 		if (user) {
 			Character* c = user->GetLastUsedChar();
 			if (c != nullptr) {
+				if (Game::entityManager->GetEntity(c->GetObjectID())) return;
 				std::u16string username = GeneralUtils::ASCIIToUTF16(c->GetName());
 				Game::server->GetReplicaManager()->AddParticipant(packet->systemAddress);
 
@@ -1538,7 +1539,6 @@ void FinalizeShutdown() {
 	LOG("Shutdown complete, zone (%i), instance (%i)", Game::server->GetZoneID(), g_InstanceID);
 
 	//Delete our objects here:
-	Metrics::Clear();
 	dpWorld::Shutdown();
 	Database::Destroy("WorldServer");
 	if (Game::chatFilter) delete Game::chatFilter;

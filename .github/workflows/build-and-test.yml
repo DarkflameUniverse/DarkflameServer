@@ -34,12 +34,12 @@ jobs:
       if: ${{ matrix.os == 'windows-2025' }}
       uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
       with:
-        vs-version: '[17,18)'
+        vs-version: '[18,19)'
         msbuild-architecture: x64
-    - name: Get CMake 3.x
+    - name: Get CMake
       uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
       with:
-        cmakeVersion: "~3.25.0"
+        cmakeVersion: "latest"
     - name: cmake
       uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
       with:

@@ -13,7 +13,7 @@
 #include "dpShapeSphere.h"
 #include "dZoneManager.h"
 #include "EntityInfo.h"
-#include "Metrics.hpp"
+#include "Metrics.h"
 #include "PlayerManager.h"
 #include "SlashCommandHandler.h"
 #include "UserManager.h"
@@ -802,7 +802,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert<bool>(u"SpawnedFromSlashCommand", true);
 
 		Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
 
@@ -844,7 +844,7 @@ namespace DEVGMCommands {
 		info.spawner = nullptr;
 		info.spawnerID = entity->GetObjectID();
 		info.spawnerNodeID = 0;
-		info.settings = { new LDFData<bool>(u"SpawnedFromSlashCommand", true) };
+		info.settings.Insert(u"SpawnedFromSlashCommand", true);
 
 		auto playerPosition = entity->GetPosition();
 		while (numberToSpawn > 0) {
@@ -1051,7 +1051,8 @@ namespace DEVGMCommands {
 
 		ChatPackets::SendSystemMessage(sysAddr, u"Requesting map change...");
 		LWOCLONEID cloneId = 0;
-		bool force = false;
+		LWOINSTANCEID instanceID{};
+		std::string targetScene;
 
 		const auto reqZoneOptional = GeneralUtils::TryParse<LWOMAPID>(splitArgs[0]);
 		if (!reqZoneOptional) {
@@ -1061,29 +1062,34 @@ namespace DEVGMCommands {
 		const LWOMAPID reqZone = reqZoneOptional.value();
 
 		if (splitArgs.size() > 1) {
-			auto index = 1;
-
-			if (splitArgs[index] == "force") {
-				index++;
-
-				force = true;
+			const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(splitArgs[1]);
+			if (!cloneIdOptional) {
+				ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
+				return;
 			}
 
-			if (splitArgs.size() > index) {
-				const auto cloneIdOptional = GeneralUtils::TryParse<LWOCLONEID>(splitArgs[index]);
-				if (!cloneIdOptional) {
-					ChatPackets::SendSystemMessage(sysAddr, u"Invalid clone id.");
+			cloneId = cloneIdOptional.value();
+
+			if (splitArgs.size() > 2) {
+				const auto instanceIDVal = GeneralUtils::TryParse<LWOINSTANCEID>(splitArgs[2]);
+				if (!instanceIDVal) {
+					ChatPackets::SendSystemMessage(sysAddr, u"Invalid instance id.");
 					return;
 				}
-				cloneId = cloneIdOptional.value();
+
+				instanceID = instanceIDVal.value();
+			}
+
+			if (splitArgs.size() > 3) {
+				targetScene = splitArgs[3];
 			}
 		}
 
 		const auto objid = entity->GetObjectID();
 
-		if (force || Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
+		if (Game::zoneManager->CheckIfAccessibleZone(reqZone)) { // to prevent tomfoolery
 
-			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
+			ZoneInstanceManager::Instance()->RequestZoneTransfer(Game::server, reqZone, cloneId, false, [objid, targetScene](bool mythranShift, uint32_t zoneID, uint32_t zoneInstance, uint32_t zoneClone, std::string serverIP, uint16_t serverPort) {
 
 				auto* entity = Game::entityManager->GetEntity(objid);
 				if (!entity) return;
@@ -1101,6 +1107,7 @@ namespace DEVGMCommands {
 					entity->GetCharacter()->SetZoneID(zoneID);
 					entity->GetCharacter()->SetZoneInstance(zoneInstance);
 					entity->GetCharacter()->SetZoneClone(zoneClone);
+					entity->GetCharacter()->SetTargetScene(targetScene);
 					entity->GetComponent<CharacterComponent>()->SetLastRocketConfig(u"");
 				}
 
@@ -1268,10 +1275,10 @@ namespace DEVGMCommands {
 		auto* inventoryComponent = entity->GetComponent<InventoryComponent>();
 		if (!inventoryComponent) return;
 
-		std::vector<LDFBaseData*> data{};
-		data.push_back(new LDFData<int32_t>(u"reforgedLOT", reforgedItem.value()));
+		LwoNameValue config;
+		config.Insert<LOT>(u"reforgedLOT", reforgedItem.value());
 
-		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, data);
+		inventoryComponent->AddItem(baseItem.value(), 1, eLootSourceType::MODERATION, eInventoryType::INVALID, config);
 	}
 
 	void Crash(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
@@ -1288,18 +1295,14 @@ namespace DEVGMCommands {
 		response.Insert("serverInfo", true);
 		auto* info = response.InsertArray("data");
 		for (const auto variable : Metrics::GetAllMetrics()) {
-			auto& metricData = info->PushDebug(StringifiedEnum::ToString(variable));
+			auto& metricData = info->PushDebug(Metrics::MetricVariableToString(variable));
 
-			auto* metric = Metrics::GetMetric(variable);
+			const auto& metric = Metrics::GetMetric(variable);
 
-			if (metric == nullptr) {
-				continue;
-			}
-
-			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric->max)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric->min)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric->average)) + "ms";
-			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric->measurementSize);
+			metricData.PushDebug<AMFStringValue>("Maximum") = std::to_string(Metrics::ToMiliseconds(metric.max)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Minimum") = std::to_string(Metrics::ToMiliseconds(metric.min)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Average") = std::to_string(Metrics::ToMiliseconds(metric.average)) + "ms";
+			metricData.PushDebug<AMFStringValue>("Measurements Count") = std::to_string(metric.measurementSize);
 		}
 		auto& processInfo = info->PushDebug("Process Info");
 		processInfo.PushDebug<AMFStringValue>("Peak RSS") = std::to_string(static_cast<double>(Metrics::GetPeakRSS()) / 1.024e6) + "MB";
@@ -1517,7 +1520,15 @@ namespace DEVGMCommands {
 	void Inspect(Entity* entity, const SystemAddress& sysAddr, const std::string args) {
 		const auto splitArgs = GeneralUtils::SplitString(args, ' ');
 		if (splitArgs.empty()) return;
-		const auto idParsed = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+		std::optional<LWOOBJID> idIntermed;
+		if (splitArgs[0] == "zoneControl") {
+			idIntermed = 0x3FFF'FFFFFFFE;
+		} else if (splitArgs[0] == "localCharacter") {
+			idIntermed = entity->GetObjectID();
+		} else {
+			idIntermed = GeneralUtils::TryParse<LWOOBJID>(splitArgs[0]);
+		}
+		const auto idParsed = idIntermed;
 
 		// First try to get the object by its ID if provided.
 		// Second try to get the object by player name.

@@ -114,7 +114,7 @@ uint32_t ActivityManager::CalculateActivityRating(Entity* self, const LWOOBJID p
 	if (sac == nullptr)
 		return 0;
 
-	return sac->GetInstance(playerID)->GetParticipants().size();
+	return sac->GetInstance(playerID).GetParticipants().size();
 }
 
 uint32_t ActivityManager::GetActivityID(const Entity* self) {

@@ -66,7 +66,7 @@ void GfBanana::OnHit(Entity* self, Entity* attacker) {
 	info.pos.z -= QuatUtils::Right(rotation).z * 5;
 	info.rot = rotation;
 	info.spawnerID = self->GetObjectID();
-	info.settings = { new LDFData<uint32_t>(u"motionType", 5) };
+	info.settings.Insert<uint32_t>(u"motionType", 5);
 	auto* const newEn = Game::entityManager->CreateEntity(info, nullptr, self);
 	Game::entityManager->ConstructEntity(newEn);
 }
