@@ -77,8 +77,6 @@ private:
 	bool m_Client;
 
 	std::string m_ScriptName;
-
-	std::map<MessageType::Game, std::function<bool(Entity&, GameMessages::GameMsg&)>> m_MsgHandlers;
 };
 
 #endif // SCRIPTCOMPONENT_H
