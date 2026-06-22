@@ -51,8 +51,10 @@ public:
 	// Registers a message from a script to be listened for on the parent object
 	template<typename ScriptClass, typename DerivedMsgType>
 	void RegisterMsg(ScriptClass* scriptThis, bool (ScriptClass::*scriptHandler)(Entity&, DerivedMsgType&)) {
+		static_assert(std::is_base_of_v<GameMessages::GameMsg, DerivedMsgType>, "DerivedMsgType must derive from GameMessages::GameMsg base class.");
 		const auto boundMsg = std::bind(scriptHandler, scriptThis, std::placeholders::_1, std::placeholders::_2);
-		const auto castWrapper = [this, boundMsg](GameMessages::GameMsg& msg) {
+		auto* const parent = m_Parent;
+		const auto castWrapper = [parent, boundMsg](GameMessages::GameMsg& msg) {
 			return boundMsg(*m_Parent, static_cast<DerivedMsgType&>(msg));
 			};
 		DerivedMsgType msg;

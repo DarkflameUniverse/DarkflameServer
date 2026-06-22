@@ -9,5 +9,6 @@ void FvDragonInstanceServer::OnPlayerLoaded(Entity* self, Entity* player) {
 		destComp->SetHealth(destComp->GetMaxHealth());
 		destComp->SetArmor(destComp->GetMaxArmor());
 		destComp->SetImagination(destComp->GetMaxImagination());
+		Game::entityManager->SerializeEntity(player);
 	}
 }
