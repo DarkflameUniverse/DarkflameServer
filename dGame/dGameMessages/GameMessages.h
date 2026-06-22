@@ -976,8 +976,8 @@ namespace GameMessages {
 	struct NotifyCombatAIStateChange : public GameMsg {
 		NotifyCombatAIStateChange() : GameMsg(MessageType::Game::NOTIFY_COMBAT_AI_STATE_CHANGE) {}
 
-		AiState newState;
-		AiState prevState;
+		AiState newState{};
+		AiState prevState{};
 	};
 };
 #endif // GAMEMESSAGES_H
