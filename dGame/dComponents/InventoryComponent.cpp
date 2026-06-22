@@ -984,9 +984,6 @@ void InventoryComponent::UnequipScripts(Item* unequippedItem) {
 }
 
 void InventoryComponent::HandlePossession(Item* item) {
-	auto* characterComponent = m_Parent->GetComponent<CharacterComponent>();
-	if (!characterComponent) return;
-
 	auto* possessorComponent = m_Parent->GetComponent<PossessorComponent>();
 	if (!possessorComponent) return;
 
@@ -1002,52 +999,31 @@ void InventoryComponent::HandlePossession(Item* item) {
 		return;
 	}
 
-	GameMessages::SendSetStunned(m_Parent->GetObjectID(), eStateChangeType::PUSH, m_Parent->GetSystemAddress(), LWOOBJID_EMPTY, true, false, true, false, false, false, false, true, true, true, true, true, true, true, true, true);
-
-	// Set the mount Item ID so that we know what were handling
+	// Set the mount item ID so that we know what we're handling
 	possessorComponent->SetMountItemID(item->GetId());
 	GameMessages::SendSetMountInventoryID(m_Parent, item->GetId(), UNASSIGNED_SYSTEM_ADDRESS);
 
-	// Create entity to mount
-	auto startRotation = m_Parent->GetRotation();
-
+	// Create the mount entity
 	EntityInfo info{};
 	info.lot = item->GetLot();
 	info.pos = m_Parent->GetPosition();
-	info.rot = startRotation;
+	info.rot = m_Parent->GetRotation();
 	info.spawnerID = m_Parent->GetObjectID();
 
 	auto* mount = Game::entityManager->CreateEntity(info, nullptr, m_Parent);
 
-	// Check to see if the mount is a vehicle, if so, flip it
-	auto* vehicleComponent = mount->GetComponent<HavokVehiclePhysicsComponent>();
-	if (vehicleComponent) characterComponent->SetIsRacing(true);
-
-	// Setup the destroyable stats
-	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
-	if (destroyableComponent) {
-		destroyableComponent->SetIsImmune(true);
-	}
-
-	// Mount it
 	auto* possessableComponent = mount->GetComponent<PossessableComponent>();
 	if (possessableComponent) {
 		possessableComponent->SetIsItemSpawned(true);
 		possessableComponent->SetPossessor(m_Parent->GetObjectID());
-		// Possess it
-		possessorComponent->SetPossessable(mount->GetObjectID());
-		possessorComponent->SetPossessableType(possessableComponent->GetPossessionType());
 	}
 
-	GameMessages::SendSetJetPackMode(m_Parent, false);
+	auto* destroyableComponent = mount->GetComponent<DestroyableComponent>();
+	if (destroyableComponent) destroyableComponent->SetIsImmune(true);
 
-	// Make it go to the client
 	Game::entityManager->ConstructEntity(mount);
-	// Update the possessor
-	Game::entityManager->SerializeEntity(m_Parent);
+	possessorComponent->Mount(mount);
 
-	// have to unlock the input so it vehicle can be driven
-	if (vehicleComponent) GameMessages::SendVehicleUnlockInput(mount->GetObjectID(), false, m_Parent->GetSystemAddress());
 	GameMessages::SendMarkInventoryItemAsActive(m_Parent->GetObjectID(), true, eUnequippableActiveType::MOUNT, item->GetId(), m_Parent->GetSystemAddress());
 }
 

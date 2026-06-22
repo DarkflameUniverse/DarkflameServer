@@ -965,6 +965,15 @@ namespace GameMessages {
 		LWOOBJID childID{};
 	};
 
+	struct UseSkillSet : public GameMsg {
+		UseSkillSet() : GameMsg(MessageType::Game::USE_SKILL_SET) {}
+		void Serialize(RakNet::BitStream& bitStream) const override;
+
+		bool bRemove{};
+		LWOOBJID possessedId{ LWOOBJID_EMPTY };
+		int32_t setId{ -1 };
+	};
+
 	struct ObjectLoaded : public GameMsg {
 		ObjectLoaded() : GameMsg(MessageType::Game::OBJECT_LOADED) {}
 
