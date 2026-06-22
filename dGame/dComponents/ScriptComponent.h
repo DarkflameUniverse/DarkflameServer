@@ -55,7 +55,7 @@ public:
 		const auto boundMsg = std::bind(scriptHandler, scriptThis, std::placeholders::_1, std::placeholders::_2);
 		auto* const parent = m_Parent;
 		const auto castWrapper = [parent, boundMsg](GameMessages::GameMsg& msg) {
-			return boundMsg(*m_Parent, static_cast<DerivedMsgType&>(msg));
+			return boundMsg(*parent, static_cast<DerivedMsgType&>(msg));
 			};
 		DerivedMsgType msg;
 		m_Parent->RegisterMsg(msg.msgId, castWrapper);
