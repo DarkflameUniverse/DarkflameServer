@@ -38,7 +38,7 @@ bool CountdownDestroyAI::OnNotifyCombatAIStateChange(Entity& self, GameMessages:
 	const auto curState = notifyMsg.newState;
 	if (curState == AiState::dead) return true;
 
-	if (curState == AiState::aggro) {
+	if (curState == AiState::aggro || curState == AiState::tether) {
 		self.SetVar(u"Busy", true);
 	} else {
 		self.SetVar(u"Busy", false);
