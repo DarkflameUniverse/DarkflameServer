@@ -8,6 +8,9 @@
 
 #include "CppScripts.h"
 #include "Component.h"
+#include "GameMessages.h"
+#include <functional>
+#include <map>
 #include <string>
 #include "eReplicaComponentType.h"
 
@@ -42,8 +45,19 @@ public:
 	 * @param scriptName the name of the script to find
 	 */
 	void SetScript(const std::string& scriptName);
-	
+
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	// Registers a message from a script to be listened for on the parent object
+	template<typename ScriptClass, typename DerivedMsgType>
+	void RegisterMsg(ScriptClass* scriptThis, bool (ScriptClass::*scriptHandler)(Entity&, DerivedMsgType&)) {
+		const auto boundMsg = std::bind(scriptHandler, scriptThis, std::placeholders::_1, std::placeholders::_2);
+		const auto castWrapper = [this, boundMsg](GameMessages::GameMsg& msg) {
+			return boundMsg(*m_Parent, static_cast<DerivedMsgType&>(msg));
+			};
+		DerivedMsgType msg;
+		m_Parent->RegisterMsg(msg.msgId, castWrapper);
+	}
 
 private:
 
@@ -63,6 +77,8 @@ private:
 	bool m_Client;
 
 	std::string m_ScriptName;
+
+	std::map<MessageType::Game, std::function<bool(Entity&, GameMessages::GameMsg&)>> m_MsgHandlers;
 };
 
 #endif // SCRIPTCOMPONENT_H

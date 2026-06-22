@@ -521,6 +521,10 @@ void BaseCombatAIComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsI
 
 void BaseCombatAIComponent::SetAiState(AiState newState) {
 	if (newState == this->m_State) return;
+	GameMessages::NotifyCombatAIStateChange stateMsg;
+	stateMsg.prevState = this->m_State;
+	stateMsg.newState = newState;
+	m_Parent->HandleMsg(stateMsg);
 	this->m_State = newState;
 	m_DirtyStateOrTarget = true;
 	Game::entityManager->SerializeEntity(m_Parent);
