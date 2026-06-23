@@ -16,7 +16,7 @@ ScriptComponent::ScriptComponent(Entity* parent, const int32_t componentID, cons
 	m_ScriptName = scriptName;
 
 	SetScript(scriptName);
-	RegisterMsg(&ScriptComponent::OnGetObjectReportInfo);
+	Component::RegisterMsg(&ScriptComponent::OnGetObjectReportInfo);
 }
 
 void ScriptComponent::Serialize(RakNet::BitStream& outBitStream, bool bIsInitialUpdate) {

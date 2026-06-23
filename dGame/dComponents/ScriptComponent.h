@@ -8,6 +8,9 @@
 
 #include "CppScripts.h"
 #include "Component.h"
+#include "GameMessages.h"
+#include <functional>
+#include <map>
 #include <string>
 #include "eReplicaComponentType.h"
 
@@ -42,8 +45,21 @@ public:
 	 * @param scriptName the name of the script to find
 	 */
 	void SetScript(const std::string& scriptName);
-	
+
 	bool OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo);
+
+	// Registers a message from a script to be listened for on the parent object
+	template<typename ScriptClass, typename DerivedMsgType>
+	void RegisterMsg(ScriptClass* scriptThis, bool (ScriptClass::*scriptHandler)(Entity&, DerivedMsgType&)) {
+		static_assert(std::is_base_of_v<GameMessages::GameMsg, DerivedMsgType>, "DerivedMsgType must derive from GameMessages::GameMsg base class.");
+		const auto boundMsg = std::bind(scriptHandler, scriptThis, std::placeholders::_1, std::placeholders::_2);
+		auto* const parent = m_Parent;
+		const auto castWrapper = [parent, boundMsg](GameMessages::GameMsg& msg) {
+			return boundMsg(*parent, static_cast<DerivedMsgType&>(msg));
+			};
+		DerivedMsgType msg;
+		m_Parent->RegisterMsg(msg.msgId, castWrapper);
+	}
 
 private:
 

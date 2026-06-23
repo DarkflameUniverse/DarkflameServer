@@ -135,8 +135,11 @@
 #include "FvMaelstromCavalry.h"
 #include "FvHorsemenTrigger.h"
 #include "FvFlyingCreviceDragon.h"
+#include "FvDragonInstanceServer.h"
 #include "FvMaelstromDragon.h"
+#include "DragonRonin.h"
 #include "FvDragonSmashingGolemQb.h"
+#include "CountdownDestroyAI.h"
 #include "TreasureChestDragonServer.h"
 #include "InstanceExitTransferPlayerToLastNonInstance.h"
 #include "FvFreeGfNinjas.h"
@@ -491,7 +494,10 @@ namespace {
 		{"scripts\\ai\\FV\\L_ACT_NINJA_TURRET_1.lua", []() {return new ActNinjaTurret();}},
 		{"scripts\\02_server\\Map\\FV\\L_FV_HORSEMEN_TRIGGER.lua", []() {return new FvHorsemenTrigger();}},
 		{"scripts\\ai\\FV\\L_FV_FLYING_CREVICE_DRAGON.lua", []() {return new FvFlyingCreviceDragon();}},
+		{"scripts\\ai\\FV\\Dragon_Instance\\L_FV_DRAGON_INSTANCE_SERVER.lua", []() {return new FvDragonInstanceServer();}},
+		{"scripts\\02_server\\Enemy\\FV\\L_FV_DRAGON_RONIN.lua", []() {return new DragonRonin();}},
 		{"scripts\\02_server\\Enemy\\FV\\L_FV_MAELSTROM_DRAGON.lua", []() {return new FvMaelstromDragon();}},
+		{"scripts\\02_server\\Enemy\\General\\L_COUNTDOWN_DESTROY_AI.lua", []() {return new CountdownDestroyAI();}},
 		{"scripts\\ai\\FV\\L_FV_DRAGON_SMASHING_GOLEM_QB.lua", []() {return new FvDragonSmashingGolemQb();}},
 		{"scripts\\02_server\\Enemy\\General\\L_TREASURE_CHEST_DRAGON_SERVER.lua", []() {return new TreasureChestDragonServer();}},
 		{"scripts\\ai\\GENERAL\\L_INSTANCE_EXIT_TRANSFER_PLAYER_TO_LAST_NON_INSTANCE.lua", []() {return new InstanceExitTransferPlayerToLastNonInstance();}},

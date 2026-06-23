@@ -45,6 +45,7 @@ enum class BehaviorSlot : int32_t;
 enum class eVendorTransactionResult : uint32_t;
 enum class eReponseMoveItemBetweenInventoryTypeCode : int32_t;
 enum class eMissionState : int;
+enum class AiState : uint32_t;
 
 enum class eCameraTargetCyclingMode : int32_t {
 	ALLOW_CYCLE_TEAMMATES,
@@ -979,6 +980,13 @@ namespace GameMessages {
 
 		LWOOBJID objectID{};
 		LOT lot{};
+	};
+
+	struct NotifyCombatAIStateChange : public GameMsg {
+		NotifyCombatAIStateChange() : GameMsg(MessageType::Game::NOTIFY_COMBAT_AI_STATE_CHANGE) {}
+
+		AiState newState{};
+		AiState prevState{};
 	};
 };
 #endif // GAMEMESSAGES_H
