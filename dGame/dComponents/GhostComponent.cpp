@@ -108,7 +108,7 @@ bool GhostComponent::OnGetGMInvis(GameMessages::GetGMInvis& gmInvisMsg) {
 bool GhostComponent::MsgGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportMsg) {
 	auto& cmptType = reportMsg.info->PushDebug("Ghost");
 	cmptType.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
-	cmptType.PushDebug<AMFBoolValue>("Is GM Invis") = false;
+	cmptType.PushDebug<AMFBoolValue>("Is GM Invis") = m_IsGMInvisible;
 
 	return true;
 }

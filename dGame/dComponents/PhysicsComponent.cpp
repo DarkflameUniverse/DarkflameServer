@@ -249,18 +249,11 @@ bool PhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& 
 	auto& info = reportInfo.info->PushDebug("Physics");
 	reportInfo.subCategory = &info;
 
-	auto& pos = info.PushDebug("Position");
-	pos.PushDebug<AMFDoubleValue>("x") = m_Position.x;
-	pos.PushDebug<AMFDoubleValue>("y") = m_Position.y;
-	pos.PushDebug<AMFDoubleValue>("z") = m_Position.z;
+	auto& pos = info.PushDebug("Position").PushDebug(m_Position);
 
-	auto& rot = info.PushDebug("Rotation");
-	rot.PushDebug<AMFDoubleValue>("w") = m_Rotation.w;
-	rot.PushDebug<AMFDoubleValue>("x") = m_Rotation.x;
-	rot.PushDebug<AMFDoubleValue>("y") = m_Rotation.y;
-	rot.PushDebug<AMFDoubleValue>("z") = m_Rotation.z;
+	auto& rot = info.PushDebug("Rotation").PushDebug(m_Rotation);
 
-	info.PushDebug<AMFIntValue>("CollisionGroup") = m_CollisionGroup;
+	info.PushDebug<AMFIntValue>("Collision Group") = m_CollisionGroup;
 
 	return true;
 }

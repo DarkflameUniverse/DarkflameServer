@@ -1860,9 +1860,9 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 			std::stringstream ss;
 			ss << "%[Objects_" << item->GetLot() << "_name] Slot " << item->GetSlot();
 			auto& slot = curInv.PushDebug(ss.str());
-			slot.PushDebug<AMFStringValue>("Object ID") = std::to_string(item->GetId());
-			slot.PushDebug<AMFIntValue>("LOT") = item->GetLot();
-			if (item->GetSubKey() != LWOOBJID_EMPTY) slot.PushDebug<AMFStringValue>("Subkey") = std::to_string(item->GetSubKey());
+			slot.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(item->GetId());
+			slot.PushDebug<AMFIntValue>("LOT", "LOT") = item->GetLot();
+			if (item->GetSubKey() != LWOOBJID_EMPTY) slot.PushDebug<AMFStringValue>("Subkey", "LWOOBJID") = std::to_string(item->GetSubKey());
 			slot.PushDebug<AMFIntValue>("Count") = item->GetCount();
 			slot.PushDebug<AMFIntValue>("Slot") = item->GetSlot();
 			slot.PushDebug<AMFBoolValue>("Bind on pickup") = item->GetInfo().isBOP;
@@ -1881,7 +1881,8 @@ bool InventoryComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo
 		ss << "%[Objects_" << info.lot << "_name]";
 		auto& equipSlot = equipped.PushDebug(ss.str());
 		equipSlot.PushDebug<AMFStringValue>("Location") = location;
-		equipSlot.PushDebug<AMFStringValue>("Object ID") = std::to_string(info.id);
+		equipSlot.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(info.id);
+		equipSlot.PushDebug<AMFIntValue>("LOT", "LOT") = info.lot;
 		equipSlot.PushDebug<AMFIntValue>("Slot") = info.slot;
 		equipSlot.PushDebug<AMFIntValue>("Count") = info.count;
 		auto& extra = equipSlot.PushDebug("Extra Info");

@@ -1146,7 +1146,7 @@ bool DestroyableComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportIn
 	destroyableInfo.PushDebug<AMFDoubleValue>("Explode Factor") = m_ExplodeFactor;
 	destroyableInfo.PushDebug<AMFBoolValue>("Has Threats") = m_HasThreats;
 
-	destroyableInfo.PushDebug<AMFStringValue>("Killer ID") = std::to_string(m_KillerID);
+	destroyableInfo.PushDebug<AMFStringValue>("Killer ID", "LWOOBJID") = std::to_string(m_KillerID);
 
 	// "Scripts"; idk what to do about scripts yet
 	auto& immuneCounts = destroyableInfo.PushDebug("Immune Counts");

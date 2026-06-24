@@ -355,8 +355,8 @@ bool ModelComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& re
 
 	cmptInfo.PushDebug<AMFStringValue>("Name") = "Objects_" + std::to_string(m_Parent->GetLOT()) + "_name";
 	cmptInfo.PushDebug<AMFBoolValue>("Has Unique Name") = false;
-	cmptInfo.PushDebug<AMFStringValue>("UGID (from item)") = std::to_string(m_userModelID);
-	cmptInfo.PushDebug<AMFStringValue>("UGID") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("UGID (from item)", "LWOOBJID") = std::to_string(m_userModelID);
+	cmptInfo.PushDebug<AMFStringValue>("UGID", "LWOOBJID") = std::to_string(m_userModelID);
 	cmptInfo.PushDebug<AMFStringValue>("Description") = "";
 	cmptInfo.PushDebug<AMFIntValue>("Behavior Count") = m_Behaviors.size();
 
