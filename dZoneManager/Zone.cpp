@@ -397,7 +397,7 @@ SceneTransitionInfo Zone::LoadSceneTransitionInfo(std::istream& file) {
 	uint32_t sceneID, layerID;
 	BinaryIO::BinaryRead(file, sceneID);
 	BinaryIO::BinaryRead(file, layerID);
-	info.sceneID = LWOSCENEID(static_cast<int32_t>(sceneID), layerID);
+	info.sceneID = LWOSCENEID(sceneID, layerID);
 	BinaryIO::BinaryRead(file, info.position);
 	return info;
 }

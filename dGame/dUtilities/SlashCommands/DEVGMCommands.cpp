@@ -2007,52 +2007,31 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		// Spawn at all sceneMap points in the current scene
 		uint32_t spawnedCount = 0;
-		
+
 		for (const auto& chunk : raw.chunks) {
-			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()
-				|| chunk.width <= 1 || chunk.height <= 1 || chunk.scaleFactor <= 0.0f) continue;
+			if (!chunk.IsValidForSceneLookup()) continue;
 
 			for (uint32_t i = 0; i < chunk.width; ++i) {
 				for (uint32_t j = 0; j < chunk.height; ++j) {
-					const uint32_t heightIndex = chunk.width * i + j;
-					if (heightIndex >= chunk.heightMap.size()) continue;
+					if (i * chunk.width + j >= chunk.heightMap.size()) continue;
 
-					const float y = chunk.heightMap[heightIndex];
+					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
+					if (sceneID != currentSceneID.GetSceneID()) continue;
 
-					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
+					EntityInfo info;
+					info.lot = lot + sceneID;
+					info.pos = chunk.GridToWorldPos(i, j);
+					info.rot = QuatUtils::IDENTITY;
+					info.spawner = nullptr;
+					info.spawnerID = entity->GetObjectID();
+					info.spawnerNodeID = 0;
+					info.settings.Insert(u"SpawnedFromSlashCommand", true);
 
-					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
-
-					uint8_t sceneID = 0;
-					if (sceneIndex < chunk.sceneMap.size()) {
-						sceneID = chunk.sceneMap[sceneIndex];
-					}
-
-					if (sceneID == currentSceneID.GetSceneID()) {
-						const float worldX = (static_cast<float>(i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
-						const float worldY = y;
-						const float worldZ = (static_cast<float>(j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
-
-						NiPoint3 spawnPos(worldX, worldY, worldZ);
-						EntityInfo info;
-						info.lot = lot + currentSceneID.GetSceneID();
-						info.pos = spawnPos;
-						info.rot = QuatUtils::IDENTITY;
-						info.spawner = nullptr;
-						info.spawnerID = entity->GetObjectID();
-						info.spawnerNodeID = 0;
-						info.settings.Insert(u"SpawnedFromSlashCommand", true);
-
-						Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
-						if (newEntity != nullptr) {
-							Game::entityManager->ConstructEntity(newEntity);
-							spawnedCount++;
-						}
+					Entity* newEntity = Game::entityManager->CreateEntity(info, nullptr);
+					if (newEntity != nullptr) {
+						Game::entityManager->ConstructEntity(newEntity);
+						spawnedCount++;
 					}
 				}
 			}
@@ -2092,43 +2071,22 @@ namespace DEVGMCommands {
 			return;
 		}
 
-		// Spawn at all sceneMap points across all scenes
 		uint32_t spawnedCount = 0;
-		std::map<uint8_t, uint32_t> sceneSpawnCounts; // Track spawns per scene
-		
+		std::map<uint8_t, uint32_t> sceneSpawnCounts;
+
 		for (const auto& chunk : raw.chunks) {
-			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()
-				|| chunk.width <= 1 || chunk.height <= 1 || chunk.scaleFactor <= 0.0f) continue;
+			if (!chunk.IsValidForSceneLookup()) continue;
 
 			for (uint32_t i = 0; i < chunk.width; ++i) {
 				for (uint32_t j = 0; j < chunk.height; ++j) {
-					const uint32_t heightIndex = chunk.width * i + j;
-					if (heightIndex >= chunk.heightMap.size()) continue;
+					if (i * chunk.width + j >= chunk.heightMap.size()) continue;
 
-					const float y = chunk.heightMap[heightIndex];
-
-					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-
-					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
-
-					uint8_t sceneID = 0;
-					if (sceneIndex < chunk.sceneMap.size()) {
-						sceneID = chunk.sceneMap[sceneIndex];
-					}
-
+					const uint8_t sceneID = chunk.GetSceneIDAtGrid(i, j);
 					if (sceneID == 0) continue;
 
-					const float worldX = (static_cast<float>(i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
-					const float worldY = y;
-					const float worldZ = (static_cast<float>(j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
-
-					NiPoint3 spawnPos(worldX, worldY, worldZ);
 					EntityInfo info;
 					info.lot = lot + sceneID;
-					info.pos = spawnPos;
+					info.pos = chunk.GridToWorldPos(i, j);
 					info.rot = QuatUtils::IDENTITY;
 					info.spawner = nullptr;
 					info.spawnerID = entity->GetObjectID();
