@@ -652,7 +652,7 @@ void PushMissions(const std::map<uint32_t, Mission*>& missions, AMFArrayValue& V
 }
 
 bool MissionComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
-	auto& missionInfo = reportInfo.info->PushDebug("Mission (Laggy)");
+	auto& missionInfo = reportInfo.info->PushDebug("Mission (Laggy)", "", 1);
 	missionInfo.PushDebug<AMFIntValue>("Component ID") = GetComponentID();
 	// Sort the missions so they are easier to parse and present to the end user
 	std::map<uint32_t, Mission*> achievements;

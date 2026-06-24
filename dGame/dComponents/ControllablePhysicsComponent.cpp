@@ -361,17 +361,11 @@ void ControllablePhysicsComponent::SetStunImmunity(
 
 bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	PhysicsComponent::OnGetObjectReportInfo(reportInfo);
-	auto& info = reportInfo.subCategory->PushDebug("Controllable Info");
+	auto& info = reportInfo.subCategory->PushDebug("Controllable Physics");
 
-	auto& vel = info.PushDebug("Velocity");
-	vel.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
-	vel.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
-	vel.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+	info.PushDebug("Velocity").PushDebug(m_Velocity);
 
-	auto& angularVelocity = info.PushDebug("Angular Velocity");
-	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
-	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
-	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+	info.PushDebug("Angular Velocity").PushDebug(m_AngularVelocity);
 
 	info.PushDebug<AMFBoolValue>("Is On Ground") = m_IsOnGround;
 	info.PushDebug<AMFBoolValue>("Is On Rail") = m_IsOnRail;
@@ -403,12 +397,13 @@ bool ControllablePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObject
 	info.PushDebug<AMFBoolValue>("Is In Bubble") = m_IsInBubble;
 	info.PushDebug<AMFStringValue>("Bubble Type") = StringifiedEnum::ToString(m_BubbleType).data();
 	info.PushDebug<AMFBoolValue>("Special Anims") = m_SpecialAnims;
-	info.PushDebug<AMFIntValue>("Immune To Stun Attack Count") = m_ImmuneToStunAttackCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun Equip Count") = m_ImmuneToStunEquipCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun Interact Count") = m_ImmuneToStunInteractCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun Jump Count") = m_ImmuneToStunJumpCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun Move Count") = m_ImmuneToStunMoveCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun Turn Count") = m_ImmuneToStunTurnCount;
-	info.PushDebug<AMFIntValue>("Immune To Stun UseItem Count") = m_ImmuneToStunUseItemCount;
+	auto& immunity = info.PushDebug("Immunity Effects");
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Move") = m_ImmuneToStunMoveCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Turn") = m_ImmuneToStunTurnCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Attack") = m_ImmuneToStunAttackCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Use Item") = m_ImmuneToStunUseItemCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Equip") = m_ImmuneToStunEquipCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Interact") = m_ImmuneToStunInteractCount != 0;
+	immunity.PushDebug<AMFBoolValue>("Immune to Stun Jump") = m_ImmuneToStunJumpCount != 0;
 	return true;
 }

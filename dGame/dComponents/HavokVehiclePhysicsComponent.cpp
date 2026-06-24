@@ -110,15 +110,9 @@ bool HavokVehiclePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObject
 
 	auto& info = reportInfo.subCategory->PushDebug("Havok Vehicle Physics Info");
 
-	auto& velocity = info.PushDebug("Velocity");
-	velocity.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
-	velocity.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
-	velocity.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
+	auto& velocity = info.PushDebug("Velocity").PushDebug(m_Velocity);
 
-	auto& angularVelocity = info.PushDebug("Angular Velocity");
-	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
-	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
-	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+	auto& angularVelocity = info.PushDebug("Angular Velocity").PushDebug(m_AngularVelocity);
 
 	info.PushDebug<AMFBoolValue>("Is On Ground") = m_IsOnGround;
 	info.PushDebug<AMFBoolValue>("Is On Rail") = m_IsOnRail;

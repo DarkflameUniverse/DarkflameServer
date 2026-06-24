@@ -79,14 +79,8 @@ void SimplePhysicsComponent::SetPhysicsMotionState(uint32_t value) {
 bool SimplePhysicsComponent::OnGetObjectReportInfo(GameMessages::GetObjectReportInfo& reportInfo) {
 	PhysicsComponent::OnGetObjectReportInfo(reportInfo);
 	auto& info = reportInfo.subCategory->PushDebug("Simple Physics Info");
-	auto& velocity = info.PushDebug("Velocity");
-	velocity.PushDebug<AMFDoubleValue>("x") = m_Velocity.x;
-	velocity.PushDebug<AMFDoubleValue>("y") = m_Velocity.y;
-	velocity.PushDebug<AMFDoubleValue>("z") = m_Velocity.z;
-	auto& angularVelocity = info.PushDebug("Angular Velocity");
-	angularVelocity.PushDebug<AMFDoubleValue>("x") = m_AngularVelocity.x;
-	angularVelocity.PushDebug<AMFDoubleValue>("y") = m_AngularVelocity.y;
-	angularVelocity.PushDebug<AMFDoubleValue>("z") = m_AngularVelocity.z;
+	info.PushDebug("Velocity").PushDebug(m_Velocity);
+	info.PushDebug("Angular Velocity").PushDebug(m_AngularVelocity);
 	info.PushDebug<AMFIntValue>("Physics Motion State") = m_PhysicsMotionState;
 	info.PushDebug<AMFStringValue>("Climbable Type") = StringifiedEnum::ToString(m_ClimbableType).data();
 	return true;

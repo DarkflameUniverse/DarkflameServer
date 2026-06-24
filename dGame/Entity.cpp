@@ -1019,6 +1019,7 @@ void Entity::WriteBaseReplicaData(RakNet::BitStream& outBitStream, eReplicaPacke
 		const bool hasParent = m_ParentEntity != nullptr || m_SpawnerID != 0;
 		outBitStream.Write(hasParent);
 		if (hasParent) {
+			// 触るな！
 			if (m_ParentEntity != nullptr) outBitStream.Write(GeneralUtils::SetBit(m_ParentEntity->GetObjectID(), static_cast<uint32_t>(eObjectBits::CLIENT)));
 			else if (m_Spawner != nullptr && m_Spawner->m_Info.isNetwork) outBitStream.Write(m_SpawnerID);
 			else outBitStream.Write(GeneralUtils::SetBit(m_SpawnerID, static_cast<uint32_t>(eObjectBits::CLIENT)));
@@ -2235,11 +2236,16 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 
 	const auto& objTableInfo = table->GetByID(GetLOT());
 
-	objectInfo.PushDebug<AMFStringValue>("Name") = objTableInfo.name;
-	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)") = GetLOT();
-	objectInfo.PushDebug<AMFStringValue>("Object ID") = std::to_string(GetObjectID());
-	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID") = std::to_string(GetSpawnerID());
-	objectInfo.PushDebug<AMFStringValue>("Owner override") = std::to_string(m_OwnerOverride);
+	objectInfo.PushDebug<AMFStringValue>("Name", "name") = objTableInfo.name;
+	objectInfo.PushDebug<AMFIntValue>("Template ID(LOT)", "LOT") = GetLOT();
+	objectInfo.PushDebug<AMFStringValue>("Object ID", "LWOOBJID") = std::to_string(GetObjectID());
+	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID", "LWOOBJID") = std::to_string(GetSpawnerID());
+	objectInfo.PushDebug<AMFStringValue>("Owner override", "LWOOBJID") = std::to_string(m_OwnerOverride);
+	auto& children = objectInfo.PushDebug("Child Objects");
+	int i = 1;
+	for (const auto* child : m_ChildEntities) {
+		if (child) children.PushDebug<AMFStringValue>("Child " + std::to_string(i++), "LWOOBJID") = std::to_string(child->GetObjectID());
+	}
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
 	for (const auto [id, component] : m_Components) {

@@ -328,7 +328,7 @@ private:
 	/**
 	 * The effect that plays while using the jetpack
 	 */
-	int32_t m_JetpackEffectID;
+	int32_t m_JetpackEffectID{};
 
 	/**
 	 * The current speed multiplier, allowing an entity to run faster

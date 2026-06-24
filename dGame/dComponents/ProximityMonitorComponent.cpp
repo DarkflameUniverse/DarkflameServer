@@ -80,8 +80,9 @@ bool ProximityMonitorComponent::OnGetObjectReportInfo(GameMessages::GetObjectRep
 		proxAmf.PushDebug("Position").PushDebug(entity->GetPosition());
 		proxAmf.PushDebug("Rotation").PushDebug(entity->GetRotation());
 		auto& collidingAmf = proxAmf.PushDebug("Colliding Objects");
+		int i = 1;
 		for (const auto& colliding : entity->GetCurrentlyCollidingObjects()) {
-			collidingAmf.PushDebug(std::to_string(colliding));
+			collidingAmf.PushDebug<AMFStringValue>(std::to_string(i++), "LWOOBJID") = std::to_string(colliding);
 		}
 	}
 
