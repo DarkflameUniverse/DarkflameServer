@@ -2242,8 +2242,9 @@ bool Entity::MsgRequestServerObjectInfo(GameMessages::RequestServerObjectInfo& r
 	objectInfo.PushDebug<AMFStringValue>("Spawner's Object ID", "LWOOBJID") = std::to_string(GetSpawnerID());
 	objectInfo.PushDebug<AMFStringValue>("Owner override", "LWOOBJID") = std::to_string(m_OwnerOverride);
 	auto& children = objectInfo.PushDebug("Child Objects");
+	int i = 1;
 	for (const auto* child : m_ChildEntities) {
-		if (child) children.PushDebug<AMFStringValue>("Child", "LWOOBJID") = std::to_string(child->GetObjectID());
+		if (child) children.PushDebug<AMFStringValue>("Child " + std::to_string(i++), "LWOOBJID") = std::to_string(child->GetObjectID());
 	}
 
 	auto& componentDetails = objectInfo.PushDebug("Component Information");
