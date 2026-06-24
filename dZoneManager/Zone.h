@@ -2,10 +2,12 @@
 
 #include "dZMCommon.h"
 #include "LDFFormat.h"
+#include "NiColor.h"
 #include "tinyxml2.h"
 #include <string>
 #include <vector>
 #include <map>
+#include "Raw.h"
 
 namespace LUTriggers {
 	struct Trigger;
@@ -21,22 +23,25 @@ struct WaypointCommand {
 };
 
 
+enum class eSceneType : uint32_t {
+	General = 0,
+	Audio = 1,
+};
+
 struct SceneRef {
 	std::string filename;
 	uint32_t id{};
-	uint32_t sceneType{}; //0 = general, 1 = audio?
+	eSceneType sceneType{};
 	std::string name;
-	NiPoint3 unknown1;
-	float unknown2{};
-	uint8_t color_r{};
-	uint8_t color_g{};
-	uint8_t color_b{};
+	NiPoint3 scenePosition;   // version 33 only: editor bounding sphere center
+	float sceneRadius{};      // version 33 only: editor bounding sphere radius
+	NiColor color;
 	std::unique_ptr<Level> level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;
 };
 
 struct SceneTransitionInfo {
-	uint64_t sceneID{}; //id of the scene being transitioned to.
+	LWOSCENEID sceneID;
 	NiPoint3 position;
 };
 
@@ -228,6 +233,12 @@ public:
 	void SetSpawnPos(const NiPoint3& pos) { m_Spawnpoint = pos; }
 	void SetSpawnRot(const NiQuaternion& rot) { m_SpawnpointRotation = rot; }
 
+	const Raw::Raw& GetZoneRaw() const { return m_Raw; }
+	const Raw::TerrainMesh& GetTerrainMesh() const { return m_TerrainMesh; }
+	const SceneRef* GetScene(LWOSCENEID sceneID) const;
+	const std::vector<SceneTransition>& GetSceneTransitions() const { return m_SceneTransitions; }
+	const std::map<LWOSCENEID, SceneRef>& GetScenes() const { return m_Scenes; }
+
 private:
 	LWOZONEID m_ZoneID;
 	std::string m_ZoneFilePath;
@@ -244,6 +255,8 @@ private:
 	std::string m_ZoneName; //Name given to the zone by a level designer
 	std::string m_ZoneDesc; //Description of the zone by a level designer
 	std::string m_ZoneRawPath; //Path to the .raw file of this zone.
+	Raw::Raw m_Raw; // The Raw data for this zone
+	Raw::TerrainMesh m_TerrainMesh; // Pre-generated terrain mesh for fast scene lookups
 
 	std::map<LWOSCENEID, SceneRef> m_Scenes;
 	std::vector<SceneTransition> m_SceneTransitions;
