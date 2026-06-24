@@ -101,7 +101,10 @@ struct Chunk {
 	std::vector<uint16_t> meshVertUsage;
 	std::vector<uint16_t> meshVertSize;
 	std::vector<MeshTri> meshTri;
-	
+
+	bool IsValidForSceneLookup() const;
+	uint8_t GetSceneIDAtGrid(uint32_t i, uint32_t j) const;
+	NiPoint3 GridToWorldPos(uint32_t i, uint32_t j) const;
 };
 
 /**

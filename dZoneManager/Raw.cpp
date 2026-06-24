@@ -14,6 +14,30 @@ constexpr uint32_t kMaxChunks = 1024;
 
 namespace Raw {
 
+bool Chunk::IsValidForSceneLookup() const {
+	return !sceneMap.empty() && colorMapResolution > 0 && !heightMap.empty()
+		&& scaleFactor > 0.0f && width > 1 && height > 1;
+}
+
+uint8_t Chunk::GetSceneIDAtGrid(uint32_t i, uint32_t j) const {
+	const float sceneMapI = (static_cast<float>(i) / static_cast<float>(width - 1)) * static_cast<float>(colorMapResolution - 1);
+	const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(height - 1)) * static_cast<float>(colorMapResolution - 1);
+	const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), colorMapResolution - 1);
+	const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), colorMapResolution - 1);
+	const uint32_t sceneIndex = sceneI * colorMapResolution + sceneJ;
+	if (sceneIndex >= sceneMap.size()) return 0;
+	return sceneMap[sceneIndex];
+}
+
+NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
+	const float y = (i * width + j < heightMap.size()) ? heightMap[i * width + j] : 0.0f;
+	return NiPoint3(
+		(static_cast<float>(i) + (offsetX / scaleFactor)) * scaleFactor,
+		y,
+		(static_cast<float>(j) + (offsetZ / scaleFactor)) * scaleFactor
+	);
+}
+
 	/**
 	 * @brief Read flair attributes from stream
 	 */
@@ -386,45 +410,14 @@ namespace Raw {
 		uint32_t vertexOffset = 0;
 
 		for (const auto& chunk : raw.chunks) {
-			// Skip chunks without scene maps or with invalid dimensions/scale
-			if (chunk.sceneMap.empty() || chunk.colorMapResolution == 0 || chunk.heightMap.empty()
-				|| chunk.scaleFactor <= 0.0f || chunk.width <= 1 || chunk.height <= 1) {
-				LOG("Skipping chunk %u (sceneMap: %zu, colorMapRes: %u, heightMap: %zu, scaleFactor: %f, width: %u, height: %u)", 
-					chunk.id, chunk.sceneMap.size(), chunk.colorMapResolution, chunk.heightMap.size(),
-					chunk.scaleFactor, chunk.width, chunk.height);
-				continue;
-			}
+			if (!chunk.IsValidForSceneLookup()) continue;
 
-			LOG("Processing chunk %u: width=%u, height=%u, colorMapRes=%u, sceneMapSize=%zu", 
-				chunk.id, chunk.width, chunk.height, chunk.colorMapResolution, chunk.sceneMap.size());
-
-			// Generate vertices for this chunk
 			for (uint32_t i = 0; i < chunk.width; ++i) {
 				for (uint32_t j = 0; j < chunk.height; ++j) {
-					// Get height at this position
 					const uint32_t heightIndex = chunk.width * i + j;
 					if (heightIndex >= chunk.heightMap.size()) continue;
-					
-					const float y = chunk.heightMap[heightIndex];
 
-					const float worldX = (static_cast<float>(i) + (chunk.offsetX / chunk.scaleFactor)) * chunk.scaleFactor;
-					const float worldY = y;
-					const float worldZ = (static_cast<float>(j) + (chunk.offsetZ / chunk.scaleFactor)) * chunk.scaleFactor;
-
-					const NiPoint3 worldPos(worldX, worldY, worldZ);
-
-					const float sceneMapI = (static_cast<float>(i) / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-					const float sceneMapJ = (static_cast<float>(j) / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-
-					const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-					const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-					const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
-
-					uint8_t sceneID = 0;
-					if (sceneIndex < chunk.sceneMap.size()) {
-						sceneID = chunk.sceneMap[sceneIndex];
-					}
-					outMesh.vertices.emplace_back(worldPos, sceneID);
+					outMesh.vertices.emplace_back(chunk.GridToWorldPos(i, j), chunk.GetSceneIDAtGrid(i, j));
 					if (i > 0 && j > 0) {
 						const uint32_t currentVert = vertexOffset + chunk.width * i + j;
 						const uint32_t leftVert = currentVert - 1;

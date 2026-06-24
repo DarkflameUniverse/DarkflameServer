@@ -321,37 +321,17 @@ LWOSCENEID dZoneManager::GetSceneIDFromPosition(const NiPoint3& position) const 
 	// Find the chunk containing this position
 	// Reverse the world position calculation from GenerateTerrainMesh
 	for (const auto& chunk : raw.chunks) {
-		if (chunk.sceneMap.empty() || chunk.scaleFactor <= 0.0f || chunk.width <= 1 || chunk.height <= 1 || chunk.colorMapResolution == 0) continue;
+		if (!chunk.IsValidForSceneLookup()) continue;
 
-		// Reverse: worldX = (i + offsetX/scaleFactor) * scaleFactor
-		// Therefore: i = worldX/scaleFactor - offsetX/scaleFactor
 		const float heightI = posX / chunk.scaleFactor - (chunk.offsetX / chunk.scaleFactor);
 		const float heightJ = posZ / chunk.scaleFactor - (chunk.offsetZ / chunk.scaleFactor);
 
-		// Check if position is within this chunk's heightmap bounds
 		if (heightI >= 0.0f && heightI < static_cast<float>(chunk.width) &&
 			heightJ >= 0.0f && heightJ < static_cast<float>(chunk.height)) {
-			
-			const float sceneMapI = (heightI / static_cast<float>(chunk.width - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
-			const float sceneMapJ = (heightJ / static_cast<float>(chunk.height - 1)) * static_cast<float>(chunk.colorMapResolution - 1);
 
-			const uint32_t sceneI = std::min(static_cast<uint32_t>(sceneMapI), chunk.colorMapResolution - 1);
-			const uint32_t sceneJ = std::min(static_cast<uint32_t>(sceneMapJ), chunk.colorMapResolution - 1);
-
-			// Scene map uses the same indexing pattern as heightmap: row * width + col
-			const uint32_t sceneIndex = sceneI * chunk.colorMapResolution + sceneJ;
-
-			// Bounds check: if this chunk's sceneMap is inconsistent, skip this chunk
-			if (sceneIndex >= chunk.sceneMap.size()) {
-				LOG_DEBUG("GetSceneIDFromPosition: sceneIndex %u out of bounds (sceneMap size: %zu), skipping malformed chunk.", sceneIndex, chunk.sceneMap.size());
-				continue;
-			}
-
-			// Get scene ID from sceneMap
-			const uint8_t sceneID = chunk.sceneMap[sceneIndex];
-			
-			// Return the scene ID
-			return LWOSCENEID(sceneID, 0);
+			const uint32_t gridI = std::min(static_cast<uint32_t>(heightI), chunk.width - 1);
+			const uint32_t gridJ = std::min(static_cast<uint32_t>(heightJ), chunk.height - 1);
+			return LWOSCENEID(chunk.GetSceneIDAtGrid(gridI, gridJ), 0);
 		}
 	}
 
