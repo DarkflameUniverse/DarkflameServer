@@ -104,11 +104,17 @@ void Zone::LoadZoneIntoMemory() {
 		}
 
 		auto rawFile = Game::assetManager->GetFile(zoneFolderPath + m_ZoneRawPath);
-		if (!Raw::ReadRaw(rawFile, m_Raw)) {
-			LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
-			throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+		if (m_FileFormatVersion < Zone::FileFormatVersion::PrePreAlpha) {
+			LOG("Zone %s uses legacy raw terrain format (version %u) which is not supported", m_ZoneFilePath.c_str(), static_cast<uint32_t>(m_FileFormatVersion));
+			throw std::runtime_error("Aborting Zone loading due to unsupported Raw File version.");
+		} else {
+			if (Raw::ReadRaw(rawFile, m_Raw)) {
+				LOG("Successfully parsed %s", (zoneFolderPath + m_ZoneRawPath).c_str());			
+			} else {
+				LOG("Failed to parse %s", (zoneFolderPath + m_ZoneRawPath).c_str());
+				throw std::runtime_error("Aborting Zone loading due to invalid Raw File.");
+			}
 		}
-		LOG("Loaded Raw Terrain with %u chunks", m_Raw.numChunks);
 
 
 		// Optionally export terrain mesh to OBJ for debugging/visualization
