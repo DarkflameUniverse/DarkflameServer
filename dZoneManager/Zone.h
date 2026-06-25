@@ -33,8 +33,8 @@ struct SceneRef {
 	uint32_t id{};
 	eSceneType sceneType{};
 	std::string name;
-	NiPoint3 scenePosition;   // version 33 only: editor bounding sphere center
-	float sceneRadius{};      // version 33 only: editor bounding sphere radius
+	NiPoint3 unknown1;
+	float unknown2{};
 	NiColor color;
 	std::unique_ptr<Level> level;
 	std::map<uint32_t, LUTriggers::Trigger*> triggers;

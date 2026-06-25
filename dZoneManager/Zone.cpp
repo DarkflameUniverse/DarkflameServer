@@ -290,8 +290,8 @@ void Zone::LoadScene(std::istream& file) {
 	}
 
 	if (m_FileFormatVersion == Zone::FileFormatVersion::LatePreAlpha) {
-		BinaryIO::BinaryRead(file, scene.scenePosition);
-		BinaryIO::BinaryRead(file, scene.sceneRadius);
+		BinaryIO::BinaryRead(file, scene.unknown1);
+		BinaryIO::BinaryRead(file, scene.unknown2);
 	}
 
 	if (m_FileFormatVersion >= Zone::FileFormatVersion::LatePreAlpha) {
