@@ -165,45 +165,55 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 			if (version >= 32) {
 				BinaryIO::BinaryRead(stream, chunk.colorMapResolution);
 			} else {
-				chunk.colorMapResolution = chunk.width; // Default to chunk width for older versions
+				chunk.colorMapResolution = chunk.width - 1;
 			}
 
 			if (chunk.colorMapResolution > kMaxResolution) {
 				LOG("Chunk colorMapResolution %u exceeds maximum %u", chunk.colorMapResolution, kMaxResolution);
 				return false;
 			}
-			const size_t colorMapPixelCount = static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution * 4; // RGBA
-			if (colorMapPixelCount > kMaxBlobBytes) {
-				LOG("Chunk colorMap size %zu exceeds maximum %zu bytes", colorMapPixelCount, kMaxBlobBytes);
-				return false;
-			}
-			chunk.colorMap.resize(colorMapPixelCount);
-			stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(colorMapPixelCount));
 
-			if (stream.fail()) {
-				return false;
-			}
-			// LightMap/diffusemap.dds
-			uint32_t lightMapSize;
-			BinaryIO::BinaryRead(stream, lightMapSize);
-
-			if (lightMapSize > kMaxBlobBytes) {
-				LOG("Chunk lightMap size %u exceeds maximum %zu bytes", lightMapSize, kMaxBlobBytes);
-				return false;
-			}
-			chunk.lightMap.resize(lightMapSize);
-			stream.read(reinterpret_cast<char*>(chunk.lightMap.data()), static_cast<std::streamsize>(lightMapSize));
-
-			if (stream.fail()) {
-				return false;
-			}
-
-			// TextureMap
 			if (version >= 32) {
-				BinaryIO::BinaryRead(stream, chunk.textureMapResolution);
+				const size_t colorMapPixelCount = static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution * 4;
+				if (colorMapPixelCount > kMaxBlobBytes) {
+					LOG("Chunk colorMap size %zu exceeds maximum %zu bytes", colorMapPixelCount, kMaxBlobBytes);
+					return false;
+				}
+				chunk.colorMap.resize(colorMapPixelCount);
+				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(colorMapPixelCount));
 			} else {
-				chunk.textureMapResolution = chunk.width; // Default to chunk width for older versions
+				const size_t legacyColorBytes = static_cast<size_t>(chunk.width) * chunk.width * 4;
+				if (legacyColorBytes > kMaxBlobBytes) {
+					LOG("Chunk legacy colorMap size %zu exceeds maximum %zu bytes", legacyColorBytes, kMaxBlobBytes);
+					return false;
+				}
+				chunk.colorMap.resize(legacyColorBytes);
+				stream.read(reinterpret_cast<char*>(chunk.colorMap.data()), static_cast<std::streamsize>(legacyColorBytes));
 			}
+
+			if (stream.fail()) {
+				return false;
+			}
+
+			// LightMap/diffusemap.dds (v>=32 only)
+			if (version >= 32) {
+				uint32_t lightMapSize;
+				BinaryIO::BinaryRead(stream, lightMapSize);
+
+				if (lightMapSize > kMaxBlobBytes) {
+					LOG("Chunk lightMap size %u exceeds maximum %zu bytes", lightMapSize, kMaxBlobBytes);
+					return false;
+				}
+				chunk.lightMap.resize(lightMapSize);
+				stream.read(reinterpret_cast<char*>(chunk.lightMap.data()), static_cast<std::streamsize>(lightMapSize));
+
+				if (stream.fail()) {
+					return false;
+				}
+			}
+
+			// Blend/texture map
+			BinaryIO::BinaryRead(stream, chunk.textureMapResolution);
 
 			if (chunk.textureMapResolution > kMaxResolution) {
 				LOG("Chunk textureMapResolution %u exceeds maximum %u", chunk.textureMapResolution, kMaxResolution);
@@ -221,22 +231,23 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				return false;
 			}
 
-			// Texture settings
-			BinaryIO::BinaryRead(stream, chunk.textureSettings);
+			// Texture settings + blend map DDS (v>=32 only)
+			if (version >= 32) {
+				BinaryIO::BinaryRead(stream, chunk.textureSettings);
 
-			// Blend map DDS
-			uint32_t blendMapDDSSize;
-			BinaryIO::BinaryRead(stream, blendMapDDSSize);
+				uint32_t blendMapDDSSize;
+				BinaryIO::BinaryRead(stream, blendMapDDSSize);
 
-			if (blendMapDDSSize > kMaxBlobBytes) {
-				LOG("Chunk blendMap size %u exceeds maximum %zu bytes", blendMapDDSSize, kMaxBlobBytes);
-				return false;
-			}
-			chunk.blendMap.resize(blendMapDDSSize);
-			stream.read(reinterpret_cast<char*>(chunk.blendMap.data()), static_cast<std::streamsize>(blendMapDDSSize));
+				if (blendMapDDSSize > kMaxBlobBytes) {
+					LOG("Chunk blendMap size %u exceeds maximum %zu bytes", blendMapDDSSize, kMaxBlobBytes);
+					return false;
+				}
+				chunk.blendMap.resize(blendMapDDSSize);
+				stream.read(reinterpret_cast<char*>(chunk.blendMap.data()), static_cast<std::streamsize>(blendMapDDSSize));
 
-			if (stream.fail()) {
-				return false;
+				if (stream.fail()) {
+					return false;
+				}
 			}
 
 			// Read flairs
@@ -259,7 +270,7 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				}
 			}
 
-			// Scene map (version 32+ only)
+			// Scene map
 			if (version >= 32) {
 				const size_t sceneMapSize = static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution;
 
@@ -269,20 +280,43 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				}
 				chunk.sceneMap.resize(sceneMapSize);
 				stream.read(reinterpret_cast<char*>(chunk.sceneMap.data()), static_cast<std::streamsize>(sceneMapSize));
-
-				if (stream.fail()) {
+			} else if (version == 31) {
+				const size_t sceneMapCells = static_cast<size_t>(chunk.colorMapResolution + 1) * (chunk.colorMapResolution + 1);
+				if (sceneMapCells > kMaxBlobBytes) {
+					LOG("Chunk v31 sceneMap size %zu exceeds maximum %zu bytes", sceneMapCells, kMaxBlobBytes);
 					return false;
 				}
+				std::vector<uint8_t> rawSceneMap(sceneMapCells);
+				stream.read(reinterpret_cast<char*>(rawSceneMap.data()), static_cast<std::streamsize>(sceneMapCells));
+				chunk.sceneMap.resize(static_cast<size_t>(chunk.colorMapResolution) * chunk.colorMapResolution);
+				for (uint32_t row = 0; row < chunk.colorMapResolution; ++row) {
+					for (uint32_t col = 0; col < chunk.colorMapResolution; ++col) {
+						chunk.sceneMap[row * chunk.colorMapResolution + col] = rawSceneMap[row * (chunk.colorMapResolution + 1) + col];
+					}
+				}
+			} else {
+				stream.seekg(1, std::ios::cur);
 			}
 
-			// Mesh vertex usage (read size first, then check if empty)
+			if (stream.fail()) {
+				return false;
+			}
+
+			// Mesh data (v>=32 only)
+			if (version < 32) {
+				return true;
+			}
+
 			BinaryIO::BinaryRead(stream, chunk.vertSize);
 
 			if (stream.fail()) {
 				return false;
 			}
 
-			// Mesh vert usage
+			if (chunk.vertSize == 0) {
+				return true;
+			}
+
 			const size_t vertBytes = static_cast<size_t>(chunk.vertSize) * sizeof(uint16_t);
 			if (vertBytes > kMaxBlobBytes) {
 				LOG("Chunk %u vertSize %u exceeds maximum (byte size %zu > %zu)", chunk.id, chunk.vertSize, vertBytes, kMaxBlobBytes);
@@ -297,12 +331,6 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				return false;
 			}
 
-			// Only continue with mesh data if we have vertex usage data
-			if (chunk.vertSize == 0) {
-				return true;
-			}
-
-			// Mesh vert size (16 elements)
 			chunk.meshVertSize.resize(16);
 			for (int i = 0; i < 16; ++i) {
 				BinaryIO::BinaryRead(stream, chunk.meshVertSize[i]);
@@ -312,7 +340,6 @@ NiPoint3 Chunk::GridToWorldPos(uint32_t i, uint32_t j) const {
 				return false;
 			}
 
-			// Mesh triangles (16 elements)
 			chunk.meshTri.resize(16);
 			for (int i = 0; i < 16; ++i) {
 				if (!ReadMeshTri(stream, chunk.meshTri[i])) {
